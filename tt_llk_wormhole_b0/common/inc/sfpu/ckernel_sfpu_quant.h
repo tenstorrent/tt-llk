@@ -98,6 +98,7 @@ inline void _dequant_int32_(const uint dst_offset)
     }
 }
 
+template <bool APPROXIMATION_MODE /*unused*/>
 inline void _init_quant_zero_point_(const uint zero_point)
 {
     _sfpu_load_imm32_(2,zero_point);
