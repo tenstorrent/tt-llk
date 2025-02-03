@@ -48,7 +48,11 @@ using namespace ckernel::sfpu;
 void run_kernel()
 {
     // copy srca to dest
+    #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE,false, is_fp32_dest_acc_en, false>(0, 0, 4, DATA_FORMAT);
+    #else
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, false>(0, 0, 4, DATA_FORMAT);
+    #endif
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false,false>(DATA_FORMAT, DATA_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
