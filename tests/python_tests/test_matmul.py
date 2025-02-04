@@ -3,18 +3,14 @@ import torch
 import os
 from helpers import *
 
-torch.set_printoptions(precision=2, linewidth=800, threshold=100000, sci_mode=False)
-
 def generate_golden(operand1, operand2, data_format):
-    # A_float = operand1.clone().detach()#.to(format_dict[data_format])
-    # B_float = operand2.clone().detach()#.to(format_dict[data_format])
 
     A_untilized = untilize(operand1,data_format)
     B_untilized = untilize(operand2,data_format)
 
     result = torch.matmul(A_untilized, B_untilized )
+    result = tilize(result,data_format)
 
-    result = tilize(result)
     return result
 
 @pytest.mark.parametrize("format", ["Float16_b", "Float16"])
@@ -34,13 +30,12 @@ def test_all(format, testname, dest_acc):
         "dest_acc": dest_acc,
     }
 
-
     make_cmd = generate_make_command(test_config)
-    os.system(f"cd .. && {make_cmd}")
+    os.system(f"cd .. && {make_cmd} >/dev/null")
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(format,src_A)
+    res_from_L1 = collect_results(format)
 
     os.system("cd .. && make clean")
 
@@ -53,17 +48,17 @@ def test_all(format, testname, dest_acc):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
 
+    print(golden_tensor.type(), res_tensor.type())
+
     if(format == "Float16_b" or format == "Float16"):
         atol = 0.1
         rtol = 0.05
     elif(format == "Bfp8_b"):
-        atol = 0.4
-        rtol = 0.3
+        atol = 0.1
+        rtol = 0.2
 
-    rel_errs = []
-
-    # for i in range(len(golden_tensor)):
-    #     assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+    for i in range(len(golden_tensor)):
+        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
 
     _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.98
