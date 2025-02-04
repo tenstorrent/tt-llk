@@ -1,7 +1,7 @@
 from .dictionaries import *
 
 def generate_make_command(test_config):
-    make_cmd = f"make --silent "
+    make_cmd = f"make --silent --always-make "
 
     input_format = test_config.get("input_format", "Float16_b") # Flolat16_b is default
     output_format = test_config.get("output_format", "Float16_b")
