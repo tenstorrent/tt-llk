@@ -35,7 +35,6 @@ def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc):
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
 
-    #context = init_debuda()
     src_A, src_B = generate_stimuli(format,tile_cnt = tile_cnt)
     golden = generate_golden(mathop,src_A,src_B,format)
     write_stimuli_to_l1(src_A,src_B,format,tile_cnt)

@@ -10,13 +10,17 @@ def generate_golden(operand1,format):
 
 @pytest.mark.parametrize("format",  ["Bfp8_b", "Float16_b", "Float16","Float32"])
 @pytest.mark.parametrize("testname", ["eltwise_unary_datacopy_test"])
-@pytest.mark.parametrize("dest_acc", [""])
+@pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
+
 def test_all(format, testname, dest_acc):
-    #context = init_debuda()
+
     src_A,src_B = generate_stimuli(format)
     srcB = torch.full((1024,), 0)
     golden = generate_golden(src_A,format)
     write_stimuli_to_l1(src_A, src_B, format)
+
+    if( format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
+        pytest.skip("SKipping test for 32 bit wide data without 32 bit accumulation in Dest")
 
     test_config = {
         "input_format": format,

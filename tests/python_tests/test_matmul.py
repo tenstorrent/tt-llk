@@ -22,7 +22,6 @@ def generate_golden(operand1, operand2, data_format):
 @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
 def test_all(format, testname, dest_acc):
 
-    #context = init_debuda()
     src_A, src_B = generate_stimuli(format)
     golden_tensor = generate_golden(src_A, src_B, format)
 
