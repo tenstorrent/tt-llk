@@ -47,11 +47,10 @@ def test_all(format, mathop, testname, dest_acc, approx_mode):
     }
 
     make_cmd = generate_make_command(test_config)
-    os.system(f"cd .. && {make_cmd}")
-
+    os.system(f"cd .. && {make_cmd} >/dev/null")
     run_elf_files(testname)
     
-    res_from_L1 = collect_results(format,src_A,sfpu=True)
+    res_from_L1 = collect_results(format,sfpu=True)
 
     os.system("cd .. && make clean")
 
