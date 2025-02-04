@@ -32,7 +32,7 @@ def generate_golden(operation, operand1, data_format):
 @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
 @pytest.mark.parametrize("approx_mode", ["true","false"])
 def test_all(format, mathop, testname, dest_acc, approx_mode):
-    #context = init_debuda()
+
     src_A,src_B = generate_stimuli(format,sfpu = True)
     golden = generate_golden(mathop, src_A, format)
     write_stimuli_to_l1(src_A, src_B, format)
