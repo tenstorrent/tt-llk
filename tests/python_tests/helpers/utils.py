@@ -9,7 +9,7 @@ def untilize(original_tensor,stimuli_format = "Float16_b"):
     
     submatrices = original_tensor.reshape(4, 16, 16)
 
-    new_tensor = torch.zeros((32, 32))#, dtype=format_dict[stimuli_format])
+    new_tensor = torch.zeros((32, 32), dtype=format_dict[stimuli_format])
 
     new_tensor[0:16, 0:16] = submatrices[0]  # Top-left
     new_tensor[0:16, 16:32] = submatrices[1]  # Top-right
@@ -20,7 +20,7 @@ def untilize(original_tensor,stimuli_format = "Float16_b"):
 
 import torch
 
-def calculate_read_words_cnt(format,src_A, sfpu=False):
+def calculate_read_words_cnt(format, sfpu=False):
 
     if sfpu == True: # for now just for 16 bit formats
         return 128
@@ -47,7 +47,7 @@ def tilize(original_tensor, stimuli_format="Float16_b"):
                         submatrix_3.flatten(), submatrix_4.flatten()])
     
     # Return the tensor in the requested format (if applicable)
-    return result.to(dtype=torch.bfloat16 if stimuli_format == "Float16_b" else torch.float32)
+    return result.to(dtype=format_dict[stimuli_format] if stimuli_format in ["Float16_b","Float16"] else torch.float32)
 
 def revese_endian_chunk(input_list, chunk_size = 4):
 

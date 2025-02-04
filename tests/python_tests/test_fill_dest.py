@@ -51,7 +51,7 @@ def test_multiple_kernels(format, testname, dest_acc):
     }
 
     make_cmd = generate_make_command(test_config)
-    os.system(f"cd .. && {make_cmd}")
+    os.system(f"cd .. && {make_cmd} >/dev/null")
 
     run_elf_files(testname)
 
@@ -64,7 +64,7 @@ def test_multiple_kernels(format, testname, dest_acc):
     res_from_L1 = []
 
     for address in pack_addresses:
-        res_from_L1.append(collect_results(format,src_A,address))
+        res_from_L1.append(collect_results(format,address))
      
     res_from_L1 = flatten_list(res_from_L1)
     golden = flatten_list(golden)

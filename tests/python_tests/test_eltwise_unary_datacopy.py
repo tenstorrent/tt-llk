@@ -3,8 +3,6 @@ import torch
 import os
 from helpers import *
 
-torch.set_printoptions(linewidth=500)
-
 def generate_golden(operand1,format):
     return operand1
 
@@ -31,10 +29,10 @@ def test_all(format, testname, dest_acc):
 
 
     make_cmd = generate_make_command(test_config)
-    os.system(f"cd .. && {make_cmd}")
+    os.system(f"cd .. && {make_cmd} >/dev/null")
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(format,src_A)
+    res_from_L1 = collect_results(format)
 
     os.system("cd .. && make clean")
 
