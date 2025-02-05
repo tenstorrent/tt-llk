@@ -27,7 +27,8 @@ def generate_golden(op, operand1, operand2, data_format):
 @pytest.mark.parametrize("format", ["Bfp8_b", "Float16_b", "Float16"])
 @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
 @pytest.mark.parametrize("testname", ["multiple_tiles_eltwise_test"])
-def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc):
+@pytest.mark.parametrize("math_fidelity", range(0,1))
+def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
 
     # prepare setup for running kernels
 
@@ -39,6 +40,9 @@ def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc):
     golden = generate_golden(mathop,src_A,src_B,format)
     write_stimuli_to_l1(src_A,src_B,format,tile_cnt)
 
+    if mathop != 3:
+        math_fidelity = 0 
+
     test_config = {
         "input_format": format,
         "output_format": format,
@@ -48,7 +52,8 @@ def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc):
         "kern_cnt" : tile_cnt,
         "pack_addr_cnt" : len(pack_addresses),
         "pack_addrs" : pack_addresses_formatted,
-        "unp_a_addr_cnt": tile_cnt
+        "unp_a_addr_cnt": tile_cnt,
+        "math_fidelity" : math_fidelity
     }
     
     make_cmd = generate_make_command(test_config)
