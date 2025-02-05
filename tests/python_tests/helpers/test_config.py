@@ -12,7 +12,9 @@ def generate_make_command(test_config):
     
     mathop = test_config.get("mathop", "no_mathop")
     approx_mode = test_config.get("approx_mode","false")
+    math_fidelity = test_config.get("math_fidelity",0)
 
+    make_cmd += f" math_fidelity={math_fidelity} "
     make_cmd += f" approx_mode={approx_mode} "
 
     if(mathop != "no_mathop"):

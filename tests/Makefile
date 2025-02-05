@@ -32,7 +32,7 @@ FORMAT_ARG:=-D$(format)
 ifeq ($(mathop),)
     MATHOP_ARG =
 else
-	MATHOP_ARG:=-D$(mathop) 
+	MATHOP_ARG:=-D$(mathop) -DAPPROX_MODE=$(approx_mode) -DMATH_FIDELITY=$(math_fidelity)
 endif
 
 # If test needs to run muliple consecutive operations it needs some additional

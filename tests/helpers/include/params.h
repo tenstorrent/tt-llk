@@ -61,15 +61,15 @@
 
     #ifdef SFPU_OP_SQRT
         #define SFPU_OPERATION sqrt
-        #define SFPU_CALLS _init_sqrt_<false>();_calculate_sqrt_<false,0,10>(10);
+        #define SFPU_CALLS _init_sqrt_<APPROX_MODE>();_calculate_sqrt_<APPROX_MODE,0,10>(10);
     #endif
     #ifdef SFPU_OP_LOG
         #define SFPU_OPERATION log
-        #define SFPU_CALLS _init_log_<false>();_calculate_log_<false,false,10>(10,0);
+        #define SFPU_CALLS _init_log_<APPROX_MODE>();_calculate_log_<APPROX_MODE,false,10>(10,0);
     #endif
     #ifdef SFPU_OP_SQUARE
         #define SFPU_OPERATION square
-        #define SFPU_CALLS _calculate_square_<false,10>(10);
+        #define SFPU_CALLS _calculate_square_<APPROX_MODE,10>(10);
     #endif
 
 #endif
