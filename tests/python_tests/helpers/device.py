@@ -16,8 +16,12 @@ def run_elf_files(testname, run_brisc=True):
     if run_brisc == True:
         run_elf(f"{ELF_LOCATION}brisc.elf", "0,0", risc_id=0)
 
-    for i in range(3):
-        run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", "0,0", risc_id=i + 1)
+    # for i in range(3):
+    #     run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", "0,0", risc_id=i + 1)
+
+        run_elf(f"{ELF_LOCATION}{testname}_trisc2.elf", "0,0", risc_id=3)
+        run_elf(f"{ELF_LOCATION}{testname}_trisc1.elf", "0,0", risc_id=2)
+        run_elf(f"{ELF_LOCATION}{testname}_trisc0.elf", "0,0", risc_id=1)
 
 def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, tile_cnt = 1):
 
