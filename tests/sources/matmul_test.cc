@@ -43,11 +43,11 @@ void run_kernel()
 
 void run_kernel()
 {
-    _llk_math_matmul_init_<4,DstTileFaceLayout::RowMajor>();
+    _llk_math_matmul_init_<MATH_FIDELITY,DstTileFaceLayout::RowMajor>();
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false,false>(DATA_FORMAT,DATA_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_matmul_<4,DstTileFaceLayout::RowMajor>(0);
+    _llk_math_matmul_<MATH_FIDELITY,DstTileFaceLayout::RowMajor>(0);
     _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
 }
 

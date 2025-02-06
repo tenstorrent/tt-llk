@@ -32,8 +32,10 @@ FORMAT_ARG:=-D$(format)
 ifeq ($(mathop),)
     MATHOP_ARG =
 else
-	MATHOP_ARG:=-D$(mathop) -DAPPROX_MODE=$(approx_mode) -DMATH_FIDELITY=$(math_fidelity)
+	MATHOP_ARG:=-D$(mathop) -DAPPROX_MODE=$(approx_mode)
 endif
+
+OPTIONS_COMPILE+=-DMATH_FIDELITY=$(math_fidelity)
 
 # If test needs to run muliple consecutive operations it needs some additional
 # files to be linked to it
