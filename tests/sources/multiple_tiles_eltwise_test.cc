@@ -58,7 +58,7 @@ void run_kernel()
     for(int index = 0; index < KERN_CNT; index++){
 
         _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-        _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE,DstSync::SyncFull, 0, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(4, 0, false);
+        _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE,DstSync::SyncFull, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(4, 0, false);
         _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
     }
 }
