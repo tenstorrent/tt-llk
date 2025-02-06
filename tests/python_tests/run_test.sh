@@ -51,7 +51,7 @@ if [[ "$all_tests" = true ]]; then
 
     for test_file in $test_files; do
         echo "Running $test_file"
-        pytest --color=yes -rA "$test_file"
+        pytest --color=yes -v "$test_file"
         tt-smi -r 0
     done
     
@@ -64,17 +64,14 @@ if [[ -z "$repeat_count" || -z "$test_name" ]]; then
     usage
 fi
 
-pass_count=0
-fail_count=0
-
 # Run the test for the specified number of iterations
 for i in $(seq 1 "$repeat_count"); do
     if [[ -n "$log_file" ]]; then
         echo "Running test: $test_name (Iteration $i)" | tee -a "$log_file"
-        pytest "$test_name.py" | tee -a "$log_file" 2>&1
+        pytest --color=yes -v "$test_name" | tee -a "$log_file" 2>&1
     else
         echo "Running test: $test_name (Iteration $i)"
-        pytest "$test_name.py"
+        pytest --tb=short --color=yes -v "$test_name"
     fi
 
     result=$?
@@ -85,13 +82,3 @@ for i in $(seq 1 "$repeat_count"); do
         ((fail_count++))
     fi
 done
-
-# Report results
-if [[ -n "$log_file" ]]; then
-    echo "Passed: $pass_count" | tee -a "$log_file"
-    echo "Failed: $fail_count" | tee -a "$log_file"
-    echo "Test results saved to: $log_file"
-else
-    echo "Passed: $pass_count"
-    echo "Failed: $fail_count"
-fi

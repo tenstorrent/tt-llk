@@ -3,13 +3,28 @@ import torch
 import os
 from helpers import *
 
-def generate_golden(op, operand1, operand2, data_format):
+def generate_golden(op, operand1, operand2, data_format,math_fidelity):
     if( data_format == "Float16" or data_format == "Float16_b"):
         tensor1_float = operand1.clone().detach().to(format_dict[data_format])
         tensor2_float = operand2.clone().detach().to(format_dict[data_format])
     else:
         tensor1_float = operand1.clone().detach().to(format_dict["Float16_b"])
         tensor2_float = operand2.clone().detach().to(format_dict["Float16_b"])
+
+    if( format == "Float16_b"):
+        if math_fidelity == 0: # LoFi
+            for element in tensor1_float:
+                element &= 0xFFF8
+            for element in tensor2_float:
+                element &= 0xFFFE
+        elif math_fidelity == 2: # HiFi2
+            for element in tensor2_float:
+                element &= 0xFFFE
+        elif math_fidelity == 3: # HiFi3
+            pass
+        elif math_fidelity == 4: # HiFi4
+            pass
+        
 
     if(op==1):
         res = tensor1_float + tensor2_float
@@ -22,12 +37,35 @@ def generate_golden(op, operand1, operand2, data_format):
     
     return res.tolist()
 
-@pytest.mark.parametrize("mathop", range(1,4))
-@pytest.mark.parametrize("tile_cnt", range(1,4))
-@pytest.mark.parametrize("format", ["Bfp8_b", "Float16_b", "Float16"])
-@pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
-@pytest.mark.parametrize("testname", ["multiple_tiles_eltwise_test"])
-@pytest.mark.parametrize("math_fidelity", range(0,1))
+# @pytest.mark.parametrize("mathop", range(1,4))
+# @pytest.mark.parametrize("tile_cnt", range(1,4))
+# @pytest.mark.parametrize("format", ["Float16_b"]) #, "Float16", "Bfp8_b"])
+# @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
+# @pytest.mark.parametrize("testname", ["multiple_tiles_eltwise_test"])
+# @pytest.mark.parametrize("math_fidelity", [0]) # ,2,3,4])
+
+
+# This setup allows easier tracking of test cases when run
+param_combinations = [
+    (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+    for mathop in range(1, 4)
+    for tile_cnt in range(1, 4)
+    for format in ["Float16_b", "Float16", "Bfp8_b"]
+    for dest_acc in ["", "DEST_ACC"]
+    for testname in ["multiple_tiles_eltwise_test"]
+    for math_fidelity in [0,2,3,4]
+]
+
+param_ids = [
+    f"mathop={comb[0]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
+    for comb in param_combinations
+]
+
+@pytest.mark.parametrize(
+    "mathop, tile_cnt, format, dest_acc, testname, math_fidelity",
+    param_combinations,
+    ids=param_ids
+)
 def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
 
     # prepare setup for running kernels
@@ -37,7 +75,7 @@ def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc, math_fid
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
 
     src_A, src_B = generate_stimuli(format,tile_cnt = tile_cnt)
-    golden = generate_golden(mathop,src_A,src_B,format)
+    golden = generate_golden(mathop,src_A,src_B,format,math_fidelity)
     write_stimuli_to_l1(src_A,src_B,format,tile_cnt)
 
     if mathop != 3:
