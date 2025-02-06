@@ -67,12 +67,17 @@ def bfp8_to_float_block(exponent, bfp8_mantissas):
 
     return bfloat16_values
 
-def unpack_bfp8_b(bfp8_block):
-    exponents = bfp8_block[:64]
-    reversed_exponents = revese_endian_chunk(exponents)
+def unpack_bfp8_b(bfp8_block,sfpu=False):
 
-    mantissas = bfp8_block[64:]
-    
+    if sfpu == False:
+        exponents = bfp8_block[:64]
+        reversed_exponents = revese_endian_chunk(exponents)
+        mantissas = bfp8_block[64:]
+    else:
+        exponents = bfp8_block[:16]
+        reversed_exponents = revese_endian_chunk(exponents)
+        mantissas = bfp8_block[16:272]
+
     bfloat16_values = []
     for i in range(len(reversed_exponents)):
         exponent = reversed_exponents[i]

@@ -5,7 +5,7 @@ import math
 from helpers import *
 
 def generate_golden(operation, operand1, data_format):
-    tensor1_float = operand1.clone().detach().to(format_dict[data_format])
+    tensor1_float = operand1.clone().detach().to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
 
     res = []
 
@@ -26,13 +26,15 @@ def generate_golden(operation, operand1, data_format):
 
     return res
 
-@pytest.mark.parametrize("format", ["Float16_b","Float16"])
+@pytest.mark.parametrize("format", ["Float16_b","Float16", "Bfp8_b"])
+#@pytest.mark.parametrize("format", ["Bfp8_b"])
 @pytest.mark.parametrize("testname", ["eltwise_unary_sfpu_test"])
 @pytest.mark.parametrize("mathop", ["sqrt", "log","square"])
 @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
-@pytest.mark.parametrize("approx_mode", ["true","false"])
+@pytest.mark.parametrize("approx_mode", ["false","true"])
 def test_all(format, mathop, testname, dest_acc, approx_mode):
 
+    #src_A,src_B = generate_stimuli(format,sfpu = True,  const_face = True, const_value_A = 2, const_value_B = 1)
     src_A,src_B = generate_stimuli(format,sfpu = True)
     golden = generate_golden(mathop, src_A, format)
     write_stimuli_to_l1(src_A, src_B, format)
@@ -64,9 +66,15 @@ def test_all(format, mathop, testname, dest_acc, approx_mode):
     golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
 
-    if(format == "Float16_b" or format == "Float16"):
+    if(format in ["Float16_b","Float16"]):
         atol = 0.05
         rtol = 0.1
+    elif format == "Bfp8_b":
+        atol = 0.05
+        rtol = 0.1
+
+    print(len(res_tensor))
+    print(res_tensor)
 
     for i in range(len(golden)):
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"

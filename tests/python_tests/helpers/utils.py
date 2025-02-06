@@ -28,7 +28,7 @@ def calculate_read_words_cnt(format, sfpu=False):
     if(format == "Float16" or format == "Float16_b"):
         return 512
     elif( format == "Bfp8_b"):
-        return 282
+        return 272
     elif( format == "Float32" or format == "Int32"):
         return 1024
 
