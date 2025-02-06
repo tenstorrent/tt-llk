@@ -79,6 +79,17 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
+// If data foramt is Bfp8 it is calculated correctly in Dest but packer cannot pack just that one face
+// TODO: make it so It can
+// So for now It is packed as Float16_b 
+
+#ifdef FORMAT_BFP8_B
+#define PACK_DEST_FORMAT (uint32_t)DataFormat::Float16_b
+#else
+#define PACK_DEST_FORMAT DATA_FORMAT
+#endif
+
+
 volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
 void run_kernel()
 {
@@ -87,12 +98,12 @@ void run_kernel()
         buffer_Dest[i] = 0xdeadbeef;
     }
     #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, PACK_DEST_FORMAT, 16*16);
     #else
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, PACK_DEST_FORMAT, 16*16);
     #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_DEST_FORMAT);
     
     #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull,DstTileFaceLayout::RowMajor,is_fp32_dest_acc_en>();

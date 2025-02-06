@@ -93,6 +93,7 @@ def float_to_bfp8_block(block):
     return shared_exponent, bfp8_mantissas
 
 def pack_bfp8_b(tensor, block_size=16):
+
     flattened_tensor = tensor.flatten()
     num_blocks = len(flattened_tensor) // block_size 
     blocks = [flattened_tensor[i * block_size:(i + 1) * block_size] for i in range(num_blocks)]
