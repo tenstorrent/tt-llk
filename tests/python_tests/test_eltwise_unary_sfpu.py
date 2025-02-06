@@ -26,12 +26,33 @@ def generate_golden(operation, operand1, data_format):
 
     return res
 
-@pytest.mark.parametrize("format", ["Float16_b","Float16", "Bfp8_b"])
-#@pytest.mark.parametrize("format", ["Bfp8_b"])
-@pytest.mark.parametrize("testname", ["eltwise_unary_sfpu_test"])
-@pytest.mark.parametrize("mathop", ["sqrt", "log","square"])
-@pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
-@pytest.mark.parametrize("approx_mode", ["false","true"])
+# @pytest.mark.parametrize("format", ["Float16_b","Float16", "Bfp8_b"])
+# #@pytest.mark.parametrize("format", ["Bfp8_b"])
+# @pytest.mark.parametrize("testname", ["eltwise_unary_sfpu_test"])
+# @pytest.mark.parametrize("mathop", ["sqrt", "log","square"])
+# @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
+# @pytest.mark.parametrize("approx_mode", ["false","true"])
+
+param_combinations = [
+    (mathop, format, dest_acc, testname, approx_mode)
+    for mathop in  ["sqrt", "log","square"]
+    for format in ["Float16_b", "Float16"] #, "Bfp8_b"]
+    for dest_acc in ["", "DEST_ACC"]
+    for testname in ["eltwise_unary_sfpu_test"]
+    for approx_mode in ["false","true"]
+]
+
+param_ids = [
+    f"mathop={comb[0]} | format={comb[1]} | dest_acc={comb[2]} | approx_mode={comb[4]}"
+    for comb in param_combinations
+]
+
+@pytest.mark.parametrize(
+    "mathop, format, dest_acc, testname, approx_mode",
+    param_combinations,
+    ids=param_ids
+)
+
 def test_all(format, mathop, testname, dest_acc, approx_mode):
 
     #src_A,src_B = generate_stimuli(format,sfpu = True,  const_face = True, const_value_A = 2, const_value_B = 1)
@@ -72,9 +93,6 @@ def test_all(format, mathop, testname, dest_acc, approx_mode):
     elif format == "Bfp8_b":
         atol = 0.05
         rtol = 0.1
-
-    print(len(res_tensor))
-    print(res_tensor)
 
     for i in range(len(golden)):
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"

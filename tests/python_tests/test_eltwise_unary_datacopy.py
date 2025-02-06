@@ -6,9 +6,28 @@ from helpers import *
 def generate_golden(operand1,format):
     return operand1
 
-@pytest.mark.parametrize("format",  ["Float32","Bfp8_b", "Float16_b", "Float16", "Int32"])
-@pytest.mark.parametrize("testname", ["eltwise_unary_datacopy_test"])
-@pytest.mark.parametrize("dest_acc", ["DEST_ACC",""])
+# @pytest.mark.parametrize("format",  ["Float32","Bfp8_b", "Float16_b", "Float16", "Int32"])
+# @pytest.mark.parametrize("testname", ["eltwise_unary_datacopy_test"])
+# @pytest.mark.parametrize("dest_acc", ["DEST_ACC",""])
+
+param_combinations = [
+    (format, dest_acc, testname)
+    for format in ["Float32","Bfp8_b", "Float16_b", "Float16", "Int32"]
+    for dest_acc in ["", "DEST_ACC"]
+    for testname in ["eltwise_unary_datacopy_test"]
+]
+
+param_ids = [
+    f" format={comb[0]} | dest_acc={comb[1]} "
+    for comb in param_combinations
+]
+
+@pytest.mark.parametrize(
+    "format, dest_acc, testname",
+    param_combinations,
+    ids=param_ids
+)
+
 
 def test_all(format, testname, dest_acc):
 

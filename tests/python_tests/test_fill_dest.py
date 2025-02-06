@@ -31,9 +31,28 @@ def generate_golden(operations, operand1, operand2, data_format):
     
     return res
 
-@pytest.mark.parametrize("format", [ "Float16_b", "Float16", "Bfp8_b"])
-@pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
-@pytest.mark.parametrize("testname", ["fill_dest_test"])
+# @pytest.mark.parametrize("format", [ "Float16_b", "Float16", "Bfp8_b"])
+# @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
+# @pytest.mark.parametrize("testname", ["fill_dest_test"])
+
+param_combinations = [
+    (format, dest_acc, testname)
+    for format in ["Float16_b", "Float16", "Bfp8_b"]
+    for dest_acc in ["", "DEST_ACC"]
+    for testname in ["fill_dest_test"]
+]
+
+param_ids = [
+    f" format={comb[0]} | dest_acc={comb[1]}"
+    for comb in param_combinations
+]
+
+@pytest.mark.parametrize(
+    "format, dest_acc, testname",
+    param_combinations,
+    ids=param_ids
+)
+
 def test_multiple_kernels(format, testname, dest_acc):
 
     pack_start_address = 0x1c000
