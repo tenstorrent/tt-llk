@@ -28,39 +28,42 @@ def generate_golden(operation, operand1, operand2, data_format):
 # @pytest.mark.parametrize("dest_acc", ["DEST_ACC", ""])
 
 param_combinations = [
-    (mathop, format, dest_acc, testname)
+    (mathop, input_format, output_format, dest_acc, testname)
     for mathop in  ["elwadd", "elwsub", "elwmul"]
-    for format in ["Float32"]
+    for input_format in ["Float32"]
+    for output_format in ["Float32"]
     for dest_acc in ["DEST_ACC"]
     for testname in ["sfpu_binary_test"]
 ]
 
 param_ids = [
-    f"mathop={comb[0]} | format={comb[1]} | dest_acc={comb[2]} "
+    f"mathop={comb[0]} | input_format={comb[1]} | output_format={comb[2]} | dest_acc={comb[3]} "
     for comb in param_combinations
 ]
 
 @pytest.mark.parametrize(
-    "mathop, format, dest_acc, testname",
+    "mathop, input_format, output_format, dest_acc, testname",
     param_combinations,
     ids=param_ids
 )
 
-def test_all(format, mathop, testname, dest_acc):
+def test_all(input_format, output_format, mathop, testname, dest_acc):
+    if (input_format != output_format):
+        pytest.skip("")
     
-    src_A, src_B = generate_stimuli(format)
-    golden = generate_golden(mathop, src_A, src_B, format)
-    write_stimuli_to_l1(src_A, src_B, format)
+    src_A, src_B = generate_stimuli(input_format)
+    golden = generate_golden(mathop, src_A, src_B, output_format)
+    write_stimuli_to_l1(src_A, src_B, input_format)
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "input_format": input_format,
+        "output_format": output_format,
         "testname": testname,
         "dest_acc": dest_acc,
         "mathop": mathop
     }
 
-    if( format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
+    if( input_format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
         pytest.skip("SKipping test for 32 bit wide data without 32 bit accumulation in Dest")
 
     make_cmd = generate_make_command(test_config)
@@ -68,7 +71,7 @@ def test_all(format, mathop, testname, dest_acc):
 
     run_elf_files(testname)
     
-    res_from_L1 = collect_results(format)
+    res_from_L1 = collect_results(output_format)
 
     assert len(res_from_L1) == len(golden)
 
@@ -79,15 +82,15 @@ def test_all(format, mathop, testname, dest_acc):
     assert read_words_from_device("0,0", 0x19FF8, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
     assert read_words_from_device("0,0", 0x19FFC, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
 
-    if(format in ["Float16_b","Float16", "Float32"]):
+    if(output_format in ["Float16_b","Float16", "Float32"]):
         atol = 0.05
         rtol = 0.1
-    elif(format == "Bfp8_b"):
+    elif(output_format == "Bfp8_b"):
         atol = 0.1
         rtol = 0.2
 
-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b","Float32"] else torch.bfloat16)
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b","Float32"] else torch.bfloat16)
+    golden_tensor = torch.tensor(golden, dtype=format_dict[output_format] if output_format in ["Float16", "Float16_b","Float32"] else torch.bfloat16)
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[output_format] if output_format in ["Float16", "Float16_b","Float32"] else torch.bfloat16)
 
     for i in range(len(golden)):
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
