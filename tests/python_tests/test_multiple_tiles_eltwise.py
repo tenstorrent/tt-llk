@@ -11,7 +11,7 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
         tensor1_float = operand1.clone().detach().to(format_dict["Float16_b"])
         tensor2_float = operand2.clone().detach().to(format_dict["Float16_b"])
 
-    if( format == "Float16_b"):
+    if(format == "Float16_b"):
         if math_fidelity == 0: # LoFi
             for element in tensor1_float:
                 element &= 0xFFF8
@@ -47,43 +47,45 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
 
 # This setup allows easier tracking of test cases when run
 param_combinations = [
-    (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+    (mathop, tile_cnt, input_format, output_format, dest_acc, testname, math_fidelity)
     for mathop in range(1, 4)
     for tile_cnt in range(1, 4)
-    for format in ["Float16_b", "Float16", "Bfp8_b"]
+    for input_format in ["Float16_b", "Float16", "Bfp8_b"]
+    for output_format in ["Float16_b", "Float16", "Bfp8_b"]
     for dest_acc in ["", "DEST_ACC"]
     for testname in ["multiple_tiles_eltwise_test"]
     for math_fidelity in [0,2,3,4]
 ]
 
 param_ids = [
-    f"mathop={comb[0]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
+    f"mathop={comb[0]} | tile_cnt={comb[1]} | input_format={comb[2]} | output_format={comb[3]} | dest_acc={comb[4]} | math_fidelity={comb[6]}"
     for comb in param_combinations
 ]
 
 @pytest.mark.parametrize(
-    "mathop, tile_cnt, format, dest_acc, testname, math_fidelity",
+    "mathop, tile_cnt, input_format, output_format, dest_acc, testname, math_fidelity",
     param_combinations,
     ids=param_ids
 )
-def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
-
+def test_multiple_kernels(input_format, output_format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
+    if (input_format != output_format):
+        pytest.skip("")
     # prepare setup for running kernels
 
     pack_start_address = 0x1a000 + 2*4096*tile_cnt
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
 
-    src_A, src_B = generate_stimuli(format,tile_cnt = tile_cnt)
-    golden = generate_golden(mathop,src_A,src_B,format,math_fidelity)
-    write_stimuli_to_l1(src_A,src_B,format,tile_cnt)
+    src_A, src_B = generate_stimuli(input_format,tile_cnt = tile_cnt)
+    golden = generate_golden(mathop,src_A,src_B,output_format,math_fidelity)
+    write_stimuli_to_l1(src_A,src_B,input_format,tile_cnt)
 
     if mathop != 3:
         math_fidelity = 0 
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "input_format": input_format,
+        "output_format": output_format,
         "testname": testname,
         "dest_acc": dest_acc,
         "mathop" : mathop,
@@ -109,18 +111,18 @@ def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc, math_fid
     res_from_L1 = []
 
     for address in pack_addresses:
-        res_from_L1.append(collect_results(format,address))
+        res_from_L1.append(collect_results(output_format,address))
         
 
     res_from_L1 = flatten_list(res_from_L1)
 
-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    golden_tensor = torch.tensor(golden, dtype=format_dict[output_format] if output_format in ["Float16", "Float16_b"] else torch.bfloat16)
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[output_format] if output_format in ["Float16", "Float16_b"] else torch.bfloat16)
 
-    if(format == "Float16_b" or format == "Float16"):
+    if(output_format == "Float16_b" or output_format == "Float16"):
         atol = 0.05
         rtol = 0.1
-    elif(format == "Bfp8_b"):
+    elif(output_format == "Bfp8_b"):
         atol = 0.1
         rtol = 0.2
   

@@ -32,7 +32,7 @@ void run_kernel()
         buffer_B[i] = (volatile uint32_t*)(0x1a000 + TILE_SIZE_CNT*KERN_CNT + i*TILE_SIZE_CNT);
     }
 
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT);
+    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(IN_FORMAT, IN_FORMAT, IN_FORMAT, IN_FORMAT);
     _llk_unpack_AB_init_<>();
     
     for(int index = 0; index < KERN_CNT; index++){
@@ -52,7 +52,7 @@ void run_kernel()
 void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false,false>(DATA_FORMAT,DATA_FORMAT);
+    _llk_math_hw_configure_<false,false>(IN_FORMAT,IN_FORMAT);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE,MATH_FIDELITY>(4, 0, 0);
     
     for(int index = 0; index < KERN_CNT; index++){
@@ -78,12 +78,12 @@ void run_kernel()
     process_addresses(buffer_Dest,KERN_CNT,PACK_ADDRS);
 
     #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(IN_FORMAT, IN_FORMAT, 16*16*4);
     #else
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(IN_FORMAT, IN_FORMAT, 16*16*4);
     #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(IN_FORMAT);
     
     #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull,DstTileFaceLayout::RowMajor,is_fp32_dest_acc_en>();
