@@ -6,13 +6,16 @@ def flatten_list(sublists):
 
 def generate_random_face(stimuli_format = "Float16_b",const_value = 1,  const_face = False):
 
-    if(stimuli_format == "Float16" or stimuli_format == "Float16_b"): 
+    if(stimuli_format in ["Float16_b", "Float16", "Float32"]): 
+
         #srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 2 # because of log
         if const_face == True:
             srcA_face = torch.ones(256, dtype = format_dict[stimuli_format]) * const_value
         else: # random for both faces
             srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 2 # because of log
+
     elif(stimuli_format == "Bfp8_b"):
+
         size = 256
         integer_part = torch.randint(0, 2, (size,))  
         fraction = torch.randint(0, 16, (size,)).to(dtype = torch.bfloat16) / 16.0
@@ -20,9 +23,7 @@ def generate_random_face(stimuli_format = "Float16_b",const_value = 1,  const_fa
             srcA_face = torch.ones(256, dtype = torch.bfloat16) * const_value
         else:
             srcA_face = integer_part.to(dtype = torch.bfloat16) + fraction
-    elif(stimuli_format == "Float32"):
-        #srcA_face = torch.arange(0,64,0.25)
-        srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 1 # because of log
+
     elif(stimuli_format == "Int32"):
         srcA_face = torch.arange(256)
 
