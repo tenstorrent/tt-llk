@@ -28,7 +28,7 @@ volatile uint32_t* buffer_B = (volatile uint32_t*)0x1b000;
 
 void run_kernel()
 {
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT,16,16,0,4,4,128,128);
+    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(IN_FORMAT, IN_FORMAT, IN_FORMAT, IN_FORMAT,16,16,0,4,4,128,128);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>((std::uint32_t)buffer_A/16-1,(std::uint32_t)buffer_B/16-1,0,0,128,128);
 }
@@ -45,7 +45,7 @@ void run_kernel()
 {
     _llk_math_matmul_init_<MATH_FIDELITY,DstTileFaceLayout::RowMajor>();
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false,false>(DATA_FORMAT,DATA_FORMAT);
+    _llk_math_hw_configure_<false,false>(IN_FORMAT,IN_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     _llk_math_matmul_<MATH_FIDELITY,DstTileFaceLayout::RowMajor>(0);
     _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
@@ -67,12 +67,12 @@ void run_kernel()
         buffer_Dest[i] = 0xdeadbeef;
     }
     #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(IN_FORMAT, IN_FORMAT, 16*16*4);
     #else
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(IN_FORMAT, IN_FORMAT, 16*16*4);
     #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(IN_FORMAT);
     
     #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull,DstTileFaceLayout::RowMajor,is_fp32_dest_acc_en>();

@@ -33,34 +33,36 @@ def generate_golden(operand1, operand2, data_format,math_fidelity):
 
 # This setup allows easier tracking of test cases when run
 param_combinations = [
-    (format, dest_acc, testname, math_fidelity)
-    for format in ["Float16_b", "Float16"]
+    (input_format, output_format, dest_acc, testname, math_fidelity)
+    for input_format in ["Float16_b", "Float16"]
+    for output_format in ["Float16_b", "Float16"]
     for dest_acc in ["", "DEST_ACC"]
     for testname in ["matmul_test"]
     for math_fidelity in [0,2,3,4]
 ]
 
 param_ids = [
-    f" format={comb[0]} | dest_acc={comb[1]} | math_fidelity={comb[3]}"
+    f" input_format={comb[0]} | output_format={comb[1]} | dest_acc={comb[2]} | math_fidelity={comb[4]}"
     for comb in param_combinations
 ]
 
 @pytest.mark.parametrize(
-    "format, dest_acc, testname, math_fidelity",
+    "input_format, output_format, dest_acc, testname, math_fidelity",
     param_combinations,
     ids=param_ids
 )
 
-def test_all(format, testname, dest_acc, math_fidelity):
+def test_all(input_format, output_format, testname, dest_acc, math_fidelity):
+    if input_format != output_format:
+        pytest.skip("")
+    src_A, src_B = generate_stimuli(input_format)
+    golden_tensor = generate_golden(src_A, src_B, output_format,math_fidelity)
 
-    src_A, src_B = generate_stimuli(format)
-    golden_tensor = generate_golden(src_A, src_B, format,math_fidelity)
-
-    write_stimuli_to_l1(src_A, src_B, format)
+    write_stimuli_to_l1(src_A, src_B, input_format)
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "input_format": input_format,
+        "output_format": output_format,
         "testname": testname,
         "dest_acc": dest_acc,
         "math_fidelity" : math_fidelity
@@ -71,7 +73,7 @@ def test_all(format, testname, dest_acc, math_fidelity):
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(format)
+    res_from_L1 = collect_results(output_format)
 
     os.system("cd .. && make clean")
 
@@ -82,14 +84,14 @@ def test_all(format, testname, dest_acc, math_fidelity):
     assert read_words_from_device("0,0", 0x19FF8, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
     assert read_words_from_device("0,0", 0x19FFC, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
 
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[output_format] if output_format in ["Float16", "Float16_b"] else torch.bfloat16)
 
     print(golden_tensor.type(), res_tensor.type())
 
-    if(format == "Float16_b" or format == "Float16"):
+    if(output_format == "Float16_b" or output_format == "Float16"):
         atol = 0.1
         rtol = 0.05
-    elif(format == "Bfp8_b"):
+    elif(output_format == "Bfp8_b"):
         atol = 0.1
         rtol = 0.2
 
