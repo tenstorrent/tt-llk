@@ -8,7 +8,7 @@ def generate_make_command(test_config):
     testname = test_config.get("testname")
     dest_acc = test_config.get("dest_acc", " ") # default is not 32 bit dest_acc 
 
-    make_cmd += f"format={format_args_dict[output_format]} testname={testname} dest_acc={dest_acc} " # jsut for now take output_format
+    make_cmd += f"input_format={input_formats_dict[input_format]} output_format={output_formats_dict[output_format]} testname={testname} dest_acc={dest_acc} " # jsut for now take output_format
     
     mathop = test_config.get("mathop", "no_mathop")
     approx_mode = test_config.get("approx_mode","false")

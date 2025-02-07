@@ -23,19 +23,22 @@ def generate_golden(operation, operand1, operand2, data_format):
 
     return operations[operation].tolist()
 
-@pytest.mark.parametrize("format", ["Bfp8_b", "Float16_b", "Float16"])
+formats = ["Bfp8_b", "Float16_b", "Float16"]
+@pytest.mark.parametrize("input_format", formats)
+@pytest.mark.parametrize("output_format", formats)
 @pytest.mark.parametrize("testname", ["eltwise_binary_test"])
 @pytest.mark.parametrize("mathop", ["elwadd", "elwsub", "elwmul"])
 @pytest.mark.parametrize("dest_acc", ["DEST_ACC", ""])
-def test_all(format, mathop, testname, dest_acc):
-    
-    src_A, src_B = generate_stimuli(format)
-    golden = generate_golden(mathop, src_A, src_B, format)
-    write_stimuli_to_l1(src_A, src_B, format)
+def test_all(input_format, output_format, mathop, testname, dest_acc):
+    if (input_format != output_format):
+        pytest.skip("")
+    src_A, src_B = generate_stimuli(input_format)
+    golden = generate_golden(mathop, src_A, src_B, output_format)
+    write_stimuli_to_l1(src_A, src_B, input_format)
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "input_format": input_format,
+        "output_format": output_format,
         "testname": testname,
         "dest_acc": dest_acc,
         "mathop": mathop
@@ -46,7 +49,7 @@ def test_all(format, mathop, testname, dest_acc):
 
     run_elf_files(testname)
     
-    res_from_L1 = collect_results(format)
+    res_from_L1 = collect_results(output_format)
 
     assert len(res_from_L1) == len(golden)
 
@@ -57,15 +60,15 @@ def test_all(format, mathop, testname, dest_acc):
     assert read_words_from_device("0,0", 0x19FF8, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
     assert read_words_from_device("0,0", 0x19FFC, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
 
-    if(format == "Float16_b" or format == "Float16"):
+    if(output_format == "Float16_b" or output_format == "Float16"):
         atol = 0.05
         rtol = 0.1
-    elif(format == "Bfp8_b"):
+    elif(output_format == "Bfp8_b"):
         atol = 0.1
         rtol = 0.2
 
-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    golden_tensor = torch.tensor(golden, dtype=format_dict[output_format] if output_format in ["Float16", "Float16_b"] else torch.bfloat16)
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[output_format] if output_format in ["Float16", "Float16_b"] else torch.bfloat16)
 
     for i in range(len(golden)):
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"

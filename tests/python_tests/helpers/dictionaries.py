@@ -7,6 +7,22 @@ format_dict = {
     "Int32": torch.int32
 }
 
+input_formats_dict = {
+    "Float32": "INPUT_FORMAT_FLOAT32",
+    "Float16": "INPUT_FORMAT_FLOAT16",
+    "Float16_b": "INPUT_FORMAT_FLOAT16_B",
+    "Bfp8_b" : "INPUT_FORMAT_BFP8_B",
+    "Int32": "INPUT_FORMAT_INT32"
+}
+
+output_formats_dict = {
+    "Float32": "OUTPUT_FORMAT_FLOAT32",
+    "Float16":"OUTPUT_FORMAT_FLOAT16",
+    "Float16_b": "OUTPUT_FORMAT_FLOAT16_B",
+    "Bfp8_b" : "OUTPUT_FORMAT_BFP8_B",
+    "Int32": "OUTPUT_FORMAT_INT32"
+}
+
 format_args_dict = {
     "Float32": "FORMAT_FLOAT32",
     "Float16": "FORMAT_FLOAT16",

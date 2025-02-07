@@ -4,43 +4,43 @@
 #include <cstdint>
 #include <cstdarg>
 
-#ifdef LLK_TRISC_UNPACK
 
-    #ifdef FORMAT_FLOAT16_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
-    #endif
-    #ifdef FORMAT_FLOAT16
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
-    #endif
-    #ifdef FORMAT_FLOAT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
-    #endif
-    #ifdef FORMAT_INT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
-    #endif
-    #ifdef FORMAT_BFP8_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
-    #endif
 
+#ifdef INPUT_FORMAT_FLOAT16_B
+    #define IN_FORMAT (uint32_t)DataFormat::Float16_b
+#endif
+#ifdef INPUT_FORMAT_FLOAT16
+    #define IN_FORMAT (uint32_t)DataFormat::Float16
+#endif
+#ifdef INPUT_FORMAT_FLOAT32
+    #define IN_FORMAT (uint32_t)DataFormat::Float32
+#endif
+#ifdef INPUT_FORMAT_INT32
+    #define IN_FORMAT (uint32_t)DataFormat::Int32
+#endif
+#ifdef INPUT_FORMAT_BFP8_B
+    #define IN_FORMAT (uint32_t)DataFormat::Bfp8_b 
 #endif
 
-#ifdef LLK_TRISC_MATH
+#ifdef OUTPUT_FORMAT_FLOAT16_B
+    #define OUT_FORMAT (uint32_t)DataFormat::Float16_b
+#endif
+#ifdef OUTPUT_FORMAT_FLOAT16
+    #define OUT_FORMAT (uint32_t)DataFormat::Float16
+#endif
+#ifdef OUTPUT_FORMAT_FLOAT32
+    #define OUT_FORMAT (uint32_t)DataFormat::Float32
+#endif
+#ifdef OUTPUT_FORMAT_INT32
+    #define OUT_FORMAT (uint32_t)DataFormat::Int32
+#endif
+#ifdef OUTPUT_FORMAT_BFP8_B
+    #define OUT_FORMAT (uint32_t)DataFormat::Bfp8_b 
+#endif
 
-    #ifdef FORMAT_FLOAT16_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
-    #endif
-    #ifdef FORMAT_FLOAT16
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
-    #endif
-    #ifdef FORMAT_FLOAT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
-    #endif
-    #ifdef FORMAT_INT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
-    #endif
-    #ifdef FORMAT_BFP8_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
-    #endif
+
+
+#ifdef LLK_TRISC_MATH
 
     #ifdef ELTWISE_BINARY_ADD
         #define ELTWISE_BINARY_OP EltwiseBinaryType::ELWADD
@@ -88,21 +88,6 @@ inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first
     va_end(args);
 }
 
-    #ifdef FORMAT_FLOAT16_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
-    #endif
-    #ifdef FORMAT_FLOAT16
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
-    #endif
-    #ifdef FORMAT_FLOAT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
-    #endif
-    #ifdef FORMAT_INT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
-    #endif
-    #ifdef FORMAT_BFP8_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
-    #endif
 
 #endif
 
