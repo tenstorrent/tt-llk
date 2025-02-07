@@ -45,7 +45,7 @@ void run_kernel()
 #ifdef FORMAT_INT32
 const bool is_int_fpu_en = true;
 #else
-const bool is_int_fpu_en = false;s
+const bool is_int_fpu_en = false;
 #endif
 
 
