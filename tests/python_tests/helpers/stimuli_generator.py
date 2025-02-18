@@ -53,4 +53,5 @@ def generate_stimuli(stimuli_format = "Float16_b", tile_cnt = 1, sfpu = False, c
     else:
         srcA = generate_random_face(stimuli_format,const_value_A,const_face)
         srcB = torch.full((256,), 0)
+        srcA = torch.cat((srcA, torch.zeros(1024-256)))
         return srcA,srcB

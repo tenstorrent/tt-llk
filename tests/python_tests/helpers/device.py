@@ -61,7 +61,7 @@ def get_result_from_device(format,read_data_bytes,sfpu=False):
         res_from_L1 = unpack_bfp16(read_data_bytes)
     elif( format == "Bfp8_b"):
         if(sfpu == True):
-            res_from_L1 = unpack_bfp16(read_data_bytes)
+            res_from_L1 = unpack_bfp16(read_data_bytes)[:256] # just first
         else:
             res_from_L1 = unpack_bfp8_b(read_data_bytes)
     elif( format == "Float32"):

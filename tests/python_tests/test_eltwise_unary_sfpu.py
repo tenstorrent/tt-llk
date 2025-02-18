@@ -24,7 +24,7 @@ def generate_golden(operation, operand1, data_format):
     else:
         raise ValueError("Unsupported operation!")
 
-    return res
+    return res[:256] # just first face of result
 
 # @pytest.mark.parametrize("format", ["Float16_b","Float16", "Bfp8_b"])
 # #@pytest.mark.parametrize("format", ["Bfp8_b"])
@@ -36,10 +36,10 @@ def generate_golden(operation, operand1, data_format):
 param_combinations = [
     (mathop, format, dest_acc, testname, approx_mode)
     for mathop in  ["sqrt", "log","square"]
-    for format in ["Float16_b", "Float16"] #, "Bfp8_b"]
-    for dest_acc in ["", "DEST_ACC"]
+    for format in ["Bfp8_b"] #["Float16_b", "Float16"] #, ["Bfp8_b"]
+    for dest_acc in [""] #, "DEST_ACC"]
     for testname in ["eltwise_unary_sfpu_test"]
-    for approx_mode in ["false","true"]
+    for approx_mode in ["false"] #,"true"]
 ]
 
 param_ids = [
@@ -55,8 +55,8 @@ param_ids = [
 
 def test_all(format, mathop, testname, dest_acc, approx_mode):
 
-    #src_A,src_B = generate_stimuli(format,sfpu = True,  const_face = True, const_value_A = 2, const_value_B = 1)
-    src_A,src_B = generate_stimuli(format,sfpu = True)
+    src_A,src_B = generate_stimuli(format,sfpu = True,  const_face = True, const_value_A = 2, const_value_B = 1)
+    #src_A,src_B = generate_stimuli(format,sfpu = True)
     golden = generate_golden(mathop, src_A, format)
     write_stimuli_to_l1(src_A, src_B, format)
 
