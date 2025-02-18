@@ -27,7 +27,7 @@ volatile uint32_t* buffer_B = (volatile uint32_t*)0x1b000;
 
 void run_kernel()
 {
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(IN_FORMAT, IN_FORMAT, IN_FORMAT, IN_FORMAT);
+    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_IN, UNPACK_IN, UNPACK_OUT, UNPACK_OUT);
     _llk_unpack_AB_init_<>();
     _llk_unpack_AB_<>((std::uint32_t)buffer_A/16-1,(std::uint32_t)buffer_B/16-1);
 }
@@ -43,7 +43,7 @@ void run_kernel()
 void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false,false>(IN_FORMAT,IN_FORMAT);
+    _llk_math_hw_configure_<false,false>(FPU,FPU);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE>(4, 0, 0);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     //_llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE,DstSync::SyncFull>(4, 0, true);
@@ -67,12 +67,12 @@ void run_kernel()
         buffer_Dest[i] = 0xdeadbeef;
     }
     #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(IN_FORMAT, IN_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16*16*4);
     #else
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(IN_FORMAT, IN_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, UNPACK_OUT, 16*16*4);
     #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(IN_FORMAT);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
     
     #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull,DstTileFaceLayout::RowMajor,is_fp32_dest_acc_en>();
