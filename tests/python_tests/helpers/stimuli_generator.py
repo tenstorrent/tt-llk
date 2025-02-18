@@ -17,7 +17,7 @@ def generate_random_face(stimuli_format = "Float16_b",const_value = 1,  const_fa
     elif(stimuli_format == "Bfp8_b"):
 
         size = 256
-        integer_part = torch.randint(0, 2, (size,))  
+        integer_part = torch.randint(0, 3, (size,))  
         fraction = torch.randint(0, 16, (size,)).to(dtype = torch.bfloat16) / 16.0
         if(const_face == True):
             srcA_face = torch.ones(256, dtype = torch.bfloat16) * const_value
