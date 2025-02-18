@@ -89,6 +89,7 @@ void run_kernel()
 #define PACK_DEST_FORMAT DATA_FORMAT
 #endif
 
+// #define PACK_DEST_FORMAT DATA_FORMAT
 
 
 volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
@@ -99,9 +100,9 @@ void run_kernel()
         buffer_Dest[i] = 0xdeadbeef;
     }
     #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, PACK_DEST_FORMAT, 16*16);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, PACK_DEST_FORMAT, 16*16*4);
     #else
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, PACK_DEST_FORMAT, 16*16);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, PACK_DEST_FORMAT, 16*16*4);
     #endif
 
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_DEST_FORMAT);

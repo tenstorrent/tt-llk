@@ -35,11 +35,11 @@ def generate_golden(operation, operand1, data_format):
 
 param_combinations = [
     (mathop, format, dest_acc, testname, approx_mode)
-    for mathop in  ["sqrt", "log","square"]
-    for format in ["Bfp8_b"] #["Float16_b", "Float16"] #, ["Bfp8_b"]
-    for dest_acc in [""] #, "DEST_ACC"]
+    for mathop in  ["sqrt"] #, "log","square"]
+    for format in ["Int32"] #["Float16_b", "Float16","Float32","Bfp8_b"]
+    for dest_acc in ["DEST_ACC"]#,""]
     for testname in ["eltwise_unary_sfpu_test"]
-    for approx_mode in ["false"] #,"true"]
+    for approx_mode in ["false"]#,"true"]
 ]
 
 param_ids = [
@@ -55,10 +55,16 @@ param_ids = [
 
 def test_all(format, mathop, testname, dest_acc, approx_mode):
 
+    if( format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
+        pytest.skip("SKipping test for 32 bit wide data without 32 bit accumulation in Dest")
+
     src_A,src_B = generate_stimuli(format,sfpu = True,  const_face = True, const_value_A = 2, const_value_B = 1)
     #src_A,src_B = generate_stimuli(format,sfpu = True)
     golden = generate_golden(mathop, src_A, format)
     write_stimuli_to_l1(src_A, src_B, format)
+
+    print("\n \n SRCA \n \n")
+    print(src_A.tolist())
 
     test_config = {
         "input_format": format,
@@ -87,7 +93,7 @@ def test_all(format, mathop, testname, dest_acc, approx_mode):
     golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
 
-    if(format in ["Float16_b","Float16"]):
+    if(format in ["Float16_b","Float16", "Float32"]):
         atol = 0.05
         rtol = 0.1
     elif format == "Bfp8_b":
