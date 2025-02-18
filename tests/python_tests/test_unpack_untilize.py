@@ -5,42 +5,42 @@ import pytest
 import torch
 from helpers import *
 
-torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
+
+torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+
 
 def generate_golden(operand1, data_format):
-    
-    A_untilized  = untilize(operand1,data_format)
+
+    A_untilized = untilize(operand1, data_format)
     return A_untilized.flatten()
 
-param_combinations = [
-    (format, testname)
-    for format in ["Float16_b", "Float16"]
-    for testname in ["unpack_untilize_test"]
-]
+full_sweep = False
+all_format_combos = generate_format_combinations(
+    ["Float16_b", "Float16"], not full_sweep
+)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+all_params = generate_params(["unpack_untilize_test"], all_format_combos)
+param_ids = generate_param_ids(all_params)
 
-param_ids = [
-    f" format={comb[0]} "
-    for comb in param_combinations
-]
 
-@pytest.mark.parametrize(
-    "format,testname",
-    param_combinations,
-    ids=param_ids
-)
-
-def test_unpack_untilze(format, testname):
-
-    src_A, src_B = generate_stimuli(format)
-    src_B = torch.full((1024,),0)
+@pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+def test_unpack_untilze(testname, formats):
     
-    golden_tensor = generate_golden(src_A, format)
+    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
+    #  To ensure accurate results, for now we reset board after each test.
+    #  Fix this: so we only reset after failing tests
+    if full_sweep: 
+        run_shell_command(f"cd .. && make clean")
+        run_shell_command(f"tt-smi -r 0")
 
-    write_stimuli_to_l1(src_A, src_B, format)
+    src_A, src_B = generate_stimuli(formats.unpack_src)
+    src_B = torch.full((1024,), 0)
+
+    golden_tensor = generate_golden(src_A, formats.pack_dst)
+
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "formats": formats,
         "testname": testname,
     }
 
@@ -49,24 +49,35 @@ def test_unpack_untilze(format, testname):
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(format)
+    res_from_L1 = collect_results(
+        formats
+    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
 
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden_tensor)
     assert_tensix_operations_finished()
 
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    res_tensor = torch.tensor(
+        res_from_L1,
+        dtype=(
+            format_dict[formats.pack_dst]
+            if formats.pack_dst in ["Float16", "Float16_b"]
+            else torch.bfloat16
+        ),
+    )
 
-    if(format == "Float16_b" or format == "Float16"):
+    if formats.pack_dst in ["Float16_b", "Float16"]:
         atol = 0.1
         rtol = 0.05
-    elif(format == "Bfp8_b"):
+    elif formats.pack_dst == "Bfp8_b":
         atol = 0.1
         rtol = 0.2
 
     for i in range(len(golden_tensor)):
-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+        assert torch.isclose(
+            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
 
-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
+    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.98

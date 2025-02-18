@@ -130,5 +130,5 @@ inline void _llk_pack_untilize_(const std::uint32_t address, const std::uint32_t
 
     if constexpr (block_ct_dim == full_ct_dim) {
         TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1); // close block
-    }    
+    }
 }

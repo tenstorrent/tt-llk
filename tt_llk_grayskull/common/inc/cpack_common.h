@@ -421,7 +421,7 @@ namespace ckernel::packer
    inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg ) {
 
       pack_config_u config = {.val = 0};
-   
+
       config.val[0] = cfg[reg_addr];
       config.val[1] = cfg[reg_addr + 1];
       config.val[2] = cfg[reg_addr + 2];
@@ -432,8 +432,8 @@ namespace ckernel::packer
 
    inline std::array<pack_config_t, NUM_PACKERS> read_pack_config() {
       std::array<pack_config_t, NUM_PACKERS> config_vec;
-      
-      // Get pointer to registers for current state ID 
+
+      // Get pointer to registers for current state ID
       volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
 
       config_vec[0] = read_pack_config_helper(THCON_SEC0_REG1_Row_start_section_size_ADDR32, cfg);
@@ -454,7 +454,7 @@ namespace ckernel::packer
    inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset() {
       std::array<pck_edge_offset_t, NUM_PACKERS> edge_vec;
 
-      // Get pointer to registers for current state ID 
+      // Get pointer to registers for current state ID
       volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
 
       edge_vec[0] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC0_mask_ADDR32, cfg);
@@ -462,20 +462,20 @@ namespace ckernel::packer
       edge_vec[2] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC2_mask_ADDR32, cfg);
       edge_vec[3] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC3_mask_ADDR32, cfg);
 
-      return edge_vec; 
+      return edge_vec;
    }
 
    inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg) {
       pack_counters_u counters = {.val=0};
       counters.val = cfg[reg_addr];
 
-      return counters.f;      
+      return counters.f;
    }
 
    inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters() {
       std::array<pack_counters_t, NUM_PACKERS> counters_vec;
 
-      // Get pointer to registers for current state ID 
+      // Get pointer to registers for current state ID
       volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
 
       counters_vec[0] = read_pack_counters_helper(PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32, cfg);
@@ -483,7 +483,7 @@ namespace ckernel::packer
       counters_vec[2] = read_pack_counters_helper(PACK_COUNTERS_SEC2_pack_per_xy_plane_ADDR32, cfg);
       counters_vec[3] = read_pack_counters_helper(PACK_COUNTERS_SEC3_pack_per_xy_plane_ADDR32, cfg);
 
-      return counters_vec; 
+      return counters_vec;
    }
 
 }

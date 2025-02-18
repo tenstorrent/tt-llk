@@ -5,8 +5,9 @@ import pytest
 import torch
 from helpers import *
 
+
 def generate_golden(operand1, reduce_dim, pool_type, data_format):
-    
+
     result = torch.zeros(1024, dtype=format_dict[data_format]).view(32, 32)
 
     f0 = operand1[:256].view(16, 16)
@@ -53,60 +54,59 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
         pytest.skip("To be implemented")
 
     print(result)
-    
+
     return result.view(1024)
 
-param_combinations = [
-    (reduce_dim,pool_type, format, dest_acc, testname)
-    for reduce_dim in ["reduce_col","reduce_row","reduce_scalar"]
-    for pool_type in ["max","avg","sum"]
-    for format in ["Float16_b","Float16"]
-    for dest_acc in [""]#, "DEST_ACC"]
-    for testname in ["reduce_test"]
-]
+full_sweep = False
+all_format_combos = generate_format_combinations(
+    ["Float16_b", "Float16"], not full_sweep
+)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+all_params = generate_params(
+    ["reduce_test"],
+    all_format_combos,
+    dest_acc=[""],
+    reduce_dim=["reduce_col"],
+    pool_type=["max", "sum", "avg"],
+)
+param_ids = generate_param_ids(all_params)
 
-param_ids = [
-    f"reduce_dim={comb[0]}  | pool_type={comb[1]} | format={comb[2]} | dest_acc={comb[3]} "
-    for comb in param_combinations
-]
 
 @pytest.mark.parametrize(
-    "reduce_dim, pool_type, format, dest_acc, testname",
-    param_combinations,
-    ids=param_ids
+    "testname, formats, dest_acc, reduce_dim, pool_type",
+    clean_params(all_params),
+    ids=param_ids,
 )
-
-@pytest.mark.skip(reason = "Not fully implemented")
-def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+@pytest.mark.skip(reason="Not fully implemented")
+def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
     
-    src_A, src_B = generate_stimuli(format)
-    # src_A = torch.cat([
-    #     torch.full((256,), 1, dtype=format_dict[format]),
-    #     torch.full((256,), 2, dtype=format_dict[format]),
-    #     torch.full((256,), 3, dtype=format_dict[format]),
-    #     torch.full((256,), 4, dtype=format_dict[format])
-    # ])
+    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
+    #  To ensure accurate results, for now we reset board after each test.
+    #  Fix this: so we only reset after failing tests
+    if full_sweep: 
+        run_shell_command(f"cd .. && make clean")
+        run_shell_command(f"tt-smi -r 0")
 
-    if pool_type in ["max", "sum"]: # result in srcA should be divided by 1
-        src_B = torch.full((1024,), 1) 
-    else:    
+    src_A, src_B = generate_stimuli(formats.unpack_src)
+
+    if pool_type in ["max", "sum"]:  # result in srcA should be divided by 1
+        src_B = torch.full((1024,), 1)
+    else:
         # reduce average divides by length of elements in array we reduce
-        if(reduce_dim in ["reduce_col", "reduce_row"]):
-            src_B = torch.full((1024,), 1/32)
+        if reduce_dim in ["reduce_col", "reduce_row"]:
+            src_B = torch.full((1024,), 1 / 32)
         else:
-            src_B = torch.full((1024,), torch.sqrt(torch.tensor(1/1024)))
+            src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
 
-    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, format)
-    write_stimuli_to_l1(src_A, src_B, format)
+    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.pack_dst)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
         "reduce_dim": reduce_dim,
         "pool_type": pool_type,
-        "mathop" : "reduce"
+        "mathop": reduce_dim,
     }
 
     make_cmd = generate_make_command(test_config)
@@ -114,28 +114,39 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(format)
+    res_from_L1 = collect_results(
+        formats
+    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
 
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden_tensor)
     assert_tensix_operations_finished()
 
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
-    res_tensor = untilize(res_tensor, format)
+    res_tensor = torch.tensor(
+        res_from_L1,
+        dtype=(
+            format_dict[formats.pack_dst]
+            if formats.pack_dst in ["Float16", "Float16_b"]
+            else torch.bfloat16
+        ),
+    )
+    res_tensor = untilize(res_tensor, formats.pack_dst)
 
     print("RES IN L1")
-    print(res_tensor.view(32, 32))  
+    print(res_tensor.view(32, 32))
 
-    if format == "Float16_b" or format == "Float16":
+    if formats.pack_dst in ["Float16_b", "Float16"]:
         atol = 0.1
         rtol = 0.05
-    elif format == "Bfp8_b":
+    elif formats.pack_dst == "Bfp8_b":
         atol = 0.1
         rtol = 0.2
 
     for i in range(len(golden_tensor)):
-        assert torch.isclose(golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+        assert torch.isclose(
+            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
 
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.98
