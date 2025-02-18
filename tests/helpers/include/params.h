@@ -9,25 +9,85 @@
 #include <cstdarg>
 
 #define L1_ADDRESS(buffer) ((reinterpret_cast<uint32_t>(buffer) / 16) - 1)
-    
-#ifdef LLK_TRISC_UNPACK
 
-    #ifdef FORMAT_FLOAT16_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
-    #endif
-    #ifdef FORMAT_FLOAT16
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
-    #endif
-    #ifdef FORMAT_FLOAT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
-    #endif
-    #ifdef FORMAT_INT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
-    #endif
-    #ifdef FORMAT_BFP8_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
-    #endif
+#ifdef UNPACK_SRC_FLOAT16_B
+    #define UNPACK_IN (uint32_t)DataFormat::Float16_b
+#endif
+#ifdef UNPACK_SRC_FLOAT16
+    #define UNPACK_IN (uint32_t)DataFormat::Float16
+#endif
+#ifdef UNPACK_SRC_FLOAT32
+    #define UNPACK_IN (uint32_t)DataFormat::Float32
+#endif
+#ifdef UNPACK_SRC_INT32
+    #define UNPACK_IN (uint32_t)DataFormat::Int32
+#endif
+#ifdef UNPACK_SRC_BFP8_B
+    #define UNPACK_IN (uint32_t)DataFormat::Bfp8_b 
+#endif
 
+#ifdef UNPACK_DST_FLOAT16_B
+    #define UNPACK_OUT (uint32_t)DataFormat::Float16_b
+#endif
+#ifdef UNPACK_DST_FLOAT16
+    #define UNPACK_OUT (uint32_t)DataFormat::Float16
+#endif
+#ifdef UNPACK_DST_FLOAT32
+    #define UNPACK_OUT (uint32_t)DataFormat::Float32
+#endif
+#ifdef UNPACK_DST_INT32
+    #define UNPACK_OUT (uint32_t)DataFormat::Int32
+#endif
+#ifdef UNPACK_DST_BFP8_B
+    #define UNPACK_OUT (uint32_t)DataFormat::Bfp8_b 
+#endif
+
+#ifdef MATH_FLOAT16_B
+    #define FPU (uint32_t)DataFormat::Float16_b
+#endif
+#ifdef MATH_FLOAT16
+    #define FPU (uint32_t)DataFormat::Float16
+#endif
+#ifdef MATH_FLOAT32
+    #define FPU (uint32_t)DataFormat::Float32
+#endif
+#ifdef MATH_INT32
+    #define FPU (uint32_t)DataFormat::Int32
+#endif
+#ifdef MATH_BFP8_B
+    #define FPU (uint32_t)DataFormat::Bfp8_b 
+#endif
+
+#ifdef PACK_SRC_FLOAT16_B
+    #define PACK_IN (uint32_t)DataFormat::Float16_b
+#endif
+#ifdef PACK_SRC_FLOAT16
+    #define PACK_IN (uint32_t)DataFormat::Float16
+#endif
+#ifdef PACK_SRC_FLOAT32
+    #define PACK_IN (uint32_t)DataFormat::Float32
+#endif
+#ifdef PACK_SRC_INT32
+    #define PACK_IN (uint32_t)DataFormat::Int32
+#endif
+#ifdef PACK_SRC_BFP8_B
+    #define PACK_IN (uint32_t)DataFormat::Bfp8_b 
+#endif
+
+#ifdef PACK_DST_FLOAT16_B
+    #define PACK_OUT (uint32_t)DataFormat::Float16_b
+#endif
+#ifdef PACK_DST_FLOAT16
+    #define PACK_OUT (uint32_t)DataFormat::Float16
+#endif
+#ifdef PACK_DST_FLOAT32
+    #define PACK_OUT (uint32_t)DataFormat::Float32
+#endif
+#ifdef PACK_DST_INT32
+    #define PACK_OUT (uint32_t)DataFormat::Int32
+#endif
+#ifdef PACK_DST_BFP8_B
+    #define PACK_OUT (uint32_t)DataFormat::Bfp8_b 
 #endif
 
 #ifdef LLK_TRISC_MATH
