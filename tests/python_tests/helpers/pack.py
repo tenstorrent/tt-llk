@@ -26,6 +26,7 @@ def fp32_to_bytes(number):
     return int_to_bytes_list(number_unpacked)    
 
 def int32_to_bytes(number):
+    number = int(number)
     number_unpacked = struct.unpack('!I', struct.pack('!I', number))[0]
     return int_to_bytes_list(number_unpacked)    
 
