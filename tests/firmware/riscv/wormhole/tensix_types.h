@@ -6,10 +6,6 @@
 
 #include <cstdint>
 
-#ifndef TENSIX_FIRMWARE
-#include <boost/format.hpp>
-#endif
-
 //
 //  tensix_types.h
 //  This file contains tensix structures used by RISCV firmware and test-bench/tests 
@@ -77,7 +73,7 @@ typedef struct {
   uint32_t rsvd1 ;
 #ifndef TENSIX_FIRMWARE
   operator std::string() const {
-    return (boost::format("Fifo Control: rd_ptr(0x%08x) wr_ptr(0x%08x)")
+    return (std::format("Fifo Control: rd_ptr(0x%08x) wr_ptr(0x%08x)")
             % rd_ptr
             % wr_ptr).str() ;
   }
@@ -148,7 +144,7 @@ struct TileHeader
 
 #ifndef TENSIX_FIRMWARE
   operator std::string() const {
-    return (boost::format("TileHeader:tile_id(0x%04x) size16B(0x%04x)")
+    return (std::format("TileHeader:tile_id(0x%04x) size16B(0x%04x)")
             % tile_id
             % tile_size_16B).str() ;
   }
@@ -188,7 +184,7 @@ struct SectionHeader
 
 #ifndef TENSIX_FIRMWARE
   operator std::string() const {
-    return (boost::format("SectionHeader: id(0x%04x) size(0x%04x) tile_count(0x%04x)")
+    return (std::format("SectionHeader: id(0x%04x) size(0x%04x) tile_count(0x%04x)")
             % section_id
             % section_size
             % tile_count).str() ;
@@ -337,25 +333,25 @@ struct io_queue_pointers_t {
     wrptr = new_wrptr;
   }
 
-  inline void set_wr_pointer(std::uint32_t value) volatile {
+  inline const void set_wr_pointer(std::uint32_t value) volatile {
     wrptr = value;
   }
 
-  inline void set_rd_pointer(std::uint32_t value) volatile {
+  inline const void set_rd_pointer(std::uint32_t value) volatile {
     rdptr = value;
   }
 
-  inline bool empty() volatile {
+  inline const bool empty() volatile {
     return rdptr == wrptr;
   }
 
-  inline bool full() volatile {
+  inline const bool full() volatile {
     auto wrapped_rdptr = rdptr ^ WRAP_MASK;
     return wrapped_rdptr == wrptr;
   }
 
   inline bool has_data() volatile {
-    return (rdptr != INVALID_IO_QUEUE_POINTER) and (wrptr != INVALID_IO_QUEUE_POINTER) and (not empty());
+    return (rdptr != INVALID_IO_QUEUE_POINTER) && (wrptr != INVALID_IO_QUEUE_POINTER) && (!empty());
   }
 
   inline std::uint32_t unwrap_ptr(std::uint32_t value) const volatile
