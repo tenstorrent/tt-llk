@@ -1,6 +1,13 @@
 import torch
 from .dictionaries import *
 import numpy as np
+import subprocess
+
+def run_shell_command(command: str):
+    result = subprocess.run(command, shell=True, text=True, capture_output=False)
+    if result.returncode != 0:
+        raise RuntimeError(f"Command failed: {command}\n{result.stderr}")
+    return result
 
 def untilize(original_tensor,stimuli_format = "Float16_b"):
 
