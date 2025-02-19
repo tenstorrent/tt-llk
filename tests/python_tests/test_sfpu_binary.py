@@ -22,11 +22,6 @@ def generate_golden(operation, operand1, operand2, data_format):
 
     return operations[operation].tolist()
 
-# @pytest.mark.parametrize("format", ["Float32", "Float16_b", "Float16"])
-# @pytest.mark.parametrize("testname", ["sfpu_binary_test"])
-# @pytest.mark.parametrize("mathop", ["elwadd", "elwsub", "elwmul"])
-# @pytest.mark.parametrize("dest_acc", ["DEST_ACC", ""])
-
 param_combinations = [
     (mathop, format, dest_acc, testname)
     for mathop in  ["elwadd", "elwsub", "elwmul"]

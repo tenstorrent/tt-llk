@@ -26,17 +26,11 @@ def generate_golden(operation, operand1, data_format):
 
     return res[:256] # just first face of result
 
-# @pytest.mark.parametrize("format", ["Float16_b","Float16", "Bfp8_b"])
-# #@pytest.mark.parametrize("format", ["Bfp8_b"])
-# @pytest.mark.parametrize("testname", ["eltwise_unary_sfpu_test"])
-# @pytest.mark.parametrize("mathop", ["sqrt", "log","square"])
-# @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
-# @pytest.mark.parametrize("approx_mode", ["false","true"])
 
 param_combinations = [
     (mathop, format, dest_acc, testname, approx_mode)
     for mathop in  ["sqrt"] #, "log","square"]
-    for format in ["Int32"] #["Float16_b", "Float16","Float32","Bfp8_b"]
+    for format in ["Float16_b", "Float16","Float32","Bfp8_b"]
     for dest_acc in ["DEST_ACC"]#,""]
     for testname in ["eltwise_unary_sfpu_test"]
     for approx_mode in ["false"]#,"true"]
