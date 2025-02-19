@@ -1,4 +1,4 @@
 clean:
-	rm -rf __pycache__
-	rm -rf .pytest_cache
-	rm -rf helpers/__pycache__
+	$(RMDIR) __pycache__
+	$(RMDIR) .pytest_cache
+	$(RMDIR) helpers/__pycache__

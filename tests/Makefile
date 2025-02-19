@@ -8,20 +8,27 @@ OBJCOPY=$(TOOL_PATH)/riscv32-unknown-elf-objcopy
 READELF=$(TOOL_PATH)/riscv32-unknown-elf-readelf
 
 # GCC options
-OPTIONS_ALL=-O3 -mabi=ilp32 -std=c++17 -g -ffast-math -flto
+OPTIONS_ALL=-O3 -mabi=ilp32 -std=c++20 -g -ffast-math 
 OPTIONS_COMPILE=-fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE #-DDEBUG_PRINT_ENABLED
 
-ifeq ($(CHIP_ARCH),wormhole)
-	OPTIONS_ALL+=-mcpu=tt-wh
-	OPTIONS_COMPILE+=-DARCH_WORMHOLE
-	ARCH_LLK_ROOT:=tt_llk_wormhole_b0
-else ifeq ($(CHIP_ARCH),blackhole)
-	OPTIONS_ALL+=-mcpu=tt-bh
-	OPTIONS_COMPILE+=-DARCH_BLACKHOLE
-	ARCH_LLK_ROOT:=tt_llk_blackhole
+# Default values
+ARCH_ROOT := unknown
+
+# Architecture-specific options
+ifeq ($(CHIP_ARCH), wormhole)
+    ARCH_OPTS := -mcpu=tt-wh -DARCH_WORMHOLE
+    ARCH_LLK_ROOT := tt_llk_wormhole_b0
+else ifeq ($(CHIP_ARCH), blackhole)
+    ARCH_OPTS := -mcpu=tt-bh -DARCH_BLACKHOLE
+    ARCH_LLK_ROOT := tt_llk_blackhole
 else
-    $(info CHIP_ARCH is neither wormhole nor blackhole.)
+    $(error CHIP_ARCH is neither wormhole nor blackhole.)
+	exit (1)
 endif
+
+# Append architecture-specific options
+OPTIONS_ALL += $(filter -mcpu=%, $(ARCH_OPTS))
+OPTIONS_COMPILE += $(filter -DARCH_%, $(ARCH_OPTS))
 
 OPTIONS_LINK=-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 INCLUDES = -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc -I../$(ARCH_LLK_ROOT)/common/inc/sfpu
@@ -118,7 +125,7 @@ $(BUILD_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cc | $(BUILD_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -c -o $@ $<
 
 clean:
-	rm -rf $(BUILD_DIR)
-	rm -rf __pycache__
-	rm -rf .pytest_cache
+	$(RMDIR) $(BUILD_DIR)
+	$(RMDIR) __pycache__
+	$(RMDIR) .pytest_cache
 	$(MAKE) -C python_tests clean
