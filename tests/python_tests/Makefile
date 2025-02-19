@@ -1,3 +1,5 @@
+RMDIR := rm -rf
+
 clean:
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache

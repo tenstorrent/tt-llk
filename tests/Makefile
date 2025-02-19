@@ -1,6 +1,8 @@
 TOOL_PATH?=sfpi/compiler/bin
 BUILD_DIR ?=build
 
+RMDIR := rm -rf
+
 # Tool paths
 GXX=$(TOOL_PATH)/riscv32-unknown-elf-g++
 OBJDUMP=$(TOOL_PATH)/riscv32-unknown-elf-objdump
