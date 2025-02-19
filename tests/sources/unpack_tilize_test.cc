@@ -27,7 +27,10 @@ void run_kernel()
 {
     _llk_unpack_tilize_hw_configure_<false,StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
     _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, 0, FACE_R_DIM, false);
-    _llk_unpack_tilize_((std::uint32_t)buffer_A/16-1,0,DATA_FORMAT,0,FACE_R_DIM,4,false);
+    for(int i = 0; i < 4; i++){
+        _llk_unpack_tilize_((std::uint32_t)buffer_A/16-1,i,DATA_FORMAT,0,FACE_R_DIM,4,false);
+    }
+
 }
 
 #endif

@@ -4,12 +4,10 @@ import os
 from helpers import *
 
 def generate_golden(operand1, data_format):
-
-    A_matrix = operand1.reshape(32,32)
-    print("\n\n", type(A_matrix))
-    A_tilized  = tilize(A_matrix,data_format)
-
-    return A_tilized
+    
+    torch.set_printoptions(threshold=float('inf'), linewidth=200)
+    A_tilized  = tilize(operand1,data_format)
+    return A_tilized.flatten()
 
 param_combinations = [
     (format, testname)
@@ -30,9 +28,18 @@ param_ids = [
 
 def test_all(format, testname):
 
-    src_A, src_B = generate_stimuli(format, tile_cnt = 1, sfpu = False, const_face = True, const_value_A=4, const_value_B=3)
-    # src_A, src_B = generate_stimuli(format)#, tile_cnt = 1, sfpu = False, const_face = True, const_value_A=4, const_value_B=3)
+    #src_A, src_B = generate_stimuli(format, tile_cnt = 1, sfpu = False, const_face = True, const_value_A=4, const_value_B=3)
+    #src_A, src_B = generate_stimuli(format)#, tile_cnt = 1, sfpu = False, const_face = True, const_value_A=4, const_value_B=3)
+
+    src_A = torch.cat([torch.full((256,), i) for i in range(1, 5)])
+    src_B = torch.full((1024,),0)
+    
     golden_tensor = generate_golden(src_A, format)
+
+    print("\n\n")
+    print(src_A)
+    print("\n\n")
+    print(golden_tensor.view(32,32))
 
     write_stimuli_to_l1(src_A, src_B, format)
 
@@ -48,6 +55,7 @@ def test_all(format, testname):
     run_elf_files(testname)
 
     res_from_L1 = collect_results(format)
+    
 
     run_shell_command("cd .. && make clean")
 
@@ -59,6 +67,9 @@ def test_all(format, testname):
     assert read_words_from_device("0,0", 0x19FFC, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+
+    print("\n\n")
+    print(res_tensor.view(32,32))
 
     if(format == "Float16_b" or format == "Float16"):
         atol = 0.1

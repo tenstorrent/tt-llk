@@ -42,17 +42,25 @@ def calculate_read_words_cnt(format, sfpu=False):
 
 def tilize(original_tensor, stimuli_format="Float16_b"):
 
-    if original_tensor.size(0) != 32 or original_tensor.size(1) != 32:
-        raise ValueError("Input tensor must have size 32x32.")
+    if original_tensor.size(0) != 1024:
+        raise ValueError("Input tensor must have 1024 elements.")
     
-    submatrix_1 = original_tensor[0:16, 0:16]  # Top-left
-    submatrix_2 = original_tensor[0:16, 16:32]  # Top-right
-    submatrix_3 = original_tensor[16:32, 0:16]  # Bottom-left
-    submatrix_4 = original_tensor[16:32, 16:32]  # Bottom-right
-    
-    # Stack the submatrices into a single tensor
-    result = torch.cat([submatrix_1.flatten(), submatrix_2.flatten(),
-                        submatrix_3.flatten(), submatrix_4.flatten()])
+    submatrix_1 = original_tensor[0:256]
+    submatrix_2 = original_tensor[256:512]
+    submatrix_3 = original_tensor[512:768]
+    submatrix_4 = original_tensor[768:1024]
+
+    result = torch.zeros((32, 32), dtype=format_dict[stimuli_format])
+    submatrix_1_reshaped = submatrix_1.reshape(16, 16)
+    submatrix_2_reshaped = submatrix_2.reshape(16, 16)
+    submatrix_3_reshaped = submatrix_3.reshape(16, 16)
+    submatrix_4_reshaped = submatrix_4.reshape(16, 16)
+
+    # Place the reshaped submatrices in the correct sections of result
+    result[:16, :16] = submatrix_1_reshaped
+    result[:16, 16:32] = submatrix_2_reshaped
+    result[16:32, :16] = submatrix_3_reshaped
+    result[16:32, 16:32] = submatrix_4_reshaped
     
     # Return the tensor in the requested format (if applicable)
     return result.to(dtype=format_dict[stimuli_format] if stimuli_format in ["Float16_b","Float16"] else torch.float32)
