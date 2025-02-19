@@ -31,6 +31,7 @@ param_ids = [
 def test_all(format, testname):
 
     src_A, src_B = generate_stimuli(format, tile_cnt = 1, sfpu = False, const_face = True, const_value_A=4, const_value_B=3)
+    # src_A, src_B = generate_stimuli(format)#, tile_cnt = 1, sfpu = False, const_face = True, const_value_A=4, const_value_B=3)
     golden_tensor = generate_golden(src_A, format)
 
     write_stimuli_to_l1(src_A, src_B, format)

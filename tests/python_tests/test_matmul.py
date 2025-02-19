@@ -30,11 +30,6 @@ def generate_golden(operand1, operand2, data_format,math_fidelity):
 
     return result
 
-# @pytest.mark.parametrize("format", ["Float16_b", "Float16","Bfp8_b"])
-# @pytest.mark.parametrize("testname", ["matmul_test"])
-# @pytest.mark.parametrize("dest_acc", [""])#,"DEST_ACC"])
-
-# This setup allows easier tracking of test cases when run
 param_combinations = [
     (format, dest_acc, testname, math_fidelity)
     for format in ["Float16","Float16_b"]

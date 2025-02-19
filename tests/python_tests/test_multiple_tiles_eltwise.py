@@ -39,15 +39,6 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
     
     return res.tolist()
 
-# @pytest.mark.parametrize("mathop", range(1,4))
-# @pytest.mark.parametrize("tile_cnt", range(1,4))
-# @pytest.mark.parametrize("format", ["Float16_b"]) #, "Float16", "Bfp8_b"])
-# @pytest.mark.parametrize("dest_acc", ["","DEST_ACC"])
-# @pytest.mark.parametrize("testname", ["multiple_tiles_eltwise_test"])
-# @pytest.mark.parametrize("math_fidelity", [0]) # ,2,3,4])
-
-
-# This setup allows easier tracking of test cases when run
 param_combinations = [
     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
     for mathop in range(1, 4)
