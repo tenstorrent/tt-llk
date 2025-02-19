@@ -69,7 +69,7 @@ def bfp8_to_float_block(exponent, bfp8_mantissas):
 
 def unpack_bfp8_b(bfp8_block,sfpu=False):
 
-    if sfpu == False:
+    if not sfpu:
         exponents = bfp8_block[:64]
         reversed_exponents = revese_endian_chunk(exponents)
         mantissas = bfp8_block[64:]
