@@ -34,6 +34,8 @@ formats = ["Bfp8_b", "Float16_b", "Float16"]
 @pytest.mark.parametrize("mathop", ["elwadd", "elwsub", "elwmul"])
 @pytest.mark.parametrize("dest_acc", ["DEST_ACC", ""])
 def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, dest_acc, test_results):
+    os.system("cd .. && make clean")
+    os.system("tt-smi -r 0")
     
     src_A, src_B = generate_stimuli(unpack_src)
     golden = generate_golden(mathop, src_A, src_B, pack_dst)
@@ -93,7 +95,7 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
 
     for i in range(len(golden)):
-        test_results[-1][4] = str(res_tensor[i])
+        test_results[-1][4] = res_tensor[i]
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
     _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
