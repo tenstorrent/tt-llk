@@ -22,7 +22,7 @@ import torch
 
 def calculate_read_words_cnt(format, sfpu=False):
 
-    if sfpu == True: # for now just for 16 bit formats
+    if sfpu: # for now just for 16 bit formats
         if(format in ["Float32", "Int32"]):
             return 256
         else:

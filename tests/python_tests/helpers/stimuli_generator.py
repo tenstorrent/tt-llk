@@ -9,7 +9,7 @@ def generate_random_face(stimuli_format = "Float16_b",const_value = 1,  const_fa
     if(stimuli_format in ["Float16_b", "Float16", "Float32"]): 
 
         #srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 2 # because of log
-        if const_face == True:
+        if const_face:
             srcA_face = torch.ones(256, dtype = format_dict[stimuli_format]) * const_value
         else: # random for both faces
             srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 2 # because of log
@@ -19,7 +19,7 @@ def generate_random_face(stimuli_format = "Float16_b",const_value = 1,  const_fa
         size = 256
         integer_part = torch.randint(0, 3, (size,))  
         fraction = torch.randint(0, 16, (size,)).to(dtype = torch.bfloat16) / 16.0
-        if(const_face == True):
+        if const_face:
             srcA_face = torch.ones(256, dtype = torch.bfloat16) * const_value
         else:
             srcA_face = integer_part.to(dtype = torch.bfloat16) + fraction
@@ -45,7 +45,7 @@ def generate_stimuli(stimuli_format = "Float16_b", tile_cnt = 1, sfpu = False, c
     srcA = flatten_list(srcA)
     srcB = flatten_list(srcB)    
 
-    if sfpu == False:
+    if not sfpu:
         if stimuli_format != "Bfp8_b":
             return torch.tensor(srcA, dtype = format_dict[stimuli_format]), torch.tensor(srcB, dtype = format_dict[stimuli_format])
         else:

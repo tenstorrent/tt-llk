@@ -13,25 +13,38 @@ def collect_results(format,address=0x1c000,sfpu=False):
 
 def run_elf_files(testname, run_brisc=True):
 
-    if run_brisc == True:
+    if run_brisc:
         run_elf(f"{ELF_LOCATION}brisc.elf", "0,0", risc_id=0)
 
     # for i in range(3):
     #     run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", "0,0", risc_id=i + 1)
 
-        run_elf(f"{ELF_LOCATION}{testname}_trisc2.elf", "0,0", risc_id=3)
-        run_elf(f"{ELF_LOCATION}{testname}_trisc1.elf", "0,0", risc_id=2)
-        run_elf(f"{ELF_LOCATION}{testname}_trisc0.elf", "0,0", risc_id=1)
+    # Added because there was a race that caused failure in test_eltwise_unary_datacopy,
+    # and now cores are run in revese order PACK, MATH, UNOPACK
+    # Once that issue is reolved with tt-exalens code will be returned to normal for loop
+
+    run_elf(f"{ELF_LOCATION}{testname}_trisc2.elf", "0,0", risc_id=3)
+    run_elf(f"{ELF_LOCATION}{testname}_trisc1.elf", "0,0", risc_id=2)
+    run_elf(f"{ELF_LOCATION}{testname}_trisc0.elf", "0,0", risc_id=1)
 
 def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, tile_cnt = 1):
 
+    BUFFER_SIZE = 4096
+    TILE_SIZE = 1024
+
     buffer_A_address = 0x1a000
-    buffer_B_address = 0x1a000 + 4096*tile_cnt
+    buffer_B_address = 0x1a000 + BUFFER_SIZE*tile_cnt
 
     for i in range(tile_cnt):
 
-        buffer_A_tile = buffer_A[1024*i: 1024*i+1024]
-        buffer_B_tile = buffer_B[1024*i: 1024*i+1024]
+        start_index = TILE_SIZE * i
+        end_index = start_index + TILE_SIZE
+
+        if end_index > len(buffer_A) or end_index > len(buffer_B):
+            raise IndexError("Buffer access out of bounds")
+
+        buffer_A_tile = buffer_A[start_index:end_index]
+        buffer_B_tile = buffer_B[start_index:end_index]
 
         if stimuli_format == "Float16_b":
             write_to_device("0,0", buffer_A_address, pack_bfp16(buffer_A_tile))
@@ -49,8 +62,8 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, tile_cnt = 1):
             write_to_device("0,0", buffer_A_address, pack_fp32(buffer_A_tile))
             write_to_device("0,0", buffer_B_address, pack_fp32(buffer_B_tile))
         
-        buffer_A_address += 4096
-        buffer_B_address += 4096
+        buffer_A_address += BUFFER_SIZE
+        buffer_B_address += BUFFER_SIZE
         
         
 
