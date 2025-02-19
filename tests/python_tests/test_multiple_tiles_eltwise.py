@@ -88,11 +88,11 @@ def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc, math_fid
     }
     
     make_cmd = generate_make_command(test_config)
-    os.system(f"cd .. && {make_cmd} >/dev/null")
+    run_shell_command(f"cd .. && {make_cmd} >/dev/null")
 
     run_elf_files(testname)
 
-    os.system("cd .. && make clean")
+    run_shell_command("cd .. && make clean")
 
     assert read_words_from_device("0,0", 0x19FF4, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
     assert read_words_from_device("0,0", 0x19FF8, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
