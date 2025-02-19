@@ -23,3 +23,11 @@ mathop_args_dict = {
     "square": "SFPU_OP_SQUARE",
     "log": "SFPU_OP_LOG"
 }
+
+format_sizes = {
+    "Float16": 512,
+    "Float16_b": 512,
+    "Bfp8_b": 272,
+    "Float32": 1024,
+    "Int32": 1024
+}
