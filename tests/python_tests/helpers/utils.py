@@ -22,18 +22,16 @@ import torch
 
 def calculate_read_words_cnt(format, sfpu=False):
 
+    if format not in format_sizes:
+        raise ValueError(f"Unsupported format: {format}")
+
     if sfpu: # for now just for 16 bit formats
         if(format in ["Float32", "Int32"]):
             return 256
         else:
             return 128
-
-    if(format == "Float16" or format == "Float16_b"):
-        return 512
-    elif( format == "Bfp8_b"):
-        return 272
-    elif( format == "Float32" or format == "Int32"):
-        return 1024
+    
+    return format_sizes[format]
 
 def tilize(original_tensor, stimuli_format="Float16_b"):
 

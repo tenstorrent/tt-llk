@@ -13,8 +13,6 @@
 #include "ckernel_helper.h"
 #include "params.h"
 
-using vptr_uint = volatile uint32_t*;
-
 #ifdef LLK_TRISC_UNPACK
     volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FFC);
 #elif defined(LLK_TRISC_MATH)
