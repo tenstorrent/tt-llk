@@ -18,19 +18,23 @@ const bool is_fp32_dest_acc_en = false;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_tilize.h"
+#include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 
 volatile uint32_t* buffer_A = (volatile uint32_t*)0x1a000;
 
+const int ct_dim = 1;
+
 void run_kernel()
 {
     _llk_unpack_tilize_hw_configure_<false,StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
-    _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, 0, FACE_R_DIM, false);
-    for(int i = 0; i < 4; i++){
-        _llk_unpack_tilize_((std::uint32_t)buffer_A/16-1,i,DATA_FORMAT,0,FACE_R_DIM,4,false);
-    }
+    _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, ct_dim, FACE_R_DIM, false);
+    _llk_unpack_tilize_((std::uint32_t)buffer_A/16-1,0,DATA_FORMAT,ct_dim,FACE_R_DIM,4,false);
 
+    // _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, FACE_R_DIM, 4, DATA_FORMAT,DATA_FORMAT);
+    // _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT,DATA_FORMAT,FACE_R_DIM,0,4);
+    // _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>((((uint32_t)buffer_A)/16)-1, 0, DATA_FORMAT,DATA_FORMAT);
 }
 
 #endif

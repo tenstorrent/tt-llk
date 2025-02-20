@@ -9,24 +9,6 @@ def run_shell_command(command: str):
         raise RuntimeError(f"Command failed: {command}\n{result.stderr}")
     return result
 
-def untilize(original_tensor,stimuli_format = "Float16_b"):
-
-    if original_tensor.size(0) != 1024:
-        raise ValueError("Input tensor must have 1024 elements.")
-    
-    submatrices = original_tensor.reshape(4, 16, 16)
-
-    new_tensor = torch.zeros((32, 32), dtype=format_dict[stimuli_format])
-
-    new_tensor[0:16, 0:16] = submatrices[0]  # Top-left
-    new_tensor[0:16, 16:32] = submatrices[1]  # Top-right
-    new_tensor[16:32, 0:16] = submatrices[2]  # Bottom-left
-    new_tensor[16:32, 16:32] = submatrices[3]  # Bottom-right
-
-    return new_tensor
-
-import torch
-
 def calculate_read_words_cnt(format, sfpu=False):
 
     if format not in format_sizes:
@@ -64,6 +46,19 @@ def tilize(original_tensor, stimuli_format="Float16_b"):
     
     # Return the tensor in the requested format (if applicable)
     return result.to(dtype=format_dict[stimuli_format] if stimuli_format in ["Float16_b","Float16"] else torch.float32)
+
+def untilize(tilized_tensor):
+    if tilized_tensor.size() != (32, 32):
+        raise ValueError("Input tensor must be of shape (32, 32).")
+    
+    submatrix_1 = tilized_tensor[:16, :16].reshape(-1)
+    submatrix_2 = tilized_tensor[:16, 16:32].reshape(-1)
+    submatrix_3 = tilized_tensor[16:32, :16].reshape(-1)
+    submatrix_4 = tilized_tensor[16:32, 16:32].reshape(-1)
+    
+    result = torch.cat((submatrix_1, submatrix_2, submatrix_3, submatrix_4))
+    
+    return result
 
 def revese_endian_chunk(input_list, chunk_size = 4):
 
