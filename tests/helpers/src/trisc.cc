@@ -24,6 +24,9 @@
 
 int main()
 {
+
+	*mailbox = 0x2;
+
     //FWEVENT("Launching proudction env kernels");
 	for (int i = 0; i < 64; i++) regfile[i] = 0;
 	reset_cfg_state_id();
