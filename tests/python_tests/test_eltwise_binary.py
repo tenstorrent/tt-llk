@@ -2,6 +2,7 @@ import pytest
 import torch
 import os
 from helpers import *
+from helpers.check_hw import *
 
 def generate_golden(operation, operand1, operand2, data_format):
     if( data_format == "Float16" or data_format == "Float16_b"):
@@ -41,6 +42,8 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
     golden = generate_golden(mathop, src_A, src_B, pack_dst)
     write_stimuli_to_l1(src_A, src_B, unpack_src)
 
+    hw = hw_support(unpack_src, unpack_dst, pack_src, pack_dst)
+    
     test_config = {
         "unpack_src": unpack_src,
         "unpack_dst": unpack_dst,
@@ -61,6 +64,7 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
     
     test_results.append([
         "FAIL",  # Result
+        hw, # is format combination supported by HW
         unpack_src,  # Input Format
         pack_dst,  # Output Format
         0,  # PCC placeholder until calculated
@@ -71,7 +75,7 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
         pack_src,  # Pack Src
         pack_dst,  # Pack Dst
         mathop,  # Math Operation
-        "ON" if dest_acc != "" else "OFF"  # Destination Accumulation
+        "ON" if dest_acc != "" else "OFF" # Destination Accumulation
     ])
     
     assert len(res_from_L1) == len(golden)
@@ -95,10 +99,10 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
 
     for i in range(len(golden)):
-        test_results[-1][4] = res_tensor[i]
+        test_results[-1][5] = (golden_tensor[i].item(), res_tensor[i].item())
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
     _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.99
-    test_results[-1][3] = pcc
+    test_results[-1][4] = pcc
     test_results[-1][0] = "PASS"
