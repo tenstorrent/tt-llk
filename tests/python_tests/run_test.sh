@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Check if CHIP_ARCH is set to wormhole or blackhole
 if [[ "$CHIP_ARCH" = "wormhole" ]]; then
@@ -19,44 +19,51 @@ usage() {
     exit 1
 }
 
-# Parse command-line arguments
+# Default values
 log_file="test_results.log"  # Default log file
+repeat_count=1
+test_name=""
+all_tests=false
+
+# Parse command-line arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --repeat)
-            repeat_count="$2"
-            shift 2
+            if [[ -n "$2" && "$2" =~ ^[0-9]+$ ]]; then
+                repeat_count="$2"
+                shift 2
+            else
+                echo "Error: --repeat requires a numeric argument."
+                usage
+            fi
             ;;
         --test)
-            test_name="$2"
-            shift 2
+            if [[ -n "$2" ]]; then
+                test_name="$2"
+                shift 2
+            else
+                echo "Error: --test requires an argument."
+                usage
+            fi
             ;;
         --all)
             all_tests=true
             shift
             ;;
         --log)
-            log_file="$2"
-            shift 2
+            if [[ -n "$2" ]]; then
+                log_file="$2"
+                shift 2
+            else
+                echo "Error: --log requires an argument."
+                usage
+            fi
             ;;
         *)
             usage
             ;;
     esac
 done
-
-if [[ "$all_tests" = true ]]; then
-    echo "Running all tests in current directory."
-    test_files=$(ls test_*.py)
-
-    for test_file in $test_files; do
-        echo "Running $test_file"
-        pytest --color=yes -v "$test_file"
-        tt-smi -r 0
-    done
-    
-    exit 0
-fi
 
 
 # Ensure both parameters (--repeat and --test) are provided if not running all tests
@@ -76,9 +83,14 @@ for i in $(seq 1 "$repeat_count"); do
 
     result=$?
     
-    if [ $result -eq 0 ]; then
+    if [ [$result -eq 0] ]; then
         ((pass_count++))
     else
         ((fail_count++))
     fi
 done
+
+# Print summary
+echo "Summary:"
+echo "Passed: $pass_count"
+echo "Failed: $fail_count"
