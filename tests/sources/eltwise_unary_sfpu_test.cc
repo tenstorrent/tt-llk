@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cstdio>
+#include <algorithm>
 
 #include "llk_defs.h"
 #include "ckernel.h"
@@ -95,10 +96,9 @@ void run_kernel()
 volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
 void run_kernel()
 {
-    for(int i = 0; i < 16*16*4; i++)
-    {
-        buffer_Dest[i] = 0xdeadbeef;
-    }
+
+    std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+
     #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, PACK_DEST_FORMAT, 16*16*4);
     #else
