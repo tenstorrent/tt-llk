@@ -17,10 +17,7 @@ def calculate_read_words_cnt(format, sfpu=False):
         raise ValueError(f"Unsupported format: {format}")
 
     if sfpu: # for now just for 16 bit formats
-        if(format in ["Float32", "Int32"]):
-            return 256
-        else:
-            return 128
+        return 256 if format in ["Float32", "Int32"] else 128
     
     return format_sizes[format]
 
