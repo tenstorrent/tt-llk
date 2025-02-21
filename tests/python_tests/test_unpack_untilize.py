@@ -27,12 +27,9 @@ param_ids = [
     ids=param_ids
 )
 
-def test_all(format, testname):
+def test_unpack_untilze(format, testname):
 
-    #src_A, src_B = generate_stimuli(format)
-    src_A = torch.arange(1024) % 512
-    src_A = tilize(src_A, format)
-
+    src_A, src_B = generate_stimuli(format)
     src_B = torch.full((1024,),0)
     
     golden_tensor = generate_golden(src_A, format)
@@ -69,5 +66,5 @@ def test_all(format, testname):
     for i in range(len(golden_tensor)):
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
 
-    _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
+    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.98

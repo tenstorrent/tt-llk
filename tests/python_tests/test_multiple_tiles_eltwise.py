@@ -59,7 +59,7 @@ param_ids = [
     param_combinations,
     ids=param_ids
 )
-def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
+def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
 
     # prepare setup for running kernels
 
@@ -114,5 +114,5 @@ def test_multiple_kernels(format, testname, tile_cnt, mathop, dest_acc, math_fid
         atol = 0.1
         rtol = 0.2
   
-    _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
+    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.99

@@ -47,7 +47,7 @@ param_ids = [
     ids=param_ids
 )
 
-def test_multiple_kernels(format, testname, dest_acc):
+def test_fill_dest(format, testname, dest_acc):
 
     pack_start_address = 0x1c000
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(16)]
@@ -69,7 +69,7 @@ def test_multiple_kernels(format, testname, dest_acc):
     run_elf_files(testname)
 
     run_shell_command("cd .. && make clean")
-    
+
     assert read_mailboxes() == True
 
     res_from_L1 = []
@@ -96,5 +96,5 @@ def test_multiple_kernels(format, testname, dest_acc):
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
   
-    _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
+    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.99

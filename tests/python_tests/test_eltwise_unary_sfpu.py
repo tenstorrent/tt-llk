@@ -47,7 +47,7 @@ param_ids = [
     ids=param_ids
 )
 
-def test_all(format, mathop, testname, dest_acc, approx_mode):
+def test_eltwise_unary_sfpu(format, mathop, testname, dest_acc, approx_mode):
 
     if( format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
         pytest.skip("SKipping test for 32 bit wide data without 32 bit accumulation in Dest")
@@ -93,5 +93,5 @@ def test_all(format, mathop, testname, dest_acc, approx_mode):
     for i in range(len(golden)):
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
-    _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
+    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.99
