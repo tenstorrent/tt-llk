@@ -3,6 +3,8 @@ from .dictionaries import *
 import numpy as np
 import subprocess
 
+torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
+
 def run_shell_command(command: str):
     result = subprocess.run(command, shell=True, text=True, capture_output=False)
     if result.returncode != 0:
@@ -27,38 +29,38 @@ def tilize(original_tensor, stimuli_format="Float16_b"):
     if original_tensor.size(0) != 1024:
         raise ValueError("Input tensor must have 1024 elements.")
     
-    submatrix_1 = original_tensor[0:256]
-    submatrix_2 = original_tensor[256:512]
-    submatrix_3 = original_tensor[512:768]
-    submatrix_4 = original_tensor[768:1024]
+    matrix = original_tensor.view(32, 32)
 
-    result = torch.zeros((32, 32), dtype=format_dict[stimuli_format])
-    submatrix_1_reshaped = submatrix_1.reshape(16, 16)
-    submatrix_2_reshaped = submatrix_2.reshape(16, 16)
-    submatrix_3_reshaped = submatrix_3.reshape(16, 16)
-    submatrix_4_reshaped = submatrix_4.reshape(16, 16)
+    f0 = matrix[:16, :16]
+    f1 = matrix[:16, 16:32]
+    f2 = matrix[16:32, :16]
+    f3 = matrix[16:32, 16:32]
 
-    # Place the reshaped submatrices in the correct sections of result
-    result[:16, :16] = submatrix_1_reshaped
-    result[:16, 16:32] = submatrix_2_reshaped
-    result[16:32, :16] = submatrix_3_reshaped
-    result[16:32, 16:32] = submatrix_4_reshaped
-    
-    # Return the tensor in the requested format (if applicable)
+    print(f0)
+    print(f1)
+    print(f2)
+    print(f3)
+
+    result = torch.cat((f0.reshape(-1), f1.reshape(-1), f2.reshape(-1), f3.reshape(-1)))
+
     return result.to(dtype=format_dict[stimuli_format] if stimuli_format in ["Float16_b","Float16"] else torch.float32)
 
-def untilize(tilized_tensor):
-    if tilized_tensor.size() != (32, 32):
-        raise ValueError("Input tensor must be of shape (32, 32).")
+def untilize(tilized_tensor, stimuli_format="Float16_b"):
+
+    if tilized_tensor.size(0) != 1024:
+        raise ValueError("Input tensor must have 1024 elements.")
     
-    submatrix_1 = tilized_tensor[:16, :16].reshape(-1)
-    submatrix_2 = tilized_tensor[:16, 16:32].reshape(-1)
-    submatrix_3 = tilized_tensor[16:32, :16].reshape(-1)
-    submatrix_4 = tilized_tensor[16:32, 16:32].reshape(-1)
-    
-    result = torch.cat((submatrix_1, submatrix_2, submatrix_3, submatrix_4))
-    
-    return result
+    f0 = tilized_tensor[:256].view(16, 16)
+    f1 = tilized_tensor[256:512].view(16, 16)
+    f2 = tilized_tensor[512:768].view(16, 16)
+    f3 = tilized_tensor[768:].view(16, 16)
+
+    top = torch.cat((f0, f1), dim=1)
+    bottom = torch.cat((f2, f3), dim=1)
+
+    original_tensor = torch.cat((top, bottom), dim=0).view(1024)
+
+    return original_tensor.to(dtype=format_dict[stimuli_format] if stimuli_format in ["Float16_b","Float16"] else torch.float32)
 
 def revese_endian_chunk(input_list, chunk_size = 4):
 

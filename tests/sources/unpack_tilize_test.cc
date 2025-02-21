@@ -31,10 +31,6 @@ void run_kernel()
     _llk_unpack_tilize_hw_configure_<false,StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
     _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, ct_dim, FACE_R_DIM, false);
     _llk_unpack_tilize_((std::uint32_t)buffer_A/16-1,0,DATA_FORMAT,ct_dim,FACE_R_DIM,4,false);
-
-    // _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, FACE_R_DIM, 4, DATA_FORMAT,DATA_FORMAT);
-    // _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT,DATA_FORMAT,FACE_R_DIM,0,4);
-    // _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>((((uint32_t)buffer_A)/16)-1, 0, DATA_FORMAT,DATA_FORMAT);
 }
 
 #endif
@@ -73,7 +69,10 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
+const bool UNTILIIZE = true;
+
 volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
+
 void run_kernel()
 {
     for(int i = 0; i < 16*16*4; i++)
@@ -81,21 +80,21 @@ void run_kernel()
         buffer_Dest[i] = 0xdeadbeef;
     }
     #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<UNTILIIZE, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
     #else
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+    _llk_pack_hw_configure_<UNTILIIZE, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
     #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
+    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
     
     #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull,DstTileFaceLayout::RowMajor,is_fp32_dest_acc_en>();
     #else
-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, false>();
+    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, UNTILIIZE, is_fp32_dest_acc_en>();
     #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncFull,false, is_fp32_dest_acc_en>(0, (std::uint32_t)buffer_Dest/16-1);
+    _llk_pack_<DstSync::SyncFull,UNTILIIZE, is_fp32_dest_acc_en>(0, (std::uint32_t)buffer_Dest/16-1);
     _llk_pack_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
 }
 
