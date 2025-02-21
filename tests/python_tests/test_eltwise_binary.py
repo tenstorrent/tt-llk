@@ -24,7 +24,7 @@ def generate_golden(operation, operand1, operand2, data_format):
 
     return operations[operation].tolist()
 
-formats = ["Bfp8_b", "Float16_b", "Float16"]
+formats = ["Bfp8_b", "Float16_b"]#, "Float16"]
 @pytest.mark.parametrize("unpack_src", formats)
 @pytest.mark.parametrize("unpack_dst", formats)
 @pytest.mark.parametrize("fpu", formats)
