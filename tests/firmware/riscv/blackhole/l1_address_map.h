@@ -98,13 +98,6 @@ struct address_map {
   static constexpr std::uint32_t FW_MAILBOX_BUF_SIZE     = 64;
   static constexpr std::uint32_t DEBUG_MAILBOX_BUF_SIZE  = 64; // For each T0/T1/T2/FW
 
-  // Used for TT_LOG
-  static constexpr std::uint32_t TRISC_TT_LOG_MAILBOX_OFFSET = 28;
-  static constexpr std::uint32_t TRISC_TT_LOG_MAILBOX_SIZE = 64;
-  static constexpr std::uint32_t TRISC0_TT_LOG_MAILBOX_BASE = TRISC0_MAILBOX_BASE + TRISC_TT_LOG_MAILBOX_OFFSET;
-  static constexpr std::uint32_t TRISC1_TT_LOG_MAILBOX_BASE = TRISC1_MAILBOX_BASE + TRISC_TT_LOG_MAILBOX_OFFSET;
-  static constexpr std::uint32_t TRISC2_TT_LOG_MAILBOX_BASE = TRISC2_MAILBOX_BASE + TRISC_TT_LOG_MAILBOX_OFFSET;
-
   // Upper 2KB of local space is used as debug buffer
   static constexpr std::uint32_t DEBUG_BUFFER_SIZE  = 2 * 1024;
   static constexpr std::uint32_t TRISC0_DEBUG_BUFFER_BASE  = TRISC0_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
