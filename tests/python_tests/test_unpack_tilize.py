@@ -3,7 +3,6 @@ import torch
 import os
 from helpers import *
 
-
 def generate_golden(operand1, data_format):
     
     A_tilized  = tilize(operand1,data_format)
@@ -58,7 +57,6 @@ def test_all(format, testname):
     assert read_words_from_device("0,0", 0x19FFC, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
-    res_tensor = untilize(res_tensor.view(32,32))
 
     if(format == "Float16_b" or format == "Float16"):
         atol = 0.1
