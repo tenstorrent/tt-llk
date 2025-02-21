@@ -46,21 +46,18 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, tile_cnt = 1):
         buffer_A_tile = buffer_A[start_index:end_index]
         buffer_B_tile = buffer_B[start_index:end_index]
 
-        if stimuli_format == "Float16_b":
-            write_to_device("0,0", buffer_A_address, pack_bfp16(buffer_A_tile))
-            write_to_device("0,0", buffer_B_address, pack_bfp16(buffer_B_tile))    
-        elif stimuli_format == "Float16":
-            write_to_device("0,0", buffer_A_address, pack_fp16(buffer_A_tile))
-            write_to_device("0,0", buffer_B_address, pack_fp16(buffer_B_tile))
-        elif stimuli_format == "Bfp8_b":
-            write_to_device("0,0", buffer_A_address, pack_bfp8_b(buffer_A_tile))
-            write_to_device("0,0", buffer_B_address, pack_bfp8_b(buffer_B_tile))
-        elif stimuli_format == "Int32":
-            write_to_device("0,0", buffer_A_address, pack_int32(buffer_A_tile))
-            write_to_device("0,0", buffer_B_address, pack_int32(buffer_B_tile))
-        elif stimuli_format == "Float32":
-            write_to_device("0,0", buffer_A_address, pack_fp32(buffer_A_tile))
-            write_to_device("0,0", buffer_B_address, pack_fp32(buffer_B_tile))
+        packers = {
+            "Bfp8_b": pack_bfp8_b,
+            "Float16": pack_fp16,
+            "Float16_b": pack_bfp16,
+            "Float32": pack_fp32,
+            "Int32": pack_int32
+        }
+
+        pack_function = packers.get(stimuli_format)
+
+        write_to_device("0,0", buffer_A_address, pack_function(buffer_A_tile))
+        write_to_device("0,0", buffer_B_address, pack_function(buffer_B_tile))
         
         buffer_A_address += BUFFER_SIZE
         buffer_B_address += BUFFER_SIZE
