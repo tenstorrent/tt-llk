@@ -11,7 +11,7 @@ def run_shell_command(command: str):
         raise RuntimeError(f"Command failed: {command}\n{result.stderr}")
     return result
 
-def calculate_read_words_cnt(format, sfpu=False):
+def calculate_read_words_count(format, sfpu=False):
 
     if format not in format_sizes:
         raise ValueError(f"Unsupported format: {format}")
@@ -74,7 +74,7 @@ def format_kernel_list(kernels, as_hex=False):
             formatted_str += str(i) + ","
     return formatted_str[:-1]  # Remove the trailing comma
 
-def comp_pcc(golden, calculated, pcc=0.99):
+def compare_pcc(golden, calculated, pcc=0.99):
     golden = torch.Tensor(golden)
     calculated = torch.Tensor(calculated)
 

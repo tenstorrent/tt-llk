@@ -5,7 +5,7 @@ from helpers import *
 ELF_LOCATION = "../build/elf/"
 
 def collect_results(format,address=0x1c000,sfpu=False):
-    read_words_cnt = calculate_read_words_cnt(format,sfpu)
+    read_words_cnt = calculate_read_words_count(format,sfpu)
     read_data = read_words_from_device("0,0", address, word_count=read_words_cnt)
     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
     res_from_L1 = get_result_from_device(format,read_data_bytes,sfpu)

@@ -49,7 +49,7 @@ param_ids = [
     ids=param_ids
 )
 
-def test_all(format, testname, dest_acc, math_fidelity):
+def test_matmul(format, testname, dest_acc, math_fidelity):
 
     src_A, src_B = generate_stimuli(format)
     golden_tensor = generate_golden(src_A, src_B, format,math_fidelity)
@@ -90,5 +90,5 @@ def test_all(format, testname, dest_acc, math_fidelity):
     for i in range(len(golden_tensor)):
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
 
-    _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
+    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.98
