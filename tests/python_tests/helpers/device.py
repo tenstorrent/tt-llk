@@ -40,8 +40,8 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, tile_cnt = 1):
         start_index = TILE_SIZE * i
         end_index = start_index + TILE_SIZE
 
-        if end_index > len(buffer_A) or end_index > len(buffer_B):
-            raise IndexError("Buffer access out of bounds")
+        # if end_index > len(buffer_A) or end_index > len(buffer_B):
+        #     raise IndexError("Buffer access out of bounds")
 
         buffer_A_tile = buffer_A[start_index:end_index]
         buffer_B_tile = buffer_B[start_index:end_index]
