@@ -69,7 +69,7 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-const bool UNTILIIZE = true;
+const bool UNTILIIZE = false;
 
 volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
 

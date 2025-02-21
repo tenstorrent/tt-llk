@@ -47,9 +47,8 @@ def tilize(original_tensor, stimuli_format="Float16_b"):
 
 def untilize(tilized_tensor, stimuli_format="Float16_b"):
 
-    if tilized_tensor.size(0) != 1024:
-        raise ValueError("Input tensor must have 1024 elements.")
-    
+    tilized_tensor = tilized_tensor.view(-1)
+
     f0 = tilized_tensor[:256].view(16, 16)
     f1 = tilized_tensor[256:512].view(16, 16)
     f2 = tilized_tensor[512:768].view(16, 16)
