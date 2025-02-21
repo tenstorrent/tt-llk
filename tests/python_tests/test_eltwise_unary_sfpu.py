@@ -29,11 +29,11 @@ def generate_golden(operation, operand1, data_format):
 
 param_combinations = [
     (mathop, format, dest_acc, testname, approx_mode)
-    for mathop in  ["sqrt"] #, "log","square"]
+    for mathop in  ["sqrt","log","square"]
     for format in ["Float16_b", "Float16","Float32","Bfp8_b"]
-    for dest_acc in ["DEST_ACC"]#,""]
+    for dest_acc in ["DEST_ACC",""]
     for testname in ["eltwise_unary_sfpu_test"]
-    for approx_mode in ["false"]#,"true"]
+    for approx_mode in ["false","true"]
 ]
 
 param_ids = [
