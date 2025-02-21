@@ -85,3 +85,8 @@ def get_result_from_device(format: str, read_data_bytes: bytes, sfpu: bool =Fals
         return unpack_func(read_data_bytes)
     else:
         raise ValueError(f"Unsupported format: {format}")
+    
+def read_mailboxes():
+    mailbox_addresses = [0x19FF4, 0x19FF8, 0x19FFC]
+    mailbox_values = [read_words_from_device("0,0", address, word_count=1)[0].to_bytes(4, 'big') for address in mailbox_addresses]
+    return all(value == b'\x00\x00\x00\x01' for value in mailbox_values)
