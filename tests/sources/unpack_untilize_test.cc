@@ -23,7 +23,7 @@ const bool is_fp32_dest_acc_en = false;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-volatile uint32_t* buffer_A = (volatile uint32_t*)0x1a000;
+volatile uint32_t* const buffer_A = (volatile uint32_t*)0x1a000;
 
 const int ct_dim = 1;
 
@@ -73,7 +73,7 @@ void run_kernel()
 
 const bool UNTILIIZE = false;
 
-volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
+volatile uint32_t* const buffer_Dest = (volatile uint32_t*)0x1c000;
 
 void run_kernel()
 {
