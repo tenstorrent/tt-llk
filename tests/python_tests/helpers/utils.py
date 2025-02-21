@@ -36,11 +36,6 @@ def tilize(original_tensor, stimuli_format="Float16_b"):
     f2 = matrix[16:32, :16]
     f3 = matrix[16:32, 16:32]
 
-    print(f0)
-    print(f1)
-    print(f2)
-    print(f3)
-
     result = torch.cat((f0.reshape(-1), f1.reshape(-1), f2.reshape(-1), f3.reshape(-1)))
 
     return result.to(dtype=format_dict[stimuli_format] if stimuli_format in ["Float16_b","Float16"] else torch.float32)
