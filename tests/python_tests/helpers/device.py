@@ -66,20 +66,22 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, tile_cnt = 1):
         buffer_B_address += BUFFER_SIZE
         
         
-
-def get_result_from_device(format,read_data_bytes,sfpu=False):
-    if(format == "Float16"):
-        res_from_L1 = unpack_fp16(read_data_bytes)
-    elif(format == "Float16_b"):
-        res_from_L1 = unpack_bfp16(read_data_bytes)
-    elif( format == "Bfp8_b"):
-        if(sfpu == True):
-            res_from_L1 = unpack_bfp16(read_data_bytes)[:256] # just first
-        else:
-            res_from_L1 = unpack_bfp8_b(read_data_bytes)
-    elif( format == "Float32"):
-        res_from_L1 = unpack_float32(read_data_bytes)
-    elif( format == "Int32"):
-        res_from_L1 = unpack_int32(read_data_bytes)
-
-    return res_from_L1
+def get_result_from_device(format: str, read_data_bytes: bytes, sfpu: bool =False):
+    # Dictionary of format to unpacking function mappings
+    unpackers = {
+        "Float16": unpack_fp16,
+        "Float16_b": unpack_bfp16,
+        "Float32": unpack_float32,
+        "Int32": unpack_int32
+    }
+    
+    # Handling "Bfp8_b" format separately with sfpu condition
+    if format == "Bfp8_b":
+        unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
+    else:
+        unpack_func = unpackers.get(format)
+    
+    if unpack_func:
+        return unpack_func(read_data_bytes)
+    else:
+        raise ValueError(f"Unsupported format: {format}")
