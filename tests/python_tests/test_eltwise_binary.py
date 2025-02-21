@@ -1,10 +1,7 @@
 import pytest
 import torch
 import os
-import sys
 from helpers import *
-from tests.python_tests.helpers.
-
 
 def generate_golden(operation, operand1, operand2, data_format):
     if( data_format == "Float16" or data_format == "Float16_b"):
@@ -26,7 +23,7 @@ def generate_golden(operation, operand1, operand2, data_format):
 
     return operations[operation].tolist()
 
-formats = ["Bfp8_b"]#, "Float16_b", "Float16"]
+formats = ["Bfp8_b", "Float16_b", "Float16"]
 @pytest.mark.parametrize("unpack_src", formats)
 @pytest.mark.parametrize("unpack_dst", formats)
 @pytest.mark.parametrize("fpu", formats)
@@ -43,8 +40,6 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
     src_A, src_B = generate_stimuli(unpack_src)
     golden = generate_golden(mathop, src_A, src_B, pack_dst)
     write_stimuli_to_l1(src_A, src_B, unpack_src)
-    
-    hw_check_res = hw_support(unpack_src, unpack_dst, pack_src, pack_dst)
 
     test_config = {
         "unpack_src": unpack_src,
@@ -66,7 +61,6 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
     
     test_results.append([
         "FAIL",  # Result
-        hw_check_res,  # HW Support
         unpack_src,  # Input Format
         pack_dst,  # Output Format
         0,  # PCC placeholder until calculated

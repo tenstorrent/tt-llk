@@ -18,15 +18,15 @@ def test_results():
             fail_results.append(entry[0:3] + entry[4:])
     
     # Define headers for pass and fail results
-    headers_pass = ["RESULT", "HW", "INPUT FORMAT", "OUTPUT FORMAT", "PCC", "Unpack Src", "Unpack Dst", "FPU", "Pack Src", "Pack Dst", "Math", "Dest Acc"]
-    headers_fail = ["RESULT", "HW", "INPUT FORMAT", "OUTPUT FORMAT", "ERROR", "Unpack Src", "Unpack Dst", "FPU", "Pack Src", "Pack Dst", "Math", "Dest Acc"]
+    headers_pass = ["RESULT", "INPUT FORMAT", "OUTPUT FORMAT", "PCC", "Unpack Src", "Unpack Dst", "FPU", "Pack Src", "Pack Dst", "Math", "Dest Acc"]
+    headers_fail = ["RESULT", "INPUT FORMAT", "OUTPUT FORMAT", "ERROR", "Unpack Src", "Unpack Dst", "FPU", "Pack Src", "Pack Dst", "Math", "Dest Acc"]
 
     def sort_key(entry):
         # Sorting by mathop first, then by dest_acc ("" for off comes before "DEST_ACC" for on)
         if entry[0] == "PASS":  
-            return (entry[1], entry[3], entry[10], entry[9], -entry[4])
+            return (entry[1], entry[2], entry[9], entry[8], -entry[3])
         else:
-             return (entry[1], entry[3], entry[9]) 
+             return (entry[1], entry[2], entry[8]) 
     
     sorted_pass_results = sorted(pass_results, key=sort_key)
     sorted_fail_results = sorted(fail_results, key=sort_key)
