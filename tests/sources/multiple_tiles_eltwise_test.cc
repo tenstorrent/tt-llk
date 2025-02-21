@@ -28,15 +28,15 @@ volatile uint32_t* buffer_B[KERN_CNT];
 void run_kernel()
 {
     for(int i=0; i< KERN_CNT; i++){
-        buffer_A[i] = (volatile uint32_t*)(0x1a000 + i*TILE_SIZE_CNT);
-        buffer_B[i] = (volatile uint32_t*)(0x1a000 + TILE_SIZE_CNT*KERN_CNT + i*TILE_SIZE_CNT);
+        buffer_A[i] = reinterpret_cast<volatile uint32_t*>(0x1a000 + i*TILE_SIZE_CNT);
+        buffer_B[i] = reinterpret_cast<volatile uint32_t*>(0x1a000 + TILE_SIZE_CNT*KERN_CNT + i*TILE_SIZE_CNT);
     }
 
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT);
     _llk_unpack_AB_init_<>();
     
     for(int index = 0; index < KERN_CNT; index++){
-        _llk_unpack_AB_<>(((std::uint32_t)buffer_A[index])/16-1,((std::uint32_t)buffer_B[index])/16-1);
+        _llk_unpack_AB_<>(reinterpret_cast<std::uint32_t>(buffer_A[index])/16-1, reinterpret_cast<std::uint32_t>(buffer_B[index])/16-1);
     }
 
 }
@@ -93,7 +93,7 @@ void run_kernel()
 
     for(int index = 0; index < KERN_CNT; index++){
         _llk_packer_wait_for_math_done_();
-        _llk_pack_<DstSync::SyncFull,false, is_fp32_dest_acc_en>(0, (std::uint32_t)buffer_Dest[index]/16-1);
+        _llk_pack_<DstSync::SyncFull,false, is_fp32_dest_acc_en>(0, reinterpret_cast<std::uint32_t>(buffer_Dest[index])/16-1);
         _llk_pack_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
     }
 
