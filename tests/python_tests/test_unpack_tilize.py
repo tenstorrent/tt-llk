@@ -3,7 +3,6 @@ import torch
 import os
 from helpers import *
 
-torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
 
 def generate_golden(operand1, data_format):
     
@@ -29,12 +28,7 @@ param_ids = [
 
 def test_all(format, testname):
 
-    #src_A, src_B = generate_stimuli(format, tile_cnt = 1, sfpu = False, const_face = True, const_value_A=4, const_value_B=3)
-    #src_A, src_B = generate_stimuli(format)#, tile_cnt = 1, sfpu = False, const_face = True, const_value_A=4, const_value_B=3)
-
-    src_A = torch.arange(1024) % 512
-    # src_A = torch.cat([torch.full((256,), i) for i in range(1, 5)])
-    #src_A = torch.cat([torch.full((256,), i) for i in [2, 10, 31, 5]])
+    src_A, src_B = generate_stimuli(format)
     src_B = torch.full((1024,),0)
     
     golden_tensor = generate_golden(src_A, format)
@@ -65,16 +59,6 @@ def test_all(format, testname):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
     res_tensor = untilize(res_tensor.view(32,32))
-
-    print("SRCA")
-    print(src_A.view(32,32))
-    print("GOLDEN")
-    print(golden_tensor.view(32,32))
-    print("PURE FROM L1")
-    print(res_tensor.view(32,32))
-    print("\n\n RES")
-    print(untilize(res_tensor.view(32,32)).view(32,32))
-    
 
     if(format == "Float16_b" or format == "Float16"):
         atol = 0.1
