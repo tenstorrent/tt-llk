@@ -6,7 +6,7 @@ from .format_arg_mapping import  format_dict,format_sizes
 torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
 
 def run_shell_command(command: str):
-    result = subprocess.run(command, shell=True, text=True, capture_output=False)
+    result = subprocess.run(command, shell=True, text=True, capture_output=False,stdout=subprocess.DEVNULL)
     if result.returncode != 0:
         raise RuntimeError(f"Command failed: {command}\n{result.stderr}")
     return result
