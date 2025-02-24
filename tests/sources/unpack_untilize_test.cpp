@@ -29,8 +29,8 @@ void run_kernel()
 
     _llk_unpack_untilize_hw_configure_<is_fp32_dest_acc_en,StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
     _llk_unpack_untilize_init_(DATA_FORMAT, 1024, FACE_R_DIM, 4);
-    _llk_unpack_untilize_pass_<true>(reinterpret_cast<std::uint32_t>(buffer_A)/16-1,1);
-    _llk_unpack_untilize_pass_<false>(reinterpret_cast<std::uint32_t>(buffer_A)/16-1,1);
+    _llk_unpack_untilize_pass_<true>(L1_ADDRESS(buffer_A),1);
+    _llk_unpack_untilize_pass_<false>(L1_ADDRESS(buffer_A),1);
 }
 
 #endif
@@ -91,7 +91,7 @@ void run_kernel()
     #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncFull,UNTILIIZE, is_fp32_dest_acc_en>(0, reinterpret_cast<std::uint32_t>(buffer_Dest)/16-1);
+    _llk_pack_<DstSync::SyncFull,UNTILIIZE, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Dest));
     _llk_pack_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
 }
 
