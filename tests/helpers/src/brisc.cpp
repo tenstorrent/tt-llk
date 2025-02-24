@@ -60,14 +60,12 @@ void device_setup() {
     cfg_regs[RISCV_IC_INVALIDATE_InvalidateAll_ADDR32] = RISCV_IC_BRISC_MASK | RISCV_IC_TRISC_ALL_MASK | RISCV_IC_NCRISC_MASK;
     #endif
 
-    
     // Clear destination registers
     #ifdef ARCH_BLACKHOLE
     TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, 1, 0);
     #else
     TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0);
     #endif
-
 
     // Enable CC stack
 	TTI_SFPENCC(3,0,0,10);
@@ -77,21 +75,7 @@ void device_setup() {
 	TTI_SFPLOADI(p_sfpu::LREG0,0xA,0xbf80); // -1.0f -> LREG0
 	TTI_SFPCONFIG(0, 11, 0); // LREG0 -> LREG11
 
-//     // Enable ECC scrubber
-//     core.ex_rmw_cfg(0, ECC_SCRUBBER_Enable_RMW, 1);
-//     core.ex_rmw_cfg(0, ECC_SCRUBBER_Scrub_On_Error_RMW, 1);
-//     core.ex_rmw_cfg(0, ECC_SCRUBBER_Delay_RMW, 0x100);
-
     initialize_tensix_semaphores();
-    
-    // // unpacker semaphore
-    // core.ex_sem_init(semaphore::UNPACK_MISC, 1, 1, instrn_buf[0]);
-
-    // // unpacker sync semaphore
-    // core.ex_sem_init(semaphore::UNPACK_SYNC, 2, 0, instrn_buf[0]);
-
-    // // config state semaphore
-    // core.ex_sem_init(semaphore::CFG_STATE_BUSY, MAX_CONFIG_STATES, 0, instrn_buf[0]);
 
 }
 
