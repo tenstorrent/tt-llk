@@ -70,7 +70,7 @@ def test_eltwise_unary_sfpu(format, mathop, testname, dest_acc, approx_mode):
     }
 
     make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd} >/dev/null")
+    run_shell_command(f"cd .. && {make_cmd}")
     run_elf_files(testname)
     
     res_from_L1 = collect_results(format,sfpu=True)

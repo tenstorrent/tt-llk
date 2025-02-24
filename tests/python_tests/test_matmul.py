@@ -65,7 +65,7 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
     }
 
     make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd} >/dev/null")
+    run_shell_command(f"cd .. && {make_cmd}")
 
     run_elf_files(testname)
 
