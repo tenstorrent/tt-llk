@@ -1,6 +1,5 @@
 # pack.py
 
-import struct
 import torch
 import struct
 

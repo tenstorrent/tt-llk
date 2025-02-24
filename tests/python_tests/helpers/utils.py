@@ -1,7 +1,7 @@
 import torch
-from .dictionaries import *
 import numpy as np
 import subprocess
+from .format_arg_mapping import  format_dict,format_sizes
 
 torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
 

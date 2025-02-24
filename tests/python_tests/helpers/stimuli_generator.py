@@ -1,6 +1,5 @@
 import torch
-from .dictionaries import *
-
+from .format_arg_mapping import format_dict
 def flatten_list(sublists):
     return [item for sublist in sublists for item in sublist]
 
