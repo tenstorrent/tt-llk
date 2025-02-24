@@ -51,7 +51,7 @@ void run_kernel()
     _llk_math_hw_configure_<false,false>(DATA_FORMAT,DATA_FORMAT);
     _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWADD, BroadcastType::NONE>(4, 0, 0);
 
-    for(uint index = 0; index < 16; index++){
+    for(auto index = 0; index < 16; ++index){
         // index is passed ass index of tile in dest
         _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
         _llk_math_eltwise_binary_<EltwiseBinaryType::ELWADD, BroadcastType::NONE,DstSync::SyncFull, 0, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(4, index, true);

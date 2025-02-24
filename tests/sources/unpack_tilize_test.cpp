@@ -70,12 +70,11 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-const bool UNTILIIZE = false;
-
 volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
 void run_kernel()
 {
+    const bool UNTILIIZE = false;
 
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
     
