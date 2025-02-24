@@ -1,4 +1,4 @@
-from .dictionaries import *
+from .format_arg_mapping import format_args_dict,mathop_args_dict
 
 def generate_make_command(test_config):
     make_cmd = f"make --silent --always-make "

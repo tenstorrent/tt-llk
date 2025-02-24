@@ -2,8 +2,7 @@
 
 import struct
 import torch
-import struct
-from .utils import *
+from .utils import revese_endian_chunk
 
 def int_to_bytes_list(n):
     binary_str = bin(n)[2:].zfill(32)
