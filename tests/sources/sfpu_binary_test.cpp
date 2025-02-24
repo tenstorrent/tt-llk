@@ -23,20 +23,19 @@ const bool is_fp32_dest_acc_en = false;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-volatile uint32_t* buffer_A = (volatile uint32_t*)0x1a000;
 
 void run_kernel()
 {
+    volatile uint32_t* buffer_A = (volatile uint32_t*)0x1a000;
+
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT,DATA_FORMAT,FACE_R_DIM,0,4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, DATA_FORMAT,DATA_FORMAT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>((((uint32_t)buffer_A)/16)-1, 0, DATA_FORMAT,DATA_FORMAT);
 }
 
 #endif
-#define LLK_TRISC_MATH
-#ifdef LLK_TRISC_MATH
 
-const bool is_int_fpu_en = false;
+#ifdef LLK_TRISC_MATH
 
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_common.h"
@@ -51,6 +50,7 @@ using namespace ckernel::sfpu;
 
 void run_kernel()
 {
+    const bool is_int_fpu_en = false;
     // copy srca to dest
     #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE,false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
@@ -91,13 +91,14 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
+
 void run_kernel()
 {
-    for(int i = 0; i < 16*16*4; i++)
-    {
-        buffer_Dest[i] = 0xdeadbeef;
-    }
+
+    volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
+
+    std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+
     #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, PACK_DEST_FORMAT, 16*16);
     #else

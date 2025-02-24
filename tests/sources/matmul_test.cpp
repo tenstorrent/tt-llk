@@ -24,11 +24,13 @@ const bool is_fp32_dest_acc_en = false;
 #include "llk_unpack_AB_matmul.h"
 #include "params.h"
 
-volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
-volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
 
 void run_kernel()
 {
+
+    volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+    volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
+
     _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT,16,16,0,4,4,128,128);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(reinterpret_cast<std::uint32_t>(buffer_A)/16-1, reinterpret_cast<std::uint32_t>(buffer_B)/16-1,0,0,128,128);
@@ -60,9 +62,10 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
 void run_kernel()
 {
+
+    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
 
