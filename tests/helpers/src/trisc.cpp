@@ -14,7 +14,7 @@
 #include "params.h"
 
 #ifdef LLK_TRISC_UNPACK
-    volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FFC);
+	volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FFC);
 #elif defined(LLK_TRISC_MATH)
 	volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FF8);
 #elif defined(LLK_TRISC_PACK)
@@ -25,7 +25,7 @@
 int main()
 {
 
-	*mailbox = 0x2;
+	*mailbox = 0x2; // write value different than 1 to mailbox to indicate kernel is running
 
     //FWEVENT("Launching proudction env kernels");
 	for (int i = 0; i < 64; i++) regfile[i] = 0;
