@@ -52,8 +52,7 @@ def test_eltwise_unary_sfpu(format, mathop, testname, dest_acc, approx_mode):
     if( format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
         pytest.skip("SKipping test for 32 bit wide data without 32 bit accumulation in Dest")
 
-    src_A,src_B = generate_stimuli(format,sfpu = True,  const_face = True, const_value_A = 2, const_value_B = 1)
-    #src_A,src_B = generate_stimuli(format,sfpu = True)
+    src_A,src_B = generate_stimuli(format,sfpu = True)
     golden = generate_golden(mathop, src_A, format)
     write_stimuli_to_l1(src_A, src_B, format)
 
