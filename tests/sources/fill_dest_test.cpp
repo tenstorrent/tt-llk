@@ -22,11 +22,13 @@ const bool is_fp32_dest_acc_en = false;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-volatile uint32_t* const buffer_A = (volatile uint32_t*)0x1a000;
-volatile uint32_t* const buffer_B = (volatile uint32_t*)0x1b000;
 
 void run_kernel()
 {
+
+    volatile uint32_t* const buffer_A = (volatile uint32_t*)0x1a000;
+    volatile uint32_t* const buffer_B = (volatile uint32_t*)0x1b000;
+
     for(uint index = 0; index < 16; index++){
         _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT);
         _llk_unpack_AB_init_<>();
@@ -67,10 +69,11 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-volatile uint32_t* const buffer_Dest = (volatile uint32_t*)0x1c000;
-
 void run_kernel()
 {
+
+    volatile uint32_t* const buffer_Dest = (volatile uint32_t*)0x1c000;
+
     #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
     #else

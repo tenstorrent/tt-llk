@@ -23,23 +23,20 @@ const bool is_fp32_dest_acc_en = false;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
-
-const int ct_dim = 1;
 
 void run_kernel()
 {
+    volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+
     _llk_unpack_tilize_hw_configure_<false,StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
-    _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, ct_dim, FACE_R_DIM, false);
-    _llk_unpack_tilize_(reinterpret_cast<std::uint32_t>(buffer_A)/16-1,0,DATA_FORMAT,ct_dim,FACE_R_DIM,4,false);
+    _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, 1, FACE_R_DIM, false);
+    _llk_unpack_tilize_(reinterpret_cast<std::uint32_t>(buffer_A)/16-1,0,DATA_FORMAT,1,FACE_R_DIM,4,false);
 }
 
 #endif
 
 
 #ifdef LLK_TRISC_MATH
-
-const bool is_int_fpu_en = false;
 
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_common.h"
@@ -49,6 +46,8 @@ using namespace ckernel;
 
 void run_kernel()
 {
+    const bool is_int_fpu_en = false;
+
     // copy srca to dest
     #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE,false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
@@ -70,10 +69,10 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
 void run_kernel()
 {
+    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
     const bool UNTILIIZE = false;
 
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
