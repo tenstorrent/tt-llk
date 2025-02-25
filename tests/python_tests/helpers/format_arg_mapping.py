@@ -21,7 +21,8 @@ mathop_args_dict = {
     "elwmul": "ELTWISE_BINARY_MUL",
     "sqrt": "SFPU_OP_SQRT",
     "square": "SFPU_OP_SQUARE",
-    "log": "SFPU_OP_LOG"
+    "log": "SFPU_OP_LOG",
+    "reduce_col": "COL_REDUCE"
 }
 
 format_sizes = {
