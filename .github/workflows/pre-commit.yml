@@ -9,7 +9,7 @@ on:
 
 jobs:
   pre-commit:
-    name: Run Pre-commit Hooks
+    name: Run pre-commit Hooks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Run Pre-commit and Fix Issues
+      - name: Run pre-commit and fix issues
         uses: pre-commit/action@v3.0.1
         with:
           extra_args: "--from-ref origin/main --to-ref HEAD"
