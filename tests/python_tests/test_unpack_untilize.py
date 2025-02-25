@@ -12,7 +12,7 @@ def generate_golden(operand1, data_format):
 
 param_combinations = [
     (format, testname)
-    for format in ["Float16_b"]
+    for format in ["Float16_b", "Float16"]
     for testname in ["unpack_untilize_test"]
 ]
 
