@@ -9,7 +9,6 @@
 uint32_t unp_cfg_context = 0;
 uint32_t pack_sync_tile_dst_ptr = 0;
 uint32_t math_sync_tile_dst_index = 0;
-//const bool is_fp32_dest_acc_en = true;
 
 volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__ ((section (".text#"))) __attribute__ ((aligned (16)));
 
@@ -31,9 +30,15 @@ void run_kernel()
     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
     volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
 
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT,16,16,0,4,4,128,128);
-    _llk_unpack_AB_matmul_init_<>();
-    _llk_unpack_AB_matmul_<>(reinterpret_cast<std::uint32_t>(buffer_A)/16-1, reinterpret_cast<std::uint32_t>(buffer_B)/16-1,0,0,128,128);
+    std::uint32_t ct_dim = 1;
+    std::uint32_t rt_dim = 1;
+    std::uint32_t kt_dim = 1;
+
+    std::uint32_t tile_size = 128;
+
+    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT,FACE_R_DIM,FACE_R_DIM,0,4,4,tile_size,tile_size);
+    _llk_unpack_AB_matmul_init_<>(0, ct_dim, rt_dim, kt_dim, FACE_R_DIM, FACE_R_DIM, 4, 4, false, false);
+    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B),0,0,tile_size,tile_size,FACE_R_DIM,FACE_R_DIM,false,false,ct_dim,rt_dim,kt_dim);
 }
 
 #endif
@@ -48,7 +53,7 @@ void run_kernel()
 {
     _llk_math_matmul_init_<MATH_FIDELITY,DstTileFaceLayout::RowMajor>();
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false,false>(DATA_FORMAT,DATA_FORMAT);
+    _llk_math_hw_configure_<true,false>(DATA_FORMAT,DATA_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     _llk_math_matmul_<MATH_FIDELITY,DstTileFaceLayout::RowMajor>(0);
     _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
@@ -84,7 +89,7 @@ void run_kernel()
     #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncFull,false, is_fp32_dest_acc_en>(0, reinterpret_cast<std::uint32_t>(buffer_Dest)/16-1);
+    _llk_pack_<DstSync::SyncFull,false, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Dest));
     _llk_pack_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
 }
 

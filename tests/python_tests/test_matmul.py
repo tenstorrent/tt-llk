@@ -5,6 +5,11 @@ from helpers import *
 
 def generate_golden(operand1, operand2, data_format, math_fidelity):
 
+    src_A = torch.tensor([1]*256 + [2]*256 + [3]*256 + [4]*256, dtype=torch.bfloat16)
+    src_B = torch.tensor([1]*256 + [2]*256 + [3]*256 + [4]*256, dtype=torch.bfloat16)
+
+    print(torch.matmul((src_B).view(32, 32), (src_A).view(32, 32)).view(32,32))
+
     # if data_format == "Float16_b":
     #     if math_fidelity == 0:  # LoFi
     #         operand1 = operand1.to(torch.int32)  # Convert to int32
@@ -18,17 +23,8 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
     #         pass
     #     elif math_fidelity == 4:  # HiFi4
     #         pass
-
-    A_tilized = tilize(operand1, data_format)
-    B_tilized = tilize(operand2, data_format)
-
-    # print(A_tilized.view(32,32))
-    # print(B_tilized.view(32,32))
-
-    result = torch.matmul(A_tilized.view(32, 32), B_tilized.view(32, 32))
-    result = untilize(result, data_format)
-
-    return result.view(-1)
+    
+    return torch.matmul(tilize(operand2).view(32, 32), tilize(operand1).view(32, 32)).view(-1)
 
 param_combinations = [
     (format, dest_acc, testname, math_fidelity)
@@ -54,17 +50,8 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
     #src_A, src_B = generate_stimuli(format,tile_cnt=1,sfpu=False,const_face=True,const_value_A=3,const_value_B=2)  
     #src_A, src_B = generate_stimuli(format)
 
-    src_A = torch.tensor([1]*256 + [2]*256 + [3]*256 + [4]*256, dtype=torch.bfloat16)
+    src_A = torch.tensor([4]*256 + [3]*256 + [2]*256 + [1]*256, dtype=torch.bfloat16)
     src_B = torch.tensor([1]*256 + [2]*256 + [3]*256 + [4]*256, dtype=torch.bfloat16)
-
-    # Reshape both src_A and src_B to (32, 32)
-    src_A_reshaped = src_A.view(32, 32)
-    src_B_reshaped = src_B.view(32, 32)
-
-    # Perform matrix multiplication
-    result = torch.matmul(src_A_reshaped, src_B_reshaped)
-
-    print(result)
 
     golden_tensor = generate_golden(src_A, src_B, format,math_fidelity)
 
@@ -83,18 +70,22 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
 
     run_elf_files(testname)
 
+    print( " GOLDEN ")
+    print( "\n\n")
     print(golden_tensor.view(32,32))
 
     res_from_L1 = collect_results(format)
-
-    print(res_from_L1)
-
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden_tensor)
     assert read_mailboxes() == True
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+
+    print( " RESULT ")
+    print( "\n\n")
+    print(res_tensor.view(32,32))
+
 
     if(format == "Float16_b" or format == "Float16"):
         atol = 0.1

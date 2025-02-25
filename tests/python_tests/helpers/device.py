@@ -2,7 +2,6 @@ from ttlens.tt_lens_init import init_ttlens
 from ttlens.tt_lens_lib import write_to_device, read_words_from_device, run_elf
 from helpers import *
 
-ELF_LOCATION = "../build/elf/"
 
 def collect_results(format,address=0x1c000,sfpu=False):
     read_words_cnt = calculate_read_words_count(format,sfpu)
@@ -12,6 +11,8 @@ def collect_results(format,address=0x1c000,sfpu=False):
     return res_from_L1
 
 def run_elf_files(testname, run_brisc=True):
+    
+    ELF_LOCATION = "../build/elf/"
 
     if run_brisc:
         run_elf(f"{ELF_LOCATION}brisc.elf", "0,0", risc_id=0)
