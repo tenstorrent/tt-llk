@@ -2,7 +2,7 @@
 
 import struct
 import torch
-from .utils import revese_endian_chunk
+from .utils import reverse_endian_chunk
 
 def int_to_bytes_list(n):
     binary_str = bin(n)[2:].zfill(32)
@@ -70,18 +70,18 @@ def unpack_bfp8_b(bfp8_block,sfpu=False):
 
     if not sfpu:
         exponents = bfp8_block[:64]
-        reversed_exponents = revese_endian_chunk(exponents)
+        reversed_exponents = reverse_endian_chunk(exponents)
         mantissas = bfp8_block[64:]
     else:
         exponents = bfp8_block[:16]
-        reversed_exponents = revese_endian_chunk(exponents)
+        reversed_exponents = reverse_endian_chunk(exponents)
         mantissas = bfp8_block[16:272]
 
     bfloat16_values = []
     for i in range(len(reversed_exponents)):
         exponent = reversed_exponents[i]
         bfp8_mantissas = mantissas[i * 16:(i + 1) * 16]        
-        reversed_sign_mantissa = revese_endian_chunk(bfp8_mantissas)
+        reversed_sign_mantissa = reverse_endian_chunk(bfp8_mantissas)
 
         block_bfloat16_values = bfp8_to_float_block(exponent, reversed_sign_mantissa)
         bfloat16_values.extend(block_bfloat16_values)

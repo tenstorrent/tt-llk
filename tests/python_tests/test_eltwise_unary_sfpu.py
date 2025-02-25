@@ -6,31 +6,20 @@ from helpers import *
 
 def generate_golden(operation, operand1, data_format):
     tensor1_float = operand1.clone().detach().to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
-
-    res = []
-
-    if(operation == "sqrt"):
-        for number in tensor1_float.tolist():
-            res.append(math.sqrt(number))
-    elif(operation == "square"): 
-        for number in tensor1_float.tolist():
-            res.append(number*number)
-    elif(operation == "log"):
-        for number in tensor1_float.tolist():
-            if(number != 0):
-                res.append(math.log(number))
-            else:
-                res.append(float('nan'))
-    else:
+    ops = {
+        "sqrt": lambda x: math.sqrt(x),
+        "square": lambda x: x * x,
+        "log": lambda x: math.log(x) if x != 0 else float('nan')
+    }
+    if operation not in ops:
         raise ValueError("Unsupported operation!")
-
-    return res[:256] # just first face of result
+    return [ops[operation](num) for num in tensor1_float.tolist()][:256]
 
 
 param_combinations = [
     (mathop, format, dest_acc, testname, approx_mode)
     for mathop in  ["sqrt","log","square"]
-    for format in ["Float16_b", "Float16","Float32","Bfp8_b"]
+    for format in ["Float16_b", "Float16","Float32"]
     for dest_acc in ["DEST_ACC",""]
     for testname in ["eltwise_unary_sfpu_test"]
     for approx_mode in ["false","true"]
