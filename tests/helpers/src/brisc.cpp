@@ -7,20 +7,20 @@
 
 using namespace ckernel;
 
-constexpr uint32_t RISCV_IC_BRISC_MASK = 0x1;
-constexpr uint32_t RISCV_IC_NCRISC_MASK = 0x10;
-constexpr uint32_t RISCV_IC_TRISC0_MASK = 0x2;
-constexpr uint32_t RISCV_IC_TRISC1_MASK = 0x4;
-constexpr uint32_t RISCV_IC_TRISC2_MASK = 0x8;
-constexpr uint32_t RISCV_IC_TRISC_ALL_MASK = RISCV_IC_TRISC0_MASK | RISCV_IC_TRISC1_MASK | RISCV_IC_TRISC2_MASK;
+constexpr std::uint32_t RISCV_IC_BRISC_MASK = 0x1;
+constexpr std::uint32_t RISCV_IC_NCRISC_MASK = 0x10;
+constexpr std::uint32_t RISCV_IC_TRISC0_MASK = 0x2;
+constexpr std::uint32_t RISCV_IC_TRISC1_MASK = 0x4;
+constexpr std::uint32_t RISCV_IC_TRISC2_MASK = 0x8;
+constexpr std::uint32_t RISCV_IC_TRISC_ALL_MASK = RISCV_IC_TRISC0_MASK | RISCV_IC_TRISC1_MASK | RISCV_IC_TRISC2_MASK;
 
-inline void WRITE_REG(uint32_t addr, uint32_t val) {
-    volatile tt_reg_ptr uint32_t* ptr = reinterpret_cast<uint32_t*>(addr);
+inline void WRITE_REG(std::uint32_t addr, std::uint32_t val) {
+    volatile tt_reg_ptr std::uint32_t* ptr = reinterpret_cast<std::uint32_t*>(addr);
     ptr[0] = val;
 }
 
 inline void set_deassert_addresses() {
-    volatile tt_reg_ptr uint32_t* cfg_regs = reinterpret_cast<uint32_t*>(TENSIX_CFG_BASE);
+    volatile tt_reg_ptr std::uint32_t* cfg_regs = reinterpret_cast<std::uint32_t*>(TENSIX_CFG_BASE);
 
 #ifdef ARCH_BLACKHOLE
     WRITE_REG(RISCV_DEBUG_REG_NCRISC_RESET_PC, MEM_NCRISC_FIRMWARE_BASE);
@@ -47,21 +47,18 @@ inline void initialize_tensix_semaphores() {
 
 void device_setup() {
 
-    volatile tt_reg_ptr uint32_t* cfg_regs = reinterpret_cast<uint32_t*>(TENSIX_CFG_BASE);
+    volatile tt_reg_ptr std::uint32_t* cfg_regs = reinterpret_cast<std::uint32_t*>(TENSIX_CFG_BASE);
 
 #ifdef ARCH_BLACKHOLE
-    *((uint32_t volatile*)RISCV_DEBUG_REG_DEST_CG_CTRL) = 0;
+    *((std::uint32_t volatile*)RISCV_DEBUG_REG_DEST_CG_CTRL) = 0;
 #endif
 
-    #ifdef ARCH_BLACKHOLE // TODO see what happens with WH
+    #ifdef ARCH_BLACKHOLE
+    WRITE_REG(RISCV_DEBUG_REG_DEST_CG_CTRL, 0x0);
     WRITE_REG(RISCV_TDMA_REG_CLK_GATE_EN, 0x3f);  // Enable clock gating
     set_deassert_addresses();
     // Invalidate tensix icache for all 4 risc cores
-    cfg_regs[RISCV_IC_INVALIDATE_InvalidateAll_ADDR32] = RISCV_IC_BRISC_MASK | RISCV_IC_TRISC_ALL_MASK | RISCV_IC_NCRISC_MASK;
-    #endif
-
-    // Clear destination registers
-    #ifdef ARCH_BLACKHOLE
+    WRITE_REG(RISCV_IC_INVALIDATE_InvalidateAll_ADDR32, RISCV_IC_BRISC_MASK | RISCV_IC_TRISC_ALL_MASK | RISCV_IC_NCRISC_MASK);
     TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, 1, 0);
     #else
     TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0);
@@ -79,7 +76,11 @@ void device_setup() {
 
 }
 
-int main(){
+int main() {
     device_setup();
-    for(;;){}
+    // Use a volatile variable to prevent the compiler from optimizing away the loop
+    volatile bool run = true;
+    
+    // Infinite loop
+    while (run) { }
 }
