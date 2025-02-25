@@ -2,7 +2,7 @@ import sys
 
 def check_strings_in_file(strings, file_path):
     try:
-        with open(file, 'r') as f:
+        with open(file_path, 'r') as f:
             content = f.read()
 
         for string in strings:
