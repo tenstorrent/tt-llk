@@ -37,4 +37,3 @@ To set up pre-commit on your local machine, follow these steps:
    ```bash
    pre-commit run --all-files
    ```
-
