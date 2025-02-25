@@ -53,11 +53,6 @@ ifeq ($(testname), multiple_tiles_eltwise_test)
 	OPTIONS_PACK:=-DKERN_CNT=$(kern_cnt) 
 	OPTIONS_PACK+=-DPACK_ADDR_CNT=$(pack_addr_cnt) 
 	OPTIONS_PACK+=-DPACK_ADDRS=$(pack_addrs) 
-else	
-	MULTIPLE_OPS= 
-	OPTIONS_UNPACK= 
-	OPTIONS_MATH= 
-	OPTIONS_PACK= 
 endif
 
 OPTIONS_COMPILE+=$(FORMAT_ARG) $(MATHOP_ARG) -DTILE_SIZE_CNT=0x1000
