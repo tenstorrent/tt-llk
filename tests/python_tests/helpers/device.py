@@ -1,5 +1,5 @@
 from ttlens.tt_lens_init import init_ttlens
-from ttlens.tt_lens_lib import write_to_device, read_words_from_device, run_elf
+from ttlens.tt_lens_lib import write_to_device, read_words_from_device, read_word_from_device, run_elf
 from helpers import *
 
 
@@ -24,9 +24,8 @@ def run_elf_files(testname, core_loc = "0,0", run_brisc=True):
     # and now cores are run in revese order PACK, MATH, UNOPACK
     # Once that issue is reolved with tt-exalens code will be returned to normal for loop
 
-    run_elf(f"{ELF_LOCATION}{testname}_trisc2.elf", core_loc, risc_id=3)
-    run_elf(f"{ELF_LOCATION}{testname}_trisc1.elf", core_loc, risc_id=2)
-    run_elf(f"{ELF_LOCATION}{testname}_trisc0.elf", core_loc, risc_id=1)
+    for i in range(2, -1, -1):
+        run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
 
 def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc = "0,0", tile_cnt = 1):
 
@@ -86,5 +85,5 @@ def get_result_from_device(format: str, read_data_bytes: bytes, core_loc : str =
     
 def read_mailboxes(core_loc : str= "0,0"):
     mailbox_addresses = [0x19FF4, 0x19FF8, 0x19FFC] # L1 Mailbox addresses
-    mailbox_values = [read_words_from_device(core_loc, address, word_count=1)[0] for address in mailbox_addresses]
+    mailbox_values = [read_word_from_device(core_loc, address) for address in mailbox_addresses]
     return all(value == 1 for value in mailbox_values)
