@@ -85,6 +85,6 @@ def get_result_from_device(format: str, read_data_bytes: bytes, core_loc : str =
         raise ValueError(f"Unsupported format: {format}")
     
 def read_mailboxes(core_loc : str= "0,0"):
-    mailbox_addresses = [0x19FF4, 0x19FF8, 0x19FFC]
-    mailbox_values = [read_words_from_device(core_loc, address, word_count=1)[0].to_bytes(4, 'big') for address in mailbox_addresses]
-    return all(value == b'\x00\x00\x00\x01' for value in mailbox_values)
+    mailbox_addresses = [0x19FF4, 0x19FF8, 0x19FFC] # L1 Mailbox addresses
+    mailbox_values = [read_words_from_device(core_loc, address, word_count=1)[0] for address in mailbox_addresses]
+    return all(value == 1 for value in mailbox_values)
