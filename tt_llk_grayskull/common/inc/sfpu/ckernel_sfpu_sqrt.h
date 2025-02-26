@@ -21,11 +21,11 @@ inline void _calculate_sqrt_() {
         vFloat val = dst_reg[0];
 
         if constexpr (APPROXIMATION_MODE) {
-            vstd::uint32_t magic = l_reg[LRegs::LReg2];
+            vUInt magic = l_reg[LRegs::LReg2];
 
             // sqrt initial approximation
             //  adjust bias
-            vstd::uint32_t val_s = magic + reinterpret<vUInt>(val);
+            vUInt val_s = magic + reinterpret<vUInt>(val);
 
             // approximation of square root
             val_s >>= 1;
@@ -36,8 +36,8 @@ inline void _calculate_sqrt_() {
             // Recip root method
             //// Init approx
             // u.i = SQRT_MAGIC_F - (u.i >> 1);
-            vstd::uint32_t magic  = reinterpret<vUInt>(vFloat(s2vFloat16b(0x5f37)));
-            vFloat         approx = reinterpret<vFloat>(magic - (reinterpret<vUInt>(val) >> 1));
+            vUInt  magic  = reinterpret<vUInt>(vFloat(s2vFloat16b(0x5f37)));
+            vFloat approx = reinterpret<vFloat>(magic - (reinterpret<vUInt>(val) >> 1));
 
             // Re-load to save a MOV
             val = dst_reg[0];

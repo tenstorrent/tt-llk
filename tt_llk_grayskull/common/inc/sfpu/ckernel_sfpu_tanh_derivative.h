@@ -16,9 +16,9 @@ namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int WITH_PRECOMPUTED_TANH, int ITERATIONS>
 inline void _calculate_tanh_derivative_() {
-    vstd::uint32_t l0 = l_reg[LRegs::LReg0];
-    vstd::uint32_t l1 = l_reg[LRegs::LReg1];
-    vstd::uint32_t l2 = l_reg[LRegs::LReg2];
+    vUInt l0 = l_reg[LRegs::LReg0];
+    vUInt l1 = l_reg[LRegs::LReg1];
+    vUInt l2 = l_reg[LRegs::LReg2];
 
     // tanh'(x) = 1 - (tanh(x))^2
     for (int d = 0; d < ITERATIONS; d++) {

@@ -21,8 +21,8 @@ inline void _calculate_dropout_(std::uint32_t prob, std::uint32_t scale) {
     FWLOG1("calculate_dropout() -- prob:%x", prob);
     FWLOG1("calculate_dropout() -- scale:%x", scale);
 
-    vstd::uint32_t rand = l_reg[LRegs::LReg3];
-    vstd::uint32_t mask = reinterpret<vUInt>(vFloat(s2vFloat16b(0xa94b)));
+    vUInt rand = l_reg[LRegs::LReg3];
+    vUInt mask = reinterpret<vUInt>(vFloat(s2vFloat16b(0xa94b)));
 
 #pragma GCC unroll 0
     for (int d = 0; d < 4; d++) {
@@ -34,7 +34,7 @@ inline void _calculate_dropout_(std::uint32_t prob, std::uint32_t scale) {
         ////////////////////////
         // Drop samples
         ///////////////////////
-        vstd::uint32_t tmp = rand >> 3;
+        vUInt tmp = rand >> 3;
         v_if(tmp < vUInt(prob)) { dst_reg[0] = vConst0; }
         v_endif;
 

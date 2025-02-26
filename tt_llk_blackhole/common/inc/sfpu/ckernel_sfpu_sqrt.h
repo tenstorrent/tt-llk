@@ -20,11 +20,11 @@ inline void _calculate_sqrt_(const int iterations) {
         vFloat val = dst_reg[0];
 
         if constexpr (APPROXIMATION_MODE) {
-            vstd::uint32_t magic = vConstIntPrgm0;
+            vUInt magic = vConstIntPrgm0;
 
             // sqrt initial approximation
             //  adjust bias
-            vstd::uint32_t val_s = magic + reinterpret<vUInt>(val);
+            vUInt val_s = magic + reinterpret<vUInt>(val);
 
             // approximation of square root
             val_s >>= 1;
@@ -34,8 +34,8 @@ inline void _calculate_sqrt_(const int iterations) {
             //// Init approx
             // u.i = SQRT_MAGIC_F - (u.i >> 1);
             v_if(val != 0.0f) {
-                vstd::uint32_t magic  = vConstIntPrgm0;
-                vFloat         approx = reinterpret<vFloat>(magic - (reinterpret<vUInt>(val) >> 1));
+                vUInt  magic  = vConstIntPrgm0;
+                vFloat approx = reinterpret<vFloat>(magic - (reinterpret<vUInt>(val) >> 1));
 
                 // Reciproot iterations
                 for (int r = 0; r < RECIPROCAL_ITERATIONS; r++) {

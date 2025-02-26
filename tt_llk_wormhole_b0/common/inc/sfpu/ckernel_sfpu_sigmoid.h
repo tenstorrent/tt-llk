@@ -17,13 +17,13 @@ namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_sigmoid_(const int iterations) {
-    constexpr int  lut_mode = 0; // SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1
-    vstd::uint32_t l0       = l_reg[LRegs::LReg0];
-    vstd::uint32_t l1       = l_reg[LRegs::LReg1];
-    vstd::uint32_t l2       = l_reg[LRegs::LReg2];
-    vstd::uint32_t l4       = l_reg[LRegs::LReg4];
-    vstd::uint32_t l5       = l_reg[LRegs::LReg5];
-    vstd::uint32_t l6       = l_reg[LRegs::LReg6];
+    constexpr int lut_mode = 0; // SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1
+    vUInt         l0       = l_reg[LRegs::LReg0];
+    vUInt         l1       = l_reg[LRegs::LReg1];
+    vUInt         l2       = l_reg[LRegs::LReg2];
+    vUInt         l4       = l_reg[LRegs::LReg4];
+    vUInt         l5       = l_reg[LRegs::LReg5];
+    vUInt         l6       = l_reg[LRegs::LReg6];
 
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++) {

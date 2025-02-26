@@ -58,7 +58,7 @@ sfpi_inline vType reduce_bool4(vType a, vType b, vType c, vType d, int reference
     v_if(c == reference && d == reference) { result2 = 1; }
     v_endif;
 
-    vstd::uint32_t result = 0;
+    vUInt result = 0;
     v_if(result1 == 1 && result2 == 1) { result = 1; }
     v_endif;
 
@@ -138,8 +138,8 @@ sfpi_test_noinline void test3() {
 
     v_if(dst_reg[0] == 8.0F) {
         // This will be a ushort w/ 1 load (not sign extended)
-        vstd::uint32_t a = 0x8F80U;
-        dst_reg[3]       = a | 0x3f800000;
+        vUInt a    = 0x8F80U;
+        dst_reg[3] = a | 0x3f800000;
     }
     v_endif;
 
@@ -150,8 +150,8 @@ sfpi_test_noinline void test3() {
     v_endif;
 
     v_if(dst_reg[0] == 10.0F) {
-        vstd::uint32_t a = static_cast<unsigned short>(0x3f80);
-        dst_reg[3]       = a | 0x3f800000;
+        vUInt a    = static_cast<unsigned short>(0x3f80);
+        dst_reg[3] = a | 0x3f800000;
     }
     v_endif;
 
@@ -162,8 +162,8 @@ sfpi_test_noinline void test3() {
     v_endif;
 
     v_if(dst_reg[0] == 12.0F) {
-        vstd::uint32_t a = 0x3F80A3D7;
-        dst_reg[3]       = a;
+        vUInt a    = 0x3F80A3D7;
+        dst_reg[3] = a;
     }
     v_endif;
 
@@ -641,24 +641,24 @@ sfpi_test_noinline void test6() {
     v_endif;
 
     v_if(dst_reg[0] == 20.0F) {
-        vstd::uint32_t v = 25;
+        vUInt v = 25;
         set_expected_result(6, 4.0F, 25, reinterpret<vInt>(v));
     }
     v_elseif(dst_reg[0] == 21.0F) {
-        vstd::uint32_t a = 20;
-        a                = a - 12;
+        vUInt a = 20;
+        a       = a - 12;
         set_expected_result(6, 8.0F, 8, reinterpret<vInt>(a));
     }
     v_elseif(dst_reg[0] == 22.0F) {
-        vstd::uint32_t a = 18;
-        vstd::uint32_t b = 6;
-        a                = a - b;
+        vUInt a = 18;
+        vUInt b = 6;
+        a       = a - b;
         set_expected_result(6, 16.0F, 12, reinterpret<vInt>(a));
     }
     v_elseif(dst_reg[0] == 23.0F) {
-        vstd::uint32_t a = 14;
-        vstd::uint32_t b = 5;
-        a                = b - a;
+        vUInt a = 14;
+        vUInt b = 5;
+        a       = b - a;
         set_expected_result(6, 32.0F, -9, reinterpret<vInt>(a));
     }
     v_endif;
@@ -899,15 +899,15 @@ sfpi_test_noinline void test8() {
 
     dst_reg[8] = -dst_reg[0];
     v_if(dst_reg[0] == 1.0F) {
-        vstd::uint32_t a = 0x05FF;
-        vstd::uint32_t b = 0x0AAA;
+        vUInt a = 0x05FF;
+        vUInt b = 0x0AAA;
         b &= a;
         set_expected_result(8, 16.0F, 0x00AA, static_cast<vInt>(b));
     }
     v_elseif(dst_reg[0] == 2.0F) {
-        vstd::uint32_t a = 0x05FF;
-        vstd::uint32_t b = 0x0AAA;
-        vstd::uint32_t c = a & b;
+        vUInt a = 0x05FF;
+        vUInt b = 0x0AAA;
+        vUInt c = a & b;
         set_expected_result(8, 16.0F, 0x00AA, static_cast<vInt>(c));
     }
     v_elseif(dst_reg[0] == 3.0F) {
@@ -925,15 +925,15 @@ sfpi_test_noinline void test8() {
     v_endif;
 
     v_if(dst_reg[0] == 5.0F) {
-        vstd::uint32_t a = 0x0111;
-        vstd::uint32_t b = 0x0444;
+        vUInt a = 0x0111;
+        vUInt b = 0x0444;
         b |= a;
         set_expected_result(8, 20.0F, 0x0555, static_cast<vInt>(b));
     }
     v_elseif(dst_reg[0] == 6.0F) {
-        vstd::uint32_t a = 0x0111;
-        vstd::uint32_t b = 0x0444;
-        vstd::uint32_t c = b | a;
+        vUInt a = 0x0111;
+        vUInt b = 0x0444;
+        vUInt c = b | a;
         set_expected_result(8, 20.0F, 0x0555, static_cast<vInt>(c));
     }
     v_elseif(dst_reg[0] == 7.0F) {
@@ -951,8 +951,8 @@ sfpi_test_noinline void test8() {
     v_endif;
 
     v_if(dst_reg[0] == 9.0F) {
-        vstd::uint32_t a = 0x0AAA;
-        a                = ~a;
+        vUInt a = 0x0AAA;
+        a       = ~a;
         a &= 0x0FFF; // Tricky since ~ flips upper bits that immediates can't access
         set_expected_result(8, 22.0F, 0x0555, static_cast<vInt>(a));
     }
@@ -1074,9 +1074,9 @@ sfpi_test_noinline void test8() {
     v_endif;
 
     v_if(dst_reg[0] == 30.0F) {
-        vstd::uint32_t a = 0xA5A5;
-        vstd::uint32_t b = 0xFF00;
-        vstd::uint32_t c = a ^ b;
+        vUInt a = 0xA5A5;
+        vUInt b = 0xFF00;
+        vUInt c = a ^ b;
         set_expected_result(8, 64.0F, 0x5AA5, c);
     }
     v_endif;
@@ -1169,13 +1169,13 @@ sfpi_test_noinline void test9() {
         set_expected_result(9, 55.0F, 0x0, b);
     }
     v_elseif(dst_reg[0] == 9.0F) {
-        vstd::uint32_t a = 0xFFFFU;
-        vInt           b = lz(a);
+        vUInt a = 0xFFFFU;
+        vInt  b = lz(a);
         set_expected_result(9, 30.0F, 0x10, b);
     }
     v_elseif(dst_reg[0] < 13.0F) {
-        vFloat         a = dst_reg[0] - 11.0F;
-        vstd::uint32_t b;
+        vFloat a = dst_reg[0] - 11.0F;
+        vUInt  b;
 
         // Relies on if chain above...
         v_if(dst_reg[0] >= 7.0F) {
@@ -1273,26 +1273,26 @@ sfpi_test_noinline void test10() {
     // SFPSHFT, SFTSETSGN
     dst_reg[10] = -dst_reg[0];
     v_if(dst_reg[0] == 1.0F) {
-        vstd::uint32_t a     = 0x015;
-        vInt           shift = 6;
-        vstd::uint32_t b     = shft(a, shift);
+        vUInt a     = 0x015;
+        vInt  shift = 6;
+        vUInt b     = shft(a, shift);
         // Could write better tests if we could return and test the int result
         set_expected_result(10, 20.0F, 0x0540, static_cast<vInt>(b));
     }
     v_elseif(dst_reg[0] == 2.0F) {
-        vstd::uint32_t a = 0x2AAA;
-        vstd::uint32_t b = shft(a, -4);
+        vUInt a = 0x2AAA;
+        vUInt b = shft(a, -4);
         set_expected_result(10, 22.0F, 0x02AA, static_cast<vInt>(b));
     }
     v_elseif(dst_reg[0] == 3.0F) {
-        vstd::uint32_t a     = 0xAAAAU;
-        vInt           shift = -6;
-        vstd::uint32_t b     = shft(a, shift);
+        vUInt a     = 0xAAAAU;
+        vInt  shift = -6;
+        vUInt b     = shft(a, shift);
         set_expected_result(10, 24.0F, 0x02AA, static_cast<vInt>(b));
     }
     v_elseif(dst_reg[0] == 4.0F) {
-        vstd::uint32_t a = 0x005A;
-        vstd::uint32_t b = shft(a, 4);
+        vUInt a = 0x005A;
+        vUInt b = shft(a, 4);
         set_expected_result(10, 26.0F, 0x05A0, static_cast<vInt>(b));
     }
     v_elseif(dst_reg[0] == 5.0F) {
@@ -1351,52 +1351,52 @@ sfpi_test_noinline void test11() {
     // SFPLUT, SFPLOADL<n>
     dst_reg[11] = -dst_reg[0];
 
-    vstd::uint32_t l0a = 0xFF30; // Multiply by 0.0, add 0.125
-    vstd::uint32_t l1a = 0X3020; // Multiply by 0.125, add 0.25
+    vUInt l0a = 0xFF30; // Multiply by 0.0, add 0.125
+    vUInt l1a = 0X3020; // Multiply by 0.125, add 0.25
     v_if(dst_reg[0] == 1.0F) {
         // Use L0
-        vFloat         h   = -0.3F;
-        vstd::uint32_t l2a = 0xA010; // Mulitply by -0.25, add 0.5
-        h                  = lut_sign(h, l0a, l1a, l2a);
-        dst_reg[11]        = h;
+        vFloat h    = -0.3F;
+        vUInt  l2a  = 0xA010; // Mulitply by -0.25, add 0.5
+        h           = lut_sign(h, l0a, l1a, l2a);
+        dst_reg[11] = h;
     }
     v_elseif(dst_reg[0] == 2.0F) {
         // Use L0
-        vFloat         h   = -0.3F;
-        vstd::uint32_t l2a = 0xA010; // Mulitply by -0.25, add 0.5
-        h                  = lut(h, l0a, l1a, l2a);
-        dst_reg[11]        = h;
+        vFloat h    = -0.3F;
+        vUInt  l2a  = 0xA010; // Mulitply by -0.25, add 0.5
+        h           = lut(h, l0a, l1a, l2a);
+        dst_reg[11] = h;
     }
     v_elseif(dst_reg[0] == 3.0F) {
         // Use L0
-        vFloat         h   = -0.3F;
-        vstd::uint32_t l2a = 0xA010; // Mulitply by -0.25, add 0.5
+        vFloat h   = -0.3F;
+        vUInt  l2a = 0xA010; // Mulitply by -0.25, add 0.5
         // Test used a bias on Grayskull, not supported on Wormhole
         h           = lut_sign(h, l0a, l1a, l2a);
         dst_reg[11] = h;
     }
     v_elseif(dst_reg[0] == 4.0F) {
         // Use L0
-        vFloat         h   = -0.3F;
-        vstd::uint32_t l2a = 0xA010; // Mulitply by -0.25, add 0.5
+        vFloat h   = -0.3F;
+        vUInt  l2a = 0xA010; // Mulitply by -0.25, add 0.5
         // Test used a bias on Grayskull, not supported on Wormhole
         h           = lut(h, l0a, l1a, l2a);
         dst_reg[11] = h;
     }
     v_elseif(dst_reg[0] == 5.0F) {
         // Use L1
-        vFloat         h   = 1.0F;
-        vstd::uint32_t l2a = 0xA010; // Mulitply by -0.25, add 0.5
+        vFloat h   = 1.0F;
+        vUInt  l2a = 0xA010; // Mulitply by -0.25, add 0.5
         // Test used a bias on Grayskull, not supported on Wormhole
         h           = lut(h, l0a, l1a, l2a);
         dst_reg[11] = h;
     }
     v_elseif(dst_reg[0] == 6.0F) {
         // Use L2
-        vFloat         h   = 4.0F;
-        vstd::uint32_t l2a = 0xA010; // Mulitply by -0.25, add 0.5
-        h                  = lut_sign(h, l0a, l1a, l2a);
-        dst_reg[11]        = h;
+        vFloat h    = 4.0F;
+        vUInt  l2a  = 0xA010; // Mulitply by -0.25, add 0.5
+        h           = lut_sign(h, l0a, l1a, l2a);
+        dst_reg[11] = h;
     }
     v_endif;
 
@@ -1409,63 +1409,63 @@ sfpi_test_noinline void test11() {
         // These are fakedout w/ emule
         TTI_SFPLOADI(0, SFPLOADI_MOD0_USHORT, 0xFF20); // Mulitply by 0.0, add 0.25
         TTI_SFPLOADI(1, SFPLOADI_MOD0_USHORT, 0x2010); // Mulitply by 0.25, add 0.5
-        vstd::uint32_t l0b, l1b;
+        vUInt l0b, l1b;
         l0b = l_reg[LRegs::LReg0];
         l1b = l_reg[LRegs::LReg1];
 
         v_if(dst_reg[0] == 7.0F) {
             // Use L0
-            vFloat         h   = -0.3F;
-            vstd::uint32_t l2b = 0x9000;
-            h                  = lut_sign(h, l0b, l1b, l2b);
-            dst_reg[11]        = h;
+            vFloat h    = -0.3F;
+            vUInt  l2b  = 0x9000;
+            h           = lut_sign(h, l0b, l1b, l2b);
+            dst_reg[11] = h;
         }
         v_elseif(dst_reg[0] == 8.0F) {
             // Use L0
-            vFloat         h   = -0.3F;
-            vstd::uint32_t l2b = 0x9000;
-            h                  = lut(h, l0b, l1b, l2b);
-            dst_reg[11]        = h;
+            vFloat h    = -0.3F;
+            vUInt  l2b  = 0x9000;
+            h           = lut(h, l0b, l1b, l2b);
+            dst_reg[11] = h;
         }
         v_elseif(dst_reg[0] == 9.0F) {
             // Use L0
-            vFloat         h   = -0.3F;
-            vstd::uint32_t l2b = 0x9000;
+            vFloat h   = -0.3F;
+            vUInt  l2b = 0x9000;
             // Test used a bias on Grayskull, not supported on Wormhole
             h           = lut_sign(h, l0b, l1b, l2b);
             dst_reg[11] = h;
         }
         v_elseif(dst_reg[0] == 10.0F) {
             // Use L0
-            vFloat         h   = -0.3F;
-            vstd::uint32_t l2b = 0x9000;
+            vFloat h   = -0.3F;
+            vUInt  l2b = 0x9000;
             // Test used a bias on Grayskull, not supported on Wormhole
             h           = lut(h, l0b, l1b, l2b);
             dst_reg[11] = h;
         }
         v_elseif(dst_reg[0] == 11.0F) {
             // Use L1
-            vFloat         h   = 1.0F;
-            vstd::uint32_t l2b = 0x9000;
+            vFloat h   = 1.0F;
+            vUInt  l2b = 0x9000;
             // Test used a bias on Grayskull, not supported on Wormhole
             h           = lut(h, l0b, l1b, l2b);
             dst_reg[11] = h;
         }
         v_elseif(dst_reg[0] == 12.0F) {
             // Use L2
-            vFloat         h   = 4.0F;
-            vstd::uint32_t l2b = 0x9000;
-            h                  = lut_sign(h, l0b, l1b, l2b);
-            dst_reg[11]        = h;
+            vFloat h    = 4.0F;
+            vUInt  l2b  = 0x9000;
+            h           = lut_sign(h, l0b, l1b, l2b);
+            dst_reg[11] = h;
         }
         v_endif;
     }
 
     // lut2 3 entry 16 bit
     {
-        vstd::uint32_t l0 = (s2vFloat16a(2.0f).get() << 16) | s2vFloat16a(3.0f).get();
-        vstd::uint32_t l1 = (s2vFloat16a(4.0f).get() << 16) | s2vFloat16a(5.0f).get();
-        vstd::uint32_t l2 = (s2vFloat16a(6.0f).get() << 16) | s2vFloat16a(7.0f).get();
+        vUInt l0 = (s2vFloat16a(2.0f).get() << 16) | s2vFloat16a(3.0f).get();
+        vUInt l1 = (s2vFloat16a(4.0f).get() << 16) | s2vFloat16a(5.0f).get();
+        vUInt l2 = (s2vFloat16a(6.0f).get() << 16) | s2vFloat16a(7.0f).get();
         v_if(dst_reg[0] == 13.0f) {
             vFloat h    = -0.25f;
             h           = lut2(h, l0, l1, l2);
@@ -1522,13 +1522,13 @@ sfpi_test_noinline void test11() {
 
     // lut2 6 entry 16 bit mode 1
     {
-        vstd::uint32_t a01 = (s2vFloat16a(4.0f).get() << 16) | s2vFloat16a(2.0f).get();
-        vstd::uint32_t a23 = (s2vFloat16a(8.0f).get() << 16) | s2vFloat16a(6.0f).get();
+        vUInt a01 = (s2vFloat16a(4.0f).get() << 16) | s2vFloat16a(2.0f).get();
+        vUInt a23 = (s2vFloat16a(8.0f).get() << 16) | s2vFloat16a(6.0f).get();
         ;
-        vstd::uint32_t a34 = (s2vFloat16a(12.0f).get() << 16) | s2vFloat16a(10.0f).get();
-        vstd::uint32_t b01 = (s2vFloat16a(5.0f).get() << 16) | s2vFloat16a(3.0f).get();
-        vstd::uint32_t b23 = (s2vFloat16a(9.0f).get() << 16) | s2vFloat16a(7.0f).get();
-        vstd::uint32_t b34 = (s2vFloat16a(13.0f).get() << 16) | s2vFloat16a(11.0f).get();
+        vUInt a34 = (s2vFloat16a(12.0f).get() << 16) | s2vFloat16a(10.0f).get();
+        vUInt b01 = (s2vFloat16a(5.0f).get() << 16) | s2vFloat16a(3.0f).get();
+        vUInt b23 = (s2vFloat16a(9.0f).get() << 16) | s2vFloat16a(7.0f).get();
+        vUInt b34 = (s2vFloat16a(13.0f).get() << 16) | s2vFloat16a(11.0f).get();
         v_if(dst_reg[0] == 21.0f) {
             vFloat h    = -0.25f;
             h           = lut2(h, a01, a23, a34, b01, b23, b34);
@@ -1569,13 +1569,13 @@ sfpi_test_noinline void test11() {
 
     // lut2 6 entry 16 bit mode 2
     {
-        vstd::uint32_t a01 = (s2vFloat16a(4.0f).get() << 16) | s2vFloat16a(2.0f).get();
-        vstd::uint32_t a23 = (s2vFloat16a(8.0f).get() << 16) | s2vFloat16a(6.0f).get();
+        vUInt a01 = (s2vFloat16a(4.0f).get() << 16) | s2vFloat16a(2.0f).get();
+        vUInt a23 = (s2vFloat16a(8.0f).get() << 16) | s2vFloat16a(6.0f).get();
         ;
-        vstd::uint32_t a34 = (s2vFloat16a(12.0f).get() << 16) | s2vFloat16a(10.0f).get();
-        vstd::uint32_t b01 = (s2vFloat16a(5.0f).get() << 16) | s2vFloat16a(3.0f).get();
-        vstd::uint32_t b23 = (s2vFloat16a(9.0f).get() << 16) | s2vFloat16a(7.0f).get();
-        vstd::uint32_t b34 = (s2vFloat16a(13.0f).get() << 16) | s2vFloat16a(11.0f).get();
+        vUInt a34 = (s2vFloat16a(12.0f).get() << 16) | s2vFloat16a(10.0f).get();
+        vUInt b01 = (s2vFloat16a(5.0f).get() << 16) | s2vFloat16a(3.0f).get();
+        vUInt b23 = (s2vFloat16a(9.0f).get() << 16) | s2vFloat16a(7.0f).get();
+        vUInt b34 = (s2vFloat16a(13.0f).get() << 16) | s2vFloat16a(11.0f).get();
 
         // Can't fit all the tests into 32 elements, skipping a few that are
         // the most redundant to prior tests here
@@ -1688,12 +1688,12 @@ sfpi_test_noinline void test12(int imm) {
     v_endif;
 
     v_if(dst_reg[0] == 7.0F) {
-        vstd::uint32_t a = 0x4000;
+        vUInt a = 0x4000;
         a >>= imm - 25;
         set_expected_result(12, 64.0F, 0x0010, reinterpret<vInt>(a));
     }
     v_elseif(dst_reg[0] == 8.0F) {
-        vstd::uint32_t a = 1;
+        vUInt a = 1;
         a <<= imm - 25;
         set_expected_result(12, 128.0F, 0x0400, reinterpret<vInt>(a));
     }
@@ -2383,33 +2383,33 @@ sfpi_test_noinline void test15() {
 
     dst_reg[15] = -dst_reg[0];
     {
-        vstd::uint32_t a = vConstTileId + 0x100;
-        vstd::uint32_t b = vConstTileId + 0x200;
-        vstd::uint32_t c = vConstTileId + 0x300;
-        vstd::uint32_t d = vConstTileId + 0x400;
+        vUInt a = vConstTileId + 0x100;
+        vUInt b = vConstTileId + 0x200;
+        vUInt c = vConstTileId + 0x300;
+        vUInt d = vConstTileId + 0x400;
 
         subvec_transp(a, b, c, d);
 
-        vstd::uint32_t base = vConstTileId >> 4;
+        vUInt base = vConstTileId >> 4;
         base <<= 8;
         base += 0x100;
 
         // Load expected value, subtract actual value. result is 0 if correct
-        vstd::uint32_t eff  = 0xF;
-        vstd::uint32_t cmpa = base | (vConstTileId & eff);
+        vUInt eff  = 0xF;
+        vUInt cmpa = base | (vConstTileId & eff);
         cmpa -= a;
-        vstd::uint32_t cmpb = base | ((vConstTileId & eff) + 0x10);
+        vUInt cmpb = base | ((vConstTileId & eff) + 0x10);
         cmpb -= b;
-        vstd::uint32_t cmpc = base | ((vConstTileId & eff) + 0x20);
+        vUInt cmpc = base | ((vConstTileId & eff) + 0x20);
         cmpc -= c;
-        vstd::uint32_t cmpd = base | ((vConstTileId & eff) + 0x30);
+        vUInt cmpd = base | ((vConstTileId & eff) + 0x30);
         cmpd -= d;
 
         // The above completes this test, now to make the results reportable
         // in less than 4 full width vectors
 
         // Reduce across a, b, c, d
-        vstd::uint32_t result = reduce_bool4(cmpa, cmpb, cmpc, cmpd, 0);
+        vUInt result = reduce_bool4(cmpa, cmpb, cmpc, cmpd, 0);
 
         // We care about xyz
         // Use the thing we're testing to test the result by putting xyz result
@@ -2417,7 +2417,7 @@ sfpi_test_noinline void test15() {
         subvec_transp(result, cmpb, cmpc, cmpd);
 
         // Reduce result (only care about first subbvec, rest along for the ride)
-        vstd::uint32_t final = reduce_bool4(result, cmpb, cmpc, cmpd, 1);
+        vUInt final = reduce_bool4(result, cmpb, cmpc, cmpd, 1);
 
         v_if(dst_reg[0] < 8.0F) { set_expected_result(15, 8.0F, 1, final); }
         v_endif;
@@ -2425,42 +2425,42 @@ sfpi_test_noinline void test15() {
 
     {
         // subvec_shflror1
-        vstd::uint32_t src = vConstTileId;
-        vstd::uint32_t dst = subvec_shflror1(src);
+        vUInt src = vConstTileId;
+        vUInt dst = subvec_shflror1(src);
 
-        vstd::uint32_t cmpdst = vConstTileId - 2;
+        vUInt cmpdst = vConstTileId - 2;
         // first element in the subvec
         v_if((vConstTileId & 0xF) == 0) { cmpdst += 0x10; }
         v_endif;
         dst -= cmpdst;
 
-        vstd::uint32_t tmp1 = 1;
-        vstd::uint32_t tmp2 = 1;
-        vstd::uint32_t tmp3 = 1;
+        vUInt tmp1 = 1;
+        vUInt tmp2 = 1;
+        vUInt tmp3 = 1;
         subvec_transp(tmp1, dst, tmp2, tmp3);
 
-        vstd::uint32_t final = reduce_bool4(dst, tmp1, tmp2, tmp3, 0);
+        vUInt final = reduce_bool4(dst, tmp1, tmp2, tmp3, 0);
         v_if(dst_reg[0] >= 8.0F && dst_reg[0] < 16.0F) { set_expected_result(15, 16.0F, 1, final); }
         v_endif;
     }
 
     {
         // subvec_shflshr1
-        vstd::uint32_t src = vConstTileId;
-        vstd::uint32_t dst = subvec_shflshr1(src);
+        vUInt src = vConstTileId;
+        vUInt dst = subvec_shflshr1(src);
 
-        vstd::uint32_t cmpdst = vConstTileId - 2;
+        vUInt cmpdst = vConstTileId - 2;
         // first element in the subvec
         v_if((vConstTileId & 0xF) == 0) { cmpdst = 0; }
         v_endif;
         dst -= cmpdst;
 
-        vstd::uint32_t tmp1 = 1;
-        vstd::uint32_t tmp2 = 1;
-        vstd::uint32_t tmp3 = 1;
+        vUInt tmp1 = 1;
+        vUInt tmp2 = 1;
+        vUInt tmp3 = 1;
         subvec_transp(tmp1, tmp2, dst, tmp3);
 
-        vstd::uint32_t final = reduce_bool4(tmp1, dst, tmp2, tmp3, 0);
+        vUInt final = reduce_bool4(tmp1, dst, tmp2, tmp3, 0);
         v_if(dst_reg[0] >= 16.0F && dst_reg[0] < 24.0F) { set_expected_result(15, 24.0F, 1, final); }
         v_endif;
     }
@@ -2469,7 +2469,7 @@ sfpi_test_noinline void test15() {
     // interesting if/when we implement LOADMACRO
     v_if (dst_reg[0] == 16.0F) {
         // Wrapper doesn't emit shft2 bit shift, test directly
-        vstd::uint32_t a = 0x005A;
+        vUInt a = 0x005A;
 
         a.get() = __builtin_rvtt_sfpshft2_i(a.get(), 4);
         set_expected_result(16, 10.0F, 0x05A0, a);
@@ -2478,8 +2478,8 @@ sfpi_test_noinline void test15() {
 
     v_if (dst_reg[0] == 17.0F) {
         // Wrapper doesn't emit shft2 bit shift, test directly
-        vstd::uint32_t a = 0x005A;
-        vstd::uint32_t b = 4;
+        vUInt a = 0x005A;
+        vUInt b = 4;
 
         a.get() = __builtin_rvtt_sfpshft2_v(a.get(), b.get());
         set_expected_result(16, 20.0F, 0x05A0, a);
@@ -2534,14 +2534,14 @@ void test16() {
     v_if(dst_reg[0] == 13.0F) { set_expected_result(16, 64.0f, 24, float_to_int8(23.3)); }
     v_endif;
     v_if(dst_reg[0] == 14.0F) {
-        vstd::uint32_t descale = 8;
+        vUInt descale = 8;
         set_expected_result(16, 80.0f, 0xeb, int32_to_uint8(0xea00, descale));
     }
     v_endif;
     v_if(dst_reg[0] == 15.0F) { set_expected_result(16, 96.0f, 0xf, int32_to_uint8(0xea0, 8)); }
     v_endif;
     v_if(dst_reg[0] == 16.0F) {
-        vstd::uint32_t descale = 8;
+        vUInt descale = 8;
         set_expected_result(16, 112.0f, 0xf, int32_to_int8(0xea0, descale));
     }
     v_endif;
@@ -2561,8 +2561,8 @@ void test17() {
 
     // Test sign-magnitude for ints
     v_if(dst_reg[0] == 2.0F) {
-        vstd::uint32_t x = -1;
-        vstd::uint32_t y = -2;
+        vUInt x = -1;
+        vUInt y = -2;
         vec_min_max(x, y);
         set_expected_result(17, 23.0f, -1, x);
     }

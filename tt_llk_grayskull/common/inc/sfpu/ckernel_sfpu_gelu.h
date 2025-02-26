@@ -47,15 +47,15 @@ template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_gelu_() {
     constexpr std::uint32_t imm1 = (APPROXIMATION_MODE) ? 0x212C : 0x2010;
     constexpr std::uint32_t imm2 = 0xFF00;
-    vstd::uint32_t          l0   = l_reg[LRegs::LReg0];
+    vUInt                   l0   = l_reg[LRegs::LReg0];
 
 // SFPU microcode
 #pragma GCC unroll 4
     for (int d = 0; d < ITERATIONS; d++) {
-        vFloat         val = dst_reg[0];
-        vstd::uint32_t l1;
-        vstd::uint32_t l2;
-        vFloat         result;
+        vFloat val = dst_reg[0];
+        vUInt  l1;
+        vUInt  l2;
+        vFloat result;
 
         if constexpr (APPROXIMATION_MODE) {
             l1     = imm1;

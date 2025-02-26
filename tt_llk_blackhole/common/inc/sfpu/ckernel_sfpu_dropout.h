@@ -21,7 +21,7 @@ inline void _calculate_dropout_(const int iterations, std::uint32_t prob, std::u
     FWLOG1("calculate_dropout() -- prob:%x", prob);
     FWLOG1("calculate_dropout() -- scale:%x", scale);
 
-    vstd::uint32_t rand = l_reg[LRegs::LReg3];
+    vUInt rand = l_reg[LRegs::LReg3];
 
 #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++) {
@@ -39,11 +39,11 @@ inline void _calculate_dropout_(const int iterations, std::uint32_t prob, std::u
         ////////////////////////
         // 16-bit PRNG update
         ///////////////////////
-        vstd::uint32_t lfsr = vConstIntPrgm1;
-        vstd::uint32_t tmp  = lfsr & rand;
-        rand                = rand >> 1;
+        vUInt lfsr = vConstIntPrgm1;
+        vUInt tmp  = lfsr & rand;
+        rand       = rand >> 1;
         v_if(tmp != 0) {
-            vstd::uint32_t mask = vConstIntPrgm0;
+            vUInt mask = vConstIntPrgm0;
             rand ^= mask;
         }
         v_endif;
