@@ -32,12 +32,9 @@ def generate_make_command(test_config):
             kern_cnt = str(test_config.get("kern_cnt"))
             pack_addr_cnt = str(test_config.get("pack_addr_cnt"))
             pack_addrs = test_config.get("pack_addrs")
-            unpack_a_addrs_cnt = test_config.get("unpack_a_addrs_cnt")
+            unpack_a_addrs_cnt = test_config.get("unp_a_addr_cnt")
 
             make_cmd += f" kern_cnt={kern_cnt} "
             make_cmd += f" pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs}" 
-            make_cmd += f" unpack_a_addrs_cnt={unpack_a_addrs_cnt}"
-
-
 
     return make_cmd

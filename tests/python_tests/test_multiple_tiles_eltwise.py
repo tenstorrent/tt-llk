@@ -6,6 +6,12 @@ from helpers.format_arg_mapping import format_dict
 from helpers.test_config import generate_make_command
 from helpers.stimuli_generator import flatten_list, generate_stimuli
 
+mathop_map = {  
+    1: "elwadd",
+    2: "elwsub",
+    3: "elwmul"
+}
+
 def generate_golden(op, operand1, operand2, data_format,math_fidelity):
     if( data_format == "Float16" or data_format == "Float16_b"):
         tensor1_float = operand1.clone().detach().to(format_dict[data_format])
@@ -14,22 +20,22 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
         tensor1_float = operand1.clone().detach().to(format_dict["Float16_b"])
         tensor2_float = operand2.clone().detach().to(format_dict["Float16_b"])
 
-    # if data_format == "Float16_b":
-    #     if math_fidelity == 0:  # LoFi
-    #         for element in operand1:
-    #             element = element.to(torch.int32)  # Convert to int32
-    #             element &= 0xFFF8
-    #         for element in operand2:
-    #             element = element.to(torch.int32)  # Convert to int32
-    #             element &= 0xFFFE
-    #     elif math_fidelity == 2:  # HiFi2
-    #         for element in operand2:
-    #             element = element.to(torch.int32)  # Convert to int32
-    #             element &= 0xFFFE
-    #     elif math_fidelity == 3:  # HiFi3
-    #         pass
-    #     elif math_fidelity == 4:  # HiFi4
-    #         pass
+    if data_format == "Float16_b":
+        if math_fidelity == 0:  # LoFi
+            for element in operand1:
+                element = element.to(torch.int32)  # Convert to int32
+                element &= 0xFFF8
+            for element in operand2:
+                element = element.to(torch.int32)  # Convert to int32
+                element &= 0xFFFE
+        elif math_fidelity == 2:  # HiFi2
+            for element in operand2:
+                element = element.to(torch.int32)  # Convert to int32
+                element &= 0xFFFE
+        elif math_fidelity == 3:  # HiFi3
+            pass
+        elif math_fidelity == 4:  # HiFi4
+            pass
 
     if(op==1):
         res = tensor1_float + tensor2_float
@@ -45,15 +51,15 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
 param_combinations = [
     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
     for mathop in range(1, 4)
-    for tile_cnt in range(2, 3) #4)
+    for tile_cnt in range(1, 4)
     for format in ["Float16_b"] #, "Float16", "Bfp8_b"]
-    for dest_acc in [""] #, "DEST_ACC"]
+    for dest_acc in ["", "DEST_ACC"]
     for testname in ["multiple_tiles_eltwise_test"]
-    for math_fidelity in [4] #,2,3,4]
+    for math_fidelity in [0,2,3,4]
 ]
 
 param_ids = [
-    f"mathop={comb[0]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
+    f"mathop={mathop_map[comb[0]]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
     for comb in param_combinations
 ]
 
@@ -86,7 +92,6 @@ def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidel
         "kern_cnt" : tile_cnt,
         "pack_addr_cnt" : len(pack_addresses),
         "pack_addrs" : pack_addresses_formatted,
-        "unp_a_addr_cnt": tile_cnt,
         "math_fidelity" : math_fidelity
     }
 
