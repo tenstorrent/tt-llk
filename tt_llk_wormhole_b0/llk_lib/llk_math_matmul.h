@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+
+#include <cstdint>
+
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
@@ -69,9 +72,9 @@ inline void matmul_configure_addrmod(
     }
         .set(ADDR_MOD_5);
 
-    const uint8_t srca_increment = transpose == false ? 16 : 32;
-    const uint8_t srca_set       = transpose == false ? 32 : 16;
-    const uint8_t dest_increment = transpose == false ? 8 : 24;
+    const std::uint8_t srca_increment = transpose == false ? 16 : 32;
+    const std::uint8_t srca_set       = transpose == false ? 32 : 16;
+    const std::uint8_t dest_increment = transpose == false ? 8 : 24;
 
     if ((is_in0_16x32 && (!is_in1_32x16)) || is_in0_32x16) {
         if (transpose) {

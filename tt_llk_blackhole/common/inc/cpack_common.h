@@ -15,87 +15,87 @@
 namespace ckernel::packer {
 constexpr std::uint32_t replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
                                                 // fist 16 for sfpu, next 16 for fpu
-constexpr uint32_t NUM_PACKERS = 1;             // Number of packers
+constexpr std::uint32_t NUM_PACKERS = 1;        // Number of packers
 
 // Pack config
 typedef struct {
     // word 0
-    uint32_t row_ptr_section_size : 16;
-    uint32_t exp_section_size     : 16;
+    std::uint32_t row_ptr_section_size : 16;
+    std::uint32_t exp_section_size     : 16;
     // word 1
-    uint32_t l1_dest_addr : 32;
+    std::uint32_t l1_dest_addr : 32;
     // word 2
-    uint32_t uncompress                          : 1;
-    uint32_t add_l1_dest_addr_offset             : 1;
-    uint32_t disable_pack_zero_flag              : 1;
-    uint32_t reserved_0                          : 1;
-    uint32_t out_data_format                     : 4;
-    uint32_t in_data_format                      : 4;
-    uint32_t dis_shared_exp_assembler            : 1;
-    uint32_t auto_set_last_pacr_intf_sel         : 1;
-    uint32_t enable_out_fifo                     : 1;
-    uint32_t sub_l1_tile_header_size             : 1;
-    uint32_t src_if_sel                          : 1;
-    uint32_t pack_start_intf_pos                 : 4;
-    uint32_t all_pack_disable_zero_compress_ovrd : 1;
-    uint32_t add_tile_header_size                : 1;
-    uint32_t pack_dis_y_pos_start_offset         : 1;
-    uint32_t l1_src_addr                         : 8;
+    std::uint32_t uncompress                          : 1;
+    std::uint32_t add_l1_dest_addr_offset             : 1;
+    std::uint32_t disable_pack_zero_flag              : 1;
+    std::uint32_t reserved_0                          : 1;
+    std::uint32_t out_data_format                     : 4;
+    std::uint32_t in_data_format                      : 4;
+    std::uint32_t dis_shared_exp_assembler            : 1;
+    std::uint32_t auto_set_last_pacr_intf_sel         : 1;
+    std::uint32_t enable_out_fifo                     : 1;
+    std::uint32_t sub_l1_tile_header_size             : 1;
+    std::uint32_t src_if_sel                          : 1;
+    std::uint32_t pack_start_intf_pos                 : 4;
+    std::uint32_t all_pack_disable_zero_compress_ovrd : 1;
+    std::uint32_t add_tile_header_size                : 1;
+    std::uint32_t pack_dis_y_pos_start_offset         : 1;
+    std::uint32_t l1_src_addr                         : 8;
     //   The bit unp_lf8_4b_exp is configured in the unpack, remove word 3 to avoid potential race
     //   condition
     //   //word 3
-    //   uint32_t downsample_mask : 16;
-    //   uint32_t downsample_shift_count  : 3;
-    //   uint32_t pack_l1_acc : 1; //Not new to BH, but moved
-    //   //uint32_t read_mode : 1; //Removed in BH
-    //   uint32_t exp_threshold_en  : 1;
-    //   uint32_t reserved_2 : 1;
-    //   uint32_t unp_lf8_4b_exp: 1;
-    //   uint32_t pac_lf8_4b_exp: 1;
-    //   uint32_t exp_threshold : 8;
+    //   std::uint32_t downsample_mask : 16;
+    //   std::uint32_t downsample_shift_count  : 3;
+    //   std::uint32_t pack_l1_acc : 1; //Not new to BH, but moved
+    //   //std::uint32_t read_mode : 1; //Removed in BH
+    //   std::uint32_t exp_threshold_en  : 1;
+    //   std::uint32_t reserved_2 : 1;
+    //   std::uint32_t unp_lf8_4b_exp: 1;
+    //   std::uint32_t pac_lf8_4b_exp: 1;
+    //   std::uint32_t exp_threshold : 8;
 } pack_config_t;
 
-static_assert(sizeof(pack_config_t) == (sizeof(uint32_t) * 3));
+static_assert(sizeof(pack_config_t) == (sizeof(std::uint32_t) * 3));
 
 typedef union {
-    uint32_t      val[3];
+    std::uint32_t val[3];
     pack_config_t f;
 } pack_config_u;
 
 // Relu Config
 typedef struct {
-    uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_src      : 1;
-    uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_dst      : 1;
-    uint32_t STACC_RELU_ApplyRelu                     : 4;
-    uint32_t STACC_RELU_ReluThreshold                 : 16;
-    uint32_t DISABLE_RISC_BP_Disable_main             : 1;
-    uint32_t DISABLE_RISC_BP_Disable_trisc            : 3;
-    uint32_t DISABLE_RISC_BP_Disable_ncrisc           : 1;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_main   : 1;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_trisc  : 3;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_ncrisc : 1;
+    std::uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_src      : 1;
+    std::uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_dst      : 1;
+    std::uint32_t STACC_RELU_ApplyRelu                     : 4;
+    std::uint32_t STACC_RELU_ReluThreshold                 : 16;
+    std::uint32_t DISABLE_RISC_BP_Disable_main             : 1;
+    std::uint32_t DISABLE_RISC_BP_Disable_trisc            : 3;
+    std::uint32_t DISABLE_RISC_BP_Disable_ncrisc           : 1;
+    std::uint32_t DISABLE_RISC_BP_Disable_bmp_clear_main   : 1;
+    std::uint32_t DISABLE_RISC_BP_Disable_bmp_clear_trisc  : 3;
+    std::uint32_t DISABLE_RISC_BP_Disable_bmp_clear_ncrisc : 1;
 } relu_config_t;
 
-static_assert(sizeof(relu_config_t) == (sizeof(uint32_t)));
+static_assert(sizeof(relu_config_t) == (sizeof(std::uint32_t)));
 
 typedef union {
-    uint32_t      val[1];
+    std::uint32_t val[1];
     relu_config_t r;
 } relu_config_u;
 
 // Dest rd control
 typedef struct {
-    uint32_t PCK_DEST_RD_CTRL_Read_32b_data  : 1;
-    uint32_t PCK_DEST_RD_CTRL_Read_unsigned  : 1;
-    uint32_t PCK_DEST_RD_CTRL_Read_int8      : 1;
-    uint32_t PCK_DEST_RD_CTRL_Round_10b_mant : 1;
-    uint32_t PCK_DEST_RD_CTRL_Reserved       : 28;
+    std::uint32_t PCK_DEST_RD_CTRL_Read_32b_data  : 1;
+    std::uint32_t PCK_DEST_RD_CTRL_Read_unsigned  : 1;
+    std::uint32_t PCK_DEST_RD_CTRL_Read_int8      : 1;
+    std::uint32_t PCK_DEST_RD_CTRL_Round_10b_mant : 1;
+    std::uint32_t PCK_DEST_RD_CTRL_Reserved       : 28;
 } dest_rd_ctrl_t;
 
-static_assert(sizeof(dest_rd_ctrl_t) == (sizeof(uint32_t)));
+static_assert(sizeof(dest_rd_ctrl_t) == (sizeof(std::uint32_t)));
 
 typedef union {
-    uint32_t       val;
+    std::uint32_t  val;
     dest_rd_ctrl_t f;
 } dest_rd_ctrl_u;
 
@@ -111,35 +111,35 @@ typedef union {
 // configured to determine TILE_ROW_SET_MAPPING[0:3] registers used for each packer. Other
 // PACK_EDGE_OFFSET_SEC[1:3] registers are used only for the masks in the lower 16b.
 typedef struct {
-    uint32_t mask                      : 16;
-    uint32_t mode                      : 1;
-    uint32_t tile_row_set_select_pack0 : 2;
-    uint32_t tile_row_set_select_pack1 : 2;
-    uint32_t tile_row_set_select_pack2 : 2;
-    uint32_t tile_row_set_select_pack3 : 2;
-    uint32_t reserved                  : 7;
+    std::uint32_t mask                      : 16;
+    std::uint32_t mode                      : 1;
+    std::uint32_t tile_row_set_select_pack0 : 2;
+    std::uint32_t tile_row_set_select_pack1 : 2;
+    std::uint32_t tile_row_set_select_pack2 : 2;
+    std::uint32_t tile_row_set_select_pack3 : 2;
+    std::uint32_t reserved                  : 7;
 } pck_edge_offset_t;
 
-static_assert(sizeof(pck_edge_offset_t) == (sizeof(uint32_t)));
+static_assert(sizeof(pck_edge_offset_t) == (sizeof(std::uint32_t)));
 
 typedef union {
-    uint32_t          val;
+    std::uint32_t     val;
     pck_edge_offset_t f;
 } pck_edge_offset_u;
 
 // Pack counters
 typedef struct {
-    uint32_t pack_per_xy_plane        : 8;
-    uint32_t pack_reads_per_xy_plane  : 8;
-    uint32_t pack_xys_per_til         : 7;
-    uint32_t pack_yz_transposed       : 1;
-    uint32_t pack_per_xy_plane_offset : 8;
+    std::uint32_t pack_per_xy_plane        : 8;
+    std::uint32_t pack_reads_per_xy_plane  : 8;
+    std::uint32_t pack_xys_per_til         : 7;
+    std::uint32_t pack_yz_transposed       : 1;
+    std::uint32_t pack_per_xy_plane_offset : 8;
 } pack_counters_t;
 
-static_assert(sizeof(pack_counters_t) == (sizeof(uint32_t)));
+static_assert(sizeof(pack_counters_t) == (sizeof(std::uint32_t)));
 
 typedef union {
-    uint32_t        val;
+    std::uint32_t   val;
     pack_counters_t f;
 } pack_counters_u;
 
@@ -414,8 +414,8 @@ inline void configure_pack(
 
     relu_config_u hw_relu_config;
     // Config RELU
-    uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
-    hw_relu_config.val[0]     = current_relu_val;
+    std::uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
+    hw_relu_config.val[0]          = current_relu_val;
 
     hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
     hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
@@ -426,11 +426,11 @@ inline void configure_pack(
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 }
 
-inline uint8_t get_packer_dest_offset_index() {
+inline std::uint8_t get_packer_dest_offset_index() {
     return (dest_offset_id ? p_gpr_pack::DEST_OFFSET_HI : p_gpr_pack::DEST_OFFSET_LO);
 }
 
-inline uint32_t get_packer_dest_offset() { return (dest_offset_id ? DEST_REGISTER_HALF_SIZE : 0x0); }
+inline std::uint32_t get_packer_dest_offset() { return (dest_offset_id ? DEST_REGISTER_HALF_SIZE : 0x0); }
 
 inline void flip_packer_dest_offset_id() { dest_offset_id = 1 - dest_offset_id; }
 
@@ -448,8 +448,8 @@ inline void select_packer_dest_registers() {
 }
 
 // Program packer destination addresses from GPRs
-inline void program_packer_destination(uint32_t addr) {
-    uint32_t new_l1_addr = (1 << 31) | addr;
+inline void program_packer_destination(std::uint32_t addr) {
+    std::uint32_t new_l1_addr = (1 << 31) | addr;
     TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
     TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
 
@@ -461,12 +461,12 @@ inline void program_packer_destination(uint32_t addr) {
 
 // RT: If multiple contexts are used, for issue #https://github.com/tenstorrent/tt-llk-bh/issues/20
 // then this function needs to be re-written
-template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false>
-inline void program_packer_untilized_destination(const uint32_t addr, const uint32_t pack_dst_format) {
-    // const uint32_t block_size = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * TILE_C_DIM *
-    // (TILE_R_DIM/4)); constexpr uint32_t offset0 = 0; const uint32_t offset1 = (1*block_size)/16;
-    // const uint32_t offset2 = (2*block_size)/16;
-    // const uint32_t offset3 = (3*block_size)/16;
+template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim, bool diagonal = false>
+inline void program_packer_untilized_destination(const std::uint32_t addr, const std::uint32_t pack_dst_format) {
+    // const std::uint32_t block_size = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * TILE_C_DIM *
+    // (TILE_R_DIM/4)); constexpr std::uint32_t offset0 = 0; const std::uint32_t offset1 = (1*block_size)/16;
+    // const std::uint32_t offset2 = (2*block_size)/16;
+    // const std::uint32_t offset3 = (3*block_size)/16;
 
     // TT_SETDMAREG(0, LOWER_HALFWORD(addr+offset0), 0, LO_16(p_gpr_pack::OUTPUT_ADDR+0));
     // TT_SETDMAREG(0, UPPER_HALFWORD(addr+offset0), 0, HI_16(p_gpr_pack::OUTPUT_ADDR+0));
@@ -485,7 +485,7 @@ inline void program_packer_untilized_destination(const uint32_t addr, const uint
     // TTI_NOP; TTI_NOP;
 }
 
-inline void program_packer_dest_offset_registers(uint32_t dest_tile_offset) {
+inline void program_packer_dest_offset_registers(std::uint32_t dest_tile_offset) {
     TT_SETDMAREG(0, LOWER_HALFWORD(dest_tile_offset), 0, LO_16(p_gpr_pack::TEMP_TILE_OFFSET));
     TT_SETDMAREG(0, UPPER_HALFWORD(dest_tile_offset), 0, HI_16(p_gpr_pack::TEMP_TILE_OFFSET));
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
@@ -510,7 +510,7 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc) {
 
     // TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::TRISC_CFG);
 
-    const uint32_t pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
+    const std::uint32_t pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
 
     cfg_reg_rmw_tensix<
         THCON_SEC0_REG1_Pack_L1_Acc_ADDR32,
@@ -526,7 +526,7 @@ inline void write_tile_header() {
 
 // READERS FOR CONFIG STRUCTS
 
-inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
+inline pack_config_t read_pack_config_helper(std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pack_config_u config = {.val = 0};
 
     config.val[0] = cfg[reg_addr];
@@ -568,7 +568,8 @@ inline dest_rd_ctrl_t read_dest_rd_ctrl() {
     return dest.f;
 }
 
-inline pck_edge_offset_t read_pack_edge_offset_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
+inline pck_edge_offset_t read_pack_edge_offset_helper(
+    std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pck_edge_offset_u edge = {.val = 0};
 
     edge.val = cfg[reg_addr];
@@ -587,7 +588,7 @@ inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset() {
     return edge_vec;
 }
 
-inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
+inline pack_counters_t read_pack_counters_helper(std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pack_counters_u counters = {.val = 0};
     counters.val             = cfg[reg_addr];
 

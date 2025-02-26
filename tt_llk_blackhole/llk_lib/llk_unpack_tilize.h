@@ -40,9 +40,9 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false) {
         TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
 #endif
 
-    const uint32_t     outerloop = 1;
-    constexpr uint32_t innerloop = 1;
-    ckernel_template   tmp(outerloop, innerloop, unpack_srcb_set_dvalid);
+    const std::uint32_t     outerloop = 1;
+    constexpr std::uint32_t innerloop = 1;
+    ckernel_template        tmp(outerloop, innerloop, unpack_srcb_set_dvalid);
     tmp.set_start_op(unpack_srca);
     tmp.program(instrn_buffer);
 }

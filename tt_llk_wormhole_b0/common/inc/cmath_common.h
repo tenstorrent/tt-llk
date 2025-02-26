@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 // #include "kernel_types.h"
 #include "ckernel.h"
 #include "ckernel_globals.h"
@@ -49,7 +51,7 @@ inline void incr_counters(
     TT_INCRWC(incr_cr, incr_d, incr_b, incr_a);
 }
 
-inline void move_d2a_fixed_face(const uint8_t addrmod) {
+inline void move_d2a_fixed_face(const std::uint8_t addrmod) {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCA_VLD); // MOVD2A for a whole face assumes unpacker will set a dummy
                                                            // data_valid, so we want to wait on that
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, addrmod, p_movd2a::MOV_4_ROWS, 0);
@@ -58,7 +60,7 @@ inline void move_d2a_fixed_face(const uint8_t addrmod) {
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, addrmod, p_movd2a::MOV_4_ROWS, 12);
 }
 
-inline void move_d2b_fixed_face(const uint8_t addrmod) {
+inline void move_d2b_fixed_face(const std::uint8_t addrmod) {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCB_VLD); // MOVD2B for a whole face assumes unpacker will set a dummy
                                                            // data_valid, so we want to wait on that
     TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, addrmod, p_movd2b::MOV_4_ROWS, 0);
@@ -67,7 +69,7 @@ inline void move_d2b_fixed_face(const uint8_t addrmod) {
     TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 12, addrmod, p_movd2b::MOV_4_ROWS, 12);
 }
 
-inline void move_d2a_row_broadcast_fixed_face(const uint8_t addrmod) {
+inline void move_d2a_row_broadcast_fixed_face(const std::uint8_t addrmod) {
     // // Seems to make things 200 clocks slower. Really shouldn't though.
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, addrmod, p_movd2a::MOV_1_ROW, 0);
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 1, addrmod, p_movd2a::MOV_1_ROW, 0);
@@ -87,7 +89,7 @@ inline void move_d2a_row_broadcast_fixed_face(const uint8_t addrmod) {
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 15, addrmod, p_movd2a::MOV_1_ROW, 0);
 }
 
-inline void move_a2d_fixed_face(const uint8_t addrmod) {
+inline void move_a2d_fixed_face(const std::uint8_t addrmod) {
     TTI_MOVA2D(0, p_mova2d::MATH_HALO_ROWS, addrmod, p_mova2d::MOV_8_ROWS, 0);
     TTI_MOVA2D(0, p_mova2d::MATH_HALO_ROWS, addrmod, p_mova2d::MOV_8_ROWS, 0);
 }
@@ -134,7 +136,7 @@ inline void math_unpack_to_dest_tile_ready() {
 }
 
 template <DstTileLayout layout, DstTileShape tile_shape, bool unpack_to_dest = false>
-inline void set_dst_write_addr(uint32_t tile_index) {
+inline void set_dst_write_addr(std::uint32_t tile_index) {
     if constexpr (layout == DstTileLayout::Default) {
         std::uint32_t dst_index = tile_index << DstTileSizeLog2[tile_shape];
         dst_index               = dst_index + get_dest_buffer_base();

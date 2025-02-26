@@ -2,12 +2,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#pragma once
+
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "sfpi.h"
-
-#pragma once
 
 // Inlining the tests may make the tests that use a parameter fail to test the
 // non-imm path as compiling w/ -flto will fill in the value as an immediate
@@ -2516,9 +2518,9 @@ void test16() {
     // [7] = 3.0
 
     // These are really crappy "touch" tests
-    v_if(dst_reg[0] == 8.0F) { dst_reg[16] = int32_to_float(0xABBAAB); }
+    v_if(dst_reg[0] == 8.0F) { dst_reg[16] = std::int32_to_float(0xABBAAB); }
     v_endif;
-    v_if(dst_reg[0] == 9.0F) { dst_reg[16] = int32_to_float(0xABBAAB, 0); }
+    v_if(dst_reg[0] == 9.0F) { dst_reg[16] = std::int32_to_float(0xABBAAB, 0); }
     v_endif;
 
     v_if(dst_reg[0] == 10.0F) { dst_reg[16] = float_to_fp16a(1.32332); }
@@ -2531,17 +2533,17 @@ void test16() {
     v_endif;
     v_if(dst_reg[0] == 14.0F) {
         vUInt descale = 8;
-        set_expected_result(16, 80.0f, 0xeb, int32_to_uint8(0xea00, descale));
+        set_expected_result(16, 80.0f, 0xeb, std::int32_to_uint8(0xea00, descale));
     }
     v_endif;
-    v_if(dst_reg[0] == 15.0F) { set_expected_result(16, 96.0f, 0xf, int32_to_uint8(0xea0, 8)); }
+    v_if(dst_reg[0] == 15.0F) { set_expected_result(16, 96.0f, 0xf, std::int32_to_uint8(0xea0, 8)); }
     v_endif;
     v_if(dst_reg[0] == 16.0F) {
         vUInt descale = 8;
-        set_expected_result(16, 112.0f, 0xf, int32_to_int8(0xea0, descale));
+        set_expected_result(16, 112.0f, 0xf, std::int32_to_int8(0xea0, descale));
     }
     v_endif;
-    v_if(dst_reg[0] == 17.0F) { set_expected_result(16, 128.0f, 0xf, int32_to_int8(0xea0, 8)); }
+    v_if(dst_reg[0] == 17.0F) { set_expected_result(16, 128.0f, 0xf, std::int32_to_int8(0xea0, 8)); }
     v_endif;
     v_if(dst_reg[0] == 18.0F) { set_expected_result(16, 130.0f, 0x7eb1, float_to_int16(32432.0f)); }
     v_endif;

@@ -16,98 +16,98 @@
 #endif
 
 namespace ckernel::unpacker {
-constexpr uint32_t TILE_DESC_SIZE = 2; // Unpacker descriptor size in dwords
-constexpr uint32_t CONFIG_SIZE    = 2; // Unpacker configuration size in dwords
-constexpr uint32_t NUM_UNPACKERS  = 2; // Number of unpackers
+constexpr std::uint32_t TILE_DESC_SIZE = 2; // Unpacker descriptor size in dwords
+constexpr std::uint32_t CONFIG_SIZE    = 2; // Unpacker configuration size in dwords
+constexpr std::uint32_t NUM_UNPACKERS  = 2; // Number of unpackers
 
 // Unpack tile descriptor
 typedef struct {
     // word 0
-    uint32_t in_data_format     : 4;
-    uint32_t uncompressed       : 1;
-    uint32_t reserved_0         : 3;
-    uint32_t blobs_per_xy_plane : 4;
-    uint32_t reserved_1         : 4;
-    uint32_t x_dim              : 16;
+    std::uint32_t in_data_format     : 4;
+    std::uint32_t uncompressed       : 1;
+    std::uint32_t reserved_0         : 3;
+    std::uint32_t blobs_per_xy_plane : 4;
+    std::uint32_t reserved_1         : 4;
+    std::uint32_t x_dim              : 16;
     // word 1
-    uint32_t y_dim : 16;
-    uint32_t z_dim : 16;
+    std::uint32_t y_dim : 16;
+    std::uint32_t z_dim : 16;
     // word 2
-    uint32_t w_dim            : 16;
-    uint32_t blobs_y_start_lo : 16;
+    std::uint32_t w_dim            : 16;
+    std::uint32_t blobs_y_start_lo : 16;
     // word 3
-    uint32_t blobs_y_start_hi : 16;
-    uint32_t digest_type      : 8; // Not used
-    uint32_t digest_size      : 8; // Not used
-} unpack_tile_descriptor_t;        // Unpack configuration
+    std::uint32_t blobs_y_start_hi : 16;
+    std::uint32_t digest_type      : 8; // Not used
+    std::uint32_t digest_size      : 8; // Not used
+} unpack_tile_descriptor_t;             // Unpack configuration
 
-static_assert(sizeof(unpack_tile_descriptor_t) == (sizeof(uint32_t) * 4));
+static_assert(sizeof(unpack_tile_descriptor_t) == (sizeof(std::uint32_t) * 4));
 
 typedef union {
-    uint32_t                 val[4];
+    std::uint32_t            val[4];
     unpack_tile_descriptor_t f;
 } unpack_tile_descriptor_u;
 
 // Unpack config
 typedef struct {
     // word 0
-    uint32_t out_data_format           : 4;
-    uint32_t throttle_mode             : 2;
-    uint32_t context_count             : 2;
-    uint32_t haloize_mode              : 1; // this controls xy transpose on unpacker
-    uint32_t tileize_mode              : 1;
-    uint32_t unpack_src_reg_set_update : 1;
-    uint32_t unpack_if_sel             : 1;
-    uint32_t upsample_rate             : 2;
-    uint32_t reserved_1                : 1;
-    uint32_t upsamle_and_interlave     : 1;
-    uint32_t shift_amount              : 16;
+    std::uint32_t out_data_format           : 4;
+    std::uint32_t throttle_mode             : 2;
+    std::uint32_t context_count             : 2;
+    std::uint32_t haloize_mode              : 1; // this controls xy transpose on unpacker
+    std::uint32_t tileize_mode              : 1;
+    std::uint32_t unpack_src_reg_set_update : 1;
+    std::uint32_t unpack_if_sel             : 1;
+    std::uint32_t upsample_rate             : 2;
+    std::uint32_t reserved_1                : 1;
+    std::uint32_t upsamle_and_interlave     : 1;
+    std::uint32_t shift_amount              : 16;
     // word 1
-    uint32_t uncompress_cntx0_3    : 4;
-    uint32_t unpack_if_sel_cntx0_3 : 4;
-    uint32_t force_shared_exp      : 1;
-    uint32_t reserved_2            : 7;
-    uint32_t uncompress_cntx4_7    : 4;
-    uint32_t unpack_if_sel_cntx4_7 : 4;
-    uint32_t reserved_3            : 8;
+    std::uint32_t uncompress_cntx0_3    : 4;
+    std::uint32_t unpack_if_sel_cntx0_3 : 4;
+    std::uint32_t force_shared_exp      : 1;
+    std::uint32_t reserved_2            : 7;
+    std::uint32_t uncompress_cntx4_7    : 4;
+    std::uint32_t unpack_if_sel_cntx4_7 : 4;
+    std::uint32_t reserved_3            : 8;
     // word 2
-    uint32_t limit_addr : 17;
-    uint32_t reserved_4 : 15;
+    std::uint32_t limit_addr : 17;
+    std::uint32_t reserved_4 : 15;
     // word 3
-    uint32_t fifo_size  : 17;
-    uint32_t reserved_5 : 15;
+    std::uint32_t fifo_size  : 17;
+    std::uint32_t reserved_5 : 15;
 } unpack_config_t;
 
-static_assert(sizeof(unpack_config_t) == (sizeof(uint32_t) * 4));
+static_assert(sizeof(unpack_config_t) == (sizeof(std::uint32_t) * 4));
 
 typedef union {
-    uint32_t        val[4];
+    std::uint32_t   val[4];
     unpack_config_t f;
 } unpack_config_u;
 
 // ALU config
 typedef struct {
-    uint32_t ALU_ROUNDING_MODE_Fpu_srnd_en     : 1;
-    uint32_t ALU_ROUNDING_MODE_Gasket_srnd_en  : 1;
-    uint32_t ALU_ROUNDING_MODE_Packer_srnd_en  : 1;
-    uint32_t ALU_ROUNDING_MODE_Padding         : 10;
-    uint32_t ALU_ROUNDING_MODE_GS_LF           : 1;
-    uint32_t ALU_ROUNDING_MODE_Bfp8_HF         : 1;
-    uint32_t ALU_FORMAT_SPEC_REG0_SrcAUnsigned : 1;
-    uint32_t ALU_FORMAT_SPEC_REG0_SrcBUnsigned : 1;
-    uint32_t ALU_FORMAT_SPEC_REG0_SrcA         : 4;
-    uint32_t ALU_FORMAT_SPEC_REG1_SrcB         : 4;
-    uint32_t ALU_FORMAT_SPEC_REG2_Dstacc       : 4;
-    uint32_t ALU_ACC_CTRL_Fp32_enabled         : 1;
-    uint32_t ALU_ACC_CTRL_SFPU_Fp32_enabled    : 1;
-    uint32_t ALU_ACC_CTRL_INT8_math_enabled    : 1;
+    std::uint32_t ALU_ROUNDING_MODE_Fpu_srnd_en     : 1;
+    std::uint32_t ALU_ROUNDING_MODE_Gasket_srnd_en  : 1;
+    std::uint32_t ALU_ROUNDING_MODE_Packer_srnd_en  : 1;
+    std::uint32_t ALU_ROUNDING_MODE_Padding         : 10;
+    std::uint32_t ALU_ROUNDING_MODE_GS_LF           : 1;
+    std::uint32_t ALU_ROUNDING_MODE_Bfp8_HF         : 1;
+    std::uint32_t ALU_FORMAT_SPEC_REG0_SrcAUnsigned : 1;
+    std::uint32_t ALU_FORMAT_SPEC_REG0_SrcBUnsigned : 1;
+    std::uint32_t ALU_FORMAT_SPEC_REG0_SrcA         : 4;
+    std::uint32_t ALU_FORMAT_SPEC_REG1_SrcB         : 4;
+    std::uint32_t ALU_FORMAT_SPEC_REG2_Dstacc       : 4;
+    std::uint32_t ALU_ACC_CTRL_Fp32_enabled         : 1;
+    std::uint32_t ALU_ACC_CTRL_SFPU_Fp32_enabled    : 1;
+    std::uint32_t ALU_ACC_CTRL_INT8_math_enabled    : 1;
 } alu_config_t;
 
-static_assert(sizeof(alu_config_t) == sizeof(uint32_t));
+static_assert(sizeof(alu_config_t) == sizeof(std::uint32_t));
 
 typedef union {
-    uint32_t     val;
-    alu_config_t f;
+    std::uint32_t val;
+    alu_config_t  f;
 } alu_config_u;
 
 // Set unpacker offsets to 0, except for unpacker 0, channel 1, X, which is the tile X dimension
@@ -235,11 +235,11 @@ inline void configure_unpack_AB(
 
     alu_config_u alu_payload = {.val = 0};
 
-    uint32_t fp32_dest_acc_en  = (is_fp32_dest_acc_en) ? (1) : (0);
-    uint32_t int8_math_enabled = ((uint)unpA_dst_format_masked == (uint)DataFormat::Int8) ||
-                                 ((uint)unpB_dst_format_masked == (uint)DataFormat::Int8) ||
-                                 ((uint)unpA_dst_format_masked == (uint)DataFormat::Int32) ||
-                                 ((uint)unpB_dst_format_masked == (uint)DataFormat::Int32);
+    std::uint32_t fp32_dest_acc_en  = (is_fp32_dest_acc_en) ? (1) : (0);
+    std::uint32_t int8_math_enabled = ((uint)unpA_dst_format_masked == (uint)DataFormat::Int8) ||
+                                      ((uint)unpB_dst_format_masked == (uint)DataFormat::Int8) ||
+                                      ((uint)unpA_dst_format_masked == (uint)DataFormat::Int32) ||
+                                      ((uint)unpB_dst_format_masked == (uint)DataFormat::Int32);
 
     constexpr std::uint32_t alu_format_mask =
         ALU_FORMAT_SPEC_REG0_SrcAUnsigned_MASK | ALU_FORMAT_SPEC_REG0_SrcBUnsigned_MASK;
@@ -265,7 +265,7 @@ inline void configure_unpack_AB(
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
 
-    uint32_t src_zeroflags_disable =
+    std::uint32_t src_zeroflags_disable =
         ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(src_zeroflags_disable);
 
@@ -373,7 +373,7 @@ inline void configure_unpack_AB(
 }
 
 template <std::uint32_t UNP_SEL = p_setadc::UNP_AB>
-inline void config_unpacker_x_end(const uint32_t face_r_dim) {
+inline void config_unpacker_x_end(const std::uint32_t face_r_dim) {
     switch (face_r_dim) {
         case 1:
             TTI_SETADCXX(UNP_SEL, 1 * FACE_C_DIM - 1, 0x0);
@@ -394,7 +394,7 @@ inline void config_unpacker_x_end(const uint32_t face_r_dim) {
 }
 
 template <bool INSERT_FENCE = false, std::uint32_t UNP_SEL = p_setadc::UNP_AB>
-inline void config_unpacker_0_face_dim(const uint32_t face_r_dim) {
+inline void config_unpacker_0_face_dim(const std::uint32_t face_r_dim) {
     // tile x dim registers are only for unpacker 0
     static_assert(UNP_SEL != p_setadc::UNP_B);
     TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK0);
@@ -457,8 +457,8 @@ inline void unpack_to_dest_tile_done(std::uint32_t &context_id) {
     TTI_SETC16(SRCA_SET_Base_ADDR32, 0x4); // re-enable address bit swizzle
 }
 
-inline void set_dst_write_addr(const uint32_t &context_id, const uint32_t &unpack_dst_format) {
-    uint32_t dst_byte_addr =
+inline void set_dst_write_addr(const std::uint32_t &context_id, const std::uint32_t &unpack_dst_format) {
+    std::uint32_t dst_byte_addr =
         16 * (4 + mailbox_read(ThreadId::MathThreadId)); // Apply fixed offset of 4*16 to dest address
     TTI_SETC16(SRCA_SET_Base_ADDR32, 0x0);               // Disable address bit swizzle
     TTI_RDCFG(p_gpr_unpack::UNPACK_STRIDE,
@@ -483,7 +483,7 @@ inline void set_dst_write_addr(const uint32_t &context_id, const uint32_t &unpac
 // READERS FOR STRUCTS
 
 inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(
-    uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr *cfg) {
+    std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr *cfg) {
     unpack_tile_descriptor_u tile_descriptor = {.val = 0};
 
     tile_descriptor.val[0] = cfg[reg_addr];
@@ -505,7 +505,7 @@ inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_desc
     return tile_descriptor_vec;
 }
 
-inline unpack_config_t read_unpack_config_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr *cfg) {
+inline unpack_config_t read_unpack_config_helper(std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr *cfg) {
     unpack_config_u config;
 
     config.val[0] = cfg[reg_addr];

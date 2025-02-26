@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
@@ -12,8 +13,8 @@
 #include "llk_defs.h"
 
 namespace ckernel::packer {
-constexpr uint32_t PACK_CNT    = 4;
-constexpr uint32_t NUM_PACKERS = 4; // Number of packers
+constexpr std::uint32_t PACK_CNT    = 4;
+constexpr std::uint32_t NUM_PACKERS = 4; // Number of packers
 
 constexpr std::uint32_t PACK_SEL(const std::uint32_t pack_count) {
     return (pack_count == 1) ? 0x1 : (pack_count == 2) ? 0x3 : (pack_count == 4) ? 0xF : 0x0;
@@ -25,72 +26,72 @@ constexpr std::uint32_t replay_buf_offset = 16; // split replay buffer usage bet
 // Pack config
 typedef struct {
     // word 0
-    uint32_t row_ptr_section_size : 16;
-    uint32_t exp_section_size     : 16;
+    std::uint32_t row_ptr_section_size : 16;
+    std::uint32_t exp_section_size     : 16;
     // word 1
-    uint32_t l1_dest_addr : 32;
+    std::uint32_t l1_dest_addr : 32;
     // word 2
-    uint32_t uncompress              : 1;
-    uint32_t add_l1_dest_addr_offset : 1;
-    uint32_t reserved_0              : 2;
-    uint32_t out_data_format         : 4;
-    uint32_t in_data_format          : 4;
-    uint32_t reserved_1              : 4;
-    uint32_t src_if_sel              : 1;
-    uint32_t pack_per_xy_plane       : 7;
-    uint32_t l1_src_addr             : 8;
+    std::uint32_t uncompress              : 1;
+    std::uint32_t add_l1_dest_addr_offset : 1;
+    std::uint32_t reserved_0              : 2;
+    std::uint32_t out_data_format         : 4;
+    std::uint32_t in_data_format          : 4;
+    std::uint32_t reserved_1              : 4;
+    std::uint32_t src_if_sel              : 1;
+    std::uint32_t pack_per_xy_plane       : 7;
+    std::uint32_t l1_src_addr             : 8;
     // word 3
-    uint32_t downsample_mask                    : 16;
-    uint32_t downsample_shift_count             : 3;
-    uint32_t read_mode                          : 1;
-    uint32_t exp_threshold_en                   : 1;
-    uint32_t pack_l1_acc_disable_pack_zero_flag : 2;
-    uint32_t reserved_2                         : 1;
-    uint32_t exp_threshold                      : 8;
+    std::uint32_t downsample_mask                    : 16;
+    std::uint32_t downsample_shift_count             : 3;
+    std::uint32_t read_mode                          : 1;
+    std::uint32_t exp_threshold_en                   : 1;
+    std::uint32_t pack_l1_acc_disable_pack_zero_flag : 2;
+    std::uint32_t reserved_2                         : 1;
+    std::uint32_t exp_threshold                      : 8;
 
 } pack_config_t;
 
-static_assert(sizeof(pack_config_t) == (sizeof(uint32_t) * 4));
+static_assert(sizeof(pack_config_t) == (sizeof(std::uint32_t) * 4));
 
 typedef union {
-    uint32_t      val[4];
+    std::uint32_t val[4];
     pack_config_t f;
 } pack_config_u;
 
 // Relu Config
 typedef struct {
-    uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_src      : 1;
-    uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_dst      : 1;
-    uint32_t STACC_RELU_ApplyRelu                     : 4;
-    uint32_t STACC_RELU_ReluThreshold                 : 16;
-    uint32_t DISABLE_RISC_BP_Disable_main             : 1;
-    uint32_t DISABLE_RISC_BP_Disable_trisc            : 3;
-    uint32_t DISABLE_RISC_BP_Disable_ncrisc           : 1;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_main   : 1;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_trisc  : 3;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_ncrisc : 1;
+    std::uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_src      : 1;
+    std::uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_dst      : 1;
+    std::uint32_t STACC_RELU_ApplyRelu                     : 4;
+    std::uint32_t STACC_RELU_ReluThreshold                 : 16;
+    std::uint32_t DISABLE_RISC_BP_Disable_main             : 1;
+    std::uint32_t DISABLE_RISC_BP_Disable_trisc            : 3;
+    std::uint32_t DISABLE_RISC_BP_Disable_ncrisc           : 1;
+    std::uint32_t DISABLE_RISC_BP_Disable_bmp_clear_main   : 1;
+    std::uint32_t DISABLE_RISC_BP_Disable_bmp_clear_trisc  : 3;
+    std::uint32_t DISABLE_RISC_BP_Disable_bmp_clear_ncrisc : 1;
 } relu_config_t;
 
-static_assert(sizeof(relu_config_t) == (sizeof(uint32_t)));
+static_assert(sizeof(relu_config_t) == (sizeof(std::uint32_t)));
 
 typedef union {
-    uint32_t      val[1];
+    std::uint32_t val[1];
     relu_config_t r;
 } relu_config_u;
 
 // Dest rd control
 typedef struct {
-    uint32_t PCK_DEST_RD_CTRL_Read_32b_data  : 1;
-    uint32_t PCK_DEST_RD_CTRL_Read_unsigned  : 1;
-    uint32_t PCK_DEST_RD_CTRL_Read_int8      : 1;
-    uint32_t PCK_DEST_RD_CTRL_Round_10b_mant : 1;
-    uint32_t PCK_DEST_RD_CTRL_Reserved       : 28;
+    std::uint32_t PCK_DEST_RD_CTRL_Read_32b_data  : 1;
+    std::uint32_t PCK_DEST_RD_CTRL_Read_unsigned  : 1;
+    std::uint32_t PCK_DEST_RD_CTRL_Read_int8      : 1;
+    std::uint32_t PCK_DEST_RD_CTRL_Round_10b_mant : 1;
+    std::uint32_t PCK_DEST_RD_CTRL_Reserved       : 28;
 } dest_rd_ctrl_t;
 
-static_assert(sizeof(dest_rd_ctrl_t) == (sizeof(uint32_t)));
+static_assert(sizeof(dest_rd_ctrl_t) == (sizeof(std::uint32_t)));
 
 typedef union {
-    uint32_t       val;
+    std::uint32_t  val;
     dest_rd_ctrl_t f;
 } dest_rd_ctrl_u;
 
@@ -106,35 +107,35 @@ typedef union {
 // registers used for each packer. Other PACK_EDGE_OFFSET_SEC[1:3] registers are used only for the masks in the lower
 // 16b.
 typedef struct {
-    uint32_t mask                      : 16;
-    uint32_t mode                      : 1;
-    uint32_t tile_row_set_select_pack0 : 2;
-    uint32_t tile_row_set_select_pack1 : 2;
-    uint32_t tile_row_set_select_pack2 : 2;
-    uint32_t tile_row_set_select_pack3 : 2;
-    uint32_t reserved                  : 7;
+    std::uint32_t mask                      : 16;
+    std::uint32_t mode                      : 1;
+    std::uint32_t tile_row_set_select_pack0 : 2;
+    std::uint32_t tile_row_set_select_pack1 : 2;
+    std::uint32_t tile_row_set_select_pack2 : 2;
+    std::uint32_t tile_row_set_select_pack3 : 2;
+    std::uint32_t reserved                  : 7;
 } pck_edge_offset_t;
 
-static_assert(sizeof(pck_edge_offset_t) == (sizeof(uint32_t)));
+static_assert(sizeof(pck_edge_offset_t) == (sizeof(std::uint32_t)));
 
 typedef union {
-    uint32_t          val;
+    std::uint32_t     val;
     pck_edge_offset_t f;
 } pck_edge_offset_u;
 
 // Pack counters
 typedef struct {
-    uint32_t pack_per_xy_plane        : 8;
-    uint32_t pack_reads_per_xy_plane  : 8;
-    uint32_t pack_xys_per_til         : 7;
-    uint32_t pack_yz_transposed       : 1;
-    uint32_t pack_per_xy_plane_offset : 8;
+    std::uint32_t pack_per_xy_plane        : 8;
+    std::uint32_t pack_reads_per_xy_plane  : 8;
+    std::uint32_t pack_xys_per_til         : 7;
+    std::uint32_t pack_yz_transposed       : 1;
+    std::uint32_t pack_per_xy_plane_offset : 8;
 } pack_counters_t;
 
-static_assert(sizeof(pack_counters_t) == (sizeof(uint32_t)));
+static_assert(sizeof(pack_counters_t) == (sizeof(std::uint32_t)));
 
 typedef union {
-    uint32_t        val;
+    std::uint32_t   val;
     pack_counters_t f;
 } pack_counters_u;
 
@@ -305,20 +306,20 @@ inline void set_packer_config(
 inline void set_packer_l1_offset(const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM) {
     const std::uint32_t face_dim = face_r_dim * FACE_C_DIM;
 
-    uint32_t l1_offset_1 =
+    std::uint32_t l1_offset_1 =
         IS_BFP_FORMAT(pack_dst_format)
             ? 1
-            : (((uint8_t)(pack_dst_format & 0x3) == (uint8_t)DataFormat::Float32)   ? (face_dim / 16) * 4
-               : ((uint8_t)(pack_dst_format & 0x3) == (uint8_t)DataFormat::Float16) ? (face_dim / 16) * 2
-                                                                                    : (face_dim / 16));
-    uint32_t l1_offset_2 = 2 * l1_offset_1;
-    uint32_t l1_offset_3 = 3 * l1_offset_1;
+            : (((std::uint8_t)(pack_dst_format & 0x3) == (std::uint8_t)DataFormat::Float32)   ? (face_dim / 16) * 4
+               : ((std::uint8_t)(pack_dst_format & 0x3) == (std::uint8_t)DataFormat::Float16) ? (face_dim / 16) * 2
+                                                                                              : (face_dim / 16));
+    std::uint32_t l1_offset_2 = 2 * l1_offset_1;
+    std::uint32_t l1_offset_3 = 3 * l1_offset_1;
 
     // HW automatically offsets packers base address by tile header size
     // with new L1 addressing mode, the effective address for pack1/2/3
     // will be pack[i] += pack[0], which leads to double counting of tile header
     // subtract by this amount when programming the offset
-    constexpr uint32_t PACK_TILE_HEADER_OFFSET = 1; // in 16B
+    constexpr std::uint32_t PACK_TILE_HEADER_OFFSET = 1; // in 16B
     l1_offset_1 -= PACK_TILE_HEADER_OFFSET;
     l1_offset_2 -= PACK_TILE_HEADER_OFFSET;
     l1_offset_3 -= PACK_TILE_HEADER_OFFSET;
@@ -593,8 +594,8 @@ inline void configure_pack(
 
     relu_config_u hw_relu_config;
     // Config RELU
-    uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
-    hw_relu_config.val[0]     = current_relu_val;
+    std::uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
+    hw_relu_config.val[0]          = current_relu_val;
 
     hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
     hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
@@ -610,11 +611,11 @@ inline void configure_pack(
     TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
 }
 
-inline uint8_t get_packer_dest_offset_index() {
+inline std::uint8_t get_packer_dest_offset_index() {
     return (dest_offset_id ? p_gpr_pack::DEST_OFFSET_HI : p_gpr_pack::DEST_OFFSET_LO);
 }
 
-inline uint32_t get_packer_dest_offset() { return (dest_offset_id ? DEST_REGISTER_HALF_SIZE : 0x0); }
+inline std::uint32_t get_packer_dest_offset() { return (dest_offset_id ? DEST_REGISTER_HALF_SIZE : 0x0); }
 
 inline void flip_packer_dest_offset_id() { dest_offset_id = 1 - dest_offset_id; }
 
@@ -633,8 +634,8 @@ inline void select_packer_dest_registers() {
 
 // Program packer destination addresses from GPRs
 template <PackSelMask PackSel = PACK_ALL>
-inline void program_packer_destination(uint32_t addr) {
-    uint32_t new_l1_addr = (1 << 31) | addr;
+inline void program_packer_destination(std::uint32_t addr) {
+    std::uint32_t new_l1_addr = (1 << 31) | addr;
     TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
     TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
 
@@ -646,14 +647,18 @@ inline void program_packer_destination(uint32_t addr) {
     TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
 }
 
-template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false, uint32_t row_num_datums = TILE_C_DIM>
-inline void program_packer_untilized_destination(const uint32_t addr, const uint32_t pack_dst_format) {
+template <
+    std::uint32_t block_ct_dim,
+    std::uint32_t full_ct_dim,
+    bool          diagonal       = false,
+    std::uint32_t row_num_datums = TILE_C_DIM>
+inline void program_packer_untilized_destination(const std::uint32_t addr, const std::uint32_t pack_dst_format) {
     if constexpr (diagonal) {
-        const uint32_t     block_size = SCALE_DATUM_SIZE(pack_dst_format, FACE_C_DIM);
-        constexpr uint32_t offset0    = 0;
-        const uint32_t     offset1    = (1 * block_size) / 16;
-        // const uint32_t offset2 = (2*block_size)/16;
-        // const uint32_t offset3 = (3*block_size)/16;
+        const std::uint32_t     block_size = SCALE_DATUM_SIZE(pack_dst_format, FACE_C_DIM);
+        constexpr std::uint32_t offset0    = 0;
+        const std::uint32_t     offset1    = (1 * block_size) / 16;
+        // const std::uint32_t offset2 = (2*block_size)/16;
+        // const std::uint32_t offset3 = (3*block_size)/16;
 
         TT_SETDMAREG(0, LOWER_HALFWORD(addr + offset0), 0, LO_16(p_gpr_pack::OUTPUT_ADDR + 0));
         TT_SETDMAREG(0, UPPER_HALFWORD(addr + offset0), 0, HI_16(p_gpr_pack::OUTPUT_ADDR + 0));
@@ -676,11 +681,11 @@ inline void program_packer_untilized_destination(const uint32_t addr, const uint
         TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 0); // pack flush
     } else {
         // Each packer packs 8 rows of full_ct_dim*TILE_C_DIM datums
-        const uint32_t     block_size = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * TILE_C_DIM * (TILE_R_DIM / 4));
-        constexpr uint32_t offset0    = 0;
-        const uint32_t     offset1    = (1 * row_num_datums * block_size) / 16 / TILE_C_DIM;
-        const uint32_t     offset2    = (2 * row_num_datums * block_size) / 16 / TILE_C_DIM;
-        const uint32_t     offset3    = (3 * row_num_datums * block_size) / 16 / TILE_C_DIM;
+        const std::uint32_t block_size = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * TILE_C_DIM * (TILE_R_DIM / 4));
+        constexpr std::uint32_t offset0 = 0;
+        const std::uint32_t     offset1 = (1 * row_num_datums * block_size) / 16 / TILE_C_DIM;
+        const std::uint32_t     offset2 = (2 * row_num_datums * block_size) / 16 / TILE_C_DIM;
+        const std::uint32_t     offset3 = (3 * row_num_datums * block_size) / 16 / TILE_C_DIM;
 
         TT_SETDMAREG(0, LOWER_HALFWORD(addr + offset0), 0, LO_16(p_gpr_pack::OUTPUT_ADDR + 0));
         TT_SETDMAREG(0, UPPER_HALFWORD(addr + offset0), 0, HI_16(p_gpr_pack::OUTPUT_ADDR + 0));
@@ -704,7 +709,7 @@ inline void program_packer_untilized_destination(const uint32_t addr, const uint
     }
 }
 
-inline void program_packer_dest_offset_registers(uint32_t dest_tile_offset) {
+inline void program_packer_dest_offset_registers(std::uint32_t dest_tile_offset) {
     TT_SETDMAREG(0, LOWER_HALFWORD(dest_tile_offset), 0, LO_16(p_gpr_pack::TEMP_TILE_OFFSET));
     TT_SETDMAREG(0, UPPER_HALFWORD(dest_tile_offset), 0, HI_16(p_gpr_pack::TEMP_TILE_OFFSET));
     TTI_WRCFG(p_gpr_pack::TEMP_TILE_OFFSET, p_cfg::WRCFG_32b, PCK0_ADDR_BASE_REG_0_Base_ADDR32);
@@ -728,7 +733,7 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc) {
 
     // TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::TRISC_CFG);
 
-    const uint32_t pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
+    const std::uint32_t pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
 
     cfg_reg_rmw_tensix<
         THCON_SEC0_REG1_Pack_L1_Acc_ADDR32,
@@ -759,7 +764,7 @@ inline void write_tile_header() {
 
 // READERS FOR CONFIG STRUCTS
 
-inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
+inline pack_config_t read_pack_config_helper(std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pack_config_u config = {.val = 0};
 
     config.val[0] = cfg[reg_addr];
@@ -805,7 +810,8 @@ inline dest_rd_ctrl_t read_dest_rd_ctrl() {
     return dest.f;
 }
 
-inline pck_edge_offset_t read_pack_edge_offset_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
+inline pck_edge_offset_t read_pack_edge_offset_helper(
+    std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pck_edge_offset_u edge = {.val = 0};
     edge.val               = cfg[reg_addr];
 
@@ -826,7 +832,7 @@ inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset() {
     return edge_vec;
 }
 
-inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
+inline pack_counters_t read_pack_counters_helper(std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pack_counters_u counters = {.val = 0};
     counters.val             = cfg[reg_addr];
 

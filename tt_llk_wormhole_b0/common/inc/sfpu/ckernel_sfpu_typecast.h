@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <limits>
 
 #include "ckernel.h"
@@ -66,7 +67,7 @@ inline void _calculate_typecast_fp16b_to_int32_() {
         v_if(exp < 0) { dst_reg[0] = 0; }
         v_elseif(exp > 30) {
             // set to int32 max value in case of overflow
-            vInt tmp = std::numeric_limits<int32_t>::max();
+            vInt tmp = std::numeric_limits<std::int32_t>::max();
             // check sign
             v_if(in < 0) { tmp = reinterpret<vInt>(setsgn(reinterpret<vFloat>(tmp), 1)); }
             v_endif dst_reg[0] = tmp;
@@ -135,7 +136,7 @@ inline void _calculate_typecast_fp16b_to_uint32_() {
             v_if(exp < 0) { dst_reg[0] = 0; }
             v_elseif(exp > 31) {
                 // set to uint32 max value in case of overflow
-                vInt tmp   = std::numeric_limits<int32_t>::max();
+                vInt tmp   = std::numeric_limits<std::int32_t>::max();
                 dst_reg[0] = setsgn(reinterpret<vFloat>(tmp), 1);
             }
             v_elseif(exp == 31) {

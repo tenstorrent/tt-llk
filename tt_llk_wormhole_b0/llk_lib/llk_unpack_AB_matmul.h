@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
@@ -325,8 +328,8 @@ inline void _llk_unpack_AB_matmul_hw_configure_(
         unpB_num_faces);
 
     // Configure tile size in datums
-    const uint32_t unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1;
-    const uint32_t unpB_x_end = unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1;
+    const std::uint32_t unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1;
+    const std::uint32_t unpB_x_end = unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1;
     TT_SETADCXX(p_setadc::UNP_A, unpA_x_end, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, unpB_x_end, 0x0);
 
@@ -362,7 +365,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
         // to compute address of the next face
         config_unpacker_x_end<p_setadc::UNP_A>(unpA_face_r_dim);
     } else {
-        const uint32_t unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1;
+        const std::uint32_t unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1;
         TT_SETADCXX(p_setadc::UNP_A, unpA_x_end, 0x0);
     }
 
@@ -373,7 +376,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     } else {
         // Do full tile unpacking. No need to program face dim
         // as address counter pointing to the face is not incremented
-        const uint32_t unpB_x_end = unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1;
+        const std::uint32_t unpB_x_end = unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1;
         TT_SETADCXX(p_setadc::UNP_B, unpB_x_end, 0x0);
     }
 

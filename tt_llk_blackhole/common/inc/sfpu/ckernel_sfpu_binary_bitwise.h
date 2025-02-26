@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <limits.h>
-
 #include <cstdint>
 
 #include "ckernel.h"
@@ -18,7 +16,7 @@ using namespace sfpi;
 namespace ckernel {
 namespace sfpu {
 
-enum class BinaryBitwiseOp : uint8_t {
+enum class BinaryBitwiseOp : std::uint8_t {
     AND = 0,
     OR  = 1,
     XOR = 2,

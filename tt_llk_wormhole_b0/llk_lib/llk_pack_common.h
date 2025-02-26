@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_instr_params.h"
@@ -50,17 +52,17 @@ inline void _llk_pack_dest_section_done_() {
         TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
 
         if constexpr (Dst == DstSync::SyncFull) {
-            constexpr uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_ALL_32B : p_zeroacc::CLR_ALL;
+            constexpr std::uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_ALL_32B : p_zeroacc::CLR_ALL;
             TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, 0);
         } else {
             static_assert((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
-            constexpr uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_HALF_32B : p_zeroacc::CLR_HALF;
+            constexpr std::uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_HALF_32B : p_zeroacc::CLR_HALF;
             TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, (dest_offset_id) % 2);
         }
     }
 
     // Note: we should have already stalled math in non-tile dest modes due to clearing
-    constexpr uint32_t WaitRes = (Dst == DstSync::SyncTile16) ? (p_stall::PACK) : (p_stall::NONE);
+    constexpr std::uint32_t WaitRes = (Dst == DstSync::SyncTile16) ? (p_stall::PACK) : (p_stall::NONE);
 
     // Tell math that it can write again
     _llk_packer_set_math_semaphore_<WaitRes>();
@@ -162,7 +164,7 @@ inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, co
 
 template <bool mail2math = true, bool mail2pack = true>
 inline void _llk_pack_get_tile_(std::uint32_t tile_index, std::uint32_t *p_tile) {
-    constexpr uint32_t wait_sem = (mail2math && mail2pack) ? (2) : (1);
+    constexpr std::uint32_t wait_sem = (mail2math && mail2pack) ? (2) : (1);
     while (semaphore_read(semaphore::UNPACK_OPERAND_SYNC) < wait_sem);
     if constexpr (mail2pack) {
         *p_tile = mailbox_read(ThreadId::UnpackThreadId);
@@ -181,11 +183,11 @@ inline void _llk_pack_debug_dump_(std::uint8_t *data, std::uint32_t byte_size) {
 inline void _llk_pack_debug_dump_seek_(std::uint8_t offset) { debug_dump_seek(offset); }
 
 TT_ALWAYS_INLINE void _llk_pack_relu_config_(const std::uint32_t config) {
-    ReluType mode = (config & 0xf) == 0
-                        ? ReluType::NO_RELU
-                        : ((config & 0xf) == 3 ? ReluType::MAX_THRESHOLD_RELU : ReluType::MIN_THRESHOLD_RELU);
-    uint32_t val =
-        ((config >> 16) << STACC_RELU_ReluThreshold_SHAMT) | (((uint32_t)mode) << STACC_RELU_ApplyRelu_SHAMT);
+    ReluType      mode = (config & 0xf) == 0
+                             ? ReluType::NO_RELU
+                             : ((config & 0xf) == 3 ? ReluType::MAX_THRESHOLD_RELU : ReluType::MIN_THRESHOLD_RELU);
+    std::uint32_t val =
+        ((config >> 16) << STACC_RELU_ReluThreshold_SHAMT) | (((std::uint32_t)mode) << STACC_RELU_ApplyRelu_SHAMT);
     TTI_SETDMAREG(0, val & 0xffff, 0, LO_16(p_gpr_pack::TMP0));
     TTI_SETDMAREG(0, val >> 16, 0, HI_16(p_gpr_pack::TMP0));
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
@@ -201,9 +203,9 @@ inline void _llk_pack_reduce_mask_config_() {
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
 
     // We initialize PCK_EDGE_OFFSET_SEC0 mask to clear out all the datums in the row
-    pack_edge_offset.f.mask        = 0x0;
-    uint32_t row_set_mapping_1     = 0;
-    uint32_t edge_offset_sec1_mask = 0;
+    pack_edge_offset.f.mask             = 0x0;
+    std::uint32_t row_set_mapping_1     = 0;
+    std::uint32_t edge_offset_sec1_mask = 0;
 
     if constexpr (dim == ReduceDim::REDUCE_ROW) {
         // PCK_EDGE_OFFSET_SEC1 mask will clear out all the datums in the row except the first one

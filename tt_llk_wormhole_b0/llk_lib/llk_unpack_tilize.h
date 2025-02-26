@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
@@ -38,9 +41,9 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false) {
         TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID); // WA for tenstorrent/budabackend#1230
 #endif
 
-    const uint32_t     outerloop = narrow_tile ? 1 : 2;
-    constexpr uint32_t innerloop = 1;
-    ckernel_template   tmp(outerloop, innerloop, unpack_srcb_zerosrc, unpack_srcb_set_dvalid);
+    const std::uint32_t     outerloop = narrow_tile ? 1 : 2;
+    constexpr std::uint32_t innerloop = 1;
+    ckernel_template        tmp(outerloop, innerloop, unpack_srcb_zerosrc, unpack_srcb_set_dvalid);
     tmp.set_start_op(unpack_srca);
     tmp.program(instrn_buffer);
 }

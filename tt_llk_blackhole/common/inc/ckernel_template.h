@@ -470,13 +470,13 @@ public:
     static ckernel_unpack_template lB(
         std::uint32_t B_instr = DEF_B_cntx_ovrd_instr, std::uint32_t skipB_instr = DEF_SKIP_B);
 
-    static ckernel_unpack_template lhA(const uint32_t halo_mask);
+    static ckernel_unpack_template lhA(const std::uint32_t halo_mask);
 
-    static ckernel_unpack_template flhA(const uint32_t halo_mask);
+    static ckernel_unpack_template flhA(const std::uint32_t halo_mask);
 
-    static ckernel_unpack_template lBhA(const uint32_t halo_mask, const bool rarefy = true);
+    static ckernel_unpack_template lBhA(const std::uint32_t halo_mask, const bool rarefy = true);
 
-    static ckernel_unpack_template flBhA(const uint32_t halo_mask);
+    static ckernel_unpack_template flBhA(const std::uint32_t halo_mask);
 
     static ckernel_unpack_template lBA(
         std::uint32_t A_instr     = DEF_A_instr,
@@ -493,15 +493,15 @@ public:
     void        program(volatile std::uint32_t *instrn_buffer) const; // just programs the registers
     static void run(
         volatile std::uint32_t *instrn_buffer,
-        const uint8_t           count,
-        const uint32_t          zmask); // runs - assumes that registers were already programmed
+        const std::uint8_t      count,
+        const std::uint32_t     zmask); // runs - assumes that registers were already programmed
     static void run(
         volatile std::uint32_t *instrn_buffer,
-        const uint8_t           count); // runs - assumes that registers were already programmed
+        const std::uint8_t      count); // runs - assumes that registers were already programmed
     void program_and_run(
         volatile std::uint32_t *instrn_buffer,
-        const uint8_t           count,
-        const uint32_t          zmask = 0); // calls program, then run
+        const std::uint8_t      count,
+        const std::uint32_t     zmask = 0); // calls program, then run
 };
 
 inline ckernel_template::ckernel_template(std::uint32_t outer_loop_len, std::uint32_t inner_loop_len) :
@@ -588,20 +588,20 @@ inline void ckernel_template::program(volatile std::uint32_t *instrn_buffer) {
 }
 
 inline void ckernel_unpack_template::program_and_run(
-    volatile std::uint32_t *instrn_buffer, const uint8_t count, const uint32_t zmask) {
+    volatile std::uint32_t *instrn_buffer, const std::uint8_t count, const std::uint32_t zmask) {
     program(instrn_buffer);
     run(instrn_buffer, count, zmask);
 }
 
 inline void ckernel_unpack_template::run(
-    volatile std::uint32_t *instrn_buffer, const uint8_t count, const uint32_t zmask) {
+    volatile std::uint32_t *instrn_buffer, const std::uint8_t count, const std::uint32_t zmask) {
     FWASSERT("Unpack template only supports loops up to 128", count <= 128);
     TT_MOP_CFG(zmask >> 16);              // Set the top 16 bits of zmask - we could skip this for count <= 16
     TT_MOP(0, count - 1, zmask & 0xFFFF); // Run the template
 }
 
 // Version without zmask, should be slightly faster by eliminating one instruction.
-inline void ckernel_unpack_template::run(volatile std::uint32_t *instrn_buffer, const uint8_t count) {
+inline void ckernel_unpack_template::run(volatile std::uint32_t *instrn_buffer, const std::uint8_t count) {
     FWASSERT("Unpack template only supports loops up to 128", count <= 128);
     TT_MOP(0, count - 1, 0); // Run the template
 }
@@ -661,7 +661,7 @@ inline ckernel_unpack_template ckernel_unpack_template::lzA(
         0);
 }
 
-inline ckernel_unpack_template ckernel_unpack_template::lhA(const uint32_t halo_mask) {
+inline ckernel_unpack_template ckernel_unpack_template::lhA(const std::uint32_t halo_mask) {
     // Figure out which unpack is last
     const std::uint32_t last_mask = (halo_mask == 0x1) ? 0x1 : (halo_mask <= 0x3) ? 0x2 : (halo_mask <= 0x7) ? 0x4 : 0;
 
@@ -677,7 +677,7 @@ inline ckernel_unpack_template ckernel_unpack_template::lhA(const uint32_t halo_
         0);
 }
 
-inline ckernel_unpack_template ckernel_unpack_template::flhA(const uint32_t halo_mask) {
+inline ckernel_unpack_template ckernel_unpack_template::flhA(const std::uint32_t halo_mask) {
     // Figure out which unpack is last
     const std::uint32_t last_mask = (halo_mask == 0x1) ? 0x1 : (halo_mask <= 0x3) ? 0x2 : (halo_mask <= 0x7) ? 0x4 : 0;
 
@@ -696,7 +696,7 @@ inline ckernel_unpack_template ckernel_unpack_template::flhA(const uint32_t halo
         0);
 }
 
-inline ckernel_unpack_template ckernel_unpack_template::lBhA(const uint32_t halo_mask, const bool rarefy) {
+inline ckernel_unpack_template ckernel_unpack_template::lBhA(const std::uint32_t halo_mask, const bool rarefy) {
     // Figure out which unpack is last
     const std::uint32_t last_mask = (halo_mask == 0x1) ? 0x1 : (halo_mask <= 0x3) ? 0x2 : (halo_mask <= 0x7) ? 0x4 : 0;
 
@@ -712,7 +712,7 @@ inline ckernel_unpack_template ckernel_unpack_template::lBhA(const uint32_t halo
         DEF_SKIP_B);
 }
 
-inline ckernel_unpack_template ckernel_unpack_template::flBhA(const uint32_t halo_mask) {
+inline ckernel_unpack_template ckernel_unpack_template::flBhA(const std::uint32_t halo_mask) {
     // Figure out which unpack is last
     const std::uint32_t last_mask = (halo_mask == 0x1) ? 0x1 : (halo_mask <= 0x3) ? 0x2 : (halo_mask <= 0x7) ? 0x4 : 0;
 

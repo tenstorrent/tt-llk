@@ -56,15 +56,15 @@ inline void _calculate_dropout_(const int iterations, std::uint32_t prob, std::u
     l_reg[LRegs::LReg3] = rand;
 }
 
-inline void _init_dropout_seed_(uint16_t p2) {
+inline void _init_dropout_seed_(std::uint16_t p2) {
     FWLOG1("calculate_dropout() -- input seed:%x", p2);
 
-    uint32_t noc_id_reg = NOC_CMD_BUF_READ_REG(0, 0, NOC_NODE_ID);
+    std::uint32_t noc_id_reg = NOC_CMD_BUF_READ_REG(0, 0, NOC_NODE_ID);
 
-    uint16_t my_x = noc_id_reg & NOC_NODE_ID_MASK;
-    uint16_t my_y = (noc_id_reg >> NOC_ADDR_NODE_ID_BITS) & NOC_NODE_ID_MASK;
+    std::uint16_t my_x = noc_id_reg & NOC_NODE_ID_MASK;
+    std::uint16_t my_y = (noc_id_reg >> NOC_ADDR_NODE_ID_BITS) & NOC_NODE_ID_MASK;
 
-    uint16_t per_tensix_input_seed = p2 ^ (my_x << my_y);
+    std::uint16_t per_tensix_input_seed = p2 ^ (my_x << my_y);
 
     FWLOG1("calculate_dropout() -- calculated seed:%x", per_tensix_input_seed);
 

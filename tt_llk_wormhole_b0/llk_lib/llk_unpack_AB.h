@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
@@ -28,8 +31,8 @@ inline void _llk_unpack_AB_mop_config_(
 
     if constexpr (BType == BroadcastType::COL) {
         static constexpr std::uint32_t unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
-        const uint32_t                 outerloop         = num_faces < 4 ? 1 : 2;
-        const uint32_t                 innerloop         = num_faces < 2 ? 1 : 2;
+        const std::uint32_t            outerloop         = num_faces < 4 ? 1 : 2;
+        const std::uint32_t            innerloop         = num_faces < 2 ? 1 : 2;
         ckernel_template               tmp(outerloop, innerloop, unpack_srca);
         tmp.set_start_op(unpack_srcb);
         if (narrow_tile) {
@@ -42,15 +45,15 @@ inline void _llk_unpack_AB_mop_config_(
         static constexpr std::uint32_t unpack_srcb_clear_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
         static constexpr std::uint32_t unpack_srcb_no_z_inc =
             TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        const uint32_t   outerloop = num_faces < 4 ? 1 : 2;
-        const uint32_t   innerloop = num_faces < 2 ? 1 : 2;
-        ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, unpack_srca);
+        const std::uint32_t outerloop = num_faces < 4 ? 1 : 2;
+        const std::uint32_t innerloop = num_faces < 2 ? 1 : 2;
+        ckernel_template    tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, unpack_srca);
         tmp.set_end_op(unpack_srcb_clear_z);
         tmp.program(instrn_buffer);
     } else if constexpr (BType == BroadcastType::SCALAR) {
-        const uint32_t   outerloop = 1;
-        const uint32_t   innerloop = num_faces;
-        ckernel_template tmp(outerloop, innerloop, unpack_srca);
+        const std::uint32_t outerloop = 1;
+        const std::uint32_t innerloop = num_faces;
+        ckernel_template    tmp(outerloop, innerloop, unpack_srca);
         tmp.set_start_op(unpack_srcb);
         tmp.program(instrn_buffer);
     } else {
@@ -58,15 +61,15 @@ inline void _llk_unpack_AB_mop_config_(
             static constexpr std::uint32_t srca_set_z = TT_OP_SETADCZW(0b001, 0, 0, 0, 1, 0b0001); // set z to 1
             static constexpr std::uint32_t unpack_srca_skip_z =
                 TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc z by 2
-            const uint32_t   outerloop = num_faces < 4 ? 1 : 2;
-            const uint32_t   innerloop = num_faces < 2 ? 1 : 2;
+            const std::uint32_t outerloop = num_faces < 4 ? 1 : 2;
+            const std::uint32_t innerloop = num_faces < 2 ? 1 : 2;
             ckernel_template tmp(outerloop, innerloop, num_faces < 4 ? unpack_srca : unpack_srca_skip_z, unpack_srcb);
             tmp.set_end_op(srca_set_z);
             tmp.program(instrn_buffer);
         } else {
-            constexpr uint32_t outerloop = 1;
-            const uint32_t     innerloop = num_faces;
-            ckernel_template   tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
+            constexpr std::uint32_t outerloop = 1;
+            const std::uint32_t     innerloop = num_faces;
+            ckernel_template        tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
             tmp.program(instrn_buffer);
         }
     }

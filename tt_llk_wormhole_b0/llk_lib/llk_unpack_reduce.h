@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
@@ -28,9 +31,9 @@ inline void _llk_unpack_reduce_mop_config_(const std::uint32_t num_faces) {
     static constexpr std::uint32_t unpack_srcb =
         TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
-    const uint32_t     outerloop = num_faces;
-    constexpr uint32_t innerloop = 1;
-    ckernel_template   tmp(outerloop, innerloop, unpack_zerosrca, unpack_srca);
+    const std::uint32_t     outerloop = num_faces;
+    constexpr std::uint32_t innerloop = 1;
+    ckernel_template        tmp(outerloop, innerloop, unpack_zerosrca, unpack_srca);
     tmp.set_start_op(unpack_srcb);
     tmp.program(instrn_buffer);
 }

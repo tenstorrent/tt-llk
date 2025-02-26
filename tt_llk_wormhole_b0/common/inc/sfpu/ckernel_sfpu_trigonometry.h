@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "noc_nonblocking_api.h"
@@ -78,7 +80,7 @@ inline void _calculate_sine_(const int iterations) {
         vFloat v             = dst_reg[0];
         v                    = 0.318309886183791f * v; // *1/pi to get number of pi rads.
         vInt   whole_v       = float_to_int16(v, 0);
-        vFloat whole_v_float = int32_to_float(whole_v, 0);
+        vFloat whole_v_float = std::int32_to_float(whole_v, 0);
         v                    = v - whole_v_float;
         v *= 3.141592653589793f; // fractional * pi to get it in [-pi:pi]
         v       = _sfpu_sine_maclaurin_series_<APPROXIMATION_MODE>(v);
@@ -100,7 +102,7 @@ inline void _calculate_cosine_(const int iterations) {
         vFloat v             = dst_reg[0];
         v                    = 0.318309886183791f * v; // *1/pi to get number of pi rads.
         vInt   whole_v       = float_to_int16(v, 0);
-        vFloat whole_v_float = int32_to_float(whole_v, 0);
+        vFloat whole_v_float = std::int32_to_float(whole_v, 0);
         v                    = v - whole_v_float;
         v *= 3.141592653589793f; // fractional * pi to get it in [-pi:pi]
         v       = _sfpu_cosine_maclaurin_series_<APPROXIMATION_MODE>(v);

@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_sfpu_load_config.h"
@@ -15,7 +17,7 @@ using namespace sfpi;
 namespace ckernel {
 namespace sfpu {
 
-inline void set_dst_write_addr(uint32_t addr) {
+inline void set_dst_write_addr(std::uint32_t addr) {
     std::uint32_t dst_index = addr + get_dest_buffer_base();
     TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dst_index);
 }

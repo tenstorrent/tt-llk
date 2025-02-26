@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_defs.h"
 #include "ckernel_include.h"
 #include "cmath_common.h"
@@ -47,8 +49,8 @@ inline void _llk_math_dest_section_done_() {
     if constexpr (MATH_PACK_DECOUPLE) { return; }
 #endif
 
-    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
-    constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+    constexpr std::uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+    constexpr std::uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
 
     set_math_semaphores();
     if constexpr ((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2)) {
@@ -83,9 +85,9 @@ inline void _llk_math_pack_sync_init_() {
     } else {
         static_assert(Dst == DstSync::SyncTile16);
 
-        constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
-        constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
-        constexpr uint32_t SEM_INIT_MAX         = (DEST_NUM_TILES < 15) ? DEST_NUM_TILES : 15;
+        constexpr std::uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+        constexpr std::uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+        constexpr std::uint32_t SEM_INIT_MAX         = (DEST_NUM_TILES < 15) ? DEST_NUM_TILES : 15;
 
         TTI_SEMINIT(SEM_INIT_MAX, 0, p_stall::SEMAPHORE_1);
         reset_dest_offset_id();
@@ -96,7 +98,7 @@ inline void _llk_math_pack_sync_init_() {
 
 template <bool mail2math = true, bool mail2pack = true>
 inline void _llk_math_get_tile_(std::uint32_t tile_index, std::uint32_t* p_tile) {
-    constexpr uint32_t wait_sem = (mail2math && mail2pack) ? (2) : (1);
+    constexpr std::uint32_t wait_sem = (mail2math && mail2pack) ? (2) : (1);
     while (semaphore_read(semaphore::UNPACK_OPERAND_SYNC) < wait_sem);
     if constexpr (mail2math) {
         *p_tile = mailbox_read(ThreadId::UnpackThreadId);

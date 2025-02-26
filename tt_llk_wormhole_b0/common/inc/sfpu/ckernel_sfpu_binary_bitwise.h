@@ -6,6 +6,8 @@
 
 #include <limits.h>
 
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "noc_nonblocking_api.h"
@@ -16,7 +18,7 @@ using namespace sfpi;
 namespace ckernel {
 namespace sfpu {
 
-enum class BinaryBitwiseOp : uint8_t {
+enum class BinaryBitwiseOp : std::uint8_t {
     AND = 0,
     OR  = 1,
     XOR = 2,

@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "noc_nonblocking_api.h"
@@ -27,9 +29,9 @@ inline void _calculate_reshuffle_rows_(const std::uint32_t idx_addr) {
     //     TT_SFPSTORE(p_sfpu::LCONST_0, 0, ADDR_MOD_3, output_tile_offset + row + 34);
     // }
 
-    volatile tt_l1_ptr uint8_t    *idx_ptr        = reinterpret_cast<volatile tt_l1_ptr uint8_t *>(idx_addr + (1 << 4));
-    static constexpr std::uint32_t input_lreg[4]  = {p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG3};
-    static constexpr std::uint32_t output_lreg[4] = {p_sfpu::LREG4, p_sfpu::LREG5, p_sfpu::LREG6, p_sfpu::LREG7};
+    volatile tt_l1_ptr std::uint8_t *idx_ptr = reinterpret_cast<volatile tt_l1_ptr std::uint8_t *>(idx_addr + (1 << 4));
+    static constexpr std::uint32_t   input_lreg[4]  = {p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG3};
+    static constexpr std::uint32_t   output_lreg[4] = {p_sfpu::LREG4, p_sfpu::LREG5, p_sfpu::LREG6, p_sfpu::LREG7};
 
     for (std::uint32_t row = 0; row < 32; row++) {
         std::uint32_t input_row_addr = (row < 16) ? ((row / 4) * 4) : ((row / 4) * 4 + 16);

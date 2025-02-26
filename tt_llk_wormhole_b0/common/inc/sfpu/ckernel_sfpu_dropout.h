@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "noc_nonblocking_api.h"
@@ -37,7 +39,7 @@ inline void _calculate_dropout_(const int iterations, std::uint32_t probability,
         TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
 
         ////////////////////////
-        // Instruction SFPMOV generates a uint32_t pseudorandom number
+        // Instruction SFPMOV generates a std::uint32_t pseudorandom number
         // when instr_mod1 = 8 and lreg_c =  9.
         // Arguments: (imm12_math, lreg_c, lreg_dest, instr_mod1)
         // Unset sign-bit for easy comparison with probability

@@ -73,7 +73,7 @@ sfpi_inline vFloat _calculate_exponential_body_(vFloat in) {
 }
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX = true>
-void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0) {
+void _calculate_exponential_(const int iterations, std::uint16_t exp_base_scale_factor = 0) {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE) {
         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is
         // more negative than that, swap the input value with -88.5 and store back to DEST

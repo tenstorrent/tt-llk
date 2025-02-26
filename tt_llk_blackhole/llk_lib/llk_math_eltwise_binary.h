@@ -35,8 +35,8 @@ template <
     bool                       is_fp32_dest_acc_en = false>
 inline void _llk_math_eltwise_binary_(
     const std::uint32_t num_faces, std::uint32_t dst_index, const bool clear_fp32_dst_acc) {
-    constexpr bool     high_fidelity = (NUM_FIDELITY_PHASES > 0);
-    constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
+    constexpr bool          high_fidelity = (NUM_FIDELITY_PHASES > 0);
+    constexpr std::uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
     if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2)) {
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
@@ -81,7 +81,7 @@ inline void _llk_math_eltwise_binary_(
     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB)) {
         if constexpr (src_b_bcast_type == BroadcastType::COL) {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
-            constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
+            constexpr std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
 #pragma GCC unroll 0
             for (std::uint32_t face_num = 0; face_num < outerloop; face_num++) {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -95,7 +95,7 @@ inline void _llk_math_eltwise_binary_(
             }
             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
         } else {
-            constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 4 : 1;
+            constexpr std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 4 : 1;
 #pragma GCC unroll 0
             for (std::uint32_t face_num = 0; face_num < outerloop; face_num++) {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -109,7 +109,7 @@ inline void _llk_math_eltwise_binary_(
     } else if constexpr (eltwise_binary_type == ELWMUL) {
         if constexpr (src_b_bcast_type == BroadcastType::COL) {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
-            constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
+            constexpr std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
             if constexpr (high_fidelity) {
 #pragma GCC unroll 0
                 for (std::uint32_t face_num = 0; face_num < 2; face_num++) {
@@ -220,7 +220,7 @@ inline void _llk_math_eltwise_binary_(
             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
         } else {
             // Row and no broadcasted behaves similarly
-            const uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
+            const std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
             if constexpr (high_fidelity) {
 #pragma GCC unroll 0
                 for (std::uint32_t face_num = 0; face_num < num_faces; face_num++) {

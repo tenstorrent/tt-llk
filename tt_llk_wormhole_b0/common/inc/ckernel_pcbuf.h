@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 // Functions for encoding and decoding PC buffer writes
 namespace ckernel {
 

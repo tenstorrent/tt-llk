@@ -123,29 +123,29 @@ inline void _llk_unpack_A_mop_config_(
 #endif
 
     if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format)) {
-        const uint32_t     outerloop = num_faces;
-        constexpr uint32_t innerloop = 1;
-        ckernel_template   tmp(outerloop, innerloop, unpack_srca_to_dest);
+        const std::uint32_t     outerloop = num_faces;
+        constexpr std::uint32_t innerloop = 1;
+        ckernel_template        tmp(outerloop, innerloop, unpack_srca_to_dest);
         tmp.program(instrn_buffer);
     } else if constexpr (BType == BroadcastType::COL) {
         if constexpr (acc_to_dest) {
-            constexpr uint32_t innerloop = 1;
-            constexpr uint32_t outerloop = 2; // TODO: add support for num_faces, add support for dest to srcB
-            ckernel_template   tmp(outerloop, innerloop, unpack_srca_set_dvalid, unpack_srca_set_dvalid);
+            constexpr std::uint32_t innerloop = 1;
+            constexpr std::uint32_t outerloop = 2; // TODO: add support for num_faces, add support for dest to srcB
+            ckernel_template        tmp(outerloop, innerloop, unpack_srca_set_dvalid, unpack_srca_set_dvalid);
             tmp.set_start_op(unpack_srcb);
             tmp.set_end_op(srcb_set_z_2);
             tmp.program(instrn_buffer);
         } else {
-            constexpr uint32_t innerloop = 1;
-            constexpr uint32_t outerloop = 1; // TODO: add support for num_faces, add support for dest to srcB
-            ckernel_template   tmp(outerloop, innerloop, unpack_srcb, srcb_set_z_2);
+            constexpr std::uint32_t innerloop = 1;
+            constexpr std::uint32_t outerloop = 1; // TODO: add support for num_faces, add support for dest to srcB
+            ckernel_template        tmp(outerloop, innerloop, unpack_srcb, srcb_set_z_2);
             tmp.set_start_op(unpack_srca_set_dvalid);
             tmp.set_end_op(unpack_srcb);
             tmp.program(instrn_buffer);
         }
     } else if constexpr (BType == BroadcastType::ROW) {
-        constexpr uint32_t innerloop = 2;
-        constexpr uint32_t outerloop = 2; // TODO: add support for num_faces
+        constexpr std::uint32_t innerloop = 2;
+        constexpr std::uint32_t outerloop = 2; // TODO: add support for num_faces
         if constexpr (acc_to_dest) {
             ckernel_template tmp(outerloop, innerloop, unpack_srcb, unpack_srca_set_dvalid);
             tmp.set_end_op(srcb_clear_z);
@@ -157,9 +157,9 @@ inline void _llk_unpack_A_mop_config_(
         }
     } else if constexpr (BType == BroadcastType::SCALAR) {
         static_assert((!acc_to_dest) && "accumulate into dest with broadcast scaler is not supported!");
-        const uint32_t     outerloop = 1;
-        constexpr uint32_t innerloop = 1;
-        ckernel_template   tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
+        const std::uint32_t     outerloop = 1;
+        constexpr std::uint32_t innerloop = 1;
+        ckernel_template        tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
         // ELWADD used in datacopy due to broadcast bug, use zerosrca regardless of acc_to_dest
         tmp.set_start_op(unpack_srca_set_dvalid);
         tmp.program(instrn_buffer);
@@ -178,11 +178,11 @@ inline void _llk_unpack_A_mop_config_(
                 }
             });
 #endif
-            const uint32_t   outerloop = num_faces < 4 ? 1 : 2;
-            const uint32_t   innerloop = num_faces < 2 ? 1 : 2;
-            ckernel_template tmp(
+            const std::uint32_t outerloop = num_faces < 4 ? 1 : 2;
+            const std::uint32_t innerloop = num_faces < 2 ? 1 : 2;
+            ckernel_template    tmp(
                 outerloop, innerloop, TT_OP_REPLAY(0, replay_buf_len, 0, 0)); // Unpack faces 0/2 && 1/3 to srcA
-                                                                              // or 0/1 for 2 face tile
+                                                                                 // or 0/1 for 2 face tile
             if (num_faces > 2) { tmp.set_end_op(srca_set_z_1); }
             tmp.program(instrn_buffer);
         } else {
@@ -195,14 +195,14 @@ inline void _llk_unpack_A_mop_config_(
                     (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ? unpack_srcb_set_dvalid
                                                                                     : unpack_srcb;
 
-                const uint32_t     outerloop = num_faces;
-                constexpr uint32_t innerloop = 1;
-                ckernel_template   tmp(outerloop, innerloop, unpack_srca_reuse, unpack_srcb_reuse);
+                const std::uint32_t     outerloop = num_faces;
+                constexpr std::uint32_t innerloop = 1;
+                ckernel_template        tmp(outerloop, innerloop, unpack_srca_reuse, unpack_srcb_reuse);
                 tmp.program(instrn_buffer);
             } else {
-                const uint32_t     outerloop = num_faces;
-                constexpr uint32_t innerloop = 1;
-                ckernel_template   tmp(outerloop, innerloop, unpack_srcb_set_dvalid);
+                const std::uint32_t     outerloop = num_faces;
+                constexpr std::uint32_t innerloop = 1;
+                ckernel_template        tmp(outerloop, innerloop, unpack_srcb_set_dvalid);
                 tmp.set_start_op(unpack_srca);
                 tmp.program(instrn_buffer);
             }

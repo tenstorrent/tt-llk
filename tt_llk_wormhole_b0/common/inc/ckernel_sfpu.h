@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <limits>
 
 #include "ckernel.h"
@@ -54,7 +55,7 @@
 
 /*
 template <bool APPROXIMATION_MODE, bool ZERO_NEGATIVE, bool SCALE_EN>
-void calculate_cube(uint16_t exp_base_scale_factor = 0)
+void calculate_cube(std::uint16_t exp_base_scale_factor = 0)
 {
     for (int d = 0; d < ITERATIONS; d++)
     {

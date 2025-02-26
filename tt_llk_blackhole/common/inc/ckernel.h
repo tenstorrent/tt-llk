@@ -86,16 +86,16 @@ extern volatile std::uint32_t tt_reg_ptr *instrn_buffer;
 extern volatile std::uint32_t tt_reg_ptr *mailbox_base[4];
 extern volatile std::uint32_t tt_reg_ptr *dbg_event_scratch;
 extern volatile std::uint32_t tt_reg_ptr *trisc_l1_mailbox;
-extern volatile uint8_t tt_l1_ptr        *debug_buffer;
+extern volatile std::uint8_t tt_l1_ptr   *debug_buffer;
 
-extern uint32_t cfg_state_id;
-extern uint32_t dest_offset_id;
-extern uint32_t dbg_event_index;
-extern uint32_t dbg_event_end;
+extern std::uint32_t cfg_state_id;
+extern std::uint32_t dest_offset_id;
+extern std::uint32_t dbg_event_index;
+extern std::uint32_t dbg_event_end;
 
-extern volatile uint16_t tt_reg_ptr *debug_mailbox_base;
-extern uint8_t                       mailbox_index;
-const extern uint8_t                 mailbox_end;
+extern volatile std::uint16_t tt_reg_ptr *debug_mailbox_base;
+extern std::uint8_t                       mailbox_index;
+const extern std::uint8_t                 mailbox_end;
 
 // Internal scope to namespace methods only (C++ does not allow namespace private ownership)
 namespace internal {}
@@ -126,7 +126,7 @@ inline void sync_regfile_write(const std::uint32_t index);
 
 // Field value overflow check
 template <typename T>
-static constexpr bool is_valid(const T val, const uint8_t wid) {
+static constexpr bool is_valid(const T val, const std::uint8_t wid) {
     const T mask = (1 << wid) - 1;
     return (val & mask) == val;
 }
@@ -137,15 +137,15 @@ inline void mmio_register_write(register_space_e space, std::uint32_t addr, std:
     reg_base[regaddr] = data;
 }
 
-inline uint8_t semaphore_read(const uint8_t index) { return pc_buf_base[PC_BUF_SEMAPHORE_BASE + index]; }
+inline std::uint8_t semaphore_read(const std::uint8_t index) { return pc_buf_base[PC_BUF_SEMAPHORE_BASE + index]; }
 
-inline void semaphore_post(const uint8_t index) { pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 0; }
+inline void semaphore_post(const std::uint8_t index) { pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 0; }
 
-inline void semaphore_get(const uint8_t index) { pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1; }
+inline void semaphore_get(const std::uint8_t index) { pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1; }
 
 // Tensix thread semaphore post optionally stalled
 template <std::uint32_t WaitRes = p_stall::NONE>
-inline void t6_semaphore_post(const uint8_t index) {
+inline void t6_semaphore_post(const std::uint8_t index) {
     if constexpr (WaitRes != p_stall::NONE) { TTI_STALLWAIT(p_stall::STALL_SYNC, WaitRes); }
 
     TTI_SEMPOST(semaphore::t6_sem(index));
@@ -153,30 +153,30 @@ inline void t6_semaphore_post(const uint8_t index) {
 
 // Tensix thread semaphore get optionally stalled
 template <std::uint32_t WaitRes = p_stall::NONE>
-inline void t6_semaphore_get(const uint8_t index) {
+inline void t6_semaphore_get(const std::uint8_t index) {
     if constexpr (WaitRes != p_stall::NONE) { TTI_STALLWAIT(p_stall::STALL_SYNC, WaitRes); }
 
     TTI_SEMGET(semaphore::t6_sem(index));
 }
 
 template <std::uint32_t WaitRes>
-inline void t6_semaphore_wait_on_max(const uint8_t index) {
+inline void t6_semaphore_wait_on_max(const std::uint8_t index) {
     TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_MAX);
 }
 
 template <std::uint32_t WaitRes>
-inline void t6_semaphore_wait_on_zero(const uint8_t index) {
+inline void t6_semaphore_wait_on_zero(const std::uint8_t index) {
     TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_ZERO);
 }
 
 // Tensix thread semaphore get optionally stalled
-inline void t6_semaphore_init(const uint8_t index, const uint8_t min_value, const uint8_t max_value) {
+inline void t6_semaphore_init(const std::uint8_t index, const std::uint8_t min_value, const std::uint8_t max_value) {
     TTI_SEMINIT(max_value, min_value, semaphore::t6_sem(index));
 }
 
-inline void t6_mutex_acquire(const uint8_t index) { TTI_ATGETM(index); }
+inline void t6_mutex_acquire(const std::uint8_t index) { TTI_ATGETM(index); }
 
-inline void t6_mutex_release(const uint8_t index) { TTI_ATRELM(index); }
+inline void t6_mutex_release(const std::uint8_t index) { TTI_ATRELM(index); }
 
 // Return address of the current state ID register
 inline std::uint32_t cfg_addr(std::uint32_t cfg_addr32) {
@@ -227,10 +227,10 @@ inline void update_dest_offset_id() {
     dest_offset_id = 1 - dest_offset_id;
 }
 
-inline uint32_t get_dest_buffer_base() { return (0 != dest_offset_id) ? DEST_REGISTER_HALF_SIZE : 0x0; }
+inline std::uint32_t get_dest_buffer_base() { return (0 != dest_offset_id) ? DEST_REGISTER_HALF_SIZE : 0x0; }
 
 // MOP run version without zmask
-inline void mop_run(const uint8_t type, const uint8_t count) {
+inline void mop_run(const std::uint8_t type, const std::uint8_t count) {
     TTI_MOP(type, count - 1, 0); // Run the MOP
 }
 
@@ -238,25 +238,25 @@ inline void mop_run(const uint8_t type, const uint8_t count) {
 // tenstorrent/tensix#976
 // now handled by the compiler)
 // workaround is needed only for GS
-inline std::uint32_t reg_read(uint32_t addr) {
+inline std::uint32_t reg_read(std::uint32_t addr) {
     volatile std::uint32_t tt_reg_ptr *p_reg = reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(addr);
     return p_reg[0];
 }
 
-inline void reg_write(uint32_t addr, uint32_t data) {
+inline void reg_write(std::uint32_t addr, std::uint32_t data) {
     volatile std::uint32_t tt_reg_ptr *p_reg = reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(addr);
     p_reg[0]                                 = data;
 }
 
-inline void wait(uint32_t cycles) {
+inline void wait(std::uint32_t cycles) {
     volatile std::uint32_t tt_reg_ptr *clock_lo =
         reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_L);
     volatile std::uint32_t tt_reg_ptr *clock_hi =
         reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_H);
-    uint64_t wall_clock_timestamp = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
-    uint64_t wall_clock           = 0;
+    std::uint64_t wall_clock_timestamp = clock_lo[0] | ((std::uint64_t)clock_hi[0] << 32);
+    std::uint64_t wall_clock           = 0;
     do {
-        wall_clock = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
+        wall_clock = clock_lo[0] | ((std::uint64_t)clock_hi[0] << 32);
     } while (wall_clock < (wall_clock_timestamp + cycles));
 }
 
@@ -282,18 +282,18 @@ inline void sync_regfile_write(const std::uint32_t index) {
     *fooptr                        = regfile[index];
 }
 
-inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, uint32_t val) {
-    uint32_t wrdata = val;
+inline void cfg_rmw(std::uint32_t cfg_addr32, std::uint32_t cfg_shamt, std::uint32_t cfg_mask, std::uint32_t val) {
+    std::uint32_t wrdata = val;
 
     // Avoid multiplication of variables!
-    // const uint32_t addr = (cfg_state_id * CFG_STATE_SIZE * 4) + cfg_addr32;
-    const uint32_t addr = (cfg_state_id == 0) ? cfg_addr32 : (CFG_STATE_SIZE * 4) + cfg_addr32;
+    // const std::uint32_t addr = (cfg_state_id * CFG_STATE_SIZE * 4) + cfg_addr32;
+    const std::uint32_t addr = (cfg_state_id == 0) ? cfg_addr32 : (CFG_STATE_SIZE * 4) + cfg_addr32;
 
     // Declared here instead of globally to prevent direct access, which might ignore current state
     // ID
     volatile std::uint32_t tt_reg_ptr *cfg_regs =
         reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_CFG_BASE);
-    uint32_t cfg_data = cfg_regs[addr];
+    std::uint32_t cfg_data = cfg_regs[addr];
 
     // Shift and mask wrdata to properly align withn 32-bit DWORD
     wrdata <<= cfg_shamt;
@@ -309,57 +309,58 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, 
     cfg_regs[addr] = cfg_data;
 }
 
-inline void cfg_rmw_gpr(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, uint32_t gpr_index) {
-    const uint32_t wrdata = regfile[gpr_index];
+inline void cfg_rmw_gpr(
+    std::uint32_t cfg_addr32, std::uint32_t cfg_shamt, std::uint32_t cfg_mask, std::uint32_t gpr_index) {
+    const std::uint32_t wrdata = regfile[gpr_index];
     cfg_rmw(cfg_addr32, cfg_shamt, cfg_mask, wrdata);
 }
 
 template <std::uint32_t CfgAddr32, std::uint32_t Shamt, std::uint32_t Mask>
-inline void cfg_reg_rmw_tensix(uint32_t val) {
-    uint32_t wrdata  = val << Shamt;
-    uint8_t  mask_b0 = Mask & 0xff;
+inline void cfg_reg_rmw_tensix(std::uint32_t val) {
+    std::uint32_t wrdata  = val << Shamt;
+    std::uint8_t  mask_b0 = Mask & 0xff;
 
     if (mask_b0 != 0) {
-        uint8_t data_b0 = wrdata & 0xff;
+        std::uint8_t data_b0 = wrdata & 0xff;
         TT_RMWCIB0(mask_b0, data_b0, CfgAddr32);
     }
     wrdata >>= 8;
-    uint8_t mask_b1 = (Mask >> 8) & 0xff;
+    std::uint8_t mask_b1 = (Mask >> 8) & 0xff;
 
     if (mask_b1 != 0) {
-        uint8_t data_b1 = (wrdata) & 0xff;
+        std::uint8_t data_b1 = (wrdata) & 0xff;
         TT_RMWCIB1(mask_b1, data_b1, CfgAddr32);
     }
 
     wrdata >>= 8;
-    uint8_t mask_b2 = (Mask >> 16) & 0xff;
+    std::uint8_t mask_b2 = (Mask >> 16) & 0xff;
 
     if (mask_b2 != 0) {
-        uint8_t data_b2 = (wrdata) & 0xff;
+        std::uint8_t data_b2 = (wrdata) & 0xff;
         TT_RMWCIB2(mask_b2, data_b2, CfgAddr32);
     }
 
     wrdata >>= 8;
-    uint8_t mask_b3 = (Mask >> 24) & 0xff;
+    std::uint8_t mask_b3 = (Mask >> 24) & 0xff;
     if (mask_b3 != 0) {
-        uint8_t data_b3 = (wrdata) & 0xff;
+        std::uint8_t data_b3 = (wrdata) & 0xff;
         TT_RMWCIB3(mask_b3, data_b3, CfgAddr32);
     }
 }
 
-inline void mailbox_write(const uint8_t thread, const uint32_t data) { mailbox_base[thread + 1][0] = data; }
+inline void mailbox_write(const std::uint8_t thread, const std::uint32_t data) { mailbox_base[thread + 1][0] = data; }
 
 // Blocking read
-inline uint32_t mailbox_read(const uint8_t thread) { return mailbox_base[thread + 1][0]; }
+inline std::uint32_t mailbox_read(const std::uint8_t thread) { return mailbox_base[thread + 1][0]; }
 
-inline bool mailbox_not_empty(const uint8_t thread) { return mailbox_base[thread + 1][1] > 0; }
+inline bool mailbox_not_empty(const std::uint8_t thread) { return mailbox_base[thread + 1][1] > 0; }
 
-inline void mailbox_write_full(const uint8_t thread, const uint32_t data) { mailbox_base[thread][0] = data; }
+inline void mailbox_write_full(const std::uint8_t thread, const std::uint32_t data) { mailbox_base[thread][0] = data; }
 
 // Blocking read
-inline uint32_t mailbox_read_full(const uint8_t thread) { return mailbox_base[thread][0]; }
+inline std::uint32_t mailbox_read_full(const std::uint8_t thread) { return mailbox_base[thread][0]; }
 
-inline bool mailbox_not_empty_full(const uint8_t thread) { return mailbox_base[thread][1] > 0; }
+inline bool mailbox_not_empty_full(const std::uint8_t thread) { return mailbox_base[thread][1] > 0; }
 
 inline void trisc_l1_mailbox_write(const std::uint32_t data) { trisc_l1_mailbox[0] = data; }
 
@@ -367,48 +368,48 @@ inline std::uint32_t trisc_l1_mailbox_read() { return trisc_l1_mailbox[0]; }
 
 template <class T>
 inline std::uint32_t memory_cast(T *object_ptr) {
-    return reinterpret_cast<uint32_t>(object_ptr);
+    return reinterpret_cast<std::uint32_t>(object_ptr);
 }
 
-inline void record_mailbox_value(uint16_t event_value) {
+inline void record_mailbox_value(std::uint16_t event_value) {
     if (mailbox_index < mailbox_end) {
         debug_mailbox_base[mailbox_index] = event_value;
         mailbox_index++;
     }
 }
 
-inline void record_mailbox_value_with_index(uint8_t index, uint16_t event_value) {
+inline void record_mailbox_value_with_index(std::uint8_t index, std::uint16_t event_value) {
     if (index < mailbox_end) { debug_mailbox_base[index] = event_value; }
 }
 
 // Initialize debug scratch mailbox values and range
-inline void clear_mailbox_values(uint16_t value = 0) {
+inline void clear_mailbox_values(std::uint16_t value = 0) {
     for (int i = 0; i < mailbox_end; i++) { debug_mailbox_base[i] = value; }
 }
 
-inline uint64_t read_wall_clock() {
-    uint32_t timestamp_low  = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
-    uint32_t timestamp_high = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
-    return ((uint64_t)timestamp_high << 32) | timestamp_low;
+inline std::uint64_t read_wall_clock() {
+    std::uint32_t timestamp_low  = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
+    std::uint32_t timestamp_high = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
+    return ((std::uint64_t)timestamp_high << 32) | timestamp_low;
 }
 
-inline void record_kernel_runtime(uint64_t kernel_runtime) {
+inline void record_kernel_runtime(std::uint64_t kernel_runtime) {
     debug_mailbox_base[mailbox_end - 4] = kernel_runtime & 0xffff;
     debug_mailbox_base[mailbox_end - 3] = (kernel_runtime >> 16) & 0xffff;
     debug_mailbox_base[mailbox_end - 2] = (kernel_runtime >> 32) & 0xffff;
     debug_mailbox_base[mailbox_end - 1] = (kernel_runtime >> 48) & 0xffff;
 }
 
-void debug_dump(const uint8_t *data, uint32_t byte_size);
-void debug_dump_seek(uint8_t offset);
+void debug_dump(const std::uint8_t *data, std::uint32_t byte_size);
+void debug_dump_seek(std::uint8_t offset);
 
-inline void stall_kernel(uint32_t num_cycles) {
+inline void stall_kernel(std::uint32_t num_cycles) {
 #if DELAY_EN > 0
     TT_LLK_DUMP("stall_kernel({})", num_cycles);
-    uint32_t start_clk_l  = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
-    uint32_t elapsed_time = 0;
+    std::uint32_t start_clk_l  = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
+    std::uint32_t elapsed_time = 0;
     while (elapsed_time <= num_cycles) {
-        uint32_t current_clk_l = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
+        std::uint32_t current_clk_l = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
         if (current_clk_l >= start_clk_l) {
             elapsed_time = current_clk_l - start_clk_l;
         } else {
@@ -574,7 +575,7 @@ inline void load_replay_buf(std::uint32_t start, std::uint32_t len, bool exec_wh
     enable_gathering();
 }
 
-enum class CSR : uint16_t {
+enum class CSR : std::uint16_t {
     tensix_queue_status        = 0xBC0,
     tensix_busy_status         = 0xBC1,
     stream_curr_phase_0        = 0xBC2,
@@ -588,8 +589,8 @@ enum class CSR : uint16_t {
 };
 
 template <CSR csr_num, bool fence = true>
-inline uint32_t csr_read() {
-    uint32_t ret;
+inline std::uint32_t csr_read() {
+    std::uint32_t ret;
 
     if constexpr (fence) { asm volatile("fence"); }
     asm volatile("csrr %[ret], %[csr_num] \n" : [ret] "=r"(ret) : [csr_num] "i"(csr_num));
@@ -598,10 +599,10 @@ inline uint32_t csr_read() {
 }
 
 // Use at your own risk :-)
-template <uint16_t csr_num, bool fence = true>
-inline uint32_t csr_read() {
+template <std::uint16_t csr_num, bool fence = true>
+inline std::uint32_t csr_read() {
     static_assert(csr_num < (1 << 12), "Given CSR number is out of range");
-    uint32_t ret;
+    std::uint32_t ret;
 
     if constexpr (fence) { asm volatile("fence"); }
     asm volatile("csrr %[ret], %[csr_num] \n" : [ret] "=r"(ret) : [csr_num] "i"(csr_num));
@@ -610,7 +611,7 @@ inline uint32_t csr_read() {
 }
 
 union qstatus_u {
-    uint32_t val;
+    std::uint32_t val;
 
     struct {
         unsigned replay : 1;
@@ -642,7 +643,7 @@ union qstatus_u {
 };
 
 union bstatus_u {
-    uint32_t val;
+    std::uint32_t val;
 
     struct {
         unsigned replay : 1;
