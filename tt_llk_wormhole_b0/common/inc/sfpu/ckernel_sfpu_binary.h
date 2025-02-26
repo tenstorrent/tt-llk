@@ -31,7 +31,7 @@ sfpi_inline vFloat _calculate_sfpu_binary_power_(vFloat base, vFloat pow) {
 
     // Check for integer power
     vInt   pow_int     = float_to_int16(pow, 0); // int16 should be plenty, since large powers will approach 0/Inf
-    vFloat pow_rounded = std::int32_to_float(pow_int, 0);
+    vFloat pow_rounded = int32_to_float(pow_int, 0);
     v_if(pow_rounded == pow) {
         // if pow is integer, set base to positive
         base = setsgn(base, 0);
@@ -48,7 +48,7 @@ sfpi_inline vFloat _calculate_sfpu_binary_power_(vFloat base, vFloat pow) {
     vInt exp = exexp(base);
     v_if(exp < 0) { exp = setsgn(~exp + 1, 1); }
     v_endif;
-    vFloat expf = std::int32_to_float(exp, 0);
+    vFloat expf = int32_to_float(exp, 0);
 
     // De-normalize to original range
     vFloat vConstLn2  = 0.692871f;

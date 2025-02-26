@@ -48,7 +48,7 @@ sfpi_inline void _calculate_log_body_(const std::uint32_t log_base_scale_factor)
     v_if(exp < 0) { exp = setsgn(~exp + 1, 1); }
     v_endif;
 
-    vFloat expf      = std::int32_to_float(exp, 0);
+    vFloat expf      = int32_to_float(exp, 0);
     vFloat vConstLn2 = vConstFloatPrgm0;
     vFloat result    = expf * vConstLn2 + series_result; // exp correction: ln(1+x) + exp*ln(2)
 
