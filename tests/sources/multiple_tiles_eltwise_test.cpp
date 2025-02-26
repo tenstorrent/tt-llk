@@ -32,18 +32,12 @@ void run_kernel()
         buffer_A[i] = reinterpret_cast<volatile uint32_t*>(0x1a000 + i*TILE_SIZE_CNT);
         buffer_B[i] = reinterpret_cast<volatile uint32_t*>(0x1a000 + TILE_SIZE_CNT*KERN_CNT + i*TILE_SIZE_CNT);
     }
-
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT);
-    _llk_unpack_AB_init_<>();
     
     for(int index = 0; index < KERN_CNT; index++){
+        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT);
+        _llk_unpack_AB_init_<>();
         _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[index]), L1_ADDRESS(buffer_B[index]));
     }
-
-    (*(volatile uint32_t*)0x15200) = (uint32_t)buffer_A[0];
-    (*(volatile uint32_t*)0x15300) = (uint32_t)buffer_A[1];
-    (*(volatile uint32_t*)0x15400) = (uint32_t)buffer_B[0];
-    (*(volatile uint32_t*)0x15500) = (uint32_t)buffer_B[1];
 
 }
 
