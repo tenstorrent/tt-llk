@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #ifdef PERF_DUMP
 #include "perf_res_decouple.h"
 #endif
