@@ -13,29 +13,18 @@ mathop_map = {
 }
 
 def generate_golden(op, operand1, operand2, data_format,math_fidelity):
-    if( data_format == "Float16" or data_format == "Float16_b"):
-        tensor1_float = operand1.clone().detach().to(format_dict[data_format])
-        tensor2_float = operand2.clone().detach().to(format_dict[data_format])
-    else:
-        tensor1_float = operand1.clone().detach().to(format_dict["Float16_b"])
-        tensor2_float = operand2.clone().detach().to(format_dict["Float16_b"])
+    tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+    tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
 
     if data_format == "Float16_b":
+        if math_fidelity in [0, 2]:  # LoFi or HiFi2
+            for element in operand2:
+                element = element.to(torch.int32)
+                element &= 0xFFFE
         if math_fidelity == 0:  # LoFi
             for element in operand1:
-                element = element.to(torch.int32)  # Convert to int32
+                element = element.to(torch.int32)
                 element &= 0xFFF8
-            for element in operand2:
-                element = element.to(torch.int32)  # Convert to int32
-                element &= 0xFFFE
-        elif math_fidelity == 2:  # HiFi2
-            for element in operand2:
-                element = element.to(torch.int32)  # Convert to int32
-                element &= 0xFFFE
-        elif math_fidelity == 3:  # HiFi3
-            pass
-        elif math_fidelity == 4:  # HiFi4
-            pass
 
     if(op==1):
         res = tensor1_float + tensor2_float

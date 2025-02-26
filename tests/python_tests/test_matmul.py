@@ -6,27 +6,23 @@ from helpers import *
 def generate_golden(operand1, operand2, data_format, math_fidelity):
 
     if data_format == "Float16_b":
+        if math_fidelity in [0, 2]:  # LoFi or HiFi2
+            for element in operand2:
+                element = element.to(torch.int32)
+                element &= 0xFFFE
         if math_fidelity == 0:  # LoFi
-            operand1 = operand1.to(torch.int32)  # Convert to int32
-            operand1 &= 0xFFF8
-            operand2 = operand2.to(torch.int32)  # Convert to int32
-            operand2 &= 0xFFFE
-        elif math_fidelity == 2:  # HiFi2
-            operand2 = operand2.to(torch.int32)  # Convert to int32
-            operand2 &= 0xFFFE
-        elif math_fidelity == 3:  # HiFi3
-            pass
-        elif math_fidelity == 4:  # HiFi4
-            pass
+            for element in operand1:
+                element = element.to(torch.int32)
+                element &= 0xFFF8
 
     return torch.matmul(tilize(operand1).view(32, 32), tilize(operand2).view(32, 32)).view(-1)
 
 param_combinations = [
     (format, dest_acc, testname, math_fidelity)
     for format in ["Float16_b"]#,"Float16"]
-    for dest_acc in [""]#, "DEST_ACC"]
+    for dest_acc in ["", "DEST_ACC"]
     for testname in ["matmul_test"]
-    for math_fidelity in [4]#,2,3,4]
+    for math_fidelity in [3,4]
 ]
 
 param_ids = [

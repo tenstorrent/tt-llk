@@ -4,12 +4,8 @@ import os
 from helpers import *
 
 def generate_golden(operation, operand1, operand2, data_format):
-    if( data_format in ["Float16","Float16_b", "Float32"]):
-        tensor1_float = operand1.clone().detach().to(format_dict[data_format])
-        tensor2_float = operand2.clone().detach().to(format_dict[data_format])
-    else:
-        tensor1_float = operand1.clone().detach().to(format_dict["Float16_b"])
-        tensor2_float = operand2.clone().detach().to(format_dict["Float16_b"])
+    tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+    tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
     
     operations = {
         "elwadd": tensor1_float + tensor2_float,

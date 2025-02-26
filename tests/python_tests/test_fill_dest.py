@@ -3,12 +3,9 @@ import torch
 from helpers import *
 
 def generate_golden(operations, operand1, operand2, data_format):
-    if( data_format == "Float16" or data_format == "Float16_b"):
-        tensor1_float = operand1.clone().detach().to(format_dict[data_format])
-        tensor2_float = operand2.clone().detach().to(format_dict[data_format])
-    else:
-        tensor1_float = operand1.clone().detach().to(format_dict["Float16_b"])
-        tensor2_float = operand2.clone().detach().to(format_dict["Float16_b"])
+    tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+    tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+    
     res = []
 
     # to se why this encoding look at llk_defs.h -> enum EltwiseBinaryType
