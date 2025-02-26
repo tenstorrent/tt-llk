@@ -110,14 +110,16 @@ inline void unpacker_wrapup() {
     TTI_SETC16(UNPACK_MISC_CFG_CfgContextOffset_0_ADDR32, 0x1010);
 }
 
-inline std::uint32_tunpack_16B_address(const std::uint32_taddr) { return (addr << FIFO_BASE_ADDRESS_ALIGN_BITS) >> 4; }
+inline std::uint32_t unpack_16B_address(const std::uint32_t addr) {
+    return (addr << FIFO_BASE_ADDRESS_ALIGN_BITS) >> 4;
+}
 
-inline void flush_xsearch_cache(const std::uint32_tunpacker) {
+inline void flush_xsearch_cache(const std::uint32_t unpacker) {
     TTI_UNPACR(unpacker, 0, 0, 0, 0, 0, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 1, 0);
 }
 
 // Wait for threshold of busy contexts to fall below total available contexts
-inline void wait_for_next_context(const std::uint32_tnum_contexts) {
+inline void wait_for_next_context(const std::uint32_t num_contexts) {
     while (semaphore_read(semaphore::UNPACK_SYNC) >= num_contexts) {}
 }
 
@@ -147,14 +149,14 @@ inline void wait_for_pack_config_done() {
 }
 
 inline void configure_unpack_AB(
-    const std::uint32_tunpA_src_format,
-    const std::uint32_tunpB_src_format,
-    const std::uint32_tunpA_dst_format,
-    const std::uint32_tunpB_dst_format,
-    const std::uint32_tsrca_face_height = 16,
-    const std::uint32_tsrcb_face_height = 16,
-    const bool row_pool                 = false,
-    const bool skip_alu_format_set      = false) {
+    const std::uint32_t unpA_src_format,
+    const std::uint32_t unpB_src_format,
+    const std::uint32_t unpA_dst_format,
+    const std::uint32_t unpB_dst_format,
+    const std::uint32_t srca_face_height    = 16,
+    const std::uint32_t srcb_face_height    = 16,
+    const bool          row_pool            = false,
+    const bool          skip_alu_format_set = false) {
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
 
@@ -162,22 +164,22 @@ inline void configure_unpack_AB(
     unpacker_addr_counter_init();
 
     // Get pointer to registers for current state ID
-    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
 
-    std::uint32_tunpA_ch1_x_stride = (uint)(unpA_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
-                                     : (uint)(unpA_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
-                                                                                                  : 1;
-    std::uint32_tunpB_ch1_x_stride = (uint)(unpB_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
-                                     : (uint)(unpB_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
-                                                                                                  : 1;
-    std::uint32_tunpA_ch1_z_stride = 16 * srca_face_height * unpA_ch1_x_stride;
-    std::uint32_tunpB_ch1_z_stride = 16 * srcb_face_height * unpB_ch1_x_stride;
-    std::uint32_texp_width         = ((uint)unpA_dst_format >> 2) & 0x1; // 0=5-bit, 1=8-bit
+    std::uint32_t unpA_ch1_x_stride = (uint)(unpA_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
+                                      : (uint)(unpA_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
+                                                                                                   : 1;
+    std::uint32_t unpB_ch1_x_stride = (uint)(unpB_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
+                                      : (uint)(unpB_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
+                                                                                                   : 1;
+    std::uint32_t unpA_ch1_z_stride = 16 * srca_face_height * unpA_ch1_x_stride;
+    std::uint32_t unpB_ch1_z_stride = 16 * srcb_face_height * unpB_ch1_x_stride;
+    std::uint32_t exp_width         = ((uint)unpA_dst_format >> 2) & 0x1; // 0=5-bit, 1=8-bit
 
     // Math ALU_FORMAT_REG
     // MT: Ensure thread safety between unpacker and math threads by using semaphore
     if (!skip_alu_format_set) {
-        std::uint32_talu_src_format =
+        std::uint32_t alu_src_format =
             ((row_pool ? ((uint)DataFormat::Float16 | (exp_width << 2)) : unpB_dst_format)
              << ALU_FORMAT_SPEC_REG1_SrcB_SHAMT) // Row polling dest format is always 16-bit float
             | (unpA_dst_format << ALU_FORMAT_SPEC_REG0_SrcA_SHAMT) | (0x0 << ALU_FORMAT_SPEC_REG_SrcA_val_SHAMT);
@@ -195,7 +197,7 @@ inline void configure_unpack_AB(
 
     // Set tile descriptor
     unpack_tile_descriptor_u tile_descriptor;
-    for (std::uint32_ti = 0; i < TILE_DESC_SIZE; i++) { tile_descriptor.val[i] = 0; }
+    for (std::uint32_t i = 0; i < TILE_DESC_SIZE; i++) { tile_descriptor.val[i] = 0; }
     tile_descriptor.f.in_data_format = unpA_src_format;
     tile_descriptor.f.uncompressed   = 1; // Input tile is uncompressed
     tile_descriptor.f.x_dim          = 256;
@@ -203,40 +205,40 @@ inline void configure_unpack_AB(
     tile_descriptor.f.z_dim          = 4;
     // tile_descriptor.f.blobs_per_xy_plane = 0;
     // tile_descriptor.f.blobs_y_start = 0;
-    for (std::uint32_ti = 0; i < TILE_DESC_SIZE; i++) {
+    for (std::uint32_t i = 0; i < TILE_DESC_SIZE; i++) {
         cfg[THCON_SEC0_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
     }
     tile_descriptor.f.in_data_format = row_pool ? (uint)DataFormat::Float32 : unpB_src_format;
-    for (std::uint32_ti = 0; i < TILE_DESC_SIZE; i++) {
+    for (std::uint32_t i = 0; i < TILE_DESC_SIZE; i++) {
         cfg[THCON_SEC1_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
     }
 
     // Set unpacker config
     unpack_config_u config;
-    for (std::uint32_ti = 0; i < CONFIG_SIZE; i++) { config.val[i] = 0; }
+    for (std::uint32_t i = 0; i < CONFIG_SIZE; i++) { config.val[i] = 0; }
     config.f.out_data_format    = unpA_dst_format;
     config.f.throttle_mode      = 2;
     config.f.uncompress_cntx0_3 = 0xf;
     config.f.uncompress_cntx4_7 = 0xf;
     // config.f.limit_addr = 0; // Set dynamically
     // config.f.fifo_size = 0; // Set dynamically
-    for (std::uint32_ti = 0; i < CONFIG_SIZE; i++) { cfg[THCON_SEC0_REG2_Out_data_format_ADDR32 + i] = config.val[i]; }
+    for (std::uint32_t i = 0; i < CONFIG_SIZE; i++) { cfg[THCON_SEC0_REG2_Out_data_format_ADDR32 + i] = config.val[i]; }
 
     config.f.out_data_format = row_pool ? ((uint)DataFormat::Float16 | (exp_width << 2)) : unpB_dst_format;
-    for (std::uint32_ti = 0; i < CONFIG_SIZE; i++) { cfg[THCON_SEC1_REG2_Out_data_format_ADDR32 + i] = config.val[i]; }
+    for (std::uint32_t i = 0; i < CONFIG_SIZE; i++) { cfg[THCON_SEC1_REG2_Out_data_format_ADDR32 + i] = config.val[i]; }
 
-    std::uint32_tunp0_x_end = (srca_face_height == 0) ? 1 : (srca_face_height << 4) - 1;
+    std::uint32_t unp0_x_end = (srca_face_height == 0) ? 1 : (srca_face_height << 4) - 1;
     TTI_SETADCXX(p_setadc::UNP0, unp0_x_end, 0x0);
     TTI_SETADCXX(p_setadc::UNP1, (srcb_face_height << 4) - 1, 0x0);
 
     // Program base address for all 2 sections (each section address is loaded to corresponding context)
     // Load dummy data to unused location if face height is 0
-    const std::uint32_tDest_cntx0_address          = srca_face_height == 0 ? 22 * 16 : 4 * 16;
-    const std::uint32_tDest_cntx1_address          = srca_face_height == 0 ? 22 * 16 : 4 * 16;
+    const std::uint32_t Dest_cntx0_address         = srca_face_height == 0 ? 22 * 16 : 4 * 16;
+    const std::uint32_t Dest_cntx1_address         = srca_face_height == 0 ? 22 * 16 : 4 * 16;
     cfg[THCON_SEC0_REG5_Dest_cntx0_address_ADDR32] = Dest_cntx0_address | (Dest_cntx1_address << 16);
 
     // Program unpacker0 per context x_dim
-    const std::uint32_tTile_x_dim                = 256;
+    const std::uint32_t Tile_x_dim               = 256;
     cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32] = Tile_x_dim | (Tile_x_dim << 16);
 
     // Store config used by tilizer
@@ -254,7 +256,7 @@ inline void configure_unpack_AB(
 }
 
 inline uint32_t cfg_rmw_mmio_rd_tensix_wr(
-    std::uint32_taddr, std::uint32_tshamt, std::uint32_tmask, std::uint32_tnew_val, std::uint32_trmw_val) {
+    std::uint32_t addr, std::uint32_t shamt, std::uint32_t mask, std::uint32_t new_val, std::uint32_t rmw_val) {
     // Write only to the needed data bits
     new_val <<= shamt;
     new_val &= mask;
@@ -279,7 +281,7 @@ inline void reconfig_unpacker_data_format(
     const uint32_t      tile_addr,
     const uint32_t      out_df_addr,
     const uint32_t      out_df_stride) {
-    // volatile std::uint32_t*cfg = get_cfg_pointer();
+    // volatile std::uint32_t *cfg = get_cfg_pointer();
     //  Set first 32 bites of tile descriptor, only need data format change
     unpack_tile_descriptor_u tile_descriptor = {0};
 
@@ -328,7 +330,7 @@ inline void reconfig_unpacker_data_format(
 // READERS FOR CONFIG STRUCTS
 
 inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(
-    uint32_t reg_addr, const volatile std::uint32_ttt_reg_ptr *cfg) {
+    uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr *cfg) {
     unpack_tile_descriptor_u tile_descriptor = {.val = 0};
 
     tile_descriptor.val[0] = cfg[reg_addr];
@@ -342,7 +344,7 @@ inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(
 inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_descriptor() {
     std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec;
     // Get pointer to registers for current state ID
-    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
 
     tile_descriptor_vec[0] = read_unpack_tile_descriptor_helper(THCON_SEC0_REG0_TileDescriptor_ADDR32, cfg);
     tile_descriptor_vec[1] = read_unpack_tile_descriptor_helper(THCON_SEC1_REG0_TileDescriptor_ADDR32, cfg);
@@ -350,7 +352,7 @@ inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_desc
     return tile_descriptor_vec;
 }
 
-inline unpack_config_t read_unpack_config_helper(uint32_t reg_addr, const volatile std::uint32_ttt_reg_ptr *cfg) {
+inline unpack_config_t read_unpack_config_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr *cfg) {
     unpack_config_u config;
 
     config.val[0] = cfg[reg_addr];
@@ -365,7 +367,7 @@ inline unpack_config_t read_unpack_config_helper(uint32_t reg_addr, const volati
 inline std::array<unpack_config_t, NUM_UNPACKERS> read_unpack_config() {
     std::array<unpack_config_t, NUM_UNPACKERS> config_vec;
     // Get pointer to registers for current state ID
-    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
 
     config_vec[0] = read_unpack_config_helper(THCON_SEC0_REG2_Out_data_format_ADDR32, cfg);
     config_vec[1] = read_unpack_config_helper(THCON_SEC1_REG2_Out_data_format_ADDR32, cfg);

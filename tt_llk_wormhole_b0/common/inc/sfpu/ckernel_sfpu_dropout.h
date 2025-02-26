@@ -17,7 +17,7 @@ namespace sfpu {
 // probability should be between 0 - INT_MAX (signed)
 // scale should be binary representation of a float32
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_dropout_(const int iterations, std::uint32_tprobability, std::uint32_tscale) {
+inline void _calculate_dropout_(const int iterations, std::uint32_t probability, std::uint32_t scale) {
     // SFPU microcode
 
     FWLOG1("calculate_dropout() -- probability:%x", probability);
@@ -59,7 +59,7 @@ inline void _calculate_dropout_(const int iterations, std::uint32_tprobability, 
     }
 }
 
-inline void _init_dropout_(const std::uint32_tseed) { init_prng_seed(seed); }
+inline void _init_dropout_(const std::uint32_t seed) { init_prng_seed(seed); }
 
 } // namespace sfpu
 } // namespace ckernel

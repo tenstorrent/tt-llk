@@ -27,7 +27,7 @@ constexpr uint32_t NUM_PACKERS = 4; // Number of packers
 // Pack src format, save src format to make reconfig writes only
 uint32_t tile_desc_pack_src_format;
 
-constexpr std::uint32_tPACK_SEL(const std::uint32_tpack_count) {
+constexpr std::uint32_t PACK_SEL(const std::uint32_t pack_count) {
     return (pack_count == 1) ? 0x1 : (pack_count == 2) ? 0x3 : (pack_count == 4) ? 0xF : 0x0;
 }
 
@@ -97,13 +97,13 @@ inline void packer_addr_counter_init() {
     TTI_SETADCZW(0b100, 0, 0, 0, 0, 0b1111);
 }
 
-inline void set_packer_config(const std::uint32_tpack_dst_format) {
+inline void set_packer_config(const std::uint32_t pack_dst_format) {
     // Get pointer to registers for current state ID
-    volatile std::uint32_ttt_reg_ptr* cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
     // Set packer config
     pack_config_u config;
-    for (std::uint32_ti = 0; i < 4; i++) { config.val[i] = 0; }
+    for (std::uint32_t i = 0; i < 4; i++) { config.val[i] = 0; }
     config.f.exp_section_size  = ((uint)(pack_dst_format & 0x2) == 0) ? 0 : 4;
     config.f.uncompress        = 1;
     config.f.out_data_format   = (uint)pack_dst_format;
@@ -166,10 +166,10 @@ inline void set_packer_config(const std::uint32_tpack_dst_format) {
 }
 
 // reconfig the packer dst format
-inline void reconfig_packer_data_format(const std::uint32_tpack_dst_format, const std::uint32_ttile_size) {
+inline void reconfig_packer_data_format(const std::uint32_t pack_dst_format, const std::uint32_t tile_size) {
     set_packer_config(pack_dst_format);
 
-    std::uint32_ttile_header_0 = tile_size;
+    std::uint32_t tile_header_0 = tile_size;
     TT_SETDMAREG(0, (tile_header_0 & 0xffff), 0, LO_16(p_gpr_pack::TILE_HEADER));
     TT_SETDMAREG(0, ((tile_header_0 >> 16) & 0xffff), 0, HI_16(p_gpr_pack::TILE_HEADER));
 }
@@ -180,26 +180,26 @@ inline void wait_for_unpack_config_done() {
 
 template <bool untilize = false>
 inline void configure_pack(
-    const std::uint32_tpack_src_format,
-    const std::uint32_tpack_dst_format,
-    const std::uint32_ttile_size,
-    std::uint32_t relu_config         = 0,
-    bool          skip_alu_format_set = false) {
+    const std::uint32_t pack_src_format,
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t tile_size,
+    std::uint32_t       relu_config         = 0,
+    bool                skip_alu_format_set = false) {
     // Get pointer to registers for current state ID
-    volatile std::uint32_ttt_reg_ptr* cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
     if (pack_src_format != pack_dst_format) {
         TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::PACK);
         tensix_sync();
     }
 
-    const std::uint32_tpack_per_xy_plane = 16;
+    const std::uint32_t pack_per_xy_plane = 16;
 
-    std::uint32_tx_stride = (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float32   ? 4
-                            : (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float16 ? 2
-                                                                                         : 1;
-    std::uint32_ty_stride = 16 * x_stride;
-    std::uint32_tz_stride = PACK_CNT * 16 * y_stride;
+    std::uint32_t x_stride = (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float32   ? 4
+                             : (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float16 ? 2
+                                                                                          : 1;
+    std::uint32_t y_stride = 16 * x_stride;
+    std::uint32_t z_stride = PACK_CNT * 16 * y_stride;
 
     // Strides (not needed)
     cfg[PCK0_ADDR_CTRL_XY_REG_0_Xstride_ADDR32] =
@@ -212,7 +212,7 @@ inline void configure_pack(
 
     // Set packer config
     pack_config_u config;
-    for (std::uint32_ti = 0; i < 4; i++) { config.val[i] = 0; }
+    for (std::uint32_t i = 0; i < 4; i++) { config.val[i] = 0; }
     config.f.exp_section_size  = ((uint)(pack_dst_format & 0x2) == 0) ? 0 : 4;
     config.f.uncompress        = 1;
     config.f.out_data_format   = (uint)pack_dst_format;
@@ -282,14 +282,14 @@ inline void configure_pack(
     // PACK_COUNTERS_SEC0_pack_reads_per_xy_plane = cfg_reg_array[3][8 +: 8];
     // PACK_COUNTERS_SEC0_pack_xys_per_tile = cfg_reg_array[3][16 +: 7];
     // PACK_COUNTERS_SEC0_pack_yz_transposed = cfg_reg_array[3][23 +: 1];
-    for (std::uint32_ti = 0; i < 4; i++) {
+    for (std::uint32_t i = 0; i < 4; i++) {
         cfg[PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32 + i] =
             pack_per_xy_plane | (pack_per_xy_plane << 8) |
             ((untilize ? 1 : 0) << 16); // Auto last generation is disabled
     }
 
     cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32] = 0xffff;
-    for (std::uint32_ti = 0; i < 4; i++) { cfg[TILE_ROW_SET_MAPPING_0_row_set_mapping_0_ADDR32 + i] = 0x0; }
+    for (std::uint32_t i = 0; i < 4; i++) { cfg[TILE_ROW_SET_MAPPING_0_row_set_mapping_0_ADDR32 + i] = 0x0; }
 
     regfile[p_gpr_pack::TILE_HEADER]     = tile_size;
     regfile[p_gpr_pack::TILE_HEADER + 1] = 0;
@@ -298,14 +298,14 @@ inline void configure_pack(
     sync_regfile_write(p_gpr_pack::TILE_HEADER + 3);
 
     // Config RELU
-    std::uint32_tapply_relu     = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
-    std::uint32_trelu_threshold = reg_read((uint)&cfg[STACC_RELU_ReluThreshold_ADDR32]);
+    std::uint32_t apply_relu     = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
+    std::uint32_t relu_threshold = reg_read((uint)&cfg[STACC_RELU_ReluThreshold_ADDR32]);
     apply_relu &= (~STACC_RELU_ApplyRelu_MASK);
     relu_threshold &= (~STACC_RELU_ReluThreshold_MASK);
 
     struct {
-        std::uint32_tapply     : 16;
-        std::uint32_tthreshold : 16;
+        std::uint32_t apply     : 16;
+        std::uint32_t threshold : 16;
     } tmp_relu_cfg = {.apply = relu_config & 0xf, .threshold = (relu_config >> 16) & 0xffff};
 
     apply_relu |= tmp_relu_cfg.apply << STACC_RELU_ApplyRelu_SHAMT;
@@ -322,7 +322,7 @@ inline void configure_pack(
     // MT: Ensure thread safety between unpacker and packer threads by using semaphore
     if (!skip_alu_format_set) {
         wait_for_unpack_config_done();
-        std::uint32_talu_dst_format = pack_src_format;
+        std::uint32_t alu_dst_format = pack_src_format;
         cfg_rmw(ALU_FORMAT_SPEC_REG2_Dstacc_RMW, alu_dst_format);
         semaphore_get(semaphore::UNPACK_PACK_CONFIG_SYNC);
     }
@@ -443,7 +443,7 @@ inline void write_tile_header() {
 
 // READERS FOR CONFIG STRUCTS
 
-inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile std::uint32_ttt_reg_ptr* cfg) {
+inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pack_config_u config = {.val = 0};
 
     config.val[0] = cfg[reg_addr];
@@ -458,7 +458,7 @@ inline std::array<pack_config_t, NUM_PACKERS> read_pack_config() {
     std::array<pack_config_t, NUM_PACKERS> config_vec;
 
     // Get pointer to registers for current state ID
-    volatile std::uint32_ttt_reg_ptr* cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
     config_vec[0] = read_pack_config_helper(THCON_SEC0_REG1_Row_start_section_size_ADDR32, cfg);
     config_vec[1] = read_pack_config_helper(THCON_SEC0_REG8_Row_start_section_size_ADDR32, cfg);
@@ -468,7 +468,7 @@ inline std::array<pack_config_t, NUM_PACKERS> read_pack_config() {
     return config_vec;
 }
 
-inline pck_edge_offset_t read_pack_edge_offset_helper(uint32_t reg_addr, const volatile std::uint32_ttt_reg_ptr* cfg) {
+inline pck_edge_offset_t read_pack_edge_offset_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pck_edge_offset_u edge = {.val = 0};
     edge.val               = cfg[reg_addr];
 
@@ -479,7 +479,7 @@ inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset() {
     std::array<pck_edge_offset_t, NUM_PACKERS> edge_vec;
 
     // Get pointer to registers for current state ID
-    volatile std::uint32_ttt_reg_ptr* cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
     edge_vec[0] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC0_mask_ADDR32, cfg);
     edge_vec[1] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC1_mask_ADDR32, cfg);
@@ -489,7 +489,7 @@ inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset() {
     return edge_vec;
 }
 
-inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile std::uint32_ttt_reg_ptr* cfg) {
+inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr* cfg) {
     pack_counters_u counters = {.val = 0};
     counters.val             = cfg[reg_addr];
 
@@ -500,7 +500,7 @@ inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters() {
     std::array<pack_counters_t, NUM_PACKERS> counters_vec;
 
     // Get pointer to registers for current state ID
-    volatile std::uint32_ttt_reg_ptr* cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
     counters_vec[0] = read_pack_counters_helper(PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32, cfg);
     counters_vec[1] = read_pack_counters_helper(PACK_COUNTERS_SEC1_pack_per_xy_plane_ADDR32, cfg);

@@ -409,7 +409,7 @@ inline void _llk_unpack_AB_matmul_(
 
     if (!reuse_a) { TTI_MULDMAREG(0, p_gpr_unpack::TMP_LO, p_gpr_unpack::TILE_SIZE_B, p_gpr_unpack::KT_DIM); }
 
-    for (std::uint32_tt = 0; t < t_dim; t++) {
+    for (std::uint32_t t = 0; t < t_dim; t++) {
         std::uint32_t offset_address_a      = tile_size_a * (tile_index_a + (reuse_a ? (t * kt_dim) : (0)));
         std::uint32_t next_offset_address_a = tile_size_a * (tile_index_a + (reuse_a ? ((t + 1) * kt_dim) : (0)));
         if constexpr (kernel_broadcast_a > 0) {

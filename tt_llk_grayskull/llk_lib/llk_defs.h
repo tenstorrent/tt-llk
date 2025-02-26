@@ -103,7 +103,7 @@ constexpr bool UnpackToDestEn  = true;
 constexpr bool UnpackToDestDis = false;
 
 template <bool headerless = false>
-constexpr static std::int32_t MUL_TILE_SIZE_AND_INDEX(std::uint32_tformat, std::uint32_tindex) {
+constexpr static std::int32_t MUL_TILE_SIZE_AND_INDEX(std::uint32_t format, std::uint32_t index) {
     switch (format & 0x1F) {
         case ((uint8_t)DataFormat::Float32):
             return ((index << 8) + (!headerless) * (index << 1));
@@ -126,7 +126,7 @@ constexpr static std::int32_t MUL_TILE_SIZE_AND_INDEX(std::uint32_tformat, std::
 }
 
 template <bool headerless = false>
-constexpr static std::int32_t GET_L1_TILE_SIZE(std::uint32_tformat) {
+constexpr static std::int32_t GET_L1_TILE_SIZE(std::uint32_t format) {
     switch (format & 0x1F) {
         case ((uint8_t)DataFormat::Float32):
             return ((4096 >> 4) + (!headerless) * (32 >> 4));

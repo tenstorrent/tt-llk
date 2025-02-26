@@ -43,13 +43,13 @@ template <
     DstTileFaceLayout FaceLayout        = DstTileFaceLayout::RowMajor,
     bool              write_tile_header = true>
 inline void _llk_pack_mop_config_() {
-    constexpr std::uint32_tMOP_INNER_LOOP          = 16;
-    constexpr std::uint32_tMOP_UNTILIZE_INNER_LOOP = FaceLayout == DstTileFaceLayout::ColMajor ? 8 : 4;
-    constexpr std::uint32_tMOP_OUTER_LOOP          = 1;
-    constexpr std::uint32_tMOP_UNTILIZE_OUTER_LOOP = 8;
-    constexpr std::uint32_tPACKCNT                 = 4;
-    constexpr std::uint32_tMEGAROW                 = 1;
-    constexpr std::uint32_tZERO_OUTPUT_FLAG =
+    constexpr std::uint32_t MOP_INNER_LOOP          = 16;
+    constexpr std::uint32_t MOP_UNTILIZE_INNER_LOOP = FaceLayout == DstTileFaceLayout::ColMajor ? 8 : 4;
+    constexpr std::uint32_t MOP_OUTER_LOOP          = 1;
+    constexpr std::uint32_t MOP_UNTILIZE_OUTER_LOOP = 8;
+    constexpr std::uint32_t PACKCNT                 = 4;
+    constexpr std::uint32_t MEGAROW                 = 1;
+    constexpr std::uint32_t ZERO_OUTPUT_FLAG =
         zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
 
     ckernel::ckernel_template tmp(
@@ -79,26 +79,26 @@ inline void _llk_pack_mop_config_() {
 
 template <bool untilize = false>
 inline void _llk_pack_hw_configure_(
-    const std::uint32_tpack_src_format,
-    const std::uint32_tpack_dst_format,
-    const std::uint32_ttile_size,
-    const std::uint32_trelu_config) {
+    const std::uint32_t pack_src_format,
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t tile_size,
+    const std::uint32_t relu_config) {
     configure_pack<untilize>(pack_src_format, pack_dst_format, tile_size, relu_config);
 }
 
 // FIXME: Remove once edge mask spec is defined
 template <bool untilize = false, PoolType type, ReduceDim dim>
 inline void _llk_pack_reduce_hw_configure_(
-    const std::uint32_tpack_src_format,
-    const std::uint32_tpack_dst_format,
-    const std::uint32_ttile_size,
-    const std::uint32_trelu_config) {
+    const std::uint32_t pack_src_format,
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t tile_size,
+    const std::uint32_t relu_config) {
     configure_pack<untilize>(pack_src_format, pack_dst_format, tile_size, relu_config);
 
-    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
 
     if constexpr (dim == ReduceDim::REDUCE_ROW) {
-        for (std::uint32_ti = 0; i < 4; i++) { cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32 + i] = 0x00000001; }
+        for (std::uint32_t i = 0; i < 4; i++) { cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32 + i] = 0x00000001; }
     } else if constexpr (dim == ReduceDim::REDUCE_SCALAR) {
         cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32 + 0]            = 0x00000000;
         cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32 + 1]            = 0x00000001;

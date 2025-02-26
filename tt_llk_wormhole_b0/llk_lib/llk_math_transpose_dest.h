@@ -84,11 +84,11 @@ inline void transpose_dest_configure_mop() {
     TTI_MOVB2D(0, p_movd2b::SRC_ZERO_OFFSET + 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
     TTI_MOVB2D(0, p_movd2b::SRC_ZERO_OFFSET + 4, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
 
-    std::uint32_tAF = TT_OP_REPLAY(16, 16, 0, 0);
-    std::uint32_tBC = TT_OP_REPLAY(20, 5, 0, 0);
-    std::uint32_tE  = TT_OP_REPLAY(26, 4, 0, 0);
-    std::uint32_tX  = TT_OP_MOVB2D(0, p_movd2b::SRC_ZERO_OFFSET + 8, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
-    std::uint32_tY  = TT_OP_MOVB2D(0, p_movd2b::SRC_ZERO_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+    std::uint32_t AF = TT_OP_REPLAY(16, 16, 0, 0);
+    std::uint32_t BC = TT_OP_REPLAY(20, 5, 0, 0);
+    std::uint32_t E  = TT_OP_REPLAY(26, 4, 0, 0);
+    std::uint32_t X  = TT_OP_MOVB2D(0, p_movd2b::SRC_ZERO_OFFSET + 8, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+    std::uint32_t Y  = TT_OP_MOVB2D(0, p_movd2b::SRC_ZERO_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
     ckernel_template tmp(1, 2, E, BC);
     tmp.set_start_op(BC);

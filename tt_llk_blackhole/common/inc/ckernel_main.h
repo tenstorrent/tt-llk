@@ -6,4 +6,4 @@
 
 #include <cstdint>
 
-std::uint32_trun_kernel();
+std::uint32_t run_kernel();

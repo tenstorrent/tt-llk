@@ -15,7 +15,7 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, bool SIGN_MAGNITUDE_FORMAT, int ITERATIONS>
-inline void _sub_int32_(const std::uint32_tdst_offset) {
+inline void _sub_int32_(const std::uint32_t dst_offset) {
     // Use '12' if Dest is in sign-magnitude format and '4' for 2's complement,
     // because TTI_SFPIADD requires 2's complement format in LREGs
     constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? 12 : 4;

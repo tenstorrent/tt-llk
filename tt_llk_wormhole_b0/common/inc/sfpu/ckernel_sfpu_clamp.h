@@ -15,12 +15,12 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_clamp_(const int iterations, std::uint32_tparam0, std::uint32_tparam1, std::uint32_tparam2) {
+inline void _calculate_clamp_(const int iterations, std::uint32_t param0, std::uint32_t param1, std::uint32_t param2) {
     // All params are in FP16 format
     // param0 = min
     // param1 = max
 
-    // std::uint32_tformat = (param0 >> 16)&0x1;
+    // std::uint32_t format = (param0 >> 16)&0x1;
     s2vFloat16::Format format = s2vFloat16::fp16a;
 
     // SFPU microcode

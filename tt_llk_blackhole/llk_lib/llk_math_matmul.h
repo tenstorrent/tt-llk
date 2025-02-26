@@ -466,8 +466,8 @@ inline void _llk_math_matmul_(
     const std::uint32_t t_dim   = reuse_a ? rt_dim : ct_dim;
     const std::uint32_t rut_dim = reuse_a ? ct_dim : rt_dim; // reuse-dim
 
-    for (std::uint32_tt = 0; t < t_dim; t++) {
-        for (std::uint32_trut = 0; rut < rut_dim; rut++) {
+    for (std::uint32_t t = 0; t < t_dim; t++) {
+        for (std::uint32_t rut = 0; rut < rut_dim; rut++) {
             math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(
                 dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim));
 

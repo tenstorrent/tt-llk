@@ -19,7 +19,7 @@ inline void matmul_configure_addrmod();
 inline void matmul_configure_mop();
 
 template <int MATH_FIDELITY_PHASES, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, uint32_t num_faces = 4>
-inline void _llk_math_matmul_(std::uint32_tdst_index, bool transpose = false) {
+inline void _llk_math_matmul_(std::uint32_t dst_index, bool transpose = false) {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
     if constexpr (FaceLayout == DstTileFaceLayout::ColMajor) {
         if constexpr (MATH_FIDELITY_PHASES > 0) {

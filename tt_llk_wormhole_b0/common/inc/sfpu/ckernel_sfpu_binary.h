@@ -84,13 +84,13 @@ sfpi_inline vFloat _calculate_sfpu_binary_power_(vFloat base, vFloat pow) {
 }
 
 template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 8>
-inline void _calculate_sfpu_binary_(const std::uint32_tdst_offset) {
+inline void _calculate_sfpu_binary_(const std::uint32_t dst_offset) {
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++) {
-        constexpr std::uint32_tdst_tile_size = 32;
-        vFloat in0                           = dst_reg[0];
-        vFloat in1                           = dst_reg[dst_offset * dst_tile_size];
-        vFloat result                        = 0.0f;
+        constexpr std::uint32_t dst_tile_size = 32;
+        vFloat                  in0           = dst_reg[0];
+        vFloat                  in1           = dst_reg[dst_offset * dst_tile_size];
+        vFloat                  result        = 0.0f;
 
         if constexpr (BINOP == BinaryOp::ADD) {
             result = in0 + in1;

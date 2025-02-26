@@ -17,9 +17,9 @@ namespace sfpu {
 
 template <bool APPROXIMATION_MODE>
 sfpi_inline vFloat _calculate_gelu_core_(vFloat in) {
-    constexpr std::uint32_timm0 = 0x18FF;
-    constexpr std::uint32_timm1 = (APPROXIMATION_MODE) ? 0x212C : 0x2010;
-    constexpr std::uint32_timm2 = 0xFF00;
+    constexpr std::uint32_t imm0 = 0x18FF;
+    constexpr std::uint32_t imm1 = (APPROXIMATION_MODE) ? 0x212C : 0x2010;
+    constexpr std::uint32_t imm2 = 0xFF00;
 
     // SFPU microcode:
     // result = (APPROX_MODE == 1)
@@ -45,9 +45,9 @@ sfpi_inline vFloat _calculate_gelu_core_(vFloat in) {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_gelu_() {
-    constexpr std::uint32_timm1 = (APPROXIMATION_MODE) ? 0x212C : 0x2010;
-    constexpr std::uint32_timm2 = 0xFF00;
-    vstd::uint32_t l0           = l_reg[LRegs::LReg0];
+    constexpr std::uint32_t imm1 = (APPROXIMATION_MODE) ? 0x212C : 0x2010;
+    constexpr std::uint32_t imm2 = 0xFF00;
+    vstd::uint32_t          l0   = l_reg[LRegs::LReg0];
 
 // SFPU microcode
 #pragma GCC unroll 4
@@ -90,9 +90,9 @@ inline void _calculate_gelu_() {
 
 template <bool APPROXIMATION_MODE>
 inline void _init_gelu_() {
-    std::uint32_timm0;
-    std::uint32_timm1;
-    std::uint32_timm2;
+    std::uint32_t imm0;
+    std::uint32_t imm1;
+    std::uint32_t imm2;
     imm0 = 0x18FF;
     imm1 = (APPROXIMATION_MODE) ? 0x212C : 0x2010;
     imm2 = 0xFF00;

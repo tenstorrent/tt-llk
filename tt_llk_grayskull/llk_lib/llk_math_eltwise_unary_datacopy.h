@@ -20,7 +20,7 @@ template <
     DstSync       Dst,
     BroadcastType src_b_bcast_type    = BroadcastType::NONE,
     bool          is_fp32_dest_acc_en = false /* unused */>
-inline void _llk_math_eltwise_unary_datacopy_(std::uint32_tdst_index) {
+inline void _llk_math_eltwise_unary_datacopy_(std::uint32_t dst_index) {
     if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2)) {
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
     } else {
@@ -107,7 +107,7 @@ inline void eltwise_unary_configure_addrmod() {
 
 template <DataCopyType type, BroadcastType bcast_type = BroadcastType::NONE>
 inline void eltwise_unary_configure_mop(
-    std::uint32_trows_per_inst, std::uint32_ttotal_rows, bool within_face_16x16_transpose = false) {
+    std::uint32_t rows_per_inst, std::uint32_t total_rows, bool within_face_16x16_transpose = false) {
     // always move 32x32 tile, packed as 16x16x4
 
     if constexpr (type == A2D) {
@@ -123,10 +123,10 @@ inline void eltwise_unary_configure_mop(
         tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A));
         tmp.program(instrn_buffer);
     } else if constexpr (type == B2D) {
-        std::uint32_taddr_mod  = (rows_per_inst == p_movb2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
-        std::uint32_tinnerloop = (rows_per_inst == p_movb2d::MOV_1_ROW) ? total_rows : (total_rows >> 2);
-        std::uint32_touterloop = 4;
-        auto broadcast_type    = p_movb2d::MOV_1_ROW; // No broadcast;
+        std::uint32_t addr_mod       = (rows_per_inst == p_movb2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
+        std::uint32_t innerloop      = (rows_per_inst == p_movb2d::MOV_1_ROW) ? total_rows : (total_rows >> 2);
+        std::uint32_t outerloop      = 4;
+        auto          broadcast_type = p_movb2d::MOV_1_ROW; // No broadcast;
 
         if constexpr (bcast_type == BroadcastType::COL) {
             innerloop = 4;

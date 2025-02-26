@@ -109,7 +109,7 @@ inline void _llk_unpack_reconfig_data_format_impl_(
     const std::uint32_t unpB_dst_format) {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
 
-    std::uint32_talu_src_format =
+    std::uint32_t alu_src_format =
         (unpB_dst_format << ALU_FORMAT_SPEC_REG1_SrcB_SHAMT) | (unpA_dst_format << ALU_FORMAT_SPEC_REG0_SrcA_SHAMT);
     std::uint32_t alu_src_mask    = ALU_FORMAT_SPEC_REG0_SrcA_MASK | ALU_FORMAT_SPEC_REG1_SrcB_MASK;
     uint32_t      alu_config_data = gl_alu_format_spec_reg;

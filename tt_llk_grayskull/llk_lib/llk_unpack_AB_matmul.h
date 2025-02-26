@@ -15,9 +15,9 @@ using namespace ckernel::unpacker;
 
 inline void _llk_unpack_AB_matmul_mop_config_(const bool transpose) {
     /*
-    static constexpr std::uint32_tunpack_srcb_top  = TT_OP_UNPACR(SrcB, 0b01000001, 0, 0, 0, 1, 0,
-    p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); static constexpr std::uint32_tunpack_srcb_bot =  TT_OP_UNPACR(SrcB,
-    0b01000001, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); static constexpr std::uint32_tunpack_srca =
+    static constexpr std::uint32_t unpack_srcb_top  = TT_OP_UNPACR(SrcB, 0b01000001, 0, 0, 0, 1, 0,
+    p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); static constexpr std::uint32_t unpack_srcb_bot =  TT_OP_UNPACR(SrcB,
+    0b01000001, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); static constexpr std::uint32_t unpack_srca =
     TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); ckernel_unpack_template tmp  =
     ckernel_unpack_template(false, // src B true, // halo - just used for 4 unpacks unpack_srcb_top, unpack_srcb_bot,
                                                             unpack_srca,
@@ -25,30 +25,30 @@ inline void _llk_unpack_AB_matmul_mop_config_(const bool transpose) {
                                                             0, 0, 0);
     */
     // UNPACK SRCB Z 0,2,1,3
-    static constexpr std::uint32_tunpack_src_set_z           = TT_OP_SETADCZW(0b010, 0, 0, 0, 1, 0b0001);
-    static constexpr std::uint32_tunpack_src_set_z_transpose = TT_OP_SETADCZW(0b011, 0, 0, 0, 1, 0b0001);
+    static constexpr std::uint32_t unpack_src_set_z           = TT_OP_SETADCZW(0b010, 0, 0, 0, 1, 0b0001);
+    static constexpr std::uint32_t unpack_src_set_z_transpose = TT_OP_SETADCZW(0b011, 0, 0, 0, 1, 0b0001);
 #if SKIP_UNP == 1
-    static constexpr std::uint32_tunpack_srca0           = TT_OP_NOP;
-    static constexpr std::uint32_tunpack_srca1           = TT_OP_NOP;
-    static constexpr std::uint32_tunpack_srca0_transpose = TT_OP_NOP;
-    static constexpr std::uint32_tunpack_srca1_transpose = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srca0           = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srca1           = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srca0_transpose = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srca1_transpose = TT_OP_NOP;
 
-    static constexpr std::uint32_tunpack_srcb_top = TT_OP_NOP;
-    static constexpr std::uint32_tunpack_srcb_bot = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srcb_top = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srcb_bot = TT_OP_NOP;
 #else
-    static constexpr std::uint32_tunpack_srca0 =
+    static constexpr std::uint32_t unpack_srca0 =
         TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr std::uint32_tunpack_srca1 =
+    static constexpr std::uint32_t unpack_srca1 =
         TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
-    static constexpr std::uint32_tunpack_srca0_transpose =
+    static constexpr std::uint32_t unpack_srca0_transpose =
         TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr std::uint32_tunpack_srca1_transpose =
+    static constexpr std::uint32_t unpack_srca1_transpose =
         TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
-    static constexpr std::uint32_tunpack_srcb_top =
+    static constexpr std::uint32_t unpack_srcb_top =
         TT_OP_UNPACR(SrcB, 0b010010, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr std::uint32_tunpack_srcb_bot =
+    static constexpr std::uint32_t unpack_srcb_bot =
         TT_OP_UNPACR(SrcB, 0b010010, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
     ckernel_unpack_template tmp = ckernel_unpack_template(
@@ -83,7 +83,7 @@ inline void _llk_unpack_AB_matmul_init_(
 
 inline void _llk_unpack_AB_matmul_(const std::uint32_t address_a, const std::uint32_t address_b) {
     // Todo: do something with tile dim flags
-    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);

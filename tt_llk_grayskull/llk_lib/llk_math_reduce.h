@@ -23,7 +23,7 @@ template <
     int       MATH_FIDELITY_DESC  = 0,
     bool      is_fp32_dest_acc_en = false /* unused */,
     bool      is_int_fpu_en       = false /* unused */>
-inline void _llk_math_reduce_(std::uint32_tdst_index, std::uint32_tnum_faces = 4) {
+inline void _llk_math_reduce_(std::uint32_t dst_index, std::uint32_t num_faces = 4) {
     constexpr int  MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY        = MATH_FIDELITY_PHASES > 0;
 
@@ -130,8 +130,8 @@ inline void _llk_math_reduce_(std::uint32_tdst_index, std::uint32_tnum_faces = 4
         // Increment dest by 32 for next accumulation
         TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AD);
     } else if constexpr (dim == ReduceDim::REDUCE_COL) {
-        const std::uint32_tnum_row_tiles = (num_faces > 1) ? num_faces / 2 : 1;
-        for (std::uint32_trow_tile = 0; row_tile < num_row_tiles; row_tile++) {
+        const std::uint32_t num_row_tiles = (num_faces > 1) ? num_faces / 2 : 1;
+        for (std::uint32_t row_tile = 0; row_tile < num_row_tiles; row_tile++) {
             // Transpose and pool
 
             if constexpr (type == PoolType::MAX) {

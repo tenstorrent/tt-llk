@@ -44,8 +44,8 @@ sfpi_inline vFloat _calculate_exponential_body_(vFloat in) {
     vFloat out;
 
     if constexpr (APPROXIMATION_MODE) {
-        constexpr int FRAC_BITS        = 3;
-        constexpr std::uint32_tSP_BIAS = 127 << FRAC_BITS;
+        constexpr int           FRAC_BITS = 3;
+        constexpr std::uint32_t SP_BIAS   = 127 << FRAC_BITS;
 
         // * by 1/ln2 and add convert to 7.3 FxP format
         vFloat vConstLn2Recip = vConstFloatPrgm0;

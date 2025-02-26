@@ -31,7 +31,7 @@ template <
     EltwiseBinaryReuseDestType binary_reuse_dest   = EltwiseBinaryReuseDestType::NONE,
     bool                       is_fp32_dest_acc_en = false>
 inline void _llk_math_eltwise_binary_(
-    const std::uint32_t num_faces, std::uint32_tdst_index, const bool clear_fp32_dst_acc) {
+    const std::uint32_t num_faces, std::uint32_t dst_index, const bool clear_fp32_dst_acc) {
     constexpr bool     high_fidelity = (NUM_FIDELITY_PHASES > 0);
     constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
@@ -59,12 +59,12 @@ inline void _llk_math_eltwise_binary_(
             if (clear_dest_acc) {
                 if constexpr (is_fp32_dest_acc_en) {
                     #pragma GCC unroll 0
-                    for(std::uint32_t i = 0; i < 8; i++) {
+                    for(std::uint32_t  i = 0; i < 8; i++) {
                         TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, (math_sync_tile_dst_index << 3) + i);
                     }
                 } else {
                     #pragma GCC unroll 0
-                    for(std::uint32_t i = 0; i < 4; i++) {
+                    for(std::uint32_t  i = 0; i < 4; i++) {
                         TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, (math_sync_tile_dst_index << 2) + i);
                     }
                 }
@@ -326,11 +326,11 @@ template <
     int                        NUM_FIDELITY_PHASES = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest   = EltwiseBinaryReuseDestType::NONE>
 inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4) {
-    constexpr bool      high_fidelity = (NUM_FIDELITY_PHASES > 0);
-    const std::uint32_t addr_mod      = ADDR_MOD_0;
-    constexpr std::uint32_tinnerloop  = 16 >> 3; // 8 rows per eltwise op at a time.
-    std::uint32_t outerloop           = num_faces;
-    auto          broadcast_type      = p_elwise::SRCB_NO_BCAST;
+    constexpr bool          high_fidelity  = (NUM_FIDELITY_PHASES > 0);
+    const std::uint32_t     addr_mod       = ADDR_MOD_0;
+    constexpr std::uint32_t innerloop      = 16 >> 3; // 8 rows per eltwise op at a time.
+    std::uint32_t           outerloop      = num_faces;
+    auto                    broadcast_type = p_elwise::SRCB_NO_BCAST;
     if constexpr (bcast_type == BroadcastType::COL) {
         // The mop only runs for 2 outer loops and mop is called twice for col broadcast
         outerloop      = 2;

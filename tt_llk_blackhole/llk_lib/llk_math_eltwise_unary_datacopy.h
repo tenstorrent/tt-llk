@@ -148,13 +148,16 @@ template <
     bool          is_fp32_dest_acc_en = false,
     bool          is_int_fpu_en       = false>
 inline void eltwise_unary_configure_mop(
-    std::uint32_trows_per_inst, std::uint32_ttotal_rows, const std::uint32_tnum_faces, const std::uint32_tdst_format) {
+    std::uint32_t       rows_per_inst,
+    std::uint32_t       total_rows,
+    const std::uint32_t num_faces,
+    const std::uint32_t dst_format) {
     // always move 32x32 tile, packed as 16x16x4
 
     if constexpr (type == A2D) {
-        std::uint32_taddr_mod  = (rows_per_inst == p_mova2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
-        std::uint32_tinnerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
-        std::uint32_touterloop = tilize ? 1 : num_faces;
+        std::uint32_t addr_mod  = (rows_per_inst == p_mova2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
+        std::uint32_t innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
+        std::uint32_t outerloop = tilize ? 1 : num_faces;
 
         if (((is_fp32_dest_acc_en || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) ||
             (dst_format == (uint)DataFormat::UInt8)) {
@@ -169,10 +172,10 @@ inline void eltwise_unary_configure_mop(
             tmp.program(instrn_buffer);
         }
     } else if constexpr (type == B2D) {
-        std::uint32_taddr_mod  = (rows_per_inst == p_movb2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
-        std::uint32_tinnerloop = (rows_per_inst == p_movb2d::MOV_1_ROW) ? total_rows : (total_rows >> 2);
-        std::uint32_touterloop = 4;
-        auto broadcast_type    = p_movb2d::MOV_1_ROW; // No broadcast;
+        std::uint32_t addr_mod       = (rows_per_inst == p_movb2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
+        std::uint32_t innerloop      = (rows_per_inst == p_movb2d::MOV_1_ROW) ? total_rows : (total_rows >> 2);
+        std::uint32_t outerloop      = 4;
+        auto          broadcast_type = p_movb2d::MOV_1_ROW; // No broadcast;
 
         if constexpr (bcast_type == BroadcastType::COL) {
             innerloop = 16 >> 3; // elwadd produces 8 rows per op
@@ -228,7 +231,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>();
 
     if constexpr (type == A2D) {
-        const std::uint32_tnum_rows = tilize ? 64 : 16;
+        const std::uint32_t num_rows = tilize ? 64 : 16;
         eltwise_unary_configure_mop<type, src_b_bcast_type, tilize, is_fp32_dest_acc_en, is_int_fpu_en>(
             p_mova2d::MOV_8_ROWS, num_rows, num_faces, dst_format);
     } else if constexpr (type == B2D) {

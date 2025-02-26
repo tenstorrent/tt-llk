@@ -15,7 +15,8 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_hardtanh_(const int iterations, std::uint32_tparam0, std::uint32_tparam1, std::uint32_tparam2) {
+inline void _calculate_hardtanh_(
+    const int iterations, std::uint32_t param0, std::uint32_t param1, std::uint32_t param2) {
     // All params are in FP16_B format
     // param0 = -(neg_threshold)
     // param1 = -(pos_threshold - neg_threshold)

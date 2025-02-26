@@ -15,11 +15,11 @@ using namespace ckernel::unpacker;
 
 inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false) {
 #if SKIP_UNP == 1
-    static constexpr std::uint32_tunpack_srca            = TT_OP_NOP;
-    static constexpr std::uint32_tunpack_srcb_zerosrc    = TT_OP_NOP;
-    static constexpr std::uint32_tunpack_srcb_set_dvalid = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srca            = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srcb_zerosrc    = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srcb_set_dvalid = TT_OP_NOP;
 #else
-    static constexpr std::uint32_tunpack_srca = TT_OP_UNPACR(
+    static constexpr std::uint32_t unpack_srca = TT_OP_UNPACR(
         SrcA,
         0b1 /*Z inc*/,
         0,
@@ -33,7 +33,7 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false) {
         0,
         0,
         1);
-    static constexpr std::uint32_tunpack_srcb_set_dvalid =
+    static constexpr std::uint32_t unpack_srcb_set_dvalid =
         TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
 #endif
 
@@ -96,8 +96,8 @@ inline void _llk_unpack_tilize_init_(
     // p_gpr_unpack::FACE_DIM_1x16); //GPR preloaded with  16 | (16 << 16)
 
     // below is the configuration for 64-row unpack for srca
-    const std::uint32_tTile_x_dim = 1024;
-    const std::uint32_tTile_z_dim = 1;
+    const std::uint32_t Tile_x_dim = 1024;
+    const std::uint32_t Tile_z_dim = 1;
     cfg_reg_rmw_tensix<THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32, 0, 0xffffffff>(Tile_x_dim | (Tile_x_dim << 16));
     // Force x-dim to 1024
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0xffff0000>(0 | (Tile_x_dim << 16));
@@ -118,7 +118,7 @@ inline void _llk_unpack_tilize_(
     const std::uint32_t face_r_dim        = FACE_R_DIM,
     const std::uint32_t num_faces         = 4,
     const bool          narrow_tile       = false) {
-    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)
@@ -132,7 +132,7 @@ inline void _llk_unpack_tilize_(
 
     // Program srcA and srcB base addresses
     // FIXME MT: This should be revisited for narrow tiles
-    // std::uint32_t num_loops = narrow_tile ? 2 : num_faces/2;
+    // std::uint32_t  num_loops = narrow_tile ? 2 : num_faces/2;
 
     std::uint32_t address = base_address + top_face_offset_address;
 

@@ -15,10 +15,10 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_binary_left_shift_(const std::uint32_tdst_offset) {
+inline void _calculate_binary_left_shift_(const std::uint32_t dst_offset) {
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++) {
-        constexpr std::uint32_tdst_tile_size = 64;
+        constexpr std::uint32_t dst_tile_size = 64;
         // load
         TTI_SFPLOAD(0, 12, ADDR_MOD_7, 0);
         TT_SFPLOAD(1, 12, ADDR_MOD_7, dst_offset * dst_tile_size);
@@ -37,10 +37,10 @@ inline void _calculate_binary_left_shift_(const std::uint32_tdst_offset) {
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_binary_right_shift_(const std::uint32_tdst_offset) {
+inline void _calculate_binary_right_shift_(const std::uint32_t dst_offset) {
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++) {
-        constexpr std::uint32_tdst_tile_size = 64;
+        constexpr std::uint32_t dst_tile_size = 64;
         // load
         TTI_SFPLOAD(0, 12, ADDR_MOD_7, 0);
         TT_SFPLOAD(1, 12, ADDR_MOD_7, dst_offset * dst_tile_size);

@@ -15,11 +15,11 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_power_(std::uint32_texponent) {
+inline void _calculate_power_(std::uint32_t exponent) {
     for (int d = 0; d < ITERATIONS; d++) {
         vFloat in     = dst_reg[0];
         vFloat result = in * in;
-        for (std::uint32_ti = 2; i < exponent; i++) { result *= in; }
+        for (std::uint32_t i = 2; i < exponent; i++) { result *= in; }
 
         dst_reg[0] = result;
 

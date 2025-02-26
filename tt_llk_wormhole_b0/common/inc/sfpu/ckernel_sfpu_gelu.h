@@ -36,12 +36,12 @@ inline vFloat _calculate_gelu_core_(vFloat in) {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_gelu_(const int iterations) {
-    vstd::uint32_tl0 = l_reg[LRegs::LReg0];
-    vstd::uint32_tl1 = l_reg[LRegs::LReg1];
-    vstd::uint32_tl2 = l_reg[LRegs::LReg2];
-    vstd::uint32_tl4 = l_reg[LRegs::LReg4];
-    vstd::uint32_tl5 = l_reg[LRegs::LReg5];
-    vstd::uint32_tl6 = l_reg[LRegs::LReg6];
+    vstd::uint32_t l0 = l_reg[LRegs::LReg0];
+    vstd::uint32_t l1 = l_reg[LRegs::LReg1];
+    vstd::uint32_t l2 = l_reg[LRegs::LReg2];
+    vstd::uint32_t l4 = l_reg[LRegs::LReg4];
+    vstd::uint32_t l5 = l_reg[LRegs::LReg5];
+    vstd::uint32_t l6 = l_reg[LRegs::LReg6];
 
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++) {
@@ -85,12 +85,12 @@ inline void _calculate_gelu_derivative_(const int iterations) {
     if constexpr (APPROXIMATION_MODE) {
         constexpr int lut_mode = 1; // SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1
 
-        vstd::uint32_tl0 = l_reg[LRegs::LReg0];
-        vstd::uint32_tl1 = l_reg[LRegs::LReg1];
-        vstd::uint32_tl2 = l_reg[LRegs::LReg2];
-        vstd::uint32_tl4 = l_reg[LRegs::LReg4];
-        vstd::uint32_tl5 = l_reg[LRegs::LReg5];
-        vstd::uint32_tl6 = l_reg[LRegs::LReg6];
+        vstd::uint32_t l0 = l_reg[LRegs::LReg0];
+        vstd::uint32_t l1 = l_reg[LRegs::LReg1];
+        vstd::uint32_t l2 = l_reg[LRegs::LReg2];
+        vstd::uint32_t l4 = l_reg[LRegs::LReg4];
+        vstd::uint32_t l5 = l_reg[LRegs::LReg5];
+        vstd::uint32_t l6 = l_reg[LRegs::LReg6];
 
 // SFPU microcode:
 #pragma GCC unroll 0
@@ -110,10 +110,10 @@ inline void _calculate_gelu_derivative_(const int iterations) {
         l_reg[LRegs::LReg5] = l5;
         l_reg[LRegs::LReg6] = l6;
     } else {
-        constexpr std::uint32_timm2 = 0xFF10;
+        constexpr std::uint32_t imm2 = 0xFF10;
 
-        vstd::uint32_tl0 = l_reg[LRegs::LReg0];
-        vstd::uint32_tl1 = l_reg[LRegs::LReg1];
+        vstd::uint32_t l0 = l_reg[LRegs::LReg0];
+        vstd::uint32_t l1 = l_reg[LRegs::LReg1];
 
 // SFPU microcode:
 #pragma GCC unroll 0
@@ -178,12 +178,12 @@ inline void _init_gelu_derivative_() {
     vConstFloatPrgm1 = 2.0f;
     vConstFloatPrgm2 = 0.863281f;
 
-    std::uint32_timm0;
-    std::uint32_timm1;
-    std::uint32_timm2;
-    std::uint32_timm3;
-    std::uint32_timm4;
-    std::uint32_timm5;
+    std::uint32_t imm0;
+    std::uint32_t imm1;
+    std::uint32_t imm2;
+    std::uint32_t imm3;
+    std::uint32_t imm4;
+    std::uint32_t imm5;
 
     if constexpr (APPROXIMATION_MODE) {
         // Using a 6 piece LUT to calculate and model gelu_derivative directly

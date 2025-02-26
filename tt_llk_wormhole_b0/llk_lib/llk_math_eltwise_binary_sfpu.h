@@ -32,7 +32,7 @@ inline void eltwise_binary_sfpu_configure_addrmod() {
 inline void eltwise_binary_sfpu_configure_mop();
 
 template <DstSync Dst>
-inline void _llk_math_eltwise_binary_sfpu_start_(const std::uint32_tdst_index) {
+inline void _llk_math_eltwise_binary_sfpu_start_(const std::uint32_t dst_index) {
     if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2)) {
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
     } else {

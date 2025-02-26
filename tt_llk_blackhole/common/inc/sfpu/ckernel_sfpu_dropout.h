@@ -15,13 +15,13 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_dropout_(const int iterations, std::uint32_tprob, std::uint32_tscale) {
+inline void _calculate_dropout_(const int iterations, std::uint32_t prob, std::uint32_t scale) {
     // SFPU microcode
 
     FWLOG1("calculate_dropout() -- prob:%x", prob);
     FWLOG1("calculate_dropout() -- scale:%x", scale);
 
-    vstd::uint32_trand = l_reg[LRegs::LReg3];
+    vstd::uint32_t rand = l_reg[LRegs::LReg3];
 
 #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++) {
@@ -39,11 +39,11 @@ inline void _calculate_dropout_(const int iterations, std::uint32_tprob, std::ui
         ////////////////////////
         // 16-bit PRNG update
         ///////////////////////
-        vstd::uint32_tlfsr = vConstIntPrgm1;
-        vstd::uint32_ttmp  = lfsr & rand;
-        rand               = rand >> 1;
+        vstd::uint32_t lfsr = vConstIntPrgm1;
+        vstd::uint32_t tmp  = lfsr & rand;
+        rand                = rand >> 1;
         v_if(tmp != 0) {
-            vstd::uint32_tmask = vConstIntPrgm0;
+            vstd::uint32_t mask = vConstIntPrgm0;
             rand ^= mask;
         }
         v_endif;
@@ -75,7 +75,7 @@ inline void _init_dropout_seed_(uint16_t p2) {
     l_reg[LRegs::LReg3] = result;
 }
 
-inline void _init_dropout_(const std::uint32_tseed) {
+inline void _init_dropout_(const std::uint32_t seed) {
     vConstIntPrgm0 = 0xb400;
     vConstIntPrgm1 = 0x1; // binary 0b1 - used to extract LSB
 

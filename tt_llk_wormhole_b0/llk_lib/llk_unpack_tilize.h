@@ -15,11 +15,11 @@ using namespace ckernel::unpacker;
 
 inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false) {
 #if SKIP_UNP == 1
-    static constexpr std::uint32_tunpack_srca            = TT_OP_NOP;
-    static constexpr std::uint32_tunpack_srcb_zerosrc    = TT_OP_NOP;
-    static constexpr std::uint32_tunpack_srcb_set_dvalid = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srca            = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srcb_zerosrc    = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srcb_set_dvalid = TT_OP_NOP;
 #else
-    static constexpr std::uint32_tunpack_srca = TT_OP_UNPACR(
+    static constexpr std::uint32_t unpack_srca = TT_OP_UNPACR(
         SrcA,
         0b1 /*Z inc*/,
         0,
@@ -33,8 +33,8 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false) {
         0,
         0,
         1);
-    static constexpr std::uint32_tunpack_srcb_zerosrc = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
-    static constexpr std::uint32_tunpack_srcb_set_dvalid =
+    static constexpr std::uint32_t unpack_srcb_zerosrc = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr std::uint32_t unpack_srcb_set_dvalid =
         TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID); // WA for tenstorrent/budabackend#1230
 #endif
 
@@ -117,7 +117,7 @@ inline void _llk_unpack_tilize_(
     const std::uint32_t face_r_dim        = FACE_R_DIM,
     const std::uint32_t num_faces         = 4,
     const bool          narrow_tile       = false) {
-    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)

@@ -20,9 +20,9 @@ using namespace ckernel::unpacker;
 
 inline void llk_unpack_transpose_yz_mop_config() {
 #if SKIP_UNP == 1
-    static constexpr std::uint32_tunpack_srca = TT_OP_NOP;
+    static constexpr std::uint32_t unpack_srca = TT_OP_NOP;
 #else
-    static constexpr std::uint32_tunpack_srca =
+    static constexpr std::uint32_t unpack_srca =
         TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
     ckernel_unpack_template tmp = ckernel_unpack_template::lA(unpack_srca);
@@ -45,7 +45,7 @@ inline void llk_unpack_transpose_yz(std::uint32_t operand, std::uint32_t tile_in
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
     // Program srcA and srcB base addresses
-    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
     wait_for_next_context(2);

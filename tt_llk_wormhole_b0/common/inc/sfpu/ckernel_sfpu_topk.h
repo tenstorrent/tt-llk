@@ -16,15 +16,15 @@ namespace ckernel {
 namespace sfpu {
 
 inline void set_dst_write_addr(uint32_t addr) {
-    std::uint32_tdst_index = addr + get_dest_buffer_base();
+    std::uint32_t dst_index = addr + get_dest_buffer_base();
     TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dst_index);
 }
 
-inline void bitonic_topk_load8(std::uint32_toffset, std::uint32_tdist) {
-    constexpr std::uint32_tdst_indices_offset = 128; // 2 tile x 64 rows per tile
+inline void bitonic_topk_load8(std::uint32_t offset, std::uint32_t dist) {
+    constexpr std::uint32_t dst_indices_offset = 128; // 2 tile x 64 rows per tile
 
-    std::uint32_tface_offset = offset >> 4;
-    std::uint32_tld_offset   = (offset & 0xF) + face_offset * 32;
+    std::uint32_t face_offset = offset >> 4;
+    std::uint32_t ld_offset   = (offset & 0xF) + face_offset * 32;
 
     // Load 16 consecutive numbers
     TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, ld_offset);
@@ -39,11 +39,11 @@ inline void bitonic_topk_load8(std::uint32_toffset, std::uint32_tdist) {
     TT_SFPLOAD(p_sfpu::LREG5, 6, ADDR_MOD_3, dst_indices_offset + ld_offset + dist);
 }
 
-inline void bitonic_topk_store8(std::uint32_toffset, std::uint32_tdist) {
-    constexpr std::uint32_tdst_indices_offset = 128; // 2 tile x 64 rows per tile
+inline void bitonic_topk_store8(std::uint32_t offset, std::uint32_t dist) {
+    constexpr std::uint32_t dst_indices_offset = 128; // 2 tile x 64 rows per tile
 
-    std::uint32_tface_offset = offset >> 4;
-    std::uint32_tld_offset   = (offset & 0xF) + face_offset * 32;
+    std::uint32_t face_offset = offset >> 4;
+    std::uint32_t ld_offset   = (offset & 0xF) + face_offset * 32;
 
     // Load 16 consecutive numbers
     TT_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_3, ld_offset);
@@ -58,8 +58,8 @@ inline void bitonic_topk_store8(std::uint32_toffset, std::uint32_tdist) {
     TT_SFPSTORE(p_sfpu::LREG5, 6, ADDR_MOD_3, dst_indices_offset + ld_offset + dist);
 }
 
-inline void bitonic_topk_load16(std::uint32_tdist0, std::uint32_tdist1) {
-    constexpr std::uint32_tdst_indices_offset = 128; // 2 tile x 64 rows per tile
+inline void bitonic_topk_load16(std::uint32_t dist0, std::uint32_t dist1) {
+    constexpr std::uint32_t dst_indices_offset = 128; // 2 tile x 64 rows per tile
 
     // Load 16 consecutive numbers
     TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
@@ -88,8 +88,8 @@ inline void bitonic_topk_load16(std::uint32_tdist0, std::uint32_tdist1) {
 }
 
 template <bool alt_addr_mod = false>
-inline void bitonic_topk_store16(std::uint32_tdist0, std::uint32_tdist1) {
-    constexpr std::uint32_tdst_indices_offset = 128; // 2 tile x 64 rows per tile
+inline void bitonic_topk_store16(std::uint32_t dist0, std::uint32_t dist1) {
+    constexpr std::uint32_t dst_indices_offset = 128; // 2 tile x 64 rows per tile
 
     // Load 16 consecutive numbers
     TTI_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
@@ -222,9 +222,9 @@ inline void bitonic_topk_step_N(bool dir) {
     // MT: Maybe there's a way to optimize out unconditional transpose at every step. Think about this
 }
 
-inline void bitonic_topk_inc_x8_dest(std::uint32_tinc, bool cr) {
-    std::uint32_tinc_grp8 = inc >> 3;
-    for (std::uint32_ti = 0; i < inc_grp8; i++) {
+inline void bitonic_topk_inc_x8_dest(std::uint32_t inc, bool cr) {
+    std::uint32_t inc_grp8 = inc >> 3;
+    for (std::uint32_t i = 0; i < inc_grp8; i++) {
         if (cr) {
             TTI_INCRWC(0b100, 8, 0, 0);
         } else {
@@ -233,9 +233,9 @@ inline void bitonic_topk_inc_x8_dest(std::uint32_tinc, bool cr) {
     }
 }
 
-inline void bitonic_topk_inc_x4_dest(std::uint32_tinc, bool cr) {
-    std::uint32_tinc_grp4 = inc >> 2;
-    for (std::uint32_ti = 0; i < inc_grp4; i++) {
+inline void bitonic_topk_inc_x4_dest(std::uint32_t inc, bool cr) {
+    std::uint32_t inc_grp4 = inc >> 2;
+    for (std::uint32_t i = 0; i < inc_grp4; i++) {
         if (cr) {
             TTI_INCRWC(0b100, 4, 0, 0);
         } else {
@@ -255,7 +255,7 @@ inline void _bitonic_topk_phases_steps(
     bool init_store = (topk_replay_init >= 0) ? true : false;
     bool init_phase;
 
-    std::uint32_tdst_addr_offset = 0;
+    std::uint32_t dst_addr_offset = 0;
     for (int face = 0; face < 2; face++) {
         for (int col = 0; col < 2; col++) {
             bool dir = idir;
@@ -326,30 +326,30 @@ inline void _bitonic_topk_phases_steps(
                         }
                         break;
                     default:
-                        std::uint32_tnum_steps         = ph + 1;
-                        std::uint32_tstart_step        = (i_start_phase == i_end_phase) ? i_start_step : num_steps;
-                        std::uint32_tend_step          = (i_start_phase == i_end_phase) ? i_end_step : 4;
-                        std::uint32_tsorted_seq_length = 1 << num_steps;
-                        std::uint32_tdatums_compared   = 0;
-                        std::uint32_ttotal_datums_to_compare = 64;
-                        for (std::uint32_tss = start_step; ss > end_step; ss--) {
+                        std::uint32_t num_steps         = ph + 1;
+                        std::uint32_t start_step        = (i_start_phase == i_end_phase) ? i_start_step : num_steps;
+                        std::uint32_t end_step          = (i_start_phase == i_end_phase) ? i_end_step : 4;
+                        std::uint32_t sorted_seq_length = 1 << num_steps;
+                        std::uint32_t datums_compared   = 0;
+                        std::uint32_t total_datums_to_compare = 64;
+                        for (std::uint32_t ss = start_step; ss > end_step; ss--) {
                             // Steps N to 5
                             TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-                            dir               = idir;
-                            std::uint32_tdist = (ss == 5) ? 16 : 32;
-                            std::uint32_tinner_d =
+                            dir                = idir;
+                            std::uint32_t dist = (ss == 5) ? 16 : 32;
+                            std::uint32_t inner_d =
                                 dist >>
                                 3; // How many loops to sort the sequence of length (2^ss / 16). Each loop sorts 16
-                            datums_compared         = 0;
-                            std::uint32_tdst_offset = 0;
+                            datums_compared          = 0;
+                            std::uint32_t dst_offset = 0;
                             while (datums_compared < total_datums_to_compare) {
-                                for (std::uint32_tii = 0; ii < inner_d; ii++) {
+                                for (std::uint32_t ii = 0; ii < inner_d; ii++) {
                                     bitonic_topk_load16(
                                         4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
                                     bitonic_topk_step_N(dir);
                                     bitonic_topk_store16<false>(
                                         4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
-                                    std::uint32_tdst_inc = 8;
+                                    std::uint32_t dst_inc = 8;
                                     dst_offset += dst_inc;
                                     bool dst_cr = false;
                                     if (ii == (inner_d - 1)) {
@@ -390,21 +390,21 @@ inline void _bitonic_topk_phases_steps(
 
 template <bool APPROXIMATION_MODE, bool top_min, int ITERATIONS>
 inline void _bitonic_topk_merge(const int m_iter, const int k) {
-    std::uint32_tdst_addr_offset = 0;
+    std::uint32_t dst_addr_offset = 0;
     for (int face = 0; face < 2; face++) {
         for (int col = 0; col < 2; col++) {
             TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-            int k_max                            = k > 32 ? 32 : k;
-            std::uint32_tinner_d                 = k_max >> 2; // inner loop comparisons to sort len=K sequence;
-            std::uint32_ttotal_datums_to_compare = ((64 >> m_iter) < 2 * k_max)
-                                                       ? 2 * k_max
-                                                       : (64 >> m_iter); // max(2, max(64, 64/(2^m))) total datums to
-                                                                         // compare; there's always at least 2*K datums
-            std::uint32_tdist            = (k_max << m_iter) > 32 ? 32 : (k_max << m_iter); // min(32, k*2^k)
-            std::uint32_tld_dist         = (dist < 16) ? dist : 2 * dist; // Accounts for face offsets within a tile
-            std::uint32_tdatums_compared = 0;
-            std::uint32_tdst_offset      = 0;
-            std::uint32_tdst_cr          = 0;
+            int           k_max                   = k > 32 ? 32 : k;
+            std::uint32_t inner_d                 = k_max >> 2; // inner loop comparisons to sort len=K sequence;
+            std::uint32_t total_datums_to_compare = ((64 >> m_iter) < 2 * k_max)
+                                                        ? 2 * k_max
+                                                        : (64 >> m_iter); // max(2, max(64, 64/(2^m))) total datums to
+                                                                          // compare; there's always at least 2*K datums
+            std::uint32_t dist            = (k_max << m_iter) > 32 ? 32 : (k_max << m_iter); // min(32, k*2^k)
+            std::uint32_t ld_dist         = (dist < 16) ? dist : 2 * dist; // Accounts for face offsets within a tile
+            std::uint32_t datums_compared = 0;
+            std::uint32_t dst_offset      = 0;
+            std::uint32_t dst_cr          = 0;
             TT_LOG(
                 "Merge - m = {}, k = {}, dist = {}, total_datums_to_compare = {}",
                 m_iter,
@@ -412,7 +412,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k) {
                 dist,
                 total_datums_to_compare);
             while (datums_compared < total_datums_to_compare) {
-                for (std::uint32_tii = 0; ii < inner_d; ii++) {
+                for (std::uint32_t ii = 0; ii < inner_d; ii++) {
                     bitonic_topk_load8(dst_offset, ld_dist);
                     TTI_SFPSWAP(
                         0,
@@ -443,24 +443,24 @@ inline void _bitonic_topk_rebuild(
     // init replay buffer for rebuild interation 'm_iter' if uninitialized
     bool init_rebuild = (topk_replay_init != m_iter + 1) ? true : false;
 
-    std::uint32_tdst_addr_offset = 0;
+    std::uint32_t dst_addr_offset = 0;
     for (int face = 0; face < 2; face++) {
         for (int col = 0; col < 2; col++) {
-            std::uint32_ttotal_datums_shift = (skip_second & 0x1);
+            std::uint32_t total_datums_shift = (skip_second & 0x1);
             TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-            std::uint32_trebuild_m = m_iter + 1;
-            std::uint32_ttotal_datums_to_compare =
+            std::uint32_t rebuild_m = m_iter + 1;
+            std::uint32_t total_datums_to_compare =
                 ((64 >> rebuild_m) < 2 * k)
                     ? 2 * k
                     : (64 >>
                        rebuild_m); // max(2*k, 64/(2^m)) total datums to compare; there's always at least 2*K datums
             total_datums_to_compare = total_datums_to_compare >> total_datums_shift; // Reduce by 2 if skipping last
-            std::uint32_tdist       = (k << rebuild_m) > 32 ? 32 : (k << rebuild_m); // min(32, k*2^k)
-            std::uint32_tld_offset  = (dist >> 4) * 32 + (dist & 0xF);
-            std::uint32_tld_dist;
-            int  ph                      = logk - 1;
-            bool dir                     = idir;
-            std::uint32_tdatums_compared = 0;
+            std::uint32_t dist      = (k << rebuild_m) > 32 ? 32 : (k << rebuild_m); // min(32, k*2^k)
+            std::uint32_t ld_offset = (dist >> 4) * 32 + (dist & 0xF);
+            std::uint32_t ld_dist;
+            int           ph              = logk - 1;
+            bool          dir             = idir;
+            std::uint32_t datums_compared = 0;
             TT_LOG(
                 "Rebuild - m = {}, k = {}, dist = {}, total_datums_to_compare = {}",
                 m_iter,
@@ -552,28 +552,28 @@ inline void _bitonic_topk_rebuild(
                     }
                     break;
                 default:
-                    std::uint32_tnum_steps               = ph + 1;
-                    std::uint32_tstart_step              = num_steps;
-                    std::uint32_tend_step                = 4;
-                    std::uint32_tsorted_seq_length       = 1 << num_steps;
-                    std::uint32_ttotal_datums_to_compare = 64;
-                    for (std::uint32_tss = start_step; ss > end_step; ss--) {
+                    std::uint32_t num_steps               = ph + 1;
+                    std::uint32_t start_step              = num_steps;
+                    std::uint32_t end_step                = 4;
+                    std::uint32_t sorted_seq_length       = 1 << num_steps;
+                    std::uint32_t total_datums_to_compare = 64;
+                    for (std::uint32_t ss = start_step; ss > end_step; ss--) {
                         // Steps N to 5
                         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-                        dir               = idir;
-                        datums_compared   = 0;
-                        std::uint32_tdist = (ss == 5) ? 16 : 32;
-                        std::uint32_tinner_d =
+                        dir                = idir;
+                        datums_compared    = 0;
+                        std::uint32_t dist = (ss == 5) ? 16 : 32;
+                        std::uint32_t inner_d =
                             dist >> 3; // How many loops to sort the sequence of length (2^ss / 16). Each loop sorts 16
-                        std::uint32_tdst_offset = 0;
+                        std::uint32_t dst_offset = 0;
                         while (datums_compared < total_datums_to_compare) {
-                            for (std::uint32_tii = 0; ii < inner_d; ii++) {
+                            for (std::uint32_t ii = 0; ii < inner_d; ii++) {
                                 bitonic_topk_load16(
                                     4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
                                 bitonic_topk_step_N(dir);
                                 bitonic_topk_store16<false>(
                                     4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
-                                std::uint32_tdst_inc = 8;
+                                std::uint32_t dst_inc = 8;
                                 dst_offset += dst_inc;
                                 bool dst_cr = false;
                                 if (ii == (inner_d - 1)) {
