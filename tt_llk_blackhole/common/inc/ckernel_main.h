@@ -2,4 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-uint run_kernel();
+#pragma once
+
+#include <cstdint>
+
+std::uint32_trun_kernel();

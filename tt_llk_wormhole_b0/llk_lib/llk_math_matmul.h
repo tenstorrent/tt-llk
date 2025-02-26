@@ -4,6 +4,7 @@
 
 #pragma once
 #include "ckernel_include.h"
+#include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
@@ -423,8 +424,8 @@ inline void matmul_configure_mop(
     }
 
     // TODO: can we commonize this?
-    constexpr uint   inner_loops = high_fidelity ? NUM_FIDELITY_PHASES : 1;
-    ckernel_template tmp(
+    constexpr std::uint32_t inner_loops = high_fidelity ? NUM_FIDELITY_PHASES : 1;
+    ckernel_template        tmp(
         1 /* outer loop */, inner_loops, TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0));
 
     if constexpr (high_fidelity) {
@@ -494,7 +495,7 @@ inline void _llk_math_matmul_init_(
 
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
 inline void _llk_math_matmul_(
-    uint                dst_index,
+    std::uint32_t       dst_index,
     const bool          transpose = false,
     const std::uint32_t ct_dim    = 1,
     const std::uint32_t rt_dim    = 1,
@@ -503,8 +504,8 @@ inline void _llk_math_matmul_(
     const std::uint32_t t_dim   = reuse_a ? rt_dim : ct_dim;
     const std::uint32_t rut_dim = reuse_a ? ct_dim : rt_dim; // reuse-dim
 
-    for (uint t = 0; t < t_dim; t++) {
-        for (uint rut = 0; rut < rut_dim; rut++) {
+    for (std::uint32_tt = 0; t < t_dim; t++) {
+        for (std::uint32_trut = 0; rut < rut_dim; rut++) {
             math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(
                 dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim));
 

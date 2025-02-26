@@ -5,6 +5,7 @@
 #pragma once
 #include "ckernel_globals.h"
 #include "ckernel_include.h"
+#include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
@@ -23,7 +24,8 @@ template <
     int       MATH_FIDELITY_DESC  = 0,
     bool      is_fp32_dest_acc_en = false,
     bool      is_int_fpu_en       = false>
-inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4) {
+inline void _llk_math_reduce_(
+    const std::uint32_tdst_index, bool narrow_tile = false, const std::uint32_tnum_faces = 4) {
     constexpr int  MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY        = MATH_FIDELITY_PHASES > 0;
 
@@ -158,8 +160,8 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         // Increment dest by 32 for next accumulation
         TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
     } else if constexpr (dim == ReduceDim::REDUCE_COL) {
-        const uint num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
-        for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++) {
+        const std::uint32_tnum_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
+        for (std::uint32_trow_tile = 0; row_tile < num_row_tiles; row_tile++) {
             // Just pool
             if constexpr (type == PoolType::MAX) {
                 TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);

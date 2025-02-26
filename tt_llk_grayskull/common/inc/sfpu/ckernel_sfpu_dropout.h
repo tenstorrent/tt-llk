@@ -15,14 +15,14 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_dropout_(uint prob, uint scale) {
+inline void _calculate_dropout_(std::uint32_tprob, std::uint32_tscale) {
     // SFPU microcode
 
     FWLOG1("calculate_dropout() -- prob:%x", prob);
     FWLOG1("calculate_dropout() -- scale:%x", scale);
 
-    vUInt rand = l_reg[LRegs::LReg3];
-    vUInt mask = reinterpret<vUInt>(vFloat(s2vFloat16b(0xa94b)));
+    vstd::uint32_trand = l_reg[LRegs::LReg3];
+    vstd::uint32_tmask = reinterpret<vUInt>(vFloat(s2vFloat16b(0xa94b)));
 
 #pragma GCC unroll 0
     for (int d = 0; d < 4; d++) {
@@ -34,7 +34,7 @@ inline void _calculate_dropout_(uint prob, uint scale) {
         ////////////////////////
         // Drop samples
         ///////////////////////
-        vUInt tmp = rand >> 3;
+        vstd::uint32_ttmp = rand >> 3;
         v_if(tmp < vUInt(prob)) { dst_reg[0] = vConst0; }
         v_endif;
 
@@ -76,7 +76,7 @@ inline void _init_dropout_seed_(uint16_t p2) {
     l_reg[LRegs::LReg3] = result;
 }
 
-inline void _init_dropout_(const uint seed) { _init_dropout_seed_(seed); }
+inline void _init_dropout_(const std::uint32_tseed) { _init_dropout_seed_(seed); }
 
 } // namespace sfpu
 } // namespace ckernel

@@ -14,7 +14,7 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, bool SIGN_MAGNITUDE_FORMAT, int ITERATIONS>
-inline void _add_int32_(const uint dst_offset) {
+inline void _add_int32_(const std::uint32_tdst_offset) {
     // Operand A is input1 (int32)
     // Operand B is input2 (int32)
     // Output is int32

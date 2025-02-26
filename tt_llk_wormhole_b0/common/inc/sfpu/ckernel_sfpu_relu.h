@@ -16,7 +16,7 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE>
-inline void _calculate_lrelu_(const int iterations, uint slope) {
+inline void _calculate_lrelu_(const int iterations, std::uint32_tslope) {
     vFloat s = Converter::to_float(slope);
 
 #pragma GCC unroll 0
@@ -33,7 +33,7 @@ inline void _calculate_lrelu_(const int iterations, uint slope) {
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _relu_max_(const int iterations, uint uint_threshold) {
+inline void _relu_max_(const int iterations, std::uint32_tuint_threshold) {
     vFloat threshold = s2vFloat16(uint_threshold, s2vFloat16::fp16a);
     for (int d = 0; d < iterations; d++) {
         vFloat a = dst_reg[0];
@@ -47,7 +47,7 @@ inline void _relu_max_(const int iterations, uint uint_threshold) {
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _relu_min_(const int iterations, uint uint_threshold) {
+inline void _relu_min_(const int iterations, std::uint32_tuint_threshold) {
     vFloat threshold = s2vFloat16(uint_threshold, s2vFloat16::fp16a);
     for (int d = 0; d < iterations; d++) {
         vFloat a = dst_reg[0];

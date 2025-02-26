@@ -6,6 +6,7 @@
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
+#include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 
@@ -15,17 +16,17 @@ using namespace ckernel::unpacker;
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_mop_config_() {
 #if SKIP_UNP == 1
-    static constexpr uint unpack_srca = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srca = TT_OP_NOP;
 #else
-    static constexpr uint unpack_srca =
+    static constexpr std::uint32_tunpack_srca =
         TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
-    static constexpr uint unpack_zerosrca =
+    static constexpr std::uint32_tunpack_zerosrca =
         TT_OP_UNPACR_NOP(p_unpacr_nop::UNP0, 0, 0, 0, 0, 0, 0, p_unpacr_nop::CLR_SRC_0, p_unpacr_nop::CLR_SRC);
 #if SKIP_UNP == 1
-    static constexpr uint unpack_srcb = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srcb = TT_OP_NOP;
 #else
-    static constexpr uint unpack_srcb =
+    static constexpr std::uint32_tunpack_srcb =
         TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
     ckernel_unpack_template tmp = ckernel_unpack_template(
@@ -87,7 +88,7 @@ inline void _llk_unpack_reduce_(const std::uint32_t address) {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
     wait_for_next_context(2);

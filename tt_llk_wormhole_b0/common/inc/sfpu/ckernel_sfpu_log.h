@@ -15,7 +15,7 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool HAS_BASE_SCALING>
-sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor) {
+sfpi_inline void _calculate_log_body_(const std::uint32_tlog_base_scale_factor) {
     ////////////////////////////
     // Load From dest + "normalize to calculation range"
     ////////////////////////////
@@ -65,7 +65,7 @@ sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor) {
 }
 
 template <bool APPROXIMATION_MODE, bool HAS_BASE_SCALING, int ITERATIONS>
-inline void _calculate_log_(const int iterations, uint log_base_scale_factor) {
+inline void _calculate_log_(const int iterations, std::uint32_tlog_base_scale_factor) {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++) {
         _calculate_log_body_<HAS_BASE_SCALING>(log_base_scale_factor);

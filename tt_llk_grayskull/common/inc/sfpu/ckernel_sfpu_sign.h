@@ -16,9 +16,9 @@ namespace ckernel {
 namespace sfpu {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_sign_(uint exponent_size_8) {
+inline void _calculate_sign_(std::uint32_texponent_size_8) {
     // All params are in FP16 format
-    // uint format = 1;
+    // std::uint32_tformat = 1;
     for (int d = 0; d < ITERATIONS; d++) {
         vFloat v   = dst_reg[0];
         dst_reg[0] = vConst1;

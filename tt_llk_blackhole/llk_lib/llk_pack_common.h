@@ -6,6 +6,7 @@
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
+#include "ckernel_instr_params.h"
 #include "cpack_common.h"
 #include "fw_debug.h"
 #include "llk_defs.h"
@@ -29,7 +30,7 @@ inline void _llk_packer_wait_for_math_done_() {
 }
 
 // Tell math that it can write again
-template <uint WaitRes = p_stall::NONE>
+template <std::uint32_tWaitRes = p_stall::NONE>
 inline void _llk_packer_set_math_semaphore_() {
     t6_semaphore_get<WaitRes>(semaphore::MATH_PACK); // Indicate that packer is done and header is written into L1
 }

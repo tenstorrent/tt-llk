@@ -17,9 +17,9 @@ namespace sfpu {
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_sigmoid_() {
     // SFPU microcode
-    vUInt l0 = l_reg[LRegs::LReg0];
-    vUInt l1 = l_reg[LRegs::LReg1];
-    vUInt l2 = l_reg[LRegs::LReg2];
+    vstd::uint32_tl0 = l_reg[LRegs::LReg0];
+    vstd::uint32_tl1 = l_reg[LRegs::LReg1];
+    vstd::uint32_tl2 = l_reg[LRegs::LReg2];
 
     for (int d = 0; d < ITERATIONS; d++) {
         vFloat val = dst_reg[0];
@@ -38,9 +38,9 @@ inline void _calculate_sigmoid_() {
 
 template <bool APPROXIMATION_MODE>
 inline void _init_sigmoid_() {
-    uint imm0;
-    uint imm1;
-    uint imm2;
+    std::uint32_timm0;
+    std::uint32_timm1;
+    std::uint32_timm2;
     imm0 = 0x3DFF;
     imm1 = 0x21D8;
     imm2 = 0xFF10;

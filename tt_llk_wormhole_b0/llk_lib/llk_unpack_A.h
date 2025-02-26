@@ -6,6 +6,7 @@
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
+#include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 
@@ -37,21 +38,21 @@ inline void _llk_unpack_A_mop_config_(
         "Not supported configuration when unpacking to dest!");
 
 #if SKIP_UNP == 1
-    static constexpr uint unpack_srca            = TT_OP_NOP;
-    static constexpr uint unpack_srca_to_dest    = TT_OP_NOP;
-    static constexpr uint unpack_srca_set_dvalid = TT_OP_NOP;
-    static constexpr uint unpack_srcb            = TT_OP_NOP;
-    static constexpr uint unpack_srcb_inc_z_0    = TT_OP_NOP;
-    static constexpr uint unpack_srcb_zerosrc    = TT_OP_NOP;
-    static constexpr uint unpack_srcb_set_dvalid = TT_OP_NOP;
-    static constexpr uint srca_set_z_1           = TT_OP_NOP;
-    static constexpr uint srcb_set_z_2           = TT_OP_NOP;
-    static constexpr uint srcb_clear_z           = TT_OP_NOP;
-    constexpr uint        replay_buf_len         = 1;
+    static constexpr std::uint32_tunpack_srca            = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srca_to_dest    = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srca_set_dvalid = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srcb            = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srcb_inc_z_0    = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srcb_zerosrc    = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srcb_set_dvalid = TT_OP_NOP;
+    static constexpr std::uint32_tsrca_set_z_1           = TT_OP_NOP;
+    static constexpr std::uint32_tsrcb_set_z_2           = TT_OP_NOP;
+    static constexpr std::uint32_tsrcb_clear_z           = TT_OP_NOP;
+    constexpr std::uint32_t replay_buf_len               = 1;
     TTI_REPLAY(0, 1, 0, 1);
     TTI_NOP;
 #else
-    static constexpr uint unpack_srca = TT_OP_UNPACR(
+    static constexpr std::uint32_tunpack_srca = TT_OP_UNPACR(
         SrcA,
         0b1 /*Z inc*/,
         0,
@@ -65,7 +66,7 @@ inline void _llk_unpack_A_mop_config_(
         0,
         0,
         1);
-    static constexpr uint unpack_srca_to_dest = TT_OP_UNPACR(
+    static constexpr std::uint32_tunpack_srca_to_dest = TT_OP_UNPACR(
         SrcA,
         0b00010001 /*Z inc*/,
         0,
@@ -79,9 +80,9 @@ inline void _llk_unpack_A_mop_config_(
         0,
         0,
         1); // ch0/ch1 z_inc
-    static constexpr uint unpack_srca_zerosrc    = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
-    static constexpr uint unpack_srca_set_dvalid = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
-    static constexpr uint unpack_srcb            = TT_OP_UNPACR(
+    static constexpr std::uint32_tunpack_srca_zerosrc    = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr std::uint32_tunpack_srca_set_dvalid = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
+    static constexpr std::uint32_tunpack_srcb            = TT_OP_UNPACR(
         SrcB,
         0b1 /*Z inc*/,
         0,
@@ -95,7 +96,7 @@ inline void _llk_unpack_A_mop_config_(
         0,
         0,
         1);
-    static constexpr uint unpack_srcb_inc_z_0 = TT_OP_UNPACR(
+    static constexpr std::uint32_tunpack_srcb_inc_z_0 = TT_OP_UNPACR(
         SrcB,
         0b0 /*Z inc*/,
         0,
@@ -109,12 +110,15 @@ inline void _llk_unpack_A_mop_config_(
         0,
         0,
         1);
-    static constexpr uint unpack_srcb_zerosrc = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
-    static constexpr uint unpack_srcb_set_dvalid =
+    static constexpr std::uint32_tunpack_srcb_zerosrc = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr std::uint32_tunpack_srcb_set_dvalid =
         TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID); // WA for tenstorrent/budabackend#1230
-    static constexpr uint srca_set_z_1 = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // set srcA ch0_z = 1
-    static constexpr uint srcb_set_z_2 = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2, 0b0001); // set srcB ch0_z = 2
-    static constexpr uint srcb_clear_z = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001); // set srcB ch0_z = 0
+    static constexpr std::uint32_tsrca_set_z_1 =
+        TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // set srcA ch0_z = 1
+    static constexpr std::uint32_tsrcb_set_z_2 =
+        TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2, 0b0001); // set srcB ch0_z = 2
+    static constexpr std::uint32_tsrcb_clear_z =
+        TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001); // set srcB ch0_z = 0
     TTI_REPLAY(0, 4, 0, 1);
     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
@@ -146,8 +150,8 @@ inline void _llk_unpack_A_mop_config_(
         0,
         0,
         1);
-    static constexpr uint unpack_srca_zerosrc_set_dvalid = TT_OP_REPLAY(0, 2, 0, 0);
-    static constexpr uint unpack_srcb_unpack_srcb        = TT_OP_REPLAY(2, 2, 0, 0);
+    static constexpr std::uint32_tunpack_srca_zerosrc_set_dvalid = TT_OP_REPLAY(0, 2, 0, 0);
+    static constexpr std::uint32_tunpack_srcb_unpack_srcb        = TT_OP_REPLAY(2, 2, 0, 0);
 #endif
 
     if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format)) {
@@ -181,7 +185,7 @@ inline void _llk_unpack_A_mop_config_(
     } else {
         if (transpose_of_faces) {
 #if SKIP_UNP == 0
-            constexpr uint replay_buf_len = 3;
+            constexpr std::uint32_treplay_buf_len = 3;
             TTI_REPLAY(4, replay_buf_len, 0, 1);
             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
@@ -200,10 +204,10 @@ inline void _llk_unpack_A_mop_config_(
             tmp.program(instrn_buffer);
         } else {
             if constexpr (acc_to_dest) {
-                static constexpr uint unpack_srca_reuse =
+                static constexpr std::uint32_tunpack_srca_reuse =
                     (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA) ? unpack_srca_zerosrc : unpack_srca;
 
-                static constexpr uint unpack_srcb_reuse =
+                static constexpr std::uint32_tunpack_srcb_reuse =
                     (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ? unpack_srcb_zerosrc : unpack_srcb;
 
                 const uint32_t     outerloop = num_faces;
@@ -281,7 +285,7 @@ inline void _llk_unpack_A_(
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
     wait_for_next_context(2);

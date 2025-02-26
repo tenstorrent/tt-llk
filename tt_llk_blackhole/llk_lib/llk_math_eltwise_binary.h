@@ -4,6 +4,7 @@
 
 #pragma once
 #include "ckernel_include.h"
+#include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
@@ -29,7 +30,8 @@ template <
     int                        NUM_FIDELITY_PHASES = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest   = EltwiseBinaryReuseDestType::NONE,
     bool                       is_fp32_dest_acc_en = false>
-inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc) {
+inline void _llk_math_eltwise_binary_(
+    const std::uint32_t num_faces, std::uint32_tdst_index, const bool clear_fp32_dst_acc) {
     constexpr bool     high_fidelity = (NUM_FIDELITY_PHASES > 0);
     constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
@@ -324,11 +326,11 @@ template <
     int                        NUM_FIDELITY_PHASES = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest   = EltwiseBinaryReuseDestType::NONE>
 inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4) {
-    constexpr bool high_fidelity  = (NUM_FIDELITY_PHASES > 0);
-    const uint     addr_mod       = ADDR_MOD_0;
-    constexpr uint innerloop      = 16 >> 3; // 8 rows per eltwise op at a time.
-    uint           outerloop      = num_faces;
-    auto           broadcast_type = p_elwise::SRCB_NO_BCAST;
+    constexpr bool      high_fidelity = (NUM_FIDELITY_PHASES > 0);
+    const std::uint32_t addr_mod      = ADDR_MOD_0;
+    constexpr std::uint32_tinnerloop  = 16 >> 3; // 8 rows per eltwise op at a time.
+    std::uint32_t outerloop           = num_faces;
+    auto          broadcast_type      = p_elwise::SRCB_NO_BCAST;
     if constexpr (bcast_type == BroadcastType::COL) {
         // The mop only runs for 2 outer loops and mop is called twice for col broadcast
         outerloop      = 2;

@@ -23,10 +23,10 @@ enum class BinaryBitwiseOp : uint8_t {
 };
 
 template <bool APPROXIMATION_MODE, BinaryBitwiseOp BITWISE_OP, int ITERATIONS = 8>
-inline void _calculate_sfpu_binary_bitwise_(const uint dst_offset) {
+inline void _calculate_sfpu_binary_bitwise_(const std::uint32_tdst_offset) {
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++) {
-        constexpr uint dst_tile_size = 64;
+        constexpr std::uint32_tdst_tile_size = 64;
 
         TTI_SFPLOAD(0, 4, 3, 0);
         TT_SFPLOAD(1, 4, 3, dst_offset * dst_tile_size);

@@ -7,6 +7,7 @@
 // #include "kernel_types.h"
 #include "ckernel.h"
 #include "ckernel_globals.h"
+#include "ckernel_instr_params.h"
 #include "ckernel_sfpu.h"
 #include "ckernel_template.h"
 #include "llk_defs.h"
@@ -23,23 +24,24 @@ using namespace ckernel;
 
 namespace ckernel::math {
 
-constexpr uint DstTileSize[3] = {
+constexpr std::uint32_tDstTileSize[3] = {
     64, // 32x32 tile shape
     32, // 32x16, 16x32 tile shape
     16  // 16x16 tile shape
 };
-constexpr uint DstTileSizeLog2[3] = {
+constexpr std::uint32_tDstTileSizeLog2[3] = {
     6, // 32x32 tile shape
     5, // 32x16, 16x32 tile shape
     4  // 16x16 tile shape
 };
 
-constexpr uint replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
-                                       // fist 16 for sfpu, next 16 for fpu
+constexpr std::uint32_treplay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
+                                               // fist 16 for sfpu, next 16 for fpu
 
-inline void reset_counters(const uint setrwc) { TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, setrwc); }
+inline void reset_counters(const std::uint32_tsetrwc) { TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, setrwc); }
 
-inline void incr_counters(const uint incr_a, const uint incr_b, const uint incr_d, const uint incr_cr) {
+inline void incr_counters(
+    const std::uint32_tincr_a, const std::uint32_tincr_b, const std::uint32_tincr_d, const std::uint32_tincr_cr) {
     FWASSERT("Value exceeds RWC_A width of 4 bits", incr_a < 16);
     FWASSERT("Value exceeds RWC_B width of 4 bits", incr_b < 16);
     FWASSERT("Value exceeds RWC_D width of 4 bits", incr_d < 16);
@@ -94,7 +96,7 @@ inline void move_a2d_fixed_face(const uint8_t addrmod) {
     TTI_MOVA2D(0, p_mova2d::MATH_HALO_ROWS, addrmod, p_mova2d::MOV_8_ROWS, 0);
 }
 
-template <uint SrcReg>
+template <std::uint32_tSrcReg>
 inline void wait_bank_valid() {
     if constexpr (SrcReg == Srcs::SrcA) {
         TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCA_VLD);
@@ -103,7 +105,7 @@ inline void wait_bank_valid() {
     }
 }
 
-template <uint SrcReg>
+template <std::uint32_tSrcReg>
 inline void clear_bank_valid() {
     if constexpr (SrcReg == Srcs::SrcA) {
         TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A);
@@ -138,8 +140,8 @@ inline void math_unpack_to_dest_tile_ready() {
 template <DstTileLayout layout, DstTileShape tile_shape, bool unpack_to_dest = false>
 inline void set_dst_write_addr(uint32_t tile_index) {
     if constexpr (layout == DstTileLayout::Default) {
-        uint dst_index = tile_index << DstTileSizeLog2[tile_shape];
-        dst_index      = dst_index + get_dest_buffer_base();
+        std::uint32_tdst_index = tile_index << DstTileSizeLog2[tile_shape];
+        dst_index              = dst_index + get_dest_buffer_base();
         if constexpr (unpack_to_dest) {
             mailbox_write(ThreadId::UnpackThreadId, dst_index); // Send to unpacker
         } else {
@@ -154,7 +156,7 @@ inline void set_dst_write_addr(uint32_t tile_index) {
 //
 inline void clear_dst_reg_addr() { TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D); }
 
-template <uint num_rows = 8>
+template <std::uint32_tnum_rows = 8>
 inline void inc_dst_addr() {
     static_assert(num_rows <= 15, "num_rows must be <= 15");
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, num_rows, 0, 0, p_setrwc::SET_D);
@@ -170,14 +172,14 @@ inline void math_dest_wait() {
 
 inline void dest_section_flip() {
     update_dest_offset_id();
-    uint base_addr = get_dest_buffer_base();
+    std::uint32_tbase_addr = get_dest_buffer_base();
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::SFPU1);
     TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, base_addr);
 }
 
 template <DstStart Dst>
 inline void set_dest_section_base() {
-    uint base_addr;
+    std::uint32_tbase_addr;
     if constexpr (Dst == DstStart::StartZero) {
         base_addr = 0;
     } else {
@@ -187,8 +189,8 @@ inline void set_dest_section_base() {
 }
 
 inline constexpr bool is_32bit_input(const std::uint32_t src_format, const std::uint32_t dst_format) {
-    const uint input_df  = src_format & 0xF;
-    const uint output_df = dst_format & 0xF;
+    const std::uint32_tinput_df  = src_format & 0xF;
+    const std::uint32_toutput_df = dst_format & 0xF;
     return ((input_df == (uint)DataFormat::Int32) || (input_df == (uint)DataFormat::Float32)) &&
            ((output_df == (uint)DataFormat::Int32) || (output_df == (uint)DataFormat::Float32));
 }

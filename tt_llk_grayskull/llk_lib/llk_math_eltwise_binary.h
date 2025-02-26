@@ -13,7 +13,7 @@ using namespace ckernel;
 
 // local function declarations
 inline void eltwise_binary_configure_addrmod();
-inline void eltwise_binary_configure_mop(uint total_rows);
+inline void eltwise_binary_configure_mop(std::uint32_ttotal_rows);
 
 template <EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void eltwise_binary_reuse_dest_as_src() {
@@ -33,7 +33,7 @@ template <
 inline void _llk_math_eltwise_binary_(
     const std::uint32_t num_faces_A,
     const std::uint32_t num_faces_B,
-    uint                dst_index,
+    std::uint32_t       dst_index,
     const bool          clear_fp32_dst_acc /*not used*/) {
     if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2)) {
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
@@ -211,10 +211,10 @@ template <
     int                        NUM_FIDELITY_PHASES = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest   = EltwiseBinaryReuseDestType::NONE>
 inline void eltwise_binary_configure_mop() {
-    const uint addr_mod       = ADDR_MOD_0;
-    uint       innerloop      = 16 >> 2; // 4 rows per eltwise op at a time.
-    uint       outerloop      = 4;
-    auto       broadcast_type = p_elwise::SRCB_NO_BCAST;
+    const std::uint32_taddr_mod  = ADDR_MOD_0;
+    std::uint32_t innerloop      = 16 >> 2; // 4 rows per eltwise op at a time.
+    std::uint32_t outerloop      = 4;
+    auto          broadcast_type = p_elwise::SRCB_NO_BCAST;
     if constexpr (bcast_type == BroadcastType::COL) {
         // The mop only runs for 2 outer loops and mop is called twice for col broadcast
         outerloop      = 2;

@@ -6,6 +6,7 @@
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
+#include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 
@@ -15,18 +16,18 @@ using namespace ckernel::unpacker;
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_mop_config_() {
 #if SKIP_UNP == 1
-    static constexpr uint unpack_srca = TT_OP_NOP;
-    static constexpr uint unpack_srcb = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srca = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srcb = TT_OP_NOP;
 #else
-    static constexpr uint unpack_srca =
+    static constexpr std::uint32_tunpack_srca =
         TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srcb =
+    static constexpr std::uint32_tunpack_srcb =
         TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
 
     if constexpr (BType == BroadcastType::COL) {
-        static constexpr uint   unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
-        ckernel_unpack_template tmp               = ckernel_unpack_template(
+        static constexpr std::uint32_t unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
+        ckernel_unpack_template        tmp               = ckernel_unpack_template(
             false, // src B
             true,  // halo - just used for 4 unpacks
             unpack_srcb,
@@ -38,8 +39,8 @@ inline void _llk_unpack_AB_mop_config_() {
             0);
         tmp.program(instrn_buffer);
     } else if constexpr (BType == BroadcastType::ROW) {
-        static constexpr uint   unpack_srcb_clear_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
-        ckernel_unpack_template tmp                 = ckernel_unpack_template(
+        static constexpr std::uint32_t unpack_srcb_clear_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
+        ckernel_unpack_template        tmp                 = ckernel_unpack_template(
             true, // src B
             true, // halo - just used for 4 unpacks
             unpack_srcb,
@@ -98,7 +99,7 @@ inline void _llk_unpack_AB_(
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
     wait_for_next_context(2);

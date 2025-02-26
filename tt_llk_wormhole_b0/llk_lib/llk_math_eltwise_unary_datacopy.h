@@ -6,6 +6,7 @@
 
 #include "ckernel_globals.h"
 #include "ckernel_include.h"
+#include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
@@ -116,13 +117,13 @@ template <
     bool          is_fp32_dest_acc_en = false,
     bool          is_int_fpu_en       = false>
 inline void eltwise_unary_configure_mop(
-    uint rows_per_inst, uint total_rows, const uint num_faces, const uint dst_format) {
+    std::uint32_trows_per_inst, std::uint32_ttotal_rows, const std::uint32_tnum_faces, const std::uint32_tdst_format) {
     // always move 32x32 tile, packed as 16x16x4
 
     if constexpr (type == A2D) {
-        uint addr_mod  = (rows_per_inst == p_mova2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
-        uint innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
-        uint outerloop = num_faces;
+        std::uint32_taddr_mod  = (rows_per_inst == p_mova2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
+        std::uint32_tinnerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
+        std::uint32_touterloop = num_faces;
 
         if (((is_fp32_dest_acc_en || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) ||
             (dst_format == (uint)DataFormat::UInt8)) {
@@ -137,10 +138,10 @@ inline void eltwise_unary_configure_mop(
             tmp.program(instrn_buffer);
         }
     } else if constexpr (type == B2D) {
-        uint addr_mod       = (rows_per_inst == p_movb2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
-        uint innerloop      = (rows_per_inst == p_movb2d::MOV_1_ROW) ? total_rows : (total_rows >> 2);
-        uint outerloop      = 4;
-        auto broadcast_type = p_movb2d::MOV_1_ROW; // No broadcast;
+        std::uint32_taddr_mod  = (rows_per_inst == p_movb2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
+        std::uint32_tinnerloop = (rows_per_inst == p_movb2d::MOV_1_ROW) ? total_rows : (total_rows >> 2);
+        std::uint32_touterloop = 4;
+        auto broadcast_type    = p_movb2d::MOV_1_ROW; // No broadcast;
 
         if constexpr (bcast_type == BroadcastType::COL) {
             innerloop = 16 >> 3; // elwadd produces 8 rows per op

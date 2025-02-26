@@ -69,7 +69,7 @@ inline void _llk_unpack_config_tile_dim_srca_impl_(
 
 inline void _llk_unpack_config_tile_dim_srcb_impl_(
     const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4) {
-    const uint face_dim = face_r_dim * FACE_C_DIM;
+    const std::uint32_tface_dim = face_r_dim * FACE_C_DIM;
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 16, 0xffff0000>(face_dim);
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(num_faces);
 }

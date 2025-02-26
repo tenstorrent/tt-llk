@@ -6,6 +6,7 @@
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
+#include "ckernel_instr_params.h"
 #include "cpack_common.h"
 #include "fw_debug.h"
 #include "llk_defs.h"
@@ -29,7 +30,7 @@ inline void _llk_packer_wait_for_math_done_() {
 }
 
 // Tell math that it can write again
-template <uint WaitRes = p_stall::NONE>
+template <std::uint32_tWaitRes = p_stall::NONE>
 inline void _llk_packer_set_math_semaphore_() {
     t6_semaphore_get<WaitRes>(semaphore::MATH_PACK); // Indicate that packer is done and header is written into L1
 }
@@ -77,7 +78,8 @@ inline void _llk_init_packer_dest_offset_registers_(
     const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false) {
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK); // wait for pack to finish
     if constexpr (untilize) {
-        const uint face_r_offset = ((face_r_dim == 1) || narrow_tile || diagonal) ? FACE_R_DIM : (face_r_dim >> 1);
+        const std::uint32_tface_r_offset =
+            ((face_r_dim == 1) || narrow_tile || diagonal) ? FACE_R_DIM : (face_r_dim >> 1);
         if constexpr (FaceLayout == ColMajor) {
             // Packer0 :  0,32,  1,33 ...  7, 39
             // Packer1 :  8,40,  9,41 ... 15, 47

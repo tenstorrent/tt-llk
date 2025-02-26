@@ -27,7 +27,7 @@ template <
     bool second_check,
     bool is_less_than_equal_zero,
     int  ITERATIONS>
-inline void _calculate_comp_(const int iterations, uint exponent_size_8) {
+inline void _calculate_comp_(const int iterations, std::uint32_texponent_size_8) {
     // output_0 and output_1 hold the outputs use use when a zero or negative check is true/false.
     // False = 0.0 = kCONST_0 (5/8-bit exponent format)
     // True  = 1.0 = kCONST_1_FP16B (8-bit exponent format)

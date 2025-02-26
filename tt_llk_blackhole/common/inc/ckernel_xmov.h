@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+
+#include <cstdint>
+
 #include "ckernel.h"
 
 // XMOV programming through C kernels
@@ -25,7 +28,7 @@ typedef union {
 } risc_compact_mov_instrn_u;
 
 inline void xmov_set_base(const uint32_t l1_base_addr_16B) {
-    volatile uint *XMOV_L1_BASE = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_XMOV_L1_BASE_ADDR);
+    volatile std::uint32_t *XMOV_L1_BASE = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_XMOV_L1_BASE_ADDR);
     // Program mover L1 base to the command base
     XMOV_L1_BASE[0] = l1_base_addr_16B;
 }
@@ -48,7 +51,7 @@ inline void xmov_cfg_instr_set(
 inline void xmov_cfg_instr_program(
     const risc_compact_mov_instrn_t xmov, const uint32_t l1_offset_16B, const uint32_t reg_addr32) {
     // Program tile descriptor using fast XMOV path
-    volatile uint            *XMOV_CMD = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_COMMAND_ADDR);
+    volatile std::uint32_t   *XMOV_CMD = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_COMMAND_ADDR);
     risc_compact_mov_instrn_u risc_mov_instrn;
     risc_mov_instrn.f = xmov;
     risc_mov_instrn.f.src_offset_addr =
@@ -58,7 +61,7 @@ inline void xmov_cfg_instr_program(
 }
 
 inline void xmov_cfg_program(const uint32_t l1_offset_16B, const uint32_t reg_addr32, const uint32_t xfer_size = 1) {
-    volatile uint *XMOV_CMD = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_COMMAND_ADDR);
+    volatile std::uint32_t *XMOV_CMD = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_COMMAND_ADDR);
     // Program tile descriptor using fast XMOV path
     risc_compact_mov_instrn_u risc_mov_instrn;
     xmov_cfg_instr_set(risc_mov_instrn, l1_offset_16B, reg_addr32, xfer_size);
@@ -67,11 +70,11 @@ inline void xmov_cfg_program(const uint32_t l1_offset_16B, const uint32_t reg_ad
 
 inline void xmov_l1_to_l1_non_compact(
     const uint32_t src_addr_16B, const uint32_t dst_addr_16B, const uint32_t xfer_size_16B = 1) {
-    volatile uint *XMOV_CMD  = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_COMMAND_ADDR);
-    volatile uint *SRC_ADDR  = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_XMOV_SRC_ADDR);
-    volatile uint *DST_ADDR  = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_XMOV_DST_ADDR);
-    volatile uint *SIZE_ADDR = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_XMOV_SIZE);
-    volatile uint *DIR_ADDR  = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_XMOV_DIRECTION);
+    volatile std::uint32_t *XMOV_CMD  = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_COMMAND_ADDR);
+    volatile std::uint32_t *SRC_ADDR  = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_XMOV_SRC_ADDR);
+    volatile std::uint32_t *DST_ADDR  = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_XMOV_DST_ADDR);
+    volatile std::uint32_t *SIZE_ADDR = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_XMOV_SIZE);
+    volatile std::uint32_t *DIR_ADDR  = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_XMOV_DIRECTION);
 
     SRC_ADDR[0]  = src_addr_16B;
     DST_ADDR[0]  = dst_addr_16B;
@@ -84,7 +87,7 @@ inline void xmov_l1_to_l1_non_compact(
 }
 
 inline void xmov_wait_till_idle() {
-    volatile uint *XMOV_STATUS = reinterpret_cast<volatile uint *>(RISCV_TDMA_REG_STATUS);
+    volatile std::uint32_t *XMOV_STATUS = reinterpret_cast<volatile std::uint32_t *>(RISCV_TDMA_REG_STATUS);
     while (XMOV_STATUS[0] & 0x1) {}
 }
 

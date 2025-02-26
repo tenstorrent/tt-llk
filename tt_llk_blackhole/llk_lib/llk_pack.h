@@ -85,13 +85,15 @@ inline void _llk_pack_mop_config_(
     const bool          narrow_tile  = false) {
     static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
 
-    constexpr uint MEGAROW          = 1;
-    constexpr uint ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr std::uint32_tMEGAROW = 1;
+    constexpr std::uint32_tZERO_OUTPUT_FLAG =
+        zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
 
     if constexpr (untilize && !tilize) {
-        const uint PACK_INTF_SEL  = (tile_c_dim < TILE_C_DIM) ? p_pacr::SINGLE_INTF_ACTIVE : p_pacr::TWO_INTFS_ACTIVE;
-        const uint MOP_INNER_LOOP = face_r_dim;
-        const uint MOP_OUTER_LOOP = (tile_c_dim < TILE_C_DIM) ? num_faces : (num_faces >> 1);
+        const std::uint32_tPACK_INTF_SEL =
+            (tile_c_dim < TILE_C_DIM) ? p_pacr::SINGLE_INTF_ACTIVE : p_pacr::TWO_INTFS_ACTIVE;
+        const std::uint32_tMOP_INNER_LOOP = face_r_dim;
+        const std::uint32_tMOP_OUTER_LOOP = (tile_c_dim < TILE_C_DIM) ? num_faces : (num_faces >> 1);
 
         ckernel::ckernel_template tmp(
             MOP_OUTER_LOOP,
@@ -138,13 +140,13 @@ inline void _llk_pack_mop_config_(
             1));
         tmp.program(instrn_buffer);
     } else if constexpr (tilize && !untilize) {
-        const uint PACK_INTF_SEL_0 = 0b0101;
-        const uint PACK_INTF_SEL_1 = 0b1010;
-        const uint MOP_INNER_LOOP  = 1;
-        const uint MOP_OUTER_LOOP  = 2;
+        const std::uint32_tPACK_INTF_SEL_0 = 0b0101;
+        const std::uint32_tPACK_INTF_SEL_1 = 0b1010;
+        const std::uint32_tMOP_INNER_LOOP  = 1;
+        const std::uint32_tMOP_OUTER_LOOP  = 2;
 
         // Last row of half-tile (16 rows) is different between halves, so can't be replayed.
-        const uint replay_buf_len = 15;
+        const std::uint32_treplay_buf_len = 15;
 
         // This replay buffer finishes 2 faces
         load_replay_buf(
@@ -406,12 +408,12 @@ inline void _llk_pack_mop_config_(
 
         tmp.program(instrn_buffer);
     } else {
-        const uint PACK_INTF_SEL = face_r_dim == 1
-                                       ? p_pacr::SINGLE_INTF_ACTIVE
-                                       : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
+        const std::uint32_tPACK_INTF_SEL = face_r_dim == 1
+                                               ? p_pacr::SINGLE_INTF_ACTIVE
+                                               : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
 
-        const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
-        const uint MOP_OUTER_LOOP = num_faces;
+        const std::uint32_tMOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
+        const std::uint32_tMOP_OUTER_LOOP = num_faces;
 
         ckernel::ckernel_template tmp(
             MOP_OUTER_LOOP,
@@ -542,7 +544,7 @@ inline void _llk_pack_reduce_hw_configure_(
         narrow_tile,
         relu_config);
 
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
+    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer();
 
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
     pack_edge_offset.f.mask                             = 0x0;

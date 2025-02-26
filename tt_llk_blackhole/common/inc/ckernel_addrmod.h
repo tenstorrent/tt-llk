@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "ckernel_ops.h"
+
 namespace ckernel {
 
 constexpr uint8_t ADDR_MOD_0 = 0;

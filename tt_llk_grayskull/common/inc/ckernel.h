@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+#include "ckernel_instr_params.h"
 #include "risc_attribs.h"
 
 // Compiler hint that a branch is unlikely to be taken
@@ -68,22 +69,22 @@
 
 namespace ckernel {
 
-constexpr uint PACK_FLUSH_COUNTERS = // counters flush
+constexpr std::uint32_tPACK_FLUSH_COUNTERS = // counters flush
     (1 << PACK_COUNTERS_SEC2_pack_per_xy_plane_SHAMT) | (1 << PACK_COUNTERS_SEC2_pack_reads_per_xy_plane_SHAMT) |
     (1 << PACK_COUNTERS_SEC2_pack_xys_per_tile_SHAMT);
 
-constexpr uint RESET_VAL          = 0;
-constexpr uint KERNEL_IN_PROGRESS = 15;
-constexpr uint KERNEL_COMPLETE    = 1;
+constexpr std::uint32_tRESET_VAL          = 0;
+constexpr std::uint32_tKERNEL_IN_PROGRESS = 15;
+constexpr std::uint32_tKERNEL_COMPLETE    = 1;
 
-extern volatile uint tt_reg_ptr   *reg_base;
-extern volatile uint tt_reg_ptr   *pc_buf_base;
-extern volatile uint tt_reg_ptr   *regfile;
-extern volatile uint tt_reg_ptr   *instrn_buffer;
-extern volatile uint tt_reg_ptr   *mailbox_base[4];
-extern volatile uint tt_reg_ptr   *dbg_event_scratch;
-extern volatile uint tt_reg_ptr   *trisc_l1_mailbox;
-extern volatile uint8_t tt_l1_ptr *debug_buffer;
+extern volatile std::uint32_ttt_reg_ptr *reg_base;
+extern volatile std::uint32_ttt_reg_ptr *pc_buf_base;
+extern volatile std::uint32_ttt_reg_ptr *regfile;
+extern volatile std::uint32_ttt_reg_ptr *instrn_buffer;
+extern volatile std::uint32_ttt_reg_ptr *mailbox_base[4];
+extern volatile std::uint32_ttt_reg_ptr *dbg_event_scratch;
+extern volatile std::uint32_ttt_reg_ptr *trisc_l1_mailbox;
+extern volatile uint8_t tt_l1_ptr       *debug_buffer;
 
 extern uint32_t cfg_state_id;
 extern uint32_t dest_offset_id;
@@ -98,8 +99,8 @@ const extern uint8_t                 mailbox_end;
 namespace internal {}
 
 inline void tensix_sync() {
-    volatile uint  foo    = 0;
-    volatile uint *fooptr = &foo;
+    volatile std::uint32_t  foo    = 0;
+    volatile std::uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[1] = foo;
 
@@ -108,8 +109,8 @@ inline void tensix_sync() {
 }
 
 inline void mop_sync() {
-    volatile uint  foo    = 0;
-    volatile uint *fooptr = &foo;
+    volatile std::uint32_t  foo    = 0;
+    volatile std::uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[2] = foo;
 
@@ -117,7 +118,7 @@ inline void mop_sync() {
     *fooptr = pc_buf_base[2];
 }
 
-inline void sync_regfile_write(const uint index);
+inline void sync_regfile_write(const std::uint32_tindex);
 
 // Field value overflow check
 template <typename T>
@@ -126,8 +127,8 @@ static constexpr bool is_valid(const T val, const uint8_t wid) {
     return (val & mask) == val;
 }
 
-inline void mmio_register_write(register_space_e space, uint addr, uint data) {
-    const uint regaddr = (space << 6) | (addr & 0x3F);
+inline void mmio_register_write(register_space_e space, std::uint32_taddr, std::uint32_tdata) {
+    const std::uint32_tregaddr = (space << 6) | (addr & 0x3F);
     // FWLOG2("Regaddr: 0x%x, data: 0x%x", regaddr, data);
     reg_base[regaddr] = data;
 }
@@ -139,7 +140,7 @@ inline void semaphore_post(const uint8_t index) { pc_buf_base[PC_BUF_SEMAPHORE_B
 inline void semaphore_get(const uint8_t index) { pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1; }
 
 // Tensix thread semaphore post optionally stalled
-template <uint WaitRes = p_stall::NONE>
+template <std::uint32_tWaitRes = p_stall::NONE>
 inline void t6_semaphore_post(const uint8_t index) {
     if constexpr (WaitRes != p_stall::NONE) { TTI_STALLWAIT(p_stall::STALL_SYNC, WaitRes); }
 
@@ -147,7 +148,7 @@ inline void t6_semaphore_post(const uint8_t index) {
 }
 
 // Tensix thread semaphore get optionally stalled
-template <uint WaitRes = p_stall::NONE>
+template <std::uint32_tWaitRes = p_stall::NONE>
 inline void t6_semaphore_get(const uint8_t index) {
     if constexpr (WaitRes != p_stall::NONE) { TTI_STALLWAIT(p_stall::STALL_SYNC, WaitRes); }
 
@@ -164,33 +165,35 @@ inline void t6_mutex_acquire(const uint8_t index) { TTI_ATGETM(index); }
 inline void t6_mutex_release(const uint8_t index) { TTI_ATRELM(index); }
 
 // Return address of the current state ID register
-inline uint cfg_addr(uint cfg_addr32) { return (cfg_state_id == 0) ? cfg_addr32 : (CFG_STATE_SIZE * 4) + cfg_addr32; }
-
-inline void cfg_write(uint cfg_addr32, uint data) {
-    // Declared here instead of globally to prevent direct access, which might ignore current state ID
-    volatile uint tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
-    cfg_regs[cfg_addr(cfg_addr32)]     = data;
+inline std::uint32_tcfg_addr(std::uint32_tcfg_addr32) {
+    return (cfg_state_id == 0) ? cfg_addr32 : (CFG_STATE_SIZE * 4) + cfg_addr32;
 }
 
-// inline uint cfg_read(uint cfg_addr32)
+inline void cfg_write(std::uint32_tcfg_addr32, std::uint32_tdata) {
+    // Declared here instead of globally to prevent direct access, which might ignore current state ID
+    volatile std::uint32_ttt_reg_ptr *cfg_regs = reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(TENSIX_CFG_BASE);
+    cfg_regs[cfg_addr(cfg_addr32)]             = data;
+}
+
+// inline std::uint32_tcfg_read(std::uint32_tcfg_addr32)
 //{
 //     // Declared here instead of globally to prevent direct access, which might ignore current state ID
-//     volatile uint *cfg_regs = reinterpret_cast<volatile uint *>(TENSIX_CFG_BASE);
+//     volatile std::uint32_t*cfg_regs = reinterpret_cast<volatile std::uint32_t*>(TENSIX_CFG_BASE);
 //     return cfg_regs[cfg_addr(cfg_addr32)];
 // }
 
-inline uint cfg_read_barrier(uint cfg_addr32) {
+inline std::uint32_tcfg_read_barrier(std::uint32_tcfg_addr32) {
     // Declared here instead of globally to prevent direct access, which might ignore current state ID
-    volatile uint tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
-    uint                      data     = cfg_regs[cfg_addr(cfg_addr32)];
+    volatile std::uint32_ttt_reg_ptr *cfg_regs = reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(TENSIX_CFG_BASE);
+    std::uint32_t                     data     = cfg_regs[cfg_addr(cfg_addr32)];
     return data;
 }
 
 // Return pointer to CFG with the right base address for the current state
-inline volatile uint *tt_reg_ptr get_cfg_pointer() {
-    if (cfg_state_id == 0) { return reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE); }
+inline volatile std::uint32_t *tt_reg_ptr get_cfg_pointer() {
+    if (cfg_state_id == 0) { return reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(TENSIX_CFG_BASE); }
 
-    return reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
+    return reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
 }
 
 inline void flip_cfg_state_id() {
@@ -212,22 +215,24 @@ inline void mop_run(const uint8_t type, const uint8_t count) {
 // Register read (workaround for bug
 // #976
 // now handled by the compiler)
-inline uint reg_read(uint32_t addr) {
-    volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
-    uint                      data  = p_reg[0];
+inline std::uint32_treg_read(uint32_t addr) {
+    volatile std::uint32_ttt_reg_ptr *p_reg = reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(addr);
+    std::uint32_t                     data  = p_reg[0];
     return data;
 }
 
 inline void reg_write(uint32_t addr, uint32_t data) {
-    volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
-    p_reg[0]                        = data;
+    volatile std::uint32_ttt_reg_ptr *p_reg = reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(addr);
+    p_reg[0]                                = data;
 }
 
 inline void wait(uint32_t cycles) {
-    volatile uint tt_reg_ptr *clock_lo = reinterpret_cast<volatile uint tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_L);
-    volatile uint tt_reg_ptr *clock_hi = reinterpret_cast<volatile uint tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_H);
-    uint64_t                  wall_clock_timestamp = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
-    uint64_t                  wall_clock           = 0;
+    volatile std::uint32_ttt_reg_ptr *clock_lo =
+        reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_L);
+    volatile std::uint32_ttt_reg_ptr *clock_hi =
+        reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_H);
+    uint64_t wall_clock_timestamp = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
+    uint64_t wall_clock           = 0;
     do {
         wall_clock = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
     } while (wall_clock < (wall_clock_timestamp + cycles));
@@ -249,10 +254,10 @@ inline void zerosrc() {
     TTI_ZEROSRC(0, 0, 1, 3); // Zero all srcA&B banks
 }
 
-inline void sync_regfile_write(const uint index) {
-    volatile uint  foo    = 0;
-    volatile uint *fooptr = &foo;
-    *fooptr               = regfile[index];
+inline void sync_regfile_write(const std::uint32_tindex) {
+    volatile std::uint32_t  foo    = 0;
+    volatile std::uint32_t *fooptr = &foo;
+    *fooptr                        = regfile[index];
 }
 
 inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, uint32_t val) {
@@ -263,8 +268,8 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, 
     const uint32_t addr = (cfg_state_id == 0) ? cfg_addr32 : (CFG_STATE_SIZE * 4) + cfg_addr32;
 
     // Declared here instead of globally to prevent direct access, which might ignore current state ID
-    volatile uint tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
-    uint32_t                  cfg_data = cfg_regs[addr];
+    volatile std::uint32_ttt_reg_ptr *cfg_regs = reinterpret_cast<volatile std::uint32_ttt_reg_ptr *>(TENSIX_CFG_BASE);
+    uint32_t                          cfg_data = cfg_regs[addr];
 
     // Shift and mask wrdata to properly align withn 32-bit DWORD
     wrdata <<= cfg_shamt;
@@ -299,9 +304,9 @@ inline uint32_t mailbox_read_full(const uint8_t thread) { return mailbox_base[th
 
 inline bool mailbox_not_empty_full(const uint8_t thread) { return mailbox_base[thread][1] > 0; }
 
-inline void trisc_l1_mailbox_write(const uint data) { trisc_l1_mailbox[0] = data; }
+inline void trisc_l1_mailbox_write(const std::uint32_tdata) { trisc_l1_mailbox[0] = data; }
 
-inline uint trisc_l1_mailbox_read() { return trisc_l1_mailbox[0]; }
+inline std::uint32_ttrisc_l1_mailbox_read() { return trisc_l1_mailbox[0]; }
 
 template <class T>
 inline std::uint32_t memory_cast(T *object_ptr) {

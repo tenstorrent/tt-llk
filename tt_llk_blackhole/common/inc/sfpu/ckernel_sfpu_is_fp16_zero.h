@@ -13,7 +13,7 @@ using namespace sfpi;
 namespace ckernel {
 namespace sfpu {
 
-sfpi_inline vInt _sfpu_is_fp16_zero_(const vFloat& v, uint exponent_size_8) {
+sfpi_inline vInt _sfpu_is_fp16_zero_(const vFloat& v, std::uint32_texponent_size_8) {
     if (exponent_size_8) {
         // fp16b
         return v == 0.0F;

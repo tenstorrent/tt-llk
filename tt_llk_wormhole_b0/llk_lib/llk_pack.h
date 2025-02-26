@@ -56,13 +56,14 @@ inline void _llk_pack_mop_config_(
     const bool          narrow_tile  = false) {
     static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
 
-    const uint     PACKCNT          = (partial_face && IS_BFP_FORMAT(pack_dst_format)) ? 1 : num_faces;
-    constexpr uint MEGAROW          = 1;
-    constexpr uint ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
-    constexpr uint MOP_INNER_LOOP   = 1;
+    const std::uint32_t PACKCNT    = (partial_face && IS_BFP_FORMAT(pack_dst_format)) ? 1 : num_faces;
+    constexpr std::uint32_tMEGAROW = 1;
+    constexpr std::uint32_tZERO_OUTPUT_FLAG =
+        zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr std::uint32_tMOP_INNER_LOOP = 1;
 
     if constexpr (!untilize) {
-        constexpr uint MOP_OUTER_LOOP = 1;
+        constexpr std::uint32_tMOP_OUTER_LOOP = 1;
 
         ckernel::ckernel_template tmp(
             MOP_OUTER_LOOP,
@@ -86,7 +87,7 @@ inline void _llk_pack_mop_config_(
 
         tmp.program(instrn_buffer);
     } else {
-        const uint MOP_OUTER_LOOP = ((face_r_dim == 1) || narrow_tile) ? 1 : (face_r_dim >> 1);
+        const std::uint32_tMOP_OUTER_LOOP = ((face_r_dim == 1) || narrow_tile) ? 1 : (face_r_dim >> 1);
 
         if ((face_r_dim == 1) || narrow_tile) {
             ckernel::ckernel_template tmp(
@@ -152,7 +153,7 @@ inline void _llk_pack_reduce_hw_configure_(
     configure_pack<is_fp32_dest_acc_en, untilize>(
         pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
 
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
+    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer();
 
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
     pack_edge_offset.f.mask                             = 0x0;

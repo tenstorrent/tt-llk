@@ -44,12 +44,12 @@ template <
     std::uint32_t row_num_datums = TILE_C_DIM>
 inline void _llk_pack_untilize_mop_config_(
     const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4) {
-    const uint PACKCNT =
+    const std::uint32_tPACKCNT =
         diagonal ? (num_faces > 2 ? num_faces / 2 : num_faces) : ((face_r_dim < FACE_R_DIM) ? 1 : num_faces);
-    constexpr uint MEGAROW          = 1;
-    constexpr uint ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
-    constexpr uint MOP_INNER_LOOP   = narrow_row ? (TILE_R_DIM / 4) : (diagonal ? FACE_R_DIM - 1 : 1);
-    constexpr uint MOP_OUTER_LOOP   = narrow_row ? 1 : block_ct_dim;
+    constexpr std::uint32_tMEGAROW          = 1;
+    constexpr std::uint32_tZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr std::uint32_tMOP_INNER_LOOP   = narrow_row ? (TILE_R_DIM / 4) : (diagonal ? FACE_R_DIM - 1 : 1);
+    constexpr std::uint32_tMOP_OUTER_LOOP   = narrow_row ? 1 : block_ct_dim;
 
     if constexpr (diagonal) {
         ckernel::ckernel_template tmp(

@@ -6,6 +6,7 @@
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
+#include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 
@@ -14,17 +15,17 @@ using namespace ckernel::unpacker;
 
 inline void _llk_unpack_untilize_mop_config_() {
 #if SKIP_UNP == 1
-    static constexpr uint unpack_srca           = TT_OP_NOP;
-    static constexpr uint unpack_addcr          = TT_OP_NOP;
-    static constexpr uint unpack_addr_offset    = TT_OP_NOP;
-    static constexpr uint unpack_wr_addr_offset = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_srca           = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_addcr          = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_addr_offset    = TT_OP_NOP;
+    static constexpr std::uint32_tunpack_wr_addr_offset = TT_OP_NOP;
 #else
-    static constexpr uint unpack_srca =
+    static constexpr std::uint32_tunpack_srca =
         TT_OP_UNPACR(SrcA, 0b01000001, 0, 0, 0, 0, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_addcr = TT_OP_ADDRCRZW(0b001, 0, 0, 0, 0, 0b0001);
-    static constexpr uint unpack_addr_offset =
+    static constexpr std::uint32_tunpack_addcr = TT_OP_ADDRCRZW(0b001, 0, 0, 0, 0, 0b0001);
+    static constexpr std::uint32_tunpack_addr_offset =
         TT_OP_ADDDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_SIZE);
-    static constexpr uint unpack_wr_addr_offset = TT_OP_REG2FLOP(
+    static constexpr std::uint32_tunpack_wr_addr_offset = TT_OP_REG2FLOP(
         1, 0, 0, 0, THCON_SEC0_REG7_Offset_address_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::TILE_OFFSET);
 #endif
 
@@ -110,7 +111,7 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_ttt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b0010); // Clear l1 addr y cnt
     if constexpr (first_pass) {
