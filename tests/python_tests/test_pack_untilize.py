@@ -52,7 +52,7 @@ def test_pack_untilize(format, testname):
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden_tensor)
-    assert read_mailboxes() == True
+    assert_tensix_operations_finished()
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
 

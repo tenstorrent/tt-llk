@@ -5,7 +5,7 @@ from helpers import *
 def generate_golden(operations, operand1, operand2, data_format):
     tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
     tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
-    
+
     res = []
 
     # to se why this encoding look at llk_defs.h -> enum EltwiseBinaryType
@@ -75,7 +75,7 @@ def test_fill_dest(format, testname, dest_acc):
         res_from_L1.append(collect_results(format,address))
      
     res_from_L1 = flatten_list(res_from_L1)
-    golden = flatten_list(golden)
+    assert_tensix_operations_finished()
 
     assert len(res_from_L1) == len(golden)
 
