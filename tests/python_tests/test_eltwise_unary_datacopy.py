@@ -52,7 +52,7 @@ def test_unary_datacopy(format, testname, dest_acc):
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden)
-    assert read_mailboxes() == True
+    assert_tensix_operations_finished()
 
     if(format in format_dict):
         atol = 0.05

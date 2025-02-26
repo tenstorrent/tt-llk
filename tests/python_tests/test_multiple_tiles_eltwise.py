@@ -90,7 +90,8 @@ def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidel
     run_elf_files(testname)
 
     run_shell_command("cd .. && make clean")
-    assert read_mailboxes() == True
+    
+    assert_tensix_operations_finished()
 
     #check resluts from multiple tiles
     res_from_L1 = []

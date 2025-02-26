@@ -65,10 +65,7 @@ def test_all(format, mathop, testname, dest_acc):
 
     run_shell_command("cd .. && make clean")
 
-    # Mailbox checks
-    assert read_words_from_device("0,0", 0x19FF4, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
-    assert read_words_from_device("0,0", 0x19FF8, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
-    assert read_words_from_device("0,0", 0x19FFC, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
+    assert_tensix_operations_finished()
 
     if(format in ["Float16_b","Float16", "Float32"]):
         atol = 0.05
