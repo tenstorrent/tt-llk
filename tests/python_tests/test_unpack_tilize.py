@@ -1,6 +1,5 @@
 import pytest
 import torch
-import os
 from helpers import *
 
 def generate_golden(operand1, data_format):

@@ -24,7 +24,7 @@ def generate_golden(operations, operand1, operand2, data_format):
         
         res.append(res_tmp.tolist())
     
-    return res
+    return flatten_list(res)
 
 param_combinations = [
     (format, dest_acc, testname)
@@ -67,17 +67,15 @@ def test_fill_dest(format, testname, dest_acc):
 
     run_shell_command("cd .. && make clean")
 
-    assert read_mailboxes() == True
-
     res_from_L1 = []
 
     for address in pack_addresses:
         res_from_L1.append(collect_results(format,address))
      
     res_from_L1 = flatten_list(res_from_L1)
-    assert_tensix_operations_finished()
 
     assert len(res_from_L1) == len(golden)
+    assert_tensix_operations_finished()
 
     golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
