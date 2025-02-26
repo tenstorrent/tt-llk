@@ -7,8 +7,8 @@ torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=100
 
 def generate_golden(operand1, data_format):
     
-    A_tilized  = untilize(operand1,data_format)
-    return A_tilized.flatten()
+    A_untilized  = untilize(operand1,data_format)
+    return A_untilized.flatten()
 
 param_combinations = [
     (format, testname)
