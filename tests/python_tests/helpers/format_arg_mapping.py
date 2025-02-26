@@ -32,3 +32,15 @@ format_sizes = {
     "Float32": 1024,
     "Int32": 1024
 }
+
+reduce_dim_args = {
+    "reduce_col": "ReduceDim::REDUCE_COL",
+    "reduce_row": "ReduceDim::REDUCE_ROW",
+    "reduce_scalar": "ReduceDim::REDUCE_SCALAR"
+}
+
+reduce_pool_args = {
+    "max": "PoolType::MAX",
+    "sum": "PoolType::SUM",
+    "avg": "PoolType::AVG"
+}
