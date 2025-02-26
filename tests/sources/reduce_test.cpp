@@ -52,8 +52,8 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false,false>(DATA_FORMAT,DATA_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_reduce_init_<PoolType::MAX, ReduceDim::REDUCE_COL, math_fid>(0);
-    _llk_math_reduce_<PoolType::MAX,ReduceDim::REDUCE_COL, math_fid, is_fp32_dest_acc_en, is_int_fpu_en>(0);
+    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fid>(0);
+    _llk_math_reduce_<POOL_TYPE,REDUCE_DIM, math_fid, is_fp32_dest_acc_en, is_int_fpu_en>(0);
     _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
 }
 

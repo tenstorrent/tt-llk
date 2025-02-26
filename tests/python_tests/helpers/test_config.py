@@ -1,4 +1,4 @@
-from .format_arg_mapping import format_args_dict,mathop_args_dict
+from .format_arg_mapping import format_args_dict,mathop_args_dict, reduce_dim_args, reduce_pool_args
 
 def generate_make_command(test_config):
     make_cmd = f"make --silent --always-make "
@@ -17,9 +17,16 @@ def generate_make_command(test_config):
     make_cmd += f" math_fidelity={math_fidelity} "
     make_cmd += f" approx_mode={approx_mode} "
 
+    reduce_dim =  test_config.get("reduce_dim","no_reduce_dim")
+    pool_type =  test_config.get("pool_type","no_pool_type")
+
+    make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
+    make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
+    print(make_cmd)
+
     if(mathop != "no_mathop"):
         if isinstance(mathop,str): # single tile option
-            make_cmd += f"mathop={mathop_args_dict[mathop]}"
+            make_cmd += f"mathop={mathop_args_dict[mathop]} "
         else: # multiple tiles handles mathop as int
 
             if(mathop == 1):
