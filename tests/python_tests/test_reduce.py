@@ -3,8 +3,34 @@ import torch
 from helpers import *
 
 def generate_golden(operand1, data_format):
-    result = torch.ones(1024)
-    return result
+    
+    result = torch.zeros(1024, dtype=format_dict[data_format]).view(32, 32)
+
+    f0 = operand1[:256].view(16, 16)
+    f1 = operand1[256:512].view(16, 16)
+    f2 = operand1[512:768].view(16, 16)
+    f3 = operand1[768:].view(16, 16)
+
+    left_half = torch.cat((f0, f2), 0) 
+    right_half = torch.cat((f1, f3), 0)
+
+    # print(left_half.view(32,16))
+    # print("\n\n")
+    # print(right_half.view(32,16))
+
+    left_half_max = torch.max(left_half, dim=0).values
+    right_half_max = torch.max(right_half, dim=0).values
+
+    print(left_half_max)
+    print(right_half_max)
+
+    left_half = torch.where(left_half == left_half_max, left_half, torch.tensor(0.0))
+    right_half = torch.where(right_half == right_half_max, right_half, torch.tensor(0.0))
+
+    result[0][0:16] = left_half_max.view(1,16)
+    result[0][16:32] = right_half_max.view(1,16)
+
+    return result.view(1024)
 
 param_combinations = [
     (mathop, format, dest_acc, testname)
@@ -28,9 +54,8 @@ param_ids = [
 def test_reduce(mathop, format, testname, dest_acc):
     
     src_A, src_B = generate_stimuli(format)
-    src_B = torch.full((1024,), 0)
-
-    src_A = torch.tensor([1]*256 + [2]*256 + [3]*256 + [4]*256, dtype=torch.bfloat16)
+    src_B = torch.full((1024,), 1) # also for reduce sum
+    # reduce average divides by length of elements in array we reduce
 
     golden_tensor = generate_golden(src_A, format)
     write_stimuli_to_l1(src_A, src_B, format)
@@ -56,6 +81,7 @@ def test_reduce(mathop, format, testname, dest_acc):
     assert_tensix_operations_finished()
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    res_tensor = untilize(res_tensor)
 
     if format == "Float16_b" or format == "Float16":
         atol = 0.1
