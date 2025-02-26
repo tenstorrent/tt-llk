@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
 #include "ckernel.h"
 #include "ckernel_defs.h"

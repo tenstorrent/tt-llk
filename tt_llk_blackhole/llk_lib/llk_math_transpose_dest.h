@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_globals.h"
 #include "ckernel_include.h"
 #include "ckernel_template.h"
