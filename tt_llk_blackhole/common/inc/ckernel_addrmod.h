@@ -20,6 +20,38 @@ constexpr uint8_t ADDR_MOD_7 = 7;
 constexpr uint32_t SRC_INCR_MASK  = 0x3F;
 constexpr uint32_t DEST_INCR_MASK = 0x3FF;
 
+constexpr uint32_t ADDR_MOD_AB_SEC0_SrcAIncr_ADDR32 = 12;
+constexpr uint32_t ADDR_MOD_AB_SEC1_SrcAIncr_ADDR32 = 13;
+constexpr uint32_t ADDR_MOD_AB_SEC2_SrcAIncr_ADDR32 = 14;
+constexpr uint32_t ADDR_MOD_AB_SEC3_SrcAIncr_ADDR32 = 15;
+constexpr uint32_t ADDR_MOD_AB_SEC4_SrcAIncr_ADDR32 = 16;
+constexpr uint32_t ADDR_MOD_AB_SEC5_SrcAIncr_ADDR32 = 17;
+constexpr uint32_t ADDR_MOD_AB_SEC6_SrcAIncr_ADDR32 = 18;
+constexpr uint32_t ADDR_MOD_AB_SEC7_SrcAIncr_ADDR32 = 19;
+
+constexpr uint32_t ADDR_MOD_DST_SEC0_DestIncr_ADDR32 = 28;
+constexpr uint32_t ADDR_MOD_DST_SEC1_DestIncr_ADDR32 = 29;
+constexpr uint32_t ADDR_MOD_DST_SEC2_DestIncr_ADDR32 = 30;
+constexpr uint32_t ADDR_MOD_DST_SEC3_DestIncr_ADDR32 = 31;
+constexpr uint32_t ADDR_MOD_DST_SEC4_DestIncr_ADDR32 = 32;
+constexpr uint32_t ADDR_MOD_DST_SEC5_DestIncr_ADDR32 = 33;
+constexpr uint32_t ADDR_MOD_DST_SEC6_DestIncr_ADDR32 = 34;
+constexpr uint32_t ADDR_MOD_DST_SEC7_DestIncr_ADDR32 = 35;
+
+constexpr uint32_t ADDR_MOD_PACK_SEC0_YsrcIncr_ADDR32 = 37;
+constexpr uint32_t ADDR_MOD_PACK_SEC1_YsrcIncr_ADDR32 = 38;
+constexpr uint32_t ADDR_MOD_PACK_SEC2_YsrcIncr_ADDR32 = 39;
+constexpr uint32_t ADDR_MOD_PACK_SEC3_YsrcIncr_ADDR32 = 40;
+
+constexpr uint32_t ADDR_MOD_BIAS_SEC0_BiasIncr_ADDR32 = 47;
+constexpr uint32_t ADDR_MOD_BIAS_SEC1_BiasIncr_ADDR32 = 48;
+constexpr uint32_t ADDR_MOD_BIAS_SEC2_BiasIncr_ADDR32 = 49;
+constexpr uint32_t ADDR_MOD_BIAS_SEC3_BiasIncr_ADDR32 = 50;
+constexpr uint32_t ADDR_MOD_BIAS_SEC4_BiasIncr_ADDR32 = 51;
+constexpr uint32_t ADDR_MOD_BIAS_SEC5_BiasIncr_ADDR32 = 52;
+constexpr uint32_t ADDR_MOD_BIAS_SEC6_BiasIncr_ADDR32 = 53;
+constexpr uint32_t ADDR_MOD_BIAS_SEC7_BiasIncr_ADDR32 = 54;
+
 // FIXME: These should be updated from cfg_defines.h
 
 struct addr_mod_t {
