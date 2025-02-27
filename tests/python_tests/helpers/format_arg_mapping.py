@@ -22,6 +22,8 @@ mathop_args_dict = {
     "sqrt": "SFPU_OP_SQRT",
     "square": "SFPU_OP_SQUARE",
     "log": "SFPU_OP_LOG",
+    "reduce" : "reduce"
+
 }
 
 format_sizes = {
@@ -33,9 +35,9 @@ format_sizes = {
 }
 
 reduce_dim_args = {
-    "reduce_col": "DIM_REDUCE_COL",
-    "reduce_row": "DIM_REDUCE_ROW",
-    "reduce_scalar": "DIM_REDUCE_SCALAR",
+    "reduce_col": "ReduceDim::REDUCE_COL",
+    "reduce_row": "ReduceDim::REDUCE_ROW",      
+    "reduce_scalar": "ReduceDim::REDUCE_SCALAR",
     "no_reduce_dim": " "
 }
 
