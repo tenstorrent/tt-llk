@@ -57,7 +57,7 @@ def revese_endian_chunk(input_list, chunk_size = 4):
         chunk = input_list[j:j+chunk_size]
         reversed_chunk = chunk[::-1]
         output_list.extend(reversed_chunk)
-    
+
     return output_list
 
 def format_kernel_list(kernels, as_hex=False):

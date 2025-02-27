@@ -4,11 +4,14 @@ from helpers import *
 
 ELF_LOCATION = "../build/elf/"
 
-def collect_results(format,address=0x1c000,sfpu=False):
-    read_words_cnt = calculate_read_words_cnt(format,sfpu)
+def collect_results(unpack_src, pack_dst,address=0x1c000,sfpu=False):
+    read_words_cnt = calculate_read_words_cnt(pack_dst,sfpu)
     read_data = read_words_from_device("0,0", address, word_count=read_words_cnt)
+    read_data_hex = [hex(data) for data in read_data]
+
     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
-    res_from_L1 = get_result_from_device(format,read_data_bytes,sfpu)
+
+    res_from_L1 = get_result_from_device(unpack_src, pack_dst, read_data_bytes,sfpu)
     return res_from_L1
 
 def run_elf_files(testname, run_brisc=True):
@@ -54,19 +57,19 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, tile_cnt = 1):
         
         
 
-def get_result_from_device(format,read_data_bytes,sfpu=False):
-    if(format == "Float16"):
+def get_result_from_device(unpack_src, pack_dst,read_data_bytes,sfpu=False):
+    if(pack_dst == "Float16"):
         res_from_L1 = unpack_fp16(read_data_bytes)
-    elif(format == "Float16_b"):
-        res_from_L1 = unpack_bfp16(read_data_bytes)
-    elif( format == "Bfp8_b"):
+    elif(pack_dst == "Float16_b"):
+        res_from_L1 = unpack_bfp16(read_data_bytes, unpack_src, pack_dst)
+    elif( pack_dst == "Bfp8_b"):
         if(sfpu == True):
-            res_from_L1 = unpack_bfp16(read_data_bytes)
+            res_from_L1 = unpack_bfp16(read_data_bytes, unpack_src, pack_dst)
         else:
-            res_from_L1 = unpack_bfp8_b(read_data_bytes)
-    elif( format == "Float32"):
+            res_from_L1 = unpack_bfp8_b(read_data_bytes, unpack_src, pack_dst)
+    elif( pack_dst == "Float32"):
         res_from_L1 = unpack_float32(read_data_bytes)
-    elif( format == "Int32"):
+    elif( pack_dst == "Int32"):
         res_from_L1 = unpack_int32(read_data_bytes)
 
     return res_from_L1

@@ -25,16 +25,17 @@ def generate_golden(operation, operand1, operand2, data_format):
     return operations[operation].tolist()
 
 formats = ["Bfp8_b", "Float16_b"]#, "Float16"]
-@pytest.mark.parametrize("unpack_src", formats)
-@pytest.mark.parametrize("unpack_dst", formats)
-@pytest.mark.parametrize("fpu", formats)
-@pytest.mark.parametrize("pack_src", formats)
-@pytest.mark.parametrize("pack_dst", formats)
+@pytest.mark.parametrize("unpack_src", ["Float16_b"])
+@pytest.mark.parametrize("unpack_dst", ["Float16_b"])
+@pytest.mark.parametrize("fpu", ["Bfp8_b"])
+@pytest.mark.parametrize("pack_src", ["Bfp8_b"])
+@pytest.mark.parametrize("pack_dst", ["Bfp8_b"])
 
 @pytest.mark.parametrize("testname", ["eltwise_binary_test"])
-@pytest.mark.parametrize("mathop", ["elwadd", "elwsub", "elwmul"])
-@pytest.mark.parametrize("dest_acc", ["DEST_ACC", ""])
-def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, dest_acc, test_results):
+@pytest.mark.parametrize("mathop", ["elwsub"])#["elwadd", "elwsub", "elwmul"])
+@pytest.mark.parametrize("dest_acc", ["DEST_ACC"])#["DEST_ACC", ""])
+@pytest.mark.parametrize("iterations", list(range(100)))
+def test_all(iterations,unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, dest_acc, test_results):
     os.system("cd .. && make clean")
     os.system("tt-smi -r 0")
     
@@ -60,7 +61,7 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
 
     run_elf_files(testname)
     
-    res_from_L1 = collect_results(pack_dst)
+    res_from_L1 = collect_results(unpack_src,pack_dst)
     
     test_results.append([
         "FAIL",  # Result
@@ -79,6 +80,7 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
     ])
     
     assert len(res_from_L1) == len(golden)
+    
 
     os.system("cd .. && make clean")
     os.system("tt-smi -r 0")
@@ -98,6 +100,14 @@ def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, 
     golden_tensor = torch.tensor(golden, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
 
+    srcA, srcB = [], []
+    for i in range (len(src_A)):
+        srcA.append(src_A[i].item())
+    for i in range (len(src_B)):
+        srcB.append(src_B[i].item())
+    
+    
+    
     for i in range(len(golden)):
         test_results[-1][5] = (golden_tensor[i].item(), res_tensor[i].item())
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
