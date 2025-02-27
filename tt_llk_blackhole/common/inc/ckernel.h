@@ -587,11 +587,20 @@ inline void set_ttsync_enables() {
 template <bool add_nops = true>
 inline void disable_gathering() {
     // Disable gathering: set bit 18
+    // Originally, branch predictor was on during
+    // CSR_set_bit_18.
+    // No change is needed to introduce #18094 hang
     asm(R"ASM(
         .option push
+        li   t1, 0x2
+        csrrs zero, 0x7c0, t1
         li   t1, 0x1
         slli t1, t1, 18
+        fence
         csrrs zero, 0x7c0, t1
+        li   t1, 0x2
+        csrrc zero, 0x7c0, t1
+        fence
         .option pop
          )ASM"
     :::"t1");
@@ -623,30 +632,32 @@ inline void enable_gathering() {
 //as they do for the REPLAY instruction, as descired in assembly.yaml.
 template <uint start, uint len, bool exec_while_loading = false, typename F>
 inline void load_replay_buf(F fn) {
-    disable_gathering();
+    // Uncomment disable_gathering to introduce a #18094 hang
+    // disable_gathering();
      
     //Issue instruction to load replay buffer
     TTI_REPLAY(start, len, exec_while_loading, 1);
     
     //Send in the user's desired instructions
     fn(); 
-    
-    enable_gathering();
+    // Uncomment enable_gathering to introduce a #18094 hang
+    // enable_gathering();
 }
 
 //Same as above, but used if start/len/exec_while_loading are not known
 //at compiletime.
 template <typename F>
 inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn) {
-    disable_gathering();
+    // Uncomment disable_gathering to introduce a #18094 hang
+    // disable_gathering();
      
     //Issue instruction to load replay buffer
     TT_REPLAY(start, len, exec_while_loading, 1);
     
     //Send in the user's desired instructions
     fn(); 
-    
-    enable_gathering();
+    // Uncomment enable_gathering to introduce a #18094 hang
+    // enable_gathering();
 }
 
 enum class CSR : uint16_t {
