@@ -9,7 +9,9 @@
 #pragma once
 
 #define TT_OP(opcode, params) ( (opcode << 24) + params )
-#define INSTRUCTION_WORD(x) __asm__ __volatile__(".word (%0)" : : "i" ((x))) // Drop 32 bits into the instruction stream.
+#define INSTRUCTION_WORD(x) (__builtin_constant_p(x)           \
+                             ? ({__asm__ __volatile__(".word (%0)" : : "i" ((x)));}) \
+                             : ({__asm__ __volatile__(".error \"Expression encoding instruction is not a compile-time constant\"");}))
 #define TRISC_OP_SWIZZLE(x) ( (((x) >> 30) & 0x3) | (((x) & 0x3FFFFFFF) << 2) ) // Put top 2 bits, which are currently never 'b11 to bottom, indicating to Risc that they are not risc instructions
 
 #define TT_OP_ADDDMAREG(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
