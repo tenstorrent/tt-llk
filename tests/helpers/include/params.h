@@ -5,6 +5,18 @@
 #include <cstdarg>
 
 #define L1_ADDRESS(buffer) ((reinterpret_cast<uint32_t>(buffer) / 16) - 1)
+    
+// reduction dimension macros for all 3 threads
+
+    #ifdef DIM_REDUCE_COL
+        #define REDUCE_DIM ReduceDim::REDUCE_COL
+    #endif 
+    #ifdef DIM_REDUCE_ROW
+        #define REDUCE_DIM ReduceDim::REDUCE_ROW
+    #endif
+    #ifdef DIM_REDUCE_SCALAR
+        #define REDUCE_DIM ReduceDim::REDUCE_SCALAR
+    #endif
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -60,6 +72,8 @@
     #ifdef ELTWISE_BINARY_LESS
         #define ELTWISE_BINARY_OP EltwiseBinaryType::ELWLESS
     #endif
+
+    // SFPU operation macros
 
     #ifdef SFPU_OP_SQRT
         #define SFPU_OPERATION SfpuType::sqrt

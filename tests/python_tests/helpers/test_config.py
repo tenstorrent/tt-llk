@@ -24,6 +24,8 @@ def generate_make_command(test_config):
     make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
     print(make_cmd)
 
+    print(make_cmd)
+
     if(mathop != "no_mathop"):
         if isinstance(mathop,str): # single tile option
             make_cmd += f"mathop={mathop_args_dict[mathop]} "

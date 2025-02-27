@@ -42,7 +42,7 @@ else
 	MATHOP_ARG:=-D$(mathop) -DAPPROX_MODE=$(approx_mode) 
 endif
 
-MATHOP_ARG += -DREDUCE_DIM=$(reduce_dim) -DPOOL_TYPE=$(pool_type)
+MATHOP_ARG += -D$(reduce_dim) -DPOOL_TYPE=$(pool_type)
 
 OPTIONS_COMPILE+=-DMATH_FIDELITY=$(math_fidelity)
 
