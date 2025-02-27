@@ -13,6 +13,7 @@
 #ifdef PERF_DUMP
 #include "perf_res_decouple.h"
 #endif
+#include "debug/dprint.h"
 
 namespace ckernel::unpacker
 {
@@ -456,6 +457,7 @@ namespace ckernel::unpacker
    inline void set_dst_write_addr(const uint32_t &context_id, const uint32_t &unpack_dst_format)
    {
       uint32_t dst_byte_addr = 16*(4 + mailbox_read(ThreadId::MathThreadId)); // Apply fixed offset of 4*16 to dest address
+
       TTI_SETC16(SRCA_SET_Base_ADDR32, 0x0); // Disable address bit swizzle
       TTI_RDCFG(p_gpr_unpack::UNPACK_STRIDE, UNP0_ADDR_CTRL_ZW_REG_1_Zstride_ADDR32); // Save current stride
       uint unpA_ch1_x_stride = (uint) (unpack_dst_format&0x3) == (uint) DataFormat::Float32 ? 4 : (uint) (unpack_dst_format&0x3) == (uint) DataFormat::Float16 ? 2 : 1;
