@@ -367,6 +367,8 @@ namespace ckernel::packer
       //Set Fp8 E4M3 mode for packer
       if((pack_dst_format&0x1F) == (uint)DataFormat::Fp8_e4m3) {
          cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(1);
+      } else {
+         cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(0);
       }
 
       cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);

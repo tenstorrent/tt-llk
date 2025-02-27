@@ -274,11 +274,15 @@ namespace ckernel::unpacker
 
       //Set FP8 E4M3 mode, bit is accessible by unpacker/packer
       if((unpA_src_format&0x1F) == (uint)DataFormat::Fp8_e4m3) {
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Unp_LF8_4b_exp_RMW>(1);
+         cfg_reg_rmw_tensix<THCON_SEC0_REG1_Unp_LF8_4b_exp_RMW>(1);
+      } else {
+         cfg_reg_rmw_tensix<THCON_SEC0_REG1_Unp_LF8_4b_exp_RMW>(0);
       }
 
       if((unpB_src_format&0x1F) == (uint)DataFormat::Fp8_e4m3) {
-        cfg_reg_rmw_tensix<THCON_SEC1_REG1_Unp_LF8_4b_exp_RMW>(1);
+         cfg_reg_rmw_tensix<THCON_SEC1_REG1_Unp_LF8_4b_exp_RMW>(1);
+      } else {
+         cfg_reg_rmw_tensix<THCON_SEC1_REG1_Unp_LF8_4b_exp_RMW>(0);
       }
 
       t6_mutex_release(mutex::REG_RMW);
