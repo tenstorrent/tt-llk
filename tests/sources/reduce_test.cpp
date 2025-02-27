@@ -21,19 +21,17 @@ const bool is_fp32_dest_acc_en = false;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB.h"
+#include "llk_unpack_common.h"
 #include "params.h"
-
 
 void run_kernel()
 {
-
     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
     volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
 
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT);
     _llk_unpack_AB_init_<>();
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A),L1_ADDRESS(buffer_B));
-
+    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B));
 }
 
 #endif
@@ -79,6 +77,7 @@ void run_kernel()
     #endif
 
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
+    _llk_pack_reduce_mask_config_<false,REDUCE_DIM>();
     
     #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull,DstTileFaceLayout::RowMajor,is_fp32_dest_acc_en>();
@@ -89,6 +88,8 @@ void run_kernel()
     _llk_packer_wait_for_math_done_();
     _llk_pack_<DstSync::SyncFull,false, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Dest));
     _llk_pack_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
+
+    _llk_pack_reduce_mask_clear_();
 }
 
 #endif

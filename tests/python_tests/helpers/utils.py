@@ -5,6 +5,26 @@ from .format_arg_mapping import  format_dict,format_sizes
 
 torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
 
+def print_faces(operand1):
+    f0 = operand1[:256].view(16, 16)
+    f1 = operand1[256:512].view(16, 16)
+    f2 = operand1[512:768].view(16, 16)
+    f3 = operand1[768:].view(16, 16)
+
+    # Print the first set with proper alignment
+    for i in range(16):
+        print(' '.join(f"{x:6.2f}" for x in f0[i].tolist()), " | ", 
+            ' '.join(f"{x:6.2f}" for x in f1[i].tolist()))
+
+    print("-" * 250)
+
+    # Print the second set with proper alignment
+    for i in range(16):
+        print(' '.join(f"{x:6.2f}" for x in f2[i].tolist()), " | ", 
+            ' '.join(f"{x:6.2f}" for x in f3[i].tolist()))
+
+    print("\n"*3)
+
 def run_shell_command(command: str):
     result = subprocess.run(command, shell=True, text=True, capture_output=False,stdout=subprocess.DEVNULL)
     if result.returncode != 0:
