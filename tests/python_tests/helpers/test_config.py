@@ -18,17 +18,22 @@ def generate_make_command(test_config):
     make_cmd += f" approx_mode={approx_mode} "
 
     reduce_dim =  test_config.get("reduce_dim","no_reduce_dim")
-    pool_type =  test_config.get("pool_type","no_pool_type")
+    pool_type =  test_config.get("pool_type","no_reduce_dim")
 
-    make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
-    make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
-    print(make_cmd)
+    # if reduce_dim != "no_reduce_dim" and pool_type != "no_reduce_dim":
+    #     make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
+    #     make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
 
     print(make_cmd)
 
     if(mathop != "no_mathop"):
         if isinstance(mathop,str): # single tile option
-            make_cmd += f"mathop={mathop_args_dict[mathop]} "
+            if(mathop == "reduce"):
+                make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
+                make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
+                print(mathop)
+            else:
+                make_cmd += f"mathop={  mathop_args_dict[mathop]} "
         else: # multiple tiles handles mathop as int
 
             if(mathop == 1):

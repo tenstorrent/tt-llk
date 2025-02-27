@@ -34,17 +34,17 @@ OPTIONS_LINK=-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -no
 INCLUDES = -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc -I../$(ARCH_LLK_ROOT)/common/inc/sfpu
 INCLUDES += -Ifirmware/riscv/common -Ifirmware/riscv/$(CHIP_ARCH)/ -Isfpi/include -Ihelpers/include
 
-FORMAT_ARG:=-D$(format) 
+FORMAT_ARG:= -D$(format) 
 
 ifeq ($(mathop),)
     MATHOP_ARG =
 else
-	MATHOP_ARG:=-D$(mathop) -DAPPROX_MODE=$(approx_mode) 
+	MATHOP_ARG:= -D$(mathop) -DAPPROX_MODE=$(approx_mode) 
 endif
 
-MATHOP_ARG += -D$(reduce_dim) -DPOOL_TYPE=$(pool_type)
+#MATHOP_ARG += -D$(reduce_dim) -DPOOL_TYPE=$(pool_type)
 
-OPTIONS_COMPILE+=-DMATH_FIDELITY=$(math_fidelity)
+OPTIONS_COMPILE+= -DMATH_FIDELITY=$(math_fidelity)
 
 # If test needs to run muliple consecutive operations it needs some additional
 # files to be linked to it
