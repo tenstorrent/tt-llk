@@ -20,18 +20,12 @@ def generate_make_command(test_config):
     reduce_dim =  test_config.get("reduce_dim","no_reduce_dim")
     pool_type =  test_config.get("pool_type","no_reduce_dim")
 
-    # if reduce_dim != "no_reduce_dim" and pool_type != "no_reduce_dim":
-    #     make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
-    #     make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
-
-    print(make_cmd)
-
     if(mathop != "no_mathop"):
         if isinstance(mathop,str): # single tile option
             if(mathop == "reduce"):
+                make_cmd += f"mathop={  mathop_args_dict[mathop]} "
                 make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
                 make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
-                print(mathop)
             else:
                 make_cmd += f"mathop={  mathop_args_dict[mathop]} "
         else: # multiple tiles handles mathop as int
@@ -46,9 +40,10 @@ def generate_make_command(test_config):
             kern_cnt = str(test_config.get("kern_cnt"))
             pack_addr_cnt = str(test_config.get("pack_addr_cnt"))
             pack_addrs = test_config.get("pack_addrs")
-            unpack_a_addrs_cnt = test_config.get("unp_a_addr_cnt")
 
             make_cmd += f" kern_cnt={kern_cnt} "
             make_cmd += f" pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs}" 
+
+    print(make_cmd)
 
     return make_cmd
