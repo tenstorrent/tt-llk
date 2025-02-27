@@ -34,9 +34,9 @@ format_sizes = {
 }
 
 reduce_dim_args = {
-    "reduce_col": "ReduceDim::REDUCE_COL",
-    "reduce_row": "ReduceDim::REDUCE_ROW",
-    "reduce_scalar": "ReduceDim::REDUCE_SCALAR"
+    "reduce_col": "DIM_REDUCE_COL",
+    "reduce_row": "DIM_REDUCE_ROW",
+    "reduce_scalar": "DIM_REDUCE_SCALAR"
 }
 
 reduce_pool_args = {
