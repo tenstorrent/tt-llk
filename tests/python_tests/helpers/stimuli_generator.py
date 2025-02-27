@@ -11,7 +11,7 @@ def generate_random_face(stimuli_format = "Float16_b",const_value = 1,  const_fa
         if const_face:
             srcA_face = torch.ones(256, dtype = format_dict[stimuli_format]) * const_value
         else: # random for both faces
-            srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 2 # because of log
+            srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) * 9.5 + 0.5
 
     elif(stimuli_format == "Bfp8_b"):
 

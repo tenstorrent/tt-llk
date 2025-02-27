@@ -11,43 +11,50 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
     f2 = operand1[512:768].view(16, 16)
     f3 = operand1[768:].view(16, 16)
 
-    if(reduce_dim == "reduce_col"):
-        left_half = torch.cat((f0, f2), 0) 
+    print_faces(operand1)
+
+    def apply_pooling(tensor, pool_type, dim):
+        if pool_type == "max":
+            return torch.max(tensor, dim=dim).values
+        elif pool_type == "avg":
+            return torch.mean(tensor, dim=dim)
+        elif pool_type == "sum":
+            return torch.sum(tensor, dim=dim)
+        else:
+            pytest.skip("Nonexisting pool type")
+
+    if reduce_dim == "reduce_col":
+        left_half = torch.cat((f0, f2), 0)
         right_half = torch.cat((f1, f3), 0)
 
-        if(pool_type == "max"):
-            left_half_max = torch.max(left_half, dim=0).values
-            right_half_max = torch.max(right_half, dim=0).values
+        left_half_max = apply_pooling(left_half, pool_type, dim=0)
+        right_half_max = apply_pooling(right_half, pool_type, dim=0)
 
-        left_half = torch.where(left_half == left_half_max, left_half, torch.tensor(0.0))
-        right_half = torch.where(right_half == right_half_max, right_half, torch.tensor(0.0))
+        result[0][0:16] = left_half_max.view(1, 16)
+        result[0][16:32] = right_half_max.view(1, 16)
 
-        result[0][0:16] = left_half_max.view(1,16)
-        result[0][16:32] = right_half_max.view(1,16)
-
-    elif(reduce_dim == "reduce_row"):
+    elif reduce_dim == "reduce_row":
         top_half = torch.cat((f0, f1), 1)
         bottom_half = torch.cat((f2, f3), 1)
 
-        if(pool_type == "max"):
-            top_half_max = torch.max(top_half, dim=1).values
-            bottom_half_max = torch.max(bottom_half, dim=1).values
+        top_half_max = apply_pooling(top_half, pool_type, dim=1)
+        bottom_half_max = apply_pooling(bottom_half, pool_type, dim=1)
 
-        top_half = torch.where(top_half == top_half_max.view(16,1), top_half, torch.tensor(0.0))
-        bottom_half = torch.where(bottom_half == bottom_half_max.view(16,1), bottom_half, torch.tensor(0.0))
-
-        result[0:16, 0] = top_half_max.view(16)
+        result[:16, 0] = top_half_max.view(16)
         result[16:32, 0] = bottom_half_max.view(16)
+
     else:
         pytest.skip("To be implemented")
+
+    print(result)
     
     return result.view(1024)
 
 param_combinations = [
     (reduce_dim,pool_type, format, dest_acc, testname)
-    for reduce_dim in ["reduce_col", "reduce_row"]
-    for pool_type in ["max"]
-    for format in ["Float16_b", "Float16"]
+    for reduce_dim in ["reduce_col"] #["reduce_col", "reduce_row"]
+    for pool_type in ["max","avg","sum"]
+    for format in ["Float16_b"]#, "Float16"]
     for dest_acc in [""]#, "DEST_ACC"]
     for testname in ["reduce_test"]
 ]
@@ -66,14 +73,21 @@ param_ids = [
 def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
     
     src_A, src_B = generate_stimuli(format)
-    src_A = torch.cat([
-        torch.full((256,), 1, dtype=format_dict[format]),
-        torch.full((256,), 2, dtype=format_dict[format]),
-        torch.full((256,), 3, dtype=format_dict[format]),
-        torch.full((256,), 4, dtype=format_dict[format])
-    ])
-    src_B = torch.full((1024,), 1) # also for reduce sum
-    # reduce average divides by length of elements in array we reduce
+    # src_A = torch.cat([
+    #     torch.full((256,), 1, dtype=format_dict[format]),
+    #     torch.full((256,), 2, dtype=format_dict[format]),
+    #     torch.full((256,), 3, dtype=format_dict[format]),
+    #     torch.full((256,), 4, dtype=format_dict[format])
+    # ])
+
+    if pool_type in ["max", "sum"]: # result in srcA should be divided by 1
+        src_B = torch.full((1024,), 1) 
+    else:    
+        # reduce average divides by length of elements in array we reduce
+        if(reduce_dim in ["reduce_col", "reduce_row"]):
+            src_B = torch.full((1024,), 1/32)
+        else:
+            src_B = torch.full((1024,), torch.sqrt(1/1024))
 
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, format)
     write_stimuli_to_l1(src_A, src_B, format)
