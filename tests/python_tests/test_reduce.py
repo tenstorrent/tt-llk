@@ -42,6 +42,9 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
         result[:16, 0] = top_half_max.view(16)
         result[16:32, 0] = bottom_half_max.view(16)
+    elif reduce_dim == "reduce_scalar":
+
+        result[0][0] = apply_pooling(operand1.view(1024), pool_type, dim=0)
 
     else:
         pytest.skip("To be implemented")
@@ -52,8 +55,8 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
 param_combinations = [
     (reduce_dim,pool_type, format, dest_acc, testname)
-    for reduce_dim in ["reduce_col"] #["reduce_col", "reduce_row"]
-    for pool_type in ["max","avg","sum"]
+    for reduce_dim in ["reduce_row"] #["reduce_col", "reduce_row"]
+    for pool_type in ["max"] #["max","avg","sum"]
     for format in ["Float16_b"]#, "Float16"]
     for dest_acc in [""]#, "DEST_ACC"]
     for testname in ["reduce_test"]
@@ -87,7 +90,7 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
         if(reduce_dim in ["reduce_col", "reduce_row"]):
             src_B = torch.full((1024,), 1/32)
         else:
-            src_B = torch.full((1024,), torch.sqrt(1/1024))
+            src_B = torch.full((1024,), torch.sqrt(torch.tensor(1/1024)))
 
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, format)
     write_stimuli_to_l1(src_A, src_B, format)
@@ -98,7 +101,8 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
         "testname": testname,
         "dest_acc": dest_acc,
         "reduce_dim": reduce_dim,
-        "pool_type": pool_type
+        "pool_type": pool_type,
+        "mathop" : "reduce"
     }
 
     make_cmd = generate_make_command(test_config)

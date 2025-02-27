@@ -18,6 +18,8 @@ const bool is_fp32_dest_acc_en = true;
 const bool is_fp32_dest_acc_en = false;
 #endif
 
+const std::uint32_t  within_face_16x16_transpose = 1;
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB.h"
@@ -29,13 +31,10 @@ void run_kernel()
     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
     volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
 
-    #ifdef DIM_REDUCE_ROW
+    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, FACE_R_DIM,within_face_16x16_transpose);
+    _llk_unpack_AB_init_<>(FACE_C_DIM,4,false,within_face_16x16_transpose,0);
+    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B),within_face_16x16_transpose);
 
-    #else
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT);
-    _llk_unpack_AB_init_<>();
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B));
-    #endif
 }
 
 #endif
@@ -46,15 +45,17 @@ void run_kernel()
 #include "llk_math_reduce.h"
 #include "params.h"
 
+const bool row_pool = true;
+
 void run_kernel()
 {
     const std::uint32_t math_fid = 4;
     const bool is_int_fpu_en = false;
 
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false,false>(DATA_FORMAT,DATA_FORMAT);
+    _llk_math_hw_configure_<false,row_pool>(DATA_FORMAT,DATA_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fid>(0);
+    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fid>(within_face_16x16_transpose);
     _llk_math_reduce_<POOL_TYPE,REDUCE_DIM, math_fid, is_fp32_dest_acc_en, is_int_fpu_en>(0);
     _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
 }
