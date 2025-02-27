@@ -7,6 +7,8 @@ import struct
 import torch
 from .utils import reverse_endian_chunk
 
+unpacked_bfp8 = {}
+
 def int_to_bytes_list(n):
     binary_str = bin(n)[2:].zfill(32)
     return [int(binary_str[i:i + 8], 2) for i in range(0, 32, 8)]
@@ -35,9 +37,18 @@ def unpack_fp16(packed_list):
     limited_packed_list = packed_list[:2048]
     return [bytes_to_float16(limited_packed_list[i:i + 2]).item() for i in range(0, len(limited_packed_list), 2)]
 
-def unpack_bfp16(packed_list):
+def unpack_bfp16(packed_list, unpack_src, pack_dst):
     limited_packed_list = packed_list[:2048]
-    return [bytes_to_bfloat16(limited_packed_list[i:i + 2]).item() for i in range(0, len(limited_packed_list), 2)]
+    ret = []
+    for i in range(0, len(limited_packed_list), 2):
+        ret.append(bytes_to_bfloat16(limited_packed_list[i:i + 2]).item())
+    if unpack_src == "Bfp8_b" and pack_dst != unpack_src:    
+        for i in range(0, len(ret), 2):
+            tmp = ret[i]
+            ret[i] = ret[i+1]
+            ret[i+1] = tmp
+    return ret
+    # return [bytes_to_bfloat16(limited_packed_list[i:i + 2]).item() for i in range(0, len(limited_packed_list), 2)]
 
 def unpack_float32(packed_list):
     return [bytes_to_float32(packed_list[i:i + 4]).item() for i in range(0, len(packed_list), 4)]
@@ -48,28 +59,27 @@ def unpack_int32(packed_list):
 def bfp8_to_float_block(exponent, bfp8_mantissas):
     bfloat16_values = []
     exponent = exponent - 127
+    
     for mantissa in bfp8_mantissas:
+        if (exponent, mantissa) in unpacked_bfp8:
+            bfloat16_values.append(unpacked_bfp8[(exponent, mantissa)])
+            continue
         sign_mantissa = str(format(mantissa, '08b'))
         sign = int(sign_mantissa[0],2)
-        mantissa_value =sign_mantissa[1:]
-        int_part = mantissa_value[:exponent+1]
-        fract_part = mantissa_value[exponent+1:]
+        mantissa_value = sign_mantissa[1:]
 
-        if(len(int_part) != 0):
-            int_value = int(int_part,2)
-        else:
-            int_value = 0
+        fract_value = 0.0
+        for i in range(len(mantissa_value)):
+            if(mantissa_value[i] == '1'):
+                fract_value += 1/(2**(i))
 
-        fract_value = 0
-        for i in range(len(fract_part)):
-            if(fract_part[i] == '1'):
-                fract_value += 1/(2**(i+1))
+        bfloat16_values.append(((-1.0)**sign)*(2**exponent)*(fract_value))
 
-        bfloat16_values.append(((-1)**sign)*(int_value+fract_value))
+        unpacked_bfp8[(exponent, mantissa)] = (((-1.0)**sign)*(2**exponent)*(fract_value))
 
     return bfloat16_values
 
-def unpack_bfp8_b(bfp8_block,sfpu=False):
+def unpack_bfp8_b(bfp8_block,unpack_src, pack_dst,sfpu=False):
 
     if not sfpu:
         exponents = bfp8_block[:64]
@@ -88,5 +98,10 @@ def unpack_bfp8_b(bfp8_block,sfpu=False):
 
         block_bfloat16_values = bfp8_to_float_block(exponent, reversed_sign_mantissa)
         bfloat16_values.extend(block_bfloat16_values)
+    if (unpack_src != pack_dst):
+        for i in range(0, len(bfloat16_values), 2):
+            tmp = bfloat16_values[i]
+            bfloat16_values[i] = bfloat16_values[i+1]
+            bfloat16_values[i+1] = tmp
     
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)

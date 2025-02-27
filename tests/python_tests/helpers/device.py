@@ -9,7 +9,8 @@ def collect_results(format,address=0x1c000,core_loc = "0,0", sfpu=False):
     read_words_cnt = calculate_read_words_count(format,sfpu)
     read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
-    res_from_L1 = get_result_from_device(format,read_data_bytes,sfpu)
+
+    res_from_L1 = get_result_from_device(unpack_src, pack_dst, read_data_bytes,sfpu)
     return res_from_L1
 
 def run_elf_files(testname, core_loc = "0,0", run_brisc=True):
@@ -65,7 +66,7 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc = "0,0", ti
         buffer_B_address += BUFFER_SIZE
         
         
-def get_result_from_device(format: str, read_data_bytes: bytes, core_loc : str = "0,0", sfpu: bool =False):
+def get_result_from_device(unpack_src: str, pack_dst : str, read_data_bytes: bytes, core_loc : str = "0,0", sfpu: bool =False):
     # Dictionary of format to unpacking function mappings
     unpackers = {
         "Float16": unpack_fp16,
@@ -75,15 +76,15 @@ def get_result_from_device(format: str, read_data_bytes: bytes, core_loc : str =
     }
     
     # Handling "Bfp8_b" format separately with sfpu condition
-    if format == "Bfp8_b":
+    if pack_dst == "Bfp8_b":
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
     else:
-        unpack_func = unpackers.get(format)
+        unpack_func = unpackers.get(pack_dst)
     
     if unpack_func:
-        return unpack_func(read_data_bytes)
+        return unpack_func(read_data_bytes, unpack_src, pack_dst)
     else:
-        raise ValueError(f"Unsupported format: {format}")
+        raise ValueError(f"Unsupported format: {pack_dst}")
     
 def assert_tensix_operations_finished(core_loc : str= "0,0"):
     tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC] # L1 Mailbox addresses
