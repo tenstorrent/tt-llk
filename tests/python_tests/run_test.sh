@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Check if CHIP_ARCH is set to wormhole or blackhole
 if [[ "$CHIP_ARCH" = "wormhole" ]]; then
     /home/software/syseng/wh/tt-smi -wr 0
