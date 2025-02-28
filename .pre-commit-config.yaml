@@ -18,7 +18,7 @@ repos:
   rev: v1.0.3
   hooks:
     - id: check-copyright
-      args: ['--config', 'infra/check_copyright_config.yaml', "--ignore", ""]
+      args: ['--config', 'infra/check_copyright_config.yaml', "--replace"]
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v3.4.0
   hooks:
