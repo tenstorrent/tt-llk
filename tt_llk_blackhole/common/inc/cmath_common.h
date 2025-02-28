@@ -36,8 +36,13 @@ constexpr uint DstTileSizeLog2[3] = {
     4      // 16x16 tile shape
 };
 
-constexpr uint replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
+#ifdef MM_ADD_NOPS
+constexpr uint replay_buf_offset = 8; // split replay buffer usage between fpu/sfpu
                                        // fist 16 for sfpu, next 16 for fpu
+#else
+constexpr uint replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
+                                        // fist 16 for sfpu, next 16 for fpu
+#endif
 
 
 inline void reset_counters(const uint setrwc)
