@@ -35,8 +35,7 @@ if [[ "$REUSE" == false ]]; then
     # Update packages and install gawk (if necessary)
     echo "Updating system packages..."
     sudo apt update
-    sudo apt install -y gawk
-    sudo apt install software-properties-common build-essential libyaml-cpp-dev libboost-all-dev libhwloc-dev libzmq3-dev libgtest-dev libgmock-dev xxd
+    sudo apt install software-properties-common build-essential libyaml-cpp-dev libhwloc-dev libzmq3-dev xxd
 
     pip install --upgrade pip
 
