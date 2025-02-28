@@ -36,7 +36,7 @@ if [[ "$REUSE" == false ]]; then
     echo "Updating system packages..."
     sudo apt update
     sudo apt install -y gawk
-    sudo apt install software-properties-common build-essential libyaml-cpp-dev libboost-all-dev libhwloc-dev libzmq3-dev libgtest-dev libgmock-dev xxd
+    sudo apt install software-properties-common build-essential libyaml-cpp-dev libhwloc-dev libzmq3-dev xxd
 
     pip install --upgrade pip
 
@@ -84,8 +84,7 @@ if [[ "$REUSE" == false ]]; then
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
     # **************** DOWNLOAD & INSTALL TT-LENS ****************************
-    pip install git+https://github.com/tenstorrent/tt-lens.git@d968f1215b5fde25a9cf41522452b055854e609f
-    
+    pip install git+https://github.com/tenstorrent/tt-lens.git@316173d64c5d1145c33560ee4e2fc12149b20afc
 
     # **************** DOWNLOAD & INSTALL SFPI ****************************
     echo "Downloading SFPI release..."

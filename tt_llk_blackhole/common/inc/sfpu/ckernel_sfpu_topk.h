@@ -447,7 +447,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
             
             switch (ph) {
                 case 0:
-                    TT_RISC_ASSERT(false, "K=2 not supported!");
+                    
                     break;
                 case 1:
                     if (m_iter >= 2) {

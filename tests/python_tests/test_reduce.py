@@ -55,9 +55,9 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
 param_combinations = [
     (reduce_dim,pool_type, format, dest_acc, testname)
-    for reduce_dim in ["reduce_row"] #["reduce_col", "reduce_row"]
-    for pool_type in ["max"] #["max","avg","sum"]
-    for format in ["Float16_b"]#, "Float16"]
+    for reduce_dim in ["reduce_col","reduce_row","reduce_scalar"]
+    for pool_type in ["max","avg","sum"]
+    for format in ["Float16_b","Float16"]
     for dest_acc in [""]#, "DEST_ACC"]
     for testname in ["reduce_test"]
 ]
