@@ -10,6 +10,9 @@ DEFAULT:
     // SPDX-FileCopyrightText: © {years} Tenstorrent AI ULC
     //
     // SPDX-License-Identifier: {license}
+  new_notice_python: | # notice for new Python files
+    # SPDX-License-Identifier: {license}
+    # SPDX-FileCopyrightText: © {years} Tenstorrent AI ULC
 
   # comment lines matching:
   # SPDX-FileCopyrightText: year[-year] Espressif Systems
