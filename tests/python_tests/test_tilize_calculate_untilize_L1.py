@@ -17,6 +17,7 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
                 element &= 0xFFF8
     
     # First step is unpack tilize
+    print("TILIZED")
     tensor1_float = tilize(tensor1_float, data_format)
     tensor2_float = tilize(tensor2_float, data_format)
 
@@ -30,16 +31,13 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
     else:
         raise ValueError("Unsupported operation!")
     
-    # Third step is to pack untilize
-    res = untilize(res, data_format)
-    
     return res
 
 param_combinations = [
     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
-    for mathop in ["elwadd"]
+    for mathop in ["elwadd", "elwsub", "elwmul"]
     for tile_cnt in range(1, 2)
-    for format in ["Float16_b"] #, "Float16", "Bfp8_b"]
+    for format in ["Float16_b", "Float16"]
     for dest_acc in [""] #, "DEST_ACC"]
     for testname in ["tilize_calculate_untilize_L1"]
     for math_fidelity in  [4] #[0,2,3,4]

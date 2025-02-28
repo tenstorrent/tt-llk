@@ -39,6 +39,7 @@ void run_kernel()
     _llk_unpack_tilize_(L1_ADDRESS(buffer_A),0,DATA_FORMAT,1,FACE_R_DIM,4,false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_B),0,DATA_FORMAT,1,FACE_R_DIM,4,false);
 
+    _llk_unpack_AB_hw_configure_<false,StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
     _llk_unpack_AB_init_<>();
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
 }
@@ -58,7 +59,9 @@ using namespace ckernel;
 void run_kernel()
 {
     const bool is_int_fpu_en = false;
-    const std::uint32_t res_dst_index = 2;
+    const std::uint32_t operand_A_dst_index = 1;
+    const std::uint32_t operand_B_dst_index = 2;
+    const std::uint32_t res_dst_index = 0;
 
     _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false,false>(DATA_FORMAT, DATA_FORMAT);
@@ -72,11 +75,11 @@ void run_kernel()
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(0, DATA_FORMAT, DATA_FORMAT);
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(operand_A_dst_index, DATA_FORMAT, DATA_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
 
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(1, DATA_FORMAT, DATA_FORMAT);
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(operand_B_dst_index, DATA_FORMAT, DATA_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
 
 
@@ -100,9 +103,9 @@ void run_kernel()
     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1e000);
     const bool UNTILIZE = false;
     const std::uint32_t ct_dim = 1;
-    const std::uint32_t operand_A_dst_index = 0;
-    const std::uint32_t operand_B_dst_index = 1;
-    const std::uint32_t res_dst_index = 2;
+    const std::uint32_t operand_A_dst_index = 1;
+    const std::uint32_t operand_B_dst_index = 2;
+    const std::uint32_t res_dst_index = 0;
 
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
 

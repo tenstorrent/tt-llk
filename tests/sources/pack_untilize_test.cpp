@@ -85,16 +85,14 @@ void run_kernel()
     #else
     _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
     #endif
-
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);  
-    _llk_pack_untilize_init_<ct_dim>(DATA_FORMAT,FACE_R_DIM,4);
     
     #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull,DstTileFaceLayout::RowMajor,is_fp32_dest_acc_en>();
     #else
     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, UNTILIZE, is_fp32_dest_acc_en>();
     #endif
-
+    
+    _llk_pack_untilize_init_<ct_dim>(DATA_FORMAT,FACE_R_DIM,4);
     _llk_packer_wait_for_math_done_();
     _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Dest), DATA_FORMAT, FACE_R_DIM, 4, 0);
     _llk_pack_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
