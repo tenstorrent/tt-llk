@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-License-Identifier: Apache-2.0
+
 from .format_arg_mapping import format_args_dict,mathop_args_dict, reduce_dim_args, reduce_pool_args
 
 def generate_make_command(test_config):

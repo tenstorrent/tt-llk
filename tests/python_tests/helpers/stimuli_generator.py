@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-License-Identifier: Apache-2.0
+
 import torch
 from .format_arg_mapping import format_dict
 def flatten_list(sublists):

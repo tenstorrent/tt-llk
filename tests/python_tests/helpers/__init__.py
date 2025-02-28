@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-License-Identifier: Apache-2.0
+
 from .stimuli_generator import flatten_list,generate_stimuli
 from .format_arg_mapping import format_dict,format_args_dict,mathop_args_dict,format_sizes
 from .pack import pack_bfp16,pack_fp16,pack_fp32,pack_int32,pack_bfp8_b

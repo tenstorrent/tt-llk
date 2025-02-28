@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 MEMORY
 {
     BRISC_LOCAL_DATA_MEM : ORIGIN = 0xFFB00000, LENGTH = (4 * 1024) - 1024
