@@ -6,8 +6,6 @@
 
 #include "ckernel_sfpu_converter.h"
 
-using namespace sfpi;
-
 namespace ckernel
 {
 namespace sfpu

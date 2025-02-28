@@ -6,8 +6,6 @@
 
 #include "ckernel_sfpu_is_fp16_zero.h"
 
-using namespace sfpi;
-
 namespace ckernel
 {
 namespace sfpu
