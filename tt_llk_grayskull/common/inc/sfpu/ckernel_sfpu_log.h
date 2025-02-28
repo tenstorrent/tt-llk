@@ -4,8 +4,6 @@
 
 #pragma once
 
-using namespace sfpi;
-
 namespace ckernel
 {
 namespace sfpu

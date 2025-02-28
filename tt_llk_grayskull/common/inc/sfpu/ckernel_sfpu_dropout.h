@@ -7,8 +7,6 @@
 // TODO: Remove
 #include "noc_nonblocking_api.h"
 
-using namespace sfpi;
-
 namespace ckernel
 {
 namespace sfpu
