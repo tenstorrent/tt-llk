@@ -13,21 +13,31 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
-inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile=false) {
+inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile=false, const bool unpack_to_dest=false) {
     #if SKIP_UNP == 1
         static constexpr uint unpack_srca = TT_OP_NOP;
+        static constexpr uint unpack_srca_to_dest = TT_OP_NOP;
         static constexpr uint unpack_srcb_zerosrc = TT_OP_NOP;
         static constexpr uint unpack_srcb_set_dvalid = TT_OP_NOP;
     #else
         static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        static constexpr uint unpack_srca_to_dest = TT_OP_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
         static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
     #endif
-
-    const uint32_t outerloop = 1;
-    constexpr uint32_t innerloop = 1;
-    ckernel_template tmp(outerloop, innerloop, unpack_srcb_set_dvalid);
-    tmp.set_start_op(unpack_srca);
-    tmp.program(instrn_buffer);
+    
+    if (unpack_to_dest) {
+        const uint32_t outerloop = 4;
+        constexpr uint32_t innerloop = 1;
+        ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
+        tmp.program(instrn_buffer);
+    }
+    else {
+        const uint32_t outerloop = 1;
+        constexpr uint32_t innerloop = 1;
+        ckernel_template tmp(outerloop, innerloop, unpack_srcb_set_dvalid);
+        tmp.set_start_op(unpack_srca);
+        tmp.program(instrn_buffer);
+    }
 }
 
 template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
@@ -88,12 +98,13 @@ inline void _llk_unpack_tilize_init_(const std::uint32_t unpack_src_format=0, co
     }
     else {
         config_unpacker_x_end<UNP0>(face_r_dim);
-        _llk_unpack_tilize_mop_config_(narrow_tile);
+        _llk_unpack_tilize_mop_config_(narrow_tile, unpack_to_dest);
     }
 }
 
 inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uint32_t tile_index, std::uint32_t unpack_src_format=0, std::uint32_t block_ct_dim=0, const std::uint32_t face_r_dim=FACE_R_DIM, const std::uint32_t num_faces=4, const bool narrow_tile=false, const bool unpack_to_dest=false, const std::uint32_t offset_address=0) {
     if (!unpack_to_dest) {
+
         volatile uint tt_reg_ptr *cfg = get_cfg_pointer();  // get pointer to registers for current state ID
 
 
@@ -133,7 +144,7 @@ inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uin
         TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
         // Run MOP
-        //ckernel::ckernel_template::run(instrn_buffer);
+        ckernel::ckernel_template::run(instrn_buffer);
         
         // T6::SEMGET for context release
         t6_semaphore_get(semaphore::UNPACK_SYNC);
@@ -142,7 +153,6 @@ inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uin
         switch_config_context(unp_cfg_context);
     }
     else {
-        DPRINT << "Unpack to dest" << ENDL();
         // Clear z/w start counters
         TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
         // Program srcA and srcB base addresses
@@ -159,11 +169,9 @@ inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uin
 
         // Stall unpacker until pending CFG writes from Trisc have completed
         TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-
-        TTI_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        
+        // Run MOP
+        ckernel::ckernel_template::run(instrn_buffer);
         
         // T6::SEMGET for context release
         t6_semaphore_get(semaphore::UNPACK_SYNC);
