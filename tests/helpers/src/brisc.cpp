@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #include "tensix.h"
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
