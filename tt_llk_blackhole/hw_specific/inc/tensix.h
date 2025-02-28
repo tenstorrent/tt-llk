@@ -16,18 +16,18 @@
 
 // Convenience and type defines
 typedef std::uint32_t uint;
-typedef std::uint8_t byte;
+typedef std::uint8_t  byte;
 
 #define PREPROCESSOR_EVAL(x, y, z) x##y##z
 #define PREPROCESSOR_EXPAND(x, y, z) PREPROCESSOR_EVAL(x, y, z)
 
-#define MAX_THREADS 3  // max number of threads supported by single core
+#define MAX_THREADS 3 // max number of threads supported by single core
 
-#define MAX_PACKERS 4  // number of packers in the design
+#define MAX_PACKERS 4 // number of packers in the design
 
 // TODO: use this in firmware.cc
 #define MEMORY_WORD_SIZE_IN_BYTES (16)
-#define MEMORY_WORD_SHIFT_BITS (4)  // log2(MEMORY_WORD_SIZE_IN_BYTES)
+#define MEMORY_WORD_SHIFT_BITS (4) // log2(MEMORY_WORD_SIZE_IN_BYTES)
 
 #define STALLWAIT_COMPUTE (0x0)
 #define STALLWAIT_TDMA (0x1)
@@ -43,32 +43,32 @@ typedef std::uint8_t byte;
 
 // Reads and writes here access the tensix core register set. Each register is four bytes, but subword reads are
 // supported through byte enables. Register indices and contents are defined in local_regs.yaml.
-#define REGFILE_BASE 0xFFE00000  // 0xFFE00000 - 0xFFE3FFFF
+#define REGFILE_BASE 0xFFE00000 // 0xFFE00000 - 0xFFE3FFFF
 
 // Writes here are appended to the tensix core instruction FIFO. This has priority over incoming instruction fetch
 // returns, which are simply dropped. The instruction will stay in the queue if a loop instruction is in progress. If
 // the FIFO gets overfull, writes are dropped? Additionally, the instruction queue is flushed in some cases.
-#define INSTRN_BUF_BASE 0xFFE40000   // 0xFFE40000 - 0xFFE7FFFF
-#define INSTRN1_BUF_BASE 0xFFE50000  // 0xFFE40000 - 0xFFE7FFFF
+#define INSTRN_BUF_BASE 0xFFE40000  // 0xFFE40000 - 0xFFE7FFFF
+#define INSTRN1_BUF_BASE 0xFFE50000 // 0xFFE40000 - 0xFFE7FFFF
 #define INSTRN2_BUF_BASE 0xFFE60000
 
 // PC buffer is used to pass kernel IDs and paramters from Brisc to Triscs, and also as a sync point -- a read from pc
 // buffer+1 address will not return until that thread is idle.
-#define PC_BUF_BASE 0xFFE80000   // 0xFFE80000 - 0xFFEBFFFF
-#define PC1_BUF_BASE 0xFFE90000  // 0xFFE80000 - 0xFFEBFFFF
+#define PC_BUF_BASE 0xFFE80000  // 0xFFE80000 - 0xFFEBFFFF
+#define PC1_BUF_BASE 0xFFE90000 // 0xFFE80000 - 0xFFEBFFFF
 #define PC2_BUF_BASE 0xFFEA0000
 
 // Reads from here retrieve a value written by the tensix code, or 0 if there the mailbox FIFO is empty.
-#define TENSIX_MAILBOX0_BASE 0xFFEC0000  // Brisc
-#define TENSIX_MAILBOX1_BASE 0xFFEC1000  // Trisc0
-#define TENSIX_MAILBOX2_BASE 0xFFEC2000  // Trisc1
-#define TENSIX_MAILBOX3_BASE 0xFFEC3000  // Trisc2
+#define TENSIX_MAILBOX0_BASE 0xFFEC0000 // Brisc
+#define TENSIX_MAILBOX1_BASE 0xFFEC1000 // Trisc0
+#define TENSIX_MAILBOX2_BASE 0xFFEC2000 // Trisc1
+#define TENSIX_MAILBOX3_BASE 0xFFEC3000 // Trisc2
 
 // Config registers
-#define TENSIX_CFG_BASE 0xFFEF0000  // 0xFFEF0000 - 0xFFF00000
+#define TENSIX_CFG_BASE 0xFFEF0000 // 0xFFEF0000 - 0xFFF00000
 
 // MOP config registers
-#define TENSIX_MOP_CFG_BASE 0xFFB80000  // 0xFFB8000 - 0xFFB8100
+#define TENSIX_MOP_CFG_BASE 0xFFB80000 // 0xFFB8000 - 0xFFB8100
 
 // TDMA register base
 #define RISCV_TDMA_REGS_START_ADDR 0xFFB11000
@@ -79,8 +79,8 @@ typedef std::uint8_t byte;
 #define RISCV_TDMA_REG_COMMAND_ADDR 0xFFB11010
 #define RISCV_TDMA_REG_STATUS 0xFFB11014
 #define RISCV_TDMA_REG_PACKED_SIZE 0xFFB11018
-#define RISCV_TDMA_REG_ACC_PACKED_SIZE 0xFFB1101C   // read only
-#define RISCV_TDMA_REG_INITIAL_PACK_ACC 0xFFB1101C  // write only
+#define RISCV_TDMA_REG_ACC_PACKED_SIZE 0xFFB1101C  // read only
+#define RISCV_TDMA_REG_INITIAL_PACK_ACC 0xFFB1101C // write only
 #define RISCV_TDMA_REG_CLK_GATE_EN 0xFFB11024
 #define RISCV_TDMA_REG_CLK_GATE_HYST 0xFFB11028
 #define RISCV_TDMA_REG_XMOV_L1_BASE_ADDR 0xFFB1102C
@@ -227,29 +227,29 @@ end
 #define RISCV_DEBUG_REG_WDT_STATUS (RISCV_DEBUG_REGS_START_ADDR | 0x1E8)
 
 typedef struct {
-    uint dbg_sig_sel : 16;
-    uint dbg_daisy_sel : 8;
-    uint dbg_rd_sel : 4;
+    uint dbg_sig_sel     : 16;
+    uint dbg_daisy_sel   : 8;
+    uint dbg_rd_sel      : 4;
     uint dbg_reg_ovrd_en : 1;
-    uint dbg_daisy_en : 1;
-    uint dbg_reserved : 2;
+    uint dbg_daisy_en    : 1;
+    uint dbg_reserved    : 2;
 } riscv_debug_reg_dbg_dbus_cntl_t;
 
 typedef union {
-    uint val;
+    uint                            val;
     riscv_debug_reg_dbg_dbus_cntl_t f;
 } riscv_debug_reg_dbg_dbus_cntl_u;
 
 typedef struct {
     uint mem_dump_mode : 4;
-    uint skip_cycles : 8;
-    uint mem_write : 1;
-    uint mem_read : 1;
-    uint reserved : 18;
+    uint skip_cycles   : 8;
+    uint mem_write     : 1;
+    uint mem_read      : 1;
+    uint reserved      : 18;
 } riscv_debug_reg_dbg_l1_mem_reg2_t;
 
 typedef union {
-    uint val;
+    uint                              val;
     riscv_debug_reg_dbg_l1_mem_reg2_t f;
 } riscv_debug_reg_dbg_l1_mem_reg2_u;
 
@@ -260,7 +260,7 @@ typedef union {
 #define SOFT_RESET_GLUE ((0x1) << 8)
 #define SOFT_RESET_THCON ((0x1) << 9)
 #define SOFT_RESET_FPU ((0x1) << 10)
-#define SOFT_RESET_RISC_CTRL(arg) ((arg & 0xf) << 11)  // Soft reset for RISCV cores. Bit 0 - Brisc, Bit 1+ - Trisc
+#define SOFT_RESET_RISC_CTRL(arg) ((arg & 0xf) << 11) // Soft reset for RISCV cores. Bit 0 - Brisc, Bit 1+ - Trisc
 #define SOFT_RESET_SRCA_REG ((0x1) << 15)
 #define SOFT_RESET_SRCB_REG ((0x1) << 16)
 #define SOFT_RESET_DEST_REG ((0x1) << 17)
@@ -285,84 +285,83 @@ typedef union {
 /////////////
 // Instruction macro definitions
 // Consult instruction documentation in assembly.yaml
-#define INSTRN_GETDESC(arg) (0x40000000 | (arg))  // Unimplemented.
-#define INSTRN_PACRNL(arg) (0x41000000 | (arg))   // Pack row from DST to L0/L1
-#define INSTRN_UNPACR(arg) (0x42000000 | (arg))   // Unpack row from tile in L0 to SRCA/SRCB
+#define INSTRN_GETDESC(arg) (0x40000000 | (arg)) // Unimplemented.
+#define INSTRN_PACRNL(arg) (0x41000000 | (arg))  // Pack row from DST to L0/L1
+#define INSTRN_UNPACR(arg) (0x42000000 | (arg))  // Unpack row from tile in L0 to SRCA/SRCB
 #define INSTRN_SEARCHX(arg) \
     (0x43000000 |           \
-     (arg))  // Search for start of selected row within tile. To be invoked prior to each invocation of UNPACR.
-#define INSTRN_RSTDMA 0x44000000  // Soft reset of TDMA engine
+     (arg)) // Search for start of selected row within tile. To be invoked prior to each invocation of UNPACR.
+#define INSTRN_RSTDMA 0x44000000 // Soft reset of TDMA engine
 #define INSTRN_SET_DMA_REG(arg) \
-    (0x45000000 | (arg))  // Set TDMA register file register with 16b immediate value provided with instruction
+    (0x45000000 | (arg)) // Set TDMA register file register with 16b immediate value provided with instruction
 #define INSTRN_FLUSH_DMA(arg) \
-    (0x46000000 | (arg))  // Flush TDMA engine or some subset of it as specified by instruction argument
+    (0x46000000 | (arg)) // Flush TDMA engine or some subset of it as specified by instruction argument
 #define INSTRN_MV_REG_TO_FLOPS(arg) \
-    (0x48000000 | (arg))  // Move data from TDMA register file into flip flops driving actual config signals. Used for
-                          // certain TDMA configuration signal setting.
+    (0x48000000 | (arg)) // Move data from TDMA register file into flip flops driving actual config signals. Used for
+                         // certain TDMA configuration signal setting.
 #define INSTRN_LOAD_IND(arg) \
-    (0x49000000 | (arg))  // Load indirect from address specified in a TDMA register, with offset specified in TDMA
-                          // register to a TDMA register. Supports autoincrementing offset
+    (0x49000000 | (arg)) // Load indirect from address specified in a TDMA register, with offset specified in TDMA
+                         // register to a TDMA register. Supports autoincrementing offset
 #define INSTRN_AT_INCR_GET(arg) \
-    (0x61000000 | (arg))  // Atomic increment and get - will read value in targetted memory location and return it to
-                          // TDMA register and post-increment it atomically
+    (0x61000000 | (arg)) // Atomic increment and get - will read value in targetted memory location and return it to
+                         // TDMA register and post-increment it atomically
 #define INSTRN_AT_INCR_GET_PTR(arg) \
     (0x62000000 |                   \
-     (arg))  // Atomic increment and get pointer - will access a memory location designated as a FIFO pointer location
-             // (contains a 32b read pointer and a 32b write pointer), return the pointer value to TDMA register and
-             // post-increment it unless the FIFO condition precludes that. For example, write pointer will not be
-             // incremented if FIFO is full. Read pointer will not be incremented if FIFO is empty. FIFO full or empty
-             // conditions are returned as an unsuccessfull return condition code, so that the thread controller can
-             // retry until success (retry reads if FIFO empty, retry writes if FIFO full.)
+     (arg)) // Atomic increment and get pointer - will access a memory location designated as a FIFO pointer location
+            // (contains a 32b read pointer and a 32b write pointer), return the pointer value to TDMA register and
+            // post-increment it unless the FIFO condition precludes that. For example, write pointer will not be
+            // incremented if FIFO is full. Read pointer will not be incremented if FIFO is empty. FIFO full or empty
+            // conditions are returned as an unsuccessfull return condition code, so that the thread controller can
+            // retry until success (retry reads if FIFO empty, retry writes if FIFO full.)
 #define INSTRN_AT_SWAP(arg) \
-    (0x63000000 | (arg))  // Atomic unconditional SWAP. Swaps selected 16b chunks of memory location with new ones
-                          // provided on write data bus.
+    (0x63000000 | (arg)) // Atomic unconditional SWAP. Swaps selected 16b chunks of memory location with new ones
+                         // provided on write data bus.
 #define INSTRN_AT_CAS(arg) \
-    (0x64000000 | (arg))  // Atomic compare-and-swap. If value at selected memory location matches that provided by
-                          // programmer it is swapped to a new one, also provided by programmer. This instruction is
-                          // implemented for implementations of mutual exclusion between Tensix cores and threads
+    (0x64000000 | (arg)) // Atomic compare-and-swap. If value at selected memory location matches that provided by
+                         // programmer it is swapped to a new one, also provided by programmer. This instruction is
+                         // implemented for implementations of mutual exclusion between Tensix cores and threads
 #define INSTRN_STORE_IND(arg) \
-    (0x66000000 |             \
-     (arg))  // Store indirect. Stores data from TDMA register to memory location specified by a combination of
-             // base+offset provided in other TDMA registers. Supports auto-increment on offset value.
+    (0x66000000 | (arg)) // Store indirect. Stores data from TDMA register to memory location specified by a combination
+                         // of base+offset provided in other TDMA registers. Supports auto-increment on offset value.
 
 #define INSTRN_SETC16(arg) \
-    (0xb2000000 | (arg))  // Sets thread specific control register <register> to the value stored in the slot argument.
-                          // 32-bit instruction. Register index (bits16-23) Value: (bits 15-0).
+    (0xb2000000 | (arg)) // Sets thread specific control register <register> to the value stored in the slot argument.
+                         // 32-bit instruction. Register index (bits16-23) Value: (bits 15-0).
 #define INSTRN_WRCFG(arg) (0xb0000000 | (arg))
 #define INSTRN_RDCFG(arg) (0xb1000000 | (arg))
 
 #define INSTRN_SETC(arg) \
-    (0x80000000 | (arg))  // Sets thread specific control register <register> to the value stored in the slot argument.
-                          // 64-bit instruction. Register index in low 11 bits of first word, register value in second
-                          // word. **Deprecated**
-#define INSTRN_SETRWC(arg) (0x38000000 | (arg))        //
-#define INSTRN_SETADC(arg) (0x50000000 | (arg))        // Set address counter for one channel and one dimension.
-#define INSTRN_SETADCXY(arg) (0x51000000 | (arg))      // Set address counters for X and Y dimensions for all channels
-#define INSTRN_SETADCZW(arg) (0x54000000 | (arg))      // Set address counters for Z and W dimensions for all channels
-#define INSTRN_FLUSH(arg) (0x81000000 | (arg))         // Flush all buffers of oustanding instructions, reads/writes.
-#define INSTRN_NOP(arg) (0x02000000 | (arg))           // Do nothing and consume an instruction slot and a cycle
-#define INSTRN_MOVA2D(arg) (0x1a000000 | (arg))        // Move SRCA register to DST
-#define INSTRN_ZEROSRC(arg) (0x1b000000 | (arg))       // Clear SRC registers
-#define INSTRN_SETPKEDGEOF(arg) (0x1d000000 | (arg))   // Set packer edge masking offsets
-#define INSTRN_STALLWAIT(arg) (0xa2000000 | (arg))     // Stall resource until condition is met
-#define INSTRN_CLEAR_DVALID(arg) (0x37000000 | (arg))  // Clear dvalid bits
-#define INSTRN_SEMINIT(arg) (0xa3000000 | (arg))       // Initialize a semaphore
-#define INSTRN_ZEROACC(arg) (0x10000000 | (arg))       // Zero out the accumulator
-#define INSTRN_SFPENCC(arg) (0x8a000000 | (arg))       // Enable the SFPU CC state
-#define INSTRN_SFPLOADI(arg) (0x71000000 | (arg))      // Load an SFPU register
-#define INSTRN_SFPCONFIG(arg) (0x91000000 | (arg))     // Set SFPU config register state
+    (0x80000000 | (arg)) // Sets thread specific control register <register> to the value stored in the slot argument.
+                         // 64-bit instruction. Register index in low 11 bits of first word, register value in second
+                         // word. **Deprecated**
+#define INSTRN_SETRWC(arg) (0x38000000 | (arg))       //
+#define INSTRN_SETADC(arg) (0x50000000 | (arg))       // Set address counter for one channel and one dimension.
+#define INSTRN_SETADCXY(arg) (0x51000000 | (arg))     // Set address counters for X and Y dimensions for all channels
+#define INSTRN_SETADCZW(arg) (0x54000000 | (arg))     // Set address counters for Z and W dimensions for all channels
+#define INSTRN_FLUSH(arg) (0x81000000 | (arg))        // Flush all buffers of oustanding instructions, reads/writes.
+#define INSTRN_NOP(arg) (0x02000000 | (arg))          // Do nothing and consume an instruction slot and a cycle
+#define INSTRN_MOVA2D(arg) (0x1a000000 | (arg))       // Move SRCA register to DST
+#define INSTRN_ZEROSRC(arg) (0x1b000000 | (arg))      // Clear SRC registers
+#define INSTRN_SETPKEDGEOF(arg) (0x1d000000 | (arg))  // Set packer edge masking offsets
+#define INSTRN_STALLWAIT(arg) (0xa2000000 | (arg))    // Stall resource until condition is met
+#define INSTRN_CLEAR_DVALID(arg) (0x37000000 | (arg)) // Clear dvalid bits
+#define INSTRN_SEMINIT(arg) (0xa3000000 | (arg))      // Initialize a semaphore
+#define INSTRN_ZEROACC(arg) (0x10000000 | (arg))      // Zero out the accumulator
+#define INSTRN_SFPENCC(arg) (0x8a000000 | (arg))      // Enable the SFPU CC state
+#define INSTRN_SFPLOADI(arg) (0x71000000 | (arg))     // Load an SFPU register
+#define INSTRN_SFPCONFIG(arg) (0x91000000 | (arg))    // Set SFPU config register state
 
 #define TENSIX_UNHALT_VAL \
-    0x40000000  // When written into PC_BUF_BASE, tensix core will unhalt and continue execution at the previous PC.
+    0x40000000 // When written into PC_BUF_BASE, tensix core will unhalt and continue execution at the previous PC.
 #define TENSIX_NEWPC_VAL(arg) \
-    (0x80000000 | (arg))  // Format a PC into a value that will unhalt the tensix core and jump to that PC. This value
-                          // can be written into PC_BUF_BASE.
-#define TENSIX_LOOP_PC_VAL(arg) (0x00000000 | (arg))  // Start a PC buffer loop
-#define TENSIX_PC_SYNC(arg) (0xC0000000 | (arg))      // Sync - block until all kernels are done
+    (0x80000000 | (arg)) // Format a PC into a value that will unhalt the tensix core and jump to that PC. This value
+                         // can be written into PC_BUF_BASE.
+#define TENSIX_LOOP_PC_VAL(arg) (0x00000000 | (arg)) // Start a PC buffer loop
+#define TENSIX_PC_SYNC(arg) (0xC0000000 | (arg))     // Sync - block until all kernels are done
 
 #define INSTRN_HALTF(arg) \
-    (0x90000000 | (arg))  // Final Halt PC, it will stop the thread in question from executing and only tensix reset can
-                          // unhalt, can't be unhalted by usual register write.
+    (0x90000000 | (arg)) // Final Halt PC, it will stop the thread in question from executing and only tensix reset can
+                         // unhalt, can't be unhalted by usual register write.
 
 // Instruction modes (i.e., selection) definitions
 #define INSTRN_SEL_L0 0
@@ -467,16 +466,16 @@ typedef union {
 #define GET_16B_ADDR(arg) ((arg) >> 4)
 
 // Tensix general purpose register file, 64 32-bit registers
-static constexpr unsigned int R0 = 0;
-static constexpr unsigned int R1 = 1;
-static constexpr unsigned int R2 = 2;
-static constexpr unsigned int R3 = 3;
-static constexpr unsigned int R4 = 4;
-static constexpr unsigned int R5 = 5;
-static constexpr unsigned int R6 = 6;
-static constexpr unsigned int R7 = 7;
-static constexpr unsigned int R8 = 8;
-static constexpr unsigned int R9 = 9;
+static constexpr unsigned int R0  = 0;
+static constexpr unsigned int R1  = 1;
+static constexpr unsigned int R2  = 2;
+static constexpr unsigned int R3  = 3;
+static constexpr unsigned int R4  = 4;
+static constexpr unsigned int R5  = 5;
+static constexpr unsigned int R6  = 6;
+static constexpr unsigned int R7  = 7;
+static constexpr unsigned int R8  = 8;
+static constexpr unsigned int R9  = 9;
 static constexpr unsigned int R10 = 10;
 static constexpr unsigned int R11 = 11;
 static constexpr unsigned int R12 = 12;
@@ -663,7 +662,11 @@ static constexpr unsigned int R63 = 63;
 #define R63_LO 126
 #define R63_HI 127
 
-typedef enum { UNP0 = 1, UNP1 = 2, PCK0 = 4 } cnt_id_t;
+typedef enum {
+    UNP0 = 1,
+    UNP1 = 2,
+    PCK0 = 4
+} cnt_id_t;
 
 #ifdef CPU_JAWBRIDGE
 #define TENSIX_MAX_KERNEL_LOOP_COUNT 128u
@@ -687,7 +690,7 @@ inline T bitmask(unsigned int bits) {
 template <class T>
 inline typename std::make_unsigned<T>::type pack_field(T x, unsigned int to_shift) {
     typedef typename std::make_unsigned<T>::type u_T;
-    u_T u_x(x);
+    u_T                                          u_x(x);
 
     // verify that no bits are shifted away
     // assert((u_x & (std::numeric_limits<u_T>::max() << (std::numeric_limits<u_T>::digits - to_shift))) == 0);
