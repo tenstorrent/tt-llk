@@ -83,8 +83,8 @@ if [[ "$REUSE" == false ]]; then
     echo "Installing PyTorch and related packages..."
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
-    # **************** DOWNLOAD & INSTALL TT-LENS ****************************
-    pip install git+https://github.com/tenstorrent/tt-lens.git@316173d64c5d1145c33560ee4e2fc12149b20afc
+    # **************** DOWNLOAD & INSTALL TT-EXALENS ****************************
+    pip install git+https://github.com/tenstorrent/tt-exalens.git@cdca310241827b05a1752db2a15edd11e89a9712
 
     # **************** DOWNLOAD & INSTALL SFPI ****************************
     echo "Downloading SFPI release..."

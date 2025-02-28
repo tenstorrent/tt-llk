@@ -8,5 +8,5 @@ from .unpack import unpack_fp16,unpack_bfp16,unpack_float32,unpack_int32,unpack_
 from .utils import run_shell_command,calculate_read_words_count,tilize,untilize,compare_pcc, format_kernel_list, print_faces
 from .device import collect_results, run_elf_files, write_stimuli_to_l1, get_result_from_device, assert_tensix_operations_finished
 from .test_config import generate_make_command
-from ttlens import Verbosity
+from ttexalens import Verbosity
 Verbosity.set(Verbosity.ERROR)

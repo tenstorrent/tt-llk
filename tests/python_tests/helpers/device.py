@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-from ttlens.tt_lens_init import init_ttlens
-from ttlens.tt_lens_lib import write_to_device, read_words_from_device, read_word_from_device, run_elf
+from ttexalens.tt_exalens_lib import write_to_device, read_words_from_device, read_word_from_device, run_elf
 from helpers import *
 
 
