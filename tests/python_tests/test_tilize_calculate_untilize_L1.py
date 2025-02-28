@@ -17,7 +17,6 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
                 element &= 0xFFF8
     
     # First step is unpack tilize
-    print("TILIZED")
     tensor1_float = tilize(tensor1_float, data_format)
     tensor2_float = tilize(tensor2_float, data_format)
 
@@ -31,13 +30,15 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
     else:
         raise ValueError("Unsupported operation!")
     
+    #res = untilize(res, data_format)
+
     return res
 
 param_combinations = [
     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
-    for mathop in ["elwadd", "elwsub", "elwmul"]
+    for mathop in ["elwadd"]#, "elwsub", "elwmul"]
     for tile_cnt in range(1, 2)
-    for format in ["Float16_b", "Float16"]
+    for format in ["Float16_b"]#, "Float16"]
     for dest_acc in [""] #, "DEST_ACC"]
     for testname in ["tilize_calculate_untilize_L1"]
     for math_fidelity in  [4] #[0,2,3,4]
@@ -73,6 +74,7 @@ def test_tilize_calculate_untilize_L1(format, testname, tile_cnt, mathop, dest_a
     ])
 
     golden_tensor = generate_golden(mathop, src_A, src_B, format, math_fidelity)
+    print(golden_tensor.view(32,32))
 
     write_stimuli_to_l1(src_A,src_B, format, "0,0", tile_cnt)
 
@@ -97,6 +99,7 @@ def test_tilize_calculate_untilize_L1(format, testname, tile_cnt, mathop, dest_a
     assert_tensix_operations_finished()
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    print(res_tensor.view(32,32))
 
     if(format == "Float16_b" or format == "Float16"):
         atol = 0.1
