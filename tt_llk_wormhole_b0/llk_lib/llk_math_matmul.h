@@ -16,6 +16,10 @@
 #define HF 0
 #endif
 
+#ifndef MM_ADD_NOPS
+#define MM_ADD_NOPS 0
+#endif
+
 using namespace ckernel;
 
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
@@ -451,6 +455,123 @@ inline void matmul_configure_mop(
     tmp.program(instrn_buffer);
 }
 
+template <int NUM_FIDELITY_PHASES, DstTileFaceLayout FaceLayout=DstTileFaceLayout::ColMajor, int NUM_NOPS>
+inline void matmul_configure_mop_throttled(bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const std::uint32_t in0_tile_r_dim = TILE_R_DIM, const std::uint32_t in0_tile_c_dim = TILE_C_DIM, const std::uint32_t in1_tile_r_dim = TILE_R_DIM, const std::uint32_t in1_tile_c_dim = TILE_C_DIM, const bool partial_face = false) {
+
+    // in0 - loaded to SrcB
+    // in1 - loaded to SrcA
+    // Unpacker will always load faces in f0,f1,f2,f3 order
+    // if in1 is transposed then faces 1&2 need to be swapped during read
+    // by changing address increment amount via addr_mods
+    // Col major layout in dest only impacs destination address increment
+    // if col major layout faces are ordered as f0,f2,f1,f3
+
+    constexpr bool high_fidelity = NUM_FIDELITY_PHASES > 0;
+    static_assert(!high_fidelity, "MM Throttling shouldn't be invoked with HF math!");
+    static_assert((NUM_NOPS > 0) && (NUM_NOPS < 3), "MM Throttling must be enabled for NUM_NOPS=1 and NUM_NOPS=2");
+
+    const bool reuse_a = ct_dim>=rt_dim;
+    const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
+
+    const bool is_in0_16x32 = (in0_tile_r_dim <=FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
+    const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
+    const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
+    const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
+
+    const std::uint32_t replay_buf_len = (is_in0_16x32 && is_in1_32x16) ? 4 :
+                                         ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 
+                                         (NUM_NOPS == 2) ? 15 : 11);
+
+    TT_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 1);
+
+    if (is_in1_32x16) {
+        if (is_in0_16x32) {
+            // FIXME
+        } else {
+            // FIXME
+        }    
+    } else if (is_in0_16x32 || is_in0_32x16) {
+        if (partial_face) {
+            // FIXME
+        } else {
+            // FIXME
+        }
+    } else {
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A0 // srca=srca, srcb+=8,  dest+=8
+        TTI_NOP;
+        if constexpr (NUM_NOPS > 1) {
+            TTI_NOP;
+        }
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B0A0 // srca+=16/32, srcb=0, dest+=8  // srca+=32 if transposed
+
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A1 // srca=srca, srcb+=8,  dest+=8  // A1 -> A2 if transposed
+        TTI_NOP;
+        if constexpr (NUM_NOPS > 1) {
+            TTI_NOP;
+        }
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A1 // srca=0,    srcb=32,  dest+=8  // A1 -> A2 if transposed
+
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A0 // srca=srca, srcb+=8,  dest+=8
+        TTI_NOP;
+        if constexpr (NUM_NOPS > 1) {
+            TTI_NOP;
+        }
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B2A0 // srca+=16/32, srcb=0, dest+=8 // srca+=32 if transposed
+        
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0); // B2A1 // srca=srca, srcb+=8,  dest+=8,  bias=1 // A1 -> A2 if transposed
+        TTI_NOP;
+        if constexpr (NUM_NOPS > 1) {
+            TTI_NOP;
+        }
+    }
+
+    constexpr uint outer_loops = 1;
+    const uint inner_loops = (!is_in1_16x32) ? 2 : 1;
+    ckernel_template tmp(outer_loops, inner_loops, TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0), TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0));
+    if (is_in1_16x32) {
+        // FIXME
+    }
+
+    if (is_in1_32x16) {
+        if (is_in0_16x32) {
+            // FIXME
+        } else {
+            // FIXME
+        }    
+    } else if (is_in0_16x32 || is_in0_32x16) {
+        if (partial_face) {
+            // FIXME
+        } else {
+            // FIXME
+        }
+    } else {
+        if (!is_in1_16x32) {
+            if (reuse_a) {
+                if (t_dim>1) {
+                    tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
+                    tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
+                } else {
+                    tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5), clear src A
+                    tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5), clear src A
+                }
+            } else {
+                if (t_dim>1) {
+                    tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B2A1 // reset srca/srcb/dest, increment phase (addr_mod_5)
+                    tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B2A1 // reset srca/srcb/dest, increment phase (addr_mod_5)
+                } else {
+                    tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_1, 0)); // B3A3 or B2A1 // reset srca/srcb/dest, increment phase (addr_mod_5), clear src A
+                    tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_1, 0)); // B3A3 or B2A1 // reset srca/srcb/dest, increment phase (addr_mod_5), clear src A
+                }
+            }
+        } else {
+            // FIXME
+        }
+
+    }
+
+    tmp.program(instrn_buffer);
+}
+
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
 inline void _llk_math_matmul_init_(
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
@@ -484,8 +605,12 @@ inline void _llk_math_matmul_init_(
     }
 
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    matmul_configure_mop<MATH_FIDELITY_PHASES, FaceLayout>(
-        transpose > 0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+    if constexpr ((MM_ADD_NOPS > 1) && (MATH_FIDELITY_PHASES == 0)) {
+        // Only enable throttling for lo-fi math
+        matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, FaceLayout, MM_ADD_NOPS>(transpose>0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+    } else {
+        matmul_configure_mop<MATH_FIDELITY_PHASES, FaceLayout>(transpose>0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+    }
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
