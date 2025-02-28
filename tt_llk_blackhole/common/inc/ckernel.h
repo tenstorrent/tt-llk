@@ -590,6 +590,7 @@ inline void set_ttsync_enables() {
 template <bool add_nops = true>
 inline void disable_gathering() {
     // Disable gathering: set bit 18
+    // clang-format off
     asm(R"ASM(
         .option push
         li   t1, 0x2
@@ -604,6 +605,7 @@ inline void disable_gathering() {
         .option pop
          )ASM"
     :::"t1");
+    // clang-format on
      
      //Gathering is done early in the pipeline, so we need to make sure
      //the above csrrw gets processed before the load-replay instructions
@@ -616,6 +618,7 @@ inline void disable_gathering() {
 
 inline void enable_gathering() {
     // Enable gathering: clear bit 18
+    // clang-format off
     asm(R"ASM(
         .option push
         li   t1, 0x1
@@ -624,6 +627,7 @@ inline void enable_gathering() {
         .option pop
          )ASM"
     :::"t1");
+    // clang-format on
 }
 
 //Pass a lambda function (or a regular function pointer) that takes void,
@@ -676,11 +680,13 @@ inline uint32_t csr_read() {
     uint32_t ret;
     
     if constexpr (fence) asm volatile ("fence");
+    // clang-format off
     asm volatile (
       "csrr %[ret], %[csr_num] \n"
       : [ret] "=r" (ret)
       : [csr_num] "i" (csr_num)
     );
+    // clang-format on
     
     return ret;
 }
@@ -692,11 +698,13 @@ inline uint32_t csr_read() {
     uint32_t ret;
     
     if constexpr (fence) asm volatile ("fence");
+    // clang-format off
     asm volatile (
       "csrr %[ret], %[csr_num] \n"
       : [ret] "=r" (ret)
       : [csr_num] "i" (csr_num)
     );
+    // clang-format on
     
     return ret;
 }
