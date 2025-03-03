@@ -59,7 +59,7 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, tile_cnt = 1):
 
 def get_result_from_device(unpack_src, pack_dst,read_data_bytes,sfpu=False):
     if(pack_dst == "Float16"):
-        res_from_L1 = unpack_fp16(read_data_bytes)
+        res_from_L1 = unpack_fp16(read_data_bytes, unpack_src, pack_dst)
     elif(pack_dst == "Float16_b"):
         res_from_L1 = unpack_bfp16(read_data_bytes, unpack_src, pack_dst)
     elif( pack_dst == "Bfp8_b"):
