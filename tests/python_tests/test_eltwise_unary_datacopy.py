@@ -32,7 +32,7 @@ def test_unary_datacopy(format, testname, dest_acc):
     if (format == "Float16" and dest_acc == "DEST_ACC"):
         pytest.skip(reason = "This combination is not fully implemented in testing")
 
-    if( format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
+    if(format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
         pytest.skip(reason = "Skipping test for 32 bit wide data without 32 bit accumulation in Dest")
 
     src_A,src_B = generate_stimuli(format)
