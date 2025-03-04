@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include "ckernel_defs.h"
-#include "ckernel.h"
-#include "noc_nonblocking_api.h"
+#include <cstdint>
 
 #include "sfpi.h"
-
-using namespace sfpi;
+#include "sfpi_fp16.h"
+#include "debug/fw_debug.h"
+// TODO: Remove
+#include "noc_nonblocking_api.h"
 
 namespace ckernel
 {
