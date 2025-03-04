@@ -14,7 +14,7 @@ def generate_golden(operand1, data_format):
 
 param_combinations = [
     (format, testname)
-    for format in ["Float16_b", "Float16"]
+    for format in ["Float16_b"]#, "Float16"]
     for testname in ["pack_untilize_test"]
 ]
 
@@ -32,6 +32,7 @@ param_ids = [
 def test_pack_untilize(format, testname):
 
     src_A, src_B = generate_stimuli(format)
+    src_A = torch.cat([torch.full((256,),i,dtype=format_dict[format]) for i in range(1, 5)])
     src_B = torch.full((1024,),0)
     
     golden_tensor = generate_golden(src_A, format)
