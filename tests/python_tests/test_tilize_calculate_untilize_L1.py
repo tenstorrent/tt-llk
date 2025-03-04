@@ -49,9 +49,9 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
 
 param_combinations = [
     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
-    for mathop in ["elwadd"]  # , "elwsub", "elwmul"]
+    for mathop in ["elwadd", "elwsub", "elwmul"]
     for tile_cnt in range(1, 2)
-    for format in ["Float16_b"]  # , "Float16"]
+    for format in ["Float16_b", "Float16"]
     for dest_acc in [""]  # , "DEST_ACC"]
     for testname in ["tilize_calculate_untilize_L1"]
     for math_fidelity in [4]  # [0,2,3,4]
