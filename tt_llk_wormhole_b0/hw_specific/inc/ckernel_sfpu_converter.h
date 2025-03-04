@@ -4,18 +4,23 @@
 
 #pragma once
 
-namespace ckernel {
-namespace sfpu {
+namespace ckernel
+{
+namespace sfpu
+{
 
-union Converter {
+union Converter
+{
     float f;
     uint32_t u;
-    static float to_float(uint32_t _v) {
-        Converter c{};
+
+    static float to_float(uint32_t _v)
+    {
+        Converter c {};
         c.u = _v;
         return c.f;
     }
 };
 
-}  // namespace sfpu
-}  // namespace ckernel
+} // namespace sfpu
+} // namespace ckernel
