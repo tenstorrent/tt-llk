@@ -24,18 +24,19 @@ def generate_golden(operation, operand1, operand2, data_format):
 
     return operations[operation].tolist()
 
-formats = ["Bfp8_b", "Float16_b"]#, "Float16"]
-@pytest.mark.parametrize("unpack_src", ["Float16_b"])
-@pytest.mark.parametrize("unpack_dst", ["Float16_b"])
-@pytest.mark.parametrize("fpu", ["Bfp8_b"])
-@pytest.mark.parametrize("pack_src", ["Bfp8_b"])
-@pytest.mark.parametrize("pack_dst", ["Bfp8_b"])
+
+formats = ["Bfp8_b", "Float16_b", "Float16"]
+@pytest.mark.parametrize("unpack_src", formats)
+@pytest.mark.parametrize("unpack_dst", formats)
+@pytest.mark.parametrize("fpu", formats)
+@pytest.mark.parametrize("pack_src", formats)
+@pytest.mark.parametrize("pack_dst", formats)
 
 @pytest.mark.parametrize("testname", ["eltwise_binary_test"])
-@pytest.mark.parametrize("mathop", ["elwsub"])#["elwadd", "elwsub", "elwmul"])
-@pytest.mark.parametrize("dest_acc", ["DEST_ACC"])#["DEST_ACC", ""])
-@pytest.mark.parametrize("iterations", list(range(100)))
-def test_all(iterations,unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, dest_acc, test_results):
+@pytest.mark.parametrize("mathop", ["elwadd", "elwsub", "elwmul"])
+@pytest.mark.parametrize("dest_acc", ["DEST_ACC", ""])
+def test_all(unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop, testname, dest_acc, test_results):
+    
     os.system("cd .. && make clean")
     os.system("tt-smi -r 0")
     
@@ -43,7 +44,10 @@ def test_all(iterations,unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop,
     golden = generate_golden(mathop, src_A, src_B, pack_dst)
     write_stimuli_to_l1(src_A, src_B, unpack_src)
 
-    hw = hw_support(unpack_src, unpack_dst, pack_src, pack_dst)
+    fp32_mode = False
+    if dest_acc == "DEST_ACC": 
+        fp32_mode = True
+    hw = hw_support(unpack_src, unpack_dst, pack_src, pack_dst, fp32_mode)
     
     test_config = {
         "unpack_src": unpack_src,
@@ -79,11 +83,8 @@ def test_all(iterations,unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop,
         "ON" if dest_acc != "" else "OFF" # Destination Accumulation
     ])
     
-    assert len(res_from_L1) == len(golden)
-    
-
-    os.system("cd .. && make clean")
-    os.system("tt-smi -r 0")
+    # os.system("cd .. && make clean")
+    # os.system("tt-smi -r 0")
 
     # Mailbox checks
     assert read_words_from_device("0,0", 0x19FF4, word_count=1)[0].to_bytes(4, 'big') == b'\x00\x00\x00\x01'
@@ -106,10 +107,8 @@ def test_all(iterations,unpack_src, unpack_dst, fpu, pack_src, pack_dst, mathop,
     for i in range (len(src_B)):
         srcB.append(src_B[i].item())
     
-    
-    
     for i in range(len(golden)):
-        test_results[-1][5] = (golden_tensor[i].item(), res_tensor[i].item())
+        test_results[-1][5] = (golden_tensor[i].item(), res_tensor[i].item(), i)
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
     _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
