@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "sfpi.h"
 #include "ckernel_sfpu_is_fp16_zero.h"
 
 namespace ckernel
