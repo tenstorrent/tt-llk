@@ -5,8 +5,6 @@
 #pragma once
 
 #include "sfpi.h"
-#include "grayskull/sfpi_lib.h"
-#include "grayskull/sfpi_imp.h"
 
 namespace ckernel
 {
