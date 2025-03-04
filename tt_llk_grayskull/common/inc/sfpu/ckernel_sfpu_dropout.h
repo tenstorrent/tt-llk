@@ -4,6 +4,11 @@
 
 #pragma once
 
+#include <cstdint>
+
+#include "sfpi.h"
+#include "sfpi_fp16.h"
+#include "debug/fw_debug.h"
 // TODO: Remove
 #include "noc_nonblocking_api.h"
 

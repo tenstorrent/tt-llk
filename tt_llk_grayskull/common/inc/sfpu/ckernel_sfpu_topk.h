@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "tt_log.h"
+
 namespace ckernel
 {
 namespace sfpu

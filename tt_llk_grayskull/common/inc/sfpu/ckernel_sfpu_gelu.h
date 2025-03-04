@@ -4,6 +4,11 @@
 
 #pragma once
 
+#include "sfpi.h"
+#include "grayskull/sfpi_imp.h"
+#include "ckernel_ops.h"
+#include "ckernel_sfpu_exp.h"
+
 namespace ckernel
 {
 namespace sfpu
