@@ -34,6 +34,7 @@ param_ids = [
 def test_unary_datacopy(unpack_src, unpack_dst, math, pack_src, pack_dst, testname, dest_acc):
     if not (unpack_src == unpack_dst and unpack_dst == math and math == pack_src and pack_src == pack_dst):
         pytest.skip(reason = "This test is only for uniform format")
+        
     if (unpack_src == "Float16" and dest_acc == "DEST_ACC"):
         pytest.skip(reason = "This combination is not fully implemented in testing")
 

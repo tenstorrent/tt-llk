@@ -92,22 +92,6 @@
 
 #ifdef LLK_TRISC_MATH
 
-    #ifdef FORMAT_FLOAT16_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
-    #endif
-    #ifdef FORMAT_FLOAT16
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
-    #endif
-    #ifdef FORMAT_FLOAT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
-    #endif
-    #ifdef FORMAT_INT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
-    #endif
-    #ifdef FORMAT_BFP8_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
-    #endif
-
     #ifdef ELTWISE_BINARY_ADD
         #define ELTWISE_BINARY_OP EltwiseBinaryType::ELWADD
     #endif
@@ -155,22 +139,6 @@ inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first
     }
     va_end(args);
 }
-
-    #ifdef FORMAT_FLOAT16_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
-    #endif
-    #ifdef FORMAT_FLOAT16
-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
-    #endif
-    #ifdef FORMAT_FLOAT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
-    #endif
-    #ifdef FORMAT_INT32
-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
-    #endif
-    #ifdef FORMAT_BFP8_B
-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
-    #endif
 
 #endif
 

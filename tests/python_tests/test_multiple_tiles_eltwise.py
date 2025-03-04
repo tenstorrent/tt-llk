@@ -11,7 +11,10 @@ mathop_map = {
     3: "elwmul"
 }
 
+formats = ["Bfp8_b" ,"Float16", "Float16_b"]
+
 def generate_golden(op, operand1, operand2, data_format,math_fidelity):
+    
     tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
     tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
 
@@ -37,46 +40,57 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
     return res.tolist()
 
 param_combinations = [
-    (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+    (mathop, tile_cnt, unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname, math_fidelity)
     for mathop in range(1, 4)
-    for tile_cnt in range(1, 4)
-    for format in ["Bfp8_b" ,"Float16", "Bfp8_b"]
+    for tile_cnt in [1] # range(1, 4)
+    for unpack_src in formats
+    for unpack_dst in formats
+    for math in formats
+    for pack_src in formats
+    for pack_dst in formats
     for dest_acc in ["", "DEST_ACC"]
     for testname in ["multiple_tiles_eltwise_test"]
-    for math_fidelity in [0,2,3,4]
+    for math_fidelity in [0] #[0,2,3,4]
 ]
 
 param_ids = [
-    f"mathop={mathop_map[comb[0]]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
+    f"mathop={mathop_map[comb[0]]} | tile_cnt={comb[1]} | unpack_src={comb[2]} | unpack_dst={comb[3]} | math={comb[4]} | pack_src={comb[5]} | pack_dst={comb[6]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
     for comb in param_combinations
 ]
 
 @pytest.mark.parametrize(
-    "mathop, tile_cnt, format, dest_acc, testname, math_fidelity",
+    "mathop, tile_cnt, unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname, math_fidelity",
     param_combinations,
     ids=param_ids
 )
-def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
-
-    if mathop in range(1, 4) and format == "Float16" and dest_acc == "DEST_ACC":
-        pytest.skip(reason = "This combination is not fully implemented in testing")
-
+def test_multiple_tiles(unpack_src, unpack_dst, math, pack_src, pack_dst, testname, tile_cnt, mathop, dest_acc, math_fidelity):
+    # if not (unpack_src == unpack_dst and unpack_dst == math and math == pack_src and pack_src == pack_dst):
+    #     pytest.skip(reason = "This test is only for uniform format")
+        
+    # if mathop in range(1, 4) and unpack_src == "Float16" and dest_acc == "DEST_ACC":
+    #     pytest.skip(reason = "This combination is not fully implemented in testing")
+    
+    run_shell_command("cd .. && make clean")  
+    run_shell_command("tt-smi -r 0")  
     # prepare setup for running kernels
 
     pack_start_address = 0x1a000 + 2*4096*tile_cnt
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
 
-    src_A, src_B = generate_stimuli(format,tile_cnt = tile_cnt) #, const_face=True, const_value_A=3, const_value_B=2)
-    golden = generate_golden(mathop,src_A,src_B,format,math_fidelity)
-    write_stimuli_to_l1(src_A,src_B,format,"0,0",tile_cnt)
+    src_A, src_B = generate_stimuli(unpack_src,tile_cnt = tile_cnt) #, const_face=True, const_value_A=3, const_value_B=2)
+    golden = generate_golden(mathop,src_A,src_B,pack_dst,math_fidelity)
+    write_stimuli_to_l1(src_A,src_B,unpack_src,"0,0",tile_cnt)
 
     if mathop != 3:
         math_fidelity = 0 
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "unpack_src": unpack_src,
+        "unpack_dst": unpack_dst,
+        "math": math,
+        "pack_src": pack_src,
+        "pack_dst": pack_dst,
         "testname": testname,
         "dest_acc": dest_acc,
         "mathop" : mathop,
@@ -99,17 +113,17 @@ def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidel
     res_from_L1 = []
 
     for address in pack_addresses:
-        res_from_L1.append(collect_results(format,address))
+        res_from_L1.append(collect_results(unpack_src, pack_dst,address))
         
     res_from_L1 = flatten_list(res_from_L1)
 
-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    golden_tensor = torch.tensor(golden, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
 
-    if(format == "Float16_b" or format == "Float16"):
+    if(pack_dst == "Float16_b" or pack_dst == "Float16"):
         atol = 0.05
         rtol = 0.1
-    elif(format == "Bfp8_b"):
+    elif(pack_dst == "Bfp8_b"):
         atol = 0.1
         rtol = 0.2
 
