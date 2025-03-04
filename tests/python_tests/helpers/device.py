@@ -3,10 +3,11 @@
 
 from ttexalens.tt_exalens_lib import write_to_device, read_words_from_device, read_word_from_device, run_elf
 from helpers import *
+import inspect
 
 
-def collect_results(format,address=0x1c000,core_loc = "0,0", sfpu=False):
-    read_words_cnt = calculate_read_words_count(format,sfpu)
+def collect_results(unpack_src, pack_dst,address=0x1c000,core_loc = "0,0", sfpu=False):
+    read_words_cnt = calculate_read_words_count(pack_dst,sfpu)
     read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
 
@@ -81,8 +82,13 @@ def get_result_from_device(unpack_src: str, pack_dst : str, read_data_bytes: byt
     else:
         unpack_func = unpackers.get(pack_dst)
     
+    num_args = len(inspect.signature(unpack_func).parameters)
     if unpack_func:
-        return unpack_func(read_data_bytes, unpack_src, pack_dst)
+        num_args = len(inspect.signature(unpack_func).parameters)
+        if num_args > 1:
+            return unpack_func(read_data_bytes, unpack_src, pack_dst)
+        else:
+            return unpack_func(read_data_bytes)
     else:
         raise ValueError(f"Unsupported format: {pack_dst}")
     

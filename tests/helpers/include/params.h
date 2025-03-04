@@ -43,19 +43,19 @@
 #endif
 
 #ifdef MATH_FLOAT16_B
-    #define FPU (uint32_t)DataFormat::Float16_b
+    #define MATH_FORMAT (uint32_t)DataFormat::Float16_b
 #endif
 #ifdef MATH_FLOAT16
-    #define FPU (uint32_t)DataFormat::Float16
+    #define MATH_FORMAT (uint32_t)DataFormat::Float16
 #endif
 #ifdef MATH_FLOAT32
-    #define FPU (uint32_t)DataFormat::Float32
+    #define MATH_FORMAT (uint32_t)DataFormat::Float32
 #endif
 #ifdef MATH_INT32
-    #define FPU (uint32_t)DataFormat::Int32
+    #define MATH_FORMAT (uint32_t)DataFormat::Int32
 #endif
 #ifdef MATH_BFP8_B
-    #define FPU (uint32_t)DataFormat::Bfp8_b 
+    #define MATH_FORMAT (uint32_t)DataFormat::Bfp8_b 
 #endif
 
 #ifdef PACK_SRC_FLOAT16_B

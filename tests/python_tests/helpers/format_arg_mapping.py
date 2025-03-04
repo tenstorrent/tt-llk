@@ -45,7 +45,7 @@ unpack_dst_dict = {
     "Int32": "UNPACK_DST_INT32"
 }
 
-fpu_dict = {
+math_dict = {
     "Float32": "MATH_FLOAT32",
     "Float16": "MATH_FLOAT16",
     "Float16_b": "MATH_FLOAT16_B",
