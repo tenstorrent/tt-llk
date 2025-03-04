@@ -1,4 +1,9 @@
-build/
+**/build/*
+**/__pycache__/*
+.idea/
+.cpmcache/
+compile_commands.json
+*.code-workspace
 *.o
 *.elf
 *.d/
