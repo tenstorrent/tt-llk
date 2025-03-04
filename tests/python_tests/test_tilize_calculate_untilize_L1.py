@@ -72,25 +72,7 @@ def test_tilize_calculate_untilize_L1(
     format, testname, tile_cnt, mathop, dest_acc, math_fidelity
 ):
 
-    # src_A, src_B = generate_stimuli(format,tile_cnt)#,sfpu=False,const_face=True,const_value_A=1,const_value_B=2)
-    # src_A, src_B = generate_stimuli(format,tile_cnt,sfpu=False,const_face=True,const_value_A=1,const_value_B=2)
-
-    src_A = torch.cat(
-        [
-            torch.ones(256, dtype=torch.bfloat16),
-            torch.ones(256, dtype=torch.bfloat16) * 2,
-            torch.ones(256, dtype=torch.bfloat16) * 3,
-            torch.ones(256, dtype=torch.bfloat16) * 4,
-        ]
-    )
-    src_B = torch.cat(
-        [
-            torch.ones(256, dtype=torch.bfloat16),
-            torch.ones(256, dtype=torch.bfloat16) * 2,
-            torch.ones(256, dtype=torch.bfloat16) * 3,
-            torch.ones(256, dtype=torch.bfloat16) * 4,
-        ]
-    )
+    src_A, src_B = generate_stimuli(format, tile_cnt)
 
     golden_tensor = generate_golden(mathop, src_A, src_B, format, math_fidelity)
     print(golden_tensor.view(32, 32))
