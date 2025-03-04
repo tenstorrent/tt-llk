@@ -6,7 +6,6 @@
 
 #include "ckernel_ops.h"
 #include "sfpi.h"
-#include "grayskull/sfpi_lib.h"
 
 namespace ckernel
 {
