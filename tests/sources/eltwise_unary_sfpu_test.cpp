@@ -109,13 +109,13 @@ void run_kernel()
 void run_kernel()
 {
     // If data foramt is Bfp8 it is calculated correctly in Dest but packer cannot pack just that one face
-// TODO: make it so It can
-// So for now It is packed as Float16_b
+    // TODO: make it so It can
+    // So for now It is packed as Float16_b
 
 #ifdef FORMAT_BFP8_B
-constexpr auto PACK_DEST_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
+    constexpr auto PACK_DEST_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
 #else
-constexpr auto PACK_DEST_FORMAT = DATA_FORMAT;
+    constexpr auto PACK_DEST_FORMAT = DATA_FORMAT;
 #endif
 
     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);

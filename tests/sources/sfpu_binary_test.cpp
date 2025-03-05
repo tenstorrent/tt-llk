@@ -50,8 +50,7 @@ using namespace ckernel::sfpu;
 
 void run_kernel()
 {
-    constexpr auto ELTWISE_BINARY_SFPU_OP = 0
-    constexpr bool is_int_fpu_en = false;
+    constexpr auto ELTWISE_BINARY_SFPU_OP = 0 constexpr bool is_int_fpu_en = false;
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
