@@ -8,6 +8,9 @@ from .format_arg_mapping import format_dict
 def flatten_list(sublists):
     return [item for sublist in sublists for item in sublist]
 
+
+def generate_random_face(stimuli_format="Float16_b", const_value=1, const_face=False):
+
     if stimuli_format in ["Float16_b", "Float16", "Float32"]:
 
         if const_face:
