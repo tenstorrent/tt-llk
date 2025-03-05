@@ -4,7 +4,9 @@
 import pytest
 import torch
 from helpers import *
+from helpers.check_hw import *
 
+formats = ["Float16_b", "Float16", "Bfp8_b"]
 def generate_golden(operations, operand1, operand2, data_format):
     tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
     tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
@@ -30,38 +32,65 @@ def generate_golden(operations, operand1, operand2, data_format):
     return flatten_list(res)
 
 param_combinations = [
-    (format, dest_acc, testname)
-    for format in ["Float16_b", "Float16", "Bfp8_b"]
+    (unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname)
+    for unpack_src in formats
+    for unpack_dst in formats
+    for math in formats
+    for pack_src in formats
+    for pack_dst in formats
     for dest_acc in ["", "DEST_ACC"]
     for testname in ["fill_dest_test"]
 ]
 
 param_ids = [
-    f" format={comb[0]} | dest_acc={comb[1]}"
+    f" unpack_src={comb[0]} | unpack_dst={comb[1]} | math={comb[2]} | pack_src={comb[3]} | pack_dst={comb[4]} | dest_acc={comb[5]}"
     for comb in param_combinations
 ]
 
 @pytest.mark.parametrize(
-    "format, dest_acc, testname",
+    "unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname",
     param_combinations,
     ids=param_ids
 )
 
-def test_fill_dest(format, testname, dest_acc):
+def test_fill_dest(unpack_src, unpack_dst, math, pack_src, pack_dst, testname, dest_acc, test_results):
+    
+    if (unpack_src != unpack_dst or unpack_dst != math or math != pack_src or pack_src != pack_dst):
+        pytest.skip(reason = "This test is only for uniform format")
 
-    if (format == "Float16" and dest_acc == "DEST_ACC"):
+    if (unpack_src == "Float16" and dest_acc == "DEST_ACC"):
         pytest.skip(reason = "This combination is not fully implemented in testing")
 
+    hw = hw_support(unpack_src, unpack_dst, pack_src, pack_dst, True if dest_acc == "DEST_ACC" else False)
+    test_results.append([
+        "FAIL",  # Result
+        hw, # is format combination supported by HW
+        unpack_src,  # Input Format
+        pack_dst,  # Output Format
+        0,  # PCC placeholder until calculated
+        "deadbeef",  # Placeholder for error (replace if failure)
+        unpack_src,  # Unpack Src
+        unpack_dst,  # Unpack Dst
+        math,  # FPU (use output format for FPU)
+        pack_src,  # Pack Src
+        pack_dst,  # Pack Dst
+        "No mathop",  # Math Operation
+        "ON" if dest_acc != "" else "OFF" # Destination Accumulation
+    ])
+    
     pack_start_address = 0x1c000
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(16)]
 
-    src_A, src_B = generate_stimuli(format)
-    golden = generate_golden([2]*16,src_A,src_B,format)
-    write_stimuli_to_l1(src_A,src_B,format)
+    src_A, src_B = generate_stimuli(unpack_src)
+    golden = generate_golden([2]*16,src_A,src_B,pack_dst)
+    write_stimuli_to_l1(src_A,src_B,unpack_src)
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "unpack_src": unpack_src,
+        "unpack_dst": unpack_dst,
+        "math": math,
+        "pack_src": pack_src,
+        "pack_dst": pack_dst,
         "testname": testname,
         "dest_acc": dest_acc,
     }
@@ -76,26 +105,29 @@ def test_fill_dest(format, testname, dest_acc):
     res_from_L1 = []
 
     for address in pack_addresses:
-        res_from_L1.append(collect_results(format,address))
+        res_from_L1.append(collect_results(unpack_src, pack_dst,address))
      
     res_from_L1 = flatten_list(res_from_L1)
 
     assert len(res_from_L1) == len(golden)
     assert_tensix_operations_finished()
 
-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    golden_tensor = torch.tensor(golden, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
 
-    if(format == "Float16_b" or format == "Float16"):
+    if(pack_dst == "Float16_b" or pack_dst == "Float16"):
         atol = 0.05
         rtol = 0.1
-    elif(format == "Bfp8_b"):
+    elif(pack_dst == "Bfp8_b"):
         atol = 0.1
         rtol = 0.2
 
     for i in range(len(golden)):
+        test_results[-1][5] = (golden_tensor[i].item(), res_tensor[i].item())
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
   
     _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.99
+    test_results[-1][4] = pcc
+    test_results[-1][0] = "PASS"
