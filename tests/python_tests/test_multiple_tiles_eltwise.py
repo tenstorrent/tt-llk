@@ -4,6 +4,7 @@
 import pytest
 import torch
 from helpers import *
+from helpers.check_hw import *
 
 mathop_map = {  
     1: "elwadd",
@@ -42,7 +43,7 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
 param_combinations = [
     (mathop, tile_cnt, unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname, math_fidelity)
     for mathop in range(1, 4)
-    for tile_cnt in [1] # range(1, 4)
+    for tile_cnt in range(1, 4)
     for unpack_src in formats
     for unpack_dst in formats
     for math in formats
@@ -50,7 +51,7 @@ param_combinations = [
     for pack_dst in formats
     for dest_acc in ["", "DEST_ACC"]
     for testname in ["multiple_tiles_eltwise_test"]
-    for math_fidelity in [0] #[0,2,3,4]
+    for math_fidelity in [0,2,3,4]
 ]
 
 param_ids = [
@@ -63,17 +64,34 @@ param_ids = [
     param_combinations,
     ids=param_ids
 )
-def test_multiple_tiles(unpack_src, unpack_dst, math, pack_src, pack_dst, testname, tile_cnt, mathop, dest_acc, math_fidelity):
-    # if not (unpack_src == unpack_dst and unpack_dst == math and math == pack_src and pack_src == pack_dst):
-    #     pytest.skip(reason = "This test is only for uniform format")
+def test_multiple_tiles(unpack_src, unpack_dst, math, pack_src, pack_dst, testname, tile_cnt, mathop, dest_acc, math_fidelity, test_results):
+    if not (unpack_src == unpack_dst and unpack_dst == math and math == pack_src and pack_src == pack_dst):
+        pytest.skip(reason = "This test is only for uniform format")
         
-    # if mathop in range(1, 4) and unpack_src == "Float16" and dest_acc == "DEST_ACC":
-    #     pytest.skip(reason = "This combination is not fully implemented in testing")
+    if mathop in range(1, 4) and unpack_src == "Float16" and dest_acc == "DEST_ACC":
+        pytest.skip(reason = "This combination is not fully implemented in testing")
     
     run_shell_command("cd .. && make clean")  
     run_shell_command("tt-smi -r 0")  
-    # prepare setup for running kernels
 
+    hw = hw_support(unpack_src, unpack_dst, pack_src, pack_dst, True if dest_acc == "DEST_ACC" else False)
+    test_results.append([
+        "FAIL",  # Result
+        hw, # is format combination supported by HW
+        unpack_src,  # Input Format
+        pack_dst,  # Output Format
+        0,  # PCC placeholder until calculated
+        "deadbeef",  # Placeholder for error (replace if failure)
+        unpack_src,  # Unpack Src
+        unpack_dst,  # Unpack Dst
+        math,  # FPU (use output format for FPU)
+        pack_src,  # Pack Src
+        pack_dst,  # Pack Dst
+        mathop,  # Math Operation
+        "ON" if dest_acc != "" else "OFF" # Destination Accumulation
+    ])
+
+    # prepare setup for running kernels
     pack_start_address = 0x1a000 + 2*4096*tile_cnt
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
@@ -116,6 +134,9 @@ def test_multiple_tiles(unpack_src, unpack_dst, math, pack_src, pack_dst, testna
         res_from_L1.append(collect_results(unpack_src, pack_dst,address))
         
     res_from_L1 = flatten_list(res_from_L1)
+    
+    print("\nRESULT = ", res_from_L1, "\n")
+    print("\nGOLDEN = ", golden, "\n")
 
     golden_tensor = torch.tensor(golden, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[pack_dst] if pack_dst in ["Float16", "Float16_b"] else torch.bfloat16)
@@ -128,7 +149,10 @@ def test_multiple_tiles(unpack_src, unpack_dst, math, pack_src, pack_dst, testna
         rtol = 0.2
 
     for i in range(len(golden_tensor)):
+        test_results[-1][5] = (golden_tensor[i].item(), res_tensor[i].item())
         assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
   
     _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
     assert pcc > 0.99
+    test_results[-1][4] = pcc
+    test_results[-1][0] = "PASS"
