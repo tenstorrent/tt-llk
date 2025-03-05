@@ -30,10 +30,6 @@ void device_setup()
     TTI_SFPLOADI(ckernel::p_sfpu::LREG0, 0xA, 0xbf80); // -1.0f -> LREG0
     TTI_SFPCONFIG(0, 11, 0);                           // LREG0 -> LREG11
 
-    // Initialize Tensix semaphores
-    TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
-    TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
-
     // Initialize tensix semaphores
     TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
     TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
