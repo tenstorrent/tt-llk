@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <type_traits>
 
 #include "ckernel.h"
 #include "llk_defs.h"
@@ -14,7 +15,6 @@ const bool unpack_to_dest = true;
 // Globals
 uint32_t unp_cfg_context        = 0;
 uint32_t pack_sync_tile_dst_ptr = 0;
-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
 
 #ifdef DEST_ACC
 const bool is_fp32_dest_acc_en = true;
@@ -90,7 +90,7 @@ void run_kernel()
 // So for now It is packed as Float16_b
 
 #ifdef FORMAT_BFP8_B
-#define PACK_DEST_FORMAT (uint32_t)DataFormat::Float16_b
+#define PACK_DEST_FORMAT static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b)
 #else
 #define PACK_DEST_FORMAT DATA_FORMAT
 #endif
