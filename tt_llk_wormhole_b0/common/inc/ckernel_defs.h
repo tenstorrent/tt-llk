@@ -9,6 +9,7 @@
 #include "ckernel_ops.h"
 #include "llk_defs.h"
 #include "tensix_types.h"
+#include "tensix.h"
 
 namespace ckernel
 {
