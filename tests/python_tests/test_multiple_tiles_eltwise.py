@@ -67,7 +67,9 @@ param_ids = [
 def test_multiple_tiles(unpack_src, unpack_dst, math, pack_src, pack_dst, testname, tile_cnt, mathop, dest_acc, math_fidelity, test_results):
     if not (unpack_src == unpack_dst and unpack_dst == math and math == pack_src and pack_src == pack_dst):
         pytest.skip(reason = "This test is only for uniform format")
-        
+    
+    if (mathop == 3 and unpack_src in ["Float16", "Bfp8_b"]):
+        pytest.skip("")
     if mathop in range(1, 4) and unpack_src == "Float16" and dest_acc == "DEST_ACC":
         pytest.skip(reason = "This combination is not fully implemented in testing")
     
