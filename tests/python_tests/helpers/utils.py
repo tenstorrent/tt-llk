@@ -42,7 +42,7 @@ def run_shell_command(command: str):
         command, shell=True, text=True, capture_output=False, stdout=subprocess.DEVNULL
     )
     if result.returncode != 0:
-        raise RuntimeError(f"Command failed: {command}\n{result.stderr}")
+        raise RuntimeError(f"Build failed: {command}\n{result.stderr}")
     return result
 
 
