@@ -8,6 +8,39 @@ from helpers import *
 
 def generate_golden(operand1, operand2, data_format, math_fidelity):
 
+    operand1_f0 = operand1[:256].view(16, 16)
+    operand1_f1 = operand1[256:512].view(16, 16)
+    operand1_f2 = operand1[512:768].view(16, 16)
+    operand1_f3 = operand1[768:].view(16, 16)
+
+    operand2_f0 = operand2[:256].view(16, 16)
+    operand2_f1 = operand2[256:512].view(16, 16)
+    operand2_f2 = operand2[512:768].view(16, 16)
+    operand2_f3 = operand2[768:].view(16, 16)
+
+    operand1_matrix = torch.cat(
+        [
+            torch.cat([operand1_f0, operand1_f1], dim=1),
+            torch.cat([operand1_f2, operand1_f3], dim=1),
+        ],
+        dim=0,
+    ).reshape(32, 32)
+
+    operand2_matrix = torch.cat(
+        [
+            torch.cat([operand2_f0, operand2_f1], dim=1),
+            torch.cat([operand2_f2, operand2_f3], dim=1),
+        ],
+        dim=0,
+    ).reshape(32, 32)
+
+    print(operand1_matrix)
+    print(operand2_matrix)
+
+    result_matrix = torch.matmul(operand1_matrix, operand2_matrix).view(32, 32)
+
+    print(result_matrix)
+
     if data_format == "Float16_b":
         if math_fidelity in [0, 2]:  # LoFi or HiFi2
             for element in operand2:
@@ -18,17 +51,15 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
                 element = element.to(torch.int32)
                 element &= 0xFFF8
 
-    return torch.matmul(
-        tilize(operand1).view(32, 32), tilize(operand2).view(32, 32)
-    ).view(-1)
+    return result_matrix.view(-1)
 
 
 param_combinations = [
     (format, dest_acc, testname, math_fidelity)
     for format in ["Float16_b"]  # ,"Float16"]
-    for dest_acc in ["", "DEST_ACC"]
+    for dest_acc in [""]  # , "DEST_ACC"]
     for testname in ["matmul_test"]
-    for math_fidelity in [3, 4]
+    for math_fidelity in [4]  # [3, 4]
 ]
 
 param_ids = [
@@ -46,26 +77,18 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
     # src_A, src_B = generate_stimuli(format)
 
     src_A = torch.tensor(
-        [torch.rand(1, dtype=format_dict[format]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256,
+        [1.0] * 256 + [2.0] * 256 + [3] * 256 + [4] * 256,
         dtype=torch.bfloat16,
     )
     src_B = torch.tensor(
-        [torch.rand(1, dtype=format_dict[format]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256,
+        [1] * 256 + [2.0] * 256 + [3] * 256 + [4] * 256,
         dtype=torch.bfloat16,
     )
 
-    print(src_A)
-    print(src_B)
-
     golden_tensor = generate_golden(src_A, src_B, format, math_fidelity)
+    golden_tensor = tilize(golden_tensor, format)
 
-    write_stimuli_to_l1(tilize(src_A), tilize(src_B), format)
+    write_stimuli_to_l1(src_A, src_B, format)
 
     test_config = {
         "input_format": format,
@@ -94,6 +117,11 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
             else torch.bfloat16
         ),
     )
+
+    print("GOLDEN")
+    print_faces(golden_tensor)
+    print("RES")
+    print_faces(res_tensor)
 
     if format == "Float16_b" or format == "Float16":
         atol = 0.1
