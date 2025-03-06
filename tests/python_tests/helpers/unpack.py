@@ -11,31 +11,39 @@ unpacked_bfp8 = {}
 
 def int_to_bytes_list(n):
     binary_str = bin(n)[2:].zfill(32)
-    return [int(binary_str[i:i + 8], 2) for i in range(0, 32, 8)]
+    return [int(binary_str[i : i + 8], 2) for i in range(0, 32, 8)]
+
 
 def bytes_to_float16(byte_list):
     bytes_data = bytes(byte_list[:2])
-    unpacked_value = struct.unpack('>e', bytes_data)[0]
+    unpacked_value = struct.unpack(">e", bytes_data)[0]
     return torch.tensor(unpacked_value, dtype=torch.float16)
+
 
 def bytes_to_bfloat16(byte_list):
     bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
-    unpacked_value = struct.unpack('>f', bytes_data)[0]
+    unpacked_value = struct.unpack(">f", bytes_data)[0]
     return torch.tensor(unpacked_value, dtype=torch.float32)
+
 
 def bytes_to_float32(byte_list):
     bytes_data = bytes(byte_list)
-    unpacked_value = struct.unpack('>f', bytes_data)[0]
+    unpacked_value = struct.unpack(">f", bytes_data)[0]
     return torch.tensor(unpacked_value, dtype=torch.float32)
+
 
 def bytes_to_int32(byte_list):
     bytes_data = bytes(byte_list)
-    unpacked_value = struct.unpack('>I', bytes_data)[0]
+    unpacked_value = struct.unpack(">I", bytes_data)[0]
     return torch.tensor(unpacked_value, dtype=torch.int32)
+
 
 def unpack_fp16(packed_list, unpack_src, pack_dst):
     limited_packed_list = packed_list[:2048]
-    ret = [bytes_to_float16(limited_packed_list[i:i + 2]).item() for i in range(0, len(limited_packed_list), 2)]
+    ret = [
+        bytes_to_float16(limited_packed_list[i : i + 2]).item()
+        for i in range(0, len(limited_packed_list), 2)
+    ]
     
     # Patch Up! Fixes incorrect reading of numbers in L1:
     # When `unpack_src` is  BFP8_b, consecutive pairs of numbers are inverted and placed in L1. 
@@ -49,13 +57,13 @@ def unpack_fp16(packed_list, unpack_src, pack_dst):
             ret[i+1] = tmp
     return ret
 
-
 def unpack_bfp16(packed_list, unpack_src, pack_dst):
     limited_packed_list = packed_list[:2048]
-    ret = []
-    for i in range(0, len(limited_packed_list), 2):
-        ret.append(bytes_to_bfloat16(limited_packed_list[i:i + 2]).item())
-        
+    ret =  [
+        bytes_to_bfloat16(limited_packed_list[i : i + 2]).item()
+        for i in range(0, len(limited_packed_list), 2)
+    ]
+    
     # Patch Up! Fixes incorrect reading of numbers in L1:
     # When `unpack_src` is BFP8_b, consecutive pairs of numbers are inverted and placed in L1. 
     # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
@@ -70,10 +78,18 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
 
 
 def unpack_float32(packed_list):
-    return [bytes_to_float32(packed_list[i:i + 4]).item() for i in range(0, len(packed_list), 4)]
+    return [
+        bytes_to_float32(packed_list[i : i + 4]).item()
+        for i in range(0, len(packed_list), 4)
+    ]
+
 
 def unpack_int32(packed_list):
-    return [bytes_to_int32(packed_list[i:i + 4]).item() for i in range(0, len(packed_list), 4)]
+    return [
+        bytes_to_int32(packed_list[i : i + 4]).item()
+        for i in range(0, len(packed_list), 4)
+    ]
+
 
 def bfp8_to_float_block(exponent, bfp8_mantissas):
     # Bug fix and improvement:
@@ -123,7 +139,7 @@ def unpack_bfp8_b(bfp8_block,unpack_src, pack_dst,sfpu=False):
     bfloat16_values = []
     for i in range(len(reversed_exponents)):
         exponent = reversed_exponents[i]
-        bfp8_mantissas = mantissas[i * 16:(i + 1) * 16]        
+        bfp8_mantissas = mantissas[i * 16 : (i + 1) * 16]
         reversed_sign_mantissa = reverse_endian_chunk(bfp8_mantissas)
         block_bfloat16_values = bfp8_to_float_block(exponent, reversed_sign_mantissa)
         bfloat16_values.extend(block_bfloat16_values)

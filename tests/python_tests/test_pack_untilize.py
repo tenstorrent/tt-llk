@@ -5,11 +5,12 @@ import pytest
 import torch
 from helpers import *
 
-torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
+torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+
 
 def generate_golden(operand1, data_format):
-    
-    A_untilized  = untilize(operand1,data_format)
+
+    A_untilized = untilize(operand1, data_format)
     return A_untilized.flatten()
 
 formats = ["Float16_b", "Float16"]
@@ -41,9 +42,11 @@ def test_pack_untilize(unpack_src, unpack_dst, math, pack_src, pack_dst, testnam
     run_shell_command("cd .. && make clean")  
     run_shell_command("tt-smi -r 0")
     src_A, src_B = generate_stimuli(unpack_src)
-    src_A = torch.cat([torch.full((256,), i, dtype=format_dict[unpack_src]) for i in range(1, 5)])
-    src_B = torch.full((1024,),0)
-    
+    src_A = torch.cat(
+        [torch.full((256,), i, dtype=format_dict[unpack_src]) for i in range(1, 5)]
+    )
+    src_B = torch.full((1024,), 0)
+
     golden_tensor = generate_golden(src_A, pack_dst)
 
     write_stimuli_to_l1(src_A, src_B, unpack_src)
@@ -62,12 +65,13 @@ def test_pack_untilize(unpack_src, unpack_dst, math, pack_src, pack_dst, testnam
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(unpack_src, pack_dst)
+    res_from_L1 = collect_results(unpack_src, pack_dst) # Bug patchup in (unpack.py): Added unpack_src argument to distinguish when input and output formats have different exponent widths, reading from L1 changes
 
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden_tensor)
     assert_tensix_operations_finished()
+
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
@@ -85,7 +89,9 @@ def test_pack_untilize(unpack_src, unpack_dst, math, pack_src, pack_dst, testnam
         rtol = 0.2
 
     for i in range(len(golden_tensor)):
-        assert torch.isclose(golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+        assert torch.isclose(
+            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
 
-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
+    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.98

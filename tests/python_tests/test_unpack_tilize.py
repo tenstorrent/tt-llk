@@ -4,40 +4,44 @@ import pytest
 import torch
 from helpers import *
 
+
 def generate_golden(operand1, data_format):
-    
-    A_tilized  = tilize(operand1,data_format)
+
+    A_tilized = tilize(operand1, data_format)
     return A_tilized.flatten()
 
+formats = ["Float16_b", "Float16"]
 param_combinations = [
-    (format, testname)
-    for format in ["Float16_b", "Float16"]
+    (unpack_src, unpack_dst, math, pack_src, pack_dst, testname)
+    for unpack_src in formats
+    for unpack_dst in formats
+    for math in formats
+    for pack_src in formats
+    for pack_dst in formats
     for testname in ["unpack_tilize_test"]
 ]
+# for comb in param_combinations]
+param_ids = [f" unpack_src={comb[0]} | unpack_dst={comb[1]} | math={comb[2]} | pack_src={comb[3]} | pack_dst={comb[4]}" for comb in param_combinations]
 
-param_ids = [
-    f" format={comb[0]} "
-    for comb in param_combinations
-]
 
-@pytest.mark.parametrize(
-    "format,testname",
-    param_combinations,
-    ids=param_ids
-)
-
-def test_unpack_tilize(format, testname):
-
-    src_A, src_B = generate_stimuli(format)
-    src_B = torch.full((1024,),0)
+@pytest.mark.parametrize("unpack_src, unpack_dst, math, pack_src, pack_dst, testname", param_combinations, ids=param_ids)
+def test_unpack_tilize(unpack_src, unpack_dst, math, pack_src, pack_dst, testname):
+    if not (unpack_src == unpack_dst == math == pack_src == pack_dst):
+        pytest.skip("Test not supported for different formats")
     
-    golden_tensor = generate_golden(src_A, format)
+    src_A, src_B = generate_stimuli(unpack_src)
+    src_B = torch.full((1024,), 0)
 
-    write_stimuli_to_l1(src_A, src_B, format)
+    golden_tensor = generate_golden(src_A, pack_dst)
+
+    write_stimuli_to_l1(src_A, src_B, unpack_src)
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "unpack_src": unpack_src,
+        "unpack_dst": unpack_dst,
+        "math": math,
+        "pack_src": pack_src,
+        "pack_dst": pack_dst,
         "testname": testname,
     }
 
@@ -46,24 +50,33 @@ def test_unpack_tilize(format, testname):
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(format)
+    res_from_L1 = collect_results(unpack_src, pack_dst) # Bug patchup in (unpack.py): Added unpack_src argument to distinguish when input and output formats have different exponent widths, reading from L1 changes
 
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden_tensor)
     assert_tensix_operations_finished()
 
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+    res_tensor = torch.tensor(
+        res_from_L1,
+        dtype=(
+            format_dict[pack_dst]
+            if pack_dst in ["Float16", "Float16_b"]
+            else torch.bfloat16
+        ),
+    )
 
-    if(format == "Float16_b" or format == "Float16"):
+    if pack_dst == "Float16_b" or pack_dst == "Float16":
         atol = 0.1
         rtol = 0.05
-    elif(format == "Bfp8_b"):
+    elif pack_dst == "Bfp8_b":
         atol = 0.1
         rtol = 0.2
 
     for i in range(len(golden_tensor)):
-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+        assert torch.isclose(
+            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
 
-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
+    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.98
