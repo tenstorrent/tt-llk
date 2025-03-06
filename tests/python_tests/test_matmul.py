@@ -41,23 +41,13 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
 
     print(result_matrix)
 
-    if data_format == "Float16_b":
-        if math_fidelity in [0, 2]:  # LoFi or HiFi2
-            for element in operand2:
-                element = element.to(torch.int32)
-                element &= 0xFFFE
-        if math_fidelity == 0:  # LoFi
-            for element in operand1:
-                element = element.to(torch.int32)
-                element &= 0xFFF8
-
-    return result_matrix.view(-1)
+    return result_matrix.view(1024)
 
 
 param_combinations = [
     (format, dest_acc, testname, math_fidelity)
     for format in ["Float16_b"]  # ,"Float16"]
-    for dest_acc in [""]  # , "DEST_ACC"]
+    for dest_acc in ["DEST_ACC"]  # , "DEST_ACC"]
     for testname in ["matmul_test"]
     for math_fidelity in [4]  # [3, 4]
 ]
@@ -74,16 +64,23 @@ param_ids = [
 def test_matmul(format, testname, dest_acc, math_fidelity):
 
     # src_A, src_B = generate_stimuli(format,tile_cnt=1,sfpu=False,const_face=True,const_value_A=3,const_value_B=2)
-    # src_A, src_B = generate_stimuli(format)
+    src_A, src_B = generate_stimuli(
+        format,
+        tile_cnt=1,
+        sfpu=False,
+        const_face=True,
+        const_value_A=[1, 2, 3, 4],
+        const_value_B=[4, 3, 2, 1],
+    )
 
-    src_A = torch.tensor(
-        [1.0] * 256 + [2.0] * 256 + [3] * 256 + [4] * 256,
-        dtype=torch.bfloat16,
-    )
-    src_B = torch.tensor(
-        [1] * 256 + [2.0] * 256 + [3] * 256 + [4] * 256,
-        dtype=torch.bfloat16,
-    )
+    # src_A = torch.tensor(
+    #     [1.0] * 256 + [2.0] * 256 + [3] * 256 + [4] * 256,
+    #     dtype=torch.bfloat16,
+    # )
+    # src_B = torch.tensor(
+    #     [1] * 256 + [2.0] * 256 + [3] * 256 + [4] * 256,
+    #     dtype=torch.bfloat16,
+    # )
 
     golden_tensor = generate_golden(src_A, src_B, format, math_fidelity)
     golden_tensor = tilize(golden_tensor, format)

@@ -1,8 +1,9 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
-
+# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import torch
 from .format_arg_mapping import format_dict
+
+torch.manual_seed(123456)
 
 
 def flatten_list(sublists):
@@ -16,7 +17,7 @@ def generate_random_face(stimuli_format="Float16_b", const_value=1, const_face=F
         if const_face:
             srcA_face = torch.ones(256, dtype=format_dict[stimuli_format]) * const_value
         else:  # random for both faces
-            srcA_face = torch.rand(256, dtype=format_dict[stimuli_format])
+            srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) + 0.1
 
     elif stimuli_format == "Bfp8_b":
 
@@ -54,12 +55,27 @@ def generate_stimuli(
     srcA = []
     srcB = []
 
-    for i in range(4 * tile_cnt):
-        face_a, face_b = generate_random_face_ab(
-            stimuli_format, const_face, const_value_A, const_value_B
-        )
-        srcA.append(face_a.tolist())
-        srcB.append(face_b.tolist())
+    if (
+        const_face
+        and isinstance(const_value_A, list)
+        and isinstance(const_value_B, list)
+    ):
+        for i in range(4 * tile_cnt):
+            face_a = generate_random_face(
+                stimuli_format, const_value_A[i % len(const_value_A)], const_face
+            )
+            face_b = generate_random_face(
+                stimuli_format, const_value_B[i % len(const_value_B)], const_face
+            )
+            srcA.append(face_a.tolist())
+            srcB.append(face_b.tolist())
+    else:
+        for i in range(4 * tile_cnt):
+            face_a, face_b = generate_random_face_ab(
+                stimuli_format, const_face, const_value_A, const_value_B
+            )
+            srcA.append(face_a.tolist())
+            srcB.append(face_b.tolist())
 
     srcA = flatten_list(srcA)
     srcB = flatten_list(srcB)
