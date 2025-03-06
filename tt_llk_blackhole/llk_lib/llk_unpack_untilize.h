@@ -76,7 +76,7 @@ inline void _llk_unpack_untilize_hw_configure_(const std::uint32_t unpack_src_fo
         num_faces);
 }
 
-inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4) {
+inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool unpack_to_dest = false) {
 
     const std::uint32_t unpA_ch1_x_stride = (unpack_dst_format&0x3) == (std::uint32_t) DataFormat::Float32 ? 4 : (unpack_dst_format&0x3) == (std::uint32_t) DataFormat::Float16 ? 2 : 1;
     const std::uint32_t unpA_ch1_y_stride = FACE_R_DIM*unpA_ch1_x_stride;
@@ -97,9 +97,8 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
 }
 
 template <bool first_pass = true>
-inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols) {
+inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols, const bool unpack_to_dest = false) {
     std::uint32_t rem_blocks_in_row = block_tile_cols;
-
     // Program srcA and srcB base addresses
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();  // get pointer to registers for current state ID
 
@@ -112,66 +111,155 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
         TT_SETADC(p_setadc::UNP0, p_setadc::CH_0, p_setadc::SET_Z, 2);
     }
 
-    // Wait for free context
-    wait_for_next_context(2);
+    if (!unpack_to_dest) {
+        DPRINT << "*********** Start of execution, pass " << (first_pass ? 1 : 2) << " *************" << ENDL();
+        // Wait for free context
+        wait_for_next_context(2);
 
-    // Get tile address
-    if (0 == unp_cfg_context) {
-       cfg[THCON_SEC0_REG3_Base_address_ADDR32] = base_address;
-    } else {
-       cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = base_address;
-    }
-
-    // Trisc::SEMPOST for context acquire
-    semaphore_post(semaphore::UNPACK_SYNC);
-
-    // Stall unpacker until pending CFG writes from Trisc have completed
-    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-
-    std::uint32_t face_2xr_cnt = 0;
-    for (std::uint32_t r = 0; r < FACE_HEIGHT; r++) {
-        rem_blocks_in_row = block_tile_cols;  // reset remaining blocks in row
-
-        do {
-            if ((face_2xr_cnt + rem_blocks_in_row) >= (FACE_HEIGHT / 2)) {
-                // Run MOP
-                TT_MOP(0, 8 - face_2xr_cnt - 1, unp_cfg_context == 0 ? 0 : 0xff);                                              // Run the MOP
-#if SKIP_UNP == 1
-                TTI_NOP;
-#else
-                TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);  // set data valid
-                TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
-#endif
-                TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1000);  // Clear srcA addr y cnt
-                rem_blocks_in_row -= (8 - face_2xr_cnt);
-                face_2xr_cnt = 0;
-            } else {
-                TT_MOP(0, rem_blocks_in_row - 1, unp_cfg_context == 0 ? 0 : 0xff);  // Run the MOP
-                face_2xr_cnt += rem_blocks_in_row;
-                rem_blocks_in_row = 0;
-                // if (face_2xr_cnt==FACE_HEIGHT/2) {
-                //   TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 0, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); //set data valid
-                //   TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1000); // Clear srcA addr y cnt
-                //   face_2xr_cnt = 0;
-                //}
-            }
-        } while (rem_blocks_in_row > 0);
-
-        TTI_MULDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr::ZERO); // TILE_OFFSET=TILE_OFFSET*0
-        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+        // Get tile address
         if (0 == unp_cfg_context) {
-            TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_address_ADDR32);
+            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = base_address;
         } else {
-            TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_cntx1_address_ADDR32);
+            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = base_address;
         }
-        TTI_INCADCXY(0b001, 0, 0, 1, 0);  // inc l1 addr y cnt
+        // Trisc::SEMPOST for context acquire
+        semaphore_post(semaphore::UNPACK_SYNC);
+
+        // Stall unpacker until pending CFG writes from Trisc have completed
+        TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+        std::uint32_t face_2xr_cnt = 0;
+        for (std::uint32_t r = 0; r < FACE_HEIGHT; r++) {
+            rem_blocks_in_row = block_tile_cols;  // reset remaining blocks in row
+            DPRINT << "block_tile_cols = " << block_tile_cols << ENDL();
+            DPRINT << "face_2xr_cnt = " << face_2xr_cnt << ENDL();
+            do {
+                if ((face_2xr_cnt + rem_blocks_in_row) >= (FACE_HEIGHT / 2)) {
+                    // Run MOP
+                    DPRINT << "If branch, r = " << r << " . Run MOP " << 8 - face_2xr_cnt << " times." << ENDL();
+                    TT_MOP(0, 8 - face_2xr_cnt - 1, unp_cfg_context == 0 ? 0 : 0xff);                                              // Run the MOP
+    #if SKIP_UNP == 1
+                    TTI_NOP;
+    #else
+                    TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);  // set data valid
+                    TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+    #endif
+                    TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1000);  // Clear srcA addr y cnt
+                    rem_blocks_in_row -= (8 - face_2xr_cnt);
+                    face_2xr_cnt = 0;
+                    DPRINT << "rem_blocks_in_row = " << rem_blocks_in_row << ENDL();
+
+                } else {
+                    DPRINT << "Else branch, run MOP " << rem_blocks_in_row << " times." << ENDL();
+                    TT_MOP(0, rem_blocks_in_row - 1, unp_cfg_context == 0 ? 0 : 0xff);  // Run the MOP
+                    face_2xr_cnt += rem_blocks_in_row;
+                    rem_blocks_in_row = 0;
+                    // if (face_2xr_cnt==FACE_HEIGHT/2) {
+                    //   TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 0, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); //set data valid
+                    //   TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1000); // Clear srcA addr y cnt
+                    //   face_2xr_cnt = 0;
+                    //}
+                }
+            } while (rem_blocks_in_row > 0);
+
+            TTI_MULDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr::ZERO); // TILE_OFFSET=TILE_OFFSET*0
+            TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+            if (0 == unp_cfg_context) {
+                TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_address_ADDR32);
+            } else {
+                TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_cntx1_address_ADDR32);
+            }
+            TTI_INCADCXY(0b001, 0, 0, 1, 0);  // inc l1 addr y cnt
+        }
+
+        // T6::SEMGET for context release
+        t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+        // Switch unpacker config context
+        switch_config_context(unp_cfg_context);
     }
+    else {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = base_address;
 
-    // T6::SEMGET for context release
-    t6_semaphore_get(semaphore::UNPACK_SYNC);
+        // Trisc::SEMPOST for context acquire
+        semaphore_post(semaphore::UNPACK_SYNC);
 
-    // Switch unpacker config context
-    switch_config_context(unp_cfg_context);
+        set_dst_write_addr(unp_cfg_context, (const uint32_t)DataFormat::UInt32);
+
+        // Stall unpacker until pending CFG writes from Trisc have completed
+        TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+        DPRINT << "*********** Start of execution, pass " << (first_pass ? 1 : 2) << " *************" << ENDL();
+
+        // Trisc::SEMPOST for context acquire
+        semaphore_post(semaphore::UNPACK_SYNC);
+
+        std::uint32_t face_2xr_cnt = 0;
+        for (std::uint32_t r = 0; r < FACE_HEIGHT; r++) {
+            rem_blocks_in_row = block_tile_cols;  // reset remaining blocks in row
+            DPRINT << "block_tile_cols = " << block_tile_cols << ENDL();
+            DPRINT << "face_2xr_cnt = " << face_2xr_cnt << ENDL();
+            do {
+                if ((face_2xr_cnt + rem_blocks_in_row) >= (FACE_HEIGHT / 2)) {
+                    // Run MOP
+                    DPRINT << "If branch, r = " << r << " . Run MOP " << 8 - face_2xr_cnt << " times." << ENDL();
+                    //TT_MOP(0, 8 - face_2xr_cnt - 1, unp_cfg_context == 0 ? 0 : 0xff);                                              // Run the MOP
+                    
+                    for (uint32_t i = 0; i < 8 - face_2xr_cnt; i++) {
+                        TTI_DMANOP;// WRCFG that sets offset in previous loop needs additional cycle to complete
+                        TTI_UNPACR(SrcA, 0b01000001/*CH1_Y+=1, CH0_Z+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                        TTI_UNPACR(SrcA, 0b01000001/*CH1_Y+=1, CH0_Z+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                        TTI_ADDDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_SIZE);
+                        //Need to stall WRCFG on the addition from ADDDMAREG
+                        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                        //Resets SrcA Z counter CR, which should point to initial Z counter value 
+                        TTI_ADDRCRZW(0b001, 0, 0, 0, 0, 0b0001/*CH0_Z*/);
+                    }
+
+    #if SKIP_UNP == 1
+                    TTI_NOP;
+    #else
+                    TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);  // set data valid
+                    TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+    #endif
+                    TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1000);  // Clear srcA addr y cnt
+                    rem_blocks_in_row -= (8 - face_2xr_cnt);
+                    face_2xr_cnt = 0;
+                    DPRINT << "rem_blocks_in_row = " << rem_blocks_in_row << ENDL();
+
+                } else {
+                    DPRINT << "Else branch, run MOP " << rem_blocks_in_row << " times." << ENDL();
+                    // TT_MOP(0, rem_blocks_in_row - 1, unp_cfg_context == 0 ? 0 : 0xff);  // Run the MOP
+                    for (uint32_t i = 0; i < rem_blocks_in_row; i++) {
+                        TTI_DMANOP;// WRCFG that sets offset in previous loop needs additional cycle to complete
+                        TTI_UNPACR(SrcA, 0b01000001/*CH1_Y+=1, CH0_Z+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                        TTI_UNPACR(SrcA, 0b01000001/*CH1_Y+=1, CH0_Z+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                        TTI_ADDDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_SIZE);
+                        //Need to stall WRCFG on the addition from ADDDMAREG
+                        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                        //Resets SrcA Z counter CR, which should point to initial Z counter value 
+                        TTI_ADDRCRZW(0b001, 0, 0, 0, 0, 0b0001/*CH0_Z*/);
+                    }
+                    face_2xr_cnt += rem_blocks_in_row;
+                    rem_blocks_in_row = 0;
+                    // if (face_2xr_cnt==FACE_HEIGHT/2) {
+                    //   TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 0, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); //set data valid
+                    //   TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1000); // Clear srcA addr y cnt
+                    //   face_2xr_cnt = 0;
+                    //}
+                }
+            } while (rem_blocks_in_row > 0);
+
+            TTI_MULDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr::ZERO); // TILE_OFFSET=TILE_OFFSET*0
+            TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+            TTI_INCADCXY(0b001, 0, 0, 1, 0);  // inc l1 addr y cnt
+        }
+
+        // T6::SEMGET for context release
+        t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+        unpack_to_dest_tile_done(unp_cfg_context);
+    }
 
 #ifdef PERF_DUMP
     first_unpack_recorded = true;
