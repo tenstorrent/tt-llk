@@ -26,8 +26,6 @@ param_ids = generate_param_ids(all_params)
 
 def test_pack_untilize(testname, formats):
     
-    run_shell_command("cd .. && make clean")  
-    run_shell_command("tt-smi -r 0")
     src_A, src_B = generate_stimuli(formats.unpack_src)
     src_A = torch.cat(
         [torch.full((256,), i, dtype=format_dict[formats.unpack_src]) for i in range(1, 5)]

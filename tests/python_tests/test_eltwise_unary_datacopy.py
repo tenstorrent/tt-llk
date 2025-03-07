@@ -5,7 +5,6 @@ import subprocess
 import pytest
 import torch
 from helpers import *
-from helpers.param_config import *
 
 
 def generate_golden(operand1, format):

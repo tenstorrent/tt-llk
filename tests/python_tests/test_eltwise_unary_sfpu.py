@@ -5,7 +5,7 @@ import pytest
 import torch
 import math
 from helpers import *
-from helpers.param_config import *
+
 
 
 def generate_golden(operation, operand1, data_format):
@@ -42,7 +42,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):#
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-    if formats.unpack_src == "Float16" and dest_acc == "":
+    if formats.unpack_src == "Float16" and dest_acc == "DEST_ACC":
         pytest.skip(reason="This combination is not fully implemented in testing")
 
     src_A, src_B = generate_stimuli(formats.unpack_src, sfpu=True)

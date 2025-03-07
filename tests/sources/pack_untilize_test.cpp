@@ -90,7 +90,6 @@ void run_kernel()
     _llk_pack_untilize_init_<ct_dim>(PACK_OUT, FACE_R_DIM, 4); 
 #endif
 
-    _llk_pack_untilize_init_<ct_dim>(PACK_IN, PACK_OUT, FACE_R_DIM, 4); // Added second format argument (PACK_OUT). Was missing second format argument for BH, this is why tests were previously failing.
     _llk_packer_wait_for_math_done_();
     _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Dest), PACK_OUT, FACE_R_DIM, 4, 0);
     _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
