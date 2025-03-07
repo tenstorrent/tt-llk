@@ -4,13 +4,8 @@
 
 #pragma once
 
-#include "ckernel_defs.h"
-#include "ckernel.h"
-#include "ckernel_sfpu_load_config.h"
-
 #include "sfpi.h"
-
-using namespace sfpi;
+#include "ckernel_sfpu_load_config.h"
 
 namespace ckernel
 {
