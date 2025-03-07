@@ -4,11 +4,8 @@
 
 #pragma once
 
-#include "ckernel.h"
-#include "ckernel_defs.h"
 #include "sfpi.h"
-
-using namespace sfpi;
+#include "ckernel_ops.h"
 
 namespace ckernel
 {
