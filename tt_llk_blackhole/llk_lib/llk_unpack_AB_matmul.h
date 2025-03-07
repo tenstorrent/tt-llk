@@ -271,9 +271,12 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     TT_SETDMAREG(0, LOWER_HALFWORD(kt_dim), 0, LO_16(p_gpr_unpack::KT_DIM)); // store kt_dim to gpr for scaling tile size
 
     // Write to scratch cfg register L1 address increment
-    if (reuse_a) {
+    if (reuse_a)
+    {
         TTI_WRCFG(p_gpr_unpack::TILE_SIZE_A, 0, SCRATCH_SEC0_val_ADDR32);
-    } else {
+    }
+    else
+    {
         TTI_MULDMAREG(0, p_gpr_unpack::TMP_LO, p_gpr_unpack::TILE_SIZE_B, p_gpr_unpack::KT_DIM);
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
         TTI_WRCFG(p_gpr_unpack::TMP_LO, 0, SCRATCH_SEC0_val_ADDR32);
