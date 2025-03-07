@@ -4,15 +4,10 @@
 
 #pragma once
 
-#include "ckernel_defs.h"
-#include "ckernel.h"
-#include "noc_nonblocking_api.h"
+#include "sfpi.h"
+#include "sfpi_fp16.h"
 #include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_load_config.h"
-
-#include "sfpi.h"
-
-using namespace sfpi;
 
 namespace ckernel
 {
@@ -225,7 +220,7 @@ inline void _init_gelu_derivative_()
         _sfpu_load_imm32_(4, imm3);
         _sfpu_load_imm32_(5, imm4);
         _sfpu_load_imm32_(6, imm5);
-    } else {
+        } else {
         imm0 = 0x28FF;
         imm1 = 0x3020;
         _sfpu_load_imm16_(0, imm0);
