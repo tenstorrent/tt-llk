@@ -48,9 +48,9 @@ def test_unary_datacopy(testname, formats, dest_acc):
     run_elf_files(testname)
 
     # JUST PASS formats
-    res_from_L1 = collect_results(formats) 
+    res_from_L1 = collect_results(formats) # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
 
-    # run_shell_command("cd .. && make clean")
+    run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden)
     assert_tensix_operations_finished()
