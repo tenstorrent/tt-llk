@@ -5,7 +5,7 @@ import pytest
 import torch
 from helpers import *
 from helpers.check_hw import *
-from helpers.param_config import *
+
 
 def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     tensor1_float = (
@@ -60,13 +60,6 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     if mathop in range(1, 4) and formats.unpack_src == "Float16" and dest_acc == "DEST_ACC":
         pytest.skip(reason="This combination is not fully implemented in testing")
         
-    # if (mathop == 3 and unpack_src in ["Float16", "Bfp8_b"]):
-    #     pytest.skip("")
-    
-    
-    run_shell_command("cd .. && make clean")  
-    run_shell_command("tt-smi -r 0")  
-
   
     pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]

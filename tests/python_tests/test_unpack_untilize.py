@@ -4,7 +4,7 @@
 import pytest
 import torch
 from helpers import *
-from helpers.param_config import *
+
 
 torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
 

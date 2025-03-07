@@ -5,7 +5,7 @@ import pytest
 import torch
 from helpers import *
 from helpers.check_hw import *
-from helpers.param_config import *
+
 
 def generate_golden(operand1, operand2, data_format, math_fidelity):
 
