@@ -4,8 +4,14 @@
 
 #pragma once
 
-#include "sfpi.h"
+#include "ckernel_defs.h"
+#include "ckernel.h"
+#include "noc_nonblocking_api.h"
 #include "ckernel_sfpu_is_fp16_zero.h"
+
+#include "sfpi.h"
+
+using namespace sfpi;
 
 namespace ckernel
 {
@@ -24,6 +30,7 @@ sfpi_inline void _calculate_comp_init_flag_(bool check, vFloat& flag1, vFloat& f
 template <bool APPROXIMATION_MODE, bool invert_output, bool check_zero, bool second_check, bool is_less_than_equal_zero, int ITERATIONS>
 inline void _calculate_comp_(const int iterations, uint exponent_size_8)
 {
+
     // output_0 and output_1 hold the outputs use use when a zero or negative check is true/false.
     // False = 0.0 = kCONST_0 (5/8-bit exponent format)
     // True  = 1.0 = kCONST_1_FP16B (8-bit exponent format)
