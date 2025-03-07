@@ -149,15 +149,6 @@ inline void _llk_pack_untilize_(
     TT_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011); //reset ch0 xy counters
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_offset);
 
-    // DPRINT << "Pack Untilize LLK" << ENDL();
-    // DPRINT << "block_ct_dim: " << (uint32_t) block_ct_dim << ENDL(); 
-    // DPRINT << "full_ct_dim: " << (uint32_t) full_ct_dim << ENDL();
-    // DPRINT << "narrow_row: " << (uint32_t) narrow_row << ENDL();
-    // DPRINT << "row_num_datums: " << (uint32_t) row_num_datums << ENDL();
-    // DPRINT << "tile_dst_offset: " << (uint32_t) tile_dst_offset << ENDL();
-    // DPRINT << "face_r_dim: " << face_r_dim << ENDL();
-    // DPRINT << "num_faces: " << num_faces << ENDL();
-
     for (std::uint32_t face=0; face<num_faces_per_rdim_tile; face++) {
         ckernel::ckernel_template::run(instrn_buffer);
 
