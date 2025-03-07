@@ -4,7 +4,7 @@
 import pytest
 import torch
 from helpers import *
-
+from helpers.param_config import *
 
 def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
@@ -57,35 +57,24 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
     return result.view(1024)
 
-formats = ["Float16_b", "Float16"]
-param_combinations = [
-    (reduce_dim, pool_type, unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname)
-    for reduce_dim in ["reduce_col"]
-    for pool_type in ["max", "sum", "avg"]
-    for unpack_src in formats
-    for unpack_dst in formats
-    for math in formats
-    for pack_src in formats
-    for pack_dst in formats
-    for dest_acc in [""]
-    for testname in ["reduce_test"]
-]
 
-param_ids = [
-    f"reduce_dim={comb[0]}  | pool_type={comb[1]} | unpack_src={comb[2]} | unpack_dst={comb[3]} | math = {comb[4]} | pack_src = {comb[5]} | pack_dst = {comb[6]} | dest_acc={comb[7]} "
-    for comb in param_combinations
-]
-
+all_format_combos = generate_format_combinations(["Float16_b", "Float16"], True)
+all_params = generate_params(["reduce_test"], all_format_combos,
+                             dest_acc= [""], 
+                             reduce_dim= ["reduce_col"], 
+                             pool_type=["max", "sum", "avg"])
+param_ids = generate_param_ids(all_params)
 
 @pytest.mark.parametrize(
-    "reduce_dim, pool_type, unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname",
-    param_combinations,
-    ids=param_ids,
+    "testname, formats, dest_acc, reduce_dim, pool_type",
+    all_params,
+    ids=param_ids
 )
-@pytest.mark.skip(reason="Not fully implemented")
-def test_reduce(reduce_dim, pool_type, unpack_src, unpack_dst, math, pack_src, pack_dst, testname, dest_acc):
 
-    src_A, src_B = generate_stimuli(unpack_src)
+@pytest.mark.skip(reason="Not fully implemented")
+def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+
+    src_A, src_B = generate_stimuli(formats.unpack_src)
 
     if pool_type in ["max", "sum"]:  # result in srcA should be divided by 1
         src_B = torch.full((1024,), 1)
@@ -96,15 +85,11 @@ def test_reduce(reduce_dim, pool_type, unpack_src, unpack_dst, math, pack_src, p
         else:
             src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
 
-    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, pack_dst)
-    write_stimuli_to_l1(src_A, src_B, unpack_src)
+    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.pack_dst)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
 
     test_config = {
-        "unpack_src": unpack_src,
-        "unpack_dst": unpack_dst,
-        "math": math,
-        "pack_src": pack_src,
-        "pack_dst": pack_dst,
+        "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
         "reduce_dim": reduce_dim,
@@ -117,7 +102,7 @@ def test_reduce(reduce_dim, pool_type, unpack_src, unpack_dst, math, pack_src, p
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(unpack_src, pack_dst) # Bug patchup in (unpack.py): Added unpack_src argument to distinguish when input and output formats have different exponent widths, reading from L1 changes
+    res_from_L1 = collect_results(formats) # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
 
     run_shell_command("cd .. && make clean")
 
@@ -127,20 +112,20 @@ def test_reduce(reduce_dim, pool_type, unpack_src, unpack_dst, math, pack_src, p
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[pack_dst]
-            if pack_dst in ["Float16", "Float16_b"]
+            format_dict[formats.pack_dst]
+            if formats.pack_dst in ["Float16", "Float16_b"]
             else torch.bfloat16
         ),
     )
-    res_tensor = untilize(res_tensor, pack_dst)
+    res_tensor = untilize(res_tensor, formats.pack_dst)
 
     print("RES IN L1")
     print(res_tensor.view(32, 32))
 
-    if pack_dst == "Float16_b" or pack_dst == "Float16":
+    if formats.pack_dst in ["Float16_b", "Float16"]:
         atol = 0.1
         rtol = 0.05
-    elif pack_dst == "Bfp8_b":
+    elif formats.pack_dst == "Bfp8_b":
         atol = 0.1
         rtol = 0.2
 

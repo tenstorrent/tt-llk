@@ -4,6 +4,7 @@
 import pytest
 import torch
 from helpers import *
+from helpers.param_config import *
 
 torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
 
@@ -13,39 +14,29 @@ def generate_golden(operand1, data_format):
     A_untilized = untilize(operand1, data_format)
     return A_untilized.flatten()
 
-formats = ["Float16_b", "Float16"]
-param_combinations = [
-    (unpack_src, unpack_dst, math, pack_src, pack_dst, testname)
-    for unpack_src in formats
-    for unpack_dst in formats
-    for math in formats
-    for pack_src in formats
-    for pack_dst in formats
-    for testname in ["unpack_untilize_test"]
-]
-
-param_ids = [f" unpack_src={comb[0]} | unpack_dst={comb[1]} | math={comb[2]} | pack_src={comb[3]} | pack_dst={comb[4]}" for comb in param_combinations]
 
 
-@pytest.mark.parametrize("unpack_src, unpack_dst, math, pack_src, pack_dst, testname", param_combinations, ids=param_ids)
-def test_unpack_untilze(unpack_src, unpack_dst, math, pack_src, pack_dst, testname):
-    
-    if not (unpack_src == unpack_dst == math == pack_src == pack_dst):
-        pytest.skip("Test not supported for different formats")
+all_format_combos = generate_format_combinations(["Float16_b", "Float16"], True)
+all_params = generate_params(["unpack_untilize_test"], all_format_combos)
+param_ids = generate_param_ids(all_params)
 
-    src_A, src_B = generate_stimuli(unpack_src)
+@pytest.mark.parametrize(
+    "testname, formats",
+    all_params,
+    ids=param_ids
+)
+
+def test_unpack_untilze(testname, formats):
+
+    src_A, src_B = generate_stimuli(formats.unpack_src)
     src_B = torch.full((1024,), 0)
 
-    golden_tensor = generate_golden(src_A, pack_dst)
+    golden_tensor = generate_golden(src_A, formats.pack_dst)
 
-    write_stimuli_to_l1(src_A, src_B, unpack_src)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
 
     test_config = {
-        "unpack_src": unpack_src,
-        "unpack_dst": unpack_dst,
-        "math": math,
-        "pack_src": pack_src,
-        "pack_dst": pack_dst,
+        "formats": formats,
         "testname": testname,
     }
 
@@ -54,7 +45,7 @@ def test_unpack_untilze(unpack_src, unpack_dst, math, pack_src, pack_dst, testna
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(unpack_src, pack_dst)
+    res_from_L1 = collect_results(formats) # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
 
     run_shell_command("cd .. && make clean")
 
@@ -64,16 +55,16 @@ def test_unpack_untilze(unpack_src, unpack_dst, math, pack_src, pack_dst, testna
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[pack_dst]
-            if pack_dst in ["Float16", "Float16_b"]
+            format_dict[formats.pack_dst]
+            if formats.pack_dst in ["Float16", "Float16_b"]
             else torch.bfloat16
         ),
     )
 
-    if pack_dst == "Float16_b" or pack_dst == "Float16":
+    if formats.pack_dst in ["Float16_b", "Float16"]:
         atol = 0.1
         rtol = 0.05
-    elif pack_dst == "Bfp8_b":
+    elif formats.pack_dst == "Bfp8_b":
         atol = 0.1
         rtol = 0.2
 

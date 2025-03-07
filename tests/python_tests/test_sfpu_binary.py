@@ -4,7 +4,7 @@
 import pytest
 import torch
 from helpers import *
-
+from helpers.param_config import *
 
 def generate_golden(operation, operand1, operand2, data_format):
     tensor1_float = (
@@ -30,44 +30,32 @@ def generate_golden(operation, operand1, operand2, data_format):
     return operations[operation].tolist()
 
 
-param_combinations = [
-    (mathop, unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname)
-    for mathop in ["elwadd", "elwsub", "elwmul"]
-    for unpack_src in ["Float32"]
-    for unpack_dst in ["Float32"]
-    for math in ["Float32"]
-    for pack_src in ["Float32"]
-    for pack_dst in ["Float32"]
-    for dest_acc in ["DEST_ACC"]
-    for testname in ["sfpu_binary_test"]
-]
 
-param_ids = [
-    f"mathop={comb[0]} | unpack_src={comb[1]} | unpack_dst={comb[2]} | math = {comb[3]} | pack_src = {comb[4]} | pack_dst = {comb[5]} | dest_acc={comb[6]} "
-    for comb in param_combinations
-]
-
+all_format_combos = generate_format_combinations(["Float32"], True)
+all_params = generate_params(["sfpu_binary_test"], all_format_combos,
+                             dest_acc= ["DEST_ACC"], 
+                             mathop= ["elwadd", "elwsub", "elwmul"])
+param_ids = generate_param_ids(all_params)
 
 @pytest.mark.parametrize(
-    "mathop, unpack_src, unpack_dst, math, pack_src, pack_dst, dest_acc, testname", param_combinations, ids=param_ids
+    "testname, formats, dest_acc, mathop",
+    all_params,
+    ids=param_ids
 )
+
 @pytest.mark.skip(reason="Not fully implemented")
-def test_all(unpack_src, unpack_dst, math, pack_src, pack_dst, mathop, testname, dest_acc):
-    if unpack_src in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
+def test_all(testname, formats, dest_acc, mathop):
+    if formats.unpack_src in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
         pytest.skip(
             "Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
         
-    src_A, src_B = generate_stimuli(unpack_src)
-    golden = generate_golden(mathop, src_A, src_B, pack_dst)
-    write_stimuli_to_l1(src_A, src_B, unpack_src)
+    src_A, src_B = generate_stimuli(formats.unpack_src)
+    golden = generate_golden(mathop, src_A, src_B, formats.pack_dst)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
 
     test_config = {
-        "unpack_src": unpack_src,
-        "unpack_dst": unpack_dst,
-        "math": math,
-        "pack_src": pack_src,
-        "pack_dst": pack_dst,
+        "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
         "mathop": mathop,
@@ -78,7 +66,7 @@ def test_all(unpack_src, unpack_dst, math, pack_src, pack_dst, mathop, testname,
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(unpack_src, pack_dst) # Bug patchup in (unpack.py): Added unpack_src argument to distinguish when input and output formats have different exponent widths, reading from L1 changes
+    res_from_L1 = collect_results(formats) # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
 
     assert len(res_from_L1) == len(golden)
 
@@ -86,26 +74,26 @@ def test_all(unpack_src, unpack_dst, math, pack_src, pack_dst, mathop, testname,
 
     assert_tensix_operations_finished()
 
-    if pack_dst in ["Float16_b", "Float16", "Float32"]:
+    if formats.pack_dst in ["Float16_b", "Float16", "Float32"]:
         atol = 0.05
         rtol = 0.1
-    elif pack_dst == "Bfp8_b":
+    elif formats.pack_dst == "Bfp8_b":
         atol = 0.1
         rtol = 0.2
 
     golden_tensor = torch.tensor(
         golden,
         dtype=(
-            format_dict[pack_dst]
-            if pack_dst in ["Float16", "Float16_b", "Float32"]
+            format_dict[formats.pack_dst]
+            if formats.pack_dst in ["Float16", "Float16_b", "Float32"]
             else torch.bfloat16
         ),
     )
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[pack_dst]
-            if pack_dst in ["Float16", "Float16_b", "Float32"]
+            format_dict[formats.pack_dst]
+            if formats.pack_dst in ["Float16", "Float16_b", "Float32"]
             else torch.bfloat16
         ),
     )

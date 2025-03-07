@@ -4,6 +4,7 @@
 import pytest
 import torch
 from helpers import *
+from helpers.param_config import *
 
 torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
 
@@ -13,50 +14,32 @@ def generate_golden(operand1, data_format):
     A_untilized = untilize(operand1, data_format)
     return A_untilized.flatten()
 
-formats = ["Float16_b", "Float16"]
-param_combinations = [
-    (unpack_src, unpack_dst, math, pack_src, pack_dst, testname)
-    for unpack_src in formats
-    for unpack_dst in formats
-    for math in formats
-    for pack_src in formats
-    for pack_dst in formats
-    for testname in ["pack_untilize_test"]
-]
-
-param_ids = [
-    f" unpack_src={comb[0]} | unpack_dst={comb[1]} | math={comb[2]} | pack_src={comb[3]} | pack_dst={comb[4]}"
-    for comb in param_combinations
-]
+all_format_combos = generate_format_combinations(["Float16_b", "Float16"], True)
+all_params = generate_params(["pack_untilize_test"], all_format_combos)
+param_ids = generate_param_ids(all_params)
 
 @pytest.mark.parametrize(
-    "unpack_src, unpack_dst, math, pack_src, pack_dst, testname",
-    param_combinations,
+    "testname, formats",
+    all_params,
     ids=param_ids
 )
 
-def test_pack_untilize(unpack_src, unpack_dst, math, pack_src, pack_dst, testname):
-    if not (unpack_src == unpack_dst and unpack_dst == math and math == pack_src and pack_src == pack_dst):
-        pytest.skip(reason = "This test is only for uniform format")
-        
+def test_pack_untilize(testname, formats):
+    
     run_shell_command("cd .. && make clean")  
     run_shell_command("tt-smi -r 0")
-    src_A, src_B = generate_stimuli(unpack_src)
+    src_A, src_B = generate_stimuli(formats.unpack_src)
     src_A = torch.cat(
-        [torch.full((256,), i, dtype=format_dict[unpack_src]) for i in range(1, 5)]
+        [torch.full((256,), i, dtype=format_dict[formats.unpack_src]) for i in range(1, 5)]
     )
     src_B = torch.full((1024,), 0)
 
-    golden_tensor = generate_golden(src_A, pack_dst)
+    golden_tensor = generate_golden(src_A, formats.pack_dst)
 
-    write_stimuli_to_l1(src_A, src_B, unpack_src)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
 
     test_config = {
-        "unpack_src": unpack_src,
-        "unpack_dst": unpack_dst,
-        "math": math,
-        "pack_src": pack_src,
-        "pack_dst": pack_dst,
+        "formats": formats,
         "testname": testname,
     }
 
@@ -65,8 +48,7 @@ def test_pack_untilize(unpack_src, unpack_dst, math, pack_src, pack_dst, testnam
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(unpack_src, pack_dst) # Bug patchup in (unpack.py): Added unpack_src argument to distinguish when input and output formats have different exponent widths, reading from L1 changes
-
+    res_from_L1 = collect_results(formats) # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden_tensor)
@@ -75,16 +57,16 @@ def test_pack_untilize(unpack_src, unpack_dst, math, pack_src, pack_dst, testnam
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[pack_dst]
-            if pack_dst in ["Float16", "Float16_b"]
+            format_dict[formats.pack_dst]
+            if formats.pack_dst in ["Float16", "Float16_b"]
             else torch.bfloat16
         ),
     )
 
-    if(pack_dst == "Float16_b" or pack_dst == "Float16"):
+    if(formats.pack_dst in ["Float16_b","Float16"]):
         atol = 0.1
         rtol = 0.05
-    elif(pack_dst == "Bfp8_b"):
+    elif(formats.pack_dst == "Bfp8_b"):
         atol = 0.1
         rtol = 0.2
 
