@@ -227,7 +227,7 @@ inline void _init_gelu_derivative_()
         _sfpu_load_imm32_(4, imm3);
         _sfpu_load_imm32_(5, imm4);
         _sfpu_load_imm32_(6, imm5);
-        } else {
+    } else {
         imm0 = 0x28FF;
         imm1 = 0x3020;
         _sfpu_load_imm16_(0, imm0);
