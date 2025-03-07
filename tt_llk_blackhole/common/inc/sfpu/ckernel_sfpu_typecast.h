@@ -5,13 +5,9 @@
 #pragma once
 
 #include <limits>
-
-#include "ckernel.h"
-#include "ckernel_defs.h"
-#include "noc_nonblocking_api.h"
 #include "sfpi.h"
-
-using namespace sfpi;
+#include "ckernel_ops.h"
+#include "ckernel_addrmod.h"
 
 namespace ckernel
 {
