@@ -4,9 +4,14 @@
 
 #pragma once
 
-#include "sfpi.h"
-#include "sfpi_fp16.h"
+#include "ckernel.h"
+#include "ckernel_defs.h"
+#include "noc_nonblocking_api.h"
 #include "ckernel_sfpu_converter.h"
+
+#include "sfpi.h"
+
+using namespace sfpi;
 
 namespace ckernel
 {
