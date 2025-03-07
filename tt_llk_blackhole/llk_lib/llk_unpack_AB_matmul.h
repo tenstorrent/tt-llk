@@ -155,7 +155,6 @@ inline void _llk_unpack_AB_matmul_mop_config_(
                 }
                 else
                 {
-
                     // THCON_SEC1_REG3_Base_cntx1_address_ADDR32 =  THCON_SEC1_REG3_Base_cntx1_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
                     TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
                 }
