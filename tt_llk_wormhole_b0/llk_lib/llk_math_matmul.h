@@ -497,7 +497,7 @@ inline void _llk_math_matmul_init_(const std::uint32_t in0_tile_r_dim = TILE_R_D
     }
 
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    if constexpr ((MM_ADD_NOPS > 1) && (MATH_FIDELITY_PHASES == 0)) {
+    if constexpr ((MM_ADD_NOPS > 0) && (MATH_FIDELITY_PHASES == 0)) {
         // Only enable throttling for lo-fi math
         matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, FaceLayout, MM_ADD_NOPS>(transpose>0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     } else {
