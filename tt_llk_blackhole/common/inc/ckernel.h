@@ -833,12 +833,11 @@ inline void init_prng_seed(const uint seed)
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
 
-    // TEMPORARY COMMENT
-    // for(int i = 0; i < 600; i++) {
-	//     TTI_SFPNOP;
-    // }
-
-    ckernel::wait(600);
+    // TODO: ckernel::wait does not work properly. Use ckernel::wait when fixed.
+    for (int i = 0; i < 600; i++)
+    {
+        TTI_SFPNOP;
+    }
 }
 
 }
