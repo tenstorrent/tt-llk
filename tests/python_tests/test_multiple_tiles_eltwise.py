@@ -72,10 +72,10 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
     #  To ensure accurate results, for now we reset board after each test.
     #  Fix this: so we only reset after failing tests
-    if full_sweep: 
+    if full_sweep:
         run_shell_command(f"cd .. && make clean")
         run_shell_command(f"tt-smi -r 0")
-        
+
     pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)

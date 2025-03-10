@@ -10,6 +10,7 @@ from helpers import *
 def generate_golden(operand1, format):
     return operand1
 
+
 full_sweep = False
 all_format_combos = generate_format_combinations(
     ["Float32", "Bfp8_b", "Float16_b", "Float16", "Int32"], not full_sweep
@@ -31,14 +32,14 @@ def test_unary_datacopy(testname, formats, dest_acc):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-        
+
     #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
     #  To ensure accurate results, for now we reset board after each test.
     #  Fix this: so we only reset after failing tests
-    if full_sweep: 
+    if full_sweep:
         run_shell_command(f"cd .. && make clean")
         run_shell_command(f"tt-smi -r 0")
-        
+
     src_A, src_B = generate_stimuli(formats.unpack_src)
     srcB = torch.full((1024,), 0)
     golden = generate_golden(src_A, formats.pack_dst)

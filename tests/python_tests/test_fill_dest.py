@@ -38,6 +38,7 @@ def generate_golden(operations, operand1, operand2, data_format):
 
     return flatten_list(res)
 
+
 full_sweep = False
 all_format_combos = generate_format_combinations(
     ["Float16_b", "Float16", "Bfp8_b"], not full_sweep
@@ -55,11 +56,11 @@ def test_fill_dest(testname, formats, dest_acc):
 
     if formats.unpack_src == "Float16" and dest_acc == "DEST_ACC":
         pytest.skip(reason="This combination is not fully implemented in testing")
-        
+
     #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
     #  To ensure accurate results, for now we reset board after each test.
     #  Fix this: so we only reset after failing tests
-    if full_sweep: 
+    if full_sweep:
         run_shell_command(f"cd .. && make clean")
         run_shell_command(f"tt-smi -r 0")
 

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <type_traits>
 
 #include "ckernel.h"
 #include "llk_defs.h"
@@ -14,7 +15,6 @@ const bool unpack_to_dest = true;
 // Globals
 uint32_t unp_cfg_context        = 0;
 uint32_t pack_sync_tile_dst_ptr = 0;
-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
 
 #ifdef DEST_ACC
 const bool is_fp32_dest_acc_en = true;
@@ -50,6 +50,29 @@ void run_kernel()
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
+namespace
+{
+void call_sfpu_operation(SfpuType operation)
+{
+    switch (operation)
+    {
+        case SfpuType::sqrt:
+            ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, 10>(10);
+            break;
+        case SfpuType::log:
+            ckernel::sfpu::_init_log_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_log_<APPROX_MODE, false, 10>(10, 0);
+            break;
+        case SfpuType::square:
+            ckernel::sfpu::_calculate_square_<APPROX_MODE, 10>(10);
+            break;
+        default:
+            return;
+    }
+}
+} // namespace
+
 void run_kernel()
 {
 // copy srca to dest
@@ -67,11 +90,9 @@ void run_kernel()
     // calculation of sfpu operation on dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncFull>(0);
-// calling sfpu function from ckernel
-// this part is where parametrization of operation takes part
-#ifdef SFPU_CALLS
-    SFPU_CALLS
-#endif
+    // calling sfpu function from ckernel
+    // this part is where parametrization of operation takes part
+    call_sfpu_operation(SFPU_OPERATION);
 
     _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
@@ -85,16 +106,16 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-// If data foramt is Bfp8 it is calculated correctly in Dest but packer cannot pack just that one face
-// TODO: make it so It can
-// So for now It is packed as Float16_b
-
-#ifdef PACK_DST_BFP8_B                           // FORMAT_BFP8_B changed to PACK_DST_BFP8_B in params.h
-#define PACK_OUT (uint32_t)DataFormat::Float16_b // PACK_OUT will further be defined in inference model depending on format inputs and other settings
-#endif
-
 void run_kernel()
 {
+    // If data foramt is Bfp8 it is calculated correctly in Dest but packer cannot pack just that one face
+    // TODO: make it so It can
+    // So for now It is packed as Float16_b
+
+#ifdef PACK_DST_BFP8_B
+    constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
+#endif
+
     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);

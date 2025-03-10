@@ -11,38 +11,18 @@ unpacked_bfp8 = {}
 
 
 def int_to_bytes_list(n):
-    binary_str = bin(n)[2:].zfill(32)
-    return [int(binary_str[i : i + 8], 2) for i in range(0, 32, 8)]
+    return [(n >> (24 - i * 8)) & 0xFF for i in range(4)]
 
 
-def bytes_to_float16(byte_list):
-    bytes_data = bytes(byte_list[:2])
-    unpacked_value = struct.unpack(">e", bytes_data)[0]
-    return torch.tensor(unpacked_value, dtype=torch.float16)
+def unpack_fp16(packed_list, unpack_src, unpack_dst):
+    def bytes_to_float16(byte_list):
+        bytes_data = bytes(byte_list[:2])
+        unpacked_value = struct.unpack(">e", bytes_data)[0]
+        return unpacked_value
 
-
-def bytes_to_bfloat16(byte_list):
-    bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
-    unpacked_value = struct.unpack(">f", bytes_data)[0]
-    return torch.tensor(unpacked_value, dtype=torch.float32)
-
-
-def bytes_to_float32(byte_list):
-    bytes_data = bytes(byte_list)
-    unpacked_value = struct.unpack(">f", bytes_data)[0]
-    return torch.tensor(unpacked_value, dtype=torch.float32)
-
-
-def bytes_to_int32(byte_list):
-    bytes_data = bytes(byte_list)
-    unpacked_value = struct.unpack(">I", bytes_data)[0]
-    return torch.tensor(unpacked_value, dtype=torch.int32)
-
-
-def unpack_fp16(packed_list, unpack_src, pack_dst):
     limited_packed_list = packed_list[:2048]
     ret = [
-        bytes_to_float16(limited_packed_list[i : i + 2]).item()
+        bytes_to_float16(limited_packed_list[i : i + 2])
         for i in range(0, len(limited_packed_list), 2)
     ]
 
@@ -60,9 +40,14 @@ def unpack_fp16(packed_list, unpack_src, pack_dst):
 
 
 def unpack_bfp16(packed_list, unpack_src, pack_dst):
+    def bytes_to_bfloat16(byte_list):
+        bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
+        unpacked_value = struct.unpack(">f", bytes_data)[0]
+        return unpacked_value
+
     limited_packed_list = packed_list[:2048]
     ret = [
-        bytes_to_bfloat16(limited_packed_list[i : i + 2]).item()
+        bytes_to_bfloat16(limited_packed_list[i : i + 2])
         for i in range(0, len(limited_packed_list), 2)
     ]
 
@@ -80,16 +65,24 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
 
 
 def unpack_float32(packed_list):
+    def bytes_to_float32(byte_list):
+        bytes_data = bytes(byte_list)
+        unpacked_value = struct.unpack(">f", bytes_data)[0]
+        return unpacked_value
+
     return [
-        bytes_to_float32(packed_list[i : i + 4]).item()
-        for i in range(0, len(packed_list), 4)
+        bytes_to_float32(packed_list[i : i + 4]) for i in range(0, len(packed_list), 4)
     ]
 
 
 def unpack_int32(packed_list):
+    def bytes_to_int32(byte_list):
+        bytes_data = bytes(byte_list)
+        unpacked_value = struct.unpack(">I", bytes_data)[0]
+        return unpacked_value
+
     return [
-        bytes_to_int32(packed_list[i : i + 4]).item()
-        for i in range(0, len(packed_list), 4)
+        bytes_to_int32(packed_list[i : i + 4]) for i in range(0, len(packed_list), 4)
     ]
 
 
@@ -134,12 +127,11 @@ def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
 
     if not sfpu:
         exponents = bfp8_block[:64]
-        reversed_exponents = reverse_endian_chunk(exponents)
         mantissas = bfp8_block[64:]
     else:
         exponents = bfp8_block[:16]
-        reversed_exponents = reverse_endian_chunk(exponents)
         mantissas = bfp8_block[16:272]
+    reversed_exponents = reverse_endian_chunk(exponents)
 
     bfloat16_values = []
     for i in range(len(reversed_exponents)):

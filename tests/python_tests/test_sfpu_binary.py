@@ -29,6 +29,7 @@ def generate_golden(operation, operand1, operand2, data_format):
 
     return operations[operation].tolist()
 
+
 full_sweep = False
 all_format_combos = generate_format_combinations(
     ["Float32"], not full_sweep
@@ -51,13 +52,13 @@ def test_all(testname, formats, dest_acc, mathop):
         pytest.skip(
             "Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-    
+
     #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
     #  To ensure accurate results, for now we reset board after each test.
     #  Fix this: so we only reset after failing tests
-    if full_sweep: 
+    if full_sweep:
         run_shell_command(f"cd .. && make clean")
-        run_shell_command(f"tt-smi -r 0")    
+        run_shell_command(f"tt-smi -r 0")
 
     src_A, src_B = generate_stimuli(formats.unpack_src)
     golden = generate_golden(mathop, src_A, src_B, formats.pack_dst)
