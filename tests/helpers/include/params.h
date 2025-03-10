@@ -27,20 +27,84 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
 }
 } // namespace
 
-#ifdef FORMAT_FLOAT16_B
-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float16_b);
+#ifdef UNPACK_SRC_FLOAT16_B
+constexpr auto UNPACK_IN = get_data_format(DataFormat::Float16_b);
 #endif
-#ifdef FORMAT_FLOAT16
-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float16);
+#ifdef UNPACK_SRC_FLOAT16
+constexpr auto UNPACK_IN = get_data_format(DataFormat::Float16);
 #endif
-#ifdef FORMAT_FLOAT32
-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float32);
+#ifdef UNPACK_SRC_FLOAT32
+constexpr auto UNPACK_IN = get_data_format(DataFormat::Float32);
 #endif
-#ifdef FORMAT_INT32
-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Int32);
+#ifdef UNPACK_SRC_INT32
+constexpr auto UNPACK_IN = get_data_format(DataFormat::Int32);
 #endif
-#ifdef FORMAT_BFP8_B
-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Bfp8_b);
+#ifdef UNPACK_SRC_BFP8_B
+constexpr auto UNPACK_IN = get_data_format(DataFormat::Bfp8_b);
+#endif
+
+#ifdef UNPACK_DST_FLOAT16_B
+constexpr auto UNPACK_OUT = get_data_format(DataFormat::Float16_b);
+#endif
+#ifdef UNPACK_DST_FLOAT16
+constexpr auto UNPACK_OUT = get_data_format(DataFormat::Float16);
+#endif
+#ifdef UNPACK_DST_FLOAT32
+constexpr auto UNPACK_OUT = get_data_format(DataFormat::Float32);
+#endif
+#ifdef UNPACK_DST_INT32
+constexpr auto UNPACK_OUT = get_data_format(DataFormat::Int32);
+#endif
+#ifdef UNPACK_DST_BFP8_B
+constexpr auto UNPACK_OUT = get_data_format(DataFormat::Bfp8_b);
+#endif
+
+#ifdef PACK_SRC_FLOAT16_B
+constexpr auto PACK_IN = get_data_format(DataFormat::Float16_b);
+#endif
+#ifdef PACK_SRC_FLOAT16
+constexpr auto PACK_IN = get_data_format(DataFormat::Float16);
+#endif
+#ifdef PACK_SRC_FLOAT32
+constexpr auto PACK_IN = get_data_format(DataFormat::Float32);
+#endif
+#ifdef PACK_SRC_INT32
+constexpr auto PACK_IN = get_data_format(DataFormat::Int32);
+#endif
+#ifdef PACK_SRC_BFP8_B
+constexpr auto PACK_IN = get_data_format(DataFormat::Bfp8_b);
+#endif
+
+#ifdef PACK_DST_FLOAT16_B
+constexpr auto PACK_OUT = get_data_format(DataFormat::Float16_b);
+#endif
+#ifdef PACK_DST_FLOAT16
+constexpr auto PACK_OUT = get_data_format(DataFormat::Float16);
+#endif
+#ifdef PACK_DST_FLOAT32
+constexpr auto PACK_OUT = get_data_format(DataFormat::Float32);
+#endif
+#ifdef PACK_DST_INT32
+constexpr auto PACK_OUT = get_data_format(DataFormat::Int32);
+#endif
+#ifdef PACK_DST_BFP8_B
+constexpr auto PACK_OUT = get_data_format(DataFormat::Bfp8_b);
+#endif
+
+#ifdef MATH_FLOAT16_B
+constexpr auto MATH_FORMAT = get_data_format(DataFormat::Float16_b);
+#endif
+#ifdef MATH_FLOAT16
+constexpr auto MATH_FORMAT = get_data_format(DataFormat::Float16);
+#endif
+#ifdef MATH_FLOAT32
+constexpr auto MATH_FORMAT = get_data_format(DataFormat::Float32);
+#endif
+#ifdef MATH_INT32
+constexpr auto MATH_FORMAT = get_data_format(DataFormat::Int32);
+#endif
+#ifdef MATH_BFP8_B
+constexpr auto MATH_FORMAT = get_data_format(DataFormat::Bfp8_b);
 #endif
 
 #ifdef ELTWISE_BINARY_ADD

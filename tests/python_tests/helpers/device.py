@@ -8,13 +8,16 @@ from ttexalens.tt_exalens_lib import (
     run_elf,
 )
 from helpers import *
+import inspect
+import time
+from helpers.param_config import *
 
 
-def collect_results(format, address=0x1C000, core_loc="0,0", sfpu=False):
-    read_words_cnt = calculate_read_words_count(format, sfpu)
+def collect_results(formats: FormatConfig, address=0x1C000, core_loc="0,0", sfpu=False):
+    read_words_cnt = calculate_read_words_count(formats.pack_dst, sfpu)
     read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
-    res_from_L1 = get_result_from_device(format, read_data_bytes, sfpu)
+    res_from_L1 = get_result_from_device(formats, read_data_bytes, sfpu)
     return res_from_L1
 
 
@@ -73,7 +76,10 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile
 
 
 def get_result_from_device(
-    format: str, read_data_bytes: bytes, core_loc: str = "0,0", sfpu: bool = False
+    formats: FormatConfig,
+    read_data_bytes: bytes,
+    core_loc: str = "0,0",
+    sfpu: bool = False,
 ):
     # Dictionary of format to unpacking function mappings
     unpackers = {
@@ -84,18 +90,25 @@ def get_result_from_device(
     }
 
     # Handling "Bfp8_b" format separately with sfpu condition
-    if format == "Bfp8_b":
+    if formats.pack_dst == "Bfp8_b":
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
     else:
-        unpack_func = unpackers.get(format)
+        unpack_func = unpackers.get(formats.pack_dst)
 
     if unpack_func:
-        return unpack_func(read_data_bytes)
+        num_args = len(inspect.signature(unpack_func).parameters)
+        if num_args > 1:
+            return unpack_func(
+                read_data_bytes, formats.unpack_src, formats.pack_dst
+            )  # Bug patchup in (unpack.py): in case unpack_src is Bfp8_b != pack_dst, L1 must be read in different order to extract correct results
+        else:
+            return unpack_func(read_data_bytes)
     else:
-        raise ValueError(f"Unsupported format: {format}")
+        raise ValueError(f"Unsupported format: {formats.pack_dst}")
 
 
 def assert_tensix_operations_finished(core_loc: str = "0,0"):
+    # time.sleep(1) # assertions below will incorrectly fail if run immediately after the ELF files are run, this needs to be fixed
     tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC]  # L1 Mailbox addresses
     assert read_word_from_device(core_loc, tensix_L1_mailboxes[0]) == 1
     assert read_word_from_device(core_loc, tensix_L1_mailboxes[1]) == 1
