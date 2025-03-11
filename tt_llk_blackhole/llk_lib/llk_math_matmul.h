@@ -14,7 +14,27 @@
 #define HF 0
 #endif
 
+#ifndef MM_ADD_NOPS
+#define MM_ADD_NOPS 1
+#endif
+
 using namespace ckernel;
+
+inline __attribute__ ((__always_inline__)) void apply_throttle() {
+    #ifdef MM_ADD_NOPS
+        *(volatile uint32_t*)0x18200 = 0xdeadbeef;
+
+        constexpr uint num_nops = 10;
+        constexpr uint num_stallwaits = 1;
+        
+        if constexpr (num_stallwaits) {
+            TTI_STALLWAIT(p_stall::STALL_THREAD, p_stall::MATH);
+        }
+        for (uint i=0; i<num_nops; i++) {
+            TTI_NOP;
+        }
+    #endif
+    }
 
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout=DstTileFaceLayout::ColMajor>
 inline void matmul_configure_addrmod(const bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const std::uint32_t in0_tile_r_dim = TILE_R_DIM, const std::uint32_t in0_tile_c_dim = TILE_C_DIM, const std::uint32_t in1_tile_r_dim = TILE_R_DIM, const std::uint32_t in1_tile_c_dim = TILE_C_DIM, const bool partial_face = false) {
@@ -247,8 +267,13 @@ inline void matmul_configure_mop(bool transpose, const std::uint32_t ct_dim, con
     const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
     const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
 
+    #ifdef MM_ADD_NOPS
+    const std::uint32_t replay_buf_len = (is_in0_16x32 && is_in1_32x16) ? 4 :
+                                         ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 21);
+    #else 
     const std::uint32_t replay_buf_len = (is_in0_16x32 && is_in1_32x16) ? 4 :
                                          ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 16);
+    #endif
 
     load_replay_buf(ckernel::math::replay_buf_offset, replay_buf_len, false,
         // Lambda function to load reply buffer
@@ -287,23 +312,37 @@ inline void matmul_configure_mop(bool transpose, const std::uint32_t ct_dim, con
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A0 // srca=srca, srcb+=8,  dest+=8
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B0A0 // srca+=16/32, srcb=0, dest+=8  // srca+=32 if transposed
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A1 // srca=srca, srcb+=8,  dest+=8  // A1 -> A2 if transposed
+                #ifdef MM_ADD_NOPS
+                TTI_NOP;
+                #endif
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A1 // srca=0,    srcb=32,  dest+=8  // A1 -> A2 if transposed
 
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A0 // srca=srca, srcb+=8,  dest+=8
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B2A0 // srca+=16/32, srcb=0, dest+=8 // srca+=32 if transposed
+                #ifdef MM_ADD_NOPS
+                TTI_NOP;
+                #endif
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A1 // srca=srca, srcb+=8,  dest+=8 // A1 -> A2 if transposed
                 if (!is_in1_16x32) {
                     // TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
 
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A2 // srca=srca, srcb+=8,  dest+=8 // A2 -> A1 if transposed
+                    #ifdef MM_ADD_NOPS
+                    TTI_NOP;
+                    #endif
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B1A2 // srca+=16,  srcb=16,  dest+=8 // A2 -> A1 if transposed
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A3 // srca=srca, srcb+=8,  dest+=8
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B1A3 // srca=32,   srcb=48,  dest+=8
-
+                    #ifdef MM_ADD_NOPS
+                    TTI_NOP;
+                    #endif
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A2 // srca=srca, srcb+=8,  dest+=8 // A2 -> A1 if transposed
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B3A2 // srca+=16,  srcb=0,   dest+=8 // A2 -> A1 if transposed
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A3 // srca=srca, srcb+=8,  dest+=8
+                    #ifdef MM_ADD_NOPS
+                    TTI_NOP;
+                    #endif
                 }
             }
 
@@ -355,6 +394,7 @@ inline void _llk_math_matmul_(uint dst_index, const bool transpose=false, const 
             math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index+(reuse_a ? ct_dim*t+rut : t+rut*ct_dim));
 
             ckernel_template::run(instrn_buffer);
+            apply_throttle();
 
             //Clear srcB or srcA at end of re-use (once per u block row)
             if(rut == (rut_dim-1)) {
