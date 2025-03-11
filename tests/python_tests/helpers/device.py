@@ -13,7 +13,7 @@ import time
 from helpers.param_config import *
 
 
-def collect_results(formats: FormatConfig, address=0x1C000, core_loc="0,0", sfpu=False):
+def collect_results(formats: FormatConfig, address: int = 0x1C000, core_loc: str = "0,0", sfpu: bool = False):
     read_words_cnt = calculate_read_words_count(formats.pack_dst, sfpu)
     read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
