@@ -13,7 +13,7 @@ def generate_golden(operand1, format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float32", "Bfp8_b", "Float16_b", "Float16", "Int32"], not full_sweep
+    formats = ["Float32", "Bfp8_b", "Float16_b", "Float16", "Int32"], all_same = True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 dest_acc = ["", "DEST_ACC"]
 testname = ["eltwise_unary_datacopy_test"]
