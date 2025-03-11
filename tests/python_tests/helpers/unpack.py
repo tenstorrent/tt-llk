@@ -34,9 +34,7 @@ def unpack_fp16(packed_list, unpack_src, pack_dst):
     # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
     if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
         for i in range(0, len(ret), 2):
-            tmp = ret[i]
-            ret[i] = ret[i + 1]
-            ret[i + 1] = tmp
+            ret[i], ret[i + 1] = ret[i + 1], ret[i]
     return ret
 
 
