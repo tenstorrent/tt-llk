@@ -31,11 +31,18 @@ class FormatConfig:
     pack_dst: str
 
 
-included_params = []
+def manage_included_params(func):
+    def wrapper(*args, **kwargs):
+        if not hasattr(wrapper, "included_params"):
+            wrapper.included_params = []
+        return func(wrapper.included_params, *args, **kwargs)
+
+    return wrapper
 
 
+@manage_included_params
 def generate_format_combinations(
-    formats: List[str], all_same: bool
+    included_params, formats: List[str], all_same: bool
 ) -> List[FormatConfig]:
     """
     Generates a list of FormatConfig instances based on the given formats and the 'all_same' flag.
@@ -76,7 +83,9 @@ def generate_format_combinations(
     ]
 
 
+@manage_included_params
 def generate_params(
+    included_params,
     testnames: List[str],
     format_combos: List[FormatConfig],
     dest_acc: Optional[List[str]] = None,
@@ -150,7 +159,8 @@ def generate_params(
     ]
 
 
-def clean_params(all_params: List[tuple]) -> List[tuple]:
+@manage_included_params
+def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
     """
     Cleans up the list of parameter combinations by removing any `None` values.
 
@@ -175,7 +185,8 @@ def clean_params(all_params: List[tuple]) -> List[tuple]:
     return [tuple(param for param in comb if param is not None) for comb in all_params]
 
 
-def generate_param_ids(all_params: List[tuple]) -> List[str]:
+@manage_included_params
+def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
     """
     Generates a list of parameter IDs based on the provided parameter combinations.
 
