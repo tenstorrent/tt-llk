@@ -145,8 +145,6 @@ def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
     # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
     if unpack_src != pack_dst:
         for i in range(0, len(bfloat16_values), 2):
-            tmp = bfloat16_values[i]
-            bfloat16_values[i] = bfloat16_values[i + 1]
-            bfloat16_values[i + 1] = tmp
+            bfloat16_values[i], bfloat16_values[i + 1] = bfloat16_values[i + 1], bfloat16_values[i]
 
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
