@@ -7,7 +7,7 @@ from typing import List, Optional
 @dataclass
 class FormatConfig:
     """
-    A data class that holds configuration details for a formats passed in LLKs.
+    A data class that holds configuration details for formats passed to LLKs.
 
     Attributes:
     unpack_src (str): The source format for the Unpacker.
