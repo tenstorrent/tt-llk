@@ -8,8 +8,6 @@ import torch
 from .utils import reverse_endian_chunk
 from .format_arg_mapping import DataFormat
 
-unpacked_bfp8 = {}
-
 
 def int_to_bytes_list(n):
     return [(n >> (24 - i * 8)) & 0xFF for i in range(4)]
@@ -83,7 +81,7 @@ def unpack_int32(packed_list):
     ]
 
 
-def bfp8_to_float_block(exponent, bfp8_mantissas):
+def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
     # Bug fix and improvement:
     # 1. Caching: If the (exponent, mantissa) pair is already processed, the precomputed value is reused.
     # 2. Sign and Fractional Calculation: The sign bit is extracted, and the fractional part is calculated by iterating
@@ -130,12 +128,16 @@ def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
         mantissas = bfp8_block[16:272]
     reversed_exponents = reverse_endian_chunk(exponents)
 
+    unpacked_bfp8 = {}
+
     bfloat16_values = []
     for i in range(len(reversed_exponents)):
         exponent = reversed_exponents[i]
         bfp8_mantissas = mantissas[i * 16 : (i + 1) * 16]
         reversed_sign_mantissa = reverse_endian_chunk(bfp8_mantissas)
-        block_bfloat16_values = bfp8_to_float_block(exponent, reversed_sign_mantissa)
+        block_bfloat16_values = bfp8_to_float_block(
+            exponent, reversed_sign_mantissa, unpacked_bfp8
+        )
         bfloat16_values.extend(block_bfloat16_values)
 
     # Patch Up! Fixes incorrect reading of numbers in L1:
