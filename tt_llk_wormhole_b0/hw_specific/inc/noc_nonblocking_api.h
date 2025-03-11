@@ -172,11 +172,11 @@ inline void ncrisc_noc_fast_write(uint32_t noc, uint32_t cmd_buf, uint32_t src_a
     uint32_t noc_cmd_field =
       NOC_CMD_CPY | NOC_CMD_WR |
       NOC_CMD_VC_STATIC  |
-      NOC_CMD_STATIC_VC(vc) |
+      NOC_CMD_STATIC_VC(vc) | 
       (linked ? NOC_CMD_VC_LINKED : 0x0) |
       (mcast ? (NOC_CMD_PATH_RESERVE | NOC_CMD_BRCST_PACKET) : 0x0) |
       NOC_CMD_RESP_MARKED;
-
+     
     //word offset noc cmd interface
     uint32_t offset = (cmd_buf << NOC_CMD_BUF_OFFSET_BIT) + (noc << NOC_INSTANCE_OFFSET_BIT);
     volatile uint32_t* ptr = (volatile uint32_t*)offset;
@@ -231,8 +231,8 @@ inline void ncrisc_noc_blitz_write_setup(uint32_t noc, uint32_t cmd_buf, uint64_
     NOC_CMD_VC_STATIC  |
     NOC_CMD_STATIC_VC(vc) |
     NOC_CMD_RESP_MARKED;
-
-  while (!ncrisc_noc_fast_write_ok(noc, cmd_buf));
+     
+  while (!ncrisc_noc_fast_write_ok(noc, cmd_buf)); 
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_CTRL, noc_cmd_field);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_AT_LEN_BE, len_bytes);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_RET_ADDR_MID, dest_addr >> 32);
@@ -330,12 +330,12 @@ inline void ncrisc_noc_full_sync() {
 #ifdef RISC_B0_HW
 inline void ncrisc_noc_fast_read_any_len(uint32_t noc, uint32_t cmd_buf, uint64_t src_addr, uint32_t dest_addr, uint32_t len_bytes, uint32_t transaction_id) {
   while (!ncrisc_noc_fast_read_ok(noc, cmd_buf));
-  ncrisc_noc_fast_read(noc, cmd_buf, src_addr, dest_addr, len_bytes, transaction_id);
+  ncrisc_noc_fast_read(noc, cmd_buf, src_addr, dest_addr, len_bytes, transaction_id); 
 }
 
 inline __attribute__((always_inline)) void ncrisc_noc_fast_read_any_len_scatter(uint32_t noc, uint32_t cmd_buf, uint64_t src_addr, uint32_t dest_addr, uint32_t len_bytes, uint32_t transaction_id) {
   while (NOC_CMD_BUF_READ_REG(noc, cmd_buf, NOC_CMD_CTRL) != NOC_CTRL_STATUS_READY);   //while (!ncrisc_noc_fast_read_ok(noc, cmd_buf));
-  ncrisc_noc_fast_read_scatter(noc, cmd_buf, src_addr, dest_addr, len_bytes, transaction_id);
+  ncrisc_noc_fast_read_scatter(noc, cmd_buf, src_addr, dest_addr, len_bytes, transaction_id); 
 }
 
 void __attribute__((section("code_l1"))) ncrisc_noc_fast_read_any_len_l1(uint32_t noc, uint32_t cmd_buf, uint64_t src_addr, uint32_t dest_addr, uint32_t len_bytes, uint32_t transaction_id);
@@ -388,11 +388,11 @@ void __attribute__((section("code_l1"))) ncrisc_noc_fast_write_any_len_l1(uint32
 inline void noc_fast_posted_write_dw_inline(uint32_t noc, uint32_t cmd_buf, uint32_t val, uint64_t dest_addr, uint32_t be, uint32_t static_vc, bool mcast) {
   bool posted = true;
   bool static_vc_alloc = true;
-  uint32_t noc_cmd_field =
-    (static_vc_alloc ? NOC_CMD_VC_STATIC : 0x0) |
-    NOC_CMD_STATIC_VC(static_vc) |
-    NOC_CMD_CPY | NOC_CMD_WR |
-    NOC_CMD_WR_INLINE |
+  uint32_t noc_cmd_field =  
+    (static_vc_alloc ? NOC_CMD_VC_STATIC : 0x0) | 
+    NOC_CMD_STATIC_VC(static_vc) | 
+    NOC_CMD_CPY | NOC_CMD_WR | 
+    NOC_CMD_WR_INLINE | 
     (mcast ? (NOC_CMD_PATH_RESERVE | NOC_CMD_BRCST_PACKET) : 0x0) |
     (posted ? 0x0 : NOC_CMD_RESP_MARKED);
 

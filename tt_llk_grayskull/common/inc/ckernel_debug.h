@@ -33,9 +33,9 @@ struct dbg_array_id
 
 struct dbg_daisy_id
 {
-    constexpr static uint32_t INSTR_ISSUE_0 = 4;
-    constexpr static uint32_t INSTR_ISSUE_1 = 5;
-    constexpr static uint32_t INSTR_ISSUE_2 = 6;
+    constexpr static uint32_t INSTR_ISSUE_0 = 4; 
+    constexpr static uint32_t INSTR_ISSUE_1 = 5; 
+    constexpr static uint32_t INSTR_ISSUE_2 = 6; 
 };
 
 typedef struct
@@ -78,7 +78,7 @@ typedef union
 {
     uint32_t val;
     dbg_array_rd_cmd_t f;
-} dbg_array_rd_cmd_u;
+} dbg_array_rd_cmd_u; 
 
 typedef struct
 {
@@ -93,7 +93,7 @@ typedef union
     dbg_soft_reset_t f;
 } dbg_soft_reset_u;;
 
-template <ThreadId thread_id>
+template <ThreadId thread_id> 
 inline void dbg_thread_halt() {
     static_assert((thread_id == ThreadId::MathThreadId) || (thread_id == ThreadId::UnpackThreadId) || (thread_id == ThreadId::PackThreadId), "Invalid thread id set in dbg_wait_for_thread_idle(...)");
 
@@ -102,19 +102,19 @@ inline void dbg_thread_halt() {
         tensix_sync();
         // Notify math thread that unpack thread is idle
         mailbox_write(ThreadId::MathThreadId, 1);
-        // Wait for math thread to complete debug dump
+        // Wait for math thread to complete debug dump 
         volatile uint32_t temp = mailbox_read(ThreadId::MathThreadId);
     } else if constexpr (thread_id == ThreadId::MathThreadId) {
         // Wait for all instructions on the running thread to complete
         tensix_sync();
         // Wait for unpack thread to complete
         volatile uint32_t temp = mailbox_read(ThreadId::UnpackThreadId);
-        // Wait for previous packs to finish
-        while (semaphore_read(semaphore::MATH_PACK) > 0) { };
+        // Wait for previous packs to finish 
+        while (semaphore_read(semaphore::MATH_PACK) > 0) { }; 
     }
 }
 
-template <ThreadId thread_id>
+template <ThreadId thread_id> 
 inline void dbg_thread_unhalt() {
     static_assert((thread_id == ThreadId::MathThreadId) || (thread_id == ThreadId::UnpackThreadId) || (thread_id == ThreadId::PackThreadId), "Invalid thread id set in dbg_wait_for_thread_idle(...)");
 
@@ -138,7 +138,7 @@ inline void dbg_thread_unhalt() {
 
 inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, uint32_t *rd_data) {
 
-    // Dest offset is added to row_addr to dump currently used half of the dest accumulator (SyncHalf dest mode)
+    // Dest offset is added to row_addr to dump currently used half of the dest accumulator (SyncHalf dest mode) 
     std::uint32_t dest_offset = 0;
     if (array_id == dbg_array_id::DEST) {
         dest_offset = (dest_offset_id == 1) ? DEST_REGISTER_HALF_SIZE : 0;
@@ -149,10 +149,10 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
     // Save dest row
     if (array_id == dbg_array_id::SRCA) {
         // WWhen SrcA array is selected we need to copy row from src register into dest to be able to dump data
-        // Dump from SrcA array is not supported
-        // Save dest row to SFPU register
-        // Move SrcA into dest row
-        // Dump dest row
+        // Dump from SrcA array is not supported 
+        // Save dest row to SFPU register 
+        // Move SrcA into dest row 
+        // Dump dest row 
         // Restore dest row
         addr_mod_t{
             .srca = {.incr = 0, .clr = 0, .cr = 0},
@@ -170,7 +170,7 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
 
         // Copy single row from SrcA[4+row_addr] to dest location 0
         // First 4 rows in SrcA are not used
-        TT_MOVDBGA2D(p_mova2d::MOV_1_ROW, 0, 4+row_addr, 0);
+        TT_MOVDBGA2D(p_mova2d::MOV_1_ROW, 0, 4+row_addr, 0); 
 
         // Wait for TT instructions to complete
         tensix_sync();
@@ -264,5 +264,5 @@ inline std::uint32_t dbg_read_cfgreg(const uint32_t cfgreg_id, const uint32_t ad
     return reg_read(RISCV_DEBUG_REG_CFGREG_RDDATA);
 
 }
-
+  
 } // namespace ckernel

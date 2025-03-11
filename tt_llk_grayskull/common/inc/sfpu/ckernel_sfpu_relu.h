@@ -20,7 +20,7 @@ namespace sfpu
 
 template <bool APPROXIMATION_MODE>
 inline void _calculate_lrelu_(const int iterations, uint slope) {
-
+    
     vFloat s = Converter::to_float(slope);
 
     #pragma GCC unroll 0

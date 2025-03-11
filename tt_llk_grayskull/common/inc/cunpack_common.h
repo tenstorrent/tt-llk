@@ -322,7 +322,7 @@ namespace ckernel::unpacker
       // Clear context ID
       //reset_config_context();
     }
-
+  
    // READERS FOR CONFIG STRUCTS
 
    inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg) {
@@ -332,13 +332,13 @@ namespace ckernel::unpacker
       tile_descriptor.val[1] = cfg[reg_addr + 1];
       tile_descriptor.val[2] = cfg[reg_addr + 2];
       tile_descriptor.val[3] = cfg[reg_addr + 3];
-
+      
       return tile_descriptor.f;
    }
 
    inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_descriptor() {
       std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec;
-      // Get pointer to registers for current state ID
+      // Get pointer to registers for current state ID 
       volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
 
       tile_descriptor_vec[0] = read_unpack_tile_descriptor_helper(THCON_SEC0_REG0_TileDescriptor_ADDR32, cfg);
@@ -361,7 +361,7 @@ namespace ckernel::unpacker
 
    inline std::array<unpack_config_t, NUM_UNPACKERS> read_unpack_config() {
       std::array<unpack_config_t, NUM_UNPACKERS> config_vec;
-      // Get pointer to registers for current state ID
+      // Get pointer to registers for current state ID 
       volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
 
       config_vec[0] = read_unpack_config_helper(THCON_SEC0_REG2_Out_data_format_ADDR32, cfg);
