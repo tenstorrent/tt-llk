@@ -2,12 +2,22 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from enum import Enum
+
+
+class DataFormat(Enum):
+    Float16 = "Float16"
+    Float16_b = "Float16_b"
+    Bfp8_b = "Bfp8_b"
+    Float32 = "Float32"
+    Int32 = "Int32"
+
 
 format_dict = {
-    "Float32": torch.float32,
-    "Float16": torch.float16,
-    "Float16_b": torch.bfloat16,
-    "Int32": torch.int32,
+    DataFormat.Float32: torch.float32,
+    DataFormat.Float16: torch.float16,
+    DataFormat.Float16_b: torch.bfloat16,
+    DataFormat.Int32: torch.int32,
 }
 
 
@@ -24,51 +34,51 @@ mathop_args_dict = {
 }
 
 unpack_src_dict = {
-    "Float32": "UNPACK_SRC_FLOAT32",
-    "Float16": "UNPACK_SRC_FLOAT16",
-    "Float16_b": "UNPACK_SRC_FLOAT16_B",
-    "Bfp8_b": "UNPACK_SRC_BFP8_B",
-    "Int32": "UNPACK_SRC_INT32",
+    DataFormat.Float32: "UNPACK_SRC_FLOAT32",
+    DataFormat.Float16: "UNPACK_SRC_FLOAT16",
+    DataFormat.Float16_b: "UNPACK_SRC_FLOAT16_B",
+    DataFormat.Bfp8_b: "UNPACK_SRC_BFP8_B",
+    DataFormat.Int32: "UNPACK_SRC_INT32",
 }
 
 unpack_dst_dict = {
-    "Float32": "UNPACK_DST_FLOAT32",
-    "Float16": "UNPACK_DST_FLOAT16",
-    "Float16_b": "UNPACK_DST_FLOAT16_B",
-    "Bfp8_b": "UNPACK_DST_BFP8_B",
-    "Int32": "UNPACK_DST_INT32",
+    DataFormat.Float32: "UNPACK_DST_FLOAT32",
+    DataFormat.Float16: "UNPACK_DST_FLOAT16",
+    DataFormat.Float16_b: "UNPACK_DST_FLOAT16_B",
+    DataFormat.Bfp8_b: "UNPACK_DST_BFP8_B",
+    DataFormat.Int32: "UNPACK_DST_INT32",
 }
 
 math_dict = {
-    "Float32": "MATH_FLOAT32",
-    "Float16": "MATH_FLOAT16",
-    "Float16_b": "MATH_FLOAT16_B",
-    "Bfp8_b": "MATH_BFP8_B",
-    "Int32": "MATH_INT32",
+    DataFormat.Float32: "MATH_FLOAT32",
+    DataFormat.Float16: "MATH_FLOAT16",
+    DataFormat.Float16_b: "MATH_FLOAT16_B",
+    DataFormat.Bfp8_b: "MATH_BFP8_B",
+    DataFormat.Int32: "MATH_INT32",
 }
 
 pack_src_dict = {
-    "Float32": "PACK_SRC_FLOAT32",
-    "Float16": "PACK_SRC_FLOAT16",
-    "Float16_b": "PACK_SRC_FLOAT16_B",
-    "Bfp8_b": "PACK_SRC_BFP8_B",
-    "Int32": "PACK_SRC_INT32",
+    DataFormat.Float32: "PACK_SRC_FLOAT32",
+    DataFormat.Float16: "PACK_SRC_FLOAT16",
+    DataFormat.Float16_b: "PACK_SRC_FLOAT16_B",
+    DataFormat.Bfp8_b: "PACK_SRC_BFP8_B",
+    DataFormat.Int32: "PACK_SRC_INT32",
 }
 
 pack_dst_dict = {
-    "Float32": "PACK_DST_FLOAT32",
-    "Float16": "PACK_DST_FLOAT16",
-    "Float16_b": "PACK_DST_FLOAT16_B",
-    "Bfp8_b": "PACK_DST_BFP8_B",
-    "Int32": "PACK_DST_INT32",
+    DataFormat.Float32: "PACK_DST_FLOAT32",
+    DataFormat.Float16: "PACK_DST_FLOAT16",
+    DataFormat.Float16_b: "PACK_DST_FLOAT16_B",
+    DataFormat.Bfp8_b: "PACK_DST_BFP8_B",
+    DataFormat.Int32: "PACK_DST_INT32",
 }
 
 format_sizes = {
-    "Float16": 512,
-    "Float16_b": 512,
-    "Bfp8_b": 272,
-    "Float32": 1024,
-    "Int32": 1024,
+    DataFormat.Float32: 1024,
+    DataFormat.Float16: 512,
+    DataFormat.Float16_b: 512,
+    DataFormat.Bfp8_b: 272,
+    DataFormat.Int32: 1024,
 }
 
 reduce_dim_args = {

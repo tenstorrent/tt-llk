@@ -6,6 +6,7 @@
 import struct
 import torch
 from .utils import reverse_endian_chunk
+from .format_arg_mapping import DataFormat
 
 unpacked_bfp8 = {}
 
@@ -14,7 +15,7 @@ def int_to_bytes_list(n):
     return [(n >> (24 - i * 8)) & 0xFF for i in range(4)]
 
 
-def unpack_fp16(packed_list, unpack_src, unpack_dst):
+def unpack_fp16(packed_list, unpack_src, pack_dst):
     def bytes_to_float16(byte_list):
         bytes_data = bytes(byte_list[:2])
         unpacked_value = struct.unpack(">e", bytes_data)[0]
@@ -31,7 +32,7 @@ def unpack_fp16(packed_list, unpack_src, unpack_dst):
     # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
     # This caused the test to fail as the results were correctly computed but read incorrectly.
     # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
-    if unpack_src == "Bfp8_b" and pack_dst != unpack_src:
+    if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
         for i in range(0, len(ret), 2):
             tmp = ret[i]
             ret[i] = ret[i + 1]
@@ -56,7 +57,7 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
     # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
     # This caused the test to fail as the results were correctly computed but read incorrectly.
     # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
-    if unpack_src == "Bfp8_b" and pack_dst != unpack_src:
+    if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
         for i in range(0, len(ret), 2):
             tmp = ret[i]
             ret[i] = ret[i + 1]

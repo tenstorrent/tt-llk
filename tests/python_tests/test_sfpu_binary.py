@@ -10,12 +10,12 @@ def generate_golden(operation, operand1, operand2, data_format):
     tensor1_float = (
         operand1.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
     tensor2_float = (
         operand2.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
 
     operations = {
@@ -32,7 +32,7 @@ def generate_golden(operation, operand1, operand2, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float32"], all_same=True
+    [DataFormat.Float32], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["sfpu_binary_test"],
@@ -48,7 +48,10 @@ param_ids = generate_param_ids(all_params)
 )
 @pytest.mark.skip(reason="Not fully implemented")
 def test_all(testname, formats, dest_acc, mathop):
-    if formats.unpack_src in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
+    if (
+        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
+        and dest_acc != "DEST_ACC"
+    ):
         pytest.skip(
             "Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
@@ -86,10 +89,14 @@ def test_all(testname, formats, dest_acc, mathop):
 
     assert_tensix_operations_finished()
 
-    if formats.pack_dst in ["Float16_b", "Float16", "Float32"]:
+    if formats.pack_dst in [
+        DataFormat.Float16_b,
+        DataFormat.Float16,
+        DataFormat.Float32,
+    ]:
         atol = 0.05
         rtol = 0.1
-    elif formats.pack_dst == "Bfp8_b":
+    elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 
@@ -97,7 +104,8 @@ def test_all(testname, formats, dest_acc, mathop):
         golden,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b", "Float32"]
+            if formats.pack_dst
+            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
             else torch.bfloat16
         ),
     )
@@ -105,7 +113,8 @@ def test_all(testname, formats, dest_acc, mathop):
         res_from_L1,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b", "Float32"]
+            if formats.pack_dst
+            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
             else torch.bfloat16
         ),
     )

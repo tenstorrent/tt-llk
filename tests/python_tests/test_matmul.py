@@ -8,7 +8,7 @@ from helpers import *
 
 def generate_golden(operand1, operand2, data_format, math_fidelity):
 
-    if data_format == "Float16_b":
+    if data_format == DataFormat.Float16_b:
         if math_fidelity in [0, 2]:  # LoFi or HiFi2
             for element in operand2:
                 element = element.to(torch.int32)
@@ -24,7 +24,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
 
 
 all_format_combos = generate_format_combinations(
-    ["Float16_b"], all_same=True
+    [DataFormat.Float16_b], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["matmul_test"], all_format_combos, dest_acc=["", "DEST_ACC"], math_fidelity=[3, 4]
@@ -40,17 +40,11 @@ param_ids = generate_param_ids(all_params)
 def test_matmul(testname, formats, dest_acc, math_fidelity):
 
     src_A = torch.tensor(
-        [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 256,
+        [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 1024,
         dtype=torch.bfloat16,
     )
     src_B = torch.tensor(
-        [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 256
-        + [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 256,
+        [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 1024,
         dtype=torch.bfloat16,
     )
 
@@ -82,15 +76,15 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         res_from_L1,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
 
-    if formats.pack_dst in ["Float16_b", "Float16"]:
+    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
         rtol = 0.05
-    elif formats.pack_dst == "Bfp8_b":
+    elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

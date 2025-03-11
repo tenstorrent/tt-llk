@@ -10,12 +10,12 @@ def generate_golden(operations, operand1, operand2, data_format):
     tensor1_float = (
         operand1.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
     tensor2_float = (
         operand2.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
 
     res = []
@@ -41,7 +41,7 @@ def generate_golden(operations, operand1, operand2, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float16_b", "Float16", "Bfp8_b"], all_same=True
+    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["fill_dest_test"], all_format_combos, dest_acc=["", "DEST_ACC"]
@@ -54,7 +54,7 @@ param_ids = generate_param_ids(all_params)
 )
 def test_fill_dest(testname, formats, dest_acc):
 
-    if formats.unpack_src == "Float16" and dest_acc == "DEST_ACC":
+    if formats.unpack_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
         pytest.skip(reason="This combination is not fully implemented in testing")
 
     #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
@@ -99,7 +99,7 @@ def test_fill_dest(testname, formats, dest_acc):
         golden,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
@@ -107,15 +107,18 @@ def test_fill_dest(testname, formats, dest_acc):
         res_from_L1,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
 
-    if formats.pack_dst == "Float16_b" or formats.pack_dst == "Float16":
+    if (
+        formats.pack_dst == DataFormat.Float16_b
+        or formats.pack_dst == DataFormat.Float16
+    ):
         atol = 0.05
         rtol = 0.1
-    elif formats.pack_dst == "Bfp8_b":
+    elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

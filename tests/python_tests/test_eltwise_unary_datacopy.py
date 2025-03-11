@@ -13,7 +13,14 @@ def generate_golden(operand1, format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    formats=["Float32", "Bfp8_b", "Float16_b", "Float16", "Int32"], all_same=True
+    formats=[
+        DataFormat.Float32,
+        DataFormat.Bfp8_b,
+        DataFormat.Float16_b,
+        DataFormat.Float16,
+        DataFormat.Int32,
+    ],
+    all_same=True,
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 dest_acc = ["", "DEST_ACC"]
 testname = ["eltwise_unary_datacopy_test"]
@@ -26,9 +33,12 @@ param_ids = generate_param_ids(all_params)
 )
 def test_unary_datacopy(testname, formats, dest_acc):
 
-    if formats.unpack_src == "Float16" and dest_acc == "DEST_ACC":
+    if formats.unpack_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
         pytest.skip(reason="This combination is not fully implemented in testing")
-    if formats.unpack_src in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
+    if (
+        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
+        and dest_acc != "DEST_ACC"
+    ):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
@@ -76,7 +86,13 @@ def test_unary_datacopy(testname, formats, dest_acc):
         golden,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b", "Float32", "Int32"]
+            if formats.pack_dst
+            in [
+                DataFormat.Float16,
+                DataFormat.Float16_b,
+                DataFormat.Float32,
+                DataFormat.Int32,
+            ]
             else torch.bfloat16
         ),
     )
@@ -84,7 +100,13 @@ def test_unary_datacopy(testname, formats, dest_acc):
         res_from_L1,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b", "Float32", "Int32"]
+            if formats.pack_dst
+            in [
+                DataFormat.Float16,
+                DataFormat.Float16_b,
+                DataFormat.Float32,
+                DataFormat.Int32,
+            ]
             else torch.bfloat16
         ),
     )

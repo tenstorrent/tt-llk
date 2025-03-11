@@ -17,7 +17,7 @@ def generate_golden(operand1, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float16_b", "Float16"], all_same=True
+    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(["pack_untilize_test"], all_format_combos)
 param_ids = generate_param_ids(all_params)
@@ -68,15 +68,15 @@ def test_pack_untilize(testname, formats):
         res_from_L1,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
 
-    if formats.pack_dst in ["Float16_b", "Float16"]:
+    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
         rtol = 0.05
-    elif formats.pack_dst == "Bfp8_b":
+    elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

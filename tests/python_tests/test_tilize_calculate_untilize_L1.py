@@ -10,15 +10,15 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     tensor1_float = (
         operand1.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
     tensor2_float = (
         operand2.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
 
-    if data_format == "Float16_b":
+    if data_format == DataFormat.Float16_b:
         if math_fidelity in [0, 2]:  # LoFi or HiFi2
             for element in operand2:
                 element = element.to(torch.int32)
@@ -49,7 +49,7 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float16_b", "Float16"], all_same=True
+    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["tilize_calculate_untilize_L1"],
@@ -110,16 +110,16 @@ def test_tilize_calculate_untilize_L1(
         res_from_L1,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
     print(res_tensor.view(32, 32))
 
-    if formats.pack_dst in ["Float16_b", "Float16"]:
+    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
         rtol = 0.05
-    elif formats.pack_dst == "Bfp8_b":
+    elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

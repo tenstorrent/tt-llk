@@ -25,7 +25,7 @@ def generate_golden(operation, operand1, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float16_b", "Float16", "Float32"], all_same=True
+    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["eltwise_unary_sfpu_test"],
@@ -43,11 +43,14 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  #
-    if formats.unpack_src in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
+    if (
+        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
+        and dest_acc != "DEST_ACC"
+    ):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-    if formats.unpack_src == "Float16" and dest_acc == "":
+    if formats.unpack_src == DataFormat.Float16 and dest_acc == "":
         pytest.skip(reason="This combination is not fully implemented in testing")
 
     #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
@@ -86,7 +89,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
         golden,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
@@ -94,15 +97,19 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
         res_from_L1,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
 
-    if formats.pack_dst in ["Float16_b", "Float16", "Float32"]:
+    if formats.pack_dst in [
+        DataFormat.Float16_b,
+        DataFormat.Float16,
+        DataFormat.Float32,
+    ]:
         atol = 0.05
         rtol = 0.1
-    elif formats.pack_dst == "Bfp8_b":
+    elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.05
         rtol = 0.1
 

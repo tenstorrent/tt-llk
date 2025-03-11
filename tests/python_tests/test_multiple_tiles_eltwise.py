@@ -10,15 +10,15 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     tensor1_float = (
         operand1.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
     tensor2_float = (
         operand2.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
 
-    if data_format == "Float16_b":
+    if data_format == DataFormat.Float16_b:
         if math_fidelity in [0, 2]:  # LoFi or HiFi2
             for element in operand2:
                 element = element.to(torch.int32)
@@ -43,7 +43,7 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
 mathop_map = {1: "elwadd", 2: "elwsub", 3: "elwmul"}
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float16_b", "Float16", "Bfp8_b"], all_same=True
+    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["multiple_tiles_eltwise_test"],
@@ -64,7 +64,7 @@ param_ids = generate_param_ids(all_params)
 def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
     if (
         mathop in range(1, 4)
-        and formats.unpack_src == "Float16"
+        and formats.unpack_src == DataFormat.Float16
         and dest_acc == "DEST_ACC"
     ):
         pytest.skip(reason="This combination is not fully implemented in testing")
@@ -121,7 +121,7 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
         golden,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
@@ -129,15 +129,15 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
         res_from_L1,
         dtype=(
             format_dict[formats.pack_dst]
-            if formats.pack_dst in ["Float16", "Float16_b"]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
 
-    if formats.pack_dst in ["Float16_b", "Float16"]:
+    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.05
         rtol = 0.1
-    elif formats.pack_dst == "Bfp8_b":
+    elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

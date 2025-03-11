@@ -13,7 +13,12 @@ import time
 from helpers.param_config import *
 
 
-def collect_results(formats: FormatConfig, address: int = 0x1C000, core_loc: str = "0,0", sfpu: bool = False):
+def collect_results(
+    formats: FormatConfig,
+    address: int = 0x1C000,
+    core_loc: str = "0,0",
+    sfpu: bool = False,
+):
     read_words_cnt = calculate_read_words_count(formats.pack_dst, sfpu)
     read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
@@ -59,11 +64,11 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile
         buffer_B_tile = buffer_B[start_index:end_index]
 
         packers = {
-            "Bfp8_b": pack_bfp8_b,
-            "Float16": pack_fp16,
-            "Float16_b": pack_bfp16,
-            "Float32": pack_fp32,
-            "Int32": pack_int32,
+            DataFormat.Bfp8_b: pack_bfp8_b,
+            DataFormat.Float16: pack_fp16,
+            DataFormat.Float16_b: pack_bfp16,
+            DataFormat.Float32: pack_fp32,
+            DataFormat.Int32: pack_int32,
         }
 
         pack_function = packers.get(stimuli_format)
@@ -83,14 +88,14 @@ def get_result_from_device(
 ):
     # Dictionary of format to unpacking function mappings
     unpackers = {
-        "Float16": unpack_fp16,
-        "Float16_b": unpack_bfp16,
-        "Float32": unpack_float32,
-        "Int32": unpack_int32,
+        DataFormat.Float16: unpack_fp16,
+        DataFormat.Float16_b: unpack_bfp16,
+        DataFormat.Float32: unpack_float32,
+        DataFormat.Int32: unpack_int32,
     }
 
     # Handling "Bfp8_b" format separately with sfpu condition
-    if formats.pack_dst == "Bfp8_b":
+    if formats.pack_dst == DataFormat.Bfp8_b:
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
     else:
         unpack_func = unpackers.get(formats.pack_dst)
