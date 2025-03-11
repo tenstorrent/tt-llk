@@ -22,7 +22,7 @@ def unpack_fp16(packed_list, unpack_src, pack_dst):
         return unpacked_value
 
     limited_packed_list = packed_list[:2048]
-    ret = [
+    result = [
         bytes_to_float16(limited_packed_list[i : i + 2])
         for i in range(0, len(limited_packed_list), 2)
     ]
@@ -33,9 +33,9 @@ def unpack_fp16(packed_list, unpack_src, pack_dst):
     # This caused the test to fail as the results were correctly computed but read incorrectly.
     # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
     if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
-        for i in range(0, len(ret), 2):
-            ret[i], ret[i + 1] = ret[i + 1], ret[i]
-    return ret
+        for i in range(0, len(result), 2):
+            result[i], result[i + 1] = result[i + 1], result[i]
+    return result
 
 
 def unpack_bfp16(packed_list, unpack_src, pack_dst):
@@ -45,7 +45,7 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
         return unpacked_value
 
     limited_packed_list = packed_list[:2048]
-    ret = [
+    result = [
         bytes_to_bfloat16(limited_packed_list[i : i + 2])
         for i in range(0, len(limited_packed_list), 2)
     ]
@@ -56,9 +56,9 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
     # This caused the test to fail as the results were correctly computed but read incorrectly.
     # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
     if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
-        for i in range(0, len(ret), 2):
-            ret[i], ret[i + 1] = ret[i + 1], ret[i]
-    return ret
+        for i in range(0, len(result), 2):
+            result[i], result[i + 1] = result[i + 1], result[i]
+    return result
 
 
 def unpack_float32(packed_list):
@@ -145,6 +145,9 @@ def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
     # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
     if unpack_src != pack_dst:
         for i in range(0, len(bfloat16_values), 2):
-            bfloat16_values[i], bfloat16_values[i + 1] = bfloat16_values[i + 1], bfloat16_values[i]
+            bfloat16_values[i], bfloat16_values[i + 1] = (
+                bfloat16_values[i + 1],
+                bfloat16_values[i],
+            )
 
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)

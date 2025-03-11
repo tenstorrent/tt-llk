@@ -113,7 +113,7 @@ def get_result_from_device(
 
 
 def assert_tensix_operations_finished(core_loc: str = "0,0"):
-    # time.sleep(1) # assertions below will incorrectly fail if run immediately after the ELF files are run, this needs to be fixed
+
     tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC]  # L1 Mailbox addresses
     assert read_word_from_device(core_loc, tensix_L1_mailboxes[0]) == 1
     assert read_word_from_device(core_loc, tensix_L1_mailboxes[1]) == 1
