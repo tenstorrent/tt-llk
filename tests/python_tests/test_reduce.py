@@ -60,7 +60,7 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float16_b", "Float16"], not full_sweep
+    ["Float16_b", "Float16"], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["reduce_test"],

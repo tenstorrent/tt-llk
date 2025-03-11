@@ -4,7 +4,6 @@
 from .stimuli_generator import flatten_list, generate_stimuli
 from .format_arg_mapping import (
     format_dict,
-    format_args_dict,
     mathop_args_dict,
     format_sizes,
 )

@@ -25,7 +25,7 @@ def generate_golden(operation, operand1, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float16_b", "Float16", "Float32"], not full_sweep
+    ["Float16_b", "Float16", "Float32"], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["eltwise_unary_sfpu_test"],

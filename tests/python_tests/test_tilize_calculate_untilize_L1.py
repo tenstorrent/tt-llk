@@ -49,7 +49,7 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float16_b", "Float16"], not full_sweep
+    ["Float16_b", "Float16"], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["tilize_calculate_untilize_L1"],

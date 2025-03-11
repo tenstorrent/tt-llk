@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .format_arg_mapping import (
-    format_args_dict,
     unpack_src_dict,
     unpack_dst_dict,
     pack_src_dict,

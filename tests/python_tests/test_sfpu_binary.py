@@ -32,7 +32,7 @@ def generate_golden(operation, operand1, operand2, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    ["Float32"], not full_sweep
+    ["Float32"], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["sfpu_binary_test"],

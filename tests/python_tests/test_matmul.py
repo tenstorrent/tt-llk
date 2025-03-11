@@ -24,7 +24,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
 
 
 all_format_combos = generate_format_combinations(
-    ["Float16_b"], True
+    ["Float16_b"], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["matmul_test"], all_format_combos, dest_acc=["", "DEST_ACC"], math_fidelity=[3, 4]
