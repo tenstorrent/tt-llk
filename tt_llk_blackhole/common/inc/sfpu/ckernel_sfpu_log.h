@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
-
+ 
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -34,28 +34,28 @@ sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor)
     // D' = -A + B - C + D
     // A':0.1058, B':-0.7116, C':2.0871, D':-1.4753
     ////////////////////////////
-    sfpi::vFloat a = vConstFloatPrgm1;
-    sfpi::vFloat b = vConstFloatPrgm2;
+    sfpi::vFloat a = sfpi::vConstFloatPrgm1;
+    sfpi::vFloat b = sfpi::vConstFloatPrgm2;
     // XXXXX try variants of the below: B'=.7122, C'=2.0869
     sfpi::vFloat series_result = x * (x * (x * a + b) + 2.0871) + -1.4753f;
 
     ////////////////////////////
     // Convert exponent to float
     ////////////////////////////
-    vInt exp = exexp(in);
+    sfpi::vInt exp = sfpi::exexp(in);
     v_if (exp < 0)
     {
-        exp = setsgn(~exp + 1, 1);
+        exp = sfpi::setsgn(~exp + 1, 1);
     }
     v_endif;
 
     sfpi::vFloat expf      = int32_to_float(exp, 0);
-    sfpi::vFloat vConstLn2 = vConstFloatPrgm0;
+    sfpi::vFloat vConstLn2 = sfpi::vConstFloatPrgm0;
     sfpi::vFloat result    = expf * vConstLn2 + series_result; // exp correction: ln(1+x) + exp*ln(2)
 
     if constexpr (HAS_BASE_SCALING)
     {
-        result *= s2sfpi::vFloat16a(log_base_scale_factor);
+        result *= sfpi::s2vFloat16a(log_base_scale_factor);
     }
 
     ////////////////////////////
@@ -84,11 +84,11 @@ inline void _calculate_log_(const int iterations, uint log_base_scale_factor)
 template <bool APPROXIMATION_MODE>
 inline void _init_log_()
 {
-    vConstFloatPrgm0 = 0.692871f; // ln2
+    sfpi::vConstFloatPrgm0 = 0.692871f; // ln2
 
     // XXXXX could do these to higher precision
-    vConstFloatPrgm1 = 0.1058f;
-    vConstFloatPrgm2 = -0.7166f;
+    sfpi::vConstFloatPrgm1 = 0.1058f;
+    sfpi::vConstFloatPrgm2 = -0.7166f;
 }
 
 } // namespace sfpu

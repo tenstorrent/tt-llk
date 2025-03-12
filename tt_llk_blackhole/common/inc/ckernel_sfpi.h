@@ -208,13 +208,13 @@ sfpi_test_noinline void test3()
 
     v_if (sfpi::dst_reg[0] == 13.0F)
     {
-        sfpi::dst_reg[3] = s2sfpi::vFloat16b(0.005f);
+        sfpi::dst_reg[3] = sfpi::s2vFloat16b(0.005f);
     }
     v_endif;
 
     v_if (sfpi::dst_reg[0] == 14.0F)
     {
-        sfpi::dst_reg[3] = s2sfpi::vFloat16a(0x3c05);
+        sfpi::dst_reg[3] = sfpi::s2vFloat16a(0x3c05);
     }
     v_endif;
 
@@ -1666,10 +1666,10 @@ sfpi_test_noinline void test9()
 
         sfpi::vFloat x = 1.0F;
 
-        x *= s2sfpi::vFloat16a(2.0);
-        x *= s2sfpi::vFloat16a(-3.0);
-        x += s2sfpi::vFloat16a(4.0);
-        x += s2sfpi::vFloat16a(-4.0);
+        x *= sfpi::s2vFloat16a(2.0);
+        x *= sfpi::s2vFloat16a(-3.0);
+        x += sfpi::s2vFloat16a(4.0);
+        x += sfpi::s2vFloat16a(-4.0);
 
         sfpi::dst_reg[9] = x;
     }
@@ -1957,9 +1957,9 @@ sfpi_test_noinline void test11()
 
     // lut2 3 entry 16 bit
     {
-        vUInt l0 = (s2sfpi::vFloat16a(2.0f).get() << 16) | s2sfpi::vFloat16a(3.0f).get();
-        vUInt l1 = (s2sfpi::vFloat16a(4.0f).get() << 16) | s2sfpi::vFloat16a(5.0f).get();
-        vUInt l2 = (s2sfpi::vFloat16a(6.0f).get() << 16) | s2sfpi::vFloat16a(7.0f).get();
+        vUInt l0 = (sfpi::s2vFloat16a(2.0f).get() << 16) | sfpi::s2vFloat16a(3.0f).get();
+        vUInt l1 = (sfpi::s2vFloat16a(4.0f).get() << 16) | sfpi::s2vFloat16a(5.0f).get();
+        vUInt l2 = (sfpi::s2vFloat16a(6.0f).get() << 16) | sfpi::s2vFloat16a(7.0f).get();
         v_if (sfpi::dst_reg[0] == 13.0f)
         {
             sfpi::vFloat h    = -0.25f;
@@ -2024,13 +2024,13 @@ sfpi_test_noinline void test11()
 
     // lut2 6 entry 16 bit mode 1
     {
-        vUInt a01 = (s2sfpi::vFloat16a(4.0f).get() << 16) | s2sfpi::vFloat16a(2.0f).get();
-        vUInt a23 = (s2sfpi::vFloat16a(8.0f).get() << 16) | s2sfpi::vFloat16a(6.0f).get();
+        vUInt a01 = (sfpi::s2vFloat16a(4.0f).get() << 16) | sfpi::s2vFloat16a(2.0f).get();
+        vUInt a23 = (sfpi::s2vFloat16a(8.0f).get() << 16) | sfpi::s2vFloat16a(6.0f).get();
         ;
-        vUInt a34 = (s2sfpi::vFloat16a(12.0f).get() << 16) | s2sfpi::vFloat16a(10.0f).get();
-        vUInt b01 = (s2sfpi::vFloat16a(5.0f).get() << 16) | s2sfpi::vFloat16a(3.0f).get();
-        vUInt b23 = (s2sfpi::vFloat16a(9.0f).get() << 16) | s2sfpi::vFloat16a(7.0f).get();
-        vUInt b34 = (s2sfpi::vFloat16a(13.0f).get() << 16) | s2sfpi::vFloat16a(11.0f).get();
+        vUInt a34 = (sfpi::s2vFloat16a(12.0f).get() << 16) | sfpi::s2vFloat16a(10.0f).get();
+        vUInt b01 = (sfpi::s2vFloat16a(5.0f).get() << 16) | sfpi::s2vFloat16a(3.0f).get();
+        vUInt b23 = (sfpi::s2vFloat16a(9.0f).get() << 16) | sfpi::s2vFloat16a(7.0f).get();
+        vUInt b34 = (sfpi::s2vFloat16a(13.0f).get() << 16) | sfpi::s2vFloat16a(11.0f).get();
         v_if (sfpi::dst_reg[0] == 21.0f)
         {
             sfpi::vFloat h    = -0.25f;
@@ -2078,13 +2078,13 @@ sfpi_test_noinline void test11()
 
     // lut2 6 entry 16 bit mode 2
     {
-        vUInt a01 = (s2sfpi::vFloat16a(4.0f).get() << 16) | s2sfpi::vFloat16a(2.0f).get();
-        vUInt a23 = (s2sfpi::vFloat16a(8.0f).get() << 16) | s2sfpi::vFloat16a(6.0f).get();
+        vUInt a01 = (sfpi::s2vFloat16a(4.0f).get() << 16) | sfpi::s2vFloat16a(2.0f).get();
+        vUInt a23 = (sfpi::s2vFloat16a(8.0f).get() << 16) | sfpi::s2vFloat16a(6.0f).get();
         ;
-        vUInt a34 = (s2sfpi::vFloat16a(12.0f).get() << 16) | s2sfpi::vFloat16a(10.0f).get();
-        vUInt b01 = (s2sfpi::vFloat16a(5.0f).get() << 16) | s2sfpi::vFloat16a(3.0f).get();
-        vUInt b23 = (s2sfpi::vFloat16a(9.0f).get() << 16) | s2sfpi::vFloat16a(7.0f).get();
-        vUInt b34 = (s2sfpi::vFloat16a(13.0f).get() << 16) | s2sfpi::vFloat16a(11.0f).get();
+        vUInt a34 = (sfpi::s2vFloat16a(12.0f).get() << 16) | sfpi::s2vFloat16a(10.0f).get();
+        vUInt b01 = (sfpi::s2vFloat16a(5.0f).get() << 16) | sfpi::s2vFloat16a(3.0f).get();
+        vUInt b23 = (sfpi::s2vFloat16a(9.0f).get() << 16) | sfpi::s2vFloat16a(7.0f).get();
+        vUInt b34 = (sfpi::s2vFloat16a(13.0f).get() << 16) | sfpi::s2vFloat16a(11.0f).get();
 
         // Can't fit all the tests into 32 elements, skipping a few that are
         // the most redundant to prior tests here

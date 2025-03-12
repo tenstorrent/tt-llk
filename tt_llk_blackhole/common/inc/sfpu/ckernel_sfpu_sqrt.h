@@ -22,15 +22,15 @@ inline void _calculate_sqrt_(const int iterations)
 
         if constexpr (APPROXIMATION_MODE)
         {
-            vUInt magic = vConstIntPrgm0;
+            sfpi::vUInt magic = sfpi::vConstIntPrgm0;
 
             // sqrt initial approximation
             //  adjust bias
-            vUInt val_s = magic + reinterpret<vUInt>(val);
+            sfpi::vUInt val_s = magic + sfpi::reinterpret<sfpi::vUInt>(val);
 
             // approximation of square root
             val_s >>= 1;
-            sfpi::dst_reg[0] = reinterpret<sfpi::vFloat>(val_s);
+            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_s);
         }
         else
         {
@@ -39,8 +39,8 @@ inline void _calculate_sqrt_(const int iterations)
             // u.i = SQRT_MAGIC_F - (u.i >> 1);
             v_if (val != 0.0f)
             {
-                vUInt magic   = vConstIntPrgm0;
-                sfpi::vFloat approx = reinterpret<sfpi::vFloat>(magic - (reinterpret<vUInt>(val) >> 1));
+                sfpi::vUInt magic   = sfpi::vConstIntPrgm0;
+                sfpi::vFloat approx = sfpi::reinterpret<sfpi::vFloat>(magic - (sfpi::reinterpret<sfpi::vUInt>(val) >> 1));
 
                 // Reciproot iterations
                 for (int r = 0; r < RECIPROCAL_ITERATIONS; r++)
@@ -63,11 +63,11 @@ inline void _init_sqrt_()
 {
     if (APPROXIMATION_MODE)
     {
-        vConstFloatPrgm0 = s2sfpi::vFloat16b(127 << 7);
+        sfpi::vConstFloatPrgm0 = sfpi::s2vFloat16b(127 << 7);
     }
     else
     {
-        vConstFloatPrgm0 = s2sfpi::vFloat16b(0x5f37);
+        sfpi::vConstFloatPrgm0 = sfpi::s2vFloat16b(0x5f37);
     }
 }
 
