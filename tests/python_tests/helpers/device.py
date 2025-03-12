@@ -129,6 +129,6 @@ def assert_value_with_timeout(core_loc, mailbox_addr, timeout=0, poll_interval=0
 def assert_tensix_operations_finished(core_loc: str = "0,0"):
 
     tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC]  # L1 Mailbox addresses
-    check_value_with_timeout(core_loc, tensix_L1_mailboxes[0])
-    check_value_with_timeout(core_loc, tensix_L1_mailboxes[1])
-    check_value_with_timeout(core_loc, tensix_L1_mailboxes[2])
+    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[0])
+    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[1])
+    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[2])
