@@ -1,4 +1,4 @@
-name: Check for Unchecked Tasks
+name: Check for unfinished tasks
 
 on:
   pull_request:
@@ -11,17 +11,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check for unchecked tasks
-        id: check_tasks
-        run: |
-          if grep -q '\[ \]' "$GITHUB_EVENT_PATH"; then
-            echo "::set-output name=tasks_unchecked::true"
-          else
-            echo "::set-output name=tasks_unchecked::false"
-          fi
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-      - name: Fail if there are unchecked tasks
-        if: steps.check_tasks.outputs.tasks_unchecked == 'true'
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Check for unfinished tasks
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "There are unchecked tasks in the PR description."
-          exit 1
+          python .github/scripts/check_tasks.py
