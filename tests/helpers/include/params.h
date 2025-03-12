@@ -29,19 +29,19 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
 
 #define UNPACK_SRC_CASE(data_format) constexpr auto UNPACK_IN = get_data_format(DataFormat::data_format);
 
-#ifdef UNPACK_SRC_FLOAT16_B
+#if defined(UNPACK_SRC_FLOAT16_B)
 UNPACK_SRC_CASE(Float16_b)
 #endif
-#ifdef UNPACK_SRC_FLOAT16
+#if defined(UNPACK_SRC_FLOAT16)
 UNPACK_SRC_CASE(Float16)
 #endif
-#ifdef UNPACK_SRC_FLOAT32
+#if defined(UNPACK_SRC_FLOAT32)
 UNPACK_SRC_CASE(Float32)
 #endif
-#ifdef UNPACK_SRC_INT32
+#if defined(UNPACK_SRC_INT32)
 UNPACK_SRC_CASE(Int32)
 #endif
-#ifdef UNPACK_SRC_BFP8_B
+#if defined(UNPACK_SRC_BFP8_B)
 UNPACK_SRC_CASE(Bfp8_b)
 #endif
 
@@ -49,19 +49,19 @@ UNPACK_SRC_CASE(Bfp8_b)
 
 #define UNPACK_DST_CASE(data_format) constexpr auto UNPACK_OUT = get_data_format(DataFormat::data_format);
 
-#ifdef UNPACK_DST_FLOAT16_B
+#if defined(UNPACK_DST_FLOAT16_B)
 UNPACK_DST_CASE(Float16_b)
 #endif
-#ifdef UNPACK_DST_FLOAT16
+#if defined(UNPACK_DST_FLOAT16)
 UNPACK_DST_CASE(Float16)
 #endif
-#ifdef UNPACK_DST_FLOAT32
+#if defined(UNPACK_DST_FLOAT32)
 UNPACK_DST_CASE(Float32)
 #endif
-#ifdef UNPACK_DST_INT32
+#if defined(UNPACK_DST_INT32)
 UNPACK_DST_CASE(Int32)
 #endif
-#ifdef UNPACK_DST_BFP8_B
+#if defined(UNPACK_DST_BFP8_B)
 UNPACK_DST_CASE(Bfp8_b)
 #endif
 
@@ -69,19 +69,19 @@ UNPACK_DST_CASE(Bfp8_b)
 
 #define PACK_SRC_CASE(data_format) constexpr auto PACK_IN = get_data_format(DataFormat::data_format);
 
-#ifdef PACK_SRC_FLOAT16_B
+#if defined(PACK_SRC_FLOAT16_B)
 PACK_SRC_CASE(Float16_b)
 #endif
-#ifdef PACK_SRC_FLOAT16
+#if defined(PACK_SRC_FLOAT16)
 PACK_SRC_CASE(Float16)
 #endif
-#ifdef PACK_SRC_FLOAT32
+#if defined(PACK_SRC_FLOAT32)
 PACK_SRC_CASE(Float32)
 #endif
-#ifdef PACK_SRC_INT32
+#if defined(PACK_SRC_INT32)
 PACK_SRC_CASE(Int32)
 #endif
-#ifdef PACK_SRC_BFP8_B
+#if defined(PACK_SRC_BFP8_B)
 PACK_SRC_CASE(Bfp8_b)
 #endif
 
@@ -89,19 +89,19 @@ PACK_SRC_CASE(Bfp8_b)
 
 #define PACK_DST_CASE(data_format) constexpr auto PACK_OUT = get_data_format(DataFormat::data_format);
 
-#ifdef PACK_DST_FLOAT16_B
+#if defined(PACK_DST_FLOAT16_B)
 PACK_DST_CASE(Float16_b)
 #endif
-#ifdef PACK_DST_FLOAT16
+#if defined(PACK_DST_FLOAT16)
 PACK_DST_CASE(Float16)
 #endif
-#ifdef PACK_DST_FLOAT32
+#if defined(PACK_DST_FLOAT32)
 PACK_DST_CASE(Float32)
 #endif
-#ifdef PACK_DST_INT32
+#if defined(PACK_DST_INT32)
 PACK_DST_CASE(Int32)
 #endif
-#ifdef PACK_DST_BFP8_B
+#if defined(PACK_DST_BFP8_B)
 PACK_DST_CASE(Bfp8_b)
 #endif
 
@@ -109,19 +109,19 @@ PACK_DST_CASE(Bfp8_b)
 
 #define MATH_CASE(data_format) constexpr auto MATH_FORMAT = get_data_format(DataFormat::data_format);
 
-#ifdef MATH_FLOAT16_B
+#if defined(MATH_FLOAT16_B)
 MATH_CASE(Float16_b)
 #endif
-#ifdef MATH_FLOAT16
+#if defined(MATH_FLOAT16)
 MATH_CASE(Float16)
 #endif
-#ifdef MATH_FLOAT32
+#if defined(MATH_FLOAT32)
 MATH_CASE(Float32)
 #endif
-#ifdef MATH_INT32
+#if defined(MATH_INT32)
 MATH_CASE(Int32)
 #endif
-#ifdef MATH_BFP8_B
+#if defined(MATH_BFP8_B)
 MATH_CASE(Bfp8_b)
 #endif
 
