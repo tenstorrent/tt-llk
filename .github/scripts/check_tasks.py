@@ -52,30 +52,32 @@ def main():
     pr_review_comments = get_pr_review_comments()
     pr_files = get_pr_files()
 
-    unchecked_tasks = False
+    unchecked_tasks_in_description = False
+    unchecked_tasks_in_pr_comments = False
+    unchecked_tasks_in_pr_review_comments = False
 
     # Check PR description
     if check_for_unchecked_tasks(pr_details.get("body", "")):
-        unchecked_tasks = True
+        unchecked_tasks_in_description = True
 
     # Check PR comments
     for comment in pr_comments:
         if check_for_unchecked_tasks(comment.get("body", "")):
-            unchecked_tasks = True
+            unchecked_tasks_in_pr_comments = True
 
     # Check PR review comments
     for comment in pr_review_comments:
         if check_for_unchecked_tasks(comment.get("body", "")):
-            unchecked_tasks = True
+            unchecked_tasks_pr_review_comments = True
 
-    # Check code changes
-    for file in pr_files:
-        patch = file.get("patch", "")
-        if check_for_unchecked_tasks(patch):
-            unchecked_tasks = True
-
-    if unchecked_tasks:
-        print("There are unchecked tasks in the PR.")
+    if unchecked_tasks_in_description:
+        print("There are unfinished tasks in the PR description.")
+        exit(1)
+    elif unchecked_tasks_in_pr_comments:
+        print("There are unfinished tasks in the PR comments.")
+        exit(1)
+    elif unchecked_tasks_in_pr_review_comments:
+        print("There are unfinished tasks in the PR code review comments.")
         exit(1)
     else:
         print("No unchecked tasks found.")
