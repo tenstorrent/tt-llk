@@ -58,7 +58,7 @@ inline void _add_int32_(const uint dst_offset)
             TTI_SFPSETSGN(0 /* imm */, 1 /*lreg_c*/, 0 /*ldest*/, 0 /*imod*/);
         }
         TTI_SFPSTORE(0, INSTR_MOD_LOAD_STORE, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 

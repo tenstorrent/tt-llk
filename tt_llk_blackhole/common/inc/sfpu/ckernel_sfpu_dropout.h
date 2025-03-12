@@ -54,7 +54,7 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
         TTI_SFPENCC(0, 0, 0, 0);
         TTI_SFPSTORE(0, 0, 3, 0);
 
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 

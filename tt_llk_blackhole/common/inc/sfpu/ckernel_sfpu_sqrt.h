@@ -18,7 +18,7 @@ inline void _calculate_sqrt_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        vFloat val = dst_reg[0];
+        sfpi::vFloat val = sfpi::dst_reg[0];
 
         if constexpr (APPROXIMATION_MODE)
         {
@@ -30,7 +30,7 @@ inline void _calculate_sqrt_(const int iterations)
 
             // approximation of square root
             val_s >>= 1;
-            dst_reg[0] = reinterpret<vFloat>(val_s);
+            sfpi::dst_reg[0] = reinterpret<sfpi::vFloat>(val_s);
         }
         else
         {
@@ -40,7 +40,7 @@ inline void _calculate_sqrt_(const int iterations)
             v_if (val != 0.0f)
             {
                 vUInt magic   = vConstIntPrgm0;
-                vFloat approx = reinterpret<vFloat>(magic - (reinterpret<vUInt>(val) >> 1));
+                sfpi::vFloat approx = reinterpret<sfpi::vFloat>(magic - (reinterpret<vUInt>(val) >> 1));
 
                 // Reciproot iterations
                 for (int r = 0; r < RECIPROCAL_ITERATIONS; r++)
@@ -49,12 +49,12 @@ inline void _calculate_sqrt_(const int iterations)
                     approx = ((approx * approx) * (val * -0.5f) + 1.5f) * approx;
                 }
 
-                dst_reg[0] = approx * val;
+                sfpi::dst_reg[0] = approx * val;
             }
             v_endif;
         }
 
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -63,11 +63,11 @@ inline void _init_sqrt_()
 {
     if (APPROXIMATION_MODE)
     {
-        vConstFloatPrgm0 = s2vFloat16b(127 << 7);
+        vConstFloatPrgm0 = s2sfpi::vFloat16b(127 << 7);
     }
     else
     {
-        vConstFloatPrgm0 = s2vFloat16b(0x5f37);
+        vConstFloatPrgm0 = s2sfpi::vFloat16b(0x5f37);
     }
 }
 

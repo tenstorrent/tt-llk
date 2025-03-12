@@ -21,7 +21,7 @@ inline void _calculate_tanh_derivative_(const int iterations)
     // tanh'(x) = 1 - (tanh(x))^2
     for (int d = 0; d < iterations; d++)
     {
-        vFloat val = dst_reg[0];
+        sfpi::vFloat val = sfpi::dst_reg[0];
 
         if constexpr (!WITH_PRECOMPUTED_TANH)
         {
@@ -29,9 +29,9 @@ inline void _calculate_tanh_derivative_(const int iterations)
         }
 
         val        = val * (-val) + vConst1;
-        dst_reg[0] = val;
+        sfpi::dst_reg[0] = val;
 
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 
     l_reg[LRegs::LReg0] = l0;

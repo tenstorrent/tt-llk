@@ -23,11 +23,11 @@ inline void _calculate_tanh_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        vFloat val = dst_reg[0];
+        sfpi::vFloat val = sfpi::dst_reg[0];
         val        = lut(val, l0, l1, l2);
-        dst_reg[0] = val;
+        sfpi::dst_reg[0] = val;
 
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 
     l_reg[LRegs::LReg0] = l0;

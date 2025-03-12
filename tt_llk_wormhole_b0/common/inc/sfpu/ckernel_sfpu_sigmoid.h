@@ -26,11 +26,11 @@ inline void _calculate_sigmoid_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        vFloat val = dst_reg[0];
+        sfpi::vFloat val = sfpi::dst_reg[0];
 
-        dst_reg[0] = lut2(val, l0, l1, l2, l4, l5, l6, lut_mode) + 0.5f;
+        sfpi::dst_reg[0] = lut2(val, l0, l1, l2, l4, l5, l6, lut_mode) + 0.5f;
 
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 
     l_reg[LRegs::LReg0] = l0;

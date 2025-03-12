@@ -33,7 +33,7 @@ inline void _sub_int32_(const uint dst_offset)
         TTI_SFPIADD(0 /*imm*/, 1 /*lreg*/, 0 /*ldest*/, 6 /*imod*/);
         // LREG_0 -> dest as int32
         TTI_SFPSTORE(0 /*lreg_ind*/, sfpload_instr_mod, 3 /*addr_mode*/, 0 /*dest*/);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 

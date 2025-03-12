@@ -26,7 +26,7 @@ inline void _calculate_typecast_fp16b_to_uint16_()
         TTI_SFPENCC(0, 0, 0, 0);
         TTI_SFP_STOCH_RND(0, 0, 2, 0, 1, 14);
         TTI_SFPSTORE(1, 6, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -40,7 +40,7 @@ inline void _calculate_typecast_uint16_to_fp16b_()
         TTI_SFPCAST(0, 1, 0);
         TTI_SFP_STOCH_RND(0, 0, 3, 1, 2, 1);
         TTI_SFPSTORE(2, 2, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -64,7 +64,7 @@ inline void _calculate_typecast_int32_to_fp16b_()
         TTI_SFPCAST(0, 1, 0);
         TTI_SFP_STOCH_RND(0, 0, 3, 1, 2, 1);
         TTI_SFPSTORE(2, 2, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -74,14 +74,14 @@ inline void _calculate_typecast_fp16b_to_int32_()
 #pragma GCC unroll 0
     for (int d = 0; d < ITERATIONS; d++)
     {
-        vFloat in = dst_reg[0];
+        sfpi::vFloat in = sfpi::dst_reg[0];
 
         // extract exponent
         vInt exp = exexp(in);
 
         v_if (exp < 0)
         {
-            dst_reg[0] = 0;
+            sfpi::dst_reg[0] = 0;
         }
         v_elseif (exp > 30)
         {
@@ -93,7 +93,7 @@ inline void _calculate_typecast_fp16b_to_int32_()
                 // 2's complement conversion
                 tmp = (~tmp) + 1;
             }
-            v_endif dst_reg[0] = tmp;
+            v_endif sfpi::dst_reg[0] = tmp;
         }
         v_else
         {
@@ -108,11 +108,11 @@ inline void _calculate_typecast_fp16b_to_int32_()
                 // 2's complement conversion
                 man = (~man) + 1;
             }
-            v_endif dst_reg[0] = man;
+            v_endif sfpi::dst_reg[0] = man;
         }
         v_endif
 
-            dst_reg++;
+            sfpi::dst_reg++;
     }
 }
 
@@ -125,7 +125,7 @@ inline void _calculate_typecast_fp32_to_fp16b_()
         TTI_SFPLOAD(0, 0, ADDR_MOD_7, 0);
         TTI_SFP_STOCH_RND(0, 0, 2, 0, 1, 1);
         TTI_SFPSTORE(1, 0, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -138,7 +138,7 @@ inline void _calculate_typecast_uint16_to_fp32_()
         TTI_SFPLOAD(0, 6, ADDR_MOD_7, 0);
         TTI_SFPCAST(0, 1, 0);
         TTI_SFPSTORE(1, 3, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -161,7 +161,7 @@ inline void _calculate_typecast_int32_to_fp32_()
         TTI_SFPSETSGN(0, 2, 0, 0);
         TTI_SFPCAST(0, 1, 0);
         TTI_SFPSTORE(1, 3, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -171,12 +171,12 @@ inline void _calculate_typecast_fp16b_to_uint32_()
 #pragma GCC unroll 0
     for (int d = 0; d < ITERATIONS; d++)
     {
-        vFloat in = dst_reg[0];
+        sfpi::vFloat in = sfpi::dst_reg[0];
 
         // check sign
         v_if (in <= 0)
         {
-            dst_reg[0] = 0;
+            sfpi::dst_reg[0] = 0;
         }
         v_else
         {
@@ -185,13 +185,13 @@ inline void _calculate_typecast_fp16b_to_uint32_()
 
             v_if (exp < 0)
             {
-                dst_reg[0] = 0;
+                sfpi::dst_reg[0] = 0;
             }
             v_elseif (exp > 31)
             {
                 // set to uint32 max value in case of overflow
                 vInt tmp   = std::numeric_limits<int32_t>::max();
-                dst_reg[0] = setsgn(reinterpret<vFloat>(tmp), 1);
+                sfpi::dst_reg[0] = setsgn(reinterpret<sfpi::vFloat>(tmp), 1);
             }
             v_elseif (exp == 31)
             {
@@ -201,7 +201,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
                 vInt shift = exp - 23;
                 man        = shft(reinterpret<vUInt>(man), shift);
                 // add hidden bit back (due to bug when shifting a 1 into MSB)
-                dst_reg[0] = setsgn(reinterpret<vFloat>(man), 1);
+                sfpi::dst_reg[0] = setsgn(reinterpret<sfpi::vFloat>(man), 1);
             }
             v_else
             {
@@ -210,13 +210,13 @@ inline void _calculate_typecast_fp16b_to_uint32_()
                 // shift the mantissa by (23-exponent) to the right
                 vInt shift = exp - 23;
                 man        = shft(reinterpret<vUInt>(man), shift);
-                dst_reg[0] = man;
+                sfpi::dst_reg[0] = man;
             }
             v_endif
         }
         v_endif
 
-            dst_reg++;
+            sfpi::dst_reg++;
     }
 }
 
@@ -234,7 +234,7 @@ inline void _calculate_typecast_uint32_to_fp16b_()
         TTI_SFPADDI(0x4f00, 3, 0); // 2^31
         TTI_SFPENCC(0, 0, 0, 0);
         TTI_SFPSTORE(3, 2, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -251,7 +251,7 @@ inline void _calculate_typecast_uint32_to_fp32_()
         TTI_SFPADDI(0x4f00, 2, 0); // 2^31
         TTI_SFPENCC(0, 0, 0, 0);
         TTI_SFPSTORE(2, 3, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -263,7 +263,7 @@ inline void _calculate_typecast_uint16_to_uint32_()
     {
         TTI_SFPLOAD(0, 9, ADDR_MOD_7, 0);
         TTI_SFPSTORE(0, 12, ADDR_MOD_7, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 

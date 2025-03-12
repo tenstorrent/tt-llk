@@ -32,7 +32,7 @@ inline void _add_int32_(const uint dst_offset)
         TTI_SFPIADD(0, 1, 0, 4);
         // LREG_0 -> dest as int32
         TTI_SFPSTORE(0, sfpload_instr_mod, 3, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
