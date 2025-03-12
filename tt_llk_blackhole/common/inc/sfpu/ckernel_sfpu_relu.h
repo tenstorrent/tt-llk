@@ -38,7 +38,7 @@ inline void _calculate_lrelu_(const int iterations, uint slope)
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _relu_max_(const int iterations, uint uint_threshold)
 {
-    sfpi::vFloat threshold = s2sfpi::vFloat16(uint_threshold, s2sfpi::vFloat16::fp16a);
+    sfpi::vFloat threshold = sfpi::s2vFloat16(uint_threshold, sfpi::s2vFloat16::fp16a);
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat a = sfpi::dst_reg[0];
@@ -60,7 +60,7 @@ inline void _relu_max_(const int iterations, uint uint_threshold)
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _relu_min_(const int iterations, uint uint_threshold)
 {
-    sfpi::vFloat threshold = s2sfpi::vFloat16(uint_threshold, s2sfpi::vFloat16::fp16a);
+    sfpi::vFloat threshold = sfpi::s2vFloat16(uint_threshold, sfpi::s2vFloat16::fp16a);
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat a = sfpi::dst_reg[0];

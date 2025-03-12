@@ -30,7 +30,7 @@ inline void _calculate_dropout_(const int iterations, uint prob, uint scale)
         ////////////////////////
         // Scale samples
         ///////////////////////
-        sfpi::dst_reg[0] = sfpi::dst_reg[0] * s2sfpi::vFloat16b(scale);
+        sfpi::dst_reg[0] = sfpi::dst_reg[0] * sfpi::s2vFloat16b(scale);
 
         ////////////////////////
         // Drop samples
