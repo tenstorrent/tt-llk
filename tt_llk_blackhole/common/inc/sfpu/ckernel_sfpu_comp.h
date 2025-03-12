@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "sfpi.h"
 #include "ckernel_sfpu_is_fp16_zero.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
@@ -73,7 +73,7 @@ inline void _calculate_comp_(const int iterations, uint exponent_size_8)
             // Result will be either 0x0000(0.0) or 0x3F80(1.0)
             if constexpr (is_less_than_equal_zero)
             {
-                result = reinterpret<sfpi::vFloat>(reinterpret<vUInt>(flag1) | reinterpret<vUInt>(flag2));
+                result = sfpi::reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vUInt>(flag1) | sfpi::reinterpret<sfpi::vUInt>(flag2));
             }
             else
             {
@@ -83,7 +83,7 @@ inline void _calculate_comp_(const int iterations, uint exponent_size_8)
                 // Do a bitwise And (flag1 & flag2) to get > condition.
                 // flag2 >= 0 AND flag1 != 0 => DST is Greater than zero
                 // Result will be either 0x0000(0.0) or 0x3F80(1.0)
-                result = reinterpret<sfpi::vFloat>(reinterpret<vUInt>(flag1) & reinterpret<vUInt>(flag2));
+                result = sfpi::reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vUInt>(flag1) & sfpi::reinterpret<sfpi::vUInt>(flag2));
             }
         }
         else

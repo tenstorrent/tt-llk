@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "sfpi.h"
 #include "ckernel.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
@@ -88,11 +88,11 @@ inline void _calculate_typecast_fp16b_to_int32_()
             sfpi::vInt man = exman8(in);
             // shift the mantissa by (23-exponent) to the right
             sfpi::vInt shift = exp - 23;
-            man        = shft(reinterpret<vUInt>(man), shift);
+            man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
             // check sign
             v_if (in < 0)
             {
-                man = reinterpret<sfpi::vInt>(setsgn(reinterpret<sfpi::vFloat>(man), 1));
+                man = reinterpret<sfpi::vInt>(sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(man), 1));
             }
             v_endif sfpi::dst_reg[0] = man;
         }
@@ -175,9 +175,9 @@ inline void _calculate_typecast_fp16b_to_uint32_()
                 sfpi::vInt man = exman9(in);
                 // shift the mantissa by (23-exponent) to the right
                 sfpi::vInt shift = exp - 23;
-                man        = shft(reinterpret<vUInt>(man), shift);
+                man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
                 // add hidden bit back (due to bug when shifting a 1 into MSB)
-                sfpi::dst_reg[0] = setsgn(reinterpret<sfpi::vFloat>(man), 1);
+                sfpi::dst_reg[0] = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(man), 1);
             }
             v_else
             {
@@ -185,7 +185,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
                 sfpi::vInt man = exman8(in);
                 // shift the mantissa by (23-exponent) to the right
                 sfpi::vInt shift = exp - 23;
-                man        = shft(reinterpret<vUInt>(man), shift);
+                man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
                 sfpi::dst_reg[0] = man;
             }
             v_endif

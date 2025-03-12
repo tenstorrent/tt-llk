@@ -14,9 +14,9 @@ namespace sfpu
 template <bool APPROXIMATION_MODE, int WITH_PRECOMPUTED_TANH, int ITERATIONS>
 inline void _calculate_tanh_derivative_(const int iterations)
 {
-    vUInt l0 = l_reg[LRegs::LReg0];
-    vUInt l1 = l_reg[LRegs::LReg1];
-    vUInt l2 = l_reg[LRegs::LReg2];
+    sfpi::vUInt l0 = sfpi::l_reg[sfpi::LRegs::LReg0];
+    sfpi::vUInt l1 = sfpi::l_reg[sfpi::LRegs::LReg1];
+    sfpi::vUInt l2 = sfpi::l_reg[sfpi::LRegs::LReg2];
 
     // tanh'(x) = 1 - (tanh(x))^2
     for (int d = 0; d < iterations; d++)
@@ -28,15 +28,15 @@ inline void _calculate_tanh_derivative_(const int iterations)
             val = lut(val, l0, l1, l2);
         }
 
-        val        = val * (-val) + vConst1;
+        val              = val * (-val) + sfpi::vConst1;
         sfpi::dst_reg[0] = val;
 
         sfpi::dst_reg++;
     }
 
-    l_reg[LRegs::LReg0] = l0;
-    l_reg[LRegs::LReg1] = l1;
-    l_reg[LRegs::LReg2] = l2;
+    sfpi::l_reg[sfpi::LRegs::LReg0] = l0;
+    sfpi::l_reg[sfpi::LRegs::LReg1] = l1;
+    sfpi::l_reg[sfpi::LRegs::LReg2] = l2;
 }
 
 } // namespace sfpu

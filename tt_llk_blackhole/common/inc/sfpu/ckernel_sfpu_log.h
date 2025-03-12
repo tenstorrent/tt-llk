@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
- 
+
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 

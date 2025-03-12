@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "sfpi.h"
+#include "ckernel_sfpu_binary.h"
 #include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_recip.h"
-#include "ckernel_sfpu_binary.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
@@ -107,9 +107,9 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
     for (int d = 0; d < ITERATIONS; d++)
     {
         constexpr uint dst_tile_size = 32;
-        sfpi::vFloat in0                   = sfpi::dst_reg[0];
-        sfpi::vFloat in1                   = sfpi::dst_reg[dst_offset * dst_tile_size];
-        sfpi::vFloat result                = 0.0f;
+        sfpi::vFloat in0             = sfpi::dst_reg[0];
+        sfpi::vFloat in1             = sfpi::dst_reg[dst_offset * dst_tile_size];
+        sfpi::vFloat result          = 0.0f;
 
         if constexpr (BINOP == BinaryOp::ADD)
         {
@@ -140,7 +140,7 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
             }
             v_elseif (in0 == in1)
             {
-                result = vConst1;
+                result = sfpi::vConst1;
             }
             v_else
             {

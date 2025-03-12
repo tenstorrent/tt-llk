@@ -6,8 +6,6 @@
 
 #include "sfpi.h"
 
-using namespace sfpi;
-
 namespace ckernel
 {
 namespace sfpu

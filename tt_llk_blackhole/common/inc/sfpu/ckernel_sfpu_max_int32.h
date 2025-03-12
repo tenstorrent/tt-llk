@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "ckernel_ops.h"
 #include "ckernel_addrmod.h"
+#include "ckernel_ops.h"
 
 namespace ckernel
 {

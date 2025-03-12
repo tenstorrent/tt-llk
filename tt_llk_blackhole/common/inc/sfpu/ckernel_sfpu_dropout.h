@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "sfpi.h"
 #include "ckernel_ops.h"
 #include "noc_nonblocking_api.h"
+#include "sfpi.h"
 #include "sfpi_fp16.h"
 
 namespace ckernel
@@ -21,10 +21,18 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
 {
     // SFPU microcode
 
+<<<<<<< HEAD
     TT_SFPLOADI(p_sfpu::LREG1, 10, scale & 0xFFFF);
     TT_SFPLOADI(p_sfpu::LREG1, 8, scale >> 16);
     TT_SFPLOADI(p_sfpu::LREG2, 10, probability & 0xFFFF);
     TT_SFPLOADI(p_sfpu::LREG2, 8, probability >> 16);
+=======
+    FWLOG1("calculate_dropout() -- prob:%x", prob);
+    FWLOG1("calculate_dropout() -- scale:%x", scale);
+
+    sfpi::vUInt rand = sfpi::l_reg[sfpi::LRegs::LReg3];
+
+>>>>>>> 7f32186... fix: remove more namespaces
 #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++)
     {
@@ -44,7 +52,7 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
         TTI_SFPMOV(0, 9, p_sfpu::LREG3, 8);
         TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG3, 1);
 
-        ////////////////////////
+	////////////////////////
         // Drop samples
         // v_if (rand < probability)
         //   dst_reg[0] = vConst0;

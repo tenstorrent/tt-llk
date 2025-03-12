@@ -19,8 +19,8 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 
     val = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
     // Use 1.44 as first guess at x, ideal value would be 1.33, but we happen to have 1.44 available, so use that to avoid a load
-    sfpi::vFloat vConstLn2Recip = vConstFloatPrgm0;
-    sfpi::vFloat two            = vConstFloatPrgm1;
+    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+    sfpi::vFloat two            = sfpi::vConstFloatPrgm1;
     sfpi::vFloat result         = vConstLn2Recip * (val * vConstLn2Recip + two);
 
     for (int s_iter = 0; s_iter < (max_iter - 1); s_iter++)
@@ -28,8 +28,8 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
         result = result * (val * result + two);
     }
 
-    vInt orig_exp = exexp(in);
-    vInt new_exp  = exexp(result);
+    sfpi::vInt orig_exp = exexp(in);
+    sfpi::vInt new_exp  = exexp(result);
 
     // "Subtract" exponents, and re-bias.
     // Execute: -1 - exp, then exp += 127
@@ -81,8 +81,8 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
-    vConstFloatPrgm0 = 1.442695f; // ln2_recip
-    vConstFloatPrgm1 = 2.0f;
+    sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+    sfpi::vConstFloatPrgm1 = 2.0f;
 }
 
 } // namespace sfpu

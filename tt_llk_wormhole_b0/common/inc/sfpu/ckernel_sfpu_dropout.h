@@ -6,11 +6,10 @@
 
 #include <cstdint>
 
-#include "sfpi.h"
 #include "ckernel_ops.h"
-// #include "debug/fw_debug.h"
+#include "sfpi.h"
 
-using namespace sfpi;
+// #include "debug/fw_debug.h"
 
 namespace ckernel
 {
