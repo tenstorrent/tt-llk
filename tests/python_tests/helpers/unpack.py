@@ -6,7 +6,7 @@
 import struct
 import torch
 from .utils import reverse_endian_chunk
-from .format_arg_mapping import DataFormat
+from .format_config import DataFormat
 
 
 def int_to_bytes_list(n):

@@ -3,15 +3,7 @@
 
 import torch
 from enum import Enum
-
-
-class DataFormat(Enum):
-    Float16 = "Float16"
-    Float16_b = "Float16_b"
-    Bfp8_b = "Bfp8_b"
-    Float32 = "Float32"
-    Int32 = "Int32"
-
+from .format_config import DataFormat
 
 format_dict = {
     DataFormat.Float32: torch.float32,

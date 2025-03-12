@@ -2,33 +2,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 from dataclasses import dataclass
 from typing import List, Optional
-
-
-@dataclass
-class FormatConfig:
-    """
-    A data class that holds configuration details for formats passed to LLKs.
-
-    Attributes:
-    unpack_src (str): The source format for the Unpacker.
-    unpack_dst (str): The destination format for the Unpacker.
-    math (str): The format used for _llk_math_ functions.
-    pack_src (str): The source format for the Packer.
-    pack_dst (str): The destination format for the Packer.
-
-    Example:
-    >>> formats = FormatConfig(unpack_src="Float32", unpack_dst="Float16", math="add", pack_src="Float16", pack_dst="Float32")
-    >>> print(formats.unpack_src)
-    Float32
-    >>> print(formats.pack_src)
-    Float16
-    """
-
-    unpack_src: str
-    unpack_dst: str
-    math: str
-    pack_src: str
-    pack_dst: str
+from .format_config import FormatConfig
 
 
 def manage_included_params(func):

@@ -5,7 +5,8 @@ import os
 import torch
 import numpy as np
 import subprocess
-from .format_arg_mapping import DataFormat, format_sizes
+from .format_arg_mapping import format_sizes
+from .format_config import DataFormat
 
 torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
 

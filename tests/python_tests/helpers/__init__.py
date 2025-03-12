@@ -1,8 +1,9 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from .format_config import FormatConfig, DataFormat
 from .stimuli_generator import flatten_list, generate_stimuli
-from .format_arg_mapping import format_dict, mathop_args_dict, format_sizes, DataFormat
+from .format_arg_mapping import format_dict, mathop_args_dict, format_sizes
 from .pack import pack_bfp16, pack_fp16, pack_fp32, pack_int32, pack_bfp8_b
 from .unpack import (
     unpack_fp16,
@@ -27,7 +28,6 @@ from .device import (
     assert_tensix_operations_finished,
 )
 from .param_config import (
-    FormatConfig,
     generate_format_combinations,
     generate_param_ids,
     clean_params,
