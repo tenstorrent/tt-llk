@@ -22,7 +22,7 @@ inline void _calculate_max_int32_(const int iterations)
         TTI_SFPIADD(0, 2, 1, 2);
         TTI_SFPSTORE(0, 12, 3, 0);
         TTI_SFPENCC(0x003, 0, 0, 10);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 

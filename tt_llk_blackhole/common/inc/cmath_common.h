@@ -177,7 +177,7 @@ inline void set_dst_write_addr(uint32_t tile_index)
 
 // Programming a dst write addr offset that gets added to base
 //
-inline void clear_dst_reg_addr()
+inline void clear_sfpi::dst_reg_addr()
 {
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 }

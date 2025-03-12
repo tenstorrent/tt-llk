@@ -35,7 +35,7 @@ inline void _quant_int32_(const uint dst_offset)
         TTI_SFP_STOCH_RND(0, 0, 9, 0, 0, 3);
         // LREG_0 -> dest as int32
         TTI_SFPSTORE(0, SIGN_MAGNITUDE_FORMAT ? 4 : 12, 3, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -63,7 +63,7 @@ inline void _requant_int32_(const uint dst_offset)
         TTI_SFP_STOCH_RND(0, 0, 9, 0, 0, 3);
         // LREG_0 -> dest as int32
         TTI_SFPSTORE(0, SIGN_MAGNITUDE_FORMAT ? 4 : 12, 3, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
@@ -91,7 +91,7 @@ inline void _dequant_int32_(const uint dst_offset)
         TTI_NOP;
         // LREG_0 -> dest as fp32
         TTI_SFPSTORE(0, 3, 3, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 

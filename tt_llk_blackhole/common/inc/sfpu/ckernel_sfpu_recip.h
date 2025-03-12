@@ -12,16 +12,16 @@ namespace sfpu
 {
 
 template <int max_iter = 3>
-sfpi_inline vFloat _sfpu_reciprocal_(const vFloat in)
+sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
     // Force sign to 1 (make number negative)
-    vFloat val = setsgn(in, 1);
+    sfpi::vFloat val = setsgn(in, 1);
 
     val = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
     // Use 1.44 as first guess at x, ideal value would be 1.33, but we happen to have 1.44 available, so use that to avoid a load
-    vFloat vConstLn2Recip = vConstFloatPrgm0;
-    vFloat two            = vConstFloatPrgm1;
-    vFloat result         = vConstLn2Recip * (val * vConstLn2Recip + two);
+    sfpi::vFloat vConstLn2Recip = vConstFloatPrgm0;
+    sfpi::vFloat two            = vConstFloatPrgm1;
+    sfpi::vFloat result         = vConstLn2Recip * (val * vConstLn2Recip + two);
 
     for (int s_iter = 0; s_iter < (max_iter - 1); s_iter++)
     {
@@ -55,8 +55,8 @@ inline void _calculate_reciprocal_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        vFloat in  = dst_reg[0];
-        vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(in);
+        sfpi::vFloat in  = sfpi::dst_reg[0];
+        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(in);
 
         v_if (in < 0.0F)
         {
@@ -67,14 +67,14 @@ inline void _calculate_reciprocal_(const int iterations)
 
         if constexpr (APPROXIMATION_MODE)
         {
-            dst_reg[0] = out;
+            sfpi::dst_reg[0] = out;
         }
         else
         {
-            dst_reg[0] = reinterpret<vFloat>(float_to_fp16b(out, 0));
+            sfpi::dst_reg[0] = reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
         }
 
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 

@@ -30,14 +30,14 @@ inline void _calculate_dropout_(const int iterations, uint prob, uint scale)
         ////////////////////////
         // Scale samples
         ///////////////////////
-        dst_reg[0] = dst_reg[0] * s2vFloat16b(scale);
+        sfpi::dst_reg[0] = sfpi::dst_reg[0] * s2sfpi::vFloat16b(scale);
 
         ////////////////////////
         // Drop samples
         ///////////////////////
         v_if (rand < prob)
         {
-            dst_reg[0] = vConst0;
+            sfpi::dst_reg[0] = vConst0;
         }
         v_endif;
 
@@ -54,7 +54,7 @@ inline void _calculate_dropout_(const int iterations, uint prob, uint scale)
         }
         v_endif;
 
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 
     l_reg[LRegs::LReg3] = rand;

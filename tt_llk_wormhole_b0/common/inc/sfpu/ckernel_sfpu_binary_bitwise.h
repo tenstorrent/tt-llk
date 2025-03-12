@@ -44,7 +44,7 @@ inline void _calculate_sfpu_binary_bitwise_(const uint dst_offset)
         }
 
         TTI_SFPSTORE(0, 4, 3, 0);
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
