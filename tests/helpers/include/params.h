@@ -27,85 +27,105 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
 }
 } // namespace
 
+#define UNPACK_SRC_CASE(data_format) constexpr auto UNPACK_IN = get_data_format(DataFormat::data_format);
+
 #ifdef UNPACK_SRC_FLOAT16_B
-constexpr auto UNPACK_IN = get_data_format(DataFormat::Float16_b);
+UNPACK_SRC_CASE(Float16_b)
 #endif
 #ifdef UNPACK_SRC_FLOAT16
-constexpr auto UNPACK_IN = get_data_format(DataFormat::Float16);
+UNPACK_SRC_CASE(Float16)
 #endif
 #ifdef UNPACK_SRC_FLOAT32
-constexpr auto UNPACK_IN = get_data_format(DataFormat::Float32);
+UNPACK_SRC_CASE(Float32)
 #endif
 #ifdef UNPACK_SRC_INT32
-constexpr auto UNPACK_IN = get_data_format(DataFormat::Int32);
+UNPACK_SRC_CASE(Int32)
 #endif
 #ifdef UNPACK_SRC_BFP8_B
-constexpr auto UNPACK_IN = get_data_format(DataFormat::Bfp8_b);
+UNPACK_SRC_CASE(Bfp8_b)
 #endif
+
+#undef UNPACK_SRC_CASE
+
+#define UNPACK_DST_CASE(data_format) constexpr auto UNPACK_OUT = get_data_format(DataFormat::data_format);
 
 #ifdef UNPACK_DST_FLOAT16_B
-constexpr auto UNPACK_OUT = get_data_format(DataFormat::Float16_b);
+UNPACK_DST_CASE(Float16_b)
 #endif
 #ifdef UNPACK_DST_FLOAT16
-constexpr auto UNPACK_OUT = get_data_format(DataFormat::Float16);
+UNPACK_DST_CASE(Float16)
 #endif
 #ifdef UNPACK_DST_FLOAT32
-constexpr auto UNPACK_OUT = get_data_format(DataFormat::Float32);
+UNPACK_DST_CASE(Float32)
 #endif
 #ifdef UNPACK_DST_INT32
-constexpr auto UNPACK_OUT = get_data_format(DataFormat::Int32);
+UNPACK_DST_CASE(Int32)
 #endif
 #ifdef UNPACK_DST_BFP8_B
-constexpr auto UNPACK_OUT = get_data_format(DataFormat::Bfp8_b);
+UNPACK_DST_CASE(Bfp8_b)
 #endif
+
+#undef UNPACK_DST_CASE
+
+#define PACK_SRC_CASE(data_format) constexpr auto PACK_IN = get_data_format(DataFormat::data_format);
 
 #ifdef PACK_SRC_FLOAT16_B
-constexpr auto PACK_IN = get_data_format(DataFormat::Float16_b);
+PACK_SRC_CASE(Float16_b)
 #endif
 #ifdef PACK_SRC_FLOAT16
-constexpr auto PACK_IN = get_data_format(DataFormat::Float16);
+PACK_SRC_CASE(Float16)
 #endif
 #ifdef PACK_SRC_FLOAT32
-constexpr auto PACK_IN = get_data_format(DataFormat::Float32);
+PACK_SRC_CASE(Float32)
 #endif
 #ifdef PACK_SRC_INT32
-constexpr auto PACK_IN = get_data_format(DataFormat::Int32);
+PACK_SRC_CASE(Int32)
 #endif
 #ifdef PACK_SRC_BFP8_B
-constexpr auto PACK_IN = get_data_format(DataFormat::Bfp8_b);
+PACK_SRC_CASE(Bfp8_b)
 #endif
+
+#undef PACK_SRC_CASE
+
+#define PACK_DST_CASE(data_format) constexpr auto PACK_OUT = get_data_format(DataFormat::data_format);
 
 #ifdef PACK_DST_FLOAT16_B
-constexpr auto PACK_OUT = get_data_format(DataFormat::Float16_b);
+PACK_DST_CASE(Float16_b)
 #endif
 #ifdef PACK_DST_FLOAT16
-constexpr auto PACK_OUT = get_data_format(DataFormat::Float16);
+PACK_DST_CASE(Float16)
 #endif
 #ifdef PACK_DST_FLOAT32
-constexpr auto PACK_OUT = get_data_format(DataFormat::Float32);
+PACK_DST_CASE(Float32)
 #endif
 #ifdef PACK_DST_INT32
-constexpr auto PACK_OUT = get_data_format(DataFormat::Int32);
+PACK_DST_CASE(Int32)
 #endif
 #ifdef PACK_DST_BFP8_B
-constexpr auto PACK_OUT = get_data_format(DataFormat::Bfp8_b);
+PACK_DST_CASE(Bfp8_b)
 #endif
 
+#undef PACK_DST_CASE
+
+#define MATH_CASE(data_format) constexpr auto MATH_FORMAT = get_data_format(DataFormat::data_format);
+
 #ifdef MATH_FLOAT16_B
-constexpr auto MATH_FORMAT = get_data_format(DataFormat::Float16_b);
+MATH_CASE(Float16_b)
 #endif
 #ifdef MATH_FLOAT16
-constexpr auto MATH_FORMAT = get_data_format(DataFormat::Float16);
+MATH_CASE(Float16)
 #endif
 #ifdef MATH_FLOAT32
-constexpr auto MATH_FORMAT = get_data_format(DataFormat::Float32);
+MATH_CASE(Float32)
 #endif
 #ifdef MATH_INT32
-constexpr auto MATH_FORMAT = get_data_format(DataFormat::Int32);
+MATH_CASE(Int32)
 #endif
 #ifdef MATH_BFP8_B
-constexpr auto MATH_FORMAT = get_data_format(DataFormat::Bfp8_b);
+MATH_CASE(Bfp8_b)
 #endif
+
+#undef MATH_CASE
 
 #ifdef ELTWISE_BINARY_ADD
 constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWADD;
