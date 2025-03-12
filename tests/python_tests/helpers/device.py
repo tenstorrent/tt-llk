@@ -112,7 +112,7 @@ def get_result_from_device(
         raise ValueError(f"Unsupported format: {formats.pack_dst}")
 
 
-def check_value_with_timeout(core_loc, mailbox_addr, timeout=0, poll_interval=0.1):
+def assert_value_with_timeout(core_loc, mailbox_addr, timeout=0, poll_interval=0.1):
     start_time = time.time()
 
     while time.time() - start_time < timeout:
