@@ -1,0 +1,27 @@
+name: Check for Unchecked Tasks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-tasks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for unchecked tasks
+        id: check_tasks
+        run: |
+          if grep -q '\[ \]' "$GITHUB_EVENT_PATH"; then
+            echo "::set-output name=tasks_unchecked::true"
+          else
+            echo "::set-output name=tasks_unchecked::false"
+          fi
+
+      - name: Fail if there are unchecked tasks
+        if: steps.check_tasks.outputs.tasks_unchecked == 'true'
+        run: |
+          echo "There are unchecked tasks in the PR description."
+          exit 1
