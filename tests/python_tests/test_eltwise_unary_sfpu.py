@@ -50,13 +50,10 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-    if formats.unpack_src == DataFormat.Float16 and ((
-        dest_acc == ""
-        and get_chip_architecture() == "blackhole"
-    ) or (
-        dest_acc == "DEST_ACC"
-        and get_chip_architecture() == "wormhole"
-    )):
+    if formats.unpack_src == DataFormat.Float16 and (
+        (dest_acc == "" and get_chip_architecture() == "blackhole")
+        or (dest_acc == "DEST_ACC" and get_chip_architecture() == "wormhole")
+    ):
         pytest.skip(reason="This combination is not fully implemented in testing")
 
     #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
