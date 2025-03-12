@@ -5,33 +5,6 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-@dataclass
-class FormatConfig:
-    """
-    A data class that holds configuration details for formats passed to LLKs.
-
-    Attributes:
-    unpack_src (str): The source format for the Unpacker.
-    unpack_dst (str): The destination format for the Unpacker.
-    math (str): The format used for _llk_math_ functions.
-    pack_src (str): The source format for the Packer.
-    pack_dst (str): The destination format for the Packer.
-
-    Example:
-    >>> formats = FormatConfig(unpack_src="Float32", unpack_dst="Float16", math="add", pack_src="Float16", pack_dst="Float32")
-    >>> print(formats.unpack_src)
-    Float32
-    >>> print(formats.pack_src)
-    Float16
-    """
-
-    unpack_src: str
-    unpack_dst: str
-    math: str
-    pack_src: str
-    pack_dst: str
-
-
 class DataFormat(Enum):
     """
     An enumeration class that holds all the data formats supported by the LLKs.
@@ -46,3 +19,30 @@ class DataFormat(Enum):
     Bfp8_b = "Bfp8_b"
     Float32 = "Float32"
     Int32 = "Int32"
+
+
+@dataclass
+class FormatConfig:
+    """
+    A data class that holds configuration details for formats passed to LLKs.
+
+    Attributes:
+    unpack_src (DataFormat): The source format for the Unpacker.
+    unpack_dst (DataFormat): The destination format for the Unpacker.
+    math (DataFormat): The format used for _llk_math_ functions.
+    pack_src (DataFormat): The source format for the Packer.
+    pack_dst (DataFormat): The destination format for the Packer.
+
+    Example:
+    >>> formats = FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float16, math=DataFormat.Float32, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float32)
+    >>> print(formats.unpack_src)
+    DataFormat.Float32
+    >>> print(formats.pack_src)
+    DataFormat.Float16
+    """
+
+    unpack_src: DataFormat
+    unpack_dst: DataFormat
+    math: DataFormat
+    pack_src: DataFormat
+    pack_dst: DataFormat

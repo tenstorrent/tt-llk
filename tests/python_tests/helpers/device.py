@@ -112,9 +112,23 @@ def get_result_from_device(
         raise ValueError(f"Unsupported format: {formats.pack_dst}")
 
 
+def check_value_with_timeout(core_loc, mailbox_addr, timeout=0, poll_interval=0.1):
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        if read_word_from_device(core_loc, mailbox_addr) == 1:
+            return True
+        time.sleep(poll_interval)
+
+    # If the loop finishes without breaking, that means the condition was never true
+    assert (
+        read_word_from_device(core_loc, mailbox_addr) == 1
+    ), f"Value at mailbox {hex(mailbox_addr)} was not 1 after waiting {timeout} seconds."
+
+
 def assert_tensix_operations_finished(core_loc: str = "0,0"):
 
     tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC]  # L1 Mailbox addresses
-    assert read_word_from_device(core_loc, tensix_L1_mailboxes[0]) == 1
-    assert read_word_from_device(core_loc, tensix_L1_mailboxes[1]) == 1
-    assert read_word_from_device(core_loc, tensix_L1_mailboxes[2]) == 1
+    check_value_with_timeout(core_loc, tensix_L1_mailboxes[0])
+    check_value_with_timeout(core_loc, tensix_L1_mailboxes[1])
+    check_value_with_timeout(core_loc, tensix_L1_mailboxes[2])

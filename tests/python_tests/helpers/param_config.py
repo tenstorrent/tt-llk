@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 from dataclasses import dataclass
 from typing import List, Optional
-from .format_config import FormatConfig
+from .format_config import FormatConfig, DataFormat
 
 
 def manage_included_params(func):
@@ -27,7 +27,7 @@ def generate_format_combinations(
         This is good to use when looking to test on full format flush.
 
     Parameters:
-    formats (List[str]): A list of formats that are supported for this test. Combinations are generated based on these formats.
+    formats (List[DataFormat]): A list of formats that are supported for this test. Combinations are generated based on these formats.
     all_same (bool): A flag indicating whether to return combinations with all formats being the same
                      (True) or all possible combinations (False).
 
@@ -35,15 +35,15 @@ def generate_format_combinations(
     List[FormatConfig]: A list of FormatConfig instances representing the generated format combinations.
 
     Example:
-    >>> generate_format_combinations(["Float16", "Float32"], True)
-    [FormatConfig(unpack_src='Float16', unpack_dst='Float16', math='Float16', pack_src='Float16', pack_dst='Float16'),
-     FormatConfig(unpack_src='Float32', unpack_dst='Float32', math='Float32', pack_src='Float32', pack_dst='Float32')]
+    >>> generate_format_combinations([DataFormat.Float16, DataFormat.Float32], True)
+    [FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float16),
+     FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float32, math=DataFormat.Float32, pack_src=DataFormat.Float32, pack_dst=DataFormat.Float32)]
 
-    >>> generate_format_combinations(["Float16", "Float32"], False)
-    [FormatConfig(unpack_src='Float16', unpack_dst='Float16', math='Float16', pack_src='Float16', pack_dst='Float16'),
-     FormatConfig(unpack_src='Float16', unpack_dst='Float16', math='Float16', pack_src='Float16', pack_dst='Float32'),
+    >>> generate_format_combinations([DataFormat.Float16, "Float32"], False)
+    [FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float16),
+     FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float32),
      ...
-     FormatConfig(unpack_src='Float32', unpack_dst='Float32', math='Float32', pack_src='Float32', pack_dst='Float32')]
+     FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float32, math=DataFormat.Float32, pack_src=DataFormat.Float32, pack_dst=DataFormat.Float32)]
     """
     if all_same:
         return [FormatConfig(fmt, fmt, fmt, fmt, fmt) for fmt in formats]
@@ -82,11 +82,11 @@ def generate_params(
 
     Example:
     >>> testnames = ["Test1", "Test2"]
-    >>> format_combos = [FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16")]
-    >>> generate_params(testnames, format_combos, dest_acc=["Acc1"], approx_mode=["Approx1"])
+    >>> format_combos = [FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16)]
+    >>> generate_params(testnames, format_combos, dest_acc=["DEST_ACC"], approx_mode=["Approx1"])
     [
-        ("Test1", FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16"), "Acc1", "Approx1", None, None, None, None, None),
-        ("Test2", FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16"), "Acc1", "Approx1", None, None, None, None, None)
+        ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "DEST_ACC", "Approx1", None, None, None, None, None),
+        ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "DEST_ACC", "Approx1", None, None, None, None, None)
     ]
     """
 
@@ -146,13 +146,13 @@ def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
 
     Example:
     >>> all_params = [
-    ...     ("Test1", FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16"), "Acc1", "Approx1", None, None, None, None, None),
-    ...     ("Test2", FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16"), "Acc1", "Approx1", None, None, None, None, None)
+    ...     ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1", None, None, None, None, None),
+    ...     ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1", None, None, None, None, None)
     ... ]
     >>> clean_params(all_params)
     [
-        ("Test1", FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16"), "Acc1", "Approx1"),
-        ("Test2", FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16"), "Acc1", "Approx1")
+        ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1"),
+        ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1")
     ]
     """
 
@@ -204,11 +204,11 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
 
         # Start with the FormatConfig information
         result = [
-            f"unpack_src={format_config.unpack_src}",
-            f"unpack_dst={format_config.unpack_dst}",
-            f"math={format_config.math}",
-            f"pack_src={format_config.pack_src}",
-            f"pack_dst={format_config.pack_dst}",
+            f"unpack_src={format_config.unpack_src.value}",
+            f"unpack_dst={format_config.unpack_dst.value}",
+            f"math={format_config.math.value}",
+            f"pack_src={format_config.pack_src.value}",
+            f"pack_dst={format_config.pack_dst.value}",
         ]
 
         # Include optional parameters based on `included_params`
