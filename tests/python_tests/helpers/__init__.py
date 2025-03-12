@@ -19,6 +19,7 @@ from .utils import (
     compare_pcc,
     format_kernel_list,
     print_faces,
+    get_chip_architecture,
 )
 from .device import (
     collect_results,
