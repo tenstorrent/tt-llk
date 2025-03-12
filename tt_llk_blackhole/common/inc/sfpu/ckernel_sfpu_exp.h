@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include "ckernel_addrmod.h"
+#include "ckernel_ops.h"
+#include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-#include "ckernel_sfpu_recip.h"
-#include "ckernel_ops.h"
-#include "ckernel_addrmod.h"
 
 namespace ckernel
 {
@@ -18,7 +18,7 @@ namespace sfpu
 sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
 {
     // If exponent is > -1 extract it and replace with -1
-    vInt exp = exexp(val);
+    sfpi::vInt exp = exexp(val);
     v_if (exp >= 0)
     {
         val = setexp(val, 126);
@@ -26,8 +26,8 @@ sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
     v_endif;
 
     // Run series in Horner form
-    sfpi::vFloat tmp = val * vConst0p8373 + sfpi::s2vFloat16b(0.863281);
-    val        = val * tmp + vConst1;
+    sfpi::vFloat tmp = val * sfpi::vConst0p8373 + sfpi::s2vFloat16b(0.863281);
+    val              = val * tmp + sfpi::vConst1;
 
     v_if (exp >= 0)
     {
@@ -56,23 +56,23 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
         constexpr uint SP_BIAS  = 127 << FRAC_BITS;
 
         // * by 1/ln2 and add convert to 7.3 FxP format
-        sfpi::vFloat vConstLn2Recip = vConstFloatPrgm0;
+        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
         sfpi::vFloat conv           = in * vConstLn2Recip;
 
         // Clear exp bits
-        vInt c23_73 = p_exp::C23_73;
-        vInt tmp    = reinterpret<vInt>(conv) - c23_73;
+        sfpi::vInt c23_73 = p_exp::C23_73;
+        sfpi::vInt tmp    = sfpi::reinterpret<sfpi::vInt>(conv) - c23_73;
 
         // Add bias
         tmp += SP_BIAS;
 
         // SHL to move integer bits to exponent
-        out = reinterpret<sfpi::vFloat>(tmp << (10 - FRAC_BITS));
+        out = sfpi::reinterpret<sfpi::vFloat>(tmp << (10 - FRAC_BITS));
     }
     else
     {
         // Force sign to 0 (make number positive)
-        out = _sfpu_exp_(setsgn(in, 0));
+        out = _sfpu_exp_(sfpi::setsgn(in, 0));
 
         v_if (in < 0)
         {
@@ -203,13 +203,13 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
                 v_else
                 {
                     // * by 1/ln2 and add convert to 7.3 FxP format
-                    sfpi::vFloat vConstLn2Recip = vConstFloatPrgm0;
-                    sfpi::vFloat c23_73         = vConstFloatPrgm1;
-                    vInt adj_exp          = vConstIntPrgm2;
-                    val                   = val * vConstLn2Recip + c23_73;
+                    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+                    sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+                    sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+                    val                         = val * vConstLn2Recip + c23_73;
 
                     // Remove Exponent of 7 and bias the Mantissa to 127.
-                    vInt val_short = adj_exp + reinterpret<vInt>(val);
+                    sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
 
                     // SHL to move integer bits to exponent
                     val_short <<= 10 - p_exp::FRAC_BITS;
@@ -355,15 +355,15 @@ inline void _init_exponential_()
     }
     else if constexpr (APPROXIMATION_MODE)
     {
-        vConstFloatPrgm0 = 1.442695f; // ln2_recip
-        vConstFloatPrgm1 = sfpi::s2vFloat16b(p_exp::C23_73);
-        vConstFloatPrgm2 = sfpi::s2vFloat16b(p_exp::ADJ_EXP);
+        sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+        sfpi::vConstFloatPrgm1 = sfpi::s2vFloat16b(p_exp::C23_73);
+        sfpi::vConstFloatPrgm2 = sfpi::s2vFloat16b(p_exp::ADJ_EXP);
     }
     else
     {
-        vConstFloatPrgm0 = 1.442695f; // ln2_recip
-        vConstFloatPrgm1 = 2.0f;
-        vConstFloatPrgm2 = 0.863281f;
+        sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+        sfpi::vConstFloatPrgm1 = 2.0f;
+        sfpi::vConstFloatPrgm2 = 0.863281f;
     }
 }
 

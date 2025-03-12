@@ -21,8 +21,8 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // Use 1.44 as first guess at x, ideal value would be 1.33.
     // Grayskull has hardwired 1.44 and uses it to avoid a load.
     // We use it here for consistency.
-    sfpi::vFloat vConstLn2Recip = vConstFloatPrgm0;
-    sfpi::vFloat two            = vConstFloatPrgm1;
+    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+    sfpi::vFloat two            = sfpi::vConstFloatPrgm1;
     sfpi::vFloat result         = vConstLn2Recip * (val * vConstLn2Recip + two);
 
     for (int s_iter = 0; s_iter < (max_iter - 1); s_iter++)
@@ -83,8 +83,8 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
-    vConstFloatPrgm0 = 1.442695f; // ln2_recip
-    vConstFloatPrgm1 = 2.0f;
+    sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+    sfpi::vConstFloatPrgm1 = 2.0f;
 }
 
 } // namespace sfpu

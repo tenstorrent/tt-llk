@@ -5,9 +5,10 @@
 #pragma once
 
 #include <limits>
-#include "sfpi.h"
-#include "ckernel_ops.h"
+
 #include "ckernel_addrmod.h"
+#include "ckernel_ops.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
@@ -77,7 +78,7 @@ inline void _calculate_typecast_fp16b_to_int32_()
         sfpi::vFloat in = sfpi::dst_reg[0];
 
         // extract exponent
-        vInt exp = exexp(in);
+        sfpi::vInt exp = exexp(in);
 
         v_if (exp < 0)
         {
@@ -86,7 +87,7 @@ inline void _calculate_typecast_fp16b_to_int32_()
         v_elseif (exp > 30)
         {
             // set to int32 max value in case of overflow
-            vInt tmp = std::numeric_limits<int32_t>::max();
+            sfpi::vInt tmp = std::numeric_limits<int32_t>::max();
             // check sign
             v_if (in < 0)
             {
@@ -98,10 +99,10 @@ inline void _calculate_typecast_fp16b_to_int32_()
         v_else
         {
             // extract mantissa
-            vInt man = exman8(in);
+            sfpi::vInt man = exman8(in);
             // shift the mantissa by (23-exponent) to the right
-            vInt shift = exp - 23;
-            man        = shft(reinterpret<vUInt>(man), shift);
+            sfpi::vInt shift = exp - 23;
+            man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
             // check sign
             v_if (in < 0)
             {
@@ -181,7 +182,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
         v_else
         {
             // extract exponent
-            vInt exp = exexp(in);
+            sfpi::vInt exp = exexp(in);
 
             v_if (exp < 0)
             {
@@ -190,26 +191,26 @@ inline void _calculate_typecast_fp16b_to_uint32_()
             v_elseif (exp > 31)
             {
                 // set to uint32 max value in case of overflow
-                vInt tmp   = std::numeric_limits<int32_t>::max();
-                sfpi::dst_reg[0] = setsgn(reinterpret<sfpi::vFloat>(tmp), 1);
+                sfpi::vInt tmp   = std::numeric_limits<int32_t>::max();
+                sfpi::dst_reg[0] = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(tmp), 1);
             }
             v_elseif (exp == 31)
             {
                 // extract mantissa without hidden bit
-                vInt man = exman9(in);
+                sfpi::vInt man = exman9(in);
                 // shift the mantissa by (23-exponent) to the right
-                vInt shift = exp - 23;
-                man        = shft(reinterpret<vUInt>(man), shift);
+                sfpi::vInt shift = exp - 23;
+                man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
                 // add hidden bit back (due to bug when shifting a 1 into MSB)
-                sfpi::dst_reg[0] = setsgn(reinterpret<sfpi::vFloat>(man), 1);
+                sfpi::dst_reg[0] = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(man), 1);
             }
             v_else
             {
                 // extract mantissa
-                vInt man = exman8(in);
+                sfpi::vInt man = exman8(in);
                 // shift the mantissa by (23-exponent) to the right
-                vInt shift = exp - 23;
-                man        = shft(reinterpret<vUInt>(man), shift);
+                sfpi::vInt shift = exp - 23;
+                man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
                 sfpi::dst_reg[0] = man;
             }
             v_endif

@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "sfpi.h"
 #include "ckernel_ops.h"
 #include "noc_nonblocking_api.h"
+#include "sfpi.h"
 #include "sfpi_fp16.h"
 
 namespace ckernel
@@ -22,7 +22,7 @@ inline void _calculate_dropout_(const int iterations, uint prob, uint scale)
     FWLOG1("calculate_dropout() -- prob:%x", prob);
     FWLOG1("calculate_dropout() -- scale:%x", scale);
 
-    vUInt rand = l_reg[LRegs::LReg3];
+    sfpi::vUInt rand = sfpi::l_reg[sfpi::LRegs::LReg3];
 
 #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++)
@@ -37,19 +37,19 @@ inline void _calculate_dropout_(const int iterations, uint prob, uint scale)
         ///////////////////////
         v_if (rand < prob)
         {
-            sfpi::dst_reg[0] = vConst0;
+            sfpi::dst_reg[0] = sfpi::vConst0;
         }
         v_endif;
 
         ////////////////////////
         // 16-bit PRNG update
         ///////////////////////
-        vUInt lfsr = vConstIntPrgm1;
-        vUInt tmp  = lfsr & rand;
-        rand       = rand >> 1;
+        sfpi::vUInt lfsr = sfpi::vConstIntPrgm1;
+        sfpi::vUInt tmp  = lfsr & rand;
+        rand             = rand >> 1;
         v_if (tmp != 0)
         {
-            vUInt mask = vConstIntPrgm0;
+            sfpi::vUInt mask = sfpi::vConstIntPrgm0;
             rand ^= mask;
         }
         v_endif;
@@ -57,7 +57,7 @@ inline void _calculate_dropout_(const int iterations, uint prob, uint scale)
         sfpi::dst_reg++;
     }
 
-    l_reg[LRegs::LReg3] = rand;
+    sfpi::l_reg[sfpi::LRegs::LReg3] = rand;
 }
 
 inline void _init_dropout_seed_(uint16_t p2)
@@ -73,19 +73,19 @@ inline void _init_dropout_seed_(uint16_t p2)
 
     FWLOG1("calculate_dropout() -- calculated seed:%x", per_tensix_input_seed);
 
-    vInt result = l_reg[LRegs::LReg3];
+    sfpi::vInt result = sfpi::l_reg[sfpi::LRegs::LReg3];
 
-    vInt tmp  = vConstTileId << 10;
-    vInt ptis = per_tensix_input_seed;
-    result    = ~(tmp & ptis) & (tmp | ptis);
+    sfpi::vInt tmp  = sfpi::vConstTileId << 10;
+    sfpi::vInt ptis = per_tensix_input_seed;
+    result          = ~(tmp & ptis) & (tmp | ptis);
 
-    l_reg[LRegs::LReg3] = result;
+    sfpi::l_reg[sfpi::LRegs::LReg3] = result;
 }
 
 inline void _init_dropout_(const uint seed)
 {
-    vConstIntPrgm0 = 0xb400;
-    vConstIntPrgm1 = 0x1; // binary 0b1 - used to extract LSB
+    sfpi::vConstIntPrgm0 = 0xb400;
+    sfpi::vConstIntPrgm1 = 0x1; // binary 0b1 - used to extract LSB
 
     _init_dropout_seed_(seed);
 }

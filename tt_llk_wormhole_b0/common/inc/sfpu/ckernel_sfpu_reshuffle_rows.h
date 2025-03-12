@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "sfpi.h"
-#include "ckernel_instr_params.h"
 #include "ckernel_addrmod.h"
+#include "ckernel_instr_params.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
