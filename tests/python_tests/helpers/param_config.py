@@ -16,7 +16,7 @@ def manage_included_params(func):
 
 @manage_included_params
 def generate_format_combinations(
-    included_params, formats: List[str], all_same: bool
+    included_params, formats: List[DataFormat], all_same: bool
 ) -> List[FormatConfig]:
     """
     Generates a list of FormatConfig instances based on the given formats and the 'all_same' flag.
