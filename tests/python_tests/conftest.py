@@ -6,7 +6,7 @@ from helpers import HardwareController
 
 
 @pytest.fixture(scope="function", autouse=True)
-def hardware_controller():
+def manage_hardware_controller():
     # Setup: initialize the hardware controller
     controller = HardwareController()
 
