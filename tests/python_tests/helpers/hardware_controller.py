@@ -11,10 +11,10 @@ class HardwareController:
 
     def reset(self):
         if self.chip_architecture == "blackhole":
-            pass
+            print("Resetting card")
+            run_shell_command("/home/software/syseng/bh/tt-smi -r 0")
         elif self.chip_architecture == "wormhole":
             print("Resetting card")
             run_shell_command("/home/software/syseng/wh/tt-smi -wr 0")
         else:
-            print("Resetting card")
-            run_shell_command("/home/software/syseng/bh/tt-smi -r 0")
+            raise ValueError("Unknown chip architecture")
