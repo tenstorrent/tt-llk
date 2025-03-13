@@ -16,5 +16,6 @@ Summarize the changes made and its impact. -->
 - [ ] Documentation update
 
 ### Checklist
+<!-- These are required steps and need to be run from tt-metal repository's Actions. Use links below and replace them with your run -->
 - [ ] [All post commit](https://github.com/tenstorrent/tt-metal/actions/workflows/all-post-commit-workflows.yaml) CI passes
 - [ ] [Blackhole Post commit](https://github.com/tenstorrent/tt-metal/actions/workflows/blackhole-post-commit.yaml) CI passes (if applicable)
