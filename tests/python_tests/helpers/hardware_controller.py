@@ -8,7 +8,7 @@ class HardwareController:
     def __init__(self):
         self.chip_architecture = get_chip_architecture()
 
-    def reset(self):
+    def reset_card(self):
         if self.chip_architecture == "blackhole":
             print("Resetting BH card")
             run_shell_command("/home/software/syseng/bh/tt-smi -r 0")
