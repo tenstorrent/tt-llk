@@ -1,9 +1,19 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import sys
 import pytest
 import torch
 from helpers import *
+from ttexalens.tt_exalens_lib import read_words_from_device
+
+TIMESTAMP_ADDRESS = 0x19000
+
+
+def get_cycles(address):
+    timestamps = read_words_from_device("0,0", address, word_count=2)
+    start_time = timestamps[1] << 32 | timestamps[0]
+    return start_time
 
 
 def generate_golden(op, operand1, operand2, data_format, math_fidelity):
@@ -107,7 +117,17 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
 
     run_shell_command("cd .. && make clean")
 
-    assert_tensix_operations_finished()
+    try:
+        assert_tensix_operations_finished()
+    except AssertionError:  # If the test fails, we want to reset the board
+        time_stamp = get_cycles(TIMESTAMP_ADDRESS)
+        time_stamp_1 = get_cycles(TIMESTAMP_ADDRESS + 16)
+        time_stamp_2 = get_cycles(TIMESTAMP_ADDRESS + 32)
+        sys.stdout.write(f"TIME_0 =  {time_stamp}\n")
+        sys.stdout.write(f"TIME_1 =  {time_stamp_1}\n")
+        sys.stdout.write(f"TIME_2 =  {time_stamp_2}\n")
+        raise
+    # assert_tensix_operations_finished()
 
     # check resluts from multiple tiles
     res_from_L1 = []
@@ -140,7 +160,9 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
-
+    sys.stdout.write(f"Golden =  {golden}\n")
+    sys.stdout.write(f"Result =  {res_from_L1}\n")
+    sys.stdout.write(f"length of golden tensor {len(golden_tensor)}\n")
     for i in range(len(golden_tensor)):
         assert torch.isclose(
             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
