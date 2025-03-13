@@ -52,7 +52,7 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize(
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
-def test_fill_dest(testname, formats, dest_acc, hardware_controller):
+def test_fill_dest(testname, formats, dest_acc):
 
     if formats.unpack_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
         pytest.skip(reason="This combination is not fully implemented in testing")
