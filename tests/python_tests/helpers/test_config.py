@@ -1,6 +1,9 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
+from helpers import HardwareController
+
 from .format_arg_mapping import (
     unpack_src_dict,
     unpack_dst_dict,
@@ -55,3 +58,11 @@ def generate_make_command(test_config):
 
     print(make_cmd)
     return make_cmd
+
+@pytest.fixture(scope="function")
+def hardware_controller():
+    # Setup: initialize the hardware controller
+    controller = HardwareController()
+    yield controller
+    # Teardown: reset the hardware
+    controller.reset()
