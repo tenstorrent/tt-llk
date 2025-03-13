@@ -5,6 +5,10 @@ from .utils import get_chip_architecture, run_shell_command
 
 
 class HardwareController:
+    """
+    This class is used for issuing reset commands to TT cards.
+    """
+
     def __init__(self):
         self.chip_architecture = get_chip_architecture()
 
