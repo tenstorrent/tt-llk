@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "sfpi.h"
 #include "ckernel.h"
 #include "ckernel_ops.h"
 #include "debug/fw_debug.h"
+#include "sfpi.h"
 
 using namespace sfpi;
 
@@ -26,13 +26,13 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
     FWLOG1("calculate_dropout() -- probability:%x", probability);
     FWLOG1("calculate_dropout() -- scale:%x", scale);
 
-    TT_SFPLOADI(p_sfpu::LREG1, 10, scale&0xFFFF);
-    TT_SFPLOADI(p_sfpu::LREG1, 8, scale>>16);
-    TT_SFPLOADI(p_sfpu::LREG2, 10, probability&0xFFFF);
-    TT_SFPLOADI(p_sfpu::LREG2, 8, probability>>16);
-    #pragma GCC unroll 0
-    for (int d = 0; d < iterations; d++) {
-
+    TT_SFPLOADI(p_sfpu::LREG1, 10, scale & 0xFFFF);
+    TT_SFPLOADI(p_sfpu::LREG1, 8, scale >> 16);
+    TT_SFPLOADI(p_sfpu::LREG2, 10, probability & 0xFFFF);
+    TT_SFPLOADI(p_sfpu::LREG2, 8, probability >> 16);
+#pragma GCC unroll 0
+    for (int d = 0; d < iterations; d++)
+    {
         ////////////////////////
         // Scale samples
         // dst_reg[0] = dst_reg[0] * s2vFloat16b(scale);
@@ -56,8 +56,8 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
         ///////////////////////
         TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG3, 10);
         TTI_SFPMOV(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
-        TTI_SFPENCC(0,0,0,0);
-        TTI_SFPSTORE(0,0,3,0);
+        TTI_SFPENCC(0, 0, 0, 0);
+        TTI_SFPSTORE(0, 0, 3, 0);
 
         dst_reg++;
     }
