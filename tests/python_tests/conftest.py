@@ -9,8 +9,8 @@ from helpers import HardwareController
 def manage_hardware_controller():
     # Setup: initialize the hardware controller
     controller = HardwareController()
-
+    controller.reset_card()
     yield controller
 
     # Teardown: reset the card after each test
-    controller.reset_card()
+    # controller.reset_card()

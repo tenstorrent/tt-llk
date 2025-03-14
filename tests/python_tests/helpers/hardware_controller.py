@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
+import time
 from .utils import get_chip_architecture, run_shell_command
 
 
@@ -16,6 +17,7 @@ class HardwareController:
         if self.chip_architecture == "blackhole":
             print("Resetting BH card")
             run_shell_command("/home/software/syseng/bh/tt-smi -r 0")
+            time.sleep(1)
         elif self.chip_architecture == "wormhole":
             print("Resetting WH card")
             run_shell_command("/home/software/syseng/wh/tt-smi -wr 0")
