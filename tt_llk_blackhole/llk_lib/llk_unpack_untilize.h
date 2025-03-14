@@ -185,14 +185,12 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
         semaphore_post(semaphore::UNPACK_SYNC);
 
         set_dst_write_addr(unp_cfg_context, (const uint32_t)DataFormat::UInt32);
+        wait_for_dest_available();
 
         // Stall unpacker until pending CFG writes from Trisc have completed
         TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
         DPRINT << "*********** Start of execution, pass " << (first_pass ? 1 : 2) << " *************" << ENDL();
-
-        // Trisc::SEMPOST for context acquire
-        semaphore_post(semaphore::UNPACK_SYNC);
 
         std::uint32_t face_2xr_cnt = 0;
         for (std::uint32_t r = 0; r < FACE_HEIGHT; r++) {
@@ -204,25 +202,39 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
                     // Run MOP
                     DPRINT << "If branch, r = " << r << " . Run MOP " << 8 - face_2xr_cnt << " times." << ENDL();
                     //TT_MOP(0, 8 - face_2xr_cnt - 1, unp_cfg_context == 0 ? 0 : 0xff);                                              // Run the MOP
-                    
+                    DPRINT << "MAX I IS:" << 8 - face_2xr_cnt << ENDL();
                     for (uint32_t i = 0; i < 8 - face_2xr_cnt; i++) {
+                        DPRINT << "Current i is: " << i << ENDL();
                         TTI_DMANOP;// WRCFG that sets offset in previous loop needs additional cycle to complete
                         TTI_UNPACR(SrcA, 0b01000001/*CH1_Y+=1, CH0_Z+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                        DPRINT << "Test 1" << ENDL();
                         TTI_UNPACR(SrcA, 0b01000001/*CH1_Y+=1, CH0_Z+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                        DPRINT << "Test 2" << ENDL();
+
                         TTI_ADDDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_SIZE);
+                        DPRINT << "Test 3" << ENDL();
+
                         //Need to stall WRCFG on the addition from ADDDMAREG
                         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+                        DPRINT << "Test 4" << ENDL();
+
                         //Resets SrcA Z counter CR, which should point to initial Z counter value 
                         TTI_ADDRCRZW(0b001, 0, 0, 0, 0, 0b0001/*CH0_Z*/);
+                        DPRINT << "Test 5" << ENDL();
+
                     }
 
     #if SKIP_UNP == 1
                     TTI_NOP;
     #else
+                    DPRINT << "Test 6" << ENDL();
+
                     TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);  // set data valid
+                    DPRINT << "Test 7" << ENDL();
                     TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
     #endif
                     TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1000);  // Clear srcA addr y cnt
+                    DPRINT << "Test 8" << ENDL();
                     rem_blocks_in_row -= (8 - face_2xr_cnt);
                     face_2xr_cnt = 0;
                     DPRINT << "rem_blocks_in_row = " << rem_blocks_in_row << ENDL();
@@ -249,9 +261,14 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
                     //}
                 }
             } while (rem_blocks_in_row > 0);
-
+            
             TTI_MULDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr::ZERO); // TILE_OFFSET=TILE_OFFSET*0
             TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+            if (0 == unp_cfg_context) {
+                TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_address_ADDR32);
+            } else {
+                TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_cntx1_address_ADDR32);
+            }
             TTI_INCADCXY(0b001, 0, 0, 1, 0);  // inc l1 addr y cnt
         }
 
