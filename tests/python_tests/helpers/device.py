@@ -44,7 +44,7 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
         run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
 
 
-def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile_cnt=1):
+def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_A_format, stimuli_B_format, core_loc="0,0", tile_cnt=1):
 
     BUFFER_SIZE = 4096
     TILE_SIZE = 1024
@@ -71,10 +71,11 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile
             DataFormat.Int32: pack_int32,
         }
 
-        pack_function = packers.get(stimuli_format)
+        pack_function_A = packers.get(stimuli_A_format)
+        pack_function_B = packers.get(stimuli_B_format)
 
-        write_to_device(core_loc, buffer_A_address, pack_function(buffer_A_tile))
-        write_to_device(core_loc, buffer_B_address, pack_function(buffer_B_tile))
+        write_to_device(core_loc, buffer_A_address, pack_function_A(buffer_A_tile))
+        write_to_device(core_loc, buffer_B_address, pack_function_B(buffer_B_tile))
 
         buffer_A_address += BUFFER_SIZE
         buffer_B_address += BUFFER_SIZE
@@ -104,7 +105,7 @@ def get_result_from_device(
         num_args = len(inspect.signature(unpack_func).parameters)
         if num_args > 1:
             return unpack_func(
-                read_data_bytes, formats.unpack_src, formats.pack_dst
+                read_data_bytes, formats.unpack_A_src, formats.pack_dst
             )  # Bug patchup in (unpack.py): in case unpack_src is Bfp8_b != pack_dst, L1 must be read in different order to extract correct results
         else:
             return unpack_func(read_data_bytes)

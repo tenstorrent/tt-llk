@@ -25,20 +25,36 @@ mathop_args_dict = {
     "reduce_scalar": "REDUCE_SCALAR_OPERATION",
 }
 
-unpack_src_dict = {
-    DataFormat.Float32: "UNPACK_SRC_FLOAT32",
-    DataFormat.Float16: "UNPACK_SRC_FLOAT16",
-    DataFormat.Float16_b: "UNPACK_SRC_FLOAT16_B",
-    DataFormat.Bfp8_b: "UNPACK_SRC_BFP8_B",
-    DataFormat.Int32: "UNPACK_SRC_INT32",
+unpack_A_src_dict = {
+    DataFormat.Float32: "UNPACK_A_SRC_FLOAT32",
+    DataFormat.Float16: "UNPACK_A_SRC_FLOAT16",
+    DataFormat.Float16_b: "UNPACK_A_SRC_FLOAT16_B",
+    DataFormat.Bfp8_b: "UNPACK_A_SRC_BFP8_B",
+    DataFormat.Int32: "UNPACK_A_SRC_INT32",
 }
 
-unpack_dst_dict = {
-    DataFormat.Float32: "UNPACK_DST_FLOAT32",
-    DataFormat.Float16: "UNPACK_DST_FLOAT16",
-    DataFormat.Float16_b: "UNPACK_DST_FLOAT16_B",
-    DataFormat.Bfp8_b: "UNPACK_DST_BFP8_B",
-    DataFormat.Int32: "UNPACK_DST_INT32",
+unpack_A_dst_dict = {
+    DataFormat.Float32: "UNPACK_A_DST_FLOAT32",
+    DataFormat.Float16: "UNPACK_A_DST_FLOAT16",
+    DataFormat.Float16_b: "UNPACK_A_DST_FLOAT16_B",
+    DataFormat.Bfp8_b: "UNPACK_A_DST_BFP8_B",
+    DataFormat.Int32: "UNPACK_A_DST_INT32",
+}
+
+unpack_B_src_dict = {
+    DataFormat.Float32: "UNPACK_B_SRC_FLOAT32",
+    DataFormat.Float16: "UNPACK_B_SRC_FLOAT16",
+    DataFormat.Float16_b: "UNPACK_B_SRC_FLOAT16_B",
+    DataFormat.Bfp8_b: "UNPACK_B_SRC_BFP8_B",
+    DataFormat.Int32: "UNPACK_B_SRC_INT32",
+}
+
+unpack_B_dst_dict = {
+    DataFormat.Float32: "UNPACK_B_DST_FLOAT32",
+    DataFormat.Float16: "UNPACK_B_DST_FLOAT16",
+    DataFormat.Float16_b: "UNPACK_B_DST_FLOAT16_B",
+    DataFormat.Bfp8_b: "UNPACK_B_DST_BFP8_B",
+    DataFormat.Int32: "UNPACK_B_DST_INT32",
 }
 
 math_dict = {

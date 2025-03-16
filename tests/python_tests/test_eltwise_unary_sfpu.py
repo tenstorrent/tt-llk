@@ -25,7 +25,7 @@ def generate_golden(operation, operand1, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32], all_same=True
+    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32], all_same=True, same_src_reg_format= True # setting src_A and src_B register to have same format
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["eltwise_unary_sfpu_test"],
@@ -44,13 +44,13 @@ param_ids = generate_param_ids(all_params)
 )
 def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  #
     if (
-        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
+        formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
         and dest_acc != "DEST_ACC"
     ):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-    if formats.unpack_src == DataFormat.Float16 and (
+    if formats.unpack_A_src == DataFormat.Float16 and (
         (dest_acc == "" and get_chip_architecture() == "blackhole")
         or (dest_acc == "DEST_ACC" and get_chip_architecture() == "wormhole")
     ):
@@ -63,9 +63,9 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
         run_shell_command(f"cd .. && make clean")
         run_shell_command(f"tt-smi -r 0")
 
-    src_A, src_B = generate_stimuli(formats.unpack_src, sfpu=True)
+    src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src,sfpu=True)
     golden = generate_golden(mathop, src_A, formats.pack_dst)
-    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src)
 
     test_config = {
         "formats": formats,

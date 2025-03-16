@@ -49,7 +49,7 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.skip(reason="Not fully implemented")
 def test_all(testname, formats, dest_acc, mathop):
     if (
-        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
+        formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
         and dest_acc != "DEST_ACC"
     ):
         pytest.skip(
@@ -63,9 +63,9 @@ def test_all(testname, formats, dest_acc, mathop):
         run_shell_command(f"cd .. && make clean")
         run_shell_command(f"tt-smi -r 0")
 
-    src_A, src_B = generate_stimuli(formats.unpack_src)
+    src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
     golden = generate_golden(mathop, src_A, src_B, formats.pack_dst)
-    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src)
 
     test_config = {
         "formats": formats,

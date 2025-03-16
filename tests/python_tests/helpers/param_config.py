@@ -16,7 +16,7 @@ def manage_included_params(func):
 
 @manage_included_params
 def generate_format_combinations(
-    included_params, formats: List[DataFormat], all_same: bool
+    included_params, formats: List[DataFormat], all_same: bool, same_src_reg_format: bool = True
 ) -> List[FormatConfig]:
     """
     Generates a list of FormatConfig instances based on the given formats and the 'all_same' flag.
@@ -46,9 +46,9 @@ def generate_format_combinations(
      FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float32, math=DataFormat.Float32, pack_src=DataFormat.Float32, pack_dst=DataFormat.Float32)]
     """
     if all_same:
-        return [FormatConfig(fmt, fmt, fmt, fmt, fmt) for fmt in formats]
+        return [FormatConfig(unpack_A_src= fmt, unpack_A_dst= fmt, math= fmt, pack_src= fmt, pack_dst= fmt, same_src_format= same_src_reg_format) for fmt in formats]
     return [
-        FormatConfig(unpack_src, unpack_dst, math, pack_src, pack_dst)
+        FormatConfig(unpack_A_src= unpack_src, unpack_A_dst= unpack_dst, math= math, pack_src= pack_src, pack_dst= pack_dst, same_src_format= same_src_reg_format)
         for unpack_src in formats
         for unpack_dst in formats
         for math in formats
@@ -204,12 +204,22 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
 
         # Start with the FormatConfig information
         result = [
-            f"unpack_src={format_config.unpack_src.value}",
-            f"unpack_dst={format_config.unpack_dst.value}",
+            f"unpack_A_src={format_config.unpack_A_src.value}",
+            f"unpack_A_dst={format_config.unpack_A_dst.value}",
+        ]
+
+        # Only add unpack_B_src and unpack_B_dst if they are not None
+        if format_config.unpack_B_src:
+            result.append(f"unpack_B_src={format_config.unpack_B_src.value}")
+        if format_config.unpack_B_dst:
+            result.append(f"unpack_B_dst={format_config.unpack_B_dst.value}")
+
+        # Add the rest of the required parameters
+        result.extend([
             f"math={format_config.math.value}",
             f"pack_src={format_config.pack_src.value}",
             f"pack_dst={format_config.pack_dst.value}",
-        ]
+        ])
 
         # Include optional parameters based on `included_params`
         param_names = [
@@ -225,9 +235,8 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
         # Loop through the parameters and add them to the result if they are not None
         for param_name, value in param_names:
             if value is not None and param_name in included_params:
-                result.append(f"| {param_name}={value}")
+                result.append(f"{param_name}={value}")
 
-        # Join the result list into a single string with appropriate spacing
         return " | ".join(result)
 
     # Generate and return formatted strings for all parameter combinations

@@ -54,7 +54,7 @@ param_ids = generate_param_ids(all_params)
 )
 def test_fill_dest(testname, formats, dest_acc):
 
-    if formats.unpack_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
+    if formats.unpack_A_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
         pytest.skip(reason="This combination is not fully implemented in testing")
 
     #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
@@ -67,9 +67,9 @@ def test_fill_dest(testname, formats, dest_acc):
     pack_start_address = 0x1C000
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(16)]
 
-    src_A, src_B = generate_stimuli(formats.unpack_src)
+    src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
     golden = generate_golden([2] * 16, src_A, src_B, formats.pack_dst)
-    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src)
 
     test_config = {
         "formats": formats,

@@ -64,7 +64,7 @@ param_ids = generate_param_ids(all_params)
 def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
     if (
         mathop in range(1, 4)
-        and formats.unpack_src == DataFormat.Float16
+        and formats.unpack_A_src == DataFormat.Float16
         and dest_acc == "DEST_ACC"
     ):
         pytest.skip(reason="This combination is not fully implemented in testing")
@@ -81,10 +81,10 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
 
     src_A, src_B = generate_stimuli(
-        formats.unpack_src, tile_cnt=tile_cnt
+        formats.unpack_A_src, formats.unpack_B_src,tile_cnt=tile_cnt
     )  # , const_face=True, const_value_A=3, const_value_B=2)
     golden = generate_golden(mathop, src_A, src_B, formats.pack_dst, math_fidelity)
-    write_stimuli_to_l1(src_A, src_B, formats.unpack_src, "0,0", tile_cnt)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src, "0,0", tile_cnt)
 
     if mathop != 3:
         math_fidelity = 0

@@ -12,6 +12,7 @@ def generate_golden(operand1, format):
 
 
 full_sweep = False
+
 all_format_combos = generate_format_combinations(
     formats=[
         DataFormat.Float32,
@@ -21,6 +22,7 @@ all_format_combos = generate_format_combinations(
         DataFormat.Int32,
     ],
     all_same=True,
+    same_src_reg_format= True # setting src_A and src_B register to have same format
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 dest_acc = ["", "DEST_ACC"]
 testname = ["eltwise_unary_datacopy_test"]
@@ -33,10 +35,10 @@ param_ids = generate_param_ids(all_params)
 )
 def test_unary_datacopy(testname, formats, dest_acc):
 
-    if formats.unpack_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
+    if formats.unpack_A_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
         pytest.skip(reason="This combination is not fully implemented in testing")
     if (
-        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
+        formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
         and dest_acc != "DEST_ACC"
     ):
         pytest.skip(
@@ -50,10 +52,10 @@ def test_unary_datacopy(testname, formats, dest_acc):
         run_shell_command(f"cd .. && make clean")
         run_shell_command(f"tt-smi -r 0")
 
-    src_A, src_B = generate_stimuli(formats.unpack_src)
+    src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
     srcB = torch.full((1024,), 0)
     golden = generate_golden(src_A, formats.pack_dst)
-    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src)
 
     test_config = {
         "formats": formats,

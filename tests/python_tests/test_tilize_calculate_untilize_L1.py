@@ -77,14 +77,14 @@ def test_tilize_calculate_untilize_L1(
         run_shell_command(f"cd .. && make clean")
         run_shell_command(f"tt-smi -r 0")
 
-    src_A, src_B = generate_stimuli(formats.unpack_src, tile_cnt)
+    src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src, tile_cnt)
 
     golden_tensor = generate_golden(
         mathop, src_A, src_B, formats.pack_dst, math_fidelity
     )
     print(golden_tensor.view(32, 32))
 
-    write_stimuli_to_l1(src_A, src_B, formats.unpack_src, "0,0", tile_cnt)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src, "0,0", tile_cnt)
 
     test_config = {
         "formats": formats,

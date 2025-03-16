@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .format_arg_mapping import (
-    unpack_src_dict,
-    unpack_dst_dict,
+    unpack_A_dst_dict,
+    unpack_A_src_dict,
+    unpack_B_dst_dict,
+    unpack_B_src_dict,
     pack_src_dict,
     pack_dst_dict,
     math_dict,
@@ -19,7 +21,9 @@ def generate_make_command(test_config):
     testname = test_config.get("testname")
     dest_acc = test_config.get("dest_acc", " ")  # default is not 32 bit dest_acc
 
-    make_cmd += f"unpack_src={unpack_src_dict[formats.unpack_src]} unpack_dst={unpack_dst_dict[formats.unpack_dst]} fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "
+    
+    make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.unpack_A_src]} unpack_A_dst={unpack_A_dst_dict[formats.unpack_A_dst]} unpack_B_src={unpack_B_src_dict[formats.unpack_B_src]} unpack_B_dst={unpack_B_dst_dict[formats.unpack_B_dst]} "
+    make_cmd += f"fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "
 
     make_cmd += f"testname={testname} dest_acc={dest_acc} "
     mathop = test_config.get("mathop", "no_mathop")
