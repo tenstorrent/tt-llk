@@ -30,23 +30,26 @@ def collect_results(
 
 
 def run_elf_files(testname, core_loc="0,0", run_brisc=True):
-
     ELF_LOCATION = "../build/elf/"
 
     if run_brisc:
         run_elf(f"{ELF_LOCATION}brisc.elf", core_loc, risc_id=0)
+
     context = check_context()
     device = context.devices[0]
-    RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address(
-        "RISCV_DEBUG_REG_SOFT_RESET_0"
-    )
+    RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address("RISCV_DEBUG_REG_SOFT_RESET_0")
+
+    # Perform soft reset
     soft_reset = read_word_from_device(core_loc, RISC_DBG_SOFT_RESET0)
     soft_reset |= 0x7800
     write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
+
+    # Load ELF files
     for i in range(3):
         load_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
 
-    soft_reset &= 0x87FF
+    # Clear soft reset
+    soft_reset &= ~0x7800
     write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
 
 
