@@ -18,14 +18,14 @@ int main()
 {
     volatile std::uint64_t* TIMESTAMP_ADDRESS = reinterpret_cast<volatile std::uint64_t*>(0x19000);
 #if defined(LLK_TRISC_UNPACK)
-    const std::uint32_t core_idx       = 0;
-    volatile std::uint32_t* mailbox    = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
+    const std::uint32_t core_idx          = 0;
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
 #elif defined(LLK_TRISC_MATH)
-    const std::uint32_t core_idx       = 1;
-    volatile std::uint32_t* mailbox    = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
+    const std::uint32_t core_idx          = 1;
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
 #elif defined(LLK_TRISC_PACK)
-    const std::uint32_t core_idx       = 2;
-    volatile std::uint32_t* mailbox    = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
+    const std::uint32_t core_idx          = 2;
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
 #endif
     std::uint64_t wall_clock = ckernel::read_wall_clock();
 
