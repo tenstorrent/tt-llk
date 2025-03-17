@@ -37,7 +37,9 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
 
     context = check_context()
     device = context.devices[0]
-    RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address("RISCV_DEBUG_REG_SOFT_RESET_0")
+    RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address(
+        "RISCV_DEBUG_REG_SOFT_RESET_0"
+    )
 
     # Perform soft reset
     soft_reset = read_word_from_device(core_loc, RISC_DBG_SOFT_RESET0)
