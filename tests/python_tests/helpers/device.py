@@ -123,7 +123,7 @@ def assert_value_with_timeout(core_loc, mailbox_addr, timeout=0, poll_interval=0
 
     while time.time() < end_time:
         if read_word_from_device(core_loc, mailbox_addr) == 1:
-            break
+            return True
         time.sleep(poll_interval)
 
     # If the loop finishes without breaking, that means the condition was never true
