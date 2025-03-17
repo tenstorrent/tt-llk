@@ -12,5 +12,4 @@ def manage_hardware_controller():
     controller.reset_card()
     yield controller
 
-    # Teardown: reset the card after each test
-    # controller.reset_card()
+    # Teardown:

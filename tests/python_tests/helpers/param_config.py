@@ -108,7 +108,6 @@ def generate_params(
             if value is not None
         ]
     )
-    print(included_params)
     return [
         (
             testname,

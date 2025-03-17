@@ -48,12 +48,6 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
 
     soft_reset &= 0x87FF
     write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
-    # Added because there was a race that caused failure in test_eltwise_unary_datacopy,
-    # and now cores are run in revese order PACK, MATH, UNOPACK
-    # Once that issue is reolved with tt-exalens code will be returned to normal for loop
-
-    # for i in reversed(range(3)):
-    #     run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
 
 
 def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile_cnt=1):
