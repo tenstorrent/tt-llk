@@ -27,7 +27,7 @@ int main()
     static constexpr uint32_t core_idx = 2;
     volatile std::uint32_t* mailbox    = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
 #endif
-    uint64_t wall_clock = ckernel::read_wall_clock();
+    std::uint64_t wall_clock = ckernel::read_wall_clock();
 
     *(TIMESTAMP_ADDRESS + core_idx * 2) = wall_clock;
     *mailbox                            = 0x2; // write value different than 1 to mailbox to indicate kernel is running
