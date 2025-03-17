@@ -44,15 +44,15 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
         run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
 
 
-def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_A_format, stimuli_B_format, core_loc="0,0", tile_cnt=1):
+def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_A_format, stimuli_B_format, core_loc="0,0", tile_cnt=TileCount.One):
 
     BUFFER_SIZE = 4096
     TILE_SIZE = 1024
 
     buffer_A_address = 0x1A000
-    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt
+    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt.value
 
-    for i in range(tile_cnt):
+    for i in range(tile_cnt.value):
 
         start_index = TILE_SIZE * i
         end_index = start_index + TILE_SIZE

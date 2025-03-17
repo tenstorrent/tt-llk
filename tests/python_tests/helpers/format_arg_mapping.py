@@ -12,19 +12,6 @@ format_dict = {
     DataFormat.Int32: torch.int32,
 }
 
-
-mathop_args_dict = {
-    "elwadd": "ELTWISE_BINARY_ADD",
-    "elwsub": "ELTWISE_BINARY_SUB",
-    "elwmul": "ELTWISE_BINARY_MUL",
-    "sqrt": "SFPU_OP_SQRT",
-    "square": "SFPU_OP_SQUARE",
-    "log": "SFPU_OP_LOG",
-    "reduce_col": "REDUCE_COL_OPERATION",
-    "reduce_row": "REDUCE_ROW_OPERATION",
-    "reduce_scalar": "REDUCE_SCALAR_OPERATION",
-}
-
 unpack_A_src_dict = {
     DataFormat.Float32: "UNPACK_A_SRC_FLOAT32",
     DataFormat.Float16: "UNPACK_A_SRC_FLOAT16",
@@ -89,15 +76,61 @@ format_sizes = {
     DataFormat.Int32: 1024,
 }
 
-reduce_dim_args = {
-    "reduce_col": "ReduceDim::REDUCE_COL",
-    "reduce_row": "ReduceDim::REDUCE_ROW",
-    "reduce_scalar": "ReduceDim::REDUCE_SCALAR",
-    "no_reduce_dim": " ",
-}
+class MathOperation(Enum):
+    """
+    An enumeration class that holds all the math operations supported by the LLKs.
+    Used to avoid hardcoding the operation strings in the test scripts using strings. This avoid typos and future errors.
+    MathOperations(Enum) class instances can be compared via unique values.
+    When you have a set of related constants and you want to leverage the benefits of enumeration (unique members, comparisons, introspection, etc.).
+    It's a good choice for things like state machines, categories, or settings where values should not be changed or duplicated.
+    """
 
-reduce_pool_args = {
-    "max": "PoolType::MAX",
-    "sum": "PoolType::SUM",
-    "avg": "PoolType::AVG",
-}
+    Elwadd = "ELTWISE_BINARY_ADD"
+    Elwsub = "ELTWISE_BINARY_SUB"
+    Elwmul = "ELTWISE_BINARY_MUL"
+    Sqrt = "SFPU_OP_SQRT"
+    Square = "SFPU_OP_SQUARE"
+    Log = "SFPU_OP_LOG"
+    ReduceCol = "REDUCE_COL_OPERATION"
+    ReduceRow = "REDUCE_ROW_OPERATION"
+    ReduceScalar = "REDUCE_SCALAR_OPERATION"
+    
+    ADD = 1
+    SUB = 2
+    MUL = 3
+
+class ReduceDimArgs(Enum):
+    ReduceCol = "ReduceDim::REDUCE_COL"
+    ReduceRow = "ReduceDim::REDUCE_ROW"
+    ReduceScalar = "ReduceDim::REDUCE_SCALAR"
+    NoReduceDim = " "
+
+class ReducePoolArgs(Enum):
+    Max = "PoolType::MAX"
+    Sum = "PoolType::SUM"
+    Avg = "PoolType::AVG"
+    
+class DestAccumulation(Enum):
+    Yes = "DEST_ACC"
+    No = ""
+
+class ApproxMode(Enum):
+    Yes = "true"
+    No = "false"
+    
+class Fidelity(Enum):
+    LoFi = 0
+    HiFi2 = 2
+    HiFi3 = 3
+    HiFi4 = 4
+    Inavlid = 5
+    
+class TileCount(Enum):
+    One = 1
+    Two = 2
+    Three = 3
+    Four = 4
+    
+    
+
+    

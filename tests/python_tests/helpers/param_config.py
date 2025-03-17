@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 from dataclasses import dataclass
 from typing import List, Optional
+from .format_arg_mapping import *
 from .format_config import FormatConfig, DataFormat
 
 
@@ -62,7 +63,7 @@ def generate_params(
     included_params,
     testnames: List[str],
     format_combos: List[FormatConfig],
-    dest_acc: Optional[List[str]] = None,
+    dest_acc: Optional[DestAccumulation] = None,
     approx_mode: Optional[List[str]] = None,
     mathop: Optional[List[str]] = None,
     math_fidelity: Optional[List[int]] = None,

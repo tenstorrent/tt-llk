@@ -14,9 +14,9 @@ def generate_golden(operation, operand1, data_format):
         .to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
     )
     ops = {
-        "sqrt": lambda x: math.sqrt(x),
-        "square": lambda x: x * x,
-        "log": lambda x: math.log(x) if x != 0 else float("nan"),
+        MathOperation.Sqrt: lambda x: math.sqrt(x),
+        MathOperation.Square: lambda x: x * x,
+        MathOperation.Log: lambda x: math.log(x) if x != 0 else float("nan"),
     }
     if operation not in ops:
         raise ValueError("Unsupported operation!")
@@ -30,9 +30,9 @@ all_format_combos = generate_format_combinations(
 all_params = generate_params(
     ["eltwise_unary_sfpu_test"],
     all_format_combos,
-    dest_acc=["", "DEST_ACC"],
-    approx_mode=["false", "true"],
-    mathop=["sqrt", "log", "square"],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    approx_mode=[ApproxMode.No, ApproxMode.Yes],
+    mathop=[MathOperation.Sqrt, MathOperation.Log, MathOperation.Square],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -45,14 +45,14 @@ param_ids = generate_param_ids(all_params)
 def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  #
     if (
         formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
-        and dest_acc != "DEST_ACC"
+        and dest_acc != DestAccumulation.Yes
     ):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
     if formats.unpack_A_src == DataFormat.Float16 and (
-        (dest_acc == "" and get_chip_architecture() == "blackhole")
-        or (dest_acc == "DEST_ACC" and get_chip_architecture() == "wormhole")
+        (dest_acc == DestAccumulation.No and get_chip_architecture() == "blackhole")
+        or (dest_acc == DestAccumulation.Yes and get_chip_architecture() == "wormhole")
     ):
         pytest.skip(reason="This combination is not fully implemented in testing")
 

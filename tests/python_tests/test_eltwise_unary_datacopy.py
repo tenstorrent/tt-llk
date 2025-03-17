@@ -45,7 +45,7 @@ all_format_combos = generate_format_combinations(
     all_same=True,
     same_src_reg_format= True # setting src_A and src_B register to have same format
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
-dest_acc = ["", "DEST_ACC"]
+dest_acc = [DestAccumulation.No, DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, all_format_combos, dest_acc)
 param_ids = generate_param_ids(all_params)
@@ -56,11 +56,11 @@ param_ids = generate_param_ids(all_params)
 )
 def test_unary_datacopy(testname, formats, dest_acc):
 
-    if formats.unpack_A_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
+    if formats.unpack_A_src == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
         pytest.skip(reason="This combination is not fully implemented in testing")
     if (
         formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
-        and dest_acc != "DEST_ACC"
+        and dest_acc != DestAccumulation.Yes
     ):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
