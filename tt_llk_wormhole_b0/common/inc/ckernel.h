@@ -305,14 +305,11 @@ inline void reg_write(uint32_t addr, uint32_t data)
 
 inline void wait(uint32_t cycles)
 {
-    volatile uint tt_reg_ptr *clock_lo = reinterpret_cast<volatile uint tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_L);
-    volatile uint tt_reg_ptr *clock_hi = reinterpret_cast<volatile uint tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_H);
-    uint64_t wall_clock_timestamp      = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
-    uint64_t wall_clock                = 0;
-    do
+    uint64_t target_timestamp = read_wall_clock() + cycles;
+    while (read_wall_clock() < target_timestamp)
     {
-        wall_clock = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
-    } while (wall_clock < (wall_clock_timestamp + cycles));
+        // Busy wait
+    }
 }
 
 // Clear dest
