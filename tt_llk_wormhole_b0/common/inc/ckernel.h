@@ -615,4 +615,5 @@ inline void init_prng_seed(const uint seed)
     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
     // PRNG needs some 500 cycles to initialize (source: HW design team)
     wait(500);
+}
 } // namespace ckernel
