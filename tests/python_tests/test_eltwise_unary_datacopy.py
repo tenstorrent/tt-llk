@@ -13,24 +13,24 @@ def generate_golden(operand1, format):
 
 full_sweep = False
 #  This is an example of how users can define and create their own format combinations for testing specific cases they're interested in
-generate_format_selection = create_formats( 
-    [ 
+generate_format_selection = create_formats_for_testing(
+    [
         (
-        DataFormat.Float16,         # index 0 is for unpack_A_src
-        DataFormat.Float16_b,       # index 1 is for unpack_A_dst
-        DataFormat.Bfp8_b,          # index 2 is for pack_src (if src registers have same formats)
-        DataFormat.Int32,           # index 3 is for pack_dst
-        DataFormat.Float32,         # index 4 is for math format
-        ), 
+            DataFormat.Float16,  # index 0 is for unpack_A_src
+            DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+            DataFormat.Bfp8_b,  # index 2 is for pack_src (if src registers have same formats)
+            DataFormat.Int32,  # index 3 is for pack_dst
+            DataFormat.Float32,  # index 4 is for math format
+        ),
         (
-        DataFormat.Float32,         # index 0 is for unpack_A_src
-        DataFormat.Float32,         # index 1 is for unpack_A_dst
-        DataFormat.Bfp8_b,          # index 2 is for unpack_B_src (inputs to src registers have different formats)
-        DataFormat.Int32,           # index 3 is for unpack_B_dst (inputs to src registers have different formats)
-        DataFormat.Float32,         # index 4 is for pack_src (if src registers have same formats)
-        DataFormat.Int32,           # index 5 is for pack_dst
-        DataFormat.Float32,         # index 6 is for math format
-        )
+            DataFormat.Float32,  # index 0 is for unpack_A_src
+            DataFormat.Float32,  # index 1 is for unpack_A_dst
+            DataFormat.Bfp8_b,  # index 2 is for unpack_B_src (inputs to src registers have different formats)
+            DataFormat.Int32,  # index 3 is for unpack_B_dst (inputs to src registers have different formats)
+            DataFormat.Float32,  # index 4 is for pack_src (if src registers have same formats)
+            DataFormat.Int32,  # index 5 is for pack_dst
+            DataFormat.Float32,  # index 6 is for math format
+        ),
     ]
 )
 
@@ -43,7 +43,7 @@ all_format_combos = generate_format_combinations(
         DataFormat.Int32,
     ],
     all_same=True,
-    same_src_reg_format= True # setting src_A and src_B register to have same format
+    same_src_reg_format=True,  # setting src_A and src_B register to have same format
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 dest_acc = [DestAccumulation.No, DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]

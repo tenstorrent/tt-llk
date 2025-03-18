@@ -35,19 +35,19 @@ class FormatConfig:
     pack_src (DataFormat): The source format for the Packer.
     pack_dst (DataFormat): The destination format for the Packer.
     math (DataFormat): The format used for _llk_math_ functions.
-    
+
     Optional Parameters:
-    same_src_format (bool): If `True`, the formats for source registers A and B will be the same for unpack operations. 
+    same_src_format (bool): If `True`, the formats for source registers A and B will be the same for unpack operations.
     If `False`, source registers A and B have different formats formats must be specified. Defaults to `True`.
-                             
+
     unpack_B_src (Optional[DataFormat]): The source format for source register B in the Unpacker which is the format of our data in L1, used only if `same_src_format=False` i.e when source regosters don't share the same formats we distinguish source register A and B formats.
     unpack_B_dst (Optional[DataFormat]): The destination format for source register B in the Unpacker, which is the format of our data in src register used only if `same_src_format=False` i.e when source registers don't share the same formats we distinguish source register A and B formats.
 
     Example:
     >>> formats = FormatConfig(
-    >>>     unpack_A_src=DataFormat.Float32, 
-    >>>     unpack_A_dst=DataFormat.Float16, 
-    >>>     pack_src=DataFormat.Float16, 
+    >>>     unpack_A_src=DataFormat.Float32,
+    >>>     unpack_A_dst=DataFormat.Float16,
+    >>>     pack_src=DataFormat.Float16,
     >>>     pack_dst=DataFormat.Float32,
     >>>     math=DataFormat.Float32    # same_src_format defaults to True, thus our source registers have same formats and we don't need to define formats for source register B
     >>> )
@@ -59,18 +59,24 @@ class FormatConfig:
 
     unpack_A_src: DataFormat
     unpack_A_dst: DataFormat
-    unpack_B_src: Optional[DataFormat] 
+    unpack_B_src: Optional[DataFormat]
     unpack_B_dst: Optional[DataFormat]
     pack_src: DataFormat
     pack_dst: DataFormat
-    math: DataFormat 
+    math: DataFormat
 
-    def __init__(self, unpack_A_src: DataFormat, unpack_A_dst: DataFormat,
-                 pack_src: DataFormat, pack_dst: DataFormat,
-                 math: DataFormat, same_src_format: bool = True,
-                 unpack_B_src: Optional[DataFormat] = None,
-                 unpack_B_dst: Optional[DataFormat] = None):
-        
+    def __init__(
+        self,
+        unpack_A_src: DataFormat,
+        unpack_A_dst: DataFormat,
+        pack_src: DataFormat,
+        pack_dst: DataFormat,
+        math: DataFormat,
+        same_src_format: bool = True,
+        unpack_B_src: Optional[DataFormat] = None,
+        unpack_B_dst: Optional[DataFormat] = None,
+    ):
+
         self.unpack_A_src = unpack_A_src
         self.unpack_A_dst = unpack_A_dst
         self.pack_src = pack_src
@@ -82,12 +88,13 @@ class FormatConfig:
         else:
             self.unpack_B_src = unpack_A_src
             self.unpack_B_dst = unpack_A_dst
-        
-def create_formats(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
+
+
+def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
     """
-    A function that creates a list of FormatConfig objects from a list of DataFormat objects.
-    This function is useful for creating a list of FormatConfig objects for testing multiple formats combinations 
-    and cases which the user has defined and wants to specifically test instead of a full format flush.
+    A function that creates a list of FormatConfig objects from a list of DataFormat objects that client wants to test.
+    This function is useful for creating a list of FormatConfig objects for testing multiple formats combinations
+    and cases which the user has specifically defined and wants to particularly test instead of a full format flush.
 
     Args:
     formats (List[Tuple[DataFormat]]): A list of tuples of DataFormat objects for which FormatConfig objects need to be created.
@@ -97,7 +104,7 @@ def create_formats(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
 
     Example:
     >>> formats = [(DataFormat.Float16, DataFormat.Float32, DataFormat.Float16, DataFormat.Float32, DataFormat.Float32)]
-    >>> format_configs = create_formats(formats)
+    >>> format_configs = create_formats_for_testing(formats)
     >>> print(format_configs[0].unpack_A_src)
     DataFormat.Float16
     >>> print(format_configs[0].unpack_B_src)
@@ -106,7 +113,26 @@ def create_formats(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
     format_configs = []
     for format_tuple in formats:
         if len(format_tuple) == 5:
-            format_configs.append(FormatConfig(unpack_A_src=format_tuple[0], unpack_A_dst=format_tuple[1], pack_src=format_tuple[2], pack_dst=format_tuple[3], math=format_tuple[4]))
+            format_configs.append(
+                FormatConfig(
+                    unpack_A_src=format_tuple[0],
+                    unpack_A_dst=format_tuple[1],
+                    pack_src=format_tuple[2],
+                    pack_dst=format_tuple[3],
+                    math=format_tuple[4],
+                )
+            )
         else:
-            format_configs.append(FormatConfig(unpack_A_src=format_tuple[0], unpack_A_dst=format_tuple[1], unpack_B_src=format_tuple[2], unpack_B_dst=format_tuple[3], pack_src=format_tuple[4], pack_dst=format_tuple[5], math=format_tuple[6], same_src_format=False))
+            format_configs.append(
+                FormatConfig(
+                    unpack_A_src=format_tuple[0],
+                    unpack_A_dst=format_tuple[1],
+                    unpack_B_src=format_tuple[2],
+                    unpack_B_dst=format_tuple[3],
+                    pack_src=format_tuple[4],
+                    pack_dst=format_tuple[5],
+                    math=format_tuple[6],
+                    same_src_format=False,
+                )
+            )
     return format_configs
