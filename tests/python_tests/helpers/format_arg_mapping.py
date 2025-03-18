@@ -115,7 +115,7 @@ class DestAccumulation(Enum):
     No = ""
 
 
-class ApproxMode(Enum):
+class ApproximationMode(Enum):
     Yes = "true"
     No = "false"
 
