@@ -120,7 +120,7 @@ class ApproximationMode(Enum):
     No = "false"
 
 
-class Fidelity(Enum):
+class MathFidelity(Enum):
     LoFi = 0
     HiFi2 = 2
     HiFi3 = 3
