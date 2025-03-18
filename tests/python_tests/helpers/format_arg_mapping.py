@@ -94,10 +94,6 @@ class MathOperation(Enum):
     ReduceCol = "REDUCE_COL_OPERATION"
     ReduceRow = "REDUCE_ROW_OPERATION"
     ReduceScalar = "REDUCE_SCALAR_OPERATION"
-    
-    ADD = 1
-    SUB = 2
-    MUL = 3
 
 class ReduceDimArgs(Enum):
     ReduceCol = "ReduceDim::REDUCE_COL"

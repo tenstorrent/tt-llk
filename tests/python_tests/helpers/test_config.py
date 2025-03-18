@@ -49,12 +49,14 @@ def generate_make_command(test_config):
             else:
                 make_cmd += f"mathop={mathop.value} "
         else:  # multiple tiles handles mathop as int. we don't access value but return ENUM directly which is position in the class + 1
-            make_cmd += f"mathop={list(MathOperation).index(mathop)+1} "
-            kern_cnt = test_config.get("kern_cnt", TileCount.One)
+            
+            make_cmd += f"mathop={mathop.value} "
+            
+            kern_cnt = str(test_config.get("kern_cnt", TileCount.One).value)
             pack_addr_cnt = str(test_config.get("pack_addr_cnt"))
             pack_addrs = test_config.get("pack_addrs")
 
-            make_cmd += f"kern_cnt={kern_cnt.value} pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs} "
+            make_cmd += f"kern_cnt={kern_cnt} pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs} "
 
     print(make_cmd)
     return make_cmd
