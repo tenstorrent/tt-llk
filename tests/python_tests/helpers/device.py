@@ -55,7 +55,14 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
     write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
 
 
-def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_A_format, stimuli_B_format, core_loc="0,0", tile_cnt=TileCount.One):
+def write_stimuli_to_l1(
+    buffer_A,
+    buffer_B,
+    stimuli_A_format,
+    stimuli_B_format,
+    core_loc="0,0",
+    tile_cnt=TileCount.One,
+):
 
     BUFFER_SIZE = 4096
     TILE_SIZE = 1024

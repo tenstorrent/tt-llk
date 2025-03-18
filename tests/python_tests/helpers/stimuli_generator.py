@@ -36,7 +36,11 @@ def generate_random_face(
 
 
 def generate_random_face_ab(
-    stimuli_format_A, stimuli_format_B, const_face=False, const_value_A=1, const_value_B=2
+    stimuli_format_A,
+    stimuli_format_B,
+    const_face=False,
+    const_value_A=1,
+    const_value_B=2,
 ):
     return generate_random_face(
         stimuli_format_A, const_value_A, const_face
