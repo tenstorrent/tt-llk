@@ -125,7 +125,7 @@ class MathFidelity(Enum):
     HiFi2 = 2
     HiFi3 = 3
     HiFi4 = 4
-    Inavlid = 5
+    Invalid = 5
 
 
 class TileCount(Enum):
