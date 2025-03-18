@@ -70,12 +70,6 @@ param_ids = generate_param_ids(all_params)
 def test_tilize_calculate_untilize_L1(
     testname, formats, dest_acc, mathop, math_fidelity, tile_cnt
 ):
-    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
-    #  To ensure accurate results, for now we reset board after each test.
-    #  Fix this: so we only reset after failing tests
-    if full_sweep:
-        run_shell_command(f"cd .. && make clean")
-        run_shell_command(f"tt-smi -r 0")
 
     src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src, tile_cnt)
 
