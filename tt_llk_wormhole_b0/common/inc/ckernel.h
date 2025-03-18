@@ -303,6 +303,18 @@ inline void reg_write(uint32_t addr, uint32_t data)
     p_reg[0]                        = data;
 }
 
+inline void wait(uint32_t cycles)
+{
+    volatile uint tt_reg_ptr *clock_lo = reinterpret_cast<volatile uint tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_L);
+    volatile uint tt_reg_ptr *clock_hi = reinterpret_cast<volatile uint tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_H);
+    uint64_t wall_clock_timestamp      = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
+    uint64_t wall_clock                = 0;
+    do
+    {
+        wall_clock = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
+    } while (wall_clock < (wall_clock_timestamp + cycles));
+}
+
 // Clear dest
 inline void zeroacc()
 {
@@ -479,15 +491,6 @@ inline uint64_t read_wall_clock()
     return ((uint64_t)timestamp_high << 32) | timestamp_low;
 }
 
-inline void wait(uint32_t cycles)
-{
-    uint64_t target_timestamp = read_wall_clock() + cycles;
-    while (read_wall_clock() < target_timestamp)
-    {
-        // Busy wait
-    }
-}
-
 inline void record_kernel_runtime(uint64_t kernel_runtime)
 {
     debug_mailbox_base[mailbox_end - 4] = kernel_runtime & 0xffff;
@@ -613,7 +616,14 @@ inline void init_prng_seed(const uint seed)
     // The seed for PRNG should at least be initialzied during chip bootup time.
     volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
+
     // PRNG needs some 500 cycles to initialize (source: HW design team)
-    wait(500);
+    // TODO: ckernel::wait does not work properly. Use ckernel::wait when fixed.
+    // 200 SFPNOPs take around 610 cycles
+    for (int i = 0; i < 200; i++)
+    {
+        TTI_SFPNOP;
+    }
 }
+
 } // namespace ckernel
