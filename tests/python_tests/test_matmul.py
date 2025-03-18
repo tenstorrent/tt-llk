@@ -9,11 +9,11 @@ from helpers import *
 def generate_golden(operand1, operand2, data_format, math_fidelity):
 
     if data_format == DataFormat.Float16_b:
-        if math_fidelity in [Fidelity.LoFi, Fidelity.HiFi2]:  # LoFi or HiFi2
+        if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
             for element in operand2:
                 element = element.to(torch.int32)
                 element &= 0xFFFE
-        if math_fidelity == Fidelity.LoFi:  # LoFi
+        if math_fidelity == MathFidelity.LoFi:  # LoFi
             for element in operand1:
                 element = element.to(torch.int32)
                 element &= 0xFFF8
@@ -30,7 +30,7 @@ all_params = generate_params(
     ["matmul_test"],
     all_format_combos,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    math_fidelity=[Fidelity.HiFi3, Fidelity.HiFi4],
+    math_fidelity=[MathFidelity.HiFi3, MathFidelity.HiFi4],
 )
 param_ids = generate_param_ids(all_params)
 

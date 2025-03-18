@@ -104,10 +104,10 @@ def generate_params(
     Example:
     >>> testnames = ["multiple_tiles_eltwise_test", "matmul_test"]
     >>> format_combos = [FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16)]
-    >>> generate_params(testnames, format_combos, dest_acc=[DestAccumulation.Yes], approx_mode=[ApproxMode.Yes])
+    >>> generate_params(testnames, format_combos, dest_acc=[DestAccumulation.Yes], approx_mode=[ApproximationMode.Yes])
     [
-        ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproxMode.Yes, None, None, None, None, None),
-        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproxMode.No, None, None, None, None, None)
+        ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.Yes, None, None, None, None, None),
+        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.No, None, None, None, None, None)
     ]
     """
 
@@ -167,13 +167,13 @@ def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
 
     Example:
     >>> all_params = [
-    ...     ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes, None, None, None, None, None),
-    ...     ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes, None, None, None, None, None)
+    ...     ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, None, None, None, None, None),
+    ...     ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, None, None, None, None, None)
     ... ]
     >>> clean_params(all_params)
     [
-        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes),
-        ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes)
+        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes),
+        ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes)
     ]
     """
 
@@ -200,13 +200,13 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
 
     Example:
     >>> all_params = [
-    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes, MathOperation.Elwadd, TileCount.One, Fidelity.HiFi4, ReduceDimArgs.ReduceCol, ReducePoolArgs.Max),
-    ...     ("reduce_test", FormatConfig(DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32), DestAccumulation.No, None, MathOperation.Elwmul, None, None, ReduceDimArgs.ReduceCol, ReducePollArgs.Avg)
+    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, MathOperation.Elwadd, TileCount.One, MathFidelity.HiFi4, ReduceDimension.Column, ReducePoolArgs.Max),
+    ...     ("reduce_test", FormatConfig(DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32), DestAccumulation.No, None, MathOperation.Elwmul, None, None, ReduceDimension.Column, ReducePollArgs.Avg)
     ... ]
     >>> generate_param_ids(all_params)
     [
-        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=No | approx_mode=true | mathop=ElwAdd | tile_cnt=1 | math_fidelity=HiFi4 | reduce_dim=ReduceCol | pool_type=Max',
-        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=No | mathop=ElwMul | reduce_dim=ReduceCol | pool_type=Avg'
+        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=No | approx_mode=true | mathop=ElwAdd | tile_cnt=1 | math_fidelity=HiFi4 | reduce_dim=Column | pool_type=Max',
+        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=No | mathop=ElwMul | reduce_dim=Column | pool_type=Average'
     ]
     """
 
@@ -223,43 +223,29 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
         # Extract the FormatConfig and other parameters
         testname, format_config, *params = comb
 
-        # Start with the FormatConfig information
         result = [
             f"unpack_A_src={format_config.unpack_A_src.value}",
             f"unpack_A_dst={format_config.unpack_A_dst.value}",
+            *(
+                f"unpack_B_src={format_config.unpack_B_src.value}"
+                if format_config.unpack_B_src
+                else ""
+            ),
+            *(
+                f"unpack_B_dst={format_config.unpack_B_dst.value}"
+                if format_config.unpack_B_dst
+                else ""
+            ),
+            f"math={format_config.math.value}",
+            f"pack_src={format_config.pack_src.value}",
+            f"pack_dst={format_config.pack_dst.value}",
+            *(f"dest_acc={params[0].name}" if params[0] else ""),
+            *(f"approx_mode={params[1].value}" if params[1] else ""),
+            *(f"mathop={params[2].name}" if params[2] else ""),
+            *(f"math_fidelity={params[3].name}" if params[3] else ""),
+            *(f"tile_cnt={params[4].value}" if params[4] else ""),
+            *(f"reduce_dim={params[5].name}" if params[5] else ""),
+            *(f"pool_type={params[6].name}" if params[6] else ""),
         ]
 
-        # Only add unpack_B_src and unpack_B_dst if they are not None
-        if format_config.unpack_B_src:
-            result.append(f"unpack_B_src={format_config.unpack_B_src.value}")
-        if format_config.unpack_B_dst:
-            result.append(f"unpack_B_dst={format_config.unpack_B_dst.value}")
-
-        # Add the rest of the required parameters
-        result.extend(
-            [
-                f"math={format_config.math.value}",
-                f"pack_src={format_config.pack_src.value}",
-                f"pack_dst={format_config.pack_dst.value}",
-            ]
-        )
-
-        if params[0]:
-            result.append(f"dest_acc={params[0].name}")
-        if params[1]:
-            result.append(f"approx_mode={params[1].value}")
-        if params[2]:
-            result.append(f"mathop={params[2].name}")
-        if params[3]:
-            result.append(f"math_fidelity={params[3].name}")
-        if params[4]:
-            result.append(f"tile_cnt={params[4].value}")
-        if params[5]:
-            result.append(f"reduce_dim={params[5].name}")
-        if params[6]:
-            result.append(f"pool_type={params[6].name}")
-
-        return " | ".join(result)
-
-    # Generate and return formatted strings for all parameter combinations
-    return [format_combination(comb) for comb in all_params if comb[0] is not None]
+        return " | ".join(filter(None, result))

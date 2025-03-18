@@ -6,12 +6,12 @@ from .stimuli_generator import flatten_list, generate_stimuli
 from .format_arg_mapping import (
     format_dict,
     format_sizes,
-    ApproxMode,
+    ApproximationMode,
     MathOperation,
-    ReduceDimArgs,
-    ReducePoolArgs,
+    ReduceDimension,
+    ReducePool,
     DestAccumulation,
-    Fidelity,
+    MathFidelity,
     TileCount,
 )
 from .pack import pack_bfp16, pack_fp16, pack_fp32, pack_int32, pack_bfp8_b

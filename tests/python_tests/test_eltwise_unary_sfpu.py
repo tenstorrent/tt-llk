@@ -33,7 +33,7 @@ all_params = generate_params(
     ["eltwise_unary_sfpu_test"],
     all_format_combos,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    approx_mode=[ApproxMode.No, ApproxMode.Yes],
+    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[MathOperation.Sqrt, MathOperation.Log, MathOperation.Square],
 )
 param_ids = generate_param_ids(all_params)

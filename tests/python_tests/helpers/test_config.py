@@ -11,12 +11,12 @@ from .format_arg_mapping import (
     pack_src_dict,
     pack_dst_dict,
     math_dict,
-    Fidelity,
+    MathFidelity,
     DestAccumulation,
-    ApproxMode,
+    ApproximationMode,
     MathOperation,
-    ReduceDimArgs,
-    ReducePoolArgs,
+    ReduceDimension,
+    ReducePool,
 )
 
 
@@ -33,18 +33,18 @@ def generate_make_command(test_config):
 
     make_cmd += f"testname={testname} dest_acc={dest_acc.value} "
     mathop = test_config.get("mathop", "no_mathop")
-    approx_mode = test_config.get("approx_mode", ApproxMode.No)
-    math_fidelity = test_config.get("math_fidelity", Fidelity.LoFi)
+    approx_mode = test_config.get("approx_mode", ApproximationMode.No)
+    math_fidelity = test_config.get("math_fidelity", MathFidelity.LoFi)
 
     make_cmd += f" math_fidelity={math_fidelity.value} approx_mode={approx_mode.value} "
 
-    reduce_dim = test_config.get("reduce_dim", ReduceDimArgs.NoReduceDim)
-    pool_type = test_config.get("pool_type", ReduceDimArgs.NoReduceDim)
+    reduce_dim = test_config.get("reduce_dim", ReduceDimension.No)
+    pool_type = test_config.get("pool_type", ReduceDimension.No)
 
     if mathop != "no_mathop":
         if testname != "multiple_tiles_eltwise_test":  # single tile option
             if mathop in [
-                MathOperation.ReduceCol,
+                MathOperation.ReduceColumn,
                 MathOperation.ReduceRow,
                 MathOperation.ReduceScalar,
             ]:
