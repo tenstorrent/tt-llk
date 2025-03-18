@@ -25,7 +25,9 @@ def generate_golden(operation, operand1, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32], all_same=True, same_src_reg_format= True # setting src_A and src_B register to have same format
+    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32],
+    all_same=True,
+    same_src_reg_format=True,  # setting src_A and src_B register to have same format
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["eltwise_unary_sfpu_test"],
@@ -56,8 +58,9 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
     ):
         pytest.skip(reason="This combination is not fully implemented in testing")
 
-
-    src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src,sfpu=True)
+    src_A, src_B = generate_stimuli(
+        formats.unpack_A_src, formats.unpack_B_src, sfpu=True
+    )
     golden = generate_golden(mathop, src_A, formats.pack_dst)
     write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src)
 

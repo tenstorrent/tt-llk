@@ -82,7 +82,10 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
 
     src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
 
-    if pool_type in [ReducePoolArgs.Max, ReducePoolArgs.Sum]:  # result in srcA should be divided by 1
+    if pool_type in [
+        ReducePoolArgs.Max,
+        ReducePoolArgs.Sum,
+    ]:  # result in srcA should be divided by 1
         src_B = torch.full((1024,), 1)
     else:
         # reduce average divides by length of elements in array we reduce

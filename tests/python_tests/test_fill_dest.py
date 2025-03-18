@@ -44,7 +44,9 @@ all_format_combos = generate_format_combinations(
     [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
-    ["fill_dest_test"], all_format_combos, dest_acc=[DestAccumulation.No, DestAccumulation.Yes]
+    ["fill_dest_test"],
+    all_format_combos,
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 param_ids = generate_param_ids(all_params)
 

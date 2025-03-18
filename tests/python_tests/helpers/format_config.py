@@ -72,7 +72,9 @@ class FormatConfig:
         pack_src: DataFormat,
         pack_dst: DataFormat,
         math: DataFormat,
-        same_src_format: bool = True,
+        same_src_format: bool = True,  # if True, source registers A and B have the same formats, don't need to pass next 2 parameters
+        # if our src registers have the same formats, then we only pass 5 formats into the FormatConfig object
+        # and we set unpack_B_src and unpack_B_dst the same format as input formats for source register A
         unpack_B_src: Optional[DataFormat] = None,
         unpack_B_dst: Optional[DataFormat] = None,
     ):

@@ -13,6 +13,7 @@ def generate_golden(operand1, format):
 
 full_sweep = False
 #  This is an example of how users can define and create their own format combinations for testing specific cases they're interested in
+# Note these combinations might fail because we don't have date inference model to adjust unsupported format combinations
 generate_format_selection = create_formats_for_testing(
     [
         (

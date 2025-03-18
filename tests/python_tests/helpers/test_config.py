@@ -24,9 +24,10 @@ def generate_make_command(test_config):
     make_cmd = f"make --silent --always-make "
     formats = test_config.get("formats")
     testname = test_config.get("testname")
-    dest_acc = test_config.get("dest_acc", DestAccumulation.No)  # default is not 32 bit dest_acc
+    dest_acc = test_config.get(
+        "dest_acc", DestAccumulation.No
+    )  # default is not 32 bit dest_acc
 
-    
     make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.unpack_A_src]} unpack_A_dst={unpack_A_dst_dict[formats.unpack_A_dst]} unpack_B_src={unpack_B_src_dict[formats.unpack_B_src]} unpack_B_dst={unpack_B_dst_dict[formats.unpack_B_dst]} "
     make_cmd += f"fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "
 
@@ -42,16 +43,20 @@ def generate_make_command(test_config):
 
     if mathop != "no_mathop":
         if testname != "multiple_tiles_eltwise_test":  # single tile option
-            if mathop in [MathOperation.ReduceCol, MathOperation.ReduceRow, MathOperation.ReduceScalar]:
+            if mathop in [
+                MathOperation.ReduceCol,
+                MathOperation.ReduceRow,
+                MathOperation.ReduceScalar,
+            ]:
                 make_cmd += f"mathop={mathop.value} "
                 make_cmd += f"reduce_dim={reduce_dim.value} "
                 make_cmd += f"pool_type={pool_type.value} "
             else:
                 make_cmd += f"mathop={mathop.value} "
         else:  # multiple tiles handles mathop as int. we don't access value but return ENUM directly which is position in the class + 1
-            
+
             make_cmd += f"mathop={mathop.value} "
-            
+
             kern_cnt = str(test_config.get("kern_cnt", TileCount.One).value)
             pack_addr_cnt = str(test_config.get("pack_addr_cnt"))
             pack_addrs = test_config.get("pack_addrs")

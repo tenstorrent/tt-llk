@@ -76,6 +76,7 @@ format_sizes = {
     DataFormat.Int32: 1024,
 }
 
+
 class MathOperation(Enum):
     """
     An enumeration class that holds all the math operations supported by the LLKs.
@@ -95,38 +96,40 @@ class MathOperation(Enum):
     ReduceRow = "REDUCE_ROW_OPERATION"
     ReduceScalar = "REDUCE_SCALAR_OPERATION"
 
+
 class ReduceDimArgs(Enum):
     ReduceCol = "ReduceDim::REDUCE_COL"
     ReduceRow = "ReduceDim::REDUCE_ROW"
     ReduceScalar = "ReduceDim::REDUCE_SCALAR"
     NoReduceDim = " "
 
+
 class ReducePoolArgs(Enum):
     Max = "PoolType::MAX"
     Sum = "PoolType::SUM"
     Avg = "PoolType::AVG"
-    
+
+
 class DestAccumulation(Enum):
     Yes = "DEST_ACC"
     No = ""
 
+
 class ApproxMode(Enum):
     Yes = "true"
     No = "false"
-    
+
+
 class Fidelity(Enum):
     LoFi = 0
     HiFi2 = 2
     HiFi3 = 3
     HiFi4 = 4
     Inavlid = 5
-    
+
+
 class TileCount(Enum):
     One = 1
     Two = 2
     Three = 3
     Four = 4
-    
-    
-
-    

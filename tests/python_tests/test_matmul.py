@@ -24,10 +24,13 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
 
 
 all_format_combos = generate_format_combinations(
-    [DataFormat.Float16_b], all_same=True, same_src_reg_format= True 
+    [DataFormat.Float16_b], all_same=True, same_src_reg_format=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
-    ["matmul_test"], all_format_combos, dest_acc=[DestAccumulation.No, DestAccumulation.Yes], math_fidelity=[Fidelity.HiFi3, Fidelity.HiFi4]
+    ["matmul_test"],
+    all_format_combos,
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    math_fidelity=[Fidelity.HiFi3, Fidelity.HiFi4],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -50,7 +53,9 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
 
     golden_tensor = generate_golden(src_A, src_B, formats.pack_dst, math_fidelity)
 
-    write_stimuli_to_l1(tilize(src_A), tilize(src_B), formats.unpack_A_src, formats.unpack_B_src)
+    write_stimuli_to_l1(
+        tilize(src_A), tilize(src_B), formats.unpack_A_src, formats.unpack_B_src
+    )
 
     test_config = {
         "formats": formats,

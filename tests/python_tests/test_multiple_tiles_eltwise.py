@@ -43,7 +43,6 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     return res.tolist()
 
 
-
 full_sweep = False
 all_format_combos = generate_format_combinations(
     [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b], all_same=True
@@ -54,7 +53,7 @@ all_params = generate_params(
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     math_fidelity=[Fidelity.LoFi, Fidelity.HiFi2, Fidelity.HiFi3, Fidelity.HiFi4],
-    tile_cnt=[TileCount.One, TileCount.Two, TileCount.Three]
+    tile_cnt=[TileCount.One, TileCount.Two, TileCount.Three],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -77,10 +76,12 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
 
     src_A, src_B = generate_stimuli(
-        formats.unpack_A_src, formats.unpack_B_src,tile_cnt=tile_cnt
+        formats.unpack_A_src, formats.unpack_B_src, tile_cnt=tile_cnt
     )  # , const_face=True, const_value_A=3, const_value_B=2)
     golden = generate_golden(mathop, src_A, src_B, formats.pack_dst, math_fidelity)
-    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src, "0,0", tile_cnt)
+    write_stimuli_to_l1(
+        src_A, src_B, formats.unpack_A_src, formats.unpack_B_src, "0,0", tile_cnt
+    )
 
     if mathop != MathOperation.Elwmul:
         math_fidelity = Fidelity.LoFi

@@ -37,8 +37,8 @@ all_format_combos = generate_format_combinations(
 all_params = generate_params(
     ["sfpu_binary_test"],
     all_format_combos,
-    dest_acc=["DEST_ACC"],
-    mathop=["elwadd", "elwsub", "elwmul"],
+    dest_acc=[DestAccumulation.Yes],
+    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -50,7 +50,7 @@ param_ids = generate_param_ids(all_params)
 def test_all(testname, formats, dest_acc, mathop):
     if (
         formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
-        and dest_acc != "DEST_ACC"
+        and dest_acc != DestAccumulation.Yes
     ):
         pytest.skip(
             "Skipping test for 32 bit wide data without 32 bit accumulation in Dest"

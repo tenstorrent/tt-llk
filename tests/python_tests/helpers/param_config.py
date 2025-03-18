@@ -17,7 +17,10 @@ def manage_included_params(func):
 
 @manage_included_params
 def generate_format_combinations(
-    included_params, formats: List[DataFormat], all_same: bool, same_src_reg_format: bool = True
+    included_params,
+    formats: List[DataFormat],
+    all_same: bool,
+    same_src_reg_format: bool = True,
 ) -> List[FormatConfig]:
     """
     Generates a list of FormatConfig instances based on the given formats and the 'all_same' flag.
@@ -47,9 +50,26 @@ def generate_format_combinations(
      FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float32, math=DataFormat.Float32, pack_src=DataFormat.Float32, pack_dst=DataFormat.Float32)]
     """
     if all_same:
-        return [FormatConfig(unpack_A_src= fmt, unpack_A_dst= fmt, math= fmt, pack_src= fmt, pack_dst= fmt, same_src_format= same_src_reg_format) for fmt in formats]
+        return [
+            FormatConfig(
+                unpack_A_src=fmt,
+                unpack_A_dst=fmt,
+                math=fmt,
+                pack_src=fmt,
+                pack_dst=fmt,
+                same_src_format=same_src_reg_format,
+            )
+            for fmt in formats
+        ]
     return [
-        FormatConfig(unpack_A_src= unpack_src, unpack_A_dst= unpack_dst, math= math, pack_src= pack_src, pack_dst= pack_dst, same_src_format= same_src_reg_format)
+        FormatConfig(
+            unpack_A_src=unpack_src,
+            unpack_A_dst=unpack_dst,
+            math=math,
+            pack_src=pack_src,
+            pack_dst=pack_dst,
+            same_src_format=same_src_reg_format,
+        )
         for unpack_src in formats
         for unpack_dst in formats
         for math in formats
@@ -82,12 +102,12 @@ def generate_params(
     List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
 
     Example:
-    >>> testnames = ["Test1", "Test2"]
+    >>> testnames = ["multiple_tiles_eltwise_test", "matmul_test"]
     >>> format_combos = [FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16)]
-    >>> generate_params(testnames, format_combos, dest_acc=["DEST_ACC"], approx_mode=["Approx1"])
+    >>> generate_params(testnames, format_combos, dest_acc=[DestAccumulation.Yes], approx_mode=[ApproxMode.Yes])
     [
-        ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "DEST_ACC", "Approx1", None, None, None, None, None),
-        ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "DEST_ACC", "Approx1", None, None, None, None, None)
+        ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproxMode.Yes, None, None, None, None, None),
+        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproxMode.No, None, None, None, None, None)
     ]
     """
 
@@ -147,13 +167,13 @@ def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
 
     Example:
     >>> all_params = [
-    ...     ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1", None, None, None, None, None),
-    ...     ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1", None, None, None, None, None)
+    ...     ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes, None, None, None, None, None),
+    ...     ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes, None, None, None, None, None)
     ... ]
     >>> clean_params(all_params)
     [
-        ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1"),
-        ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1")
+        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes),
+        ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes)
     ]
     """
 
@@ -180,13 +200,13 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
 
     Example:
     >>> all_params = [
-    ...     ("Test1", FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16"), "Acc1", "Approx1", "Add", 1, 4, "Dim1", "Pool1"),
-    ...     ("Test2", FormatConfig("Float32", "Float32", "Float32", "Float32", "Float32"), "Acc2", None, "Mul", 2, 6, "Dim2", None)
+    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproxMode.Yes, MathOperation.Elwadd, TileCount.One, Fidelity.HiFi4, ReduceDimArgs.ReduceCol, ReducePoolArgs.Max),
+    ...     ("reduce_test", FormatConfig(DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32), DestAccumulation.No, None, MathOperation.Elwmul, None, None, ReduceDimArgs.ReduceCol, ReducePollArgs.Avg)
     ... ]
     >>> generate_param_ids(all_params)
     [
-        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=Acc1 | approx_mode=Approx1 | mathop=Add | math_fidelity=1 | tile_cnt=4 | reduce_dim=Dim1 | pool_type=Pool1',
-        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=Acc2 | mathop=Mul | math_fidelity=2 | tile_cnt=6 | reduce_dim=Dim2'
+        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=No | approx_mode=true | mathop=ElwAdd | tile_cnt=1 | math_fidelity=HiFi4 | reduce_dim=ReduceCol | pool_type=Max',
+        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=No | mathop=ElwMul | reduce_dim=ReduceCol | pool_type=Avg'
     ]
     """
 
@@ -216,27 +236,28 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
             result.append(f"unpack_B_dst={format_config.unpack_B_dst.value}")
 
         # Add the rest of the required parameters
-        result.extend([
-            f"math={format_config.math.value}",
-            f"pack_src={format_config.pack_src.value}",
-            f"pack_dst={format_config.pack_dst.value}",
-        ])
+        result.extend(
+            [
+                f"math={format_config.math.value}",
+                f"pack_src={format_config.pack_src.value}",
+                f"pack_dst={format_config.pack_dst.value}",
+            ]
+        )
 
-        # Include optional parameters based on `included_params`
-        param_names = [
-            ("dest_acc", params[0] if params[0] else None),
-            ("approx_mode", params[1] if params[1] else None),
-            ("mathop", params[2] if params[2] else None),
-            ("math_fidelity", params[3] if params[3] else None),
-            ("tile_cnt", params[4] if params[4] else None),
-            ("reduce_dim", params[5] if params[5] else None),
-            ("pool_type", params[6] if params[6] else None),
-        ]
-
-        # Loop through the parameters and add them to the result if they are not None
-        for param_name, value in param_names:
-            if value is not None and param_name in included_params:
-                result.append(f"{param_name}={value}")
+        if params[0]:
+            result.append(f"dest_acc={params[0].name}")
+        if params[1]:
+            result.append(f"approx_mode={params[1].value}")
+        if params[2]:
+            result.append(f"mathop={params[2].name}")
+        if params[3]:
+            result.append(f"math_fidelity={params[3].name}")
+        if params[4]:
+            result.append(f"tile_cnt={params[4].value}")
+        if params[5]:
+            result.append(f"reduce_dim={params[5].name}")
+        if params[6]:
+            result.append(f"pool_type={params[6].name}")
 
         return " | ".join(result)
 
