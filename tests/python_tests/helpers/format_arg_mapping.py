@@ -104,10 +104,10 @@ class ReduceDimension(Enum):
     No = " "
 
 
-class ReducePoolArgs(Enum):
+class ReducePool(Enum):
     Max = "PoolType::MAX"
     Sum = "PoolType::SUM"
-    Avg = "PoolType::AVG"
+    Average = "PoolType::AVG"
 
 
 class DestAccumulation(Enum):
