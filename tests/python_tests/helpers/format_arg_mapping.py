@@ -97,11 +97,11 @@ class MathOperation(Enum):
     ReduceScalar = "REDUCE_SCALAR_OPERATION"
 
 
-class ReduceDimArgs(Enum):
-    ReduceCol = "ReduceDim::REDUCE_COL"
-    ReduceRow = "ReduceDim::REDUCE_ROW"
-    ReduceScalar = "ReduceDim::REDUCE_SCALAR"
-    NoReduceDim = " "
+class ReduceDimension(Enum):
+    Column = "ReduceDim::REDUCE_COL"
+    Row = "ReduceDim::REDUCE_ROW"
+    Scalar = "ReduceDim::REDUCE_SCALAR"
+    No = " "
 
 
 class ReducePoolArgs(Enum):
