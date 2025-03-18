@@ -105,7 +105,6 @@ UNPACK_B_DST_CASE(Bfp8_b)
 
 #undef UNPACK_B_DST_CASE
 
-
 #define PACK_SRC_CASE(data_format) constexpr auto PACK_IN = get_data_format(DataFormat::data_format);
 
 #if defined(PACK_SRC_FLOAT16_B)
