@@ -84,12 +84,16 @@ class FormatConfig:
         self.pack_src = pack_src
         self.pack_dst = pack_dst
         self.math = math
-        if not same_src_format:
-            self.unpack_B_src = unpack_B_src
-            self.unpack_B_dst = unpack_B_dst
-        else:
+        if same_src_format:
             self.unpack_B_src = unpack_A_src
             self.unpack_B_dst = unpack_A_dst
+        else:
+            if unpack_B_src is None or unpack_B_dst is None:
+                raise ValueError(
+                    "When same_src_format is False, both unpack_B_src and unpack_B_dst must be provided."
+                )
+            self.unpack_B_src = unpack_B_src
+            self.unpack_B_dst = unpack_B_dst
 
 
 def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
