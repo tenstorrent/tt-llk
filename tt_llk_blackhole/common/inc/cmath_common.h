@@ -187,8 +187,11 @@ inline void inc_dst_addr()
 
 inline void math_dest_wait()
 {
+    //WAYPOINT("MSW");
+    //TTI_NOP;
     FWLOG0("XX math_full_dest_sync()->wait for whole dest available");
     TTI_SEMWAIT(p_stall::STALL_MATH|p_stall::STALL_SFPU|p_stall::STALL_SYNC, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_MAX);
+    //WAYPOINT("MSD");
 }
 
 inline void dest_section_flip()

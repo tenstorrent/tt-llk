@@ -10,6 +10,7 @@
 #include "ckernel_template.h"
 #include "llk_pack_common.h"
 #include "ckernel_globals.h"
+#include "debug/dprint.h"
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -98,6 +99,7 @@ inline void _llk_pack_configure_addrmod_() {
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true, bool tilize = false>
 inline void _llk_pack_mop_config_(const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t tile_c_dim = TILE_C_DIM, const std::uint32_t num_faces = 4, const bool partial_face = false, const bool narrow_tile = false) {
     static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
+    DPRINT << "write_tile_header " << (uint32_t)write_tile_header << ENDL();
 
     constexpr uint MEGAROW = 1;
     constexpr uint ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
@@ -310,7 +312,6 @@ inline void _llk_pack_init_(const std::uint32_t pack_dst_format, const std::uint
 
 template <DstSync Dst, bool untilize = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address) {
-
     if constexpr (Dst == DstSync::SyncTile16) {
         constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
         constexpr uint32_t DEST_NUM_TILES = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
@@ -327,9 +328,14 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
 
     program_packer_destination(address);
 
+    TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::CFGEXU|p_stall::THCON);
+
+    WAYPOINT("PPRW");
     mop_run(1, 1);
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); //reset z counters
+    WAYPOINT("PPRD");
+						    //
 }
 
 #include "llk_pack_untilize.h"

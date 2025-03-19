@@ -445,14 +445,21 @@ namespace ckernel::packer
    // Program packer destination addresses from GPRs
    inline void program_packer_destination(uint32_t addr)
    {
+
+      WAYPOINT("PPIW");
       uint32_t new_l1_addr = (1 << 31) | addr;
+      TTI_STALLWAIT(p_stall::STALL_TDMA|p_stall::THCON, p_stall::PACK);
       TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
       TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
 
-      TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-      TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
-
+      //TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+      //TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+      //TTI_NOP;TTI_NOP;
+      TTI_REG2FLOP(1,0,0,0,THCON_SEC0_REG1_L1_Dest_addr_ADDR32-THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
+      //TTI_FLUSHDMA(0x8);
       TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+      TTI_DMANOP; TTI_DMANOP;
+      WAYPOINT("PPID");
    }
 
    //RT: If multiple contexts are used, for issue #https://github.com/tenstorrent/tt-llk-bh/issues/20
