@@ -6,6 +6,7 @@
 
 #include "ckernel_instr_params.h"
 #include "risc_attribs.h"
+#include "debug/waypoint.h"
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
@@ -672,6 +673,7 @@ inline void disable_gathering()
 
 inline void enable_gathering()
 {
+    WAYPOINT("EG");
     // Enable gathering: clear bit 18
     asm(R"ASM(
         .option push
@@ -681,6 +683,7 @@ inline void enable_gathering()
         .option pop
          )ASM" ::
             : "t1");
+    WAYPOINT("EGD");
 }
 
 // Pass a lambda function (or a regular function pointer) that takes void,

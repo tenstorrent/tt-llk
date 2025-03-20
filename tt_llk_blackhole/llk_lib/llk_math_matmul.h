@@ -278,6 +278,7 @@ inline void matmul_configure_mop(
     const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
     const bool partial_face            = false)
 {
+    WAYPOINT("MAM");
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
     // Unpacker will always load faces in f0,f1,f2,f3 order
@@ -407,6 +408,7 @@ inline void matmul_configure_mop(
         }
     }
     tmp.program(instrn_buffer);
+    WAYPOINT("MAMD");
 }
 
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
