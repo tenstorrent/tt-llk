@@ -24,12 +24,13 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     const std::uint32_t rt_dim,
     const std::uint32_t kt_dim,
     const bool unpA_partial_face,
-    const bool unpB_partial_face)
+    const bool unpB_partial_face,
+    const std::uint32_t reuse_a_hint = 0)
 {
     // in0/inA - loaded to SrcB
     // in1/inB - loaded to SrcA
 
-    const bool reuse_a                      = ct_dim >= rt_dim;
+    const bool reuse_a            = reuse_a_hint == 0 ? ct_dim >= rt_dim : reuse_a_hint == 1 ? true : false;
     const std::uint32_t replay_buf_prog_len = (reuse_a && unpA_partial_face) ? 16 : ((!reuse_a && unpB_partial_face) ? 16 : 10);
     const std::uint32_t replay_buf_run_len  = replay_buf_prog_len / 2;
 
@@ -216,9 +217,10 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     const std::uint32_t unpA_num_faces  = 4,
     const std::uint32_t unpB_num_faces  = 4,
     const bool unpA_partial_face        = false,
-    const bool unpB_partial_face        = false)
+    const bool unpB_partial_face        = false,
+    const std::uint32_t reuse_a_hint = 0)
 {
-    const bool reuse_a = ct_dim >= rt_dim;
+    const bool reuse_a            = reuse_a_hint == 0 ? ct_dim >= rt_dim : reuse_a_hint == 1 ? true : false;
 
     // also turn on within_face_16x16_transpose if it was turned off by datacopy at runtime
     // on WH, the unpacker performs both transpose of faces as well as transpose each face.
@@ -256,7 +258,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(kt_dim), 0, LO_16(p_gpr_unpack::KT_DIM)); // store kt_dim to gpr for scaling tile size
 
-    _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(transpose != 0, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
+    _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(transpose != 0, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face, reuse_a_hint);
 }
 
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
@@ -273,14 +275,15 @@ inline void _llk_unpack_AB_matmul_(
     const bool unpB_partial_face        = false,
     std::uint32_t ct_dim                = 1,
     const std::uint32_t rt_dim          = 1,
-    const std::uint32_t kt_dim          = 1)
+    const std::uint32_t kt_dim          = 1,
+    const std::uint32_t reuse_a_hint = 0)
 {
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 
     volatile uint *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
-    const bool reuse_a        = ct_dim >= rt_dim;
+    const bool reuse_a            = reuse_a_hint == 0 ? ct_dim >= rt_dim : reuse_a_hint == 1 ? true : false;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
 
     if (!reuse_a)
