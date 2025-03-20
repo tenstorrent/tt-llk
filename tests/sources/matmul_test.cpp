@@ -37,10 +37,10 @@ void run_kernel()
     std::uint32_t tile_size = 128;
 
     _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-        UNPACK_IN, UNPACK_IN, UNPACK_OUT, UNPACK_OUT, FACE_R_DIM, FACE_R_DIM, 0, 4, 4, tile_size, tile_size);
-    _llk_unpack_AB_matmul_init_<>(); //0, ct_dim, rt_dim, kt_dim, FACE_R_DIM, FACE_R_DIM, 4, 4, false, false);
+        UNPACK_IN, UNPACK_IN, UNPACK_OUT, UNPACK_OUT); //, FACE_R_DIM, FACE_R_DIM, 0, 4, 4, tile_size, tile_size);
+    _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(
-        L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B), 0, 0, tile_size, tile_size); //, FACE_R_DIM, FACE_R_DIM, false, false, ct_dim, rt_dim, kt_dim);
+        L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B), 0, 0, tile_size, tile_size); 
 }
 
 #endif
