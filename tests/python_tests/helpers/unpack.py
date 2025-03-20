@@ -40,6 +40,7 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
     def bytes_to_bfloat16(byte_list):
         bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
         unpacked_value = struct.unpack(">f", bytes_data)[0]
+        print(unpacked_value)
         return unpacked_value
 
     limited_packed_list = packed_list[:2048]
@@ -47,6 +48,9 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
         bytes_to_bfloat16(limited_packed_list[i : i + 2])
         for i in range(0, len(limited_packed_list), 2)
     ]
+
+    for i in range(0, len(result), 2):
+        result[i], result[i + 1] = result[i + 1], result[i]
 
     # Patch Up! Fixes incorrect reading of numbers in L1:
     # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
