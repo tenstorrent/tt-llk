@@ -40,7 +40,6 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
     def bytes_to_bfloat16(byte_list):
         bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
         unpacked_value = struct.unpack(">f", bytes_data)[0]
-        print(unpacked_value)
         return unpacked_value
 
     limited_packed_list = packed_list[:2048]
