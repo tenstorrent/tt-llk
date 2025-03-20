@@ -26,11 +26,11 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
             for k in range(32):
                 result_matrix[i, j] += operand1_matrix[i, k] * operand2_matrix[k, j]
 
-    return result_matrix.view(1024)
+    return result_matrix.view(1024).to(format_dict[data_format])
 
 
 all_format_combos = generate_format_combinations(
-    [DataFormat.Float16_b], all_same=True, same_src_reg_format=True
+    [DataFormat.Float16, DataFormat.Float16_b], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["matmul_test"],
@@ -49,14 +49,13 @@ param_ids = generate_param_ids(all_params)
 def test_matmul(testname, formats, dest_acc, math_fidelity):
 
     src_A,src_B = generate_stimuli()
-    #src_B = torch.eye(32, dtype=torch.bfloat16).flatten()
+    #src_B = torch.eye(32, dtype=format_dict[formats.pack_dst]).flatten()
 
     golden_tensor = generate_golden(src_A, src_B, formats.pack_dst, math_fidelity)
-    golden_tensor = tilize(golden_tensor)
+    golden_tensor = tilize(golden_tensor,format_dict[formats.unpack_src])
+    golden_tensor = golden_tensor.to(format_dict[formats.pack_dst])
 
-    write_stimuli_to_l1(
-        tilize(src_A), tilize(src_B), formats.unpack_A_src, formats.unpack_B_src
-    )
+    write_stimuli_to_l1(tilize(src_A,format_dict[formats.unpack_src]), tilize(src_B,format_dict[formats.unpack_src]), formats.unpack_src)
 
     test_config = {
         "formats": formats,
@@ -93,7 +92,9 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
     print("*"*50)
     print("RES")
     print(res_tensor.view(32,32))
-    
+
+    print(f"Golden Tensor Type: {golden_tensor.dtype}, Shape: {golden_tensor.shape}")
+    print(f"Result Tensor Type: {res_tensor.dtype}, Shape: {res_tensor.shape}")
 
     if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
