@@ -21,14 +21,14 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile=false, const b
         static constexpr uint unpack_srcb_set_dvalid = TT_OP_NOP;
     #else
         static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        static constexpr uint unpack_srca_to_dest = TT_OP_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        static constexpr uint unpack_srca_to_dest = TT_OP_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
         static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
     #endif
     
     if (unpack_to_dest) {
-        const uint32_t outerloop = 4;
+        const uint32_t outerloop = 1;
         constexpr uint32_t innerloop = 1;
-        ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
+        ckernel_template tmp(outerloop, innerloop, unpack_srca);
         tmp.program(instrn_buffer);
     }
     else {
@@ -63,7 +63,7 @@ inline void _llk_unpack_tilize_hw_configure_(const std::uint32_t unpack_src_form
 inline void _llk_unpack_tilize_init_(const std::uint32_t unpack_src_format=0, const std::uint32_t unpack_dst_format=0, const std::uint32_t ct_dim=0, const std::uint32_t face_r_dim=FACE_R_DIM, const bool narrow_tile=false, const bool unpack_to_dest=false) {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
-    if (!unpack_to_dest) {
+    //if (!unpack_to_dest) {
         const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
         // Set face dim
@@ -94,12 +94,13 @@ inline void _llk_unpack_tilize_init_(const std::uint32_t unpack_src_format=0, co
         //Force x-end for Unpackers to 1024
         TTI_SETADCXX(p_setadc::UNP0, 1023, 0x0);
 
-        _llk_unpack_tilize_mop_config_(narrow_tile);
-    }
-    else {
-        config_unpacker_x_end<UNP0>(face_r_dim);
+    //     _llk_unpack_tilize_mop_config_(narrow_tile);
+    // }
+    // else {
+
+    //     config_unpacker_x_end<UNP0>(face_r_dim);
         _llk_unpack_tilize_mop_config_(narrow_tile, unpack_to_dest);
-    }
+    //}
 }
 
 inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uint32_t tile_index, std::uint32_t unpack_src_format=0, std::uint32_t block_ct_dim=0, const std::uint32_t face_r_dim=FACE_R_DIM, const std::uint32_t num_faces=4, const bool narrow_tile=false, const bool unpack_to_dest=false, const std::uint32_t offset_address=0) {
@@ -116,7 +117,8 @@ inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uin
 
         const std::uint32_t block_c_dim_16B = block_ct_dim * (narrow_tile ? FACE_C_DIM/16 : TILE_C_DIM/16);
         std::uint32_t bot_face_offset_address =
-            SCALE_DATUM_SIZE(unpack_src_format, face_r_dim*block_c_dim_16B);  //*N rows / 16 to get 16B word aligned address
+            2*SCALE_DATUM_SIZE(unpack_src_format, face_r_dim*block_c_dim_16B);  //*N rows / 16 to get 16B word aligned address
+        DPRINT << "top_face_offset_address: " << top_face_offset_address << ENDL();
 
         // Program srcA and srcB base addresses
         // FIXME MT: This should be revisited for narrow tiles
@@ -157,8 +159,9 @@ inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uin
         TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
         // Program srcA and srcB base addresses
         volatile uint tt_reg_ptr *cfg = get_cfg_pointer();  // get pointer to registers for current state ID
-
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = base_address + offset_address;
+        std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
+        DPRINT << "top_face_offset_address: " << top_face_offset_address << ENDL();
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = base_address + top_face_offset_address;
 
         // Trisc::SEMPOST for context acquire
         semaphore_post(semaphore::UNPACK_SYNC);
@@ -177,7 +180,7 @@ inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uin
         t6_semaphore_get(semaphore::UNPACK_SYNC);
 
         unpack_to_dest_tile_done(unp_cfg_context);
-    
+
     }
 
 #ifdef PERF_DUMP
