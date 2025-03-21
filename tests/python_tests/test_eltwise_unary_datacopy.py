@@ -17,11 +17,11 @@ full_sweep = False
 generate_format_selection = create_formats_for_testing(
     [
         (
-            DataFormat.Float16,  # index 0 is for unpack_A_src
+            DataFormat.Float16_b,  # index 0 is for unpack_A_src
             DataFormat.Float16_b,  # index 1 is for unpack_A_dst
-            DataFormat.Bfp8_b,  # index 2 is for pack_src (if src registers have same formats)
-            DataFormat.Int32,  # index 3 is for pack_dst
-            DataFormat.Float32,  # index 4 is for math format
+            DataFormat.Float16,  # index 2 is for pack_src (if src registers have same formats)
+            DataFormat.Float16,  # index 3 is for pack_dst
+            DataFormat.Float16_b,  # index 4 is for math format
         ),
         (
             DataFormat.Float32,  # index 0 is for unpack_A_src
@@ -29,8 +29,8 @@ generate_format_selection = create_formats_for_testing(
             DataFormat.Bfp8_b,  # index 2 is for unpack_B_src (inputs to src registers have different formats)
             DataFormat.Int32,  # index 3 is for unpack_B_dst (inputs to src registers have different formats)
             DataFormat.Float32,  # index 4 is for pack_src (if src registers have same formats)
-            DataFormat.Int32,  # index 5 is for pack_dst
-            DataFormat.Float32,  # index 6 is for math format
+            DataFormat.Float16_b,  # index 5 is for pack_dst
+            DataFormat.Float16_b,  # index 6 is for math format
         ),
     ]
 )
@@ -48,7 +48,7 @@ all_format_combos = generate_format_combinations(
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 dest_acc = [DestAccumulation.No, DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
-all_params = generate_params(testname, all_format_combos, dest_acc)
+all_params = generate_params(testname, generate_format_selection, dest_acc)
 param_ids = generate_param_ids(all_params)
 
 
