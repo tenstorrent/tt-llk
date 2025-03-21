@@ -1,0 +1,7 @@
+pytest
+pytest-cov
+pytest-repeat
+pytest-timeout
+torch
+torchvision
+torchaudio
