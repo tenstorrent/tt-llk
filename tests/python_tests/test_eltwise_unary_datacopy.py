@@ -5,7 +5,8 @@ import subprocess
 import pytest
 import torch
 from helpers import *
-
+from helpers.output_test_results import *
+from conftest import *
 
 def generate_golden(operand1, format):
     return operand1
@@ -48,7 +49,7 @@ all_format_combos = generate_format_combinations(
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 dest_acc = [DestAccumulation.No, DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
-all_params = generate_params(testname, generate_format_selection, dest_acc)
+all_params = generate_params(testname, all_format_combos, dest_acc)
 param_ids = generate_param_ids(all_params)
 
 
@@ -66,7 +67,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-
+    all_test_results.append(pass_fail_results(formats, dest_acc))
+    
     src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
     srcB = torch.full((1024,), 0)
     golden = generate_golden(src_A, formats.pack_dst)
@@ -129,9 +131,13 @@ def test_unary_datacopy(testname, formats, dest_acc):
     )
 
     for i in range(len(golden)):
+        update_failed_test(all_test_results, (golden_tensor[i], res_tensor[i]))
+        # test_unary_datacopy.update_failed_test((golden_tensor[i], res_tensor[i]))
         assert torch.isclose(
             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
         ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.99
+    update_passed_test(all_test_results, pcc)
+    # test_unary_datacopy.update_passed_result(pcc)

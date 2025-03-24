@@ -4,8 +4,12 @@
 import os
 import pytest
 from helpers import HardwareController
+from helpers.output_test_results import format_results, pass_fail_results
 import logging
+import csv
 
+# Global variable to store results of all test cases
+all_test_results = []
 
 @pytest.fixture(scope="function", autouse=True)
 def manage_hardware_controller():
@@ -27,4 +31,13 @@ def pytest_runtest_logreport(report):
     # Capture errors when tests fail
     if report.failed:
         logging.error(f"Test {report.nodeid} failed: {report.longrepr}")
-    # Teardown:
+        
+@pytest.fixture(scope='session', autouse=True)
+def test_results():
+    global all_test_results
+    yield all_test_results  # This makes the fixture available globally
+    format_results(all_test_results)
+    all_test_results.extend(all_test_results)
+    
+
+
