@@ -5,6 +5,7 @@ import pytest
 import torch
 from helpers import *
 
+
 def generate_golden(operand1, operand2, data_format, math_fidelity):
 
     if data_format == DataFormat.Float16_b:
@@ -48,14 +49,19 @@ param_ids = generate_param_ids(all_params)
 )
 def test_matmul(testname, formats, dest_acc, math_fidelity):
 
-    src_A,src_B = generate_stimuli()
-    #src_B = torch.eye(32, dtype=format_dict[formats.pack_dst]).flatten()
+    src_A, src_B = generate_stimuli()
+    # src_B = torch.eye(32, dtype=format_dict[formats.pack_dst]).flatten()
 
     golden_tensor = generate_golden(src_A, src_B, formats.pack_dst, math_fidelity)
-    golden_tensor = tilize(golden_tensor,format_dict[formats.unpack_src])
+    golden_tensor = tilize(golden_tensor, format_dict[formats.unpack_A_src])
     golden_tensor = golden_tensor.to(format_dict[formats.pack_dst])
 
-    write_stimuli_to_l1(tilize(src_A,format_dict[formats.unpack_src]), tilize(src_B,format_dict[formats.unpack_src]), formats.unpack_src)
+    write_stimuli_to_l1(
+        tilize(src_A, format_dict[formats.unpack_A_src]),
+        tilize(src_B, format_dict[formats.unpack_B_src]),
+        formats.unpack_A_src,
+        formats.unpack_B_src,
+    )
 
     test_config = {
         "formats": formats,
@@ -86,12 +92,12 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         ),
     )
 
-    print("*"*50)
+    print("*" * 50)
     print("GOLDEN")
-    print(golden_tensor.view(32,32))
-    print("*"*50)
+    print(golden_tensor.view(32, 32))
+    print("*" * 50)
     print("RES")
-    print(res_tensor.view(32,32))
+    print(res_tensor.view(32, 32))
 
     print(f"Golden Tensor Type: {golden_tensor.dtype}, Shape: {golden_tensor.shape}")
     print(f"Result Tensor Type: {res_tensor.dtype}, Shape: {res_tensor.shape}")
