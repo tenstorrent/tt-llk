@@ -113,8 +113,10 @@ if [[ "$REUSE" == false ]]; then
     # Install tt-exalens
     echo "Installing tt-exalens..."
     # pip install git+https://github.com/tenstorrent/tt-exalens.git@cdca310241827b05a1752db2a15edd11e89a9712
-    wget -O tt_exalens.whl https://github.com/tenstorrent/tt-exalens/releases/download/latest/ttexalens-0.1.250325+dev.5e046a7-cp38-cp38-linux_x86_64.whl
-    pip install tt_exalens.whl
+    wget -O ttexalens-0.1.250325+dev.5e046a7-cp38-cp38-linux_x86_64.whl https://github.com/tenstorrent/tt-exalens/releases/download/latest/ttexalens-0.1.250325+dev.5e046a7-cp38-cp38-linux_x86_64.whl
+    # Install the downloaded wheel
+    pip install ttexalens-0.1.250325+dev.5e046a7-cp38-cp38-linux_x86_64.whl
+
     # Download and extract SFPI release
     if [ ! -f "sfpi-release.tgz" ]; then
         echo "Downloading SFPI release..."
