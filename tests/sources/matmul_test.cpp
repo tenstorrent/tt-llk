@@ -77,16 +77,12 @@ void run_kernel()
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-#else
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-#endif
-
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
-
-#ifdef ARCH_BLACKHOLE
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, false>();
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, is_fp32_dest_acc_en>();
 #endif
 
     _llk_packer_wait_for_math_done_();
