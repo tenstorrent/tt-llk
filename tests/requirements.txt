@@ -1,5 +1,6 @@
 pytest
 pytest-cov
+pytest-randomly
 pytest-repeat
 pytest-sugar
 pytest-timeout
