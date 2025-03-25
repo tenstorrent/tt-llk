@@ -25,6 +25,7 @@ volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000
 
 volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x1c000);
 volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>(0x1d000);
+volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -36,7 +37,6 @@ volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>
 
 void run_kernel()
 {
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
     _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
 
     _llk_unpack_tilize_init_(UNPACK_A_IN, UNPACK_A_OUT, 1, FACE_R_DIM, false);
@@ -110,7 +110,6 @@ void run_kernel()
 void run_kernel()
 {
     volatile uint32_t* const buffer_Dest    = reinterpret_cast<volatile uint32_t*>(0x1e000);
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
     const std::uint32_t ct_dim              = 1;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
