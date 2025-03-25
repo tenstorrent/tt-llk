@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   setup-and-test:
-    runs-on: tt-beta-ubuntu-2204-n300-large-stable
+    runs-on: tt-beta-ubuntu-2204-n150-large-stable
 
     steps:
       # Step 1: Checkout the repository
