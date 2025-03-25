@@ -1,6 +1,7 @@
 pytest
 pytest-cov
 pytest-repeat
+pytest-sugar
 pytest-timeout
 torch
 torchvision
