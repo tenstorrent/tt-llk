@@ -41,11 +41,12 @@ jobs:
         run: |
           cd tests/
           chmod +x setup_env.sh
-          source setup_env.sh
+          ./setup_env.sh
+          export CHIP_ARCH=wormhole
 
       # Step 4: Run Python tests
       - name: Run Python tests
         run: |
           cd tests/
           source .venv/bin/activate
-          pytest pyton_tests/test_*.py
+          pytest python_tests/test_*.py
