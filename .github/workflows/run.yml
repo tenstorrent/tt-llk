@@ -41,7 +41,7 @@ jobs:
         run: |
           cd tests/
           chmod +x setup_env.sh
-          ./setup_env.sh
+          source setup_env.sh
 
       # Step 4: Run Python tests
       - name: Run Python tests
