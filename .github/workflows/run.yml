@@ -46,4 +46,6 @@ jobs:
       # Step 4: Run Python tests
       - name: Run Python tests
         run: |
+          cd tests/
+          source .venv/bin/activate
           pytest pyton_tests/test_*.py
