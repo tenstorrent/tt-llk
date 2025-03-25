@@ -39,6 +39,12 @@ if [[ "$REUSE" == false ]]; then
 
     pip install --upgrade pip
 
+    # **************** INSTALLING PYTEST_SUGAR FOR TEST FORMAT ****************************
+    cd python_tests
+    pip install --upgrade pip setuptools wheel
+    pip install pytest-sugar
+    cd ..
+
     # **************** DOWNLOAD & INSTALL TT-SMI ****************************
     echo "Cloning tt-smi repository..."
     git clone https://github.com/tenstorrent/tt-smi
@@ -57,8 +63,7 @@ if [[ "$REUSE" == false ]]; then
 
     echo "Installing required packages..."
     pip install .
-    pip install pytest pytest-cov pytest-repeat pytest-timeout
-    pip install pytest-sugar
+    pip install pytest pytest-cov pytest-repeat pytest-timeout 
 
     # Detect architecture for chip
     echo "Running tt-smi -ls to detect architecture..."
