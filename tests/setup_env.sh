@@ -18,7 +18,7 @@ REUSE=false
 CLEAN=false
 LOGFILE="setup.log"
 TT_SMI_REPO="https://github.com/tenstorrent/tt-smi"
-SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.6.0-sfpi/sfpi-release.tgz"
+SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.6.0/sfpi-release.tgz"
 
 exec 3>&1 4>&2
 # Redirect output to a log file
