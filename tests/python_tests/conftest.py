@@ -52,7 +52,7 @@ def pytest_runtest_protocol(item, nextitem):
     """
     # Modify the nodeid to show only the parameters, not the function name
     file_part, param_part = item.nodeid.split('::', 1)
-    item.name = f"| {param_part.split('[')[1]}"
+    item.name = f" {param_part.split('[')[1]}"
 
     # Continue the test execution as usual
     return None
