@@ -34,3 +34,25 @@ def pytest_runtest_logreport(report):
         # Add a new line after an error has been written
         formatted_message = error_message + "\n"
         logging.error(formatted_message)
+
+# Modify how the nodeid is generated
+def pytest_collection_modifyitems(items):
+    for item in items:
+        # Modify the test item to hide the function name and only show parameters
+        # item.nodeid is immutable, so we should modify how the test is represented
+        original_nodeid = item.nodeid
+        # Split the nodeid to separate the filename and the function name along with parameters
+        file_part, params_part = original_nodeid.split('::', 1)
+        item._nodeid = file_part + '::[' + params_part.split('[')[1]
+
+def pytest_runtest_protocol(item, nextitem):
+    """
+    This hook can modify the test item before it's executed.
+    We're going to set the test function name to an empty string.
+    """
+    # Modify the nodeid to show only the parameters, not the function name
+    file_part, param_part = item.nodeid.split('::', 1)
+    item.name = f"| {param_part.split('[')[1]}"
+
+    # Continue the test execution as usual
+    return None
