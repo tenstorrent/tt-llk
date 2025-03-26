@@ -48,4 +48,4 @@ jobs:
           source .venv/bin/activate
           cd python_tests/
           export CHIP_ARCH=wormhole
-          pytest -xv .
+          pytest .

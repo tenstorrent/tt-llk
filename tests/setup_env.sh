@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# Save original shell options
-ORIGINAL_OPTS=$(set +o)  # Save all current shell options
 set -o pipefail  # Catch errors in pipelines
 
 # Function to print usage info
@@ -16,13 +14,8 @@ usage() {
 # Variables
 REUSE=false
 CLEAN=false
-LOGFILE="setup.log"
 TT_SMI_REPO="https://github.com/tenstorrent/tt-smi"
 SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.6.0/sfpi-release.tgz"
-
-exec 3>&1 4>&2
-# Redirect output to a log file
-exec > >(tee -i "$LOGFILE") 2>&1
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -152,6 +145,3 @@ else   # Reuse existing environment setup
 fi
 
 echo "Setup completed successfully!"
-exec 1>&3 2>&4
-# Restore original shell options at the end of the script
-eval "$ORIGINAL_OPTS"
