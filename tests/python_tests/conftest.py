@@ -30,10 +30,7 @@ def pytest_configure(config):
 def pytest_runtest_logreport(report):
     # Capture errors when tests fail
     if report.failed:
-        error_message = f"Test {report.nodeid} failed: {report.longrepr}"
-        # Add a new line after an error has been written
-        formatted_message = error_message + "\n"
-        logging.error(formatted_message)
+        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
 
 # Modify how the nodeid is generated
 def pytest_collection_modifyitems(items):
