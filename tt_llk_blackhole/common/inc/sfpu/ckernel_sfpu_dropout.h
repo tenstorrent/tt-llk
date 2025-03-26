@@ -21,18 +21,10 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
 {
     // SFPU microcode
 
-<<<<<<< HEAD
     TT_SFPLOADI(p_sfpu::LREG1, 10, scale & 0xFFFF);
     TT_SFPLOADI(p_sfpu::LREG1, 8, scale >> 16);
     TT_SFPLOADI(p_sfpu::LREG2, 10, probability & 0xFFFF);
     TT_SFPLOADI(p_sfpu::LREG2, 8, probability >> 16);
-=======
-    FWLOG1("calculate_dropout() -- prob:%x", prob);
-    FWLOG1("calculate_dropout() -- scale:%x", scale);
-
-    sfpi::vUInt rand = sfpi::l_reg[sfpi::LRegs::LReg3];
-
->>>>>>> 7f32186... fix: remove more namespaces
 #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++)
     {
