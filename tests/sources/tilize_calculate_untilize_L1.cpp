@@ -25,7 +25,6 @@ volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000
 
 volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x1c000);
 volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>(0x1d000);
-volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -45,7 +44,7 @@ void run_kernel()
     _llk_unpack_tilize_init_(UNPACK_B_IN, UNPACK_B_OUT, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_B), 0, UNPACK_B_IN, 1, FACE_R_DIM, 4, false);
 
-    while (__atomic_load_n(mailbox, __ATOMIC_SEQ_CST) != 0x6) {}
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::PACK);
 
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, 0, 4);
     _llk_unpack_AB_init_<>();
@@ -136,9 +135,6 @@ void run_kernel()
     _llk_packer_wait_for_math_done_();
     _llk_pack_<DstSync::SyncFull, UNTILIZE, is_fp32_dest_acc_en>(operand_B_dst_index, L1_ADDRESS(buffer_B_tilized));
     _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
-
-    // Needed to reconfigure pack for regular not tilized pack for BH
-    __atomic_store_n(mailbox, 0x6, __ATOMIC_SEQ_CST);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en, !TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
