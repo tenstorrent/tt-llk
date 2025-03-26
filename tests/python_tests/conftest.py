@@ -19,7 +19,7 @@ def pytest_configure(config):
     log_file = "pytest_errors.log"
     # Clear the log file if it exists
     if os.path.exists(log_file):
-        open(log_file, "w").close()  # This clears the file
+        os.remove(log_file)
     logging.basicConfig(
         filename="pytest_errors.log",
         level=logging.ERROR,
