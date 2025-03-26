@@ -81,7 +81,6 @@ def test_tilize_calculate_untilize_L1(
     golden_tensor = generate_golden(
         mathop, src_A, src_B, formats.pack_dst, math_fidelity
     )
-    print("\nGOLDEN \n", golden_tensor.view(32, 32))
 
     write_stimuli_to_l1(
         src_A, src_B, formats.unpack_A_src, formats.unpack_B_src, "0,0", tile_cnt
