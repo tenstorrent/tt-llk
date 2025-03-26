@@ -37,10 +37,10 @@ def pytest_collection_modifyitems(items):
     for item in items:
         # Modify the test item to hide the function name and only show parameters
         # item.nodeid is immutable, so we should modify how the test is represented
-        original_nodeid = item.nodeid
-        # Split the nodeid to separate the filename and the function name along with parameters
-        file_part, params_part = original_nodeid.split('::', 1)
-        item._nodeid = file_part + '::[' + params_part.split('[')[1]
+        if "::" in item.nodeid and "[" in item.nodeid:
+            file_part, params_part = item.nodeid.split("::", 1)
+            param_only = params_part.split("[", 1)[1]  # Extract parameters
+            item._nodeid = f"{file_part}::[{param_only}"
 
 def pytest_runtest_protocol(item, nextitem):
     """
