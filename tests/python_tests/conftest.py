@@ -21,7 +21,7 @@ def pytest_configure(config):
     if os.path.exists(log_file):
         os.remove(log_file)
     logging.basicConfig(
-        filename="pytest_errors.log",
+        filename= log_file,
         level=logging.ERROR,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
