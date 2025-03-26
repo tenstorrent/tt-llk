@@ -176,7 +176,10 @@ def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
         ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes)
     ]
     """
-    print("clean params: ", [tuple(param for param in comb if param is not None) for comb in all_params])
+    print(
+        "clean params: ",
+        [tuple(param for param in comb if param is not None) for comb in all_params],
+    )
     return [tuple(param for param in comb if param is not None) for comb in all_params]
 
 
@@ -243,10 +246,8 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
             result.append(f"tile_cnt={params[4].value}")
         if params[5]:
             result.append(f"reduce_dim={params[5].name}")
-        if params[6]:  
+        if params[6]:
             result.append(f"pool_type={params[6].name}")
-        
-
 
         # Join the result list into a single string with appropriate spacing
         return " | ".join(result)

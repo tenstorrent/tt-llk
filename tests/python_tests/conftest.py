@@ -21,7 +21,7 @@ def pytest_configure(config):
     if os.path.exists(log_file):
         os.remove(log_file)
     logging.basicConfig(
-        filename= log_file,
+        filename=log_file,
         level=logging.ERROR,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
@@ -32,6 +32,7 @@ def pytest_runtest_logreport(report):
     if report.failed:
         logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
 
+
 # Modify how the nodeid is generated
 def pytest_collection_modifyitems(items):
     for item in items:
@@ -41,6 +42,7 @@ def pytest_collection_modifyitems(items):
             file_part, params_part = item.nodeid.split("::", 1)
             param_only = params_part.split("[", 1)[1]  # Extract parameters
             item._nodeid = f"{file_part}::[{param_only}"
+
 
 def pytest_runtest_protocol(item, nextitem):
     """
