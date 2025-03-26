@@ -103,7 +103,6 @@ def test_tilize_calculate_untilize_L1(
     res_from_L1 = collect_results(
         formats, 0x1E000
     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
-    print("nRESULT\n", res_from_L1.view(32, 32))
     assert len(res_from_L1) == len(golden_tensor)
     assert_tensix_operations_finished()
 
