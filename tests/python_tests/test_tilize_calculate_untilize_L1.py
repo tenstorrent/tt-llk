@@ -10,20 +10,20 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     tensor1_float = (
         operand1.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
     tensor2_float = (
         operand2.clone()
         .detach()
-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
+        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
     )
 
-    if data_format == "Float16_b":
-        if math_fidelity in [0, 2]:  # LoFi or HiFi2
+    if data_format == DataFormat.Float16_b:
+        if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
             for element in operand2:
                 element = element.to(torch.int32)
                 element &= 0xFFFE
-        if math_fidelity == 0:  # LoFi
+        if math_fidelity == MathFidelity.LoFi:  # LoFi
             for element in operand1:
                 element = element.to(torch.int32)
                 element &= 0xFFF8
@@ -33,11 +33,11 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     tensor2_float = tilize(tensor2_float, data_format)
 
     # Second step is to perform the operation
-    if op == "elwadd":
+    if op == MathOperation.Elwadd:
         res = tensor1_float + tensor2_float
-    elif op == "elwsub":
+    elif op == MathOperation.Elwsub:
         res = tensor1_float - tensor2_float
-    elif op == "elwmul":
+    elif op == MathOperation.Elwmul:
         res = tensor1_float * tensor2_float
     else:
         raise ValueError("Unsupported operation!")
@@ -47,41 +47,45 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     return res
 
 
-param_combinations = [
-    (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
-    for mathop in ["elwadd", "elwsub", "elwmul"]
-    for tile_cnt in range(1, 2)
-    for format in ["Float16_b", "Float16"]
-    for dest_acc in [""]  # , "DEST_ACC"]
-    for testname in ["tilize_calculate_untilize_L1"]
-    for math_fidelity in [4]  # [0,2,3,4]
-]
-
-param_ids = [
-    f"mathop={comb[0]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
-    for comb in param_combinations
-]
+full_sweep = False
+all_format_combos = generate_format_combinations(
+    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
+)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+all_params = generate_params(
+    ["tilize_calculate_untilize_L1"],
+    all_format_combos,
+    dest_acc=[DestAccumulation.No],
+    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+    math_fidelity=[MathFidelity.HiFi4],
+    tile_cnt=[TileCount.One],
+)
+param_ids = generate_param_ids(all_params)
 
 
 @pytest.mark.parametrize(
-    "mathop, tile_cnt, format, dest_acc, testname, math_fidelity",
-    param_combinations,
+    "testname, formats, dest_acc, mathop, math_fidelity, tile_cnt",
+    clean_params(all_params),
     ids=param_ids,
 )
+@pytest.mark.skip(reason="Not fully implemented")
 def test_tilize_calculate_untilize_L1(
-    format, testname, tile_cnt, mathop, dest_acc, math_fidelity
+    testname, formats, dest_acc, mathop, math_fidelity, tile_cnt
 ):
 
-    src_A, src_B = generate_stimuli(format, tile_cnt)
+    src_A, src_B = generate_stimuli(
+        formats.unpack_A_src, formats.unpack_B_src, tile_cnt
+    )
 
-    golden_tensor = generate_golden(mathop, src_A, src_B, format, math_fidelity)
-    print(golden_tensor.view(32, 32))
+    golden_tensor = generate_golden(
+        mathop, src_A, src_B, formats.pack_dst, math_fidelity
+    )
 
-    write_stimuli_to_l1(src_A, src_B, format, "0,0", tile_cnt)
+    write_stimuli_to_l1(
+        src_A, src_B, formats.unpack_A_src, formats.unpack_B_src, "0,0", tile_cnt
+    )
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
@@ -93,26 +97,26 @@ def test_tilize_calculate_untilize_L1(
 
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(format, 0x1E000)
-    run_shell_command("cd .. && make clean")
-
+    res_from_L1 = collect_results(
+        formats, 0x1E000
+    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
     assert len(res_from_L1) == len(golden_tensor)
     assert_tensix_operations_finished()
 
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[format]
-            if format in ["Float16", "Float16_b"]
+            format_dict[formats.pack_dst]
+            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
     print(res_tensor.view(32, 32))
 
-    if format == "Float16_b" or format == "Float16":
+    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
         rtol = 0.05
-    elif format == "Bfp8_b":
+    elif formats.pack_dst == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

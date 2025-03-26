@@ -10,37 +10,69 @@ def generate_golden(operand1, format):
     return operand1
 
 
-param_combinations = [
-    (format, dest_acc, testname)
-    for format in ["Float32", "Bfp8_b", "Float16_b", "Float16", "Int32"]
-    for dest_acc in ["", "DEST_ACC"]
-    for testname in ["eltwise_unary_datacopy_test"]
-]
+full_sweep = False
+#  This is an example of how users can define and create their own format combinations for testing specific cases they're interested in
+# Note these combinations might fail because we don't have date inference model to adjust unsupported format combinations
+generate_format_selection = create_formats_for_testing(
+    [
+        (
+            DataFormat.Float16,  # index 0 is for unpack_A_src
+            DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+            DataFormat.Bfp8_b,  # index 2 is for pack_src (if src registers have same formats)
+            DataFormat.Int32,  # index 3 is for pack_dst
+            DataFormat.Float32,  # index 4 is for math format
+        ),
+        (
+            DataFormat.Float32,  # index 0 is for unpack_A_src
+            DataFormat.Float32,  # index 1 is for unpack_A_dst
+            DataFormat.Bfp8_b,  # index 2 is for unpack_B_src (inputs to src registers have different formats)
+            DataFormat.Int32,  # index 3 is for unpack_B_dst (inputs to src registers have different formats)
+            DataFormat.Float32,  # index 4 is for pack_src (if src registers have same formats)
+            DataFormat.Int32,  # index 5 is for pack_dst
+            DataFormat.Float32,  # index 6 is for math format
+        ),
+    ]
+)
 
-param_ids = [f" format={comb[0]} | dest_acc={comb[1]} " for comb in param_combinations]
+all_format_combos = generate_format_combinations(
+    formats=[
+        DataFormat.Float32,
+        DataFormat.Bfp8_b,
+        DataFormat.Float16_b,
+        DataFormat.Float16,
+        DataFormat.Int32,
+    ],
+    all_same=True,
+    same_src_reg_format=True,  # setting src_A and src_B register to have same format
+)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+dest_acc = [DestAccumulation.No, DestAccumulation.Yes]
+testname = ["eltwise_unary_datacopy_test"]
+all_params = generate_params(testname, all_format_combos, dest_acc)
+param_ids = generate_param_ids(all_params)
 
 
 @pytest.mark.parametrize(
-    "format, dest_acc, testname", param_combinations, ids=param_ids
+    "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
-def test_unary_datacopy(format, testname, dest_acc):
+def test_unary_datacopy(testname, formats, dest_acc):
 
-    if format == "Float16" and dest_acc == "DEST_ACC":
+    if formats.unpack_A_src == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
         pytest.skip(reason="This combination is not fully implemented in testing")
-
-    if format in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
+    if (
+        formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
+        and dest_acc != DestAccumulation.Yes
+    ):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
 
-    src_A, src_B = generate_stimuli(format)
+    src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
     srcB = torch.full((1024,), 0)
-    golden = generate_golden(src_A, format)
-    write_stimuli_to_l1(src_A, src_B, format)
+    golden = generate_golden(src_A, formats.pack_dst)
+    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src)
 
     test_config = {
-        "input_format": format,
-        "output_format": format,
+        "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
     }
@@ -49,14 +81,17 @@ def test_unary_datacopy(format, testname, dest_acc):
     run_shell_command(f"cd .. && {make_cmd}")
     run_elf_files(testname)
 
-    res_from_L1 = collect_results(format)
+    # JUST PASS formats
+    res_from_L1 = collect_results(
+        formats
+    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
 
     run_shell_command("cd .. && make clean")
 
     assert len(res_from_L1) == len(golden)
     assert_tensix_operations_finished()
 
-    if format in format_dict:
+    if formats.pack_dst in format_dict:
         atol = 0.05
         rtol = 0.1
     else:
@@ -66,16 +101,28 @@ def test_unary_datacopy(format, testname, dest_acc):
     golden_tensor = torch.tensor(
         golden,
         dtype=(
-            format_dict[format]
-            if format in ["Float16", "Float16_b", "Float32", "Int32"]
+            format_dict[formats.pack_dst]
+            if formats.pack_dst
+            in [
+                DataFormat.Float16,
+                DataFormat.Float16_b,
+                DataFormat.Float32,
+                DataFormat.Int32,
+            ]
             else torch.bfloat16
         ),
     )
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[format]
-            if format in ["Float16", "Float16_b", "Float32", "Int32"]
+            format_dict[formats.pack_dst]
+            if formats.pack_dst
+            in [
+                DataFormat.Float16,
+                DataFormat.Float16_b,
+                DataFormat.Float32,
+                DataFormat.Int32,
+            ]
             else torch.bfloat16
         ),
     )
