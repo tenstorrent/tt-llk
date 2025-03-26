@@ -19,9 +19,15 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile=false) {
         static constexpr uint unpack_srcb_zerosrc = TT_OP_NOP;
         static constexpr uint unpack_srcb_set_dvalid = TT_OP_NOP;
     #else
-        static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        static constexpr uint unpack_srcb_zerosrc    = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
-        static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID); //WA for tenstorrent/budabackend#1230
+        #ifndef LLK_UNPACK_PERF
+            static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+            static constexpr uint unpack_srcb_zerosrc    = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+            static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID); //WA for tenstorrent/budabackend#1230
+        #else
+            static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+            static constexpr uint unpack_srcb_zerosrc    = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+            static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_NOP); //WA for tenstorrent/budabackend#1230
+        #endif
     #endif
 
     const uint32_t outerloop = narrow_tile ? 1 : 2;
@@ -75,6 +81,7 @@ inline void _llk_unpack_tilize_init_(const std::uint32_t unpack_src_format=0, co
 }
 
 inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uint32_t tile_index, std::uint32_t unpack_src_format=0, std::uint32_t block_ct_dim=0, const std::uint32_t face_r_dim=FACE_R_DIM, const std::uint32_t num_faces=4, const bool narrow_tile=false) {
+#ifndef LLK_PERF_MATH
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();  // get pointer to registers for current state ID
 
 
@@ -122,6 +129,15 @@ inline void _llk_unpack_tilize_(const std::uint32_t base_address, const std::uin
         // Switch unpacker config context
         switch_config_context(unp_cfg_context);
     }
+#else
+    for(std::uint8_t i = 0; i < 4; i++)
+    {
+        TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+        TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
+        TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
+        TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
+    }
+#endif
 
 #ifdef PERF_DUMP
     first_unpack_recorded = true;
