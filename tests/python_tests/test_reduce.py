@@ -18,11 +18,11 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
     print_faces(operand1)
 
     def apply_pooling(tensor, pool_type, dim):
-        if pool_type == "max":
+        if pool_type == ReducePool.Max:
             return torch.max(tensor, dim=dim).values
-        elif pool_type == "avg":
+        elif pool_type == ReducePool.Average:
             return torch.mean(tensor, dim=dim)
-        elif pool_type == "sum":
+        elif pool_type == ReducePool.Sum:
             return torch.sum(tensor, dim=dim)
         else:
             pytest.skip("Nonexisting pool type")
@@ -60,14 +60,14 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
+    [DataFormat.Float16_b], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["reduce_test"],
     all_format_combos,
     dest_acc=[DestAccumulation.No],
     reduce_dim=[ReduceDimension.Column],
-    pool_type=[ReducePool.Max, ReducePool.Sum, ReducePool.Average],
+    pool_type=[ReducePool.Max],  # , ReducePool.Sum, ReducePool.Average],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -77,7 +77,7 @@ param_ids = generate_param_ids(all_params)
     clean_params(all_params),
     ids=param_ids,
 )
-@pytest.mark.skip(reason="Not fully implemented")
+# @pytest.mark.skip(reason="Not fully implemented")
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
 
     src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
