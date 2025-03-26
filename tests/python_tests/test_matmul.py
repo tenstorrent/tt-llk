@@ -22,10 +22,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
     operand2_matrix = operand2.view(32, 32).to(format_dict[data_format])
 
     result_matrix = torch.zeros(32, 32, dtype=operand1_matrix.dtype)
-    for i in range(32):
-        for j in range(32):
-            for k in range(32):
-                result_matrix[i, j] += operand1_matrix[i, k] * operand2_matrix[k, j]
+    result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
 
     return result_matrix.view(1024).to(format_dict[data_format])
 
@@ -50,7 +47,6 @@ param_ids = generate_param_ids(all_params)
 def test_matmul(testname, formats, dest_acc, math_fidelity):
 
     src_A, src_B = generate_stimuli()
-    # src_B = torch.eye(32, dtype=format_dict[formats.pack_dst]).flatten()
 
     golden_tensor = generate_golden(src_A, src_B, formats.pack_dst, math_fidelity)
     golden_tensor = tilize(golden_tensor, format_dict[formats.unpack_A_src])
@@ -91,16 +87,6 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
             else torch.bfloat16
         ),
     )
-
-    print("*" * 50)
-    print("GOLDEN")
-    print(golden_tensor.view(32, 32))
-    print("*" * 50)
-    print("RES")
-    print(res_tensor.view(32, 32))
-
-    print(f"Golden Tensor Type: {golden_tensor.dtype}, Shape: {golden_tensor.shape}")
-    print(f"Result Tensor Type: {res_tensor.dtype}, Shape: {res_tensor.shape}")
 
     if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
