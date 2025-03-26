@@ -111,7 +111,6 @@ def test_tilize_calculate_untilize_L1(
             else torch.bfloat16
         ),
     )
-   
 
     if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
