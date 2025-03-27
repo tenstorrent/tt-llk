@@ -15,7 +15,7 @@ template <int max_iter = 3>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
     // Force sign to 1 (make number negative)
-    sfpi::vFloat val = setsgn(in, 1);
+    sfpi::vFloat val = sfpi::setsgn(in, 1);
 
     val = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
     // Use 1.44 as first guess at x, ideal value would be 1.33.
@@ -73,7 +73,7 @@ inline void _calculate_reciprocal_(const int iterations)
         }
         else
         {
-            sfpi::dst_reg[0] = reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
+            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
         }
 
         sfpi::dst_reg++;

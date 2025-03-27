@@ -78,7 +78,7 @@ inline void _calculate_typecast_fp16b_to_int32_()
             // check sign
             v_if (in < 0)
             {
-                tmp = reinterpret<sfpi::vInt>(setsgn(reinterpret<sfpi::vFloat>(tmp), 1));
+                tmp = sfpi::reinterpret<sfpi::vInt>(sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(tmp), 1));
             }
             v_endif sfpi::dst_reg[0] = tmp;
         }
@@ -92,7 +92,7 @@ inline void _calculate_typecast_fp16b_to_int32_()
             // check sign
             v_if (in < 0)
             {
-                man = reinterpret<sfpi::vInt>(sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(man), 1));
+                man = sfpi::reinterpret<sfpi::vInt>(sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(man), 1));
             }
             v_endif sfpi::dst_reg[0] = man;
         }
@@ -167,7 +167,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
             {
                 // set to uint32 max value in case of overflow
                 sfpi::vInt tmp   = std::numeric_limits<int32_t>::max();
-                sfpi::dst_reg[0] = setsgn(reinterpret<sfpi::vFloat>(tmp), 1);
+                sfpi::dst_reg[0] = sfpi::setsgn(reinterpret<sfpi::vFloat>(tmp), 1);
             }
             v_elseif (exp == 31)
             {

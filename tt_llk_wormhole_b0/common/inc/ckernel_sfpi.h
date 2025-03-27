@@ -1632,7 +1632,7 @@ sfpi_test_noinline void test9()
         // Relies on if chain above...
         v_if (sfpi::dst_reg[0] >= 7.0F)
         {
-            b = reinterpret<vUInt>(lz(a));
+            b = sfpi::reinterpret<vUInt>(lz(a));
             v_if (b != 32)
             {
                 sfpi::dst_reg[9] = 60.0F;
@@ -1789,27 +1789,27 @@ sfpi_test_noinline void test10()
     v_if (sfpi::dst_reg[0] == 7.0F)
     {
         sfpi::vFloat a    = sfpi::dst_reg[0];
-        sfpi::dst_reg[10] = setsgn(a, 1);
+        sfpi::dst_reg[10] = sfpi::setsgn(a, 1);
     }
     v_elseif (sfpi::dst_reg[0] == 8.0F)
     {
         sfpi::vFloat a = sfpi::dst_reg[0];
         sfpi::vFloat b = -128.0;
-        sfpi::vFloat r = setsgn(b, a);
+        sfpi::vFloat r = sfpi::setsgn(b, a);
 
         sfpi::dst_reg[10] = r;
     }
     v_elseif (sfpi::dst_reg[0] == 9.0F)
     {
         sfpi::vFloat a    = -256.0F;
-        sfpi::dst_reg[10] = setsgn(a, 0);
+        sfpi::dst_reg[10] = sfpi::setsgn(a, 0);
     }
     v_elseif (sfpi::dst_reg[0] == 10.0F)
     {
         sfpi::vFloat a = sfpi::dst_reg[0];
         a += 20.0f;
         sfpi::vFloat b = -512.0F;
-        sfpi::vFloat r = setsgn(a, b);
+        sfpi::vFloat r = sfpi::setsgn(a, b);
 
         sfpi::dst_reg[10] = r;
     }
@@ -2234,7 +2234,7 @@ sfpi_test_noinline void test12(int imm)
     v_if (sfpi::dst_reg[0] == 11.0F)
     {
         sfpi::vFloat a    = 128.0;
-        sfpi::vFloat r    = setsgn(a, imm - 36);
+        sfpi::vFloat r    = sfpi::setsgn(a, imm - 36);
         sfpi::dst_reg[12] = r;
     }
     v_elseif (sfpi::dst_reg[0] == 12.0F)
@@ -2570,7 +2570,7 @@ sfpi_test_noinline void test13(int imm)
         sfpi::vFloat b = 220.0F;
         v_if (sfpi::dst_reg[0] == 20.0F)
         {
-            b = setsgn(a, 1);
+            b = sfpi::setsgn(a, 1);
         }
         v_endif;
         v_if (sfpi::dst_reg[0] == 20.0F || sfpi::dst_reg[0] == 21.0F)

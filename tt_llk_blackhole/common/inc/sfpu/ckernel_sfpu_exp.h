@@ -213,14 +213,14 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
 
                     // SHL to move integer bits to exponent
                     val_short <<= 10 - p_exp::FRAC_BITS;
-                    sfpi::dst_reg[0] = reinterpret<sfpi::vFloat>(val_short);
+                    sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
                 }
                 v_endif;
             }
             else
             {
                 // Force sign to 0 (make number positive)
-                sfpi::vFloat result = _sfpu_exp_(setsgn(val, 0));
+                sfpi::vFloat result = _sfpu_exp_(sfpi::setsgn(val, 0));
 
                 v_if (val < 0)
                 {

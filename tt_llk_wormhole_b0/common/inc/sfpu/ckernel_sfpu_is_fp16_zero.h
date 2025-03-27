@@ -24,7 +24,7 @@ sfpi_inline sfpi::vInt _sfpu_is_fp16_zero_(const sfpi::vFloat& v, uint exponent_
         // if math data format is fp16, SFPU will convert 5 bit exp to 8 bit exp
         // in grayskull, this unconditionally adds bias value to exp (even for zero)
         sfpi::vInt tmp = 0x3800; // loads {0, 8'd112, 10'b0}
-        tmp += reinterpret<sfpi::vInt>(v);
+        tmp += sfpi::reinterpret<sfpi::vInt>(v);
 
         return tmp == 0;
     }

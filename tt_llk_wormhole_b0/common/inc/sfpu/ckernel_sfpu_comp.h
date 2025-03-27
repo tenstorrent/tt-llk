@@ -73,7 +73,7 @@ inline void _calculate_comp_(const int iterations, uint exponent_size_8)
             // Result will be either 0x0000(0.0) or 0x3F80(1.0)
             if constexpr (is_less_than_equal_zero)
             {
-                result = reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vUInt>(flag1) | sfpi::reinterpret<sfpi::vUInt>(flag2));
+                result = sfpi::reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vUInt>(flag1) | sfpi::reinterpret<sfpi::vUInt>(flag2));
             }
             else
             {

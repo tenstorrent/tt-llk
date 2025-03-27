@@ -67,7 +67,7 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
     sfpi::vFloat val = pow * log_result;
 
     // Force sign to 0 (make number positive)
-    sfpi::vFloat result = _sfpu_exp_(setsgn(val, 0));
+    sfpi::vFloat result = _sfpu_exp_(sfpi::setsgn(val, 0));
 
     v_if (val < 0)
     {
@@ -84,7 +84,7 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
             // if pow is odd integer, set result to negative
             v_if (pow_int & 0x1)
             {
-                result = setsgn(result, 1);
+                result = sfpi::setsgn(result, 1);
             }
             v_endif;
         }
@@ -133,7 +133,7 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
                 v_else
                 {
                     result = std::numeric_limits<float>::infinity();
-                    result = setsgn(result, in0);
+                    result = sfpi::setsgn(result, in0);
                 }
                 v_endif;
             }
