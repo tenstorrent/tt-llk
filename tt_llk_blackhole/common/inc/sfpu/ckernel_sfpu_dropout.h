@@ -44,7 +44,7 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
         TTI_SFPMOV(0, 9, p_sfpu::LREG3, 8);
         TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG3, 1);
 
-	////////////////////////
+        ////////////////////////
         // Drop samples
         // v_if (rand < probability)
         //   dst_reg[0] = vConst0;
