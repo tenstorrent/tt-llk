@@ -43,6 +43,10 @@ else
 endif
 
 OPTIONS_COMPILE+= -DMATH_FIDELITY=$(math_fidelity)
+OPTIONS_COMPILE+= -DHISTOGRAM_BUFFER_SIZE=$(histogram_buffer_size)
+OPTIONS_COMPILE+= -DHISTOGRAM_NUM_CORES=$(histogram_num_cores)
+OPTIONS_COMPILE+= -DHISTOGRAM_PIPELINE_FACTOR=$(histogram_pipeline_factor)
+OPTIONS_COMPILE+= -DHISTOGRAM_VERSION=$(histogram_version)
 
 # If test needs to run muliple consecutive operations it needs some additional
 # files to be linked to it
@@ -72,7 +76,7 @@ OUTPUT_ELFS = $(BUILD_DIR)/elf
 .PHONY: all clean
 
 all: $(BUILD_DIR) $(OUTPUT_ELFS) $(OUTPUT_ELFS)/$(testname)_trisc0.elf $(OUTPUT_ELFS)/$(testname)_trisc1.elf $(OUTPUT_ELFS)/$(testname)_trisc2.elf $(OUTPUT_ELFS)/brisc.elf
-dis: $(BUILD_DIR)/$(testname)_trisc0.dis $(BUILD_DIR)/$(testname)_trisc1.dis $(BUILD_DIR)/$(testname)_trisc2.dis
+dis: $(BUILD_DIR) $(OUTPUT_ELFS) $(BUILD_DIR)/$(testname)_trisc0.dis $(BUILD_DIR)/$(testname)_trisc1.dis $(BUILD_DIR)/$(testname)_trisc2.dis $(BUILD_DIR)/brisc.dis
 
 $(BUILD_DIR)/%.dis :  $(OUTPUT_ELFS)/%.elf
 	$(OBJDUMP) -xsD $< > $@
@@ -93,7 +97,7 @@ $(OUTPUT_ELFS)/$(testname)_trisc2.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/main
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc2.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # Building brisc.elf for BRISC core
-$(OUTPUT_ELFS)/brisc.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/brisc.o
+$(OUTPUT_ELFS)/brisc.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/brisc.o $(BUILD_DIR)/$(testname)_brisc.o 
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 #compiling _test.pp to .o
@@ -103,6 +107,8 @@ $(BUILD_DIR)/$(testname)_math.o: sources/$(testname).cpp
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_MATH) -DLLK_TRISC_MATH -c -o $@ $<
 $(BUILD_DIR)/$(testname)_pack.o: sources/$(testname).cpp
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_PACK) -DLLK_TRISC_PACK -c -o $@ $<
+$(BUILD_DIR)/$(testname)_brisc.o: sources/$(testname).cpp
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_PACK) -DLLK_BRISC -c -o $@ $<
 
 #compiling main for every TRISC core
 $(BUILD_DIR)/main_unpack.o : $(RISCV_SOURCES)/trisc.cpp

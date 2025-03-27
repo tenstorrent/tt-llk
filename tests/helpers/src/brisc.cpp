@@ -1,3 +1,6 @@
+//#include "ckernel.h"
+//#include "ckernel_helper.h"
+#include "ckernel_main.h"
 #include "tensix.h"
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
@@ -78,6 +81,12 @@ void device_setup() {
 
 int main() {
     device_setup();
+    
+    //tensix_sync();
+#if HISTOGRAM_NUM_CORES == 4
+    run_kernel();
+#endif
+    
     // Use a volatile variable to prevent the compiler from optimizing away the loop
     volatile bool run = true;
     

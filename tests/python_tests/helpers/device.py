@@ -14,8 +14,6 @@ def run_elf_files(testname, core_loc = "0,0", run_brisc=True):
     
     ELF_LOCATION = "../build/elf/"
 
-    if run_brisc:
-        run_elf(f"{ELF_LOCATION}brisc.elf", core_loc, risc_id=0)
 
     # for i in range(3):
     #     run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
@@ -26,6 +24,9 @@ def run_elf_files(testname, core_loc = "0,0", run_brisc=True):
 
     for i in range(2, -1, -1):
         run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
+
+    if run_brisc:
+        run_elf(f"{ELF_LOCATION}brisc.elf", core_loc, risc_id=0)
 
 def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc = "0,0", tile_cnt = 1):
 

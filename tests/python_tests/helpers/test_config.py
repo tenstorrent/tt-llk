@@ -1,7 +1,7 @@
 from .format_arg_mapping import format_args_dict,mathop_args_dict, reduce_dim_args, reduce_pool_args
 
 def generate_make_command(test_config):
-    make_cmd = f"make --silent --always-make "
+    make_cmd = f"make dis --silent --always-make "
 
     input_format = test_config.get("input_format", "Float16_b") # Flolat16_b is default
     output_format = test_config.get("output_format", "Float16_b")
@@ -43,6 +43,12 @@ def generate_make_command(test_config):
 
             make_cmd += f" kern_cnt={kern_cnt} "
             make_cmd += f" pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs}" 
+
+    if "def_dict" in test_config:
+        defines = test_config["def_dict"]
+        for define in defines.keys():
+            make_cmd += f"{define.lower()}={defines[define]} "
+            pass
 
     print(make_cmd)
 

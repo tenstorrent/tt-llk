@@ -1,3 +1,7 @@
 arch.dump
+*.log
+*.abr
 sfpi/
 tt-smi/
+build/
+__pycache__/
