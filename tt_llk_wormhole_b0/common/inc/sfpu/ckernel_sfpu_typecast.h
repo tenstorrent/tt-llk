@@ -167,7 +167,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
             {
                 // set to uint32 max value in case of overflow
                 sfpi::vInt tmp   = std::numeric_limits<int32_t>::max();
-                sfpi::dst_reg[0] = sfpi::setsgn(reinterpret<sfpi::vFloat>(tmp), 1);
+                sfpi::dst_reg[0] = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(tmp), 1);
             }
             v_elseif (exp == 31)
             {
