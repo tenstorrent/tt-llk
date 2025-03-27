@@ -44,8 +44,8 @@ void run_kernel()
     _llk_unpack_tilize_init_(UNPACK_B_IN, UNPACK_B_OUT, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_B), 0, UNPACK_B_IN, 1, FACE_R_DIM, 4, false);
 
-    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::PACK);
-
+    t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);
+    t6_semaphore_get<>(semaphore::PACK_DONE);
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, 0, 4);
     _llk_unpack_AB_init_<>();
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
@@ -136,6 +136,7 @@ void run_kernel()
     _llk_pack_<DstSync::SyncFull, UNTILIZE, is_fp32_dest_acc_en>(operand_B_dst_index, L1_ADDRESS(buffer_B_tilized));
     _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 
+    t6_semaphore_post<>(semaphore::PACK_DONE);
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en, !TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, !TILIZE>(PACK_OUT);
