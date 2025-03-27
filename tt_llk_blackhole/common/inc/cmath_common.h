@@ -21,8 +21,6 @@
 #define FUSE_SQRT_RECIP 0
 #endif
 
-using namespace ckernel;
-
 namespace ckernel::math
 {
 

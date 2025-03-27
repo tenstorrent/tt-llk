@@ -22,6 +22,8 @@ const bool is_fp32_dest_acc_en = true;
 const bool is_fp32_dest_acc_en = false;
 #endif
 
+using namespace ckernel;
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -48,7 +50,7 @@ void run_kernel()
 #include "params.h"
 
 using namespace ckernel;
-using namespace ckernel::sfpu;
+using namespace sfpu;
 
 namespace
 {
@@ -57,15 +59,15 @@ void call_sfpu_operation(SfpuType operation)
     switch (operation)
     {
         case SfpuType::sqrt:
-            ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, 10>(10);
+            sfpu::_init_sqrt_<APPROX_MODE>();
+            sfpu::_calculate_sqrt_<APPROX_MODE, 0, 10>(10);
             break;
         case SfpuType::log:
-            ckernel::sfpu::_init_log_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_log_<APPROX_MODE, false, 10>(10, 0);
+            sfpu::_init_log_<APPROX_MODE>();
+            sfpu::_calculate_log_<APPROX_MODE, false, 10>(10, 0);
             break;
         case SfpuType::square:
-            ckernel::sfpu::_calculate_square_<APPROX_MODE, 10>(10);
+            sfpu::_calculate_square_<APPROX_MODE, 10>(10);
             break;
         default:
             return;

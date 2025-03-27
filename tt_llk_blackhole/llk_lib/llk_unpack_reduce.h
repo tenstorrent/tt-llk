@@ -13,22 +13,20 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 
-using namespace ckernel;
-using namespace ckernel::unpacker;
-
-template <PoolType type, ReduceDim dim>
+template <ckernel::PoolType type, ckernel::ReduceDim dim>
 inline void _llk_unpack_reduce_mop_config_()
 {
 #if SKIP_UNP == 1
     static constexpr uint unpack_srca = TT_OP_NOP;
 #else
-    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, ckernel::p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
-    static constexpr uint unpack_zerosrca = TT_OP_UNPACR_NOP(p_unpacr_nop::UNP0, 0, 0, 0, 0, 0, 0, p_unpacr_nop::CLR_SRC_0, p_unpacr_nop::CLR_SRC);
+    static constexpr uint unpack_zerosrca =
+        TT_OP_UNPACR_NOP(ckernel::p_unpacr_nop::UNP0, 0, 0, 0, 0, 0, 0, ckernel::p_unpacr_nop::CLR_SRC_0, ckernel::p_unpacr_nop::CLR_SRC);
 #if SKIP_UNP == 1
     static constexpr uint unpack_srcb = TT_OP_NOP;
 #else
-    static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, ckernel::p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
     ckernel_unpack_template tmp = ckernel_unpack_template(
         true, // src B
@@ -43,7 +41,7 @@ inline void _llk_unpack_reduce_mop_config_()
     tmp.program(instrn_buffer);
 }
 
-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
+template <bool is_fp32_dest_acc_en = false, ckernel::StochRndType stoch_rnd_mode = ckernel::StochRndType::None>
 inline void _llk_unpack_reduce_hw_configure_(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,
@@ -56,9 +54,9 @@ inline void _llk_unpack_reduce_hw_configure_(
     const std::uint32_t unpB_num_faces              = 4)
 {
     constexpr bool is_row_pool  = true;
-    constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
-    constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
-    constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Pack);
+    constexpr bool stoch_rnd_en = (stoch_rnd_mode == ckernel::StochRndType::All);
+    constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == ckernel::StochRndType::Fpu);
+    constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == ckernel::StochRndType::Pack);
 
     configure_unpack_AB<is_row_pool, is_fp32_dest_acc_en, fpu_srnd_en, pack_srnd_en>(
         unpA_src_format,
@@ -72,19 +70,19 @@ inline void _llk_unpack_reduce_hw_configure_(
         unpB_num_faces);
 }
 
-template <PoolType type, ReduceDim dim>
+template <ckernel::PoolType type, ckernel::ReduceDim dim>
 inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0)
 {
     // REDUCE_ROW requires transpose itself; additionaly, within_face_16x16_transpose flag could require transpose;
     // if we have the flag set with REDUCE_ROW, we don't need to do anything
-    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ckernel::ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
 
     TTI_SETADCXX(0b11, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
 
     _llk_unpack_reduce_mop_config_<type, dim>();
 }
 
-template <PoolType type, ReduceDim dim>
+template <ckernel::PoolType type, ckernel::ReduceDim dim>
 inline void _llk_unpack_reduce_(const std::uint32_t address)
 {
     // Clear z/w start counters
@@ -94,7 +92,7 @@ inline void _llk_unpack_reduce_(const std::uint32_t address)
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
-    wait_for_next_context(2);
+    ckernel::unpacker::wait_for_next_context(2);
 
     // Get tile address
     if (0 == unp_cfg_context)
