@@ -26,6 +26,8 @@ const bool unpack_to_dest = true;
 const bool unpack_to_dest = false;
 #endif
 
+using namespace ckernel;
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
