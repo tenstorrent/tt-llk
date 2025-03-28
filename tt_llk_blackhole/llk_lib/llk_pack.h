@@ -498,7 +498,7 @@ inline void _llk_pack_reconfig_data_format_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim);
+    ckernel::packer::reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim);
 
     if constexpr (is_tile_dim_reconfig_en)
     {
@@ -534,7 +534,7 @@ inline void _llk_pack_reduce_hw_configure_(
     const bool narrow_tile          = false,
     const std::uint32_t relu_config = 0)
 {
-    configure_pack<is_fp32_dest_acc_en, untilize, false>(
+    ckernel::packer::configure_pack<is_fp32_dest_acc_en, untilize, false>(
         pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, relu_config);
 
     volatile uint tt_reg_ptr *cfg = ckernel::get_cfg_pointer();
