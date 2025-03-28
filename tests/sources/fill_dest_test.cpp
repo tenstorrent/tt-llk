@@ -19,6 +19,8 @@ const bool is_fp32_dest_acc_en = true;
 const bool is_fp32_dest_acc_en = false;
 #endif
 
+using namespace ckernel;
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB.h"
@@ -46,8 +48,6 @@ void run_kernel()
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
 #include "params.h"
-
-using namespace ckernel;
 
 void run_kernel()
 {

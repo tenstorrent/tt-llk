@@ -17,8 +17,6 @@
 #define sfpi_test_noinline
 #endif
 
-using namespace ckernel;
-
 namespace sfpi_test
 {
 

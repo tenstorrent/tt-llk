@@ -20,6 +20,8 @@ const bool is_fp32_dest_acc_en = true;
 const bool is_fp32_dest_acc_en = false;
 #endif
 
+using namespace ckernel;
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB_matmul.h"
