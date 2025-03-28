@@ -315,8 +315,8 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
 template <ckernel::PoolType type, int MATH_FIDELITY_DESC>
 inline void reduce_configure_addrmod()
 {
-    constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr int FIDELITY_INCREMENT  = get_math_fidelity_increment(MATH_FIDELITY_DESC);
+    constexpr int NUM_FIDELITY_PHASES = ckernel::math::get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
+    constexpr int FIDELITY_INCREMENT  = ckernel::math::get_math_fidelity_increment(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY      = NUM_FIDELITY_PHASES > 0;
 
     ckernel::addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ckernel::ADDR_MOD_0);
@@ -374,7 +374,7 @@ template <ckernel::PoolType type, ckernel::ReduceDim dim, int MATH_FIDELITY_DESC
 inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0)
 { // within_face_16x16_transpose used for unpack, ignored by math
 
-    constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
+    constexpr int MATH_FIDELITY_PHASES = ckernel::math::get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
     reduce_configure_addrmod<type, MATH_FIDELITY_DESC>();
