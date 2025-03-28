@@ -117,80 +117,82 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         // Second Tile Row //
         /////////////////////
 
-        // Transpose at unpacker and pool
-        if constexpr (type == PoolType::MAX)
-        {
-            TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-        }
-        else
-        {
-            if constexpr (HIGH_FIDELITY)
+        if (num_faces == 4) {
+            // Transpose at unpacker and pool
+            if constexpr (type == PoolType::MAX)
             {
-                ckernel_template::run(instrn_buffer);
-                TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+                TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
             else
             {
-                TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                if constexpr (HIGH_FIDELITY)
+                {
+                    ckernel_template::run(instrn_buffer);
+                    TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+                }
+                else
+                {
+                    TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                }
             }
-        }
 
-        if constexpr (type == PoolType::MAX)
-        {
-            TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-        }
-        else
-        {
-            if constexpr (HIGH_FIDELITY)
+            if constexpr (type == PoolType::MAX)
             {
-                ckernel_template::run(instrn_buffer);
+                TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
             else
             {
-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                if constexpr (HIGH_FIDELITY)
+                {
+                    ckernel_template::run(instrn_buffer);
+                }
+                else
+                {
+                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                }
             }
-        }
-        // Workaround for tenstorrent/budabackend#1948
-        if constexpr (is_int_fpu_en)
-        {
-            TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 0);
-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 0);
-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 2);
-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 2);
-            TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
-            TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
-        }
-
-        // Move back to B and transpose
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
-        /*
-        if constexpr (is_fp32_dest_acc_en) {
-            if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
+            // Workaround for tenstorrent/budabackend#1948
+            if constexpr (is_int_fpu_en)
+            {
                 TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
-                TTI_SFPLOAD(0, 0, 3, 0);
-                TTI_SFP_STOCH_RND(0,0,0,0,0,8);
-                TTI_SFPSTORE(0,1,3,0);
+                TTI_SFPLOAD(0, 4, ADDR_MOD_0, 0);
+                TTI_SFPSTORE(0, 5, ADDR_MOD_0, 0);
+                TTI_SFPLOAD(0, 4, ADDR_MOD_0, 2);
+                TTI_SFPSTORE(0, 5, ADDR_MOD_0, 2);
+                TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
+                TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
             }
-        }
-        */
-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        // Note: transpose on src B on works on rows 16 - 31
-        TTI_TRNSPSRCB;
-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        if constexpr (is_int_fpu_en)
-        {
-            TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x0);
+
+            // Move back to B and transpose
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
+            /*
+            if constexpr (is_fp32_dest_acc_en) {
+                if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
+                    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+                    TTI_SFPLOAD(0, 0, 3, 0);
+                    TTI_SFP_STOCH_RND(0,0,0,0,0,8);
+                    TTI_SFPSTORE(0,1,3,0);
+                }
+            }
+            */
+            TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+            // Note: transpose on src B on works on rows 16 - 31
+            TTI_TRNSPSRCB;
+            TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+            if constexpr (is_int_fpu_en)
+            {
+                TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x0);
+            }
+
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
+            TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
+            TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+            TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
         }
 
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
-        TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
-
-        // Increment dest by 32 for next accumulation
-        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
+        // Set Dest & B pointers to 0, CLR_NONE because previous set cleared
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_BD);
     }
     else if constexpr (dim == ReduceDim::REDUCE_COL)
     {
