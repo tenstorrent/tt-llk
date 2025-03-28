@@ -44,7 +44,7 @@ inline void _llk_unpack_A_mop_config_(
     static constexpr uint srcb_set_z_2           = TT_OP_NOP;
     static constexpr uint srcb_clear_z           = TT_OP_NOP;
     constexpr uint replay_buf_len                = 1;
-    load_replay_buf<0, 1>([] { TTI_NOP; });
+    ckernel::load_replay_buf<0, 1>([] { TTI_NOP; });
 #else
     static constexpr uint unpack_srca =
         TT_OP_UNPACR(ckernel::SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, ckernel::p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
