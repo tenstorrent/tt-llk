@@ -90,7 +90,8 @@ inline void _llk_unpack_tilize_(
     std::uint32_t block_ct_dim      = 0,
     const std::uint32_t face_r_dim  = FACE_R_DIM,
     const std::uint32_t num_faces   = 4,
-    const bool narrow_tile          = false)
+    const bool narrow_tile          = false,
+    const bool is_32bit_integer     = false)
 {
     volatile uint tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
@@ -106,40 +107,93 @@ inline void _llk_unpack_tilize_(
     // Program srcA and srcB base addresses
     std::uint32_t num_loops = narrow_tile ? 2 : num_faces / 2;
 
-    for (std::uint32_t n = 0; n < num_loops; n++)
+    if (!is_32bit_integer)
     {
-        std::uint32_t address = base_address + top_face_offset_address + ((n == 1) ? bot_face_offset_address : 0);
-
-        // Clear z/w start counters
-        TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
-
-        // Wait for free context
-        wait_for_next_context(2);
-
-        // Get tile address
-        if (0 == unp_cfg_context)
+        for (std::uint32_t n = 0; n < num_loops; n++)
         {
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+            std::uint32_t address = base_address + top_face_offset_address + ((n == 1) ? bot_face_offset_address : 0);
+
+            // Clear z/w start counters
+            TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
+
+            // Wait for free context
+            wait_for_next_context(2);
+
+            // Get tile address
+            if (0 == unp_cfg_context)
+            {
+                cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+            }
+            else
+            {
+                cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
+            }
+
+            // Trisc::SEMPOST for context acquire
+            semaphore_post(semaphore::UNPACK_SYNC);
+
+            // Stall unpacker until pending CFG writes from Trisc have completed
+            TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+            // Run MOP
+            ckernel::ckernel_template::run(instrn_buffer);
+
+            // T6::SEMGET for context release
+            t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+            // Switch unpacker config context
+            switch_config_context(unp_cfg_context);
         }
-        else
-        {
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
-        }
+    }
+    else
+    {
+        // Unpack to dest register
+        set_dst_write_addr(unp_cfg_context, unpack_src_format);
+        wait_for_dest_available();
 
         // Trisc::SEMPOST for context acquire
         semaphore_post(semaphore::UNPACK_SYNC);
+        std::uint32_t address = base_address + top_face_offset_address;
+
+        // Unroll loop to save cycles
+        // Clear z/w start counters
+        TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
+
+        // Get tile address
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
 
         // Stall unpacker until pending CFG writes from Trisc have completed
         TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-        // Run MOP
-        ckernel::ckernel_template::run(instrn_buffer);
+        // Unpack top faces
+        TTI_UNPACR(SrcA, 0b00010001 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, 0b00010001 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+        if (num_loops > 1)
+        {
+            // Needed to stall counter reconfiguration until unpacker finishes previous instruction
+            TTI_STALLWAIT(p_stall::STALL_TDMA, p_stall::UNPACK);
+
+            // Don't clear the CH1 W counter - needed for multiple tiles
+            TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1011);
+
+            // Increment address to point to bottom faces in L1
+            address += bot_face_offset_address;
+
+            // Get tile address
+            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+
+            // Stall unpacker until pending CFG writes from Trisc have completed
+            TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+            // Unpack bottom faces
+            TTI_UNPACR(SrcA, 0b00010001 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+            TTI_UNPACR(SrcA, 0b00010001 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        }
 
         // T6::SEMGET for context release
         t6_semaphore_get(semaphore::UNPACK_SYNC);
-
-        // Switch unpacker config context
-        switch_config_context(unp_cfg_context);
+        unpack_to_dest_tile_done(unp_cfg_context);
     }
 
 #ifdef PERF_DUMP
