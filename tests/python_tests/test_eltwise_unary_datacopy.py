@@ -4,8 +4,9 @@
 import pytest
 import torch
 from helpers import *
-
-
+from helpers.output_test_results import *
+from conftest import *
+from helpers.format_sweep_combos import *
 def generate_golden(operand1, format):
     return operand1
 
@@ -16,23 +17,28 @@ full_sweep = False
 generate_format_selection = create_formats_for_testing(
     [
         (
-            DataFormat.Float16,  # index 0 is for unpack_A_src
+            DataFormat.Float16_b,  # index 0 is for unpack_A_src
             DataFormat.Float16_b,  # index 1 is for unpack_A_dst
             DataFormat.Bfp8_b,  # index 2 is for pack_src (if src registers have same formats)
-            DataFormat.Int32,  # index 3 is for pack_dst
-            DataFormat.Float32,  # index 4 is for math format
+            DataFormat.Bfp8_b,  # index 3 is for pack_dst
+            DataFormat.Float16,  # index 4 is for math format
         ),
         (
             DataFormat.Float32,  # index 0 is for unpack_A_src
             DataFormat.Float32,  # index 1 is for unpack_A_dst
-            DataFormat.Bfp8_b,  # index 2 is for unpack_B_src (inputs to src registers have different formats)
-            DataFormat.Int32,  # index 3 is for unpack_B_dst (inputs to src registers have different formats)
+            DataFormat.Float32,  # index 2 is for unpack_B_src (inputs to src registers have different formats)
+            DataFormat.Float32,  # index 3 is for unpack_B_dst (inputs to src registers have different formats)
             DataFormat.Float32,  # index 4 is for pack_src (if src registers have same formats)
-            DataFormat.Int32,  # index 5 is for pack_dst
+            DataFormat.Float32,  # index 5 is for pack_dst
             DataFormat.Float32,  # index 6 is for math format
         ),
     ]
 )
+
+
+format_sweep_no_dest_acc = get_all_formats(DestAccumulation.No)
+format_sweep_dest_acc = get_all_formats(DestAccumulation.Yes)
+full_format_sweep = create_formats_for_testing(format_sweep_no_dest_acc + format_sweep_dest_acc)
 
 all_format_combos = generate_format_combinations(
     formats=[
@@ -47,7 +53,7 @@ all_format_combos = generate_format_combinations(
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 dest_acc = [DestAccumulation.No, DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
-all_params = generate_params(testname, all_format_combos, dest_acc)
+all_params = generate_params(testname, full_format_sweep, dest_acc)
 param_ids = generate_param_ids(all_params)
 
 
@@ -65,7 +71,9 @@ def test_unary_datacopy(testname, formats, dest_acc):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-
+    run_shell_command(f"cd .. && make clean")
+    run_shell_command("tt-smi -r 0")
+    all_test_results.append(pass_fail_results(testname, formats, dest_acc))
     src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
     srcB = torch.full((1024,), 0)
     golden = generate_golden(src_A, formats.pack_dst)
@@ -128,9 +136,11 @@ def test_unary_datacopy(testname, formats, dest_acc):
     )
 
     for i in range(len(golden)):
+        update_failed_test(all_test_results, (golden_tensor[i], res_tensor[i]))
         assert torch.isclose(
             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
         ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.99
+    update_passed_test(all_test_results, pcc)
