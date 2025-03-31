@@ -1,0 +1,22 @@
+var searchData=
+[
+  ['mailbox_5fnot_5fempty_2300',['mailbox_not_empty',['../namespaceckernel.html#a6c4e2a3d9be50158cd08a114455b0bea',1,'ckernel']]],
+  ['mailbox_5fnot_5fempty_5ffull_2301',['mailbox_not_empty_full',['../namespaceckernel.html#ac42c9626fa6dc9e76f80c9d5c8eca51d',1,'ckernel']]],
+  ['mailbox_5fread_2302',['mailbox_read',['../namespaceckernel.html#a8b4271352cb5f8871d4ea8844b08cf54',1,'ckernel']]],
+  ['mailbox_5fread_5ffull_2303',['mailbox_read_full',['../namespaceckernel.html#ae64aee5fffad0dfc79760e0cc9f5b03f',1,'ckernel']]],
+  ['mailbox_5fwrite_2304',['mailbox_write',['../namespaceckernel.html#a73b58fadbcaa0c8ad81f40db4f4d9bcd',1,'ckernel']]],
+  ['mailbox_5fwrite_5ffull_2305',['mailbox_write_full',['../namespaceckernel.html#a15fe53cda4277dd5a5936cd4a4231b64',1,'ckernel']]],
+  ['math_5fdest_5fwait_2306',['math_dest_wait',['../namespaceckernel_1_1math.html#a90a90b46d12d760b3060213a1033e582',1,'ckernel::math']]],
+  ['math_5funpack_5fto_5fdest_5fmath_5fready_2307',['math_unpack_to_dest_math_ready',['../namespaceckernel_1_1math.html#a27f7211197bc82243e50f0a0458f0547',1,'ckernel::math']]],
+  ['math_5funpack_5fto_5fdest_5ftile_5fready_2308',['math_unpack_to_dest_tile_ready',['../namespaceckernel_1_1math.html#a6230929ea78574da9f2c89cf01c74c41',1,'ckernel::math']]],
+  ['matmul_5fconfigure_5faddrmod_2309',['matmul_configure_addrmod',['../tt__llk__wormhole__b0_2llk__lib_2llk__math__matmul_8h.html#a352cd80d1dbbde9f5c1f476f6cae954d',1,'matmul_configure_addrmod(const bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const std::uint32_t in0_tile_r_dim=TILE_R_DIM, const std::uint32_t in0_tile_c_dim=TILE_C_DIM, const std::uint32_t in1_tile_r_dim=TILE_R_DIM, const std::uint32_t in1_tile_c_dim=TILE_C_DIM, const bool partial_face=false):&#160;llk_math_matmul.h'],['../tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h.html#a352cd80d1dbbde9f5c1f476f6cae954d',1,'matmul_configure_addrmod(const bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const std::uint32_t in0_tile_r_dim=TILE_R_DIM, const std::uint32_t in0_tile_c_dim=TILE_C_DIM, const std::uint32_t in1_tile_r_dim=TILE_R_DIM, const std::uint32_t in1_tile_c_dim=TILE_C_DIM, const bool partial_face=false):&#160;llk_math_matmul.h']]],
+  ['matmul_5fconfigure_5fmop_2310',['matmul_configure_mop',['../tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h.html#ab1f91b097633fb7ce2bcf6ad158c8543',1,'matmul_configure_mop(bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const std::uint32_t in0_tile_r_dim=TILE_R_DIM, const std::uint32_t in0_tile_c_dim=TILE_C_DIM, const std::uint32_t in1_tile_r_dim=TILE_R_DIM, const std::uint32_t in1_tile_c_dim=TILE_C_DIM, const bool partial_face=false):&#160;llk_math_matmul.h'],['../tt__llk__wormhole__b0_2llk__lib_2llk__math__matmul_8h.html#ab1f91b097633fb7ce2bcf6ad158c8543',1,'matmul_configure_mop(bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const std::uint32_t in0_tile_r_dim=TILE_R_DIM, const std::uint32_t in0_tile_c_dim=TILE_C_DIM, const std::uint32_t in1_tile_r_dim=TILE_R_DIM, const std::uint32_t in1_tile_c_dim=TILE_C_DIM, const bool partial_face=false):&#160;llk_math_matmul.h']]],
+  ['memory_5fcast_2311',['memory_cast',['../namespaceckernel.html#aedb3afbfc0076bfe2e40c86acb73ca26',1,'ckernel']]],
+  ['mmio_5fregister_5fwrite_2312',['mmio_register_write',['../namespaceckernel.html#a67de644bd6ac8b93f376dd58c73dc08b',1,'ckernel']]],
+  ['mop_5frun_2313',['mop_run',['../namespaceckernel.html#a117f7079d6f444a265d2591341eafc0b',1,'ckernel']]],
+  ['mop_5fsync_2314',['mop_sync',['../namespaceckernel.html#a5cb34a812cd4095d96e41ebb9add229c',1,'ckernel']]],
+  ['move_5fa2d_5ffixed_5fface_2315',['move_a2d_fixed_face',['../namespaceckernel_1_1math.html#a3b51a16548a7d08ff6b73358103375ae',1,'ckernel::math']]],
+  ['move_5fd2a_5ffixed_5fface_2316',['move_d2a_fixed_face',['../namespaceckernel_1_1math.html#ac4a88ab2446a32c95db93a6aa27893c2',1,'ckernel::math']]],
+  ['move_5fd2a_5frow_5fbroadcast_5ffixed_5fface_2317',['move_d2a_row_broadcast_fixed_face',['../namespaceckernel_1_1math.html#a567af8b0b49cb0ca30f02bbf7c0dda30',1,'ckernel::math']]],
+  ['move_5fd2b_5ffixed_5fface_2318',['move_d2b_fixed_face',['../namespaceckernel_1_1math.html#a05229ebc59a60cdd21418054c2b82120',1,'ckernel::math']]]
+];

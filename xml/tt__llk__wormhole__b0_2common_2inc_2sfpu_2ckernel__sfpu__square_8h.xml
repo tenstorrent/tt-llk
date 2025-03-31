@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__square_8h" kind="file" language="C++">
+    <compoundname>ckernel_sfpu_square.h</compoundname>
+    <includes local="yes">sfpi.h</includes>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpu_8h" local="yes">tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_square.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__square_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>sfpi.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_square.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__square_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+      <node id="2">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_wormhole_b0/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <innernamespace refid="namespaceckernel_1_1sfpu">ckernel::sfpu</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpi.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">sfpu</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a63adf95d6189f5a6737763016506e2d5" kindref="member">_calculate_square_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>iterations)</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>iterations;<sp/>d++)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>in<sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::dst_reg[0];</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>result<sp/>=<sp/>in<sp/>*<sp/>in;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>result;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>sfpu</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_square.h"/>
+  </compounddef>
+</doxygen>

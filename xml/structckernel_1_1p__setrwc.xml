@@ -1,0 +1,421 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__setrwc" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_setrwc</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a2aeb204542889b0e4eab57817257a09f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CLR_A</definition>
+        <argsstring></argsstring>
+        <name>CLR_A</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="33" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a0648d2e74da9ab9c492cb2c30f4ff8e7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CLR_B</definition>
+        <argsstring></argsstring>
+        <name>CLR_B</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="34" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CLR_AB</definition>
+        <argsstring></argsstring>
+        <name>CLR_AB</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="35" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CLR_NONE</definition>
+        <argsstring></argsstring>
+        <name>CLR_NONE</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="37" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1ac2c6d5dbdb4504cbe3b46103c788bbc4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_A</definition>
+        <argsstring></argsstring>
+        <name>SET_A</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="39" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_B</definition>
+        <argsstring></argsstring>
+        <name>SET_B</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="40" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a86326ed99ec2b8f7e926f58ae3a31874" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_AB</definition>
+        <argsstring></argsstring>
+        <name>SET_AB</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="41" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_D</definition>
+        <argsstring></argsstring>
+        <name>SET_D</name>
+        <initializer>= 0x4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="42" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1acb2432f96d4c0080a80ee93429863cd7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_AD</definition>
+        <argsstring></argsstring>
+        <name>SET_AD</name>
+        <initializer>= 0x5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="43" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a72a2da4e78be127fc0737d1f7cc2ae4e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_BD</definition>
+        <argsstring></argsstring>
+        <name>SET_BD</name>
+        <initializer>= 0x6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="44" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1acf4f3db28f1f6629d78abc1b77103073" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_ABD</definition>
+        <argsstring></argsstring>
+        <name>SET_ABD</name>
+        <initializer>= 0x7</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="45" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a72bf616cdf383b48fa1dec8717f63d4d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_F</definition>
+        <argsstring></argsstring>
+        <name>SET_F</name>
+        <initializer>= 0x8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="46" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a7c1ace1acf1a184cb2e24803b87f95bd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_A_F</definition>
+        <argsstring></argsstring>
+        <name>SET_A_F</name>
+        <initializer>= 0x9</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="47" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1acebce536ffb0c630c7e2382c8ebd2f44" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_B_F</definition>
+        <argsstring></argsstring>
+        <name>SET_B_F</name>
+        <initializer>= 0xa</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="48" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a6fdd40821cc315edb272def2a57180a6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_AB_F</definition>
+        <argsstring></argsstring>
+        <name>SET_AB_F</name>
+        <initializer>= 0xb</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="49" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a4f31f563d5c7ececa07f0e472e38f4e5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_D_F</definition>
+        <argsstring></argsstring>
+        <name>SET_D_F</name>
+        <initializer>= 0xc</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="50" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a5c4b1a50bc73d11c73ca4b9ed0156089" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_AD_F</definition>
+        <argsstring></argsstring>
+        <name>SET_AD_F</name>
+        <initializer>= 0xd</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="51" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a06151de1012824fd1b416af37d74880b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_BD_F</definition>
+        <argsstring></argsstring>
+        <name>SET_BD_F</name>
+        <initializer>= 0xe</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="52" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a831ce6850ea6dbade5660f1a1579f3f3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::SET_ABD_F</definition>
+        <argsstring></argsstring>
+        <name>SET_ABD_F</name>
+        <initializer>= 0xf</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="53" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1af7ef76b4ef26e14747b44af551ac3b30" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CR_A</definition>
+        <argsstring></argsstring>
+        <name>CR_A</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="55" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CR_B</definition>
+        <argsstring></argsstring>
+        <name>CR_B</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="56" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1aba3e926edc2e336c70c1eae7928c3f49" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CR_AB</definition>
+        <argsstring></argsstring>
+        <name>CR_AB</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="57" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CR_D</definition>
+        <argsstring></argsstring>
+        <name>CR_D</name>
+        <initializer>= 0x4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="58" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a24e25b7b651c73a0e89b6c5a25d16ac3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CR_AD</definition>
+        <argsstring></argsstring>
+        <name>CR_AD</name>
+        <initializer>= 0x5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="59" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1ab069f753365bd90fbe1a7d1e0ef0a214" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CR_BD</definition>
+        <argsstring></argsstring>
+        <name>CR_BD</name>
+        <initializer>= 0x6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="60" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1a3c9a66472bffe1aeceee81117af55f9e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::CR_ABD</definition>
+        <argsstring></argsstring>
+        <name>CR_ABD</name>
+        <initializer>= 0x7</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="61" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setrwc_1acecd1c8e29233c486b20725285df16f3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setrwc::C_TO_CR_MODE</definition>
+        <argsstring></argsstring>
+        <name>C_TO_CR_MODE</name>
+        <initializer>= 0x8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="62" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="18" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="19" bodyend="63"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__setrwc_1acecd1c8e29233c486b20725285df16f3" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>C_TO_CR_MODE</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a2aeb204542889b0e4eab57817257a09f" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CLR_A</name></member>
+      <member refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CLR_AB</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a0648d2e74da9ab9c492cb2c30f4ff8e7" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CLR_B</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CLR_NONE</name></member>
+      <member refid="structckernel_1_1p__setrwc_1af7ef76b4ef26e14747b44af551ac3b30" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CR_A</name></member>
+      <member refid="structckernel_1_1p__setrwc_1aba3e926edc2e336c70c1eae7928c3f49" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CR_AB</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a3c9a66472bffe1aeceee81117af55f9e" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CR_ABD</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a24e25b7b651c73a0e89b6c5a25d16ac3" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CR_AD</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CR_B</name></member>
+      <member refid="structckernel_1_1p__setrwc_1ab069f753365bd90fbe1a7d1e0ef0a214" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CR_BD</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>CR_D</name></member>
+      <member refid="structckernel_1_1p__setrwc_1ac2c6d5dbdb4504cbe3b46103c788bbc4" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_A</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a7c1ace1acf1a184cb2e24803b87f95bd" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_A_F</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a86326ed99ec2b8f7e926f58ae3a31874" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_AB</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a6fdd40821cc315edb272def2a57180a6" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_AB_F</name></member>
+      <member refid="structckernel_1_1p__setrwc_1acf4f3db28f1f6629d78abc1b77103073" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_ABD</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a831ce6850ea6dbade5660f1a1579f3f3" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_ABD_F</name></member>
+      <member refid="structckernel_1_1p__setrwc_1acb2432f96d4c0080a80ee93429863cd7" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_AD</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a5c4b1a50bc73d11c73ca4b9ed0156089" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_AD_F</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_B</name></member>
+      <member refid="structckernel_1_1p__setrwc_1acebce536ffb0c630c7e2382c8ebd2f44" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_B_F</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a72a2da4e78be127fc0737d1f7cc2ae4e" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_BD</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a06151de1012824fd1b416af37d74880b" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_BD_F</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_D</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a4f31f563d5c7ececa07f0e472e38f4e5" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_D_F</name></member>
+      <member refid="structckernel_1_1p__setrwc_1a72bf616cdf383b48fa1dec8717f63d4d" prot="public" virt="non-virtual"><scope>ckernel::p_setrwc</scope><name>SET_F</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

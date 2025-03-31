@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1dbg__array__id" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::dbg_array_id</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h" local="no">ckernel_debug.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__id_1a4804cf81d2fa5a225b24665a2d2a5f15" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_array_id::SRCA</definition>
+        <argsstring></argsstring>
+        <name>SRCA</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="30" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__id_1a9a7bc25825336b4afc616c168dc781b0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_array_id::SRCB</definition>
+        <argsstring></argsstring>
+        <name>SRCB</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="31" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__id_1a11fcaf280e2fd537ed3e37530ecae895" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_array_id::DEST</definition>
+        <argsstring></argsstring>
+        <name>DEST</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="32" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="28" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="29" bodyend="33"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1dbg__array__id_1a11fcaf280e2fd537ed3e37530ecae895" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_id</scope><name>DEST</name></member>
+      <member refid="structckernel_1_1dbg__array__id_1a4804cf81d2fa5a225b24665a2d2a5f15" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_id</scope><name>SRCA</name></member>
+      <member refid="structckernel_1_1dbg__array__id_1a9a7bc25825336b4afc616c168dc781b0" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_id</scope><name>SRCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

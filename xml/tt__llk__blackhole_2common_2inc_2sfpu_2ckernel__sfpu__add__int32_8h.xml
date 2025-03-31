@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__add__int32_8h" kind="file" language="C++">
+    <compoundname>ckernel_sfpu_add_int32.h</compoundname>
+    <includes local="yes">ckernel_addrmod.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">sfpi.h</includes>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h" local="yes">tt_llk_blackhole/common/inc/ckernel_sfpu.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>ckernel_addrmod.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_add_int32.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__add__int32_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>sfpi.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_add_int32.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__add__int32_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <innernamespace refid="namespaceckernel_1_1sfpu">ckernel::sfpu</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_addrmod.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpi.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">sfpu</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>SIGN_MAGNITUDE_FORMAT,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="17" refid="namespaceckernel_1_1sfpu_1a63400d20e8ed908e699c17fc0995e7bd" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a63400d20e8ed908e699c17fc0995e7bd" kindref="member">_add_int32_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>dst_offset)</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Operand<sp/>A<sp/>is<sp/>input1<sp/>(int32)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Operand<sp/>B<sp/>is<sp/>input2<sp/>(int32)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Output<sp/>is<sp/>int32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Modifies<sp/>LOAD/STORE<sp/>to<sp/>do<sp/>INT32<sp/>sign-magnitude<sp/>to<sp/>2&apos;s<sp/>complement<sp/>conversion,<sp/>however</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>in<sp/>Blackhole<sp/>this<sp/>has<sp/>no<sp/>effect<sp/>and<sp/>format<sp/>remains<sp/>in<sp/>original<sp/>format.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>INSTR_MOD_LOAD_STORE<sp/>=<sp/><ref refid="namespaceckernel_1ae88c63becbbb7eadabda13e9038b48fda5049fe3b281dcd848a07088f5565f604" kindref="member">InstrModLoadStore::INT32_2S_COMP</ref>;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>If<sp/>LOAD/STORE<sp/>have<sp/>the<sp/>value<sp/>in<sp/>INT<sp/>sign-magnitude<sp/>format<sp/>and<sp/>SFPU<sp/>needs<sp/>it<sp/>as<sp/>2&apos;s<sp/>complement.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>INSTR_MOD_CAST<sp/>=<sp/><ref refid="namespaceckernel_1a8a4811d543689dfe1479dd2593341b3ba1db09feab754abd362bfb1908688a9e2" kindref="member">InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP</ref>;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>operand<sp/>A<sp/>-<sp/>int32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0<sp/></highlight><highlight class="comment">/*lreg*/</highlight><highlight class="normal">,<sp/>INSTR_MOD_LOAD_STORE,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0<sp/></highlight><highlight class="comment">/*dest_reg_addr<sp/>*/</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(SIGN_MAGNITUDE_FORMAT)</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(0<sp/></highlight><highlight class="comment">/*lreg*/</highlight><highlight class="normal">,<sp/>2<sp/></highlight><highlight class="comment">/*ldest*/</highlight><highlight class="normal">,<sp/>INSTR_MOD_CAST);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Required<sp/>after<sp/>cast<sp/>due<sp/>to<sp/>a<sp/>bug<sp/>in<sp/>Blackhole<sp/>RTL.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a148cc889d1bc12d425f2d3f9df542ef9" kindref="member">TTI_SFPSETSGN</ref>(0<sp/></highlight><highlight class="comment">/*<sp/>imm<sp/>*/</highlight><highlight class="normal">,<sp/>2<sp/></highlight><highlight class="comment">/*lreg_c*/</highlight><highlight class="normal">,<sp/>0<sp/></highlight><highlight class="comment">/*ldest*/</highlight><highlight class="normal">,<sp/>0<sp/></highlight><highlight class="comment">/*imod*/</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>operand<sp/>B<sp/>-<sp/>int32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ac69f01c77dfa22b6c0c865d9b5793409" kindref="member">TT_SFPLOAD</ref>(1<sp/></highlight><highlight class="comment">/*lreg*/</highlight><highlight class="normal">,<sp/>INSTR_MOD_LOAD_STORE,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>dst_offset<sp/>*<sp/>64);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(SIGN_MAGNITUDE_FORMAT)</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(1<sp/></highlight><highlight class="comment">/*lreg*/</highlight><highlight class="normal">,<sp/>2<sp/></highlight><highlight class="comment">/*ldest*/</highlight><highlight class="normal">,<sp/>INSTR_MOD_CAST);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Required<sp/>after<sp/>cast<sp/>due<sp/>to<sp/>a<sp/>bug<sp/>in<sp/>Blackhole<sp/>RTL.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a148cc889d1bc12d425f2d3f9df542ef9" kindref="member">TTI_SFPSETSGN</ref>(0<sp/></highlight><highlight class="comment">/*<sp/>imm<sp/>*/</highlight><highlight class="normal">,<sp/>2<sp/></highlight><highlight class="comment">/*lreg_c*/</highlight><highlight class="normal">,<sp/>1<sp/></highlight><highlight class="comment">/*ldest*/</highlight><highlight class="normal">,<sp/>0<sp/></highlight><highlight class="comment">/*imod*/</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6ab713d0072f1b55e1314e727fdd6b38" kindref="member">TTI_SFPIADD</ref>(0<sp/></highlight><highlight class="comment">/*imm*/</highlight><highlight class="normal">,<sp/>1<sp/></highlight><highlight class="comment">/*lreg_c*/</highlight><highlight class="normal">,<sp/>0<sp/></highlight><highlight class="comment">/*lreg_dest*/</highlight><highlight class="normal">,<sp/>4<sp/></highlight><highlight class="comment">/*imod*/</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>LREG_0<sp/>-&gt;<sp/>dest<sp/>as<sp/>int32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(SIGN_MAGNITUDE_FORMAT)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(0<sp/></highlight><highlight class="comment">/*lreg*/</highlight><highlight class="normal">,<sp/>1<sp/></highlight><highlight class="comment">/*ldest*/</highlight><highlight class="normal">,<sp/>INSTR_MOD_CAST);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Required<sp/>after<sp/>cast<sp/>due<sp/>to<sp/>a<sp/>bug<sp/>in<sp/>Blackhole<sp/>RTL.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a148cc889d1bc12d425f2d3f9df542ef9" kindref="member">TTI_SFPSETSGN</ref>(0<sp/></highlight><highlight class="comment">/*<sp/>imm<sp/>*/</highlight><highlight class="normal">,<sp/>1<sp/></highlight><highlight class="comment">/*lreg_c*/</highlight><highlight class="normal">,<sp/>0<sp/></highlight><highlight class="comment">/*ldest*/</highlight><highlight class="normal">,<sp/>0<sp/></highlight><highlight class="comment">/*imod*/</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(0,<sp/>INSTR_MOD_LOAD_STORE,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>sfpu</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_add_int32.h"/>
+  </compounddef>
+</doxygen>

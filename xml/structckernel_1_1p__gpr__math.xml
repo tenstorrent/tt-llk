@@ -1,0 +1,241 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__gpr__math" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_gpr_math</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__gpr__map_8h" local="no">ckernel_gpr_map.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1a947d91c6525c4e6dc8a13ab1d4adddf8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::PERF_DBUS_CNTL</definition>
+        <argsstring></argsstring>
+        <name>PERF_DBUS_CNTL</name>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="63" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1ab3397ee0416e89429e6d27ac67a4cccc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::PERF_MEM_DUMP_CNTL_CLEAR</definition>
+        <argsstring></argsstring>
+        <name>PERF_MEM_DUMP_CNTL_CLEAR</name>
+        <initializer>= 5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="64" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1ad834fa4324973629552995195804071a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::PERF_MEM_DUMP_CNTL_SET</definition>
+        <argsstring></argsstring>
+        <name>PERF_MEM_DUMP_CNTL_SET</name>
+        <initializer>= 6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="65" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1ad8d335030454f9100982434240951814" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::PERF_CNT_START</definition>
+        <argsstring></argsstring>
+        <name>PERF_CNT_START</name>
+        <initializer>= 7</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="66" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1ab09426054edf23847a179f0ce491b28e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::PERF_CNT_STOP</definition>
+        <argsstring></argsstring>
+        <name>PERF_CNT_STOP</name>
+        <initializer>= 8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="67" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1a0264f43bc0b7f34ae128a11cdfcacaac" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::PERF_EPOCH_BASE_ADDR</definition>
+        <argsstring></argsstring>
+        <name>PERF_EPOCH_BASE_ADDR</name>
+        <initializer>= 9</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="68" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1acf059a90151c11ebe75c9319a5ffe251" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::PERF_EPOCH_OFFSET</definition>
+        <argsstring></argsstring>
+        <name>PERF_EPOCH_OFFSET</name>
+        <initializer>= 10</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="69" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1a91da42671052d84da7dd0ef30fe70d99" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::DEST_OP0_BASE</definition>
+        <argsstring></argsstring>
+        <name>DEST_OP0_BASE</name>
+        <initializer>= 48</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="70" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1aef878721c155312ae1c6ea45dfa06915" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::DEST_OP1_BASE</definition>
+        <argsstring></argsstring>
+        <name>DEST_OP1_BASE</name>
+        <initializer>= 49</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="71" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1ae0713aa537d7d21534ddfcbf2bfe829b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::DEST_REGW_OFFSET</definition>
+        <argsstring></argsstring>
+        <name>DEST_REGW_OFFSET</name>
+        <initializer>= 50</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="72" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1a76e834cad777efe69c16c1ea198026ea" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::DEST_REGW_INCR</definition>
+        <argsstring></argsstring>
+        <name>DEST_REGW_INCR</name>
+        <initializer>= 51</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="73" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1a711370c8f90cf5406a4a7785b071f1f4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::DEST_REGW_OFFSET2</definition>
+        <argsstring></argsstring>
+        <name>DEST_REGW_OFFSET2</name>
+        <initializer>= 52</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="74" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1ac383484203c62eb650dcb2d46021015d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::DEST_REGW_INCR2</definition>
+        <argsstring></argsstring>
+        <name>DEST_REGW_INCR2</name>
+        <initializer>= 53</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="75" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1a4dbf5c954ea177bde2677da1491844f0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::TMP0</definition>
+        <argsstring></argsstring>
+        <name>TMP0</name>
+        <initializer>= 60</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="76" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__math_1a1b229ab77f5bd421da5ce77dd21d2370" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_math::NUM_DRAM_REQS</definition>
+        <argsstring></argsstring>
+        <name>NUM_DRAM_REQS</name>
+        <initializer>= 61</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="77" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="61" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="62" bodyend="78"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__gpr__math_1a91da42671052d84da7dd0ef30fe70d99" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>DEST_OP0_BASE</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1aef878721c155312ae1c6ea45dfa06915" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>DEST_OP1_BASE</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1a76e834cad777efe69c16c1ea198026ea" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>DEST_REGW_INCR</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1ac383484203c62eb650dcb2d46021015d" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>DEST_REGW_INCR2</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1ae0713aa537d7d21534ddfcbf2bfe829b" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>DEST_REGW_OFFSET</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1a711370c8f90cf5406a4a7785b071f1f4" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>DEST_REGW_OFFSET2</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1a1b229ab77f5bd421da5ce77dd21d2370" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>NUM_DRAM_REQS</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1ad8d335030454f9100982434240951814" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>PERF_CNT_START</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1ab09426054edf23847a179f0ce491b28e" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>PERF_CNT_STOP</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1a947d91c6525c4e6dc8a13ab1d4adddf8" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>PERF_DBUS_CNTL</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1a0264f43bc0b7f34ae128a11cdfcacaac" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>PERF_EPOCH_BASE_ADDR</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1acf059a90151c11ebe75c9319a5ffe251" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>PERF_EPOCH_OFFSET</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1ab3397ee0416e89429e6d27ac67a4cccc" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>PERF_MEM_DUMP_CNTL_CLEAR</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1ad834fa4324973629552995195804071a" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>PERF_MEM_DUMP_CNTL_SET</name></member>
+      <member refid="structckernel_1_1p__gpr__math_1a4dbf5c954ea177bde2677da1491844f0" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_math</scope><name>TMP0</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

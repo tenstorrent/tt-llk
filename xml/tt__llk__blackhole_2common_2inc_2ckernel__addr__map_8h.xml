@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h" kind="file" language="C++">
+    <compoundname>ckernel_addr_map.h</compoundname>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1a72bd289a63301bc8005189bebda80c3e" prot="public" static="no">
+        <name>TRISC0_PARAMS_BASE_ADDRESS</name>
+        <initializer>32 * 1024</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addr_map.h" line="8" column="9" bodyfile="tt_llk_blackhole/common/inc/ckernel_addr_map.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1afbfc6d75fb2885571be9547d2a6e8f25" prot="public" static="no">
+        <name>TRISC1_PARAMS_BASE_ADDRESS</name>
+        <initializer>48 * 1024</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addr_map.h" line="9" column="9" bodyfile="tt_llk_blackhole/common/inc/ckernel_addr_map.h" bodystart="9" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1a5072cda3ca3c91df71cc194138c0b0d6" prot="public" static="no">
+        <name>TRISC2_PARAMS_BASE_ADDRESS</name>
+        <initializer>64 * 1024</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addr_map.h" line="10" column="9" bodyfile="tt_llk_blackhole/common/inc/ckernel_addr_map.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1aedaf2f0aa85255b53a1345dde79332a4" prot="public" static="no" mutable="no">
+        <type>uint</type>
+        <definition>uint params_base[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>params_base</name>
+        <initializer>= {<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__addr__map_8h_1a72bd289a63301bc8005189bebda80c3e" kindref="member">TRISC0_PARAMS_BASE_ADDRESS</ref>, <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__addr__map_8h_1afbfc6d75fb2885571be9547d2a6e8f25" kindref="member">TRISC1_PARAMS_BASE_ADDRESS</ref>, <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__addr__map_8h_1a5072cda3ca3c91df71cc194138c0b0d6" kindref="member">TRISC2_PARAMS_BASE_ADDRESS</ref>}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addr_map.h" line="12" column="6" bodyfile="tt_llk_blackhole/common/inc/ckernel_addr_map.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Temp<sp/>address<sp/>map<sp/>in<sp/>bytes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1a72bd289a63301bc8005189bebda80c3e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TRISC0_PARAMS_BASE_ADDRESS<sp/>32<sp/>*<sp/>1024</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1afbfc6d75fb2885571be9547d2a6e8f25" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TRISC1_PARAMS_BASE_ADDRESS<sp/>48<sp/>*<sp/>1024</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1a5072cda3ca3c91df71cc194138c0b0d6" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>TRISC2_PARAMS_BASE_ADDRESS<sp/>64<sp/>*<sp/>1024</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1aedaf2f0aa85255b53a1345dde79332a4" refkind="member"><highlight class="normal">uint<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1aedaf2f0aa85255b53a1345dde79332a4" kindref="member">params_base</ref>[3]<sp/>=<sp/>{<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1a72bd289a63301bc8005189bebda80c3e" kindref="member">TRISC0_PARAMS_BASE_ADDRESS</ref>,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1afbfc6d75fb2885571be9547d2a6e8f25" kindref="member">TRISC1_PARAMS_BASE_ADDRESS</ref>,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h_1a5072cda3ca3c91df71cc194138c0b0d6" kindref="member">TRISC2_PARAMS_BASE_ADDRESS</ref>};</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/ckernel_addr_map.h"/>
+  </compounddef>
+</doxygen>

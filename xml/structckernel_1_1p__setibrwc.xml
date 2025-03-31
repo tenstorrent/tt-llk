@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__setibrwc" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_setibrwc</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__setibrwc_1a89e6340e0234b65592547640ce3542d8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setibrwc::SET_BIAS</definition>
+        <argsstring></argsstring>
+        <name>SET_BIAS</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="67" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setibrwc_1a0a78378c1fd7c378a3baf0ed9a304329" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setibrwc::INC_BIAS</definition>
+        <argsstring></argsstring>
+        <name>INC_BIAS</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="68" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setibrwc_1a32f080b419546c70bf86b6a915dd04d2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setibrwc::CR_NONE</definition>
+        <argsstring></argsstring>
+        <name>CR_NONE</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="69" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__setibrwc_1acd5587e620e32d6f20d9a67ec44ad0aa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_setibrwc::CR_BIAS</definition>
+        <argsstring></argsstring>
+        <name>CR_BIAS</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="70" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="65" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="66" bodyend="71"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__setibrwc_1acd5587e620e32d6f20d9a67ec44ad0aa" prot="public" virt="non-virtual"><scope>ckernel::p_setibrwc</scope><name>CR_BIAS</name></member>
+      <member refid="structckernel_1_1p__setibrwc_1a32f080b419546c70bf86b6a915dd04d2" prot="public" virt="non-virtual"><scope>ckernel::p_setibrwc</scope><name>CR_NONE</name></member>
+      <member refid="structckernel_1_1p__setibrwc_1a0a78378c1fd7c378a3baf0ed9a304329" prot="public" virt="non-virtual"><scope>ckernel::p_setibrwc</scope><name>INC_BIAS</name></member>
+      <member refid="structckernel_1_1p__setibrwc_1a89e6340e0234b65592547640ce3542d8" prot="public" virt="non-virtual"><scope>ckernel::p_setibrwc</scope><name>SET_BIAS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

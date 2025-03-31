@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_27ef2860da71080578a7345670e2abcd" kind="dir">
+    <compoundname>tt_llk_blackhole/common</compoundname>
+    <innerdir refid="dir_5485ef706e7059f96eb5b66ed65f8247">tt_llk_blackhole/common/inc</innerdir>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,86 @@
+\hypertarget{tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/common/inc/cmath\+\_\+common.h File Reference}
+\label{tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h}\index{tt\_llk\_wormhole\_b0/common/inc/cmath\_common.h@{tt\_llk\_wormhole\_b0/common/inc/cmath\_common.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+globals.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+sfpu.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+template.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}llk\+\_\+defs.\+h\char`\"{}}\newline
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\item 
+ \mbox{\hyperlink{namespaceckernel_1_1math}{ckernel\+::math}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h_aab869c8225c4bd8679b9b77ffebf8154}{SFPU\+\_\+\+OP\+\_\+\+PARAM}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h_ac9dcb19e38639345e63f319bbdcd2991}{FUSE\+\_\+\+SQRT\+\_\+\+RECIP}}~0
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a4de2f1cf6fdbf8440aa394f2509ea5de}{ckernel\+::math\+::reset\+\_\+counters}} (const uint setrwc)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a6ca7832878c70ec82046689b83696156}{ckernel\+::math\+::incr\+\_\+counters}} (const uint incr\+\_\+a, const uint incr\+\_\+b, const uint incr\+\_\+d, const uint incr\+\_\+cr)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_ac4a88ab2446a32c95db93a6aa27893c2}{ckernel\+::math\+::move\+\_\+d2a\+\_\+fixed\+\_\+face}} (const uint8\+\_\+t addrmod)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a05229ebc59a60cdd21418054c2b82120}{ckernel\+::math\+::move\+\_\+d2b\+\_\+fixed\+\_\+face}} (const uint8\+\_\+t addrmod)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a567af8b0b49cb0ca30f02bbf7c0dda30}{ckernel\+::math\+::move\+\_\+d2a\+\_\+row\+\_\+broadcast\+\_\+fixed\+\_\+face}} (const uint8\+\_\+t addrmod)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a3b51a16548a7d08ff6b73358103375ae}{ckernel\+::math\+::move\+\_\+a2d\+\_\+fixed\+\_\+face}} (const uint8\+\_\+t addrmod)
+\item 
+{\footnotesize template$<$uint Src\+Reg$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1math_a0c0b2f9edd3d85e944f512cdc0e4916e}{ckernel\+::math\+::wait\+\_\+bank\+\_\+valid}} ()
+\item 
+{\footnotesize template$<$uint Src\+Reg$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1math_af3de627d825588ac7eb8c6325f472644}{ckernel\+::math\+::clear\+\_\+bank\+\_\+valid}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a66fbb2813180a9e151bc3239d6c8e30f}{ckernel\+::math\+::wait\+\_\+math\+\_\+semaphores}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a94d68b0dcbedd79068fbd8ed3a8e1139}{ckernel\+::math\+::set\+\_\+math\+\_\+semaphores}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a27f7211197bc82243e50f0a0458f0547}{ckernel\+::math\+::math\+\_\+unpack\+\_\+to\+\_\+dest\+\_\+math\+\_\+ready}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a6230929ea78574da9f2c89cf01c74c41}{ckernel\+::math\+::math\+\_\+unpack\+\_\+to\+\_\+dest\+\_\+tile\+\_\+ready}} ()
+\item 
+{\footnotesize template$<$Dst\+Tile\+Layout layout, Dst\+Tile\+Shape tile\+\_\+shape, bool unpack\+\_\+to\+\_\+dest = false$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1math_aa745169e071605203f424c819458c140}{ckernel\+::math\+::set\+\_\+dst\+\_\+write\+\_\+addr}} (uint32\+\_\+t tile\+\_\+index)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a67bcf29581cd07b43cb0540d8e0e238f}{ckernel\+::math\+::clear\+\_\+dst\+\_\+reg\+\_\+addr}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_adaff88647b6cd0c0d6195f765aed3e4f}{ckernel\+::math\+::set\+\_\+addr\+\_\+mod\+\_\+base}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_af3550e48f55fb04a646104fbd2214b96}{ckernel\+::math\+::clear\+\_\+addr\+\_\+mod\+\_\+base}} ()
+\item 
+{\footnotesize template$<$uint num\+\_\+rows = 8$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1math_a53a52f6e764d81448260e7e66510a5c4}{ckernel\+::math\+::inc\+\_\+dst\+\_\+addr}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_a90a90b46d12d760b3060213a1033e582}{ckernel\+::math\+::math\+\_\+dest\+\_\+wait}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1math_ae8c1f492f739865279a21e7ee1c65286}{ckernel\+::math\+::dest\+\_\+section\+\_\+flip}} ()
+\item 
+{\footnotesize template$<$Dst\+Start Dst$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1math_a3f0fbdf7f8e43896efc2c9b59127562b}{ckernel\+::math\+::set\+\_\+dest\+\_\+section\+\_\+base}} ()
+\item 
+constexpr bool \mbox{\hyperlink{namespaceckernel_1_1math_a58be621ab2361f2a2ae79b591edd14c5}{ckernel\+::math\+::is\+\_\+32bit\+\_\+input}} (const std\+::uint32\+\_\+t src\+\_\+format, const std\+::uint32\+\_\+t dst\+\_\+format)
+\item 
+constexpr int \mbox{\hyperlink{namespaceckernel_1_1math_a0a3ddb26bec88debce6e31ce3d545326}{ckernel\+::math\+::get\+\_\+math\+\_\+num\+\_\+fidelity\+\_\+phases}} (const int math\+\_\+fidelity\+\_\+desc)
+\item 
+constexpr int \mbox{\hyperlink{namespaceckernel_1_1math_a1e0b0ac27da288d35a7316580da4f039}{ckernel\+::math\+::get\+\_\+math\+\_\+fidelity\+\_\+increment}} (const int math\+\_\+fidelity\+\_\+desc)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h_ac9dcb19e38639345e63f319bbdcd2991}\label{tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h_ac9dcb19e38639345e63f319bbdcd2991}} 
+\index{cmath\_common.h@{cmath\_common.h}!FUSE\_SQRT\_RECIP@{FUSE\_SQRT\_RECIP}}
+\index{FUSE\_SQRT\_RECIP@{FUSE\_SQRT\_RECIP}!cmath\_common.h@{cmath\_common.h}}
+\doxysubsubsection{\texorpdfstring{FUSE\_SQRT\_RECIP}{FUSE\_SQRT\_RECIP}}
+{\footnotesize\ttfamily \#define FUSE\+\_\+\+SQRT\+\_\+\+RECIP~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h_aab869c8225c4bd8679b9b77ffebf8154}\label{tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h_aab869c8225c4bd8679b9b77ffebf8154}} 
+\index{cmath\_common.h@{cmath\_common.h}!SFPU\_OP\_PARAM@{SFPU\_OP\_PARAM}}
+\index{SFPU\_OP\_PARAM@{SFPU\_OP\_PARAM}!cmath\_common.h@{cmath\_common.h}}
+\doxysubsubsection{\texorpdfstring{SFPU\_OP\_PARAM}{SFPU\_OP\_PARAM}}
+{\footnotesize\ttfamily \#define SFPU\+\_\+\+OP\+\_\+\+PARAM~0}
+

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1dbg__array__rd__en__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::dbg_array_rd_en_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h" local="no">ckernel_debug.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__rd__en__t_1a812b486d708479b616dd9fde77c871dd" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_array_rd_en_t::en</definition>
+        <argsstring></argsstring>
+        <name>en</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="62" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__rd__en__t_1ad5f75f2a00cf5433a3b827f29a7109c1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_array_rd_en_t::reserved</definition>
+        <argsstring></argsstring>
+        <name>reserved</name>
+        <bitfield> 31</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="63" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="60" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="61" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1dbg__array__rd__en__t_1a812b486d708479b616dd9fde77c871dd" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_en_t</scope><name>en</name></member>
+      <member refid="structckernel_1_1dbg__array__rd__en__t_1ad5f75f2a00cf5433a3b827f29a7109c1" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_en_t</scope><name>reserved</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

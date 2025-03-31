@@ -1,0 +1,338 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__gelu_8h" kind="file" language="C++">
+    <compoundname>ckernel_sfpu_gelu.h</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__exp_8h" local="yes">ckernel_sfpu_exp.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h" local="yes">ckernel_sfpu_load_config.h</includes>
+    <includes local="yes">sfpi.h</includes>
+    <includes local="yes">sfpi_fp16.h</includes>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h" local="yes">tt_llk_blackhole/common/inc/ckernel_sfpu.h</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>ckernel_addrmod.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_sfpu_recip.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__recip_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>sfpi_fp16.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__gelu_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ckernel_sfpu_exp.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__exp_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>ckernel_sfpu_load_config.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>sfpi.h</label>
+      </node>
+      <node id="4">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__gelu_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <innernamespace refid="namespaceckernel_1_1sfpu">ckernel::sfpu</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__exp_8h" kindref="compound">ckernel_sfpu_exp.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h" kindref="compound">ckernel_sfpu_load_config.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpi.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpi_fp16.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">sfpu</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE&gt;</highlight></codeline>
+<codeline lineno="18" refid="namespaceckernel_1_1sfpu_1ac3712de4208f0bdfef3e94ee94ead1fe" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>sfpi::vFloat<sp/><ref refid="namespaceckernel_1_1sfpu_1ac3712de4208f0bdfef3e94ee94ead1fe" kindref="member">_calculate_gelu_core_</ref>(sfpi::vFloat<sp/>in)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>SFPU<sp/>microcode:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>result<sp/>=<sp/>(APPROX_MODE<sp/>==<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/>?<sp/>(1<sp/>+<sp/>erf(x/sqrt(2)))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/>:<sp/>(1<sp/>+<sp/>tanh(<sp/>sqrt(2/pi)<sp/>*<sp/>(x<sp/>+<sp/>0.044715*x^3)<sp/>)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>result;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(APPROXIMATION_MODE)</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>result<sp/>=<sp/>in;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>f<sp/>=<sp/>(0.044715*x^3<sp/>+<sp/>x)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>result<sp/>=<sp/>(in<sp/>*<sp/>in)<sp/>*<sp/>(in<sp/>*<sp/>sfpi::s2vFloat16b(0.044715f))<sp/>+<sp/>in;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>result<sp/>*=<sp/>sfpi::s2vFloat16b(0.79788f);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>result;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="40" refid="namespaceckernel_1_1sfpu_1ab4f4c7a80aef009e78fe0089592d6822" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1ab4f4c7a80aef009e78fe0089592d6822" kindref="member">_calculate_gelu_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>iterations)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l0<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg0];</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l1<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg1];</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l2<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg2];</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l4<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg4];</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l5<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg5];</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l6<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg6];</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>iterations;<sp/>d++)</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>sfpi::vFloat<sp/>in<sp/>=<sp/>sfpi::dst_reg[0];</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>sfpi::vFloat<sp/>result<sp/>=<sp/>calculate_gelu_core&lt;APPROXIMATION_MODE&gt;(in);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>sfpi::vFloat<sp/>half_in<sp/>=<sp/>in<sp/>*<sp/>half;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>result<sp/>=<sp/>lut(result,<sp/>l0,<sp/>l1,<sp/>l2);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>result<sp/>=<sp/>half_in<sp/>*<sp/>result<sp/>+<sp/>half_in;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>sfpi::dst_reg[0]<sp/>=<sp/>result;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>in<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::dst_reg[0];</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>half<sp/><sp/><sp/><sp/>=<sp/>sfpi::vConstFloatPrgm0;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>half_in<sp/>=<sp/>in<sp/>*<sp/>half;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>result<sp/><sp/>=<sp/>lut2_sign(in,<sp/>l0,<sp/>l1,<sp/>l2,<sp/>l4,<sp/>l5,<sp/>l6);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>result<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>half_in<sp/>+<sp/>result;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>result;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>sfpi::dst_reg++;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TTI_SFPLOAD(3,<sp/>0,<sp/>1/*load<sp/>addr<sp/>mode*/,0);<sp/><sp/><sp/><sp/>//<sp/>load<sp/>from<sp/>dest</highlight></codeline>
+<codeline lineno="74"><highlight class="comment"></highlight><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TTI_SFPLUTFP32(7,<sp/>2);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>lreg7=<sp/>LUT(3)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TTI_SFPMAD(3,12,7,3,0);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>lreg3<sp/>=<sp/>0.5*lreg3+lregm7</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TTI_SFPSTORE(3,<sp/>0,<sp/>3/*store_addr_mod3*/,<sp/>0);<sp/><sp/><sp/>//<sp/>and<sp/>INCRWC<sp/>by<sp/>4<sp/>using<sp/>mode<sp/>3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg0]<sp/>=<sp/>l0;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg1]<sp/>=<sp/>l1;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg2]<sp/>=<sp/>l2;</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg4]<sp/>=<sp/>l4;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg5]<sp/>=<sp/>l5;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg6]<sp/>=<sp/>l6;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="88" refid="namespaceckernel_1_1sfpu_1ad5b8f9632307e8b4ea04b79a283b5af0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1ad5b8f9632307e8b4ea04b79a283b5af0" kindref="member">_calculate_gelu_derivative_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>iterations)</highlight></codeline>
+<codeline lineno="89"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(APPROXIMATION_MODE)</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lut_mode<sp/>=<sp/>1;<sp/></highlight><highlight class="comment">//<sp/>SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l0<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg0];</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l1<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg1];</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l2<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg2];</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l4<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg4];</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l5<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg5];</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l6<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg6];</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SFPU<sp/>microcode:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>iterations;<sp/>d++)</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>val<sp/>=<sp/>sfpi::dst_reg[0];</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>val<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>lut2(val,<sp/>l0,<sp/>l1,<sp/>l2,<sp/>l4,<sp/>l5,<sp/>l6,<sp/>lut_mode);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_if<sp/>(val<sp/>&lt;<sp/>0.0F)</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>val<sp/>=<sp/>val<sp/>+<sp/>1.0f;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_endif;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>val;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg0]<sp/>=<sp/>l0;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg1]<sp/>=<sp/>l1;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg2]<sp/>=<sp/>l2;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg4]<sp/>=<sp/>l4;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg5]<sp/>=<sp/>l5;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg6]<sp/>=<sp/>l6;</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint<sp/>imm2<sp/>=<sp/>0xFF10;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l0<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg0];</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l1<sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg1];</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SFPU<sp/>microcode:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>iterations;<sp/>d++)</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>in<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::dst_reg[0];</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>neg_half_sq_in<sp/>=<sp/>in<sp/>*<sp/>in<sp/>*<sp/>-0.5f;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>exp<sp/>=<sp/>e^(val)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>exp<sp/>=<sp/>_calculate_exponential_body_&lt;false&gt;(neg_half_sq_in);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>exp<sp/>=<sp/>exp<sp/>*<sp/>1/sqrt(2*pi)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>partial<sp/>=<sp/>exp<sp/>*<sp/>in<sp/>*<sp/>sfpi::s2vFloat16b(0.3989423F);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>result<sp/>=<sp/>_calculate_gelu_core_&lt;true&gt;(in);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>result<sp/>=<sp/>lut(result,<sp/>l0,<sp/>l1,<sp/>imm2);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>partial<sp/>+<sp/>result<sp/>+<sp/>0.5f;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg0]<sp/>=<sp/>l0;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg1]<sp/>=<sp/>l1;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE&gt;</highlight></codeline>
+<codeline lineno="157" refid="namespaceckernel_1_1sfpu_1ae5cc544fff5917d182555cac1a1c09f8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1ae5cc544fff5917d182555cac1a1c09f8" kindref="member">_init_gelu_</ref>()</highlight></codeline>
+<codeline lineno="158"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vConstFloatPrgm0<sp/>=<sp/>0.5f;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>//<sp/>&gt;=<sp/>3.0f</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg2_hi=0.50;//3800</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg6_hi=0.0f;//7c00</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>//<sp/>2.0f<sp/>-&gt;<sp/>3.0f</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg2_lo=<sp/>0.5402f;//3852</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg6_lo=<sp/>-0.1194f;//AFA4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>//<sp/>1.5f<sp/>-&gt;<sp/>2.0f</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg1_hi=<sp/>.6099f;<sp/>//38E1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg5_hi=<sp/>-.2635f;<sp/>//B437</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>//<sp/>1.0f<sp/>-&gt;<sp/>1.5f</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg1_lo=0.6189;//38F3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg5_lo=-.2797;//B479</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>//<sp/>0.5f<sp/>-&gt;<sp/>1.0f</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg0_hi=.4939f;//37E7</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg4_hi=-.1605f;//B122</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>//<sp/>0.0f<sp/>-&gt;<sp/>0.5f</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg0_lo=0.1928f;//322B</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>lreg4_lo=-0.0150f;//A3AE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(0,<sp/>0x37E7322B);</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(4,<sp/>0xB12286D8);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(1,<sp/>0x38E138F3);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(5,<sp/>0xB437B479);</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(2,<sp/>0x38003852);</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(6,<sp/>0x7c00afa4);</highlight></codeline>
+<codeline lineno="187"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE&gt;</highlight></codeline>
+<codeline lineno="190" refid="namespaceckernel_1_1sfpu_1a2569bc7a9f283b173ac41a8902720f89" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a2569bc7a9f283b173ac41a8902720f89" kindref="member">_init_gelu_derivative_</ref>()</highlight></codeline>
+<codeline lineno="191"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vConstFloatPrgm0<sp/>=<sp/>1.442695f;<sp/></highlight><highlight class="comment">//<sp/>ln2_recip</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vConstFloatPrgm1<sp/>=<sp/>2.0f;</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vConstFloatPrgm2<sp/>=<sp/>0.863281f;</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>imm0;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>imm1;</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>imm2;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>imm3;</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>imm4;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>imm5;</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(APPROXIMATION_MODE)</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Using<sp/>a<sp/>6<sp/>piece<sp/>LUT<sp/>to<sp/>calculate<sp/>and<sp/>model<sp/>gelu_derivative<sp/>directly</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>0.5<sp/>--&gt;<sp/>0.8x<sp/>+<sp/>0.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>1.0<sp/>--&gt;<sp/>0.4x<sp/>+<sp/>0.7</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>1.5<sp/>--&gt;<sp/>0.1x<sp/>+<sp/>0.99</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>2.0<sp/>--&gt;<sp/>-0.09x<sp/>+<sp/>1.27</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>3.0<sp/>--&gt;<sp/>-0.075x<sp/>+<sp/>1.235</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&gt;<sp/><sp/>3.0<sp/>--&gt;<sp/>1.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm0[15:0]<sp/>=<sp/>A0=0.8<sp/><sp/><sp/><sp/>=<sp/>0x3A66<sp/>--<sp/>imm0[31:16]<sp/>=<sp/>A1=0.4<sp/><sp/><sp/>=<sp/>0x3666</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>imm0<sp/>=<sp/>0x36663A66;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm1[15:0]<sp/>=<sp/>A2=0.1<sp/><sp/><sp/><sp/>=<sp/>0x2E66<sp/>--<sp/>imm1[31:16]<sp/>=<sp/>A3=-0.09<sp/>=<sp/>0xADC3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>imm1<sp/>=<sp/>0xADC32E66;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm2[15:0]<sp/>=<sp/>A4=-0.075<sp/>=<sp/>0xACCD<sp/>--<sp/>imm2[31:16]<sp/>=<sp/>A5=0<sp/><sp/><sp/><sp/><sp/>=<sp/>0x7C00</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>imm2<sp/>=<sp/>0x7C00ACCD;</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm3[15:0]<sp/>=<sp/>B0=0.5<sp/><sp/><sp/><sp/>=<sp/>0x3800<sp/>--<sp/>imm3[31:16]<sp/>=<sp/>B1=0.7<sp/><sp/><sp/>=<sp/>0x399A</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>imm3<sp/>=<sp/>0x399A3800;</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm4[15:0]<sp/>=<sp/>B2=0.99<sp/><sp/><sp/>=<sp/>0x3BEC<sp/>--<sp/>imm4[31:16]<sp/>=<sp/>B3=1.27<sp/><sp/>=<sp/>0x3D14</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>imm4<sp/>=<sp/>0x3D143BEC;</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm5[15:0]<sp/>=<sp/>B4=1.235<sp/><sp/>=<sp/>0x3CF1<sp/>--<sp/>imm5[31:16]<sp/>=<sp/>B5=1.0<sp/><sp/><sp/>=<sp/>0x3C00</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>imm5<sp/>=<sp/>0x3C003CF1;</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(0,<sp/>imm0);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(1,<sp/>imm1);</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(2,<sp/>imm2);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(4,<sp/>imm3);</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(5,<sp/>imm4);</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(6,<sp/>imm5);</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>imm0<sp/>=<sp/>0x28FF;</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>imm1<sp/>=<sp/>0x3020;</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1abc1197dac2a796ab4246a4925e57b89a" kindref="member">_sfpu_load_imm16_</ref>(0,<sp/>imm0);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1abc1197dac2a796ab4246a4925e57b89a" kindref="member">_sfpu_load_imm16_</ref>(1,<sp/>imm1);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="238"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>sfpu</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="241"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h"/>
+  </compounddef>
+</doxygen>

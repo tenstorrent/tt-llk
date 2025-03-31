@@ -1,0 +1,64 @@
+\hypertarget{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h}{}\doxysection{tt\+\_\+llk\+\_\+blackhole/llk\+\_\+lib/llk\+\_\+math\+\_\+matmul.h File Reference}
+\label{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h}\index{tt\_llk\_blackhole/llk\_lib/llk\_math\_matmul.h@{tt\_llk\_blackhole/llk\_lib/llk\_math\_matmul.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+include.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+template.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}cmath\+\_\+common.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}llk\+\_\+math\+\_\+common.\+h\char`\"{}}\newline
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_ae573698c5f41ffdb78fae41e18139903}{HF}}~0
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$int MATH\+\_\+\+FIDELITY\+\_\+\+DESC, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Col\+Major$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_a352cd80d1dbbde9f5c1f476f6cae954d}{matmul\+\_\+configure\+\_\+addrmod}} (const bool transpose, const std\+::uint32\+\_\+t ct\+\_\+dim, const std\+::uint32\+\_\+t rt\+\_\+dim, const std\+::uint32\+\_\+t kt\+\_\+dim, const std\+::uint32\+\_\+t in0\+\_\+tile\+\_\+r\+\_\+dim=TILE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t in0\+\_\+tile\+\_\+c\+\_\+dim=TILE\+\_\+\+C\+\_\+\+DIM, const std\+::uint32\+\_\+t in1\+\_\+tile\+\_\+r\+\_\+dim=TILE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t in1\+\_\+tile\+\_\+c\+\_\+dim=TILE\+\_\+\+C\+\_\+\+DIM, const bool partial\+\_\+face=false)
+\item 
+{\footnotesize template$<$int NUM\+\_\+\+FIDELITY\+\_\+\+PHASES, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Col\+Major$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_ab1f91b097633fb7ce2bcf6ad158c8543}{matmul\+\_\+configure\+\_\+mop}} (bool transpose, const std\+::uint32\+\_\+t ct\+\_\+dim, const std\+::uint32\+\_\+t rt\+\_\+dim, const std\+::uint32\+\_\+t kt\+\_\+dim, const std\+::uint32\+\_\+t in0\+\_\+tile\+\_\+r\+\_\+dim=TILE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t in0\+\_\+tile\+\_\+c\+\_\+dim=TILE\+\_\+\+C\+\_\+\+DIM, const std\+::uint32\+\_\+t in1\+\_\+tile\+\_\+r\+\_\+dim=TILE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t in1\+\_\+tile\+\_\+c\+\_\+dim=TILE\+\_\+\+C\+\_\+\+DIM, const bool partial\+\_\+face=false)
+\item 
+{\footnotesize template$<$int MATH\+\_\+\+FIDELITY\+\_\+\+DESC, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Col\+Major$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_aa123070179aa409dd498c8d88d7aa374}{\+\_\+llk\+\_\+math\+\_\+matmul\+\_\+init\+\_\+}} (const std\+::uint32\+\_\+t in0\+\_\+tile\+\_\+r\+\_\+dim=TILE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t in0\+\_\+tile\+\_\+c\+\_\+dim=TILE\+\_\+\+C\+\_\+\+DIM, const std\+::uint32\+\_\+t in1\+\_\+tile\+\_\+r\+\_\+dim=TILE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t in1\+\_\+tile\+\_\+c\+\_\+dim=TILE\+\_\+\+C\+\_\+\+DIM, const bool partial\+\_\+face=false, const std\+::uint32\+\_\+t transpose=0, const std\+::uint32\+\_\+t ct\+\_\+dim=1, const std\+::uint32\+\_\+t rt\+\_\+dim=1, const std\+::uint32\+\_\+t kt\+\_\+dim=1)
+\item 
+{\footnotesize template$<$int MATH\+\_\+\+FIDELITY\+\_\+\+DESC, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Col\+Major$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_abefbcd45c6302303733612440c1fdb66}{\+\_\+llk\+\_\+math\+\_\+matmul\+\_\+}} (uint dst\+\_\+index, const bool transpose=false, const std\+::uint32\+\_\+t ct\+\_\+dim=1, const std\+::uint32\+\_\+t rt\+\_\+dim=1, const std\+::uint32\+\_\+t kt\+\_\+dim=1)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_ae573698c5f41ffdb78fae41e18139903}\label{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_ae573698c5f41ffdb78fae41e18139903}} 
+\index{llk\_math\_matmul.h@{llk\_math\_matmul.h}!HF@{HF}}
+\index{HF@{HF}!llk\_math\_matmul.h@{llk\_math\_matmul.h}}
+\doxysubsubsection{\texorpdfstring{HF}{HF}}
+{\footnotesize\ttfamily \#define HF~0}
+
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_abefbcd45c6302303733612440c1fdb66}\label{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_abefbcd45c6302303733612440c1fdb66}} 
+\index{llk\_math\_matmul.h@{llk\_math\_matmul.h}!\_llk\_math\_matmul\_@{\_llk\_math\_matmul\_}}
+\index{\_llk\_math\_matmul\_@{\_llk\_math\_matmul\_}!llk\_math\_matmul.h@{llk\_math\_matmul.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_matmul\_()}{\_llk\_math\_matmul\_()}}
+{\footnotesize\ttfamily template$<$int MATH\+\_\+\+FIDELITY\+\_\+\+DESC, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Col\+Major$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+matmul\+\_\+ (\begin{DoxyParamCaption}\item[{uint}]{dst\+\_\+index,  }\item[{const bool}]{transpose = {\ttfamily false},  }\item[{const std\+::uint32\+\_\+t}]{ct\+\_\+dim = {\ttfamily 1},  }\item[{const std\+::uint32\+\_\+t}]{rt\+\_\+dim = {\ttfamily 1},  }\item[{const std\+::uint32\+\_\+t}]{kt\+\_\+dim = {\ttfamily 1} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_aa123070179aa409dd498c8d88d7aa374}\label{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_aa123070179aa409dd498c8d88d7aa374}} 
+\index{llk\_math\_matmul.h@{llk\_math\_matmul.h}!\_llk\_math\_matmul\_init\_@{\_llk\_math\_matmul\_init\_}}
+\index{\_llk\_math\_matmul\_init\_@{\_llk\_math\_matmul\_init\_}!llk\_math\_matmul.h@{llk\_math\_matmul.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_matmul\_init\_()}{\_llk\_math\_matmul\_init\_()}}
+{\footnotesize\ttfamily template$<$int MATH\+\_\+\+FIDELITY\+\_\+\+DESC, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Col\+Major$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+matmul\+\_\+init\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{in0\+\_\+tile\+\_\+r\+\_\+dim = {\ttfamily TILE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in0\+\_\+tile\+\_\+c\+\_\+dim = {\ttfamily TILE\+\_\+C\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in1\+\_\+tile\+\_\+r\+\_\+dim = {\ttfamily TILE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in1\+\_\+tile\+\_\+c\+\_\+dim = {\ttfamily TILE\+\_\+C\+\_\+DIM},  }\item[{const bool}]{partial\+\_\+face = {\ttfamily false},  }\item[{const std\+::uint32\+\_\+t}]{transpose = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{ct\+\_\+dim = {\ttfamily 1},  }\item[{const std\+::uint32\+\_\+t}]{rt\+\_\+dim = {\ttfamily 1},  }\item[{const std\+::uint32\+\_\+t}]{kt\+\_\+dim = {\ttfamily 1} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_a352cd80d1dbbde9f5c1f476f6cae954d}\label{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_a352cd80d1dbbde9f5c1f476f6cae954d}} 
+\index{llk\_math\_matmul.h@{llk\_math\_matmul.h}!matmul\_configure\_addrmod@{matmul\_configure\_addrmod}}
+\index{matmul\_configure\_addrmod@{matmul\_configure\_addrmod}!llk\_math\_matmul.h@{llk\_math\_matmul.h}}
+\doxysubsubsection{\texorpdfstring{matmul\_configure\_addrmod()}{matmul\_configure\_addrmod()}}
+{\footnotesize\ttfamily template$<$int MATH\+\_\+\+FIDELITY\+\_\+\+DESC, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Col\+Major$>$ \\
+void matmul\+\_\+configure\+\_\+addrmod (\begin{DoxyParamCaption}\item[{const bool}]{transpose,  }\item[{const std\+::uint32\+\_\+t}]{ct\+\_\+dim,  }\item[{const std\+::uint32\+\_\+t}]{rt\+\_\+dim,  }\item[{const std\+::uint32\+\_\+t}]{kt\+\_\+dim,  }\item[{const std\+::uint32\+\_\+t}]{in0\+\_\+tile\+\_\+r\+\_\+dim = {\ttfamily TILE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in0\+\_\+tile\+\_\+c\+\_\+dim = {\ttfamily TILE\+\_\+C\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in1\+\_\+tile\+\_\+r\+\_\+dim = {\ttfamily TILE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in1\+\_\+tile\+\_\+c\+\_\+dim = {\ttfamily TILE\+\_\+C\+\_\+DIM},  }\item[{const bool}]{partial\+\_\+face = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_ab1f91b097633fb7ce2bcf6ad158c8543}\label{tt__llk__blackhole_2llk__lib_2llk__math__matmul_8h_ab1f91b097633fb7ce2bcf6ad158c8543}} 
+\index{llk\_math\_matmul.h@{llk\_math\_matmul.h}!matmul\_configure\_mop@{matmul\_configure\_mop}}
+\index{matmul\_configure\_mop@{matmul\_configure\_mop}!llk\_math\_matmul.h@{llk\_math\_matmul.h}}
+\doxysubsubsection{\texorpdfstring{matmul\_configure\_mop()}{matmul\_configure\_mop()}}
+{\footnotesize\ttfamily template$<$int NUM\+\_\+\+FIDELITY\+\_\+\+PHASES, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Col\+Major$>$ \\
+void matmul\+\_\+configure\+\_\+mop (\begin{DoxyParamCaption}\item[{bool}]{transpose,  }\item[{const std\+::uint32\+\_\+t}]{ct\+\_\+dim,  }\item[{const std\+::uint32\+\_\+t}]{rt\+\_\+dim,  }\item[{const std\+::uint32\+\_\+t}]{kt\+\_\+dim,  }\item[{const std\+::uint32\+\_\+t}]{in0\+\_\+tile\+\_\+r\+\_\+dim = {\ttfamily TILE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in0\+\_\+tile\+\_\+c\+\_\+dim = {\ttfamily TILE\+\_\+C\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in1\+\_\+tile\+\_\+r\+\_\+dim = {\ttfamily TILE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{in1\+\_\+tile\+\_\+c\+\_\+dim = {\ttfamily TILE\+\_\+C\+\_\+DIM},  }\item[{const bool}]{partial\+\_\+face = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

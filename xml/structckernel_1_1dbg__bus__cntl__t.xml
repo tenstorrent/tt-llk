@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1dbg__bus__cntl__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::dbg_bus_cntl_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h" local="no">ckernel_debug.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1dbg__bus__cntl__t_1acce2bc569b0ed9e5dfc38fe6f0830c7b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_bus_cntl_t::sig_sel</definition>
+        <argsstring></argsstring>
+        <name>sig_sel</name>
+        <bitfield> 16</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="44" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__bus__cntl__t_1acd7c8a97fbc72cfe3d0637291808898f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_bus_cntl_t::daisy_sel</definition>
+        <argsstring></argsstring>
+        <name>daisy_sel</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="45" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__bus__cntl__t_1a30de1daf4b4cd3d91dc122208ecff2f1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_bus_cntl_t::rd_sel</definition>
+        <argsstring></argsstring>
+        <name>rd_sel</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="46" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__bus__cntl__t_1a5ceb002e89532d89d1d182b75b1af51b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_bus_cntl_t::reserved_0</definition>
+        <argsstring></argsstring>
+        <name>reserved_0</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="47" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__bus__cntl__t_1a179fff75683d9fa789ee1ef05d0a60e8" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_bus_cntl_t::en</definition>
+        <argsstring></argsstring>
+        <name>en</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="48" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__bus__cntl__t_1a08436fd24089ffa2b98e02c4fa2d4d82" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_bus_cntl_t::reserved_1</definition>
+        <argsstring></argsstring>
+        <name>reserved_1</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="49" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="42" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="43" bodyend="50"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1dbg__bus__cntl__t_1acd7c8a97fbc72cfe3d0637291808898f" prot="public" virt="non-virtual"><scope>ckernel::dbg_bus_cntl_t</scope><name>daisy_sel</name></member>
+      <member refid="structckernel_1_1dbg__bus__cntl__t_1a179fff75683d9fa789ee1ef05d0a60e8" prot="public" virt="non-virtual"><scope>ckernel::dbg_bus_cntl_t</scope><name>en</name></member>
+      <member refid="structckernel_1_1dbg__bus__cntl__t_1a30de1daf4b4cd3d91dc122208ecff2f1" prot="public" virt="non-virtual"><scope>ckernel::dbg_bus_cntl_t</scope><name>rd_sel</name></member>
+      <member refid="structckernel_1_1dbg__bus__cntl__t_1a5ceb002e89532d89d1d182b75b1af51b" prot="public" virt="non-virtual"><scope>ckernel::dbg_bus_cntl_t</scope><name>reserved_0</name></member>
+      <member refid="structckernel_1_1dbg__bus__cntl__t_1a08436fd24089ffa2b98e02c4fa2d4d82" prot="public" virt="non-virtual"><scope>ckernel::dbg_bus_cntl_t</scope><name>reserved_1</name></member>
+      <member refid="structckernel_1_1dbg__bus__cntl__t_1acce2bc569b0ed9e5dfc38fe6f0830c7b" prot="public" virt="non-virtual"><scope>ckernel::dbg_bus_cntl_t</scope><name>sig_sel</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

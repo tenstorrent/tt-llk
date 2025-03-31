@@ -1,0 +1,92 @@
+\hypertarget{tt__llk__blackhole_2common_2inc_2cpack__common_8h}{}\doxysection{tt\+\_\+llk\+\_\+blackhole/common/inc/cpack\+\_\+common.h File Reference}
+\label{tt__llk__blackhole_2common_2inc_2cpack__common_8h}\index{tt\_llk\_blackhole/common/inc/cpack\_common.h@{tt\_llk\_blackhole/common/inc/cpack\_common.h}}
+{\ttfamily \#include $<$array$>$}\newline
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+defs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+globals.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}llk\+\_\+defs.\+h\char`\"{}}\newline
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1packer_1_1pack__config__t}{ckernel\+::packer\+::pack\+\_\+config\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1packer_1_1pack__config__u}{ckernel\+::packer\+::pack\+\_\+config\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1packer_1_1relu__config__t}{ckernel\+::packer\+::relu\+\_\+config\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1packer_1_1relu__config__u}{ckernel\+::packer\+::relu\+\_\+config\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1packer_1_1dest__rd__ctrl__t}{ckernel\+::packer\+::dest\+\_\+rd\+\_\+ctrl\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1packer_1_1dest__rd__ctrl__u}{ckernel\+::packer\+::dest\+\_\+rd\+\_\+ctrl\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1packer_1_1pck__edge__offset__t}{ckernel\+::packer\+::pck\+\_\+edge\+\_\+offset\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1packer_1_1pck__edge__offset__u}{ckernel\+::packer\+::pck\+\_\+edge\+\_\+offset\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1packer_1_1pack__counters__t}{ckernel\+::packer\+::pack\+\_\+counters\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1packer_1_1pack__counters__u}{ckernel\+::packer\+::pack\+\_\+counters\+\_\+u}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\item 
+ \mbox{\hyperlink{namespaceckernel_1_1packer}{ckernel\+::packer}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1packer_ac85fd6798f9c86b65ca98b8be5c99c2f}{ckernel\+::packer\+::packer\+\_\+addr\+\_\+counter\+\_\+init}} ()
+\item 
+{\footnotesize template$<$bool untilize = false, bool tilize = false$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1packer_abd2ce28423d002e8c8f8e86862fcd96c}{ckernel\+::packer\+::set\+\_\+packer\+\_\+strides}} (const uint pack\+\_\+src\+\_\+format, const uint pack\+\_\+dst\+\_\+format, const uint tile\+\_\+c\+\_\+dim)
+\item 
+{\footnotesize template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1packer_a4c77d790c601bdf40ff22deb472dfaa1}{ckernel\+::packer\+::set\+\_\+packer\+\_\+config}} (const uint pack\+\_\+src\+\_\+format, const uint pack\+\_\+dst\+\_\+format, const uint num\+\_\+faces=4, const bool partial\+\_\+face=false)
+\item 
+{\footnotesize template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1packer_a99899bb9bfa404371eb922bce25ab2c5}{ckernel\+::packer\+::reconfig\+\_\+packer\+\_\+data\+\_\+format}} (const uint pack\+\_\+src\+\_\+format, const uint pack\+\_\+dst\+\_\+format, const uint tile\+\_\+size, const uint face\+\_\+r\+\_\+dim, const uint tile\+\_\+c\+\_\+dim)
+\item 
+{\footnotesize template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en, bool untilize = false, bool tilize = false$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1packer_a36e8eb12be6e8a76f0915990bd1c26a9}{ckernel\+::packer\+::configure\+\_\+pack}} (const uint pack\+\_\+src\+\_\+format, const uint pack\+\_\+dst\+\_\+format, const uint tile\+\_\+size, const uint face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const uint tile\+\_\+c\+\_\+dim=TILE\+\_\+\+C\+\_\+\+DIM, const uint num\+\_\+faces=4, const bool partial\+\_\+face=false, const bool narrow\+\_\+tile=false, const uint relu\+\_\+config=0)
+\item 
+uint8\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1packer_a69124133099b1d373357e4483be8d469}{ckernel\+::packer\+::get\+\_\+packer\+\_\+dest\+\_\+offset\+\_\+index}} ()
+\item 
+uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1packer_a9f24b629e3f20a814c662173155bc8cf}{ckernel\+::packer\+::get\+\_\+packer\+\_\+dest\+\_\+offset}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1packer_a3f1bcf53143d8e51a3cfeefaccfa9e87}{ckernel\+::packer\+::flip\+\_\+packer\+\_\+dest\+\_\+offset\+\_\+id}} ()
+\item 
+{\footnotesize template$<$Dst\+Sync Dst$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1packer_a6a020efb1f7cabb04a999db27cc83ff4}{ckernel\+::packer\+::select\+\_\+packer\+\_\+dest\+\_\+registers}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1packer_ae823e981e5058a5fd45dedfa91900794}{ckernel\+::packer\+::program\+\_\+packer\+\_\+destination}} (uint32\+\_\+t addr)
+\item 
+{\footnotesize template$<$uint32\+\_\+t block\+\_\+ct\+\_\+dim, uint32\+\_\+t full\+\_\+ct\+\_\+dim, bool diagonal = false$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1packer_a45c3497936f81346642ca970d1b5ff73}{ckernel\+::packer\+::program\+\_\+packer\+\_\+untilized\+\_\+destination}} (const uint32\+\_\+t addr, const uint32\+\_\+t pack\+\_\+dst\+\_\+format)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1packer_ab43ea04dff51e5d6999120d760c88385}{ckernel\+::packer\+::program\+\_\+packer\+\_\+dest\+\_\+offset\+\_\+registers}} (uint32\+\_\+t dest\+\_\+tile\+\_\+offset)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1packer_ad5ad1ab49c0a36f36d0ca472786cc888}{ckernel\+::packer\+::reconfigure\+\_\+packer\+\_\+l1\+\_\+acc}} (const std\+::uint32\+\_\+t pack\+\_\+l1\+\_\+acc)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1packer_ade4216ae219ef4c187665a3ef5e06e62}{ckernel\+::packer\+::write\+\_\+tile\+\_\+header}} ()
+\item 
+pack\+\_\+config\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1packer_a8306791bfdb25077db266dc1fef47bbf}{ckernel\+::packer\+::read\+\_\+pack\+\_\+config\+\_\+helper}} (uint32\+\_\+t reg\+\_\+addr, const volatile uint $\ast$cfg)
+\item 
+std\+::array$<$ pack\+\_\+config\+\_\+t, NUM\+\_\+\+PACKERS $>$ \mbox{\hyperlink{namespaceckernel_1_1packer_a96140e6f420556625917a477790ec251}{ckernel\+::packer\+::read\+\_\+pack\+\_\+config}} ()
+\item 
+relu\+\_\+config\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1packer_a8317a52a69e305f9de1e55a1d719411d}{ckernel\+::packer\+::read\+\_\+relu\+\_\+config}} ()
+\item 
+dest\+\_\+rd\+\_\+ctrl\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1packer_a921e6ff7bb7c1031ae5b051fede2351c}{ckernel\+::packer\+::read\+\_\+dest\+\_\+rd\+\_\+ctrl}} ()
+\item 
+pck\+\_\+edge\+\_\+offset\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1packer_a57f0e5b4b4dbc790bba6045dafb6a70d}{ckernel\+::packer\+::read\+\_\+pack\+\_\+edge\+\_\+offset\+\_\+helper}} (uint32\+\_\+t reg\+\_\+addr, const volatile uint $\ast$cfg)
+\item 
+std\+::array$<$ pck\+\_\+edge\+\_\+offset\+\_\+t, NUM\+\_\+\+PACKERS $>$ \mbox{\hyperlink{namespaceckernel_1_1packer_ab7f7533fc4f3f5d38e90806c5c44f230}{ckernel\+::packer\+::read\+\_\+pack\+\_\+edge\+\_\+offset}} ()
+\item 
+pack\+\_\+counters\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1packer_a1137dd78d7fb35a9b9d67cdce380f487}{ckernel\+::packer\+::read\+\_\+pack\+\_\+counters\+\_\+helper}} (uint32\+\_\+t reg\+\_\+addr, const volatile uint $\ast$cfg)
+\item 
+std\+::array$<$ pack\+\_\+counters\+\_\+t, NUM\+\_\+\+PACKERS $>$ \mbox{\hyperlink{namespaceckernel_1_1packer_a5cc62230a26b82298ab5b38d83db66db}{ckernel\+::packer\+::read\+\_\+pack\+\_\+counters}} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+constexpr uint \mbox{\hyperlink{namespaceckernel_1_1packer_ad1a2745e818386ea6937dc94161d8696}{ckernel\+::packer\+::replay\+\_\+buf\+\_\+offset}} = 16
+\item 
+constexpr uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1packer_a91f14a85fd256e2c07cf31a4d420ad74}{ckernel\+::packer\+::\+NUM\+\_\+\+PACKERS}} = 1
+\end{DoxyCompactItemize}

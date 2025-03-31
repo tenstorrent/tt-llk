@@ -1,0 +1,45 @@
+\hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel__debug_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/common/inc/ckernel\+\_\+debug.h File Reference}
+\label{tt__llk__wormhole__b0_2common_2inc_2ckernel__debug_8h}\index{tt\_llk\_wormhole\_b0/common/inc/ckernel\_debug.h@{tt\_llk\_wormhole\_b0/common/inc/ckernel\_debug.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1dbg__cfgreg}{ckernel\+::dbg\+\_\+cfgreg}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1dbg__array__id}{ckernel\+::dbg\+\_\+array\+\_\+id}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1dbg__daisy__id}{ckernel\+::dbg\+\_\+daisy\+\_\+id}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1dbg__bus__cntl__t}{ckernel\+::dbg\+\_\+bus\+\_\+cntl\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1dbg__bus__cntl__u}{ckernel\+::dbg\+\_\+bus\+\_\+cntl\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1dbg__array__rd__en__t}{ckernel\+::dbg\+\_\+array\+\_\+rd\+\_\+en\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1dbg__array__rd__en__u}{ckernel\+::dbg\+\_\+array\+\_\+rd\+\_\+en\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1dbg__array__rd__cmd__t}{ckernel\+::dbg\+\_\+array\+\_\+rd\+\_\+cmd\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1dbg__array__rd__cmd__u}{ckernel\+::dbg\+\_\+array\+\_\+rd\+\_\+cmd\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1dbg__soft__reset__t}{ckernel\+::dbg\+\_\+soft\+\_\+reset\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1dbg__soft__reset__u}{ckernel\+::dbg\+\_\+soft\+\_\+reset\+\_\+u}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$Thread\+Id thread\+\_\+id$>$ }\\void \mbox{\hyperlink{namespaceckernel_a2b3d0b57dccb0e138b87c9cca66303ad}{ckernel\+::dbg\+\_\+thread\+\_\+halt}} ()
+\item 
+{\footnotesize template$<$Thread\+Id thread\+\_\+id$>$ }\\void \mbox{\hyperlink{namespaceckernel_a6f66a7786a81ef4aad76acaee74e3c2a}{ckernel\+::dbg\+\_\+thread\+\_\+unhalt}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_aa901af958c50562564568f93371de38e}{ckernel\+::dbg\+\_\+get\+\_\+array\+\_\+row}} (const uint32\+\_\+t array\+\_\+id, const uint32\+\_\+t row\+\_\+addr, uint32\+\_\+t $\ast$rd\+\_\+data)
+\item 
+std\+::uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_acae67e50dc2c43c55c6ba894204fda21}{ckernel\+::dbg\+\_\+read\+\_\+cfgreg}} (const uint32\+\_\+t cfgreg\+\_\+id, const uint32\+\_\+t addr)
+\end{DoxyCompactItemize}

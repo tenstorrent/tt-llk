@@ -1,0 +1,342 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__typecast_8h" kind="file" language="C++">
+    <compoundname>ckernel_sfpu_typecast.h</compoundname>
+    <includes local="no">limits</includes>
+    <includes local="yes">ckernel_addrmod.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">sfpi.h</includes>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h" local="yes">tt_llk_blackhole/common/inc/ckernel_sfpu.h</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>ckernel_addrmod.h</label>
+      </node>
+      <node id="2">
+        <label>limits</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__typecast_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>sfpi.h</label>
+      </node>
+      <node id="4">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__typecast_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <innernamespace refid="namespaceckernel_1_1sfpu">ckernel::sfpu</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;limits&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_addrmod.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpi.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">sfpu</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="19" refid="namespaceckernel_1_1sfpu_1a98c0f8f40a622f2987041641f26ff2cf" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a98c0f8f40a622f2987041641f26ff2cf" kindref="member">_calculate_typecast_fp16b_to_uint16_</ref>()</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>0,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a65d1edcf6d77c9467f1fceed38459d49" kindref="member">TTI_SFPSETCC</ref>(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a952d489a33d78e9eb5550de0f9bb1649" kindref="member">TTI_SFPLOADI</ref>(0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a469a1d7825eb55e26a0c1088cef660c8" kindref="member">TTI_SFPENCC</ref>(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a04629737d63c92cc7e0ae639697a3d80" kindref="member">TTI_SFP_STOCH_RND</ref>(0,<sp/>0,<sp/>2,<sp/>0,<sp/>1,<sp/>14);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(1,<sp/>6,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="35" refid="namespaceckernel_1_1sfpu_1aa56ce20c6f5d07b9f1a61b9fa51785e1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1aa56ce20c6f5d07b9f1a61b9fa51785e1" kindref="member">_calculate_typecast_uint16_to_fp16b_</ref>()</highlight></codeline>
+<codeline lineno="36"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>6,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(0,<sp/>1,<sp/>0);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a04629737d63c92cc7e0ae639697a3d80" kindref="member">TTI_SFP_STOCH_RND</ref>(0,<sp/>0,<sp/>3,<sp/>1,<sp/>2,<sp/>1);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(2,<sp/>2,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="49" refid="namespaceckernel_1_1sfpu_1a3d1ec662db84f2812c9aa07bfb81b6be" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a3d1ec662db84f2812c9aa07bfb81b6be" kindref="member">_calculate_typecast_int32_to_fp16b_</ref>()</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Modifies<sp/>LOAD/STORE<sp/>to<sp/>work<sp/>with<sp/>INT32<sp/>2&apos;s<sp/>complement,<sp/>however</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>in<sp/>Blackhole<sp/>this<sp/>has<sp/>no<sp/>effect<sp/>and<sp/>format<sp/>remains<sp/>INT32<sp/>sign-magnitude.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>INSTR_MOD_LOAD_STORE<sp/>=<sp/><ref refid="namespaceckernel_1ae88c63becbbb7eadabda13e9038b48fda5049fe3b281dcd848a07088f5565f604" kindref="member">InstrModLoadStore::INT32_2S_COMP</ref>;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>LOAD/STORE<sp/>have<sp/>the<sp/>value<sp/>in<sp/>INT<sp/>sign<sp/>magnitude<sp/>format<sp/>and<sp/>SFPU<sp/>needs<sp/>it<sp/>as<sp/>2&apos;s<sp/>complement.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>INSTR_MOD_CAST<sp/>=<sp/><ref refid="namespaceckernel_1a8a4811d543689dfe1479dd2593341b3ba1db09feab754abd362bfb1908688a9e2" kindref="member">InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP</ref>;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>INSTR_MOD_LOAD_STORE,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(0,<sp/>2,<sp/>INSTR_MOD_CAST);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Required<sp/>after<sp/>cast<sp/>due<sp/>to<sp/>a<sp/>bug<sp/>in<sp/>Blackhole<sp/>RTL.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a148cc889d1bc12d425f2d3f9df542ef9" kindref="member">TTI_SFPSETSGN</ref>(0,<sp/>2,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(0,<sp/>1,<sp/>0);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a04629737d63c92cc7e0ae639697a3d80" kindref="member">TTI_SFP_STOCH_RND</ref>(0,<sp/>0,<sp/>3,<sp/>1,<sp/>2,<sp/>1);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(2,<sp/>2,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="73" refid="namespaceckernel_1_1sfpu_1acabdf797c62840f12ddd0da7e4426fdb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1acabdf797c62840f12ddd0da7e4426fdb" kindref="member">_calculate_typecast_fp16b_to_int32_</ref>()</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>in<sp/>=<sp/>sfpi::dst_reg[0];</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>extract<sp/>exponent</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>exp<sp/>=<sp/>exexp(in);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_if<sp/>(exp<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_elseif<sp/>(exp<sp/>&gt;<sp/>30)</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>set<sp/>to<sp/>int32<sp/>max<sp/>value<sp/>in<sp/>case<sp/>of<sp/>overflow</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>tmp<sp/>=<sp/>std::numeric_limits&lt;int32_t&gt;::max();</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>check<sp/>sign</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_if<sp/>(in<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>2&apos;s<sp/>complement<sp/>conversion</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp<sp/>=<sp/>(~tmp)<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_endif<sp/>sfpi::dst_reg[0]<sp/>=<sp/>tmp;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_else</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>extract<sp/>mantissa</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>man<sp/>=<sp/>exman8(in);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>shift<sp/>the<sp/>mantissa<sp/>by<sp/>(23-exponent)<sp/>to<sp/>the<sp/>right</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>shift<sp/>=<sp/>exp<sp/>-<sp/>23;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>man<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::shft(sfpi::reinterpret&lt;sfpi::vUInt&gt;(man),<sp/>shift);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>check<sp/>sign</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_if<sp/>(in<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>2&apos;s<sp/>complement<sp/>conversion</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>man<sp/>=<sp/>(~man)<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_endif<sp/>sfpi::dst_reg[0]<sp/>=<sp/>man;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_endif</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="121" refid="namespaceckernel_1_1sfpu_1a3977d630f222557b562c41cba144593b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a3977d630f222557b562c41cba144593b" kindref="member">_calculate_typecast_fp32_to_fp16b_</ref>()</highlight></codeline>
+<codeline lineno="122"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>0,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a04629737d63c92cc7e0ae639697a3d80" kindref="member">TTI_SFP_STOCH_RND</ref>(0,<sp/>0,<sp/>2,<sp/>0,<sp/>1,<sp/>1);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(1,<sp/>0,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="134" refid="namespaceckernel_1_1sfpu_1a32ef30bbad9d859739a1b3bc15023ea9" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a32ef30bbad9d859739a1b3bc15023ea9" kindref="member">_calculate_typecast_uint16_to_fp32_</ref>()</highlight></codeline>
+<codeline lineno="135"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>6,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(0,<sp/>1,<sp/>0);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(1,<sp/>3,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="147" refid="namespaceckernel_1_1sfpu_1a38234b75d80d366d60747f694641389b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a38234b75d80d366d60747f694641389b" kindref="member">_calculate_typecast_int32_to_fp32_</ref>()</highlight></codeline>
+<codeline lineno="148"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Modifies<sp/>LOAD/STORE<sp/>to<sp/>work<sp/>with<sp/>INT32<sp/>2&apos;s<sp/>complement,<sp/>however</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>in<sp/>Blackhole<sp/>this<sp/>has<sp/>no<sp/>effect<sp/>and<sp/>format<sp/>remains<sp/>INT32<sp/>sign-magnitude.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>INSTR_MOD_LOAD_STORE<sp/>=<sp/><ref refid="namespaceckernel_1ae88c63becbbb7eadabda13e9038b48fda5049fe3b281dcd848a07088f5565f604" kindref="member">InstrModLoadStore::INT32_2S_COMP</ref>;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>LOAD/STORE<sp/>have<sp/>the<sp/>value<sp/>in<sp/>INT<sp/>sign<sp/>magnitude<sp/>format<sp/>and<sp/>SFPU<sp/>needs<sp/>it<sp/>as<sp/>2&apos;s<sp/>complement.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>INSTR_MOD_CAST<sp/>=<sp/><ref refid="namespaceckernel_1a8a4811d543689dfe1479dd2593341b3ba1db09feab754abd362bfb1908688a9e2" kindref="member">InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP</ref>;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>INSTR_MOD_LOAD_STORE,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(0,<sp/>2,<sp/>INSTR_MOD_CAST);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Required<sp/>after<sp/>cast<sp/>due<sp/>to<sp/>a<sp/>bug<sp/>in<sp/>Blackhole<sp/>RTL.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a148cc889d1bc12d425f2d3f9df542ef9" kindref="member">TTI_SFPSETSGN</ref>(0,<sp/>2,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(0,<sp/>1,<sp/>0);</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(1,<sp/>3,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="167"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="170" refid="namespaceckernel_1_1sfpu_1afb44c3331f9876dad5c4d9426f7cee1a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1afb44c3331f9876dad5c4d9426f7cee1a" kindref="member">_calculate_typecast_fp16b_to_uint32_</ref>()</highlight></codeline>
+<codeline lineno="171"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>in<sp/>=<sp/>sfpi::dst_reg[0];</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>check<sp/>sign</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_if<sp/>(in<sp/>&lt;=<sp/>0)</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_else</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>extract<sp/>exponent</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>exp<sp/>=<sp/>exexp(in);</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_if<sp/>(exp<sp/>&lt;<sp/>0)</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_elseif<sp/>(exp<sp/>&gt;<sp/>31)</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>set<sp/>to<sp/>uint32<sp/>max<sp/>value<sp/>in<sp/>case<sp/>of<sp/>overflow</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>tmp<sp/><sp/><sp/>=<sp/>std::numeric_limits&lt;int32_t&gt;::max();</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>sfpi::setsgn(sfpi::reinterpret&lt;sfpi::vFloat&gt;(tmp),<sp/>1);</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_elseif<sp/>(exp<sp/>==<sp/>31)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>extract<sp/>mantissa<sp/>without<sp/>hidden<sp/>bit</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>man<sp/>=<sp/>exman9(in);</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>shift<sp/>the<sp/>mantissa<sp/>by<sp/>(23-exponent)<sp/>to<sp/>the<sp/>right</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>shift<sp/>=<sp/>exp<sp/>-<sp/>23;</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>man<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::shft(sfpi::reinterpret&lt;sfpi::vUInt&gt;(man),<sp/>shift);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>add<sp/>hidden<sp/>bit<sp/>back<sp/>(due<sp/>to<sp/>bug<sp/>when<sp/>shifting<sp/>a<sp/>1<sp/>into<sp/>MSB)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>sfpi::setsgn(sfpi::reinterpret&lt;sfpi::vFloat&gt;(man),<sp/>1);</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_else</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>extract<sp/>mantissa</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>man<sp/>=<sp/>exman8(in);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>shift<sp/>the<sp/>mantissa<sp/>by<sp/>(23-exponent)<sp/>to<sp/>the<sp/>right</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vInt<sp/>shift<sp/>=<sp/>exp<sp/>-<sp/>23;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>man<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::shft(sfpi::reinterpret&lt;sfpi::vUInt&gt;(man),<sp/>shift);</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>man;</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_endif</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v_endif</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="222"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="225" refid="namespaceckernel_1_1sfpu_1a3feeb2701f618f91e2d093c72d574281" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a3feeb2701f618f91e2d093c72d574281" kindref="member">_calculate_typecast_uint32_to_fp16b_</ref>()</highlight></codeline>
+<codeline lineno="226"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>12,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a148cc889d1bc12d425f2d3f9df542ef9" kindref="member">TTI_SFPSETSGN</ref>(0,<sp/>0,<sp/>1,<sp/>1);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(1,<sp/>2,<sp/>0);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a04629737d63c92cc7e0ae639697a3d80" kindref="member">TTI_SFP_STOCH_RND</ref>(0,<sp/>0,<sp/>4,<sp/>2,<sp/>3,<sp/>1);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a65d1edcf6d77c9467f1fceed38459d49" kindref="member">TTI_SFPSETCC</ref>(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a28056b9dba3f4ccedb57fc4157375b6a" kindref="member">TTI_SFPADDI</ref>(0x4f00,<sp/>3,<sp/>0);<sp/></highlight><highlight class="comment">//<sp/>2^31</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a469a1d7825eb55e26a0c1088cef660c8" kindref="member">TTI_SFPENCC</ref>(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(3,<sp/>2,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="240"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="243" refid="namespaceckernel_1_1sfpu_1ae336ece18396316594ddf4259beb32b0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1ae336ece18396316594ddf4259beb32b0" kindref="member">_calculate_typecast_uint32_to_fp32_</ref>()</highlight></codeline>
+<codeline lineno="244"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>12,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a148cc889d1bc12d425f2d3f9df542ef9" kindref="member">TTI_SFPSETSGN</ref>(0,<sp/>0,<sp/>1,<sp/>1);</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a478b2e3abd3e70fb2862bb0c36decbce" kindref="member">TTI_SFPCAST</ref>(1,<sp/>2,<sp/>0);</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a65d1edcf6d77c9467f1fceed38459d49" kindref="member">TTI_SFPSETCC</ref>(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a28056b9dba3f4ccedb57fc4157375b6a" kindref="member">TTI_SFPADDI</ref>(0x4f00,<sp/>2,<sp/>0);<sp/></highlight><highlight class="comment">//<sp/>2^31</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a469a1d7825eb55e26a0c1088cef660c8" kindref="member">TTI_SFPENCC</ref>(0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(2,<sp/>3,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="257"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="260" refid="namespaceckernel_1_1sfpu_1a394e7f991db48c561815cd15d8791c2c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a394e7f991db48c561815cd15d8791c2c" kindref="member">_calculate_typecast_uint16_to_uint32_</ref>()</highlight></codeline>
+<codeline lineno="261"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>ITERATIONS;<sp/>d++)</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>9,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(0,<sp/>12,<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="269"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"></highlight></codeline>
+<codeline lineno="271"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>sfpu</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="272"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h"/>
+  </compounddef>
+</doxygen>

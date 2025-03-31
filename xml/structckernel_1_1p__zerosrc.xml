@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__zerosrc" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_zerosrc</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__zerosrc_1a4856c7ed6f7876c93bce7abad051661b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_zerosrc::CLR_A</definition>
+        <argsstring></argsstring>
+        <name>CLR_A</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="317" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="317" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__zerosrc_1aee6cda70fa651bd5bbf9090f7b7cd6bd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_zerosrc::CLR_B</definition>
+        <argsstring></argsstring>
+        <name>CLR_B</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="318" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__zerosrc_1aba1e4c003d3fc105d32d08e255940037" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_zerosrc::CLR_AB</definition>
+        <argsstring></argsstring>
+        <name>CLR_AB</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="319" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="319" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="315" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="316" bodyend="320"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__zerosrc_1a4856c7ed6f7876c93bce7abad051661b" prot="public" virt="non-virtual"><scope>ckernel::p_zerosrc</scope><name>CLR_A</name></member>
+      <member refid="structckernel_1_1p__zerosrc_1aba1e4c003d3fc105d32d08e255940037" prot="public" virt="non-virtual"><scope>ckernel::p_zerosrc</scope><name>CLR_AB</name></member>
+      <member refid="structckernel_1_1p__zerosrc_1aee6cda70fa651bd5bbf9090f7b7cd6bd" prot="public" virt="non-virtual"><scope>ckernel::p_zerosrc</scope><name>CLR_B</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

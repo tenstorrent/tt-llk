@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sigmoid_8h" kind="file" language="C++">
+    <compoundname>ckernel_sfpu_sigmoid.h</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h" local="yes">ckernel_sfpu_load_config.h</includes>
+    <includes local="yes">sfpi.h</includes>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h" local="yes">tt_llk_blackhole/common/inc/ckernel_sfpu.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>ckernel_sfpu_load_config.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sigmoid.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sigmoid_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>sfpi.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sigmoid.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sigmoid_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <innernamespace refid="namespaceckernel_1_1sfpu">ckernel::sfpu</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h" kindref="compound">ckernel_sfpu_load_config.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpi.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">sfpu</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ITERATIONS&gt;</highlight></codeline>
+<codeline lineno="16" refid="namespaceckernel_1_1sfpu_1ad5551268936960ab8e8a03d628757815" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1ad5551268936960ab8e8a03d628757815" kindref="member">_calculate_sigmoid_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>iterations)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lut_mode<sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l0<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg0];</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg1];</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l2<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg2];</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l4<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg4];</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l5<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg5];</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::vUInt<sp/>l6<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>sfpi::l_reg[sfpi::LRegs::LReg6];</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>GCC<sp/>unroll<sp/>8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>d<sp/>=<sp/>0;<sp/>d<sp/>&lt;<sp/>iterations;<sp/>d++)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::vFloat<sp/>val<sp/>=<sp/>sfpi::dst_reg[0];</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg[0]<sp/>=<sp/>lut2(val,<sp/>l0,<sp/>l1,<sp/>l2,<sp/>l4,<sp/>l5,<sp/>l6,<sp/>lut_mode)<sp/>+<sp/>0.5f;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>sfpi::dst_reg++;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg0]<sp/>=<sp/>l0;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg1]<sp/>=<sp/>l1;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg2]<sp/>=<sp/>l2;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg4]<sp/>=<sp/>l4;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg5]<sp/>=<sp/>l5;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi::l_reg[sfpi::LRegs::LReg6]<sp/>=<sp/>l6;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>APPROXIMATION_MODE&gt;</highlight></codeline>
+<codeline lineno="45" refid="namespaceckernel_1_1sfpu_1aca68134bb6260271d505dc71c1fa8355" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1aca68134bb6260271d505dc71c1fa8355" kindref="member">_init_sigmoid_</ref>()</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm0<sp/>=<sp/>0x3DFF;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm1<sp/>=<sp/>0x21D8;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm2<sp/>=<sp/>0xFF10;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TTI_SFPLOADI(0,<sp/>2,<sp/>imm0);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TTI_SFPLOADI(1,<sp/>2,<sp/>imm1);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TTI_SFPLOADI(2,<sp/>2,<sp/>imm2);</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Using<sp/>a<sp/>6<sp/>piece<sp/>LUT<sp/>to<sp/>calculate<sp/>and<sp/>model<sp/>sigmoid<sp/><sp/>directly</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>0.5<sp/>--&gt;<sp/>0.2452x<sp/>+<sp/>(-0.0004997)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>1.0<sp/>--&gt;<sp/>0.2173x<sp/>+<sp/>0.0152</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>1.5<sp/>--&gt;<sp/>0.1731x<sp/>+<sp/>0.05988</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>2.0<sp/>--&gt;<sp/>0.1262x<sp/>+<sp/>0.1298</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&lt;=<sp/>4.0<sp/>--&gt;<sp/>0.0485x<sp/>+<sp/>0.2998</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>x<sp/>&gt;<sp/><sp/>4.0<sp/>--&gt;<sp/>0.4998</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm0[15:0]<sp/>=<sp/>A0=0.2452<sp/>=<sp/>0x33D9<sp/>--<sp/>imm0[31:16]<sp/>=<sp/>A1=0.2173<sp/>=<sp/>0x32F4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(0,<sp/>0x32F433D9);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm4[15:0]<sp/>=<sp/>B0=<sp/>-0.0004997<sp/><sp/>=<sp/>0x9018<sp/>--<sp/>imm4[31:16]<sp/>=<sp/>B1=<sp/>0.0152<sp/>=<sp/>0x23c8</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(4,<sp/>0x23C89018);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm1[15:0]<sp/>=<sp/>A2=0.1731<sp/>=<sp/>0x318a<sp/>--<sp/>imm1[31:16]<sp/>=<sp/>A3=0.1262<sp/>=<sp/>0x300a</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(1,<sp/>0x300A318A);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm5[15:0]<sp/>=<sp/>B2=0.05988<sp/>=<sp/>0x2BAA<sp/>--<sp/>imm5[31:16]<sp/>=<sp/>B3=0.1298<sp/>=<sp/>0x3027</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(5,<sp/>0x30272BAA);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm2[15:0]<sp/>=<sp/>A4=0.0485<sp/>=<sp/>0x2A35<sp/>--<sp/>imm2[31:16]<sp/>=<sp/>A5=0.0<sp/>=<sp/>0x7C00</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(2,<sp/>0x7C002A35);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>imm6[15:0]<sp/>=<sp/>B4=0.2998<sp/>=<sp/>0x34CC<sp/>--<sp/>imm6[31:16]<sp/>=<sp/>B5=0.4998<sp/>=<sp/>0x37ff</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(6,<sp/>0x37ff34CC);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>sfpu</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sigmoid.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,50 @@
+\hypertarget{tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__topk_8h}{}\doxysection{tt\+\_\+llk\+\_\+blackhole/common/inc/sfpu/ckernel\+\_\+sfpu\+\_\+topk.h File Reference}
+\label{tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__topk_8h}\index{tt\_llk\_blackhole/common/inc/sfpu/ckernel\_sfpu\_topk.h@{tt\_llk\_blackhole/common/inc/sfpu/ckernel\_sfpu\_topk.h}}
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+addrmod.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+instr\+\_\+params.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+sfpu\+\_\+load\+\_\+config.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sfpi.\+h\char`\"{}}\newline
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\item 
+ \mbox{\hyperlink{namespaceckernel_1_1sfpu}{ckernel\+::sfpu}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a6cf5a8fe6505d6dee5ef7da5057f3593}{ckernel\+::sfpu\+::set\+\_\+dst\+\_\+write\+\_\+addr}} (uint32\+\_\+t addr)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ac82f0878ae40af67f5642fdefbae9cac}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+load8}} (uint offset, uint dist)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a9e712a6c2eeb3b047a63ccad5072c325}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+store8}} (uint offset, uint dist)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad817f8d91090595404901c353dd054a7}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+load16}} (uint dist0, uint dist1)
+\item 
+{\footnotesize template$<$bool alt\+\_\+addr\+\_\+mod = false$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ada23f48fce1bb22291c0c97997275f67}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+store16}} (uint dist0, uint dist1)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a04ef4c05da5b762d4f0da7b9627f3ca7}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+ph3\+\_\+st4\+\_\+to\+\_\+1}} (bool dir, bool \&init\+\_\+replay, int replay\+\_\+start)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a9390d0fce34a80f2ca17d72ffded6514}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+ph2\+\_\+st3\+\_\+to\+\_\+1}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a685c573bb9bb5c11da4c07c897b37cbd}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+ph1\+\_\+st2\+\_\+to\+\_\+1}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a64ed6846e572c03fbe4f96fe29d1db93}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+ph0\+\_\+st1\+\_\+to\+\_\+1}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a2159b773bf5c420be456bafcd95243a9}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+step\+\_\+N}} (bool dir)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a5918a3abf689934e61d107e840dd6a0c}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+inc\+\_\+x8\+\_\+dest}} (uint inc, bool cr)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_af55b63283d53991ff3a5e840dd26c307}{ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+inc\+\_\+x4\+\_\+dest}} (uint inc, bool cr)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a38c9b9dcacd0616f472ca1db7a587320}{ckernel\+::sfpu\+::\+\_\+bitonic\+\_\+topk\+\_\+phases\+\_\+steps}} (const int idir, const int i\+\_\+end\+\_\+phase, const int i\+\_\+start\+\_\+phase, const int i\+\_\+end\+\_\+step, const int i\+\_\+start\+\_\+step)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool top\+\_\+min, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a4d88b4338dd4e1aebfd809b8ccba67a9}{ckernel\+::sfpu\+::\+\_\+bitonic\+\_\+topk\+\_\+merge}} (const int m\+\_\+iter, const int k)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_aa23db14d7dc1f71b473a87fa836b308b}{ckernel\+::sfpu\+::\+\_\+bitonic\+\_\+topk\+\_\+rebuild}} (const bool idir, const int m\+\_\+iter, const int k, const int logk, const int skip\+\_\+second)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a74b3614b87451a795b93f746adc61e99}{ckernel\+::sfpu\+::\+\_\+init\+\_\+topk}} ()
+\end{DoxyCompactItemize}

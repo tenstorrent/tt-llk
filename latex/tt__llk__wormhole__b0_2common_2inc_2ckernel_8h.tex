@@ -1,0 +1,250 @@
+\hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/common/inc/ckernel.h File Reference}
+\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h}\index{tt\_llk\_wormhole\_b0/common/inc/ckernel.h@{tt\_llk\_wormhole\_b0/common/inc/ckernel.h}}
+{\ttfamily \#include \char`\"{}ckernel\+\_\+instr\+\_\+params.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}risc\+\_\+attribs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}tensix.\+h\char`\"{}}\newline
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+include.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}fw\+\_\+debug.\+h\char`\"{}}\newline
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\item 
+ \mbox{\hyperlink{namespaceckernel_1_1internal}{ckernel\+::internal}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a94d125afeb18b983792d9f34551c44b4}{UNLIKELY}}(condition)~\+\_\+\+\_\+builtin\+\_\+expect(static\+\_\+cast$<$bool$>$(condition), 0)
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a62073adc76309bd4cd823695d08b67ee}{UNROLL\+\_\+\+LOOP}}(factor)~GCC unroll factor
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a51c4011d417b616f7e1a9a12133f7a26}{EN\+\_\+\+DEST\+\_\+\+DOUBLE\+\_\+\+BUFFERING}}~1
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_add7916a9a3ddc1299527db81a7c619fa}{LOCAL\+\_\+\+MEM\+\_\+\+EN}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_af7d5c7ab3021edc69b84957f7d948330}{GPR\+\_\+\+DEBUG\+\_\+\+TTI}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aafea7ccd0dd3e9a1df1911f462efe06b}{GPR\+\_\+\+DEBUG\+\_\+\+REGFILE}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_ae17d7bf18615ed016b7ea62d1d12423a}{SKIP\+\_\+\+UNP}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a55bd0dd0b08aba5b9c5ded91ccf0f839}{MATH\+\_\+\+PACK\+\_\+\+DECOUPLE}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aeaac20cea6f40367c13d0ec17f910fd9}{DECOUPLINGS\+\_\+\+EN}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aeb41008c740b58d4a7d9b7c942dd406b}{OVERLAY\+\_\+\+DECOUPLE}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a854fdffb32b1eac79d60ce7a6f91bdf7}{INSERT\+\_\+\+UNPACK\+\_\+\+DELAY}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a5fd689ad8ba076f69324a3d3fb6cd63b}{INSERT\+\_\+\+MATH\+\_\+\+DELAY}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a95de99f928ba61f8a0a222ccb0ea1e9e}{INSERT\+\_\+\+PACK\+\_\+\+DELAY}}~0
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a3d94d42f2263e6122d90af44c121fc6a}{DELAY\+\_\+\+EN}}~(\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a854fdffb32b1eac79d60ce7a6f91bdf7}{INSERT\+\_\+\+UNPACK\+\_\+\+DELAY}} $\vert$$\vert$ \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a95de99f928ba61f8a0a222ccb0ea1e9e}{INSERT\+\_\+\+PACK\+\_\+\+DELAY}} $\vert$$\vert$ \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a5fd689ad8ba076f69324a3d3fb6cd63b}{INSERT\+\_\+\+MATH\+\_\+\+DELAY}})
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_ab36e27b12fbbaceddec7d1b3646f5557}{TT\+\_\+\+ALWAYS\+\_\+\+INLINE}}~inline \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__AB__matmul_8h_a255e327f8114a7e4d808cf1f4558114f}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((always\+\_\+inline))
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{namespaceckernel_a1e517edddbbf2e675b6c34bf684b240d}{ckernel\+::tensix\+\_\+sync}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_a5cb34a812cd4095d96e41ebb9add229c}{ckernel\+::mop\+\_\+sync}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_ae28791bdad3fe51b7b31baa15bce41b8}{ckernel\+::sync\+\_\+regfile\+\_\+write}} (const uint index)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a67de644bd6ac8b93f376dd58c73dc08b}{ckernel\+::mmio\+\_\+register\+\_\+write}} (register\+\_\+space\+\_\+e space, uint addr, uint data)
+\item 
+uint8\+\_\+t \mbox{\hyperlink{namespaceckernel_aa440ebb8f4010cbfd33f6a52660968d2}{ckernel\+::semaphore\+\_\+read}} (const uint8\+\_\+t index)
+\item 
+void \mbox{\hyperlink{namespaceckernel_ae16714cb61d79748381173d9f134afc2}{ckernel\+::semaphore\+\_\+post}} (const uint8\+\_\+t index)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a2e438c022b8ff37c09e3c606d79e1844}{ckernel\+::semaphore\+\_\+get}} (const uint8\+\_\+t index)
+\item 
+{\footnotesize template$<$uint Wait\+Res = p\+\_\+stall\+::\+NONE$>$ }\\void \mbox{\hyperlink{namespaceckernel_aba88dec43e2078cacf553629a332326a}{ckernel\+::t6\+\_\+semaphore\+\_\+post}} (const uint8\+\_\+t index)
+\item 
+{\footnotesize template$<$uint Wait\+Res = p\+\_\+stall\+::\+NONE$>$ }\\void \mbox{\hyperlink{namespaceckernel_a41a3215be2be6d39b403d112d71d0c10}{ckernel\+::t6\+\_\+semaphore\+\_\+get}} (const uint8\+\_\+t index)
+\item 
+{\footnotesize template$<$uint Wait\+Res$>$ }\\void \mbox{\hyperlink{namespaceckernel_a8f392e4abfd239b19b6a3424ed7447ca}{ckernel\+::t6\+\_\+semaphore\+\_\+wait\+\_\+on\+\_\+max}} (const uint8\+\_\+t index)
+\item 
+{\footnotesize template$<$uint Wait\+Res$>$ }\\void \mbox{\hyperlink{namespaceckernel_af914d4532a8c9c78d7aeacb121ff20be}{ckernel\+::t6\+\_\+semaphore\+\_\+wait\+\_\+on\+\_\+zero}} (const uint8\+\_\+t index)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a8428d7ccb7fcbdb583046139496653f1}{ckernel\+::t6\+\_\+semaphore\+\_\+init}} (const uint8\+\_\+t index, const uint8\+\_\+t min\+\_\+value, const uint8\+\_\+t max\+\_\+value)
+\item 
+void \mbox{\hyperlink{namespaceckernel_abaa990c7ce0dcbe5acfd0c5f633538df}{ckernel\+::t6\+\_\+mutex\+\_\+acquire}} (const uint8\+\_\+t index)
+\item 
+void \mbox{\hyperlink{namespaceckernel_aa4b5dea8a9b89140f58f23f1f84e1619}{ckernel\+::t6\+\_\+mutex\+\_\+release}} (const uint8\+\_\+t index)
+\item 
+uint \mbox{\hyperlink{namespaceckernel_acf49036456c8b82e2f21866c41fedbed}{ckernel\+::cfg\+\_\+addr}} (uint cfg\+\_\+addr32)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a195a4db54b10acfa9787ab41677ae601}{ckernel\+::cfg\+\_\+write}} (uint cfg\+\_\+addr32, uint data)
+\item 
+uint \mbox{\hyperlink{namespaceckernel_a12b944d7b68dbb848330077162e9e79c}{ckernel\+::cfg\+\_\+read}} (uint cfg\+\_\+addr32)
+\item 
+volatile uint $\ast$ \mbox{\hyperlink{namespaceckernel_a07f2f679f32de3ec88a11ef180abef27}{ckernel\+::get\+\_\+cfg\+\_\+pointer}} ()
+\item 
+volatile uint short $\ast$ \mbox{\hyperlink{namespaceckernel_a8b20db54c98e3168e50507cf9263999f}{ckernel\+::get\+\_\+cfg16\+\_\+pointer}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_a2811a8455374a2ddd7d831f7c05255f9}{ckernel\+::flip\+\_\+cfg\+\_\+state\+\_\+id}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_ad7c0faaf412bbf90b0344b7b2da99e57}{ckernel\+::reset\+\_\+cfg\+\_\+state\+\_\+id}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_ac3d3d466aa3d49414a5416676ec279bc}{ckernel\+::reset\+\_\+dest\+\_\+offset\+\_\+id}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_a893cd5ddb20c776b849016566f4fe92b}{ckernel\+::update\+\_\+dest\+\_\+offset\+\_\+id}} ()
+\item 
+uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_a0a2ab96a9c3fa5afeb1c7d4b41abdf2d}{ckernel\+::get\+\_\+dest\+\_\+buffer\+\_\+base}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_a117f7079d6f444a265d2591341eafc0b}{ckernel\+::mop\+\_\+run}} (const uint8\+\_\+t type, const uint8\+\_\+t count)
+\item 
+uint \mbox{\hyperlink{namespaceckernel_a7cccad24575c1ef79bfa8ae940a52d3d}{ckernel\+::reg\+\_\+read}} (uint32\+\_\+t addr)
+\item 
+void \mbox{\hyperlink{namespaceckernel_aa6ecc90070a247f2f78af7b08942dcea}{ckernel\+::reg\+\_\+write}} (uint32\+\_\+t addr, uint32\+\_\+t data)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a444bd6957706d35abf0ec02bdaee803f}{ckernel\+::wait}} (uint32\+\_\+t cycles)
+\item 
+void \mbox{\hyperlink{namespaceckernel_abb084d69f03eeb2913407f8f4ed26bc7}{ckernel\+::zeroacc}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_a962c08cfbdecc108a40c058f0e6e1fea}{ckernel\+::zerosrc}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_a897f181a8edb8c6df276e4186796b9a9}{ckernel\+::cfg\+\_\+rmw}} (uint32\+\_\+t cfg\+\_\+addr32, uint32\+\_\+t cfg\+\_\+shamt, uint32\+\_\+t cfg\+\_\+mask, uint32\+\_\+t val)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a93bba7d7b925279f02f2e6d21891ea9a}{ckernel\+::cfg\+\_\+rmw\+\_\+gpr}} (uint32\+\_\+t cfg\+\_\+addr32, uint32\+\_\+t cfg\+\_\+shamt, uint32\+\_\+t cfg\+\_\+mask, uint32\+\_\+t gpr\+\_\+index)
+\item 
+{\footnotesize template$<$uint Cfg\+Addr32, uint Shamt, uint Mask$>$ }\\void \mbox{\hyperlink{namespaceckernel_a27f811411b2bb6397adbc4fc9fada072}{ckernel\+::cfg\+\_\+reg\+\_\+rmw\+\_\+tensix}} (uint32\+\_\+t val)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a73b58fadbcaa0c8ad81f40db4f4d9bcd}{ckernel\+::mailbox\+\_\+write}} (const uint8\+\_\+t thread, const uint32\+\_\+t data)
+\item 
+uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_a8b4271352cb5f8871d4ea8844b08cf54}{ckernel\+::mailbox\+\_\+read}} (const uint8\+\_\+t thread)
+\item 
+bool \mbox{\hyperlink{namespaceckernel_a6c4e2a3d9be50158cd08a114455b0bea}{ckernel\+::mailbox\+\_\+not\+\_\+empty}} (const uint8\+\_\+t thread)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a15fe53cda4277dd5a5936cd4a4231b64}{ckernel\+::mailbox\+\_\+write\+\_\+full}} (const uint8\+\_\+t thread, const uint32\+\_\+t data)
+\item 
+uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_ae64aee5fffad0dfc79760e0cc9f5b03f}{ckernel\+::mailbox\+\_\+read\+\_\+full}} (const uint8\+\_\+t thread)
+\item 
+bool \mbox{\hyperlink{namespaceckernel_ac42c9626fa6dc9e76f80c9d5c8eca51d}{ckernel\+::mailbox\+\_\+not\+\_\+empty\+\_\+full}} (const uint8\+\_\+t thread)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a402e13334c079664834b9e3181ab965a}{ckernel\+::trisc\+\_\+l1\+\_\+mailbox\+\_\+write}} (const uint data)
+\item 
+uint \mbox{\hyperlink{namespaceckernel_a89e1ae260c77442c181f731f7a14cdee}{ckernel\+::trisc\+\_\+l1\+\_\+mailbox\+\_\+read}} ()
+\item 
+{\footnotesize template$<$class T $>$ }\\std\+::uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_aedb3afbfc0076bfe2e40c86acb73ca26}{ckernel\+::memory\+\_\+cast}} (T $\ast$object\+\_\+ptr)
+\item 
+void \mbox{\hyperlink{namespaceckernel_af151a7d159652d6e287b0889f5ce7bdf}{ckernel\+::record\+\_\+mailbox\+\_\+value}} (uint16\+\_\+t event\+\_\+value)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a50a07e8c29da0dddfe78610496160783}{ckernel\+::record\+\_\+mailbox\+\_\+value\+\_\+with\+\_\+index}} (uint8\+\_\+t index, uint16\+\_\+t event\+\_\+value)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a58fac4ac24e23a8dec73f83d9e2982c5}{ckernel\+::clear\+\_\+mailbox\+\_\+values}} (uint16\+\_\+t value=0)
+\item 
+uint64\+\_\+t \mbox{\hyperlink{namespaceckernel_a8447404cbdbabca99f97e754d960c4d3}{ckernel\+::read\+\_\+wall\+\_\+clock}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_a5e6c828b0c96fb67679a696bbc1d4bb7}{ckernel\+::record\+\_\+kernel\+\_\+runtime}} (uint64\+\_\+t kernel\+\_\+runtime)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a1828ef0cfbd5025629bcab857841b677}{ckernel\+::debug\+\_\+dump}} (const uint8\+\_\+t $\ast$data, uint32\+\_\+t byte\+\_\+size)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a1b3a6ed62e58c743a3473657be3479b5}{ckernel\+::debug\+\_\+dump\+\_\+seek}} (uint8\+\_\+t offset)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a18e1343405c0b7ea70bd821125308d70}{ckernel\+::stall\+\_\+kernel}} (uint32\+\_\+t num\+\_\+cycles)
+\item 
+{\footnotesize template$<$int thread\+\_\+id$>$ }\\void \mbox{\hyperlink{namespaceckernel_ac1dc7493537822d0f0aaa2ef006be025}{ckernel\+::serialize\+\_\+input\+\_\+loop\+\_\+start}} ()
+\item 
+{\footnotesize template$<$int thread\+\_\+id$>$ }\\void \mbox{\hyperlink{namespaceckernel_a47d7dd58251cde11b0143a88d0264b9c}{ckernel\+::serialize\+\_\+input\+\_\+loop\+\_\+end}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_aef245bf1f3ad2c3098721dbfb0382b92}{ckernel\+::init\+\_\+prng\+\_\+seed}} (const uint seed)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aeaac20cea6f40367c13d0ec17f910fd9}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aeaac20cea6f40367c13d0ec17f910fd9}} 
+\index{ckernel.h@{ckernel.h}!DECOUPLINGS\_EN@{DECOUPLINGS\_EN}}
+\index{DECOUPLINGS\_EN@{DECOUPLINGS\_EN}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{DECOUPLINGS\_EN}{DECOUPLINGS\_EN}}
+{\footnotesize\ttfamily \#define DECOUPLINGS\+\_\+\+EN~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a3d94d42f2263e6122d90af44c121fc6a}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a3d94d42f2263e6122d90af44c121fc6a}} 
+\index{ckernel.h@{ckernel.h}!DELAY\_EN@{DELAY\_EN}}
+\index{DELAY\_EN@{DELAY\_EN}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{DELAY\_EN}{DELAY\_EN}}
+{\footnotesize\ttfamily \#define DELAY\+\_\+\+EN~(\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a854fdffb32b1eac79d60ce7a6f91bdf7}{INSERT\+\_\+\+UNPACK\+\_\+\+DELAY}} $\vert$$\vert$ \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a95de99f928ba61f8a0a222ccb0ea1e9e}{INSERT\+\_\+\+PACK\+\_\+\+DELAY}} $\vert$$\vert$ \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a5fd689ad8ba076f69324a3d3fb6cd63b}{INSERT\+\_\+\+MATH\+\_\+\+DELAY}})}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a51c4011d417b616f7e1a9a12133f7a26}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a51c4011d417b616f7e1a9a12133f7a26}} 
+\index{ckernel.h@{ckernel.h}!EN\_DEST\_DOUBLE\_BUFFERING@{EN\_DEST\_DOUBLE\_BUFFERING}}
+\index{EN\_DEST\_DOUBLE\_BUFFERING@{EN\_DEST\_DOUBLE\_BUFFERING}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{EN\_DEST\_DOUBLE\_BUFFERING}{EN\_DEST\_DOUBLE\_BUFFERING}}
+{\footnotesize\ttfamily \#define EN\+\_\+\+DEST\+\_\+\+DOUBLE\+\_\+\+BUFFERING~1}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aafea7ccd0dd3e9a1df1911f462efe06b}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aafea7ccd0dd3e9a1df1911f462efe06b}} 
+\index{ckernel.h@{ckernel.h}!GPR\_DEBUG\_REGFILE@{GPR\_DEBUG\_REGFILE}}
+\index{GPR\_DEBUG\_REGFILE@{GPR\_DEBUG\_REGFILE}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{GPR\_DEBUG\_REGFILE}{GPR\_DEBUG\_REGFILE}}
+{\footnotesize\ttfamily \#define GPR\+\_\+\+DEBUG\+\_\+\+REGFILE~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_af7d5c7ab3021edc69b84957f7d948330}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_af7d5c7ab3021edc69b84957f7d948330}} 
+\index{ckernel.h@{ckernel.h}!GPR\_DEBUG\_TTI@{GPR\_DEBUG\_TTI}}
+\index{GPR\_DEBUG\_TTI@{GPR\_DEBUG\_TTI}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{GPR\_DEBUG\_TTI}{GPR\_DEBUG\_TTI}}
+{\footnotesize\ttfamily \#define GPR\+\_\+\+DEBUG\+\_\+\+TTI~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a5fd689ad8ba076f69324a3d3fb6cd63b}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a5fd689ad8ba076f69324a3d3fb6cd63b}} 
+\index{ckernel.h@{ckernel.h}!INSERT\_MATH\_DELAY@{INSERT\_MATH\_DELAY}}
+\index{INSERT\_MATH\_DELAY@{INSERT\_MATH\_DELAY}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{INSERT\_MATH\_DELAY}{INSERT\_MATH\_DELAY}}
+{\footnotesize\ttfamily \#define INSERT\+\_\+\+MATH\+\_\+\+DELAY~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a95de99f928ba61f8a0a222ccb0ea1e9e}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a95de99f928ba61f8a0a222ccb0ea1e9e}} 
+\index{ckernel.h@{ckernel.h}!INSERT\_PACK\_DELAY@{INSERT\_PACK\_DELAY}}
+\index{INSERT\_PACK\_DELAY@{INSERT\_PACK\_DELAY}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{INSERT\_PACK\_DELAY}{INSERT\_PACK\_DELAY}}
+{\footnotesize\ttfamily \#define INSERT\+\_\+\+PACK\+\_\+\+DELAY~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a854fdffb32b1eac79d60ce7a6f91bdf7}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a854fdffb32b1eac79d60ce7a6f91bdf7}} 
+\index{ckernel.h@{ckernel.h}!INSERT\_UNPACK\_DELAY@{INSERT\_UNPACK\_DELAY}}
+\index{INSERT\_UNPACK\_DELAY@{INSERT\_UNPACK\_DELAY}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{INSERT\_UNPACK\_DELAY}{INSERT\_UNPACK\_DELAY}}
+{\footnotesize\ttfamily \#define INSERT\+\_\+\+UNPACK\+\_\+\+DELAY~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_add7916a9a3ddc1299527db81a7c619fa}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_add7916a9a3ddc1299527db81a7c619fa}} 
+\index{ckernel.h@{ckernel.h}!LOCAL\_MEM\_EN@{LOCAL\_MEM\_EN}}
+\index{LOCAL\_MEM\_EN@{LOCAL\_MEM\_EN}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{LOCAL\_MEM\_EN}{LOCAL\_MEM\_EN}}
+{\footnotesize\ttfamily \#define LOCAL\+\_\+\+MEM\+\_\+\+EN~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a55bd0dd0b08aba5b9c5ded91ccf0f839}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a55bd0dd0b08aba5b9c5ded91ccf0f839}} 
+\index{ckernel.h@{ckernel.h}!MATH\_PACK\_DECOUPLE@{MATH\_PACK\_DECOUPLE}}
+\index{MATH\_PACK\_DECOUPLE@{MATH\_PACK\_DECOUPLE}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{MATH\_PACK\_DECOUPLE}{MATH\_PACK\_DECOUPLE}}
+{\footnotesize\ttfamily \#define MATH\+\_\+\+PACK\+\_\+\+DECOUPLE~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aeb41008c740b58d4a7d9b7c942dd406b}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_aeb41008c740b58d4a7d9b7c942dd406b}} 
+\index{ckernel.h@{ckernel.h}!OVERLAY\_DECOUPLE@{OVERLAY\_DECOUPLE}}
+\index{OVERLAY\_DECOUPLE@{OVERLAY\_DECOUPLE}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{OVERLAY\_DECOUPLE}{OVERLAY\_DECOUPLE}}
+{\footnotesize\ttfamily \#define OVERLAY\+\_\+\+DECOUPLE~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_ae17d7bf18615ed016b7ea62d1d12423a}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_ae17d7bf18615ed016b7ea62d1d12423a}} 
+\index{ckernel.h@{ckernel.h}!SKIP\_UNP@{SKIP\_UNP}}
+\index{SKIP\_UNP@{SKIP\_UNP}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{SKIP\_UNP}{SKIP\_UNP}}
+{\footnotesize\ttfamily \#define SKIP\+\_\+\+UNP~0}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_ab36e27b12fbbaceddec7d1b3646f5557}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_ab36e27b12fbbaceddec7d1b3646f5557}} 
+\index{ckernel.h@{ckernel.h}!TT\_ALWAYS\_INLINE@{TT\_ALWAYS\_INLINE}}
+\index{TT\_ALWAYS\_INLINE@{TT\_ALWAYS\_INLINE}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{TT\_ALWAYS\_INLINE}{TT\_ALWAYS\_INLINE}}
+{\footnotesize\ttfamily \#define TT\+\_\+\+ALWAYS\+\_\+\+INLINE~inline \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__AB__matmul_8h_a255e327f8114a7e4d808cf1f4558114f}{\+\_\+\+\_\+attribute\+\_\+\+\_\+}}((always\+\_\+inline))}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a94d125afeb18b983792d9f34551c44b4}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a94d125afeb18b983792d9f34551c44b4}} 
+\index{ckernel.h@{ckernel.h}!UNLIKELY@{UNLIKELY}}
+\index{UNLIKELY@{UNLIKELY}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{UNLIKELY}{UNLIKELY}}
+{\footnotesize\ttfamily \#define UNLIKELY(\begin{DoxyParamCaption}\item[{}]{condition }\end{DoxyParamCaption})~\+\_\+\+\_\+builtin\+\_\+expect(static\+\_\+cast$<$bool$>$(condition), 0)}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a62073adc76309bd4cd823695d08b67ee}\label{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_a62073adc76309bd4cd823695d08b67ee}} 
+\index{ckernel.h@{ckernel.h}!UNROLL\_LOOP@{UNROLL\_LOOP}}
+\index{UNROLL\_LOOP@{UNROLL\_LOOP}!ckernel.h@{ckernel.h}}
+\doxysubsubsection{\texorpdfstring{UNROLL\_LOOP}{UNROLL\_LOOP}}
+{\footnotesize\ttfamily \#define UNROLL\+\_\+\+LOOP(\begin{DoxyParamCaption}\item[{}]{factor }\end{DoxyParamCaption})~GCC unroll factor}
+

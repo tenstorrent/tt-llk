@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_5485ef706e7059f96eb5b66ed65f8247" kind="dir">
+    <compoundname>tt_llk_blackhole/common/inc</compoundname>
+    <innerdir refid="dir_ca45e3527dc999dc519b13bed7363115">tt_llk_blackhole/common/inc/sfpu</innerdir>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel_8h">ckernel.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__addr__map_8h">ckernel_addr_map.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__addrmod_8h">ckernel_addrmod.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h">ckernel_debug.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h">ckernel_defs.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h">ckernel_globals.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__gpr__map_8h">ckernel_gpr_map.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__include_8h">ckernel_include.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h">ckernel_instr_params.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__main_8h">ckernel_main.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h">ckernel_ops.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__pcbuf_8h">ckernel_pcbuf.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h">ckernel_sfpi.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h">ckernel_sfpu.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h">ckernel_structs.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__template_8h">ckernel_template.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2ckernel__xmov_8h">ckernel_xmov.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h">cmath_common.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h">cpack_common.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2cunpack__common_8h">cunpack_common.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/"/>
+  </compounddef>
+</doxygen>

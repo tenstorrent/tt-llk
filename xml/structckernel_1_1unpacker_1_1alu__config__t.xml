@@ -1,0 +1,226 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1unpacker_1_1alu__config__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::unpacker::alu_config_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2cunpack__common_8h" local="no">cunpack_common.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1a6319e633cafd824a66c6818e36569389" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ROUNDING_MODE_Fpu_srnd_en</definition>
+        <argsstring></argsstring>
+        <name>ALU_ROUNDING_MODE_Fpu_srnd_en</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="95" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1aeee2de2c7625ab378e9b85026366d856" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ROUNDING_MODE_Gasket_srnd_en</definition>
+        <argsstring></argsstring>
+        <name>ALU_ROUNDING_MODE_Gasket_srnd_en</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="96" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1ad96f74514cc2fa470be19248d3d136c5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ROUNDING_MODE_Packer_srnd_en</definition>
+        <argsstring></argsstring>
+        <name>ALU_ROUNDING_MODE_Packer_srnd_en</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="97" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1ab6032c7942d41800a0f602f4ac8a7858" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ROUNDING_MODE_Padding</definition>
+        <argsstring></argsstring>
+        <name>ALU_ROUNDING_MODE_Padding</name>
+        <bitfield> 10</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="98" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1a0a658d245380f7fea5718b8ad7fbb956" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ROUNDING_MODE_GS_LF</definition>
+        <argsstring></argsstring>
+        <name>ALU_ROUNDING_MODE_GS_LF</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="99" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1a4c06d7c56d8af1613901a940ac33669a" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ROUNDING_MODE_Bfp8_HF</definition>
+        <argsstring></argsstring>
+        <name>ALU_ROUNDING_MODE_Bfp8_HF</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="100" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1ac2d8ab163130f3d1007f99403fe67085" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_FORMAT_SPEC_REG0_SrcAUnsigned</definition>
+        <argsstring></argsstring>
+        <name>ALU_FORMAT_SPEC_REG0_SrcAUnsigned</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="101" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1abb1dc65b04a7d279d0fe06b8e4820a22" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_FORMAT_SPEC_REG0_SrcBUnsigned</definition>
+        <argsstring></argsstring>
+        <name>ALU_FORMAT_SPEC_REG0_SrcBUnsigned</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="102" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1ac7a98bcfa8b5e9f9af0f5a7fb6e551a9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_FORMAT_SPEC_REG0_SrcA</definition>
+        <argsstring></argsstring>
+        <name>ALU_FORMAT_SPEC_REG0_SrcA</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="103" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1a5f815b8392716c6621bdeb1d5d03b8eb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_FORMAT_SPEC_REG1_SrcB</definition>
+        <argsstring></argsstring>
+        <name>ALU_FORMAT_SPEC_REG1_SrcB</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="104" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1ada6c57a6cd9be7f2d04f2c8c1d5e4cea" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_FORMAT_SPEC_REG2_Dstacc</definition>
+        <argsstring></argsstring>
+        <name>ALU_FORMAT_SPEC_REG2_Dstacc</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="105" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1a1362b50565bf3b113a7992cf6cbdfbe1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ACC_CTRL_Fp32_enabled</definition>
+        <argsstring></argsstring>
+        <name>ALU_ACC_CTRL_Fp32_enabled</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="106" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1adf64b8ad5fbc239df9faac73db6013c9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ACC_CTRL_SFPU_Fp32_enabled</definition>
+        <argsstring></argsstring>
+        <name>ALU_ACC_CTRL_SFPU_Fp32_enabled</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="107" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1unpacker_1_1alu__config__t_1a747d62fbbfcfa877c251008f58f7c3ef" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::alu_config_t::ALU_ACC_CTRL_INT8_math_enabled</definition>
+        <argsstring></argsstring>
+        <name>ALU_ACC_CTRL_INT8_math_enabled</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="108" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="93" column="1" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="94" bodyend="109"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1a1362b50565bf3b113a7992cf6cbdfbe1" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ACC_CTRL_Fp32_enabled</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1a747d62fbbfcfa877c251008f58f7c3ef" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ACC_CTRL_INT8_math_enabled</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1adf64b8ad5fbc239df9faac73db6013c9" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ACC_CTRL_SFPU_Fp32_enabled</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1ac7a98bcfa8b5e9f9af0f5a7fb6e551a9" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_FORMAT_SPEC_REG0_SrcA</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1ac2d8ab163130f3d1007f99403fe67085" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_FORMAT_SPEC_REG0_SrcAUnsigned</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1abb1dc65b04a7d279d0fe06b8e4820a22" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_FORMAT_SPEC_REG0_SrcBUnsigned</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1a5f815b8392716c6621bdeb1d5d03b8eb" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_FORMAT_SPEC_REG1_SrcB</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1ada6c57a6cd9be7f2d04f2c8c1d5e4cea" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_FORMAT_SPEC_REG2_Dstacc</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1a4c06d7c56d8af1613901a940ac33669a" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ROUNDING_MODE_Bfp8_HF</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1a6319e633cafd824a66c6818e36569389" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ROUNDING_MODE_Fpu_srnd_en</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1aeee2de2c7625ab378e9b85026366d856" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ROUNDING_MODE_Gasket_srnd_en</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1a0a658d245380f7fea5718b8ad7fbb956" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ROUNDING_MODE_GS_LF</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1ad96f74514cc2fa470be19248d3d136c5" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ROUNDING_MODE_Packer_srnd_en</name></member>
+      <member refid="structckernel_1_1unpacker_1_1alu__config__t_1ab6032c7942d41800a0f602f4ac8a7858" prot="public" virt="non-virtual"><scope>ckernel::unpacker::alu_config_t</scope><name>ALU_ROUNDING_MODE_Padding</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,51 @@
+\hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/llk\+\_\+lib/llk\+\_\+unpack\+\_\+reduce.h File Reference}
+\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h}\index{tt\_llk\_wormhole\_b0/llk\_lib/llk\_unpack\_reduce.h@{tt\_llk\_wormhole\_b0/llk\_lib/llk\_unpack\_reduce.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+defs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+globals.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+template.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}cunpack\+\_\+common.\+h\char`\"{}}\newline
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$Pool\+Type type, Reduce\+Dim dim$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_af1e6d50b15bc993e9ffdb0a356a6fb17}{\+\_\+llk\+\_\+unpack\+\_\+reduce\+\_\+mop\+\_\+config\+\_\+}} (const std\+::uint32\+\_\+t num\+\_\+faces)
+\item 
+{\footnotesize template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, Stoch\+Rnd\+Type stoch\+\_\+rnd\+\_\+mode = Stoch\+Rnd\+Type\+::\+None$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_a944bfa5a5721f97226dd77f9f614e3ac}{\+\_\+llk\+\_\+unpack\+\_\+reduce\+\_\+hw\+\_\+configure\+\_\+}} (const std\+::uint32\+\_\+t unp\+A\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t unp\+B\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t unp\+A\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t unp\+B\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t unp\+A\+\_\+face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t unp\+B\+\_\+face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t within\+\_\+face\+\_\+16x16\+\_\+transpose=0, const std\+::uint32\+\_\+t unp\+A\+\_\+num\+\_\+faces=4, const std\+::uint32\+\_\+t unp\+B\+\_\+num\+\_\+faces=4)
+\item 
+{\footnotesize template$<$Pool\+Type type, Reduce\+Dim dim$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_af3b2469565c917dcade5f4d0b2780884}{\+\_\+llk\+\_\+unpack\+\_\+reduce\+\_\+init\+\_\+}} (const std\+::uint32\+\_\+t within\+\_\+face\+\_\+16x16\+\_\+transpose=0, const std\+::uint32\+\_\+t num\+\_\+faces=4)
+\item 
+{\footnotesize template$<$Pool\+Type type, Reduce\+Dim dim$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_a66e484c07b5463d9f01090cc913d37a4}{\+\_\+llk\+\_\+unpack\+\_\+reduce\+\_\+}} (const std\+::uint32\+\_\+t address)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_a66e484c07b5463d9f01090cc913d37a4}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_a66e484c07b5463d9f01090cc913d37a4}} 
+\index{llk\_unpack\_reduce.h@{llk\_unpack\_reduce.h}!\_llk\_unpack\_reduce\_@{\_llk\_unpack\_reduce\_}}
+\index{\_llk\_unpack\_reduce\_@{\_llk\_unpack\_reduce\_}!llk\_unpack\_reduce.h@{llk\_unpack\_reduce.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_reduce\_()}{\_llk\_unpack\_reduce\_()}}
+{\footnotesize\ttfamily template$<$Pool\+Type type, Reduce\+Dim dim$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+reduce\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{address }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_a944bfa5a5721f97226dd77f9f614e3ac}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_a944bfa5a5721f97226dd77f9f614e3ac}} 
+\index{llk\_unpack\_reduce.h@{llk\_unpack\_reduce.h}!\_llk\_unpack\_reduce\_hw\_configure\_@{\_llk\_unpack\_reduce\_hw\_configure\_}}
+\index{\_llk\_unpack\_reduce\_hw\_configure\_@{\_llk\_unpack\_reduce\_hw\_configure\_}!llk\_unpack\_reduce.h@{llk\_unpack\_reduce.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_reduce\_hw\_configure\_()}{\_llk\_unpack\_reduce\_hw\_configure\_()}}
+{\footnotesize\ttfamily template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, Stoch\+Rnd\+Type stoch\+\_\+rnd\+\_\+mode = Stoch\+Rnd\+Type\+::\+None$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+reduce\+\_\+hw\+\_\+configure\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{unp\+A\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unp\+B\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unp\+A\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unp\+B\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unp\+A\+\_\+face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{unp\+B\+\_\+face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{within\+\_\+face\+\_\+16x16\+\_\+transpose = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{unp\+A\+\_\+num\+\_\+faces = {\ttfamily 4},  }\item[{const std\+::uint32\+\_\+t}]{unp\+B\+\_\+num\+\_\+faces = {\ttfamily 4} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_af3b2469565c917dcade5f4d0b2780884}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_af3b2469565c917dcade5f4d0b2780884}} 
+\index{llk\_unpack\_reduce.h@{llk\_unpack\_reduce.h}!\_llk\_unpack\_reduce\_init\_@{\_llk\_unpack\_reduce\_init\_}}
+\index{\_llk\_unpack\_reduce\_init\_@{\_llk\_unpack\_reduce\_init\_}!llk\_unpack\_reduce.h@{llk\_unpack\_reduce.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_reduce\_init\_()}{\_llk\_unpack\_reduce\_init\_()}}
+{\footnotesize\ttfamily template$<$Pool\+Type type, Reduce\+Dim dim$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+reduce\+\_\+init\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{within\+\_\+face\+\_\+16x16\+\_\+transpose = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_af1e6d50b15bc993e9ffdb0a356a6fb17}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h_af1e6d50b15bc993e9ffdb0a356a6fb17}} 
+\index{llk\_unpack\_reduce.h@{llk\_unpack\_reduce.h}!\_llk\_unpack\_reduce\_mop\_config\_@{\_llk\_unpack\_reduce\_mop\_config\_}}
+\index{\_llk\_unpack\_reduce\_mop\_config\_@{\_llk\_unpack\_reduce\_mop\_config\_}!llk\_unpack\_reduce.h@{llk\_unpack\_reduce.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_reduce\_mop\_config\_()}{\_llk\_unpack\_reduce\_mop\_config\_()}}
+{\footnotesize\ttfamily template$<$Pool\+Type type, Reduce\+Dim dim$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+reduce\+\_\+mop\+\_\+config\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

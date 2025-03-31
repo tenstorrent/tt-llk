@@ -1,0 +1,2782 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceckernel_1_1sfpu" kind="namespace" language="C++">
+    <compoundname>ckernel::sfpu</compoundname>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>BinaryOp</name>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d" prot="public">
+          <name>ADD</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb" prot="public">
+          <name>SUB</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c" prot="public">
+          <name>MUL</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646" prot="public">
+          <name>DIV</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6" prot="public">
+          <name>RSUB</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe" prot="public">
+          <name>POW</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d" prot="public">
+          <name>ADD</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb" prot="public">
+          <name>SUB</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c" prot="public">
+          <name>MUL</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646" prot="public">
+          <name>DIV</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6" prot="public">
+          <name>RSUB</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe" prot="public">
+          <name>POW</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h" line="16" column="1" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h" bodystart="17" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>BinaryBitwiseOp</name>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532" prot="public">
+          <name>AND</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616" prot="public">
+          <name>OR</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d" prot="public">
+          <name>XOR</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532" prot="public">
+          <name>AND</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616" prot="public">
+          <name>OR</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d" prot="public">
+          <name>XOR</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary_bitwise.h" line="16" column="1" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary_bitwise.h" bodystart="17" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>BinaryOp</name>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d" prot="public">
+          <name>ADD</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb" prot="public">
+          <name>SUB</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c" prot="public">
+          <name>MUL</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646" prot="public">
+          <name>DIV</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6" prot="public">
+          <name>RSUB</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe" prot="public">
+          <name>POW</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d" prot="public">
+          <name>ADD</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb" prot="public">
+          <name>SUB</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c" prot="public">
+          <name>MUL</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646" prot="public">
+          <name>DIV</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6" prot="public">
+          <name>RSUB</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe" prot="public">
+          <name>POW</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_binary.h" line="17" column="1" bodyfile="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_binary.h" bodystart="18" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>BinaryBitwiseOp</name>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532" prot="public">
+          <name>AND</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616" prot="public">
+          <name>OR</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d" prot="public">
+          <name>XOR</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532" prot="public">
+          <name>AND</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616" prot="public">
+          <name>OR</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceckernel_1_1sfpu_1a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d" prot="public">
+          <name>XOR</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_binary_bitwise.h" line="15" column="1" bodyfile="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_binary_bitwise.h" bodystart="16" bodyend="20"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ad57a647f3c179d6e6653c673a7cf07ed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_abs_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_abs_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_abs.h" line="15" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_abs.h" bodystart="15" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a63400d20e8ed908e699c17fc0995e7bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>SIGN_MAGNITUDE_FORMAT</declname>
+            <defname>SIGN_MAGNITUDE_FORMAT</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_add_int32_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_add_int32_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_add_int32.h" line="17" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_add_int32.h" bodystart="17" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a0b88c6487cabe31c882ff3b21e644790" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>sfpi_inline sfpi::vFloat</type>
+        <definition>sfpi_inline sfpi::vFloat ckernel::sfpu::_calculate_sfpu_binary_power_</definition>
+        <argsstring>(sfpi::vFloat base, sfpi::vFloat pow)</argsstring>
+        <name>_calculate_sfpu_binary_power_</name>
+        <param>
+          <type>sfpi::vFloat</type>
+          <declname>base</declname>
+        </param>
+        <param>
+          <type>sfpi::vFloat</type>
+          <declname>pow</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h" line="26" column="26" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h" bodystart="26" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a1d7184005efd316c470a17d5d47c905e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>BinaryOp</type>
+            <declname>BINOP</declname>
+            <defname>BINOP</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+            <defval>8</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_sfpu_binary_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_calculate_sfpu_binary_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h" line="103" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h" bodystart="103" bodyend="162"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a81de7b2ba7ddf47db639b0de46e6b247" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>BinaryOp</type>
+            <declname>BINOP</declname>
+            <defname>BINOP</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_sfpu_binary_init_</definition>
+        <argsstring>()</argsstring>
+        <name>_sfpu_binary_init_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h" line="165" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h" bodystart="165" bodyend="171"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a5f73659fc7e91bff445d9e90f6855375" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>BinaryBitwiseOp</type>
+            <declname>BITWISE_OP</declname>
+            <defname>BITWISE_OP</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+            <defval>8</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_sfpu_binary_bitwise_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_calculate_sfpu_binary_bitwise_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary_bitwise.h" line="24" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary_bitwise.h" bodystart="24" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a6642af2a751ca954a9e10ac52ee9d46d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_cast_fp32_to_fp16a_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_cast_fp32_to_fp16a_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_cast_fp32_to_fp16a.h" line="17" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_cast_fp32_to_fp16a.h" bodystart="17" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ab7360eeefc9fd9197181374c7557093b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_clamp_</definition>
+        <argsstring>(const int iterations, uint param0, uint param1, uint param2)</argsstring>
+        <name>_calculate_clamp_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param0</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param1</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_clamp.h" line="16" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_clamp.h" bodystart="16" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ab90d35b79d4e10e32ababb7a5d6492ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>sfpi_inline void</type>
+        <definition>sfpi_inline void ckernel::sfpu::_calculate_comp_init_flag_</definition>
+        <argsstring>(bool check, sfpi::vFloat &amp;flag1, sfpi::vFloat &amp;flag2, float init)</argsstring>
+        <name>_calculate_comp_init_flag_</name>
+        <param>
+          <type>bool</type>
+          <declname>check</declname>
+        </param>
+        <param>
+          <type>sfpi::vFloat &amp;</type>
+          <declname>flag1</declname>
+        </param>
+        <param>
+          <type>sfpi::vFloat &amp;</type>
+          <declname>flag2</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>init</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_comp.h" line="15" column="18" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_comp.h" bodystart="15" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1afe8cc9c6aef82444f985c6d5e5d6bb20" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>invert_output</declname>
+            <defname>invert_output</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>check_zero</declname>
+            <defname>check_zero</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>second_check</declname>
+            <defname>second_check</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_less_than_equal_zero</declname>
+            <defname>is_less_than_equal_zero</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_comp_</definition>
+        <argsstring>(const int iterations, uint exponent_size_8)</argsstring>
+        <name>_calculate_comp_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>exponent_size_8</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_comp.h" line="25" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_comp.h" bodystart="25" bodyend="98"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a59a9c76619e7802b7bd9e4301dca0472" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_cumsum_</definition>
+        <argsstring>(const bool first)</argsstring>
+        <name>_calculate_cumsum_</name>
+        <param>
+          <type>const bool</type>
+          <declname>first</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_cumsum.h" line="17" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_cumsum.h" bodystart="17" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a5d4d611045ec86a221b9aafe92f2e66f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_cumsum_init_</definition>
+        <argsstring>()</argsstring>
+        <name>_cumsum_init_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_cumsum.h" line="150" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_cumsum.h" bodystart="150" bodyend="172"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1adae839f1f42b4dd934770213819da84c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_dropout_</definition>
+        <argsstring>(const int iterations, uint probability, uint scale)</argsstring>
+        <name>_calculate_dropout_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>probability</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>scale</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_dropout.h" line="20" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_dropout.h" bodystart="20" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ad844141ea6f7f64655f3affd4804db09" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_dropout_</definition>
+        <argsstring>(const uint seed)</argsstring>
+        <name>_init_dropout_</name>
+        <param>
+          <type>const uint</type>
+          <declname>seed</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_dropout.h" line="61" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_dropout.h" bodystart="61" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a23207c482cd702e54502b743739d0dea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>sfpi_inline sfpi::vFloat</type>
+        <definition>sfpi_inline sfpi::vFloat ckernel::sfpu::_sfpu_exp_</definition>
+        <argsstring>(sfpi::vFloat val)</argsstring>
+        <name>_sfpu_exp_</name>
+        <param>
+          <type>sfpi::vFloat</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h" line="18" column="26" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h" bodystart="18" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1aa2d6a6aae5b1190434dcb3a4b21f3719" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>sfpi_inline sfpi::vFloat</type>
+        <definition>sfpi_inline sfpi::vFloat ckernel::sfpu::_calculate_exponential_body_</definition>
+        <argsstring>(sfpi::vFloat in)</argsstring>
+        <name>_calculate_exponential_body_</name>
+        <param>
+          <type>sfpi::vFloat</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h" line="49" column="26" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h" bodystart="49" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a768b4fab68c490730d00cbd5ca300976" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>SCALE_EN</declname>
+            <defname>SCALE_EN</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>FAST_APPROX</declname>
+            <defname>FAST_APPROX</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_exponential_</definition>
+        <argsstring>(const int iterations, uint16_t exp_base_scale_factor=0)</argsstring>
+        <name>_calculate_exponential_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>exp_base_scale_factor</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h" line="88" column="6" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h" bodystart="88" bodyend="237"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a2fdf984f077e49ab162dd84871165972" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>FAST_APPROX</declname>
+            <defname>FAST_APPROX</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_exponential_</definition>
+        <argsstring>()</argsstring>
+        <name>_init_exponential_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h" line="240" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h" bodystart="240" bodyend="368"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ac3712de4208f0bdfef3e94ee94ead1fe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>sfpi::vFloat</type>
+        <definition>sfpi::vFloat ckernel::sfpu::_calculate_gelu_core_</definition>
+        <argsstring>(sfpi::vFloat in)</argsstring>
+        <name>_calculate_gelu_core_</name>
+        <param>
+          <type>sfpi::vFloat</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" line="18" column="21" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" bodystart="18" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ab4f4c7a80aef009e78fe0089592d6822" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_gelu_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_gelu_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" line="40" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" bodystart="40" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ad5b8f9632307e8b4ea04b79a283b5af0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_gelu_derivative_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_gelu_derivative_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" line="88" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" bodystart="88" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ae5cc544fff5917d182555cac1a1c09f8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_gelu_</definition>
+        <argsstring>()</argsstring>
+        <name>_init_gelu_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" line="157" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" bodystart="157" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a2569bc7a9f283b173ac41a8902720f89" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_gelu_derivative_</definition>
+        <argsstring>()</argsstring>
+        <name>_init_gelu_derivative_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" line="190" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h" bodystart="190" bodyend="238"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1aa4f06a3c9294689ef5db37fa63919c3e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_hardtanh_</definition>
+        <argsstring>(const int iterations, uint param0, uint param1, uint param2)</argsstring>
+        <name>_calculate_hardtanh_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param0</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param1</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_hardtanh.h" line="16" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_hardtanh.h" bodystart="16" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ad96477415b3f33ac6de8160c6b35174c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>sfpi_inline sfpi::vInt</type>
+        <definition>sfpi_inline sfpi::vInt ckernel::sfpu::_sfpu_is_fp16_zero_</definition>
+        <argsstring>(const sfpi::vFloat &amp;v, uint exponent_size_8)</argsstring>
+        <name>_sfpu_is_fp16_zero_</name>
+        <param>
+          <type>const sfpi::vFloat &amp;</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>exponent_size_8</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_is_fp16_zero.h" line="14" column="24" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_is_fp16_zero.h" bodystart="14" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::_sfpu_load_imm32_</definition>
+        <argsstring>(const uint dest, const uint val)</argsstring>
+        <name>_sfpu_load_imm32_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_load_config.h" line="15" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_load_config.h" bodystart="15" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1abc1197dac2a796ab4246a4925e57b89a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::_sfpu_load_imm16_</definition>
+        <argsstring>(const uint dest, const uint val)</argsstring>
+        <name>_sfpu_load_imm16_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_load_config.h" line="21" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_load_config.h" bodystart="21" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a33327d4082adce35914a3b47d4261d1f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::_sfpu_load_config32_</definition>
+        <argsstring>(const uint dest, const uint upper16, const uint lower16)</argsstring>
+        <name>_sfpu_load_config32_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dest</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>upper16</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>lower16</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_load_config.h" line="26" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_load_config.h" bodystart="26" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ac4b8efd66f423f1165b5817545830a55" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_sfpu_config_reg</definition>
+        <argsstring>()</argsstring>
+        <name>_init_sfpu_config_reg</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_load_config.h" line="35" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_load_config.h" bodystart="35" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a76b4b1341d32da7d8587c55b2211c7c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>HAS_BASE_SCALING</declname>
+            <defname>HAS_BASE_SCALING</defname>
+          </param>
+        </templateparamlist>
+        <type>sfpi_inline void</type>
+        <definition>sfpi_inline void ckernel::sfpu::_calculate_log_body_</definition>
+        <argsstring>(const uint log_base_scale_factor)</argsstring>
+        <name>_calculate_log_body_</name>
+        <param>
+          <type>const uint</type>
+          <declname>log_base_scale_factor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_log.h" line="16" column="18" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_log.h" bodystart="16" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ac825f680e12991c8516d35f2d8bafa3a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>HAS_BASE_SCALING</declname>
+            <defname>HAS_BASE_SCALING</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_log_</definition>
+        <argsstring>(const int iterations, uint log_base_scale_factor)</argsstring>
+        <name>_calculate_log_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>log_base_scale_factor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_log.h" line="74" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_log.h" bodystart="74" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ac2ea3269579d72fe10081f124127ae7f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_log_</definition>
+        <argsstring>()</argsstring>
+        <name>_init_log_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_log.h" line="85" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_log.h" bodystart="85" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a061142d85e5e4038f1bd13dcbce458f5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_max_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_max_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_max.h" line="15" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_max.h" bodystart="15" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1aa73ce7194455b91a2834960ee7618af7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_max_int32_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_max_int32_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_max_int32.h" line="16" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_max_int32.h" bodystart="16" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ad2acca65050af0d2eac23a13161ba770" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_power_</definition>
+        <argsstring>(const int iterations, uint exponent)</argsstring>
+        <name>_calculate_power_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>exponent</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_power.h" line="15" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_power.h" bodystart="15" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a3455c6f44c9566cf004bea7ad9bf2577" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>SIGN_MAGNITUDE_FORMAT</declname>
+            <defname>SIGN_MAGNITUDE_FORMAT</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_quant_int32_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_quant_int32_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h" line="18" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h" bodystart="18" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a67033c23f46d7e6db6214b025e1972ca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>SIGN_MAGNITUDE_FORMAT</declname>
+            <defname>SIGN_MAGNITUDE_FORMAT</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_requant_int32_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_requant_int32_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h" line="50" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h" bodystart="50" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a86c5b99a8080a9139f7e567aecd86f46" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>SIGN_MAGNITUDE_FORMAT</declname>
+            <defname>SIGN_MAGNITUDE_FORMAT</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_dequant_int32_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_dequant_int32_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h" line="90" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h" bodystart="90" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a72845fd187274dc138a87fafaf526ed5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_quant_zero_point_</definition>
+        <argsstring>(const uint zero_point)</argsstring>
+        <name>_init_quant_zero_point_</name>
+        <param>
+          <type>const uint</type>
+          <declname>zero_point</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h" line="124" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h" bodystart="124" bodyend="127"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a959d985c178b2c34bb657398f5c82c93" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>int</type>
+            <declname>max_iter</declname>
+            <defname>max_iter</defname>
+            <defval>3</defval>
+          </param>
+        </templateparamlist>
+        <type>sfpi_inline sfpi::vFloat</type>
+        <definition>sfpi_inline sfpi::vFloat ckernel::sfpu::_sfpu_reciprocal_</definition>
+        <argsstring>(const sfpi::vFloat in)</argsstring>
+        <name>_sfpu_reciprocal_</name>
+        <param>
+          <type>const sfpi::vFloat</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_recip.h" line="15" column="26" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_recip.h" bodystart="15" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1af8fc6149e9ed5f3767beeb3470cbd9cb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_reciprocal_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_reciprocal_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_recip.h" line="53" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_recip.h" bodystart="53" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1af032cc459810eddc91091a8eea856668" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_reciprocal_</definition>
+        <argsstring>()</argsstring>
+        <name>_init_reciprocal_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_recip.h" line="82" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_recip.h" bodystart="82" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a0721a8df91984e9069894fafd6d0163d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_lrelu_</definition>
+        <argsstring>(const int iterations, uint slope)</argsstring>
+        <name>_calculate_lrelu_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>slope</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_relu.h" line="17" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_relu.h" bodystart="17" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a81f5ae9532214a497ab8ada2c3fd0d2d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_relu_max_</definition>
+        <argsstring>(const int iterations, uint uint_threshold)</argsstring>
+        <name>_relu_max_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>uint_threshold</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_relu.h" line="39" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_relu.h" bodystart="39" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a811af66a73f8562417c4a677a17ec6d8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_relu_min_</definition>
+        <argsstring>(const int iterations, uint uint_threshold)</argsstring>
+        <name>_relu_min_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>uint_threshold</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_relu.h" line="61" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_relu.h" bodystart="61" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a1bec4207e17347fe04d5146afc950489" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_binary_left_shift_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_calculate_binary_left_shift_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_shift.h" line="17" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_shift.h" bodystart="17" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a43aa7e4db2dc2c430f7d3bdc3c633b8b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_binary_right_shift_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_calculate_binary_right_shift_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_shift.h" line="41" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_shift.h" bodystart="41" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ad5551268936960ab8e8a03d628757815" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_sigmoid_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_sigmoid_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sigmoid.h" line="16" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sigmoid.h" bodystart="16" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1aca68134bb6260271d505dc71c1fa8355" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_sigmoid_</definition>
+        <argsstring>()</argsstring>
+        <name>_init_sigmoid_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sigmoid.h" line="45" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sigmoid.h" bodystart="45" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a48aae4dbe65ffcbeb23537dc11673ac6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_sign_</definition>
+        <argsstring>(const int iterations, uint exponent_size_8)</argsstring>
+        <name>_calculate_sign_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>exponent_size_8</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sign.h" line="16" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sign.h" bodystart="16" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ad079a34149eaaf9839d8f62be931c48f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>RECIPROCAL_ITERATIONS</declname>
+            <defname>RECIPROCAL_ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_sqrt_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_sqrt_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sqrt.h" line="16" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sqrt.h" bodystart="16" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a0865970c6f5b665854850c058563611a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_sqrt_</definition>
+        <argsstring>()</argsstring>
+        <name>_init_sqrt_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sqrt.h" line="62" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sqrt.h" bodystart="62" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a63adf95d6189f5a6737763016506e2d5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_square_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_square_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_square.h" line="15" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_square.h" bodystart="15" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a493a0f535ad235508b134ed2a2e1ae0c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>SIGN_MAGNITUDE_FORMAT</declname>
+            <defname>SIGN_MAGNITUDE_FORMAT</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_sub_int32_</definition>
+        <argsstring>(const uint dst_offset)</argsstring>
+        <name>_sub_int32_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sub_int32.h" line="17" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sub_int32.h" bodystart="17" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a321d3f57d8899134f6167615222e45f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_tanh_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_tanh_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_tanh.h" line="16" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_tanh.h" bodystart="16" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a5dea7d079e24c75a21f1c73cd69a84c8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_tanh_</definition>
+        <argsstring>()</argsstring>
+        <name>_init_tanh_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_tanh.h" line="39" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_tanh.h" bodystart="39" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a2025869c7bf5377ce52690c0c8ca4e78" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>WITH_PRECOMPUTED_TANH</declname>
+            <defname>WITH_PRECOMPUTED_TANH</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_tanh_derivative_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_tanh_derivative_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_tanh_derivative.h" line="15" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_tanh_derivative.h" bodystart="15" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a6cf5a8fe6505d6dee5ef7da5057f3593" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::set_dst_write_addr</definition>
+        <argsstring>(uint32_t addr)</argsstring>
+        <name>set_dst_write_addr</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="19" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="19" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ac82f0878ae40af67f5642fdefbae9cac" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_load8</definition>
+        <argsstring>(uint offset, uint dist)</argsstring>
+        <name>bitonic_topk_load8</name>
+        <param>
+          <type>uint</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>dist</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="25" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="25" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a9e712a6c2eeb3b047a63ccad5072c325" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_store8</definition>
+        <argsstring>(uint offset, uint dist)</argsstring>
+        <name>bitonic_topk_store8</name>
+        <param>
+          <type>uint</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>dist</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="41" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="41" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ad817f8d91090595404901c353dd054a7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_load16</definition>
+        <argsstring>(uint dist0, uint dist1)</argsstring>
+        <name>bitonic_topk_load16</name>
+        <param>
+          <type>uint</type>
+          <declname>dist0</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>dist1</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="57" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="57" bodyend="90"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ada23f48fce1bb22291c0c97997275f67" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>alt_addr_mod</declname>
+            <defname>alt_addr_mod</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_store16</definition>
+        <argsstring>(uint dist0, uint dist1)</argsstring>
+        <name>bitonic_topk_store16</name>
+        <param>
+          <type>uint</type>
+          <declname>dist0</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>dist1</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="93" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="93" bodyend="126"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a04ef4c05da5b762d4f0da7b9627f3ca7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_ph3_st4_to_1</definition>
+        <argsstring>(bool dir, bool &amp;init_replay, int replay_start)</argsstring>
+        <name>bitonic_topk_ph3_st4_to_1</name>
+        <param>
+          <type>bool</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type>bool &amp;</type>
+          <declname>init_replay</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>replay_start</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="128" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="128" bodyend="172"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a9390d0fce34a80f2ca17d72ffded6514" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_ph2_st3_to_1</definition>
+        <argsstring>()</argsstring>
+        <name>bitonic_topk_ph2_st3_to_1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="174" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="174" bodyend="196"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a685c573bb9bb5c11da4c07c897b37cbd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_ph1_st2_to_1</definition>
+        <argsstring>()</argsstring>
+        <name>bitonic_topk_ph1_st2_to_1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="198" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="198" bodyend="213"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a64ed6846e572c03fbe4f96fe29d1db93" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_ph0_st1_to_1</definition>
+        <argsstring>()</argsstring>
+        <name>bitonic_topk_ph0_st1_to_1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="215" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="215" bodyend="227"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a2159b773bf5c420be456bafcd95243a9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_step_N</definition>
+        <argsstring>(bool dir)</argsstring>
+        <name>bitonic_topk_step_N</name>
+        <param>
+          <type>bool</type>
+          <declname>dir</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="229" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="229" bodyend="241"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a5918a3abf689934e61d107e840dd6a0c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_inc_x8_dest</definition>
+        <argsstring>(uint inc, bool cr)</argsstring>
+        <name>bitonic_topk_inc_x8_dest</name>
+        <param>
+          <type>uint</type>
+          <declname>inc</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>cr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="243" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="243" bodyend="257"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1af55b63283d53991ff3a5e840dd26c307" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::bitonic_topk_inc_x4_dest</definition>
+        <argsstring>(uint inc, bool cr)</argsstring>
+        <name>bitonic_topk_inc_x4_dest</name>
+        <param>
+          <type>uint</type>
+          <declname>inc</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>cr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="259" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="259" bodyend="273"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a38c9b9dcacd0616f472ca1db7a587320" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_bitonic_topk_phases_steps</definition>
+        <argsstring>(const int idir, const int i_end_phase, const int i_start_phase, const int i_end_step, const int i_start_step)</argsstring>
+        <name>_bitonic_topk_phases_steps</name>
+        <param>
+          <type>const int</type>
+          <declname>idir</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>i_end_phase</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>i_start_phase</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>i_end_step</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>i_start_step</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="276" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="276" bodyend="438"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a4d88b4338dd4e1aebfd809b8ccba67a9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>top_min</declname>
+            <defname>top_min</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_bitonic_topk_merge</definition>
+        <argsstring>(const int m_iter, const int k)</argsstring>
+        <name>_bitonic_topk_merge</name>
+        <param>
+          <type>const int</type>
+          <declname>m_iter</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>k</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="441" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="441" bodyend="485"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1aa23db14d7dc1f71b473a87fa836b308b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_bitonic_topk_rebuild</definition>
+        <argsstring>(const bool idir, const int m_iter, const int k, const int logk, const int skip_second)</argsstring>
+        <name>_bitonic_topk_rebuild</name>
+        <param>
+          <type>const bool</type>
+          <declname>idir</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>m_iter</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>k</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>logk</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>skip_second</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="488" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="488" bodyend="698"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a74b3614b87451a795b93f746adc61e99" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::sfpu::_init_topk</definition>
+        <argsstring>()</argsstring>
+        <name>_init_topk</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" line="700" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h" bodystart="700" bodyend="703"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a2ee8d8e98dfb1e8c1e0b022eecb422e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>sfpi_inline sfpi::vFloat</type>
+        <definition>sfpi_inline sfpi::vFloat ckernel::sfpu::_sfpu_sine_maclaurin_series_</definition>
+        <argsstring>(sfpi::vFloat val)</argsstring>
+        <name>_sfpu_sine_maclaurin_series_</name>
+        <param>
+          <type>sfpi::vFloat</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h" line="15" column="26" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h" bodystart="15" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a059951877ded4a13b110f0a4bcc6365d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+        </templateparamlist>
+        <type>sfpi_inline sfpi::vFloat</type>
+        <definition>sfpi_inline sfpi::vFloat ckernel::sfpu::_sfpu_cosine_maclaurin_series_</definition>
+        <argsstring>(sfpi::vFloat val)</argsstring>
+        <name>_sfpu_cosine_maclaurin_series_</name>
+        <param>
+          <type>sfpi::vFloat</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h" line="46" column="26" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h" bodystart="46" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a5524631485e4e5ff522ed5880135ba39" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_sine_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_sine_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h" line="76" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h" bodystart="76" bodyend="98"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a740ae1c5fe1c4ba3999611ade94d4fd2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_cosine_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_cosine_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h" line="101" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h" bodystart="101" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a98c0f8f40a622f2987041641f26ff2cf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_fp16b_to_uint16_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_fp16b_to_uint16_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="19" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="19" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1aa56ce20c6f5d07b9f1a61b9fa51785e1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_uint16_to_fp16b_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_uint16_to_fp16b_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="35" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="35" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a3d1ec662db84f2812c9aa07bfb81b6be" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_int32_to_fp16b_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_int32_to_fp16b_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="49" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="49" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1acabdf797c62840f12ddd0da7e4426fdb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_fp16b_to_int32_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_fp16b_to_int32_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="73" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="73" bodyend="118"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a3977d630f222557b562c41cba144593b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_fp32_to_fp16b_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_fp32_to_fp16b_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="121" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="121" bodyend="131"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a32ef30bbad9d859739a1b3bc15023ea9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_uint16_to_fp32_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_uint16_to_fp32_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="134" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="134" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a38234b75d80d366d60747f694641389b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_int32_to_fp32_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_int32_to_fp32_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="147" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="147" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1afb44c3331f9876dad5c4d9426f7cee1a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_fp16b_to_uint32_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_fp16b_to_uint32_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="170" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="170" bodyend="222"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a3feeb2701f618f91e2d093c72d574281" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_uint32_to_fp16b_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_uint32_to_fp16b_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="225" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="225" bodyend="240"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1ae336ece18396316594ddf4259beb32b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_uint32_to_fp32_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_uint32_to_fp32_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="243" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="243" bodyend="257"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a394e7f991db48c561815cd15d8791c2c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_typecast_uint16_to_uint32_</definition>
+        <argsstring>()</argsstring>
+        <name>_calculate_typecast_uint16_to_uint32_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" line="260" column="13" bodyfile="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_typecast.h" bodystart="260" bodyend="269"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1a520273b6109bc3bde32a1f147d01fa37" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_reciprocal_</definition>
+        <argsstring>(const int iterations)</argsstring>
+        <name>_calculate_reciprocal_</name>
+        <param>
+          <type>const int</type>
+          <declname>iterations</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_recip.h" line="55" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_recip.h" bodystart="55" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1sfpu_1afcfc51817f92e501a2871fdfd5f40275" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>APPROXIMATION_MODE</declname>
+            <defname>APPROXIMATION_MODE</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>ITERATIONS</declname>
+            <defname>ITERATIONS</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::sfpu::_calculate_reshuffle_rows_</definition>
+        <argsstring>(const uint idx_addr)</argsstring>
+        <name>_calculate_reshuffle_rows_</name>
+        <param>
+          <type>const uint</type>
+          <declname>idx_addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_reshuffle_rows.h" line="17" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_reshuffle_rows.h" bodystart="17" bodyend="69"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_abs.h" line="11" column="1"/>
+  </compounddef>
+</doxygen>

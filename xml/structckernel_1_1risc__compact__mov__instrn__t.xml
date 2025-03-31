@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1risc__compact__mov__instrn__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::risc_compact_mov_instrn_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__xmov_8h" local="no">ckernel_xmov.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1risc__compact__mov__instrn__t_1aa9dea2d6c0ccbb5a5d0376e3c43b8437" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::risc_compact_mov_instrn_t::instrn</definition>
+        <argsstring></argsstring>
+        <name>instrn</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_xmov.h" line="15" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_xmov.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1risc__compact__mov__instrn__t_1adc11d80ddfe72894c6521124bf8cddb7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::risc_compact_mov_instrn_t::src_offset_addr</definition>
+        <argsstring></argsstring>
+        <name>src_offset_addr</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_xmov.h" line="16" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_xmov.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1risc__compact__mov__instrn__t_1a35f557ff55187c449c5c2eea55d5b9ed" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::risc_compact_mov_instrn_t::dst_addr</definition>
+        <argsstring></argsstring>
+        <name>dst_addr</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_xmov.h" line="17" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_xmov.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1risc__compact__mov__instrn__t_1a8b5ad84130fec8c08a05ce121057d9d1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::risc_compact_mov_instrn_t::xfer_size</definition>
+        <argsstring></argsstring>
+        <name>xfer_size</name>
+        <bitfield> 6</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_xmov.h" line="18" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_xmov.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1risc__compact__mov__instrn__t_1a9a6b689ce1603208e98a1ca2cd251ee1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::risc_compact_mov_instrn_t::xfer_dir</definition>
+        <argsstring></argsstring>
+        <name>xfer_dir</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_xmov.h" line="19" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_xmov.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1risc__compact__mov__instrn__t_1aa287e21c521dfda58108bae4ed2bbe6b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::risc_compact_mov_instrn_t::no_params</definition>
+        <argsstring></argsstring>
+        <name>no_params</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_xmov.h" line="20" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_xmov.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_xmov.h" line="13" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_xmov.h" bodystart="14" bodyend="21"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1risc__compact__mov__instrn__t_1a35f557ff55187c449c5c2eea55d5b9ed" prot="public" virt="non-virtual"><scope>ckernel::risc_compact_mov_instrn_t</scope><name>dst_addr</name></member>
+      <member refid="structckernel_1_1risc__compact__mov__instrn__t_1aa9dea2d6c0ccbb5a5d0376e3c43b8437" prot="public" virt="non-virtual"><scope>ckernel::risc_compact_mov_instrn_t</scope><name>instrn</name></member>
+      <member refid="structckernel_1_1risc__compact__mov__instrn__t_1aa287e21c521dfda58108bae4ed2bbe6b" prot="public" virt="non-virtual"><scope>ckernel::risc_compact_mov_instrn_t</scope><name>no_params</name></member>
+      <member refid="structckernel_1_1risc__compact__mov__instrn__t_1adc11d80ddfe72894c6521124bf8cddb7" prot="public" virt="non-virtual"><scope>ckernel::risc_compact_mov_instrn_t</scope><name>src_offset_addr</name></member>
+      <member refid="structckernel_1_1risc__compact__mov__instrn__t_1a9a6b689ce1603208e98a1ca2cd251ee1" prot="public" virt="non-virtual"><scope>ckernel::risc_compact_mov_instrn_t</scope><name>xfer_dir</name></member>
+      <member refid="structckernel_1_1risc__compact__mov__instrn__t_1a8b5ad84130fec8c08a05ce121057d9d1" prot="public" virt="non-virtual"><scope>ckernel::risc_compact_mov_instrn_t</scope><name>xfer_size</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

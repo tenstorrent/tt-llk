@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_ca45e3527dc999dc519b13bed7363115" kind="dir">
+    <compoundname>tt_llk_blackhole/common/inc/sfpu</compoundname>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__abs_8h">ckernel_sfpu_abs.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__add__int32_8h">ckernel_sfpu_add_int32.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__binary_8h">ckernel_sfpu_binary.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__binary__bitwise_8h">ckernel_sfpu_binary_bitwise.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__cast__fp32__to__fp16a_8h">ckernel_sfpu_cast_fp32_to_fp16a.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__clamp_8h">ckernel_sfpu_clamp.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__comp_8h">ckernel_sfpu_comp.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__cumsum_8h">ckernel_sfpu_cumsum.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__dropout_8h">ckernel_sfpu_dropout.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__exp_8h">ckernel_sfpu_exp.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__gelu_8h">ckernel_sfpu_gelu.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__hardtanh_8h">ckernel_sfpu_hardtanh.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__is__fp16__zero_8h">ckernel_sfpu_is_fp16_zero.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h">ckernel_sfpu_load_config.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__log_8h">ckernel_sfpu_log.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__max_8h">ckernel_sfpu_max.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__max__int32_8h">ckernel_sfpu_max_int32.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__power_8h">ckernel_sfpu_power.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__quant_8h">ckernel_sfpu_quant.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__recip_8h">ckernel_sfpu_recip.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__relu_8h">ckernel_sfpu_relu.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__shift_8h">ckernel_sfpu_shift.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sigmoid_8h">ckernel_sfpu_sigmoid.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sign_8h">ckernel_sfpu_sign.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sqrt_8h">ckernel_sfpu_sqrt.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__square_8h">ckernel_sfpu_square.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sub__int32_8h">ckernel_sfpu_sub_int32.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__tanh_8h">ckernel_sfpu_tanh.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__tanh__derivative_8h">ckernel_sfpu_tanh_derivative.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__topk_8h">ckernel_sfpu_topk.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__trigonometry_8h">ckernel_sfpu_trigonometry.h</innerfile>
+    <innerfile refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__typecast_8h">ckernel_sfpu_typecast.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/sfpu/"/>
+  </compounddef>
+</doxygen>

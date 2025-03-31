@@ -1,0 +1,341 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1addr__mod__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::addr_mod_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__addrmod_8h" local="no">ckernel_addrmod.h</includes>
+    <innerclass refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t" prot="public">ckernel::addr_mod_t::addr_mod_bias_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t" prot="public">ckernel::addr_mod_t::addr_mod_dest_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t" prot="public">ckernel::addr_mod_t::addr_mod_fidelity_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" prot="public">ckernel::addr_mod_t::addr_mod_src_t</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref></type>
+        <definition>addr_mod_src_t ckernel::addr_mod_t::srca</definition>
+        <argsstring></argsstring>
+        <name>srca</name>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="82" column="20" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1a8711333c8fbf2a5c13cf124683b0a1bf" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref></type>
+        <definition>addr_mod_src_t ckernel::addr_mod_t::srcb</definition>
+        <argsstring></argsstring>
+        <name>srcb</name>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="83" column="20" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1a959a40c48d5ff0e1b38f28e8b2f3bbef" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t" kindref="compound">addr_mod_dest_t</ref></type>
+        <definition>addr_mod_dest_t ckernel::addr_mod_t::dest</definition>
+        <argsstring></argsstring>
+        <name>dest</name>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="84" column="21" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1a5d490b8a5f4279df08bc2544c411c1f4" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t" kindref="compound">addr_mod_fidelity_t</ref></type>
+        <definition>addr_mod_fidelity_t ckernel::addr_mod_t::fidelity</definition>
+        <argsstring></argsstring>
+        <name>fidelity</name>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="85" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1a7489ad2845ccb16d5b573f898e142978" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t" kindref="compound">addr_mod_bias_t</ref></type>
+        <definition>addr_mod_bias_t ckernel::addr_mod_t::bias</definition>
+        <argsstring></argsstring>
+        <name>bias</name>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="86" column="21" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1ace99572a970153627c1574e36b32ef21" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref></type>
+        <definition>addr_mod_src_t ckernel::addr_mod_t::pack_ysrc</definition>
+        <argsstring></argsstring>
+        <name>pack_ysrc</name>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="87" column="20" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1a7c989db44f978ddbf6d313f9f0d73d35" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref></type>
+        <definition>addr_mod_src_t ckernel::addr_mod_t::pack_ydst</definition>
+        <argsstring></argsstring>
+        <name>pack_ydst</name>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="88" column="20" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1a9060e554880f83205a4a2d1364919f64" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::addr_mod_t::addr_mod_src_reg_addr</definition>
+        <argsstring>[]</argsstring>
+        <name>addr_mod_src_reg_addr</name>
+        <initializer>= {
+        ADDR_MOD_AB_SEC0_SrcAIncr_ADDR32,
+        ADDR_MOD_AB_SEC1_SrcAIncr_ADDR32,
+        ADDR_MOD_AB_SEC2_SrcAIncr_ADDR32,
+        ADDR_MOD_AB_SEC3_SrcAIncr_ADDR32,
+        ADDR_MOD_AB_SEC4_SrcAIncr_ADDR32,
+        ADDR_MOD_AB_SEC5_SrcAIncr_ADDR32,
+        ADDR_MOD_AB_SEC6_SrcAIncr_ADDR32,
+        ADDR_MOD_AB_SEC7_SrcAIncr_ADDR32}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="102" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1a442eb502a3ab5c898263381b9c161808" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::addr_mod_t::addr_mod_dest_reg_addr</definition>
+        <argsstring>[]</argsstring>
+        <name>addr_mod_dest_reg_addr</name>
+        <initializer>= {
+        ADDR_MOD_DST_SEC0_DestIncr_ADDR32,
+        ADDR_MOD_DST_SEC1_DestIncr_ADDR32,
+        ADDR_MOD_DST_SEC2_DestIncr_ADDR32,
+        ADDR_MOD_DST_SEC3_DestIncr_ADDR32,
+        ADDR_MOD_DST_SEC4_DestIncr_ADDR32,
+        ADDR_MOD_DST_SEC5_DestIncr_ADDR32,
+        ADDR_MOD_DST_SEC6_DestIncr_ADDR32,
+        ADDR_MOD_DST_SEC7_DestIncr_ADDR32}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="112" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1aa822cbd86048f784d3346d64a36d33bb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::addr_mod_t::addr_mod_bias_reg_addr</definition>
+        <argsstring>[]</argsstring>
+        <name>addr_mod_bias_reg_addr</name>
+        <initializer>= {
+        ADDR_MOD_BIAS_SEC0_BiasIncr_ADDR32,
+        ADDR_MOD_BIAS_SEC1_BiasIncr_ADDR32,
+        ADDR_MOD_BIAS_SEC2_BiasIncr_ADDR32,
+        ADDR_MOD_BIAS_SEC3_BiasIncr_ADDR32,
+        ADDR_MOD_BIAS_SEC4_BiasIncr_ADDR32,
+        ADDR_MOD_BIAS_SEC5_BiasIncr_ADDR32,
+        ADDR_MOD_BIAS_SEC6_BiasIncr_ADDR32,
+        ADDR_MOD_BIAS_SEC7_BiasIncr_ADDR32}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="122" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1addr__mod__t_1a3013db678eb2270664f32aa908ee54aa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::addr_mod_t::addr_mod_pack_reg_addr</definition>
+        <argsstring>[]</argsstring>
+        <name>addr_mod_pack_reg_addr</name>
+        <initializer>= {
+        ADDR_MOD_PACK_SEC0_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC1_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC2_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC3_YsrcIncr_ADDR32}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="132" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structckernel_1_1addr__mod__t_1a2c8c2ca2156f6a2c009791dd98216275" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint16_t</type>
+        <definition>constexpr uint16_t ckernel::addr_mod_t::src_val</definition>
+        <argsstring>() const</argsstring>
+        <name>src_val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="91" column="24" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="91" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="structckernel_1_1addr__mod__t_1a52661a552e4ad773e83f582129460dc3" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint16_t</type>
+        <definition>constexpr uint16_t ckernel::addr_mod_t::pack_val</definition>
+        <argsstring>() const</argsstring>
+        <name>pack_val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="96" column="24" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="96" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="structckernel_1_1addr__mod__t_1ae3430ea7abf394ab3b1be0f0b978c0ba" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ckernel::addr_mod_t::__attribute__</definition>
+        <argsstring>((always_inline)) inline void set(const uint8_t mod_index) const</argsstring>
+        <name>__attribute__</name>
+        <param>
+          <type>(always_inline)</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="136" column="5" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="136" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="structckernel_1_1addr__mod__t_1a2c8c2ca2156f6a2c009791dd98216275" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint16_t</type>
+        <definition>constexpr uint16_t ckernel::addr_mod_t::src_val</definition>
+        <argsstring>() const</argsstring>
+        <name>src_val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_addrmod.h" line="91" column="24" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_addrmod.h" bodystart="91" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="structckernel_1_1addr__mod__t_1a52661a552e4ad773e83f582129460dc3" prot="public" static="no" constexpr="yes" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr uint16_t</type>
+        <definition>constexpr uint16_t ckernel::addr_mod_t::pack_val</definition>
+        <argsstring>() const</argsstring>
+        <name>pack_val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_addrmod.h" line="96" column="24" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_addrmod.h" bodystart="96" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="structckernel_1_1addr__mod__t_1ae3430ea7abf394ab3b1be0f0b978c0ba" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ckernel::addr_mod_t::__attribute__</definition>
+        <argsstring>((always_inline)) inline void set(const uint8_t mod_index) const</argsstring>
+        <name>__attribute__</name>
+        <param>
+          <type>(always_inline)</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_addrmod.h" line="136" column="5" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_addrmod.h" bodystart="136" bodyend="143"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ckernel::addr_mod_t::addr_mod_dest_t</label>
+        <link refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t"/>
+      </node>
+      <node id="1">
+        <label>ckernel::addr_mod_t</label>
+        <link refid="structckernel_1_1addr__mod__t"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>dest</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>bias</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>pack_ydst</edgelabel>
+          <edgelabel>pack_ysrc</edgelabel>
+          <edgelabel>srca</edgelabel>
+          <edgelabel>srcb</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>fidelity</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ckernel::addr_mod_t::addr_mod_fidelity_t</label>
+        <link refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t"/>
+      </node>
+      <node id="4">
+        <label>ckernel::addr_mod_t::addr_mod_src_t</label>
+        <link refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t"/>
+      </node>
+      <node id="3">
+        <label>ckernel::addr_mod_t::addr_mod_bias_t</label>
+        <link refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t"/>
+      </node>
+    </collaborationgraph>
+    <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h" line="28" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_addrmod.h" bodystart="29" bodyend="144"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1addr__mod__t_1ae3430ea7abf394ab3b1be0f0b978c0ba" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>__attribute__</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1ae3430ea7abf394ab3b1be0f0b978c0ba" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>__attribute__</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1aa822cbd86048f784d3346d64a36d33bb" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>addr_mod_bias_reg_addr</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a442eb502a3ab5c898263381b9c161808" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>addr_mod_dest_reg_addr</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a3013db678eb2270664f32aa908ee54aa" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>addr_mod_pack_reg_addr</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a9060e554880f83205a4a2d1364919f64" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>addr_mod_src_reg_addr</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a7489ad2845ccb16d5b573f898e142978" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>bias</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a959a40c48d5ff0e1b38f28e8b2f3bbef" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>dest</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a5d490b8a5f4279df08bc2544c411c1f4" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>fidelity</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a52661a552e4ad773e83f582129460dc3" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>pack_val</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a52661a552e4ad773e83f582129460dc3" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>pack_val</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a7c989db44f978ddbf6d313f9f0d73d35" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>pack_ydst</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1ace99572a970153627c1574e36b32ef21" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>pack_ysrc</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a2c8c2ca2156f6a2c009791dd98216275" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>src_val</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a2c8c2ca2156f6a2c009791dd98216275" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>src_val</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>srca</name></member>
+      <member refid="structckernel_1_1addr__mod__t_1a8711333c8fbf2a5c13cf124683b0a1bf" prot="public" virt="non-virtual"><scope>ckernel::addr_mod_t</scope><name>srcb</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

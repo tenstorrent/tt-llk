@@ -1,0 +1,436 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1packer_1_1pack__config__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::packer::pack_config_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h" local="no">cpack_common.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1aac971a89af970959c9a8899052ea49a2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::row_ptr_section_size</definition>
+        <argsstring></argsstring>
+        <name>row_ptr_section_size</name>
+        <bitfield> 16</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="25" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1abe4a098f8c7fe7f0ac65ac30d8ba1d25" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::exp_section_size</definition>
+        <argsstring></argsstring>
+        <name>exp_section_size</name>
+        <bitfield> 16</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="26" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a3991ac52b364a2264bb9ad5d64b28cc7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::l1_dest_addr</definition>
+        <argsstring></argsstring>
+        <name>l1_dest_addr</name>
+        <bitfield> 32</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="28" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a07e7ccd4c61bd373a4e4306d428d74e4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::uncompress</definition>
+        <argsstring></argsstring>
+        <name>uncompress</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="30" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a136179f6cb6052ba8b7e136c2f272cf1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::add_l1_dest_addr_offset</definition>
+        <argsstring></argsstring>
+        <name>add_l1_dest_addr_offset</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="31" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1ae1710c7b6960c20dedb3af5f73864a41" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::disable_pack_zero_flag</definition>
+        <argsstring></argsstring>
+        <name>disable_pack_zero_flag</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="32" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1ae433b34f93b84adc4f7e32226574ed6c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::reserved_0</definition>
+        <argsstring></argsstring>
+        <name>reserved_0</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="33" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a4cd27eba044457c2a1833f3aeccca24c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::out_data_format</definition>
+        <argsstring></argsstring>
+        <name>out_data_format</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="34" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a602c001f8b1b893e331bb23388e380c2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::in_data_format</definition>
+        <argsstring></argsstring>
+        <name>in_data_format</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="35" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a785081475347fc40a885c1f5fed2091e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::dis_shared_exp_assembler</definition>
+        <argsstring></argsstring>
+        <name>dis_shared_exp_assembler</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="36" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1ad0e0778e4cc5ffbff3bb8469a318be40" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::auto_set_last_pacr_intf_sel</definition>
+        <argsstring></argsstring>
+        <name>auto_set_last_pacr_intf_sel</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="37" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a8a0d742f350b75ec190479289249e52c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::enable_out_fifo</definition>
+        <argsstring></argsstring>
+        <name>enable_out_fifo</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="38" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1abe722196091c320c5b09507fa38e5066" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::sub_l1_tile_header_size</definition>
+        <argsstring></argsstring>
+        <name>sub_l1_tile_header_size</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="39" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a8cc1b30f85c5f087ecd027dd68f3390b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::src_if_sel</definition>
+        <argsstring></argsstring>
+        <name>src_if_sel</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="40" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a2fb46c1fe851aaf042fc6abd3090ac6f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::pack_start_intf_pos</definition>
+        <argsstring></argsstring>
+        <name>pack_start_intf_pos</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="41" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1ac0e1ddb616ba2cd519dbeb97ca81e6d7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::all_pack_disable_zero_compress_ovrd</definition>
+        <argsstring></argsstring>
+        <name>all_pack_disable_zero_compress_ovrd</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="42" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a0d13126a55db49d39c54d38ae3865f85" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::add_tile_header_size</definition>
+        <argsstring></argsstring>
+        <name>add_tile_header_size</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="43" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a95409c165ea4639f02143f218468582d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::pack_dis_y_pos_start_offset</definition>
+        <argsstring></argsstring>
+        <name>pack_dis_y_pos_start_offset</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="44" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a37b946c773d3eae7e0843ab8909bd6f4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::l1_src_addr</definition>
+        <argsstring></argsstring>
+        <name>l1_src_addr</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="45" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a9cbed6975ca0c9f6bf3f9d13b90f7e99" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::reserved_1</definition>
+        <argsstring></argsstring>
+        <name>reserved_1</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="42" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a86a7f21180e5a3233a48dea0943f93bb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::pack_per_xy_plane</definition>
+        <argsstring></argsstring>
+        <name>pack_per_xy_plane</name>
+        <bitfield> 7</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="44" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a806997c5ece95a7583c6e511a892d6f5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::downsample_mask</definition>
+        <argsstring></argsstring>
+        <name>downsample_mask</name>
+        <bitfield> 16</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="47" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1aa88d6fe9df72ee0fcdfef7ec8679fe14" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::downsample_shift_count</definition>
+        <argsstring></argsstring>
+        <name>downsample_shift_count</name>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="48" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a4df763aed933b27e7dbe5ca01d3052b9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::read_mode</definition>
+        <argsstring></argsstring>
+        <name>read_mode</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="49" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a6cd1a7fb337985acdd24ad1eb3fff6f4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::exp_threshold_en</definition>
+        <argsstring></argsstring>
+        <name>exp_threshold_en</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="50" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a9f9a7ba5b43324b0af21dde250e306b2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::pack_l1_acc_disable_pack_zero_flag</definition>
+        <argsstring></argsstring>
+        <name>pack_l1_acc_disable_pack_zero_flag</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="51" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1ab90b09e1a914da916443275e48556356" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::reserved_2</definition>
+        <argsstring></argsstring>
+        <name>reserved_2</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="52" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__config__t_1a722b3ea2636747f6060c33a1e876a6a6" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_config_t::exp_threshold</definition>
+        <argsstring></argsstring>
+        <name>exp_threshold</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="53" column="14" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="22" column="1" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="23" bodyend="57"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a136179f6cb6052ba8b7e136c2f272cf1" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>add_l1_dest_addr_offset</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a0d13126a55db49d39c54d38ae3865f85" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>add_tile_header_size</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1ac0e1ddb616ba2cd519dbeb97ca81e6d7" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>all_pack_disable_zero_compress_ovrd</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1ad0e0778e4cc5ffbff3bb8469a318be40" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>auto_set_last_pacr_intf_sel</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a785081475347fc40a885c1f5fed2091e" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>dis_shared_exp_assembler</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1ae1710c7b6960c20dedb3af5f73864a41" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>disable_pack_zero_flag</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a806997c5ece95a7583c6e511a892d6f5" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>downsample_mask</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1aa88d6fe9df72ee0fcdfef7ec8679fe14" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>downsample_shift_count</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a8a0d742f350b75ec190479289249e52c" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>enable_out_fifo</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1abe4a098f8c7fe7f0ac65ac30d8ba1d25" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>exp_section_size</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a722b3ea2636747f6060c33a1e876a6a6" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>exp_threshold</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a6cd1a7fb337985acdd24ad1eb3fff6f4" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>exp_threshold_en</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a602c001f8b1b893e331bb23388e380c2" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>in_data_format</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a3991ac52b364a2264bb9ad5d64b28cc7" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>l1_dest_addr</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a37b946c773d3eae7e0843ab8909bd6f4" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>l1_src_addr</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a4cd27eba044457c2a1833f3aeccca24c" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>out_data_format</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a95409c165ea4639f02143f218468582d" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>pack_dis_y_pos_start_offset</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a9f9a7ba5b43324b0af21dde250e306b2" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>pack_l1_acc_disable_pack_zero_flag</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a86a7f21180e5a3233a48dea0943f93bb" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>pack_per_xy_plane</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a2fb46c1fe851aaf042fc6abd3090ac6f" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>pack_start_intf_pos</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a4df763aed933b27e7dbe5ca01d3052b9" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>read_mode</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1ae433b34f93b84adc4f7e32226574ed6c" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>reserved_0</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a9cbed6975ca0c9f6bf3f9d13b90f7e99" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>reserved_1</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1ab90b09e1a914da916443275e48556356" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>reserved_2</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1aac971a89af970959c9a8899052ea49a2" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>row_ptr_section_size</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a8cc1b30f85c5f087ecd027dd68f3390b" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>src_if_sel</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1abe722196091c320c5b09507fa38e5066" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>sub_l1_tile_header_size</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__config__t_1a07e7ccd4c61bd373a4e4306d428d74e4" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_config_t</scope><name>uncompress</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__movb2a" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_movb2a</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__movb2a_1a4990e12dac069e45e90076cf4eb5f1c4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2a::SRCA_ZERO_OFFSET</definition>
+        <argsstring></argsstring>
+        <name>SRCA_ZERO_OFFSET</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="246" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="246" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2a_1a7411e36d08f7ba3368f179761a64787e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2a::SRCB_ZERO_OFFSET</definition>
+        <argsstring></argsstring>
+        <name>SRCB_ZERO_OFFSET</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="247" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="247" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2a_1aeba4d4b07391e260c7ba4f7f3b61734d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2a::SRCB_ROW16_OFFSET</definition>
+        <argsstring></argsstring>
+        <name>SRCB_ROW16_OFFSET</name>
+        <initializer>= 0x10</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="248" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="248" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2a_1a44f1f85030b2dce7f81286f127c71de0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2a::MOV_1_ROW</definition>
+        <argsstring></argsstring>
+        <name>MOV_1_ROW</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="249" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="249" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2a_1acbe167f15121f25caf7632f6186bd496" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2a::MOV_4_ROWS</definition>
+        <argsstring></argsstring>
+        <name>MOV_4_ROWS</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="250" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="250" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="244" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="245" bodyend="251"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__movb2a_1a44f1f85030b2dce7f81286f127c71de0" prot="public" virt="non-virtual"><scope>ckernel::p_movb2a</scope><name>MOV_1_ROW</name></member>
+      <member refid="structckernel_1_1p__movb2a_1acbe167f15121f25caf7632f6186bd496" prot="public" virt="non-virtual"><scope>ckernel::p_movb2a</scope><name>MOV_4_ROWS</name></member>
+      <member refid="structckernel_1_1p__movb2a_1a4990e12dac069e45e90076cf4eb5f1c4" prot="public" virt="non-virtual"><scope>ckernel::p_movb2a</scope><name>SRCA_ZERO_OFFSET</name></member>
+      <member refid="structckernel_1_1p__movb2a_1aeba4d4b07391e260c7ba4f7f3b61734d" prot="public" virt="non-virtual"><scope>ckernel::p_movb2a</scope><name>SRCB_ROW16_OFFSET</name></member>
+      <member refid="structckernel_1_1p__movb2a_1a7411e36d08f7ba3368f179761a64787e" prot="public" virt="non-virtual"><scope>ckernel::p_movb2a</scope><name>SRCB_ZERO_OFFSET</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

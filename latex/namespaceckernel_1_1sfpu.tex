@@ -1,0 +1,1033 @@
+\hypertarget{namespaceckernel_1_1sfpu}{}\doxysection{ckernel\+::sfpu Namespace Reference}
+\label{namespaceckernel_1_1sfpu}\index{ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}{Binary\+Op}} \+: uint8\+\_\+t \{ \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}{ADD}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}{SUB}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}{MUL}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}{DIV}} = 3
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}{RSUB}} = 4
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}{POW}} = 5
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}{ADD}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}{SUB}} = 1
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}{MUL}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}{DIV}} = 3
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}{RSUB}} = 4
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}{POW}} = 5
+ \}
+\item 
+enum class \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}{Binary\+Bitwise\+Op}} \+: uint8\+\_\+t \{ \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}{AND}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}{OR}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}{XOR}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}{AND}} = 0
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}{OR}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}{XOR}} = 2
+ \}
+\item 
+enum class \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}{Binary\+Op}} \+: uint8\+\_\+t \{ \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}{ADD}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}{SUB}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}{MUL}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}{DIV}} = 3
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}{RSUB}} = 4
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}{POW}} = 5
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}{ADD}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}{SUB}} = 1
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}{MUL}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}{DIV}} = 3
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}{RSUB}} = 4
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}{POW}} = 5
+ \}
+\item 
+enum class \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}{Binary\+Bitwise\+Op}} \+: uint8\+\_\+t \{ \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}{AND}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}{OR}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}{XOR}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}{AND}} = 0
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}{OR}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}{XOR}} = 2
+ \}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad57a647f3c179d6e6653c673a7cf07ed}{\+\_\+calculate\+\_\+abs\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a63400d20e8ed908e699c17fc0995e7bd}{\+\_\+add\+\_\+int32\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_a0b88c6487cabe31c882ff3b21e644790}{\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+power\+\_\+}} (sfpi\+::v\+Float base, sfpi\+::v\+Float pow)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Op BINOP, int ITERATIONS = 8$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1d7184005efd316c470a17d5d47c905e}{\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Op BINOP$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a81de7b2ba7ddf47db639b0de46e6b247}{\+\_\+sfpu\+\_\+binary\+\_\+init\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Bitwise\+Op BITWISE\+\_\+\+OP, int ITERATIONS = 8$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a5f73659fc7e91bff445d9e90f6855375}{\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+bitwise\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a6642af2a751ca954a9e10ac52ee9d46d}{\+\_\+cast\+\_\+fp32\+\_\+to\+\_\+fp16a\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ab7360eeefc9fd9197181374c7557093b}{\+\_\+calculate\+\_\+clamp\+\_\+}} (const int iterations, uint param0, uint param1, uint param2)
+\item 
+sfpi\+\_\+inline void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ab90d35b79d4e10e32ababb7a5d6492ba}{\+\_\+calculate\+\_\+comp\+\_\+init\+\_\+flag\+\_\+}} (bool check, sfpi\+::v\+Float \&flag1, sfpi\+::v\+Float \&flag2, float init)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool invert\+\_\+output, bool check\+\_\+zero, bool second\+\_\+check, bool is\+\_\+less\+\_\+than\+\_\+equal\+\_\+zero, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_afe8cc9c6aef82444f985c6d5e5d6bb20}{\+\_\+calculate\+\_\+comp\+\_\+}} (const int iterations, uint exponent\+\_\+size\+\_\+8)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a59a9c76619e7802b7bd9e4301dca0472}{\+\_\+calculate\+\_\+cumsum\+\_\+}} (const bool first)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a5d4d611045ec86a221b9aafe92f2e66f}{\+\_\+cumsum\+\_\+init\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_adae839f1f42b4dd934770213819da84c}{\+\_\+calculate\+\_\+dropout\+\_\+}} (const int iterations, uint probability, uint scale)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad844141ea6f7f64655f3affd4804db09}{\+\_\+init\+\_\+dropout\+\_\+}} (const uint seed)
+\item 
+sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_a23207c482cd702e54502b743739d0dea}{\+\_\+sfpu\+\_\+exp\+\_\+}} (sfpi\+::v\+Float val)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_aa2d6a6aae5b1190434dcb3a4b21f3719}{\+\_\+calculate\+\_\+exponential\+\_\+body\+\_\+}} (sfpi\+::v\+Float in)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool SCALE\+\_\+\+EN, int ITERATIONS, bool FAST\+\_\+\+APPROX = true$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a768b4fab68c490730d00cbd5ca300976}{\+\_\+calculate\+\_\+exponential\+\_\+}} (const int iterations, uint16\+\_\+t exp\+\_\+base\+\_\+scale\+\_\+factor=0)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool FAST\+\_\+\+APPROX = true$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a2fdf984f077e49ab162dd84871165972}{\+\_\+init\+\_\+exponential\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_ac3712de4208f0bdfef3e94ee94ead1fe}{\+\_\+calculate\+\_\+gelu\+\_\+core\+\_\+}} (sfpi\+::v\+Float in)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ab4f4c7a80aef009e78fe0089592d6822}{\+\_\+calculate\+\_\+gelu\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad5b8f9632307e8b4ea04b79a283b5af0}{\+\_\+calculate\+\_\+gelu\+\_\+derivative\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ae5cc544fff5917d182555cac1a1c09f8}{\+\_\+init\+\_\+gelu\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a2569bc7a9f283b173ac41a8902720f89}{\+\_\+init\+\_\+gelu\+\_\+derivative\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_aa4f06a3c9294689ef5db37fa63919c3e}{\+\_\+calculate\+\_\+hardtanh\+\_\+}} (const int iterations, uint param0, uint param1, uint param2)
+\item 
+sfpi\+\_\+inline sfpi\+::v\+Int \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad96477415b3f33ac6de8160c6b35174c}{\+\_\+sfpu\+\_\+is\+\_\+fp16\+\_\+zero\+\_\+}} (const sfpi\+::v\+Float \&v, uint exponent\+\_\+size\+\_\+8)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_aa1805e476841564c90326a9cb5db0a1f}{\+\_\+sfpu\+\_\+load\+\_\+imm32\+\_\+}} (const uint dest, const uint val)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_abc1197dac2a796ab4246a4925e57b89a}{\+\_\+sfpu\+\_\+load\+\_\+imm16\+\_\+}} (const uint dest, const uint val)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a33327d4082adce35914a3b47d4261d1f}{\+\_\+sfpu\+\_\+load\+\_\+config32\+\_\+}} (const uint dest, const uint upper16, const uint lower16)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ac4b8efd66f423f1165b5817545830a55}{\+\_\+init\+\_\+sfpu\+\_\+config\+\_\+reg}} ()
+\item 
+{\footnotesize template$<$bool HAS\+\_\+\+BASE\+\_\+\+SCALING$>$ }\\sfpi\+\_\+inline void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a76b4b1341d32da7d8587c55b2211c7c8}{\+\_\+calculate\+\_\+log\+\_\+body\+\_\+}} (const uint log\+\_\+base\+\_\+scale\+\_\+factor)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool HAS\+\_\+\+BASE\+\_\+\+SCALING, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ac825f680e12991c8516d35f2d8bafa3a}{\+\_\+calculate\+\_\+log\+\_\+}} (const int iterations, uint log\+\_\+base\+\_\+scale\+\_\+factor)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ac2ea3269579d72fe10081f124127ae7f}{\+\_\+init\+\_\+log\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a061142d85e5e4038f1bd13dcbce458f5}{\+\_\+calculate\+\_\+max\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_aa73ce7194455b91a2834960ee7618af7}{\+\_\+calculate\+\_\+max\+\_\+int32\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad2acca65050af0d2eac23a13161ba770}{\+\_\+calculate\+\_\+power\+\_\+}} (const int iterations, uint exponent)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a3455c6f44c9566cf004bea7ad9bf2577}{\+\_\+quant\+\_\+int32\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a67033c23f46d7e6db6214b025e1972ca}{\+\_\+requant\+\_\+int32\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a86c5b99a8080a9139f7e567aecd86f46}{\+\_\+dequant\+\_\+int32\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a72845fd187274dc138a87fafaf526ed5}{\+\_\+init\+\_\+quant\+\_\+zero\+\_\+point\+\_\+}} (const uint zero\+\_\+point)
+\item 
+{\footnotesize template$<$int max\+\_\+iter = 3$>$ }\\sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_a959d985c178b2c34bb657398f5c82c93}{\+\_\+sfpu\+\_\+reciprocal\+\_\+}} (const sfpi\+::v\+Float in)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_af8fc6149e9ed5f3767beeb3470cbd9cb}{\+\_\+calculate\+\_\+reciprocal\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_af032cc459810eddc91091a8eea856668}{\+\_\+init\+\_\+reciprocal\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a0721a8df91984e9069894fafd6d0163d}{\+\_\+calculate\+\_\+lrelu\+\_\+}} (const int iterations, uint slope)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a81f5ae9532214a497ab8ada2c3fd0d2d}{\+\_\+relu\+\_\+max\+\_\+}} (const int iterations, uint uint\+\_\+threshold)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a811af66a73f8562417c4a677a17ec6d8}{\+\_\+relu\+\_\+min\+\_\+}} (const int iterations, uint uint\+\_\+threshold)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1bec4207e17347fe04d5146afc950489}{\+\_\+calculate\+\_\+binary\+\_\+left\+\_\+shift\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a43aa7e4db2dc2c430f7d3bdc3c633b8b}{\+\_\+calculate\+\_\+binary\+\_\+right\+\_\+shift\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad5551268936960ab8e8a03d628757815}{\+\_\+calculate\+\_\+sigmoid\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_aca68134bb6260271d505dc71c1fa8355}{\+\_\+init\+\_\+sigmoid\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a48aae4dbe65ffcbeb23537dc11673ac6}{\+\_\+calculate\+\_\+sign\+\_\+}} (const int iterations, uint exponent\+\_\+size\+\_\+8)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, int RECIPROCAL\+\_\+\+ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad079a34149eaaf9839d8f62be931c48f}{\+\_\+calculate\+\_\+sqrt\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a0865970c6f5b665854850c058563611a}{\+\_\+init\+\_\+sqrt\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a63adf95d6189f5a6737763016506e2d5}{\+\_\+calculate\+\_\+square\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a493a0f535ad235508b134ed2a2e1ae0c}{\+\_\+sub\+\_\+int32\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a321d3f57d8899134f6167615222e45f3}{\+\_\+calculate\+\_\+tanh\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a5dea7d079e24c75a21f1c73cd69a84c8}{\+\_\+init\+\_\+tanh\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int WITH\+\_\+\+PRECOMPUTED\+\_\+\+TANH, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a2025869c7bf5377ce52690c0c8ca4e78}{\+\_\+calculate\+\_\+tanh\+\_\+derivative\+\_\+}} (const int iterations)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a6cf5a8fe6505d6dee5ef7da5057f3593}{set\+\_\+dst\+\_\+write\+\_\+addr}} (uint32\+\_\+t addr)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ac82f0878ae40af67f5642fdefbae9cac}{bitonic\+\_\+topk\+\_\+load8}} (uint offset, uint dist)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a9e712a6c2eeb3b047a63ccad5072c325}{bitonic\+\_\+topk\+\_\+store8}} (uint offset, uint dist)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ad817f8d91090595404901c353dd054a7}{bitonic\+\_\+topk\+\_\+load16}} (uint dist0, uint dist1)
+\item 
+{\footnotesize template$<$bool alt\+\_\+addr\+\_\+mod = false$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ada23f48fce1bb22291c0c97997275f67}{bitonic\+\_\+topk\+\_\+store16}} (uint dist0, uint dist1)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a04ef4c05da5b762d4f0da7b9627f3ca7}{bitonic\+\_\+topk\+\_\+ph3\+\_\+st4\+\_\+to\+\_\+1}} (bool dir, bool \&init\+\_\+replay, int replay\+\_\+start)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a9390d0fce34a80f2ca17d72ffded6514}{bitonic\+\_\+topk\+\_\+ph2\+\_\+st3\+\_\+to\+\_\+1}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a685c573bb9bb5c11da4c07c897b37cbd}{bitonic\+\_\+topk\+\_\+ph1\+\_\+st2\+\_\+to\+\_\+1}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a64ed6846e572c03fbe4f96fe29d1db93}{bitonic\+\_\+topk\+\_\+ph0\+\_\+st1\+\_\+to\+\_\+1}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a2159b773bf5c420be456bafcd95243a9}{bitonic\+\_\+topk\+\_\+step\+\_\+N}} (bool dir)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a5918a3abf689934e61d107e840dd6a0c}{bitonic\+\_\+topk\+\_\+inc\+\_\+x8\+\_\+dest}} (uint inc, bool cr)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_af55b63283d53991ff3a5e840dd26c307}{bitonic\+\_\+topk\+\_\+inc\+\_\+x4\+\_\+dest}} (uint inc, bool cr)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a38c9b9dcacd0616f472ca1db7a587320}{\+\_\+bitonic\+\_\+topk\+\_\+phases\+\_\+steps}} (const int idir, const int i\+\_\+end\+\_\+phase, const int i\+\_\+start\+\_\+phase, const int i\+\_\+end\+\_\+step, const int i\+\_\+start\+\_\+step)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool top\+\_\+min, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a4d88b4338dd4e1aebfd809b8ccba67a9}{\+\_\+bitonic\+\_\+topk\+\_\+merge}} (const int m\+\_\+iter, const int k)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_aa23db14d7dc1f71b473a87fa836b308b}{\+\_\+bitonic\+\_\+topk\+\_\+rebuild}} (const bool idir, const int m\+\_\+iter, const int k, const int logk, const int skip\+\_\+second)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a74b3614b87451a795b93f746adc61e99}{\+\_\+init\+\_\+topk}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_a2ee8d8e98dfb1e8c1e0b022eecb422e2}{\+\_\+sfpu\+\_\+sine\+\_\+maclaurin\+\_\+series\+\_\+}} (sfpi\+::v\+Float val)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_a059951877ded4a13b110f0a4bcc6365d}{\+\_\+sfpu\+\_\+cosine\+\_\+maclaurin\+\_\+series\+\_\+}} (sfpi\+::v\+Float val)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a5524631485e4e5ff522ed5880135ba39}{\+\_\+calculate\+\_\+sine\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a740ae1c5fe1c4ba3999611ade94d4fd2}{\+\_\+calculate\+\_\+cosine\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a98c0f8f40a622f2987041641f26ff2cf}{\+\_\+calculate\+\_\+typecast\+\_\+fp16b\+\_\+to\+\_\+uint16\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_aa56ce20c6f5d07b9f1a61b9fa51785e1}{\+\_\+calculate\+\_\+typecast\+\_\+uint16\+\_\+to\+\_\+fp16b\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a3d1ec662db84f2812c9aa07bfb81b6be}{\+\_\+calculate\+\_\+typecast\+\_\+int32\+\_\+to\+\_\+fp16b\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_acabdf797c62840f12ddd0da7e4426fdb}{\+\_\+calculate\+\_\+typecast\+\_\+fp16b\+\_\+to\+\_\+int32\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a3977d630f222557b562c41cba144593b}{\+\_\+calculate\+\_\+typecast\+\_\+fp32\+\_\+to\+\_\+fp16b\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a32ef30bbad9d859739a1b3bc15023ea9}{\+\_\+calculate\+\_\+typecast\+\_\+uint16\+\_\+to\+\_\+fp32\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a38234b75d80d366d60747f694641389b}{\+\_\+calculate\+\_\+typecast\+\_\+int32\+\_\+to\+\_\+fp32\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_afb44c3331f9876dad5c4d9426f7cee1a}{\+\_\+calculate\+\_\+typecast\+\_\+fp16b\+\_\+to\+\_\+uint32\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a3feeb2701f618f91e2d093c72d574281}{\+\_\+calculate\+\_\+typecast\+\_\+uint32\+\_\+to\+\_\+fp16b\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_ae336ece18396316594ddf4259beb32b0}{\+\_\+calculate\+\_\+typecast\+\_\+uint32\+\_\+to\+\_\+fp32\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a394e7f991db48c561815cd15d8791c2c}{\+\_\+calculate\+\_\+typecast\+\_\+uint16\+\_\+to\+\_\+uint32\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = true$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a520273b6109bc3bde32a1f147d01fa37}{\+\_\+calculate\+\_\+reciprocal\+\_\+}} (const int iterations)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_afcfc51817f92e501a2871fdfd5f40275}{\+\_\+calculate\+\_\+reshuffle\+\_\+rows\+\_\+}} (const uint idx\+\_\+addr)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Enumeration Type Documentation}
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!BinaryBitwiseOp@{BinaryBitwiseOp}}
+\index{BinaryBitwiseOp@{BinaryBitwiseOp}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{BinaryBitwiseOp}{BinaryBitwiseOp}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}{ckernel\+::sfpu\+::\+Binary\+Bitwise\+Op}} \+: uint8\+\_\+t\hspace{0.3cm}{\ttfamily [strong]}}
+
+\begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{AND@{AND}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!AND@{AND}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}} 
+AND&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{OR@{OR}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!OR@{OR}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}} 
+OR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{XOR@{XOR}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!XOR@{XOR}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}} 
+XOR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{AND@{AND}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!AND@{AND}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}} 
+AND&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{OR@{OR}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!OR@{OR}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}} 
+OR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{XOR@{XOR}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!XOR@{XOR}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}} 
+XOR&\\
+\hline
+
+\end{DoxyEnumFields}
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!BinaryBitwiseOp@{BinaryBitwiseOp}}
+\index{BinaryBitwiseOp@{BinaryBitwiseOp}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{BinaryBitwiseOp}{BinaryBitwiseOp}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}{ckernel\+::sfpu\+::\+Binary\+Bitwise\+Op}} \+: uint8\+\_\+t\hspace{0.3cm}{\ttfamily [strong]}}
+
+\begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{AND@{AND}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!AND@{AND}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}} 
+AND&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{OR@{OR}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!OR@{OR}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}} 
+OR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{XOR@{XOR}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!XOR@{XOR}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}} 
+XOR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{AND@{AND}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!AND@{AND}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}} 
+AND&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{OR@{OR}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!OR@{OR}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}} 
+OR&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{XOR@{XOR}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!XOR@{XOR}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}\label{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}} 
+XOR&\\
+\hline
+
+\end{DoxyEnumFields}
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!BinaryOp@{BinaryOp}}
+\index{BinaryOp@{BinaryOp}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{BinaryOp}{BinaryOp}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}{ckernel\+::sfpu\+::\+Binary\+Op}} \+: uint8\+\_\+t\hspace{0.3cm}{\ttfamily [strong]}}
+
+\begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ADD@{ADD}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!ADD@{ADD}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}} 
+ADD&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{SUB@{SUB}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!SUB@{SUB}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}} 
+SUB&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MUL@{MUL}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!MUL@{MUL}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}} 
+MUL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{DIV@{DIV}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!DIV@{DIV}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}} 
+DIV&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{RSUB@{RSUB}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!RSUB@{RSUB}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}} 
+RSUB&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{POW@{POW}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!POW@{POW}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}} 
+POW&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ADD@{ADD}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!ADD@{ADD}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}} 
+ADD&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{SUB@{SUB}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!SUB@{SUB}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}} 
+SUB&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MUL@{MUL}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!MUL@{MUL}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}} 
+MUL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{DIV@{DIV}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!DIV@{DIV}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}} 
+DIV&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{RSUB@{RSUB}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!RSUB@{RSUB}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}} 
+RSUB&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{POW@{POW}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!POW@{POW}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}} 
+POW&\\
+\hline
+
+\end{DoxyEnumFields}
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!BinaryOp@{BinaryOp}}
+\index{BinaryOp@{BinaryOp}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{BinaryOp}{BinaryOp}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}{ckernel\+::sfpu\+::\+Binary\+Op}} \+: uint8\+\_\+t\hspace{0.3cm}{\ttfamily [strong]}}
+
+\begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ADD@{ADD}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!ADD@{ADD}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}} 
+ADD&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{SUB@{SUB}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!SUB@{SUB}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}} 
+SUB&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MUL@{MUL}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!MUL@{MUL}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}} 
+MUL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{DIV@{DIV}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!DIV@{DIV}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}} 
+DIV&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{RSUB@{RSUB}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!RSUB@{RSUB}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}} 
+RSUB&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{POW@{POW}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!POW@{POW}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}} 
+POW&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ADD@{ADD}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!ADD@{ADD}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}} 
+ADD&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{SUB@{SUB}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!SUB@{SUB}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}} 
+SUB&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MUL@{MUL}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!MUL@{MUL}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}} 
+MUL&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{DIV@{DIV}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!DIV@{DIV}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}} 
+DIV&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{RSUB@{RSUB}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!RSUB@{RSUB}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}} 
+RSUB&\\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{POW@{POW}!ckernel::sfpu@{ckernel::sfpu}}\index{ckernel::sfpu@{ckernel::sfpu}!POW@{POW}}}\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}\label{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}} 
+POW&\\
+\hline
+
+\end{DoxyEnumFields}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a63400d20e8ed908e699c17fc0995e7bd}\label{namespaceckernel_1_1sfpu_a63400d20e8ed908e699c17fc0995e7bd}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_add\_int32\_@{\_add\_int32\_}}
+\index{\_add\_int32\_@{\_add\_int32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_add\_int32\_()}{\_add\_int32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+add\+\_\+int32\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a4d88b4338dd4e1aebfd809b8ccba67a9}\label{namespaceckernel_1_1sfpu_a4d88b4338dd4e1aebfd809b8ccba67a9}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_bitonic\_topk\_merge@{\_bitonic\_topk\_merge}}
+\index{\_bitonic\_topk\_merge@{\_bitonic\_topk\_merge}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_bitonic\_topk\_merge()}{\_bitonic\_topk\_merge()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, bool top\+\_\+min, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+bitonic\+\_\+topk\+\_\+merge (\begin{DoxyParamCaption}\item[{const int}]{m\+\_\+iter,  }\item[{const int}]{k }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a38c9b9dcacd0616f472ca1db7a587320}\label{namespaceckernel_1_1sfpu_a38c9b9dcacd0616f472ca1db7a587320}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_bitonic\_topk\_phases\_steps@{\_bitonic\_topk\_phases\_steps}}
+\index{\_bitonic\_topk\_phases\_steps@{\_bitonic\_topk\_phases\_steps}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_bitonic\_topk\_phases\_steps()}{\_bitonic\_topk\_phases\_steps()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+bitonic\+\_\+topk\+\_\+phases\+\_\+steps (\begin{DoxyParamCaption}\item[{const int}]{idir,  }\item[{const int}]{i\+\_\+end\+\_\+phase,  }\item[{const int}]{i\+\_\+start\+\_\+phase,  }\item[{const int}]{i\+\_\+end\+\_\+step,  }\item[{const int}]{i\+\_\+start\+\_\+step }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_aa23db14d7dc1f71b473a87fa836b308b}\label{namespaceckernel_1_1sfpu_aa23db14d7dc1f71b473a87fa836b308b}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_bitonic\_topk\_rebuild@{\_bitonic\_topk\_rebuild}}
+\index{\_bitonic\_topk\_rebuild@{\_bitonic\_topk\_rebuild}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_bitonic\_topk\_rebuild()}{\_bitonic\_topk\_rebuild()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+bitonic\+\_\+topk\+\_\+rebuild (\begin{DoxyParamCaption}\item[{const bool}]{idir,  }\item[{const int}]{m\+\_\+iter,  }\item[{const int}]{k,  }\item[{const int}]{logk,  }\item[{const int}]{skip\+\_\+second }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ad57a647f3c179d6e6653c673a7cf07ed}\label{namespaceckernel_1_1sfpu_ad57a647f3c179d6e6653c673a7cf07ed}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_abs\_@{\_calculate\_abs\_}}
+\index{\_calculate\_abs\_@{\_calculate\_abs\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_abs\_()}{\_calculate\_abs\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+abs\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1bec4207e17347fe04d5146afc950489}\label{namespaceckernel_1_1sfpu_a1bec4207e17347fe04d5146afc950489}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_binary\_left\_shift\_@{\_calculate\_binary\_left\_shift\_}}
+\index{\_calculate\_binary\_left\_shift\_@{\_calculate\_binary\_left\_shift\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_binary\_left\_shift\_()}{\_calculate\_binary\_left\_shift\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+binary\+\_\+left\+\_\+shift\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a43aa7e4db2dc2c430f7d3bdc3c633b8b}\label{namespaceckernel_1_1sfpu_a43aa7e4db2dc2c430f7d3bdc3c633b8b}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_binary\_right\_shift\_@{\_calculate\_binary\_right\_shift\_}}
+\index{\_calculate\_binary\_right\_shift\_@{\_calculate\_binary\_right\_shift\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_binary\_right\_shift\_()}{\_calculate\_binary\_right\_shift\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+binary\+\_\+right\+\_\+shift\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ab7360eeefc9fd9197181374c7557093b}\label{namespaceckernel_1_1sfpu_ab7360eeefc9fd9197181374c7557093b}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_clamp\_@{\_calculate\_clamp\_}}
+\index{\_calculate\_clamp\_@{\_calculate\_clamp\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_clamp\_()}{\_calculate\_clamp\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+clamp\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{param0,  }\item[{uint}]{param1,  }\item[{uint}]{param2 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_afe8cc9c6aef82444f985c6d5e5d6bb20}\label{namespaceckernel_1_1sfpu_afe8cc9c6aef82444f985c6d5e5d6bb20}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_comp\_@{\_calculate\_comp\_}}
+\index{\_calculate\_comp\_@{\_calculate\_comp\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_comp\_()}{\_calculate\_comp\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, bool invert\+\_\+output, bool check\+\_\+zero, bool second\+\_\+check, bool is\+\_\+less\+\_\+than\+\_\+equal\+\_\+zero, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+comp\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{exponent\+\_\+size\+\_\+8 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ab90d35b79d4e10e32ababb7a5d6492ba}\label{namespaceckernel_1_1sfpu_ab90d35b79d4e10e32ababb7a5d6492ba}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_comp\_init\_flag\_@{\_calculate\_comp\_init\_flag\_}}
+\index{\_calculate\_comp\_init\_flag\_@{\_calculate\_comp\_init\_flag\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_comp\_init\_flag\_()}{\_calculate\_comp\_init\_flag\_()}}
+{\footnotesize\ttfamily sfpi\+\_\+inline void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+comp\+\_\+init\+\_\+flag\+\_\+ (\begin{DoxyParamCaption}\item[{bool}]{check,  }\item[{sfpi\+::v\+Float \&}]{flag1,  }\item[{sfpi\+::v\+Float \&}]{flag2,  }\item[{float}]{init }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a740ae1c5fe1c4ba3999611ade94d4fd2}\label{namespaceckernel_1_1sfpu_a740ae1c5fe1c4ba3999611ade94d4fd2}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_cosine\_@{\_calculate\_cosine\_}}
+\index{\_calculate\_cosine\_@{\_calculate\_cosine\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_cosine\_()}{\_calculate\_cosine\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+cosine\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a59a9c76619e7802b7bd9e4301dca0472}\label{namespaceckernel_1_1sfpu_a59a9c76619e7802b7bd9e4301dca0472}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_cumsum\_@{\_calculate\_cumsum\_}}
+\index{\_calculate\_cumsum\_@{\_calculate\_cumsum\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_cumsum\_()}{\_calculate\_cumsum\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+cumsum\+\_\+ (\begin{DoxyParamCaption}\item[{const bool}]{first }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_adae839f1f42b4dd934770213819da84c}\label{namespaceckernel_1_1sfpu_adae839f1f42b4dd934770213819da84c}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_dropout\_@{\_calculate\_dropout\_}}
+\index{\_calculate\_dropout\_@{\_calculate\_dropout\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_dropout\_()}{\_calculate\_dropout\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+dropout\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{probability,  }\item[{uint}]{scale }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a768b4fab68c490730d00cbd5ca300976}\label{namespaceckernel_1_1sfpu_a768b4fab68c490730d00cbd5ca300976}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_exponential\_@{\_calculate\_exponential\_}}
+\index{\_calculate\_exponential\_@{\_calculate\_exponential\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_exponential\_()}{\_calculate\_exponential\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, bool SCALE\+\_\+\+EN, int ITERATIONS, bool FAST\+\_\+\+APPROX = true$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+exponential\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint16\+\_\+t}]{exp\+\_\+base\+\_\+scale\+\_\+factor = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_aa2d6a6aae5b1190434dcb3a4b21f3719}\label{namespaceckernel_1_1sfpu_aa2d6a6aae5b1190434dcb3a4b21f3719}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_exponential\_body\_@{\_calculate\_exponential\_body\_}}
+\index{\_calculate\_exponential\_body\_@{\_calculate\_exponential\_body\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_exponential\_body\_()}{\_calculate\_exponential\_body\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+sfpi\+\_\+inline sfpi\+::v\+Float ckernel\+::sfpu\+::\+\_\+calculate\+\_\+exponential\+\_\+body\+\_\+ (\begin{DoxyParamCaption}\item[{sfpi\+::v\+Float}]{in }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ab4f4c7a80aef009e78fe0089592d6822}\label{namespaceckernel_1_1sfpu_ab4f4c7a80aef009e78fe0089592d6822}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_gelu\_@{\_calculate\_gelu\_}}
+\index{\_calculate\_gelu\_@{\_calculate\_gelu\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_gelu\_()}{\_calculate\_gelu\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+gelu\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ac3712de4208f0bdfef3e94ee94ead1fe}\label{namespaceckernel_1_1sfpu_ac3712de4208f0bdfef3e94ee94ead1fe}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_gelu\_core\_@{\_calculate\_gelu\_core\_}}
+\index{\_calculate\_gelu\_core\_@{\_calculate\_gelu\_core\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_gelu\_core\_()}{\_calculate\_gelu\_core\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+sfpi\+::v\+Float ckernel\+::sfpu\+::\+\_\+calculate\+\_\+gelu\+\_\+core\+\_\+ (\begin{DoxyParamCaption}\item[{sfpi\+::v\+Float}]{in }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ad5b8f9632307e8b4ea04b79a283b5af0}\label{namespaceckernel_1_1sfpu_ad5b8f9632307e8b4ea04b79a283b5af0}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_gelu\_derivative\_@{\_calculate\_gelu\_derivative\_}}
+\index{\_calculate\_gelu\_derivative\_@{\_calculate\_gelu\_derivative\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_gelu\_derivative\_()}{\_calculate\_gelu\_derivative\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+gelu\+\_\+derivative\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_aa4f06a3c9294689ef5db37fa63919c3e}\label{namespaceckernel_1_1sfpu_aa4f06a3c9294689ef5db37fa63919c3e}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_hardtanh\_@{\_calculate\_hardtanh\_}}
+\index{\_calculate\_hardtanh\_@{\_calculate\_hardtanh\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_hardtanh\_()}{\_calculate\_hardtanh\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+hardtanh\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{param0,  }\item[{uint}]{param1,  }\item[{uint}]{param2 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ac825f680e12991c8516d35f2d8bafa3a}\label{namespaceckernel_1_1sfpu_ac825f680e12991c8516d35f2d8bafa3a}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_log\_@{\_calculate\_log\_}}
+\index{\_calculate\_log\_@{\_calculate\_log\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_log\_()}{\_calculate\_log\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, bool HAS\+\_\+\+BASE\+\_\+\+SCALING, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+log\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{log\+\_\+base\+\_\+scale\+\_\+factor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a76b4b1341d32da7d8587c55b2211c7c8}\label{namespaceckernel_1_1sfpu_a76b4b1341d32da7d8587c55b2211c7c8}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_log\_body\_@{\_calculate\_log\_body\_}}
+\index{\_calculate\_log\_body\_@{\_calculate\_log\_body\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_log\_body\_()}{\_calculate\_log\_body\_()}}
+{\footnotesize\ttfamily template$<$bool HAS\+\_\+\+BASE\+\_\+\+SCALING$>$ \\
+sfpi\+\_\+inline void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+log\+\_\+body\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{log\+\_\+base\+\_\+scale\+\_\+factor }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a0721a8df91984e9069894fafd6d0163d}\label{namespaceckernel_1_1sfpu_a0721a8df91984e9069894fafd6d0163d}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_lrelu\_@{\_calculate\_lrelu\_}}
+\index{\_calculate\_lrelu\_@{\_calculate\_lrelu\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_lrelu\_()}{\_calculate\_lrelu\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+lrelu\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{slope }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a061142d85e5e4038f1bd13dcbce458f5}\label{namespaceckernel_1_1sfpu_a061142d85e5e4038f1bd13dcbce458f5}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_max\_@{\_calculate\_max\_}}
+\index{\_calculate\_max\_@{\_calculate\_max\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_max\_()}{\_calculate\_max\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+max\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_aa73ce7194455b91a2834960ee7618af7}\label{namespaceckernel_1_1sfpu_aa73ce7194455b91a2834960ee7618af7}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_max\_int32\_@{\_calculate\_max\_int32\_}}
+\index{\_calculate\_max\_int32\_@{\_calculate\_max\_int32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_max\_int32\_()}{\_calculate\_max\_int32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+max\+\_\+int32\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ad2acca65050af0d2eac23a13161ba770}\label{namespaceckernel_1_1sfpu_ad2acca65050af0d2eac23a13161ba770}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_power\_@{\_calculate\_power\_}}
+\index{\_calculate\_power\_@{\_calculate\_power\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_power\_()}{\_calculate\_power\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+power\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{exponent }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_af8fc6149e9ed5f3767beeb3470cbd9cb}\label{namespaceckernel_1_1sfpu_af8fc6149e9ed5f3767beeb3470cbd9cb}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_reciprocal\_@{\_calculate\_reciprocal\_}}
+\index{\_calculate\_reciprocal\_@{\_calculate\_reciprocal\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_reciprocal\_()}{\_calculate\_reciprocal\_()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+reciprocal\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a520273b6109bc3bde32a1f147d01fa37}\label{namespaceckernel_1_1sfpu_a520273b6109bc3bde32a1f147d01fa37}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_reciprocal\_@{\_calculate\_reciprocal\_}}
+\index{\_calculate\_reciprocal\_@{\_calculate\_reciprocal\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_reciprocal\_()}{\_calculate\_reciprocal\_()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = true$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+reciprocal\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_afcfc51817f92e501a2871fdfd5f40275}\label{namespaceckernel_1_1sfpu_afcfc51817f92e501a2871fdfd5f40275}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_reshuffle\_rows\_@{\_calculate\_reshuffle\_rows\_}}
+\index{\_calculate\_reshuffle\_rows\_@{\_calculate\_reshuffle\_rows\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_reshuffle\_rows\_()}{\_calculate\_reshuffle\_rows\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+reshuffle\+\_\+rows\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{idx\+\_\+addr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a1d7184005efd316c470a17d5d47c905e}\label{namespaceckernel_1_1sfpu_a1d7184005efd316c470a17d5d47c905e}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_sfpu\_binary\_@{\_calculate\_sfpu\_binary\_}}
+\index{\_calculate\_sfpu\_binary\_@{\_calculate\_sfpu\_binary\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_sfpu\_binary\_()}{\_calculate\_sfpu\_binary\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Op BINOP, int ITERATIONS = 8$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a5f73659fc7e91bff445d9e90f6855375}\label{namespaceckernel_1_1sfpu_a5f73659fc7e91bff445d9e90f6855375}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_sfpu\_binary\_bitwise\_@{\_calculate\_sfpu\_binary\_bitwise\_}}
+\index{\_calculate\_sfpu\_binary\_bitwise\_@{\_calculate\_sfpu\_binary\_bitwise\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_sfpu\_binary\_bitwise\_()}{\_calculate\_sfpu\_binary\_bitwise\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Bitwise\+Op BITWISE\+\_\+\+OP, int ITERATIONS = 8$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+bitwise\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a0b88c6487cabe31c882ff3b21e644790}\label{namespaceckernel_1_1sfpu_a0b88c6487cabe31c882ff3b21e644790}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_sfpu\_binary\_power\_@{\_calculate\_sfpu\_binary\_power\_}}
+\index{\_calculate\_sfpu\_binary\_power\_@{\_calculate\_sfpu\_binary\_power\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_sfpu\_binary\_power\_()}{\_calculate\_sfpu\_binary\_power\_()}}
+{\footnotesize\ttfamily sfpi\+\_\+inline sfpi\+::v\+Float ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+power\+\_\+ (\begin{DoxyParamCaption}\item[{sfpi\+::v\+Float}]{base,  }\item[{sfpi\+::v\+Float}]{pow }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ad5551268936960ab8e8a03d628757815}\label{namespaceckernel_1_1sfpu_ad5551268936960ab8e8a03d628757815}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_sigmoid\_@{\_calculate\_sigmoid\_}}
+\index{\_calculate\_sigmoid\_@{\_calculate\_sigmoid\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_sigmoid\_()}{\_calculate\_sigmoid\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sigmoid\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a48aae4dbe65ffcbeb23537dc11673ac6}\label{namespaceckernel_1_1sfpu_a48aae4dbe65ffcbeb23537dc11673ac6}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_sign\_@{\_calculate\_sign\_}}
+\index{\_calculate\_sign\_@{\_calculate\_sign\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_sign\_()}{\_calculate\_sign\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sign\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{exponent\+\_\+size\+\_\+8 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a5524631485e4e5ff522ed5880135ba39}\label{namespaceckernel_1_1sfpu_a5524631485e4e5ff522ed5880135ba39}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_sine\_@{\_calculate\_sine\_}}
+\index{\_calculate\_sine\_@{\_calculate\_sine\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_sine\_()}{\_calculate\_sine\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sine\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ad079a34149eaaf9839d8f62be931c48f}\label{namespaceckernel_1_1sfpu_ad079a34149eaaf9839d8f62be931c48f}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_sqrt\_@{\_calculate\_sqrt\_}}
+\index{\_calculate\_sqrt\_@{\_calculate\_sqrt\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_sqrt\_()}{\_calculate\_sqrt\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, int RECIPROCAL\+\_\+\+ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sqrt\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a63adf95d6189f5a6737763016506e2d5}\label{namespaceckernel_1_1sfpu_a63adf95d6189f5a6737763016506e2d5}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_square\_@{\_calculate\_square\_}}
+\index{\_calculate\_square\_@{\_calculate\_square\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_square\_()}{\_calculate\_square\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+square\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a321d3f57d8899134f6167615222e45f3}\label{namespaceckernel_1_1sfpu_a321d3f57d8899134f6167615222e45f3}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_tanh\_@{\_calculate\_tanh\_}}
+\index{\_calculate\_tanh\_@{\_calculate\_tanh\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_tanh\_()}{\_calculate\_tanh\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+tanh\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a2025869c7bf5377ce52690c0c8ca4e78}\label{namespaceckernel_1_1sfpu_a2025869c7bf5377ce52690c0c8ca4e78}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_tanh\_derivative\_@{\_calculate\_tanh\_derivative\_}}
+\index{\_calculate\_tanh\_derivative\_@{\_calculate\_tanh\_derivative\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_tanh\_derivative\_()}{\_calculate\_tanh\_derivative\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int WITH\+\_\+\+PRECOMPUTED\+\_\+\+TANH, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+tanh\+\_\+derivative\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_acabdf797c62840f12ddd0da7e4426fdb}\label{namespaceckernel_1_1sfpu_acabdf797c62840f12ddd0da7e4426fdb}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_fp16b\_to\_int32\_@{\_calculate\_typecast\_fp16b\_to\_int32\_}}
+\index{\_calculate\_typecast\_fp16b\_to\_int32\_@{\_calculate\_typecast\_fp16b\_to\_int32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_fp16b\_to\_int32\_()}{\_calculate\_typecast\_fp16b\_to\_int32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+fp16b\+\_\+to\+\_\+int32\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a98c0f8f40a622f2987041641f26ff2cf}\label{namespaceckernel_1_1sfpu_a98c0f8f40a622f2987041641f26ff2cf}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_fp16b\_to\_uint16\_@{\_calculate\_typecast\_fp16b\_to\_uint16\_}}
+\index{\_calculate\_typecast\_fp16b\_to\_uint16\_@{\_calculate\_typecast\_fp16b\_to\_uint16\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_fp16b\_to\_uint16\_()}{\_calculate\_typecast\_fp16b\_to\_uint16\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+fp16b\+\_\+to\+\_\+uint16\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_afb44c3331f9876dad5c4d9426f7cee1a}\label{namespaceckernel_1_1sfpu_afb44c3331f9876dad5c4d9426f7cee1a}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_fp16b\_to\_uint32\_@{\_calculate\_typecast\_fp16b\_to\_uint32\_}}
+\index{\_calculate\_typecast\_fp16b\_to\_uint32\_@{\_calculate\_typecast\_fp16b\_to\_uint32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_fp16b\_to\_uint32\_()}{\_calculate\_typecast\_fp16b\_to\_uint32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+fp16b\+\_\+to\+\_\+uint32\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a3977d630f222557b562c41cba144593b}\label{namespaceckernel_1_1sfpu_a3977d630f222557b562c41cba144593b}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_fp32\_to\_fp16b\_@{\_calculate\_typecast\_fp32\_to\_fp16b\_}}
+\index{\_calculate\_typecast\_fp32\_to\_fp16b\_@{\_calculate\_typecast\_fp32\_to\_fp16b\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_fp32\_to\_fp16b\_()}{\_calculate\_typecast\_fp32\_to\_fp16b\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+fp32\+\_\+to\+\_\+fp16b\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a3d1ec662db84f2812c9aa07bfb81b6be}\label{namespaceckernel_1_1sfpu_a3d1ec662db84f2812c9aa07bfb81b6be}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_int32\_to\_fp16b\_@{\_calculate\_typecast\_int32\_to\_fp16b\_}}
+\index{\_calculate\_typecast\_int32\_to\_fp16b\_@{\_calculate\_typecast\_int32\_to\_fp16b\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_int32\_to\_fp16b\_()}{\_calculate\_typecast\_int32\_to\_fp16b\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+int32\+\_\+to\+\_\+fp16b\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a38234b75d80d366d60747f694641389b}\label{namespaceckernel_1_1sfpu_a38234b75d80d366d60747f694641389b}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_int32\_to\_fp32\_@{\_calculate\_typecast\_int32\_to\_fp32\_}}
+\index{\_calculate\_typecast\_int32\_to\_fp32\_@{\_calculate\_typecast\_int32\_to\_fp32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_int32\_to\_fp32\_()}{\_calculate\_typecast\_int32\_to\_fp32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+int32\+\_\+to\+\_\+fp32\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_aa56ce20c6f5d07b9f1a61b9fa51785e1}\label{namespaceckernel_1_1sfpu_aa56ce20c6f5d07b9f1a61b9fa51785e1}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_uint16\_to\_fp16b\_@{\_calculate\_typecast\_uint16\_to\_fp16b\_}}
+\index{\_calculate\_typecast\_uint16\_to\_fp16b\_@{\_calculate\_typecast\_uint16\_to\_fp16b\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_uint16\_to\_fp16b\_()}{\_calculate\_typecast\_uint16\_to\_fp16b\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+uint16\+\_\+to\+\_\+fp16b\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a32ef30bbad9d859739a1b3bc15023ea9}\label{namespaceckernel_1_1sfpu_a32ef30bbad9d859739a1b3bc15023ea9}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_uint16\_to\_fp32\_@{\_calculate\_typecast\_uint16\_to\_fp32\_}}
+\index{\_calculate\_typecast\_uint16\_to\_fp32\_@{\_calculate\_typecast\_uint16\_to\_fp32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_uint16\_to\_fp32\_()}{\_calculate\_typecast\_uint16\_to\_fp32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+uint16\+\_\+to\+\_\+fp32\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a394e7f991db48c561815cd15d8791c2c}\label{namespaceckernel_1_1sfpu_a394e7f991db48c561815cd15d8791c2c}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_uint16\_to\_uint32\_@{\_calculate\_typecast\_uint16\_to\_uint32\_}}
+\index{\_calculate\_typecast\_uint16\_to\_uint32\_@{\_calculate\_typecast\_uint16\_to\_uint32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_uint16\_to\_uint32\_()}{\_calculate\_typecast\_uint16\_to\_uint32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+uint16\+\_\+to\+\_\+uint32\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a3feeb2701f618f91e2d093c72d574281}\label{namespaceckernel_1_1sfpu_a3feeb2701f618f91e2d093c72d574281}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_uint32\_to\_fp16b\_@{\_calculate\_typecast\_uint32\_to\_fp16b\_}}
+\index{\_calculate\_typecast\_uint32\_to\_fp16b\_@{\_calculate\_typecast\_uint32\_to\_fp16b\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_uint32\_to\_fp16b\_()}{\_calculate\_typecast\_uint32\_to\_fp16b\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+uint32\+\_\+to\+\_\+fp16b\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ae336ece18396316594ddf4259beb32b0}\label{namespaceckernel_1_1sfpu_ae336ece18396316594ddf4259beb32b0}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_calculate\_typecast\_uint32\_to\_fp32\_@{\_calculate\_typecast\_uint32\_to\_fp32\_}}
+\index{\_calculate\_typecast\_uint32\_to\_fp32\_@{\_calculate\_typecast\_uint32\_to\_fp32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_calculate\_typecast\_uint32\_to\_fp32\_()}{\_calculate\_typecast\_uint32\_to\_fp32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+calculate\+\_\+typecast\+\_\+uint32\+\_\+to\+\_\+fp32\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a6642af2a751ca954a9e10ac52ee9d46d}\label{namespaceckernel_1_1sfpu_a6642af2a751ca954a9e10ac52ee9d46d}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_cast\_fp32\_to\_fp16a\_@{\_cast\_fp32\_to\_fp16a\_}}
+\index{\_cast\_fp32\_to\_fp16a\_@{\_cast\_fp32\_to\_fp16a\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_cast\_fp32\_to\_fp16a\_()}{\_cast\_fp32\_to\_fp16a\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+cast\+\_\+fp32\+\_\+to\+\_\+fp16a\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a5d4d611045ec86a221b9aafe92f2e66f}\label{namespaceckernel_1_1sfpu_a5d4d611045ec86a221b9aafe92f2e66f}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_cumsum\_init\_@{\_cumsum\_init\_}}
+\index{\_cumsum\_init\_@{\_cumsum\_init\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_cumsum\_init\_()}{\_cumsum\_init\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+cumsum\+\_\+init\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a86c5b99a8080a9139f7e567aecd86f46}\label{namespaceckernel_1_1sfpu_a86c5b99a8080a9139f7e567aecd86f46}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_dequant\_int32\_@{\_dequant\_int32\_}}
+\index{\_dequant\_int32\_@{\_dequant\_int32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_dequant\_int32\_()}{\_dequant\_int32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT$>$ \\
+void ckernel\+::sfpu\+::\+\_\+dequant\+\_\+int32\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ad844141ea6f7f64655f3affd4804db09}\label{namespaceckernel_1_1sfpu_ad844141ea6f7f64655f3affd4804db09}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_dropout\_@{\_init\_dropout\_}}
+\index{\_init\_dropout\_@{\_init\_dropout\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_dropout\_()}{\_init\_dropout\_()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::\+\_\+init\+\_\+dropout\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{seed }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a2fdf984f077e49ab162dd84871165972}\label{namespaceckernel_1_1sfpu_a2fdf984f077e49ab162dd84871165972}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_exponential\_@{\_init\_exponential\_}}
+\index{\_init\_exponential\_@{\_init\_exponential\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_exponential\_()}{\_init\_exponential\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, bool FAST\+\_\+\+APPROX = true$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+exponential\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ae5cc544fff5917d182555cac1a1c09f8}\label{namespaceckernel_1_1sfpu_ae5cc544fff5917d182555cac1a1c09f8}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_gelu\_@{\_init\_gelu\_}}
+\index{\_init\_gelu\_@{\_init\_gelu\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_gelu\_()}{\_init\_gelu\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+gelu\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a2569bc7a9f283b173ac41a8902720f89}\label{namespaceckernel_1_1sfpu_a2569bc7a9f283b173ac41a8902720f89}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_gelu\_derivative\_@{\_init\_gelu\_derivative\_}}
+\index{\_init\_gelu\_derivative\_@{\_init\_gelu\_derivative\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_gelu\_derivative\_()}{\_init\_gelu\_derivative\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+gelu\+\_\+derivative\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ac2ea3269579d72fe10081f124127ae7f}\label{namespaceckernel_1_1sfpu_ac2ea3269579d72fe10081f124127ae7f}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_log\_@{\_init\_log\_}}
+\index{\_init\_log\_@{\_init\_log\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_log\_()}{\_init\_log\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+log\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a72845fd187274dc138a87fafaf526ed5}\label{namespaceckernel_1_1sfpu_a72845fd187274dc138a87fafaf526ed5}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_quant\_zero\_point\_@{\_init\_quant\_zero\_point\_}}
+\index{\_init\_quant\_zero\_point\_@{\_init\_quant\_zero\_point\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_quant\_zero\_point\_()}{\_init\_quant\_zero\_point\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+quant\+\_\+zero\+\_\+point\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{zero\+\_\+point }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_af032cc459810eddc91091a8eea856668}\label{namespaceckernel_1_1sfpu_af032cc459810eddc91091a8eea856668}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_reciprocal\_@{\_init\_reciprocal\_}}
+\index{\_init\_reciprocal\_@{\_init\_reciprocal\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_reciprocal\_()}{\_init\_reciprocal\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+reciprocal\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ac4b8efd66f423f1165b5817545830a55}\label{namespaceckernel_1_1sfpu_ac4b8efd66f423f1165b5817545830a55}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_sfpu\_config\_reg@{\_init\_sfpu\_config\_reg}}
+\index{\_init\_sfpu\_config\_reg@{\_init\_sfpu\_config\_reg}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_sfpu\_config\_reg()}{\_init\_sfpu\_config\_reg()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::\+\_\+init\+\_\+sfpu\+\_\+config\+\_\+reg (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_aca68134bb6260271d505dc71c1fa8355}\label{namespaceckernel_1_1sfpu_aca68134bb6260271d505dc71c1fa8355}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_sigmoid\_@{\_init\_sigmoid\_}}
+\index{\_init\_sigmoid\_@{\_init\_sigmoid\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_sigmoid\_()}{\_init\_sigmoid\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+sigmoid\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a0865970c6f5b665854850c058563611a}\label{namespaceckernel_1_1sfpu_a0865970c6f5b665854850c058563611a}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_sqrt\_@{\_init\_sqrt\_}}
+\index{\_init\_sqrt\_@{\_init\_sqrt\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_sqrt\_()}{\_init\_sqrt\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+sqrt\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a5dea7d079e24c75a21f1c73cd69a84c8}\label{namespaceckernel_1_1sfpu_a5dea7d079e24c75a21f1c73cd69a84c8}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_tanh\_@{\_init\_tanh\_}}
+\index{\_init\_tanh\_@{\_init\_tanh\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_tanh\_()}{\_init\_tanh\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+void ckernel\+::sfpu\+::\+\_\+init\+\_\+tanh\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a74b3614b87451a795b93f746adc61e99}\label{namespaceckernel_1_1sfpu_a74b3614b87451a795b93f746adc61e99}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_init\_topk@{\_init\_topk}}
+\index{\_init\_topk@{\_init\_topk}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_init\_topk()}{\_init\_topk()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::\+\_\+init\+\_\+topk (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a3455c6f44c9566cf004bea7ad9bf2577}\label{namespaceckernel_1_1sfpu_a3455c6f44c9566cf004bea7ad9bf2577}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_quant\_int32\_@{\_quant\_int32\_}}
+\index{\_quant\_int32\_@{\_quant\_int32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_quant\_int32\_()}{\_quant\_int32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT$>$ \\
+void ckernel\+::sfpu\+::\+\_\+quant\+\_\+int32\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a81f5ae9532214a497ab8ada2c3fd0d2d}\label{namespaceckernel_1_1sfpu_a81f5ae9532214a497ab8ada2c3fd0d2d}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_relu\_max\_@{\_relu\_max\_}}
+\index{\_relu\_max\_@{\_relu\_max\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_relu\_max\_()}{\_relu\_max\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+relu\+\_\+max\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{uint\+\_\+threshold }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a811af66a73f8562417c4a677a17ec6d8}\label{namespaceckernel_1_1sfpu_a811af66a73f8562417c4a677a17ec6d8}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_relu\_min\_@{\_relu\_min\_}}
+\index{\_relu\_min\_@{\_relu\_min\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_relu\_min\_()}{\_relu\_min\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+relu\+\_\+min\+\_\+ (\begin{DoxyParamCaption}\item[{const int}]{iterations,  }\item[{uint}]{uint\+\_\+threshold }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a67033c23f46d7e6db6214b025e1972ca}\label{namespaceckernel_1_1sfpu_a67033c23f46d7e6db6214b025e1972ca}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_requant\_int32\_@{\_requant\_int32\_}}
+\index{\_requant\_int32\_@{\_requant\_int32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_requant\_int32\_()}{\_requant\_int32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, int ITERATIONS, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT$>$ \\
+void ckernel\+::sfpu\+::\+\_\+requant\+\_\+int32\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a81de7b2ba7ddf47db639b0de46e6b247}\label{namespaceckernel_1_1sfpu_a81de7b2ba7ddf47db639b0de46e6b247}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_binary\_init\_@{\_sfpu\_binary\_init\_}}
+\index{\_sfpu\_binary\_init\_@{\_sfpu\_binary\_init\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_binary\_init\_()}{\_sfpu\_binary\_init\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Op BINOP$>$ \\
+void ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+binary\+\_\+init\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a059951877ded4a13b110f0a4bcc6365d}\label{namespaceckernel_1_1sfpu_a059951877ded4a13b110f0a4bcc6365d}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_cosine\_maclaurin\_series\_@{\_sfpu\_cosine\_maclaurin\_series\_}}
+\index{\_sfpu\_cosine\_maclaurin\_series\_@{\_sfpu\_cosine\_maclaurin\_series\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_cosine\_maclaurin\_series\_()}{\_sfpu\_cosine\_maclaurin\_series\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+sfpi\+\_\+inline sfpi\+::v\+Float ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+cosine\+\_\+maclaurin\+\_\+series\+\_\+ (\begin{DoxyParamCaption}\item[{sfpi\+::v\+Float}]{val }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a23207c482cd702e54502b743739d0dea}\label{namespaceckernel_1_1sfpu_a23207c482cd702e54502b743739d0dea}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_exp\_@{\_sfpu\_exp\_}}
+\index{\_sfpu\_exp\_@{\_sfpu\_exp\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_exp\_()}{\_sfpu\_exp\_()}}
+{\footnotesize\ttfamily sfpi\+\_\+inline sfpi\+::v\+Float ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+exp\+\_\+ (\begin{DoxyParamCaption}\item[{sfpi\+::v\+Float}]{val }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ad96477415b3f33ac6de8160c6b35174c}\label{namespaceckernel_1_1sfpu_ad96477415b3f33ac6de8160c6b35174c}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_is\_fp16\_zero\_@{\_sfpu\_is\_fp16\_zero\_}}
+\index{\_sfpu\_is\_fp16\_zero\_@{\_sfpu\_is\_fp16\_zero\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_is\_fp16\_zero\_()}{\_sfpu\_is\_fp16\_zero\_()}}
+{\footnotesize\ttfamily sfpi\+\_\+inline sfpi\+::v\+Int ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+is\+\_\+fp16\+\_\+zero\+\_\+ (\begin{DoxyParamCaption}\item[{const sfpi\+::v\+Float \&}]{v,  }\item[{uint}]{exponent\+\_\+size\+\_\+8 }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a33327d4082adce35914a3b47d4261d1f}\label{namespaceckernel_1_1sfpu_a33327d4082adce35914a3b47d4261d1f}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_load\_config32\_@{\_sfpu\_load\_config32\_}}
+\index{\_sfpu\_load\_config32\_@{\_sfpu\_load\_config32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_load\_config32\_()}{\_sfpu\_load\_config32\_()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+load\+\_\+config32\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dest,  }\item[{const uint}]{upper16,  }\item[{const uint}]{lower16 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_abc1197dac2a796ab4246a4925e57b89a}\label{namespaceckernel_1_1sfpu_abc1197dac2a796ab4246a4925e57b89a}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_load\_imm16\_@{\_sfpu\_load\_imm16\_}}
+\index{\_sfpu\_load\_imm16\_@{\_sfpu\_load\_imm16\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_load\_imm16\_()}{\_sfpu\_load\_imm16\_()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+load\+\_\+imm16\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dest,  }\item[{const uint}]{val }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_aa1805e476841564c90326a9cb5db0a1f}\label{namespaceckernel_1_1sfpu_aa1805e476841564c90326a9cb5db0a1f}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_load\_imm32\_@{\_sfpu\_load\_imm32\_}}
+\index{\_sfpu\_load\_imm32\_@{\_sfpu\_load\_imm32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_load\_imm32\_()}{\_sfpu\_load\_imm32\_()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+load\+\_\+imm32\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dest,  }\item[{const uint}]{val }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a959d985c178b2c34bb657398f5c82c93}\label{namespaceckernel_1_1sfpu_a959d985c178b2c34bb657398f5c82c93}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_reciprocal\_@{\_sfpu\_reciprocal\_}}
+\index{\_sfpu\_reciprocal\_@{\_sfpu\_reciprocal\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_reciprocal\_()}{\_sfpu\_reciprocal\_()}}
+{\footnotesize\ttfamily template$<$int max\+\_\+iter = 3$>$ \\
+sfpi\+\_\+inline sfpi\+::v\+Float ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+reciprocal\+\_\+ (\begin{DoxyParamCaption}\item[{const sfpi\+::v\+Float}]{in }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a2ee8d8e98dfb1e8c1e0b022eecb422e2}\label{namespaceckernel_1_1sfpu_a2ee8d8e98dfb1e8c1e0b022eecb422e2}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sfpu\_sine\_maclaurin\_series\_@{\_sfpu\_sine\_maclaurin\_series\_}}
+\index{\_sfpu\_sine\_maclaurin\_series\_@{\_sfpu\_sine\_maclaurin\_series\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sfpu\_sine\_maclaurin\_series\_()}{\_sfpu\_sine\_maclaurin\_series\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE$>$ \\
+sfpi\+\_\+inline sfpi\+::v\+Float ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+sine\+\_\+maclaurin\+\_\+series\+\_\+ (\begin{DoxyParamCaption}\item[{sfpi\+::v\+Float}]{val }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a493a0f535ad235508b134ed2a2e1ae0c}\label{namespaceckernel_1_1sfpu_a493a0f535ad235508b134ed2a2e1ae0c}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!\_sub\_int32\_@{\_sub\_int32\_}}
+\index{\_sub\_int32\_@{\_sub\_int32\_}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{\_sub\_int32\_()}{\_sub\_int32\_()}}
+{\footnotesize\ttfamily template$<$bool APPROXIMATION\+\_\+\+MODE, bool SIGN\+\_\+\+MAGNITUDE\+\_\+\+FORMAT, int ITERATIONS$>$ \\
+void ckernel\+::sfpu\+::\+\_\+sub\+\_\+int32\+\_\+ (\begin{DoxyParamCaption}\item[{const uint}]{dst\+\_\+offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_af55b63283d53991ff3a5e840dd26c307}\label{namespaceckernel_1_1sfpu_af55b63283d53991ff3a5e840dd26c307}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_inc\_x4\_dest@{bitonic\_topk\_inc\_x4\_dest}}
+\index{bitonic\_topk\_inc\_x4\_dest@{bitonic\_topk\_inc\_x4\_dest}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_inc\_x4\_dest()}{bitonic\_topk\_inc\_x4\_dest()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+inc\+\_\+x4\+\_\+dest (\begin{DoxyParamCaption}\item[{uint}]{inc,  }\item[{bool}]{cr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a5918a3abf689934e61d107e840dd6a0c}\label{namespaceckernel_1_1sfpu_a5918a3abf689934e61d107e840dd6a0c}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_inc\_x8\_dest@{bitonic\_topk\_inc\_x8\_dest}}
+\index{bitonic\_topk\_inc\_x8\_dest@{bitonic\_topk\_inc\_x8\_dest}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_inc\_x8\_dest()}{bitonic\_topk\_inc\_x8\_dest()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+inc\+\_\+x8\+\_\+dest (\begin{DoxyParamCaption}\item[{uint}]{inc,  }\item[{bool}]{cr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ad817f8d91090595404901c353dd054a7}\label{namespaceckernel_1_1sfpu_ad817f8d91090595404901c353dd054a7}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_load16@{bitonic\_topk\_load16}}
+\index{bitonic\_topk\_load16@{bitonic\_topk\_load16}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_load16()}{bitonic\_topk\_load16()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+load16 (\begin{DoxyParamCaption}\item[{uint}]{dist0,  }\item[{uint}]{dist1 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ac82f0878ae40af67f5642fdefbae9cac}\label{namespaceckernel_1_1sfpu_ac82f0878ae40af67f5642fdefbae9cac}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_load8@{bitonic\_topk\_load8}}
+\index{bitonic\_topk\_load8@{bitonic\_topk\_load8}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_load8()}{bitonic\_topk\_load8()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+load8 (\begin{DoxyParamCaption}\item[{uint}]{offset,  }\item[{uint}]{dist }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a64ed6846e572c03fbe4f96fe29d1db93}\label{namespaceckernel_1_1sfpu_a64ed6846e572c03fbe4f96fe29d1db93}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_ph0\_st1\_to\_1@{bitonic\_topk\_ph0\_st1\_to\_1}}
+\index{bitonic\_topk\_ph0\_st1\_to\_1@{bitonic\_topk\_ph0\_st1\_to\_1}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_ph0\_st1\_to\_1()}{bitonic\_topk\_ph0\_st1\_to\_1()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+ph0\+\_\+st1\+\_\+to\+\_\+1 (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a685c573bb9bb5c11da4c07c897b37cbd}\label{namespaceckernel_1_1sfpu_a685c573bb9bb5c11da4c07c897b37cbd}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_ph1\_st2\_to\_1@{bitonic\_topk\_ph1\_st2\_to\_1}}
+\index{bitonic\_topk\_ph1\_st2\_to\_1@{bitonic\_topk\_ph1\_st2\_to\_1}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_ph1\_st2\_to\_1()}{bitonic\_topk\_ph1\_st2\_to\_1()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+ph1\+\_\+st2\+\_\+to\+\_\+1 (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a9390d0fce34a80f2ca17d72ffded6514}\label{namespaceckernel_1_1sfpu_a9390d0fce34a80f2ca17d72ffded6514}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_ph2\_st3\_to\_1@{bitonic\_topk\_ph2\_st3\_to\_1}}
+\index{bitonic\_topk\_ph2\_st3\_to\_1@{bitonic\_topk\_ph2\_st3\_to\_1}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_ph2\_st3\_to\_1()}{bitonic\_topk\_ph2\_st3\_to\_1()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+ph2\+\_\+st3\+\_\+to\+\_\+1 (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a04ef4c05da5b762d4f0da7b9627f3ca7}\label{namespaceckernel_1_1sfpu_a04ef4c05da5b762d4f0da7b9627f3ca7}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_ph3\_st4\_to\_1@{bitonic\_topk\_ph3\_st4\_to\_1}}
+\index{bitonic\_topk\_ph3\_st4\_to\_1@{bitonic\_topk\_ph3\_st4\_to\_1}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_ph3\_st4\_to\_1()}{bitonic\_topk\_ph3\_st4\_to\_1()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+ph3\+\_\+st4\+\_\+to\+\_\+1 (\begin{DoxyParamCaption}\item[{bool}]{dir,  }\item[{bool \&}]{init\+\_\+replay,  }\item[{int}]{replay\+\_\+start }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a2159b773bf5c420be456bafcd95243a9}\label{namespaceckernel_1_1sfpu_a2159b773bf5c420be456bafcd95243a9}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_step\_N@{bitonic\_topk\_step\_N}}
+\index{bitonic\_topk\_step\_N@{bitonic\_topk\_step\_N}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_step\_N()}{bitonic\_topk\_step\_N()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+step\+\_\+N (\begin{DoxyParamCaption}\item[{bool}]{dir }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_ada23f48fce1bb22291c0c97997275f67}\label{namespaceckernel_1_1sfpu_ada23f48fce1bb22291c0c97997275f67}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_store16@{bitonic\_topk\_store16}}
+\index{bitonic\_topk\_store16@{bitonic\_topk\_store16}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_store16()}{bitonic\_topk\_store16()}}
+{\footnotesize\ttfamily template$<$bool alt\+\_\+addr\+\_\+mod = false$>$ \\
+void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+store16 (\begin{DoxyParamCaption}\item[{uint}]{dist0,  }\item[{uint}]{dist1 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a9e712a6c2eeb3b047a63ccad5072c325}\label{namespaceckernel_1_1sfpu_a9e712a6c2eeb3b047a63ccad5072c325}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!bitonic\_topk\_store8@{bitonic\_topk\_store8}}
+\index{bitonic\_topk\_store8@{bitonic\_topk\_store8}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{bitonic\_topk\_store8()}{bitonic\_topk\_store8()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::bitonic\+\_\+topk\+\_\+store8 (\begin{DoxyParamCaption}\item[{uint}]{offset,  }\item[{uint}]{dist }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1sfpu_a6cf5a8fe6505d6dee5ef7da5057f3593}\label{namespaceckernel_1_1sfpu_a6cf5a8fe6505d6dee5ef7da5057f3593}} 
+\index{ckernel::sfpu@{ckernel::sfpu}!set\_dst\_write\_addr@{set\_dst\_write\_addr}}
+\index{set\_dst\_write\_addr@{set\_dst\_write\_addr}!ckernel::sfpu@{ckernel::sfpu}}
+\doxysubsubsection{\texorpdfstring{set\_dst\_write\_addr()}{set\_dst\_write\_addr()}}
+{\footnotesize\ttfamily void ckernel\+::sfpu\+::set\+\_\+dst\+\_\+write\+\_\+addr (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{addr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

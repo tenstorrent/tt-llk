@@ -1,0 +1,1570 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classckernel_1_1ckernel__unpack__template" kind="class" language="C++" prot="public">
+    <compoundname>ckernel::ckernel_unpack_template</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__template_8h" local="no">ckernel_template.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1ae5e795aa6239f7eb96a10037bd6369b3" prot="private" static="no" mutable="no">
+        <type>const bool</type>
+        <definition>const bool ckernel::ckernel_unpack_template::m_unpackB</definition>
+        <argsstring></argsstring>
+        <name>m_unpackB</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="94" column="16" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1af61b608869a7ff556a200235cbce2cfb" prot="private" static="no" mutable="no">
+        <type>const bool</type>
+        <definition>const bool ckernel::ckernel_unpack_template::m_unpack_halo</definition>
+        <argsstring></argsstring>
+        <name>m_unpack_halo</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="95" column="16" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1aed99c94fa790b4ed7803b7fa80646164" prot="private" static="no" mutable="no">
+        <type>const uint</type>
+        <definition>const uint ckernel::ckernel_unpack_template::m_A0_instr</definition>
+        <argsstring></argsstring>
+        <name>m_A0_instr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="97" column="16" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a75a8dc9c0af088304ef98085d7450766" prot="private" static="no" mutable="no">
+        <type>const uint</type>
+        <definition>const uint ckernel::ckernel_unpack_template::m_A1_instr</definition>
+        <argsstring></argsstring>
+        <name>m_A1_instr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="97" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a57315275d185fca3586b526c1c387ef6" prot="private" static="no" mutable="no">
+        <type>const uint</type>
+        <definition>const uint ckernel::ckernel_unpack_template::m_A2_instr</definition>
+        <argsstring></argsstring>
+        <name>m_A2_instr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="97" column="38" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1aec75d80285c92f5a8b0243977a15a372" prot="private" static="no" mutable="no">
+        <type>const uint</type>
+        <definition>const uint ckernel::ckernel_unpack_template::m_A3_instr</definition>
+        <argsstring></argsstring>
+        <name>m_A3_instr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="97" column="49" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a99466bce9078e256e2a18fa60c7151b0" prot="private" static="no" mutable="no">
+        <type>const uint</type>
+        <definition>const uint ckernel::ckernel_unpack_template::m_B_instr</definition>
+        <argsstring></argsstring>
+        <name>m_B_instr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="98" column="16" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a9a88560ab6dfbffec245d74a08849365" prot="private" static="no" mutable="no">
+        <type>const uint</type>
+        <definition>const uint ckernel::ckernel_unpack_template::m_skipA_instr</definition>
+        <argsstring></argsstring>
+        <name>m_skipA_instr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="100" column="16" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a540bcb2a290e8fc955bde2467db2da7f" prot="private" static="no" mutable="no">
+        <type>const uint</type>
+        <definition>const uint ckernel::ckernel_unpack_template::m_skipB_instr</definition>
+        <argsstring></argsstring>
+        <name>m_skipB_instr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="101" column="16" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1aaaeee1e21596ba93b06f5ebc1e3ff986" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_ZEROSRCA</definition>
+        <argsstring></argsstring>
+        <name>DEF_ZEROSRCA</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1ab80db24808208eea588d31e2561d1191" kindref="member">TT_OP_UNPACR_NOP</ref>(0, 0, 0, 0, 0, 0, 0, <ref refid="structckernel_1_1p__unpacr_1a279beec2a15aa6c4fa454cbcafcd9523" kindref="member">p_unpacr::UNP_CLRSRC_ZERO</ref>, <ref refid="structckernel_1_1p__unpacr_1a612ca544fce4e0ff27ab3cfdabd3452a" kindref="member">p_unpacr::UNP_CLRSRC</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="129" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a0d67ee9477d4c42fd0b52d8cafeb7bee" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_NINFSRCA</definition>
+        <argsstring></argsstring>
+        <name>DEF_NINFSRCA</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1ab80db24808208eea588d31e2561d1191" kindref="member">TT_OP_UNPACR_NOP</ref>(0, 0, 0, 0, 0, 0, 0, <ref refid="structckernel_1_1p__unpacr_1aaaa93d465aa172aee0f4c7425ad6c340" kindref="member">p_unpacr::UNP_CLRSRC_NEGINF</ref>, <ref refid="structckernel_1_1p__unpacr_1a612ca544fce4e0ff27ab3cfdabd3452a" kindref="member">p_unpacr::UNP_CLRSRC</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="130" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1aade233c55805706d9fb148d5a4797117" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_UNPACR_NOP</definition>
+        <argsstring></argsstring>
+        <name>DEF_UNPACR_NOP</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1ab80db24808208eea588d31e2561d1191" kindref="member">TT_OP_UNPACR_NOP</ref>(0, 0, 0, 0, 0, 0, 0, 0, <ref refid="structckernel_1_1p__unpacr_1a9029626b4fcd676457f56276a408bc2d" kindref="member">p_unpacr::UNP_NOP</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="131" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1addd8ba8f3a3a8fcd0b9d084113fe51e3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_SKIP_A</definition>
+        <argsstring></argsstring>
+        <name>DEF_SKIP_A</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1ae9285acc2f565c671bb60d557abe43c2" kindref="member">TT_OP_INCADCZW</ref>(0b001, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="134" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a3328618dae66955d7eca7e0b47994e25" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_SKIP_B</definition>
+        <argsstring></argsstring>
+        <name>DEF_SKIP_B</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1ae9285acc2f565c671bb60d557abe43c2" kindref="member">TT_OP_INCADCZW</ref>(0b010, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="135" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1af77d401b8731bbbb08bfcac3c4612559" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0b1, 0, 0, 0, 0, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="138" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a292696b793f74a5d582361cd182b347a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A_cntx_ovrd_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A_cntx_ovrd_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0b1, 0, 0, 0, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="139" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a81a74800c1c5596c4d0eda046aa600b9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_B_rarefy_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_B_rarefy_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(1, 0b01, 0, 0, 0, 0, 1, <ref refid="structckernel_1_1p__unpacr_1a0a17bc11ccd90ea8fa1580f6ff6b2ca9" kindref="member">p_unpacr::RAREFYB_ENABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="142" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a3321cde1ea90547d88f504a366f5a62a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_B_rarefy_cntx_ovrd_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_B_rarefy_cntx_ovrd_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(1, 0b01, 0, 0, 0, 1, 1, <ref refid="structckernel_1_1p__unpacr_1a0a17bc11ccd90ea8fa1580f6ff6b2ca9" kindref="member">p_unpacr::RAREFYB_ENABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="145" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a961f60873a5013a6feccc24b6c7b6636" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_B_cntx_ovrd_no_z_inc_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_B_cntx_ovrd_no_z_inc_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(1, 0b00, 0, 0, 0, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="148" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a1880ed21340aa071d747b700a97c6240" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_B_cntx_ovrd_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_B_cntx_ovrd_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(1, 0b01, 0, 0, 0, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="151" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a95316f28c38ad3b89679272e2e3dbc50" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_B_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_B_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(1, 0b01, 0, 0, 0, 0, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="154" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1abdfd8ab318c0bc2803a5fa046b2e64bb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A0_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A0_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1a2d0eed775ad9cd8b3b0f66be1563b9ab" kindref="member">p_unpacr::TILE0_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a96b68162ec3093bd8c41dad7915b3675" kindref="member">p_unpacr::TILE0_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="157" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a36f55a4b1b05bdc60b35a1508dc5b443" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A1_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A1_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1a270140f80f8b849978317dad4855950e" kindref="member">p_unpacr::TILE1_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a5218ce3c9fba8804015dbafe95e2318b" kindref="member">p_unpacr::TILE1_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="159" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1adb90ce6d308edd4918351f20c653fe81" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A2_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A2_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1ae5e97c98e032cc1c48e40b0911699096" kindref="member">p_unpacr::TILE2_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1af87e2372855fc7d8e483393857298f4a" kindref="member">p_unpacr::TILE2_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="161" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a9cdb76ed4b3bf05f757d8bae26bc1650" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A3_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A3_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b01, 0, <ref refid="structckernel_1_1p__unpacr_1a35eac6c1a1c5d3ec059dd30175c3586e" kindref="member">p_unpacr::TILE3_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a2d79d1e9ac46bdeff084d6263862ae10" kindref="member">p_unpacr::TILE3_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="163" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1ab916a027309b7231a5c4c8981ec3e9ac" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A0_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A0_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b01, 0, <ref refid="structckernel_1_1p__unpacr_1a2d0eed775ad9cd8b3b0f66be1563b9ab" kindref="member">p_unpacr::TILE0_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a96b68162ec3093bd8c41dad7915b3675" kindref="member">p_unpacr::TILE0_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="167" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1aa0b014ae00295bb292c954f8072b2461" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A1_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A1_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b01, 0, <ref refid="structckernel_1_1p__unpacr_1a270140f80f8b849978317dad4855950e" kindref="member">p_unpacr::TILE1_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a5218ce3c9fba8804015dbafe95e2318b" kindref="member">p_unpacr::TILE1_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="169" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a04388292eaddbabc940b8f67969bed64" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A2_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A2_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b01, 0, <ref refid="structckernel_1_1p__unpacr_1ae5e97c98e032cc1c48e40b0911699096" kindref="member">p_unpacr::TILE2_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1af87e2372855fc7d8e483393857298f4a" kindref="member">p_unpacr::TILE2_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="171" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a2c84ff2be348d2488ea814535997e24c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::SKIP_A0_instr</definition>
+        <argsstring></argsstring>
+        <name>SKIP_A0_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 1, <ref refid="structckernel_1_1p__unpacr_1a2d0eed775ad9cd8b3b0f66be1563b9ab" kindref="member">p_unpacr::TILE0_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a96b68162ec3093bd8c41dad7915b3675" kindref="member">p_unpacr::TILE0_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="175" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a2fc0511e3aaf27e81b232f0bd8ac9d8d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::SKIP_A1_instr</definition>
+        <argsstring></argsstring>
+        <name>SKIP_A1_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 1, <ref refid="structckernel_1_1p__unpacr_1a270140f80f8b849978317dad4855950e" kindref="member">p_unpacr::TILE1_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a5218ce3c9fba8804015dbafe95e2318b" kindref="member">p_unpacr::TILE1_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="177" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1aabedb3e2a64169580a0a37793eff6528" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::SKIP_A2_instr</definition>
+        <argsstring></argsstring>
+        <name>SKIP_A2_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 1, <ref refid="structckernel_1_1p__unpacr_1ae5e97c98e032cc1c48e40b0911699096" kindref="member">p_unpacr::TILE2_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1af87e2372855fc7d8e483393857298f4a" kindref="member">p_unpacr::TILE2_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="179" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a5bf206f2a2a003726aff62c0da54b34c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::SKIP_A3_instr</definition>
+        <argsstring></argsstring>
+        <name>SKIP_A3_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 1, <ref refid="structckernel_1_1p__unpacr_1a35eac6c1a1c5d3ec059dd30175c3586e" kindref="member">p_unpacr::TILE3_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a2d79d1e9ac46bdeff084d6263862ae10" kindref="member">p_unpacr::TILE3_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="181" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1af374ee63be5a085df4fd9c0ccb911dd8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A0_fconv_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A0_fconv_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1a2d0eed775ad9cd8b3b0f66be1563b9ab" kindref="member">p_unpacr::TILE0_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a96b68162ec3093bd8c41dad7915b3675" kindref="member">p_unpacr::TILE0_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="185" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a80a31a917c6118e656bc5c226fdf6b51" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A1_fconv_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A1_fconv_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1a270140f80f8b849978317dad4855950e" kindref="member">p_unpacr::TILE1_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a5218ce3c9fba8804015dbafe95e2318b" kindref="member">p_unpacr::TILE1_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="187" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="187" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a3a9b9f5e952f47d8d9ee61057b75adf0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A2_fconv_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A2_fconv_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1ae5e97c98e032cc1c48e40b0911699096" kindref="member">p_unpacr::TILE2_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1af87e2372855fc7d8e483393857298f4a" kindref="member">p_unpacr::TILE2_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="189" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a2fcfc6382d51017a19933dc785745762" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A3_fconv_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A3_fconv_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1a35eac6c1a1c5d3ec059dd30175c3586e" kindref="member">p_unpacr::TILE3_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a2d79d1e9ac46bdeff084d6263862ae10" kindref="member">p_unpacr::TILE3_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="191" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a7c2242351bdb0b417012ff6bce1518cd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A0_fconv_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A0_fconv_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1a2d0eed775ad9cd8b3b0f66be1563b9ab" kindref="member">p_unpacr::TILE0_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a96b68162ec3093bd8c41dad7915b3675" kindref="member">p_unpacr::TILE0_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="195" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1aab06ed5da6b9a07356c02ff13a472062" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A1_fconv_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A1_fconv_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1a270140f80f8b849978317dad4855950e" kindref="member">p_unpacr::TILE1_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1a5218ce3c9fba8804015dbafe95e2318b" kindref="member">p_unpacr::TILE1_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="197" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1abc1ba2bbe6556a67a1b3db0d423f82ce" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_A2_fconv_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_A2_fconv_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(
+        0, 0b00, 0, <ref refid="structckernel_1_1p__unpacr_1ae5e97c98e032cc1c48e40b0911699096" kindref="member">p_unpacr::TILE2_CFG_CONTEXT</ref>, <ref refid="structckernel_1_1p__unpacr_1af87e2372855fc7d8e483393857298f4a" kindref="member">p_unpacr::TILE2_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, <ref refid="structckernel_1_1p__unpacr_1ac051a4030310fed7cbd6a97de101c940" kindref="member">p_unpacr::AUTO_INC_CONTEXT</ref>, 1, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="199" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a3bfd3ca035ea0437b46a449fa2565ee8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip0_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip0_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0, 0, 0, <ref refid="structckernel_1_1p__unpacr_1a96b68162ec3093bd8c41dad7915b3675" kindref="member">p_unpacr::TILE0_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="202" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a88a7bca314d54a7a9f5caca6ed78e34d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip1_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip1_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0, 0, 1, <ref refid="structckernel_1_1p__unpacr_1a5218ce3c9fba8804015dbafe95e2318b" kindref="member">p_unpacr::TILE1_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="203" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a55bf7db3343c91f8b2a17b9a87a3a5a2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip2_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip2_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0, 0, 2, <ref refid="structckernel_1_1p__unpacr_1af87e2372855fc7d8e483393857298f4a" kindref="member">p_unpacr::TILE2_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="204" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="204" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1acd3d35933d7a6118524aea24b4607b45" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip3_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip3_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0, 0, 3, <ref refid="structckernel_1_1p__unpacr_1a2d79d1e9ac46bdeff084d6263862ae10" kindref="member">p_unpacr::TILE3_ADDRCNT_CONTEXT</ref>, 1, 0, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="205" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="205" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a583751c4603c6973409ed424340d97f7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip0_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip0_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 1, 0, 0, <ref refid="structckernel_1_1p__unpacr_1a96b68162ec3093bd8c41dad7915b3675" kindref="member">p_unpacr::TILE0_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="207" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="207" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a21b785794651100e4cfdd6d616243c75" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip1_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip1_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 1, 0, 1, <ref refid="structckernel_1_1p__unpacr_1a5218ce3c9fba8804015dbafe95e2318b" kindref="member">p_unpacr::TILE1_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="208" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="208" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a7588731b970907a1f5cac06b93ef83b0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip2_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip2_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 1, 0, 2, <ref refid="structckernel_1_1p__unpacr_1af87e2372855fc7d8e483393857298f4a" kindref="member">p_unpacr::TILE2_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="209" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="209" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1aa2e5488a224eb4ee713bab313191807e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip3_last_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip3_last_instr</name>
+        <initializer>= <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 1, 0, 3, <ref refid="structckernel_1_1p__unpacr_1a2d79d1e9ac46bdeff084d6263862ae10" kindref="member">p_unpacr::TILE3_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="210" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a8f1c9f9d70e4626f9effb26d2119c8d1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip0_data_valid_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip0_data_valid_instr</name>
+        <initializer>=
+        <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0, 0, 0, <ref refid="structckernel_1_1p__unpacr_1a96b68162ec3093bd8c41dad7915b3675" kindref="member">p_unpacr::TILE0_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="212" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a4519baddb9d2b1da6efb8757eb59a12c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip1_data_valid_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip1_data_valid_instr</name>
+        <initializer>=
+        <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0, 0, 1, <ref refid="structckernel_1_1p__unpacr_1a5218ce3c9fba8804015dbafe95e2318b" kindref="member">p_unpacr::TILE1_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="214" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="214" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1ad9a13c4499e6feecffe53285b85cfc32" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip2_data_valid_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip2_data_valid_instr</name>
+        <initializer>=
+        <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0, 0, 2, <ref refid="structckernel_1_1p__unpacr_1af87e2372855fc7d8e483393857298f4a" kindref="member">p_unpacr::TILE2_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="216" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="216" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classckernel_1_1ckernel__unpack__template_1a84d37353f1864902c142fee73fbfd3a0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>static constexpr uint ckernel::ckernel_unpack_template::DEF_Strip3_data_valid_instr</definition>
+        <argsstring></argsstring>
+        <name>DEF_Strip3_data_valid_instr</name>
+        <initializer>=
+        <ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1a0aab6e03f7dc94d6aebe378cba1da476" kindref="member">TT_OP_UNPACR</ref>(0, 0, 0, 3, <ref refid="structckernel_1_1p__unpacr_1a2d79d1e9ac46bdeff084d6263862ae10" kindref="member">p_unpacr::TILE3_ADDRCNT_CONTEXT</ref>, 1, 1, <ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>, 0, 0, 0, 0, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="218" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a16301be69027f2f425c27ce412fc1f25" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ckernel::ckernel_unpack_template::ckernel_unpack_template</definition>
+        <argsstring>(bool unpackB, bool unpackHalo, uint A0_instr, uint A1_instr, uint A2_instr, uint A3_instr, uint skipA_instr, uint B_instr, uint skipB_instr)</argsstring>
+        <name>ckernel_unpack_template</name>
+        <param>
+          <type>bool</type>
+          <declname>unpackB</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>unpackHalo</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A0_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A1_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A2_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A3_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipA_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>B_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipB_instr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="104" column="5" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="104" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a0b242ce125f55576f416d54c9ec0d455" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::ckernel_unpack_template::program</definition>
+        <argsstring>(volatile uint *instrn_buffer) const</argsstring>
+        <name>program</name>
+        <param>
+          <type>volatile uint *</type>
+          <declname>instrn_buffer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="249" column="10" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="383" bodyend="397"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a63fcaa1f6cd74194d726a77b8d6b9edc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::ckernel_unpack_template::program_and_run</definition>
+        <argsstring>(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask=0)</argsstring>
+        <name>program_and_run</name>
+        <param>
+          <type>volatile uint *</type>
+          <declname>instrn_buffer</declname>
+        </param>
+        <param>
+          <type>const uint8_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>const uint32_t</type>
+          <declname>zmask</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="252" column="10" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="363" bodyend="367"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a16301be69027f2f425c27ce412fc1f25" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ckernel::ckernel_unpack_template::ckernel_unpack_template</definition>
+        <argsstring>(bool unpackB, bool unpackHalo, uint A0_instr, uint A1_instr, uint A2_instr, uint A3_instr, uint skipA_instr, uint B_instr, uint skipB_instr)</argsstring>
+        <name>ckernel_unpack_template</name>
+        <param>
+          <type>bool</type>
+          <declname>unpackB</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>unpackHalo</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A0_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A1_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A2_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A3_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipA_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>B_instr</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipB_instr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="96" column="5" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_template.h" bodystart="96" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a0b242ce125f55576f416d54c9ec0d455" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::ckernel_unpack_template::program</definition>
+        <argsstring>(volatile uint *instrn_buffer) const</argsstring>
+        <name>program</name>
+        <param>
+          <type>volatile uint *</type>
+          <declname>instrn_buffer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="241" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a63fcaa1f6cd74194d726a77b8d6b9edc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::ckernel_unpack_template::program_and_run</definition>
+        <argsstring>(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask=0)</argsstring>
+        <name>program_and_run</name>
+        <param>
+          <type>volatile uint *</type>
+          <declname>instrn_buffer</declname>
+        </param>
+        <param>
+          <type>const uint8_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>const uint32_t</type>
+          <declname>zmask</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="244" column="10"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a9a528ad756f8b3f65f0d332a4a6e1635" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::lzA</definition>
+        <argsstring>(bool neginf, uint A_instr=DEF_A_cntx_ovrd_instr, uint skipA_instr=DEF_SKIP_A)</argsstring>
+        <name>lzA</name>
+        <param>
+          <type>bool</type>
+          <declname>neginf</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a292696b793f74a5d582361cd182b347a" kindref="member">DEF_A_cntx_ovrd_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipA_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1addd8ba8f3a3a8fcd0b9d084113fe51e3" kindref="member">DEF_SKIP_A</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="224" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="427" bodyend="439"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a7ca1182cecf20084e816df13610b34a0" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::lA</definition>
+        <argsstring>(uint A_instr=DEF_A_cntx_ovrd_instr, uint skipA_instr=DEF_SKIP_A)</argsstring>
+        <name>lA</name>
+        <param>
+          <type>uint</type>
+          <declname>A_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a292696b793f74a5d582361cd182b347a" kindref="member">DEF_A_cntx_ovrd_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipA_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1addd8ba8f3a3a8fcd0b9d084113fe51e3" kindref="member">DEF_SKIP_A</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="226" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="399" bodyend="411"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a02d16c5449af360c5c5a895cb02f2d6e" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::lB</definition>
+        <argsstring>(uint B_instr=DEF_B_cntx_ovrd_instr, uint skipB_instr=DEF_SKIP_B)</argsstring>
+        <name>lB</name>
+        <param>
+          <type>uint</type>
+          <declname>B_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a1880ed21340aa071d747b700a97c6240" kindref="member">DEF_B_cntx_ovrd_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipB_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a3328618dae66955d7eca7e0b47994e25" kindref="member">DEF_SKIP_B</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="228" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="413" bodyend="425"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a302a15eda19f223cff4522425bc14b62" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::lhA</definition>
+        <argsstring>(const uint32_t halo_mask)</argsstring>
+        <name>lhA</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>halo_mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="230" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="441" bodyend="456"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a274e89bea61f9d674944d81707a6eaaa" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::flhA</definition>
+        <argsstring>(const uint32_t halo_mask)</argsstring>
+        <name>flhA</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>halo_mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="232" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="458" bodyend="473"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1afb1cfbf89162da8ca1c769344f140903" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::lBhA</definition>
+        <argsstring>(const uint32_t halo_mask, const bool rarefy=true)</argsstring>
+        <name>lBhA</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>halo_mask</declname>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>rarefy</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="234" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="475" bodyend="490"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1aa07abd552e143e87ac9aa60c796c5ea2" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::flBhA</definition>
+        <argsstring>(const uint32_t halo_mask)</argsstring>
+        <name>flBhA</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>halo_mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="236" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="492" bodyend="507"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1aacb8fe7aa96882d4f6bea0908e27ce5f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::lBA</definition>
+        <argsstring>(uint A_instr=DEF_A_instr, uint skipA_instr=DEF_SKIP_A, uint B_instr=DEF_B_instr, uint skipB_instr=DEF_SKIP_B)</argsstring>
+        <name>lBA</name>
+        <param>
+          <type>uint</type>
+          <declname>A_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1af77d401b8731bbbb08bfcac3c4612559" kindref="member">DEF_A_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipA_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1addd8ba8f3a3a8fcd0b9d084113fe51e3" kindref="member">DEF_SKIP_A</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>B_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a95316f28c38ad3b89679272e2e3dbc50" kindref="member">DEF_B_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipB_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a3328618dae66955d7eca7e0b47994e25" kindref="member">DEF_SKIP_B</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="238" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="509" bodyend="526"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1ac25de70a950bdfd566578d520de13867" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::loopx1instr</definition>
+        <argsstring>(uint instr0, uint skip0=TT_OP_NOP)</argsstring>
+        <name>loopx1instr</name>
+        <param>
+          <type>uint</type>
+          <declname>instr0</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skip0</declname>
+          <defval><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1af462e63a19a2e6421ef5d12f7e7db4a1" kindref="member">TT_OP_NOP</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="246" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="528" bodyend="531"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1ac852738abf8b286f2183d1bd6bc0d39f" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>ckernel_unpack_template ckernel::ckernel_unpack_template::loopx2instr</definition>
+        <argsstring>(uint instr0, uint instr1, uint skip0=TT_OP_NOP, uint skip1=TT_OP_NOP)</argsstring>
+        <name>loopx2instr</name>
+        <param>
+          <type>uint</type>
+          <declname>instr0</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>instr1</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skip0</declname>
+          <defval><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1af462e63a19a2e6421ef5d12f7e7db4a1" kindref="member">TT_OP_NOP</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skip1</declname>
+          <defval><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1af462e63a19a2e6421ef5d12f7e7db4a1" kindref="member">TT_OP_NOP</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="247" column="36" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="533" bodyend="537"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a3028e769efaab777cc1b796af98edcf1" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::ckernel_unpack_template::run</definition>
+        <argsstring>(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)</argsstring>
+        <name>run</name>
+        <param>
+          <type>volatile uint *</type>
+          <declname>instrn_buffer</declname>
+        </param>
+        <param>
+          <type>const uint8_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>const uint32_t</type>
+          <declname>zmask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="250" column="17" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="369" bodyend="374"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a6fd37ae4492ee3a0c69c4bfc1abae331" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::ckernel_unpack_template::run</definition>
+        <argsstring>(volatile uint *instrn_buffer, const uint8_t count)</argsstring>
+        <name>run</name>
+        <param>
+          <type>volatile uint *</type>
+          <declname>instrn_buffer</declname>
+        </param>
+        <param>
+          <type>const uint8_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="251" column="17" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="377" bodyend="381"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1aa9bddc260b05818db821ddb63dbed6a5" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::lzA</definition>
+        <argsstring>(bool neginf, uint A_instr=DEF_A_cntx_ovrd_instr, uint skipA_instr=DEF_SKIP_A)</argsstring>
+        <name>lzA</name>
+        <param>
+          <type>bool</type>
+          <declname>neginf</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>A_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a292696b793f74a5d582361cd182b347a" kindref="member">DEF_A_cntx_ovrd_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipA_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1addd8ba8f3a3a8fcd0b9d084113fe51e3" kindref="member">DEF_SKIP_A</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="216" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a9aff70fc5dbe3f850edac803b10aec7e" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::lA</definition>
+        <argsstring>(uint A_instr=DEF_A_cntx_ovrd_instr, uint skipA_instr=DEF_SKIP_A)</argsstring>
+        <name>lA</name>
+        <param>
+          <type>uint</type>
+          <declname>A_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a292696b793f74a5d582361cd182b347a" kindref="member">DEF_A_cntx_ovrd_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipA_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1addd8ba8f3a3a8fcd0b9d084113fe51e3" kindref="member">DEF_SKIP_A</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="218" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a77b9617afb144647aa42fe9a0f7f7dde" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::lB</definition>
+        <argsstring>(uint B_instr=DEF_B_cntx_ovrd_instr, uint skipB_instr=DEF_SKIP_B)</argsstring>
+        <name>lB</name>
+        <param>
+          <type>uint</type>
+          <declname>B_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a1880ed21340aa071d747b700a97c6240" kindref="member">DEF_B_cntx_ovrd_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipB_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a3328618dae66955d7eca7e0b47994e25" kindref="member">DEF_SKIP_B</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="220" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1aa28f1e6a0f44aaba7760dc83d4d923d9" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::lhA</definition>
+        <argsstring>(const uint32_t halo_mask)</argsstring>
+        <name>lhA</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>halo_mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="222" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1ab89a8526ea0971d99b739b7413017453" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::flhA</definition>
+        <argsstring>(const uint32_t halo_mask)</argsstring>
+        <name>flhA</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>halo_mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="224" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a712e033db1931ad3362d49413c4a89b8" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::lBhA</definition>
+        <argsstring>(const uint32_t halo_mask, const bool rarefy=true)</argsstring>
+        <name>lBhA</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>halo_mask</declname>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>rarefy</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="226" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1aca529523568bf732ef679e0808c4d339" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::flBhA</definition>
+        <argsstring>(const uint32_t halo_mask)</argsstring>
+        <name>flBhA</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>halo_mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="228" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1ac15b81608d5e21fe110e98505372dcb8" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::lBA</definition>
+        <argsstring>(uint A_instr=DEF_A_instr, uint skipA_instr=DEF_SKIP_A, uint B_instr=DEF_B_instr, uint skipB_instr=DEF_SKIP_B)</argsstring>
+        <name>lBA</name>
+        <param>
+          <type>uint</type>
+          <declname>A_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1af77d401b8731bbbb08bfcac3c4612559" kindref="member">DEF_A_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipA_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1addd8ba8f3a3a8fcd0b9d084113fe51e3" kindref="member">DEF_SKIP_A</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>B_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a95316f28c38ad3b89679272e2e3dbc50" kindref="member">DEF_B_instr</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skipB_instr</declname>
+          <defval><ref refid="classckernel_1_1ckernel__unpack__template_1a3328618dae66955d7eca7e0b47994e25" kindref="member">DEF_SKIP_B</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="230" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a7831f73a9ce5ed38e4e377c6cacb7f04" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::loopx1instr</definition>
+        <argsstring>(uint instr0, uint skip0=TT_OP_NOP)</argsstring>
+        <name>loopx1instr</name>
+        <param>
+          <type>uint</type>
+          <declname>instr0</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skip0</declname>
+          <defval><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1af462e63a19a2e6421ef5d12f7e7db4a1" kindref="member">TT_OP_NOP</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="238" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1ae9273fd9e9d0d931bea71619f650521b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classckernel_1_1ckernel__unpack__template" kindref="compound">ckernel_unpack_template</ref></type>
+        <definition>static ckernel_unpack_template ckernel::ckernel_unpack_template::loopx2instr</definition>
+        <argsstring>(uint instr0, uint instr1, uint skip0=TT_OP_NOP, uint skip1=TT_OP_NOP)</argsstring>
+        <name>loopx2instr</name>
+        <param>
+          <type>uint</type>
+          <declname>instr0</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>instr1</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skip0</declname>
+          <defval><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1af462e63a19a2e6421ef5d12f7e7db4a1" kindref="member">TT_OP_NOP</ref></defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>skip1</declname>
+          <defval><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_1af462e63a19a2e6421ef5d12f7e7db4a1" kindref="member">TT_OP_NOP</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="239" column="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1ab8a9d584521649f8ffbb1c7800d4df3e" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ckernel::ckernel_unpack_template::run</definition>
+        <argsstring>(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)</argsstring>
+        <name>run</name>
+        <param>
+          <type>volatile uint *</type>
+          <declname>instrn_buffer</declname>
+        </param>
+        <param>
+          <type>const uint8_t</type>
+          <declname>count</declname>
+        </param>
+        <param>
+          <type>const uint32_t</type>
+          <declname>zmask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="242" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classckernel_1_1ckernel__unpack__template_1a5e7c7a8e14f1dfc597a812b8a7089dbb" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void ckernel::ckernel_unpack_template::run</definition>
+        <argsstring>(volatile uint *instrn_buffer, const uint8_t count)</argsstring>
+        <name>run</name>
+        <param>
+          <type>volatile uint *</type>
+          <declname>instrn_buffer</declname>
+        </param>
+        <param>
+          <type>const uint8_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_template.h" line="243" column="17"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_template.h" line="69" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_template.h" bodystart="70" bodyend="253"/>
+    <listofallmembers>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a16301be69027f2f425c27ce412fc1f25" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>ckernel_unpack_template</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a16301be69027f2f425c27ce412fc1f25" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>ckernel_unpack_template</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1af374ee63be5a085df4fd9c0ccb911dd8" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A0_fconv_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a7c2242351bdb0b417012ff6bce1518cd" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A0_fconv_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1abdfd8ab318c0bc2803a5fa046b2e64bb" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A0_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ab916a027309b7231a5c4c8981ec3e9ac" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A0_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a80a31a917c6118e656bc5c226fdf6b51" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A1_fconv_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aab06ed5da6b9a07356c02ff13a472062" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A1_fconv_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a36f55a4b1b05bdc60b35a1508dc5b443" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A1_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aa0b014ae00295bb292c954f8072b2461" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A1_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a3a9b9f5e952f47d8d9ee61057b75adf0" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A2_fconv_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1abc1ba2bbe6556a67a1b3db0d423f82ce" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A2_fconv_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1adb90ce6d308edd4918351f20c653fe81" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A2_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a04388292eaddbabc940b8f67969bed64" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A2_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a2fcfc6382d51017a19933dc785745762" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A3_fconv_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a9cdb76ed4b3bf05f757d8bae26bc1650" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A3_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a292696b793f74a5d582361cd182b347a" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A_cntx_ovrd_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1af77d401b8731bbbb08bfcac3c4612559" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_A_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a1880ed21340aa071d747b700a97c6240" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_B_cntx_ovrd_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a961f60873a5013a6feccc24b6c7b6636" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_B_cntx_ovrd_no_z_inc_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a95316f28c38ad3b89679272e2e3dbc50" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_B_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a3321cde1ea90547d88f504a366f5a62a" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_B_rarefy_cntx_ovrd_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a81a74800c1c5596c4d0eda046aa600b9" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_B_rarefy_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a0d67ee9477d4c42fd0b52d8cafeb7bee" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_NINFSRCA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1addd8ba8f3a3a8fcd0b9d084113fe51e3" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_SKIP_A</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a3328618dae66955d7eca7e0b47994e25" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_SKIP_B</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a8f1c9f9d70e4626f9effb26d2119c8d1" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip0_data_valid_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a3bfd3ca035ea0437b46a449fa2565ee8" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip0_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a583751c4603c6973409ed424340d97f7" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip0_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a4519baddb9d2b1da6efb8757eb59a12c" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip1_data_valid_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a88a7bca314d54a7a9f5caca6ed78e34d" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip1_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a21b785794651100e4cfdd6d616243c75" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip1_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ad9a13c4499e6feecffe53285b85cfc32" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip2_data_valid_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a55bf7db3343c91f8b2a17b9a87a3a5a2" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip2_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a7588731b970907a1f5cac06b93ef83b0" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip2_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a84d37353f1864902c142fee73fbfd3a0" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip3_data_valid_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1acd3d35933d7a6118524aea24b4607b45" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip3_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aa2e5488a224eb4ee713bab313191807e" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_Strip3_last_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aade233c55805706d9fb148d5a4797117" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_UNPACR_NOP</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aaaeee1e21596ba93b06f5ebc1e3ff986" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>DEF_ZEROSRCA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aa07abd552e143e87ac9aa60c796c5ea2" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>flBhA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aca529523568bf732ef679e0808c4d339" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>flBhA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a274e89bea61f9d674944d81707a6eaaa" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>flhA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ab89a8526ea0971d99b739b7413017453" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>flhA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a7ca1182cecf20084e816df13610b34a0" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a9aff70fc5dbe3f850edac803b10aec7e" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a02d16c5449af360c5c5a895cb02f2d6e" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lB</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a77b9617afb144647aa42fe9a0f7f7dde" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lB</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aacb8fe7aa96882d4f6bea0908e27ce5f" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lBA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ac15b81608d5e21fe110e98505372dcb8" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lBA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1afb1cfbf89162da8ca1c769344f140903" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lBhA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a712e033db1931ad3362d49413c4a89b8" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lBhA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a302a15eda19f223cff4522425bc14b62" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lhA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aa28f1e6a0f44aaba7760dc83d4d923d9" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lhA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ac25de70a950bdfd566578d520de13867" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>loopx1instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a7831f73a9ce5ed38e4e377c6cacb7f04" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>loopx1instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ac852738abf8b286f2183d1bd6bc0d39f" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>loopx2instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ae9273fd9e9d0d931bea71619f650521b" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>loopx2instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a9a528ad756f8b3f65f0d332a4a6e1635" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lzA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aa9bddc260b05818db821ddb63dbed6a5" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>lzA</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aed99c94fa790b4ed7803b7fa80646164" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_A0_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a75a8dc9c0af088304ef98085d7450766" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_A1_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a57315275d185fca3586b526c1c387ef6" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_A2_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aec75d80285c92f5a8b0243977a15a372" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_A3_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a99466bce9078e256e2a18fa60c7151b0" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_B_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a9a88560ab6dfbffec245d74a08849365" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_skipA_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a540bcb2a290e8fc955bde2467db2da7f" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_skipB_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1af61b608869a7ff556a200235cbce2cfb" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_unpack_halo</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ae5e795aa6239f7eb96a10037bd6369b3" prot="private" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>m_unpackB</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a0b242ce125f55576f416d54c9ec0d455" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>program</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a0b242ce125f55576f416d54c9ec0d455" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>program</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a63fcaa1f6cd74194d726a77b8d6b9edc" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>program_and_run</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a63fcaa1f6cd74194d726a77b8d6b9edc" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>program_and_run</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a3028e769efaab777cc1b796af98edcf1" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>run</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a6fd37ae4492ee3a0c69c4bfc1abae331" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>run</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1ab8a9d584521649f8ffbb1c7800d4df3e" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>run</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a5e7c7a8e14f1dfc597a812b8a7089dbb" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>run</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a2c84ff2be348d2488ea814535997e24c" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>SKIP_A0_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a2fc0511e3aaf27e81b232f0bd8ac9d8d" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>SKIP_A1_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1aabedb3e2a64169580a0a37793eff6528" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>SKIP_A2_instr</name></member>
+      <member refid="classckernel_1_1ckernel__unpack__template_1a5bf206f2a2a003726aff62c0da54b34c" prot="public" virt="non-virtual"><scope>ckernel::ckernel_unpack_template</scope><name>SKIP_A3_instr</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

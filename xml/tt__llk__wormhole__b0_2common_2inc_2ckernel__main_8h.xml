@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2common_2inc_2ckernel__main_8h" kind="file" language="C++">
+    <compoundname>ckernel_main.h</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2common_2inc_2ckernel__main_8h_1a11db04f9be832b177149ebd5fcc38723" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint</type>
+        <definition>uint run_kernel</definition>
+        <argsstring>()</argsstring>
+        <name>run_kernel</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_main.h" line="7" column="6" declfile="tt_llk_wormhole_b0/common/inc/ckernel_main.h" declline="7" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__main_8h_1a11db04f9be832b177149ebd5fcc38723" refkind="member"><highlight class="normal">uint<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__main_8h_1a11db04f9be832b177149ebd5fcc38723" kindref="member">run_kernel</ref>();</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/common/inc/ckernel_main.h"/>
+  </compounddef>
+</doxygen>

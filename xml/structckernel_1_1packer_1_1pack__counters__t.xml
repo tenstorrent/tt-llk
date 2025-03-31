@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1packer_1_1pack__counters__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::packer::pack_counters_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h" local="no">cpack_common.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__counters__t_1ae2c7f421469a428bd0d6560637720318" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_counters_t::pack_per_xy_plane</definition>
+        <argsstring></argsstring>
+        <name>pack_per_xy_plane</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="139" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__counters__t_1a6abd16797ebb634701fbfb439e43a325" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_counters_t::pack_reads_per_xy_plane</definition>
+        <argsstring></argsstring>
+        <name>pack_reads_per_xy_plane</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="140" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__counters__t_1aa755a573f25f94cc9e0d8e123609c22a" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_counters_t::pack_xys_per_til</definition>
+        <argsstring></argsstring>
+        <name>pack_xys_per_til</name>
+        <bitfield> 7</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="141" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__counters__t_1aa51b39d34cf224805b014011ccee8c1e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_counters_t::pack_yz_transposed</definition>
+        <argsstring></argsstring>
+        <name>pack_yz_transposed</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="142" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pack__counters__t_1a6dd725788cc551cb51a6af5a6290e0fb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pack_counters_t::pack_per_xy_plane_offset</definition>
+        <argsstring></argsstring>
+        <name>pack_per_xy_plane_offset</name>
+        <bitfield> 8</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="143" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="137" column="1" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="138" bodyend="144"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1packer_1_1pack__counters__t_1ae2c7f421469a428bd0d6560637720318" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_counters_t</scope><name>pack_per_xy_plane</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__counters__t_1a6dd725788cc551cb51a6af5a6290e0fb" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_counters_t</scope><name>pack_per_xy_plane_offset</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__counters__t_1a6abd16797ebb634701fbfb439e43a325" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_counters_t</scope><name>pack_reads_per_xy_plane</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__counters__t_1aa755a573f25f94cc9e0d8e123609c22a" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_counters_t</scope><name>pack_xys_per_til</name></member>
+      <member refid="structckernel_1_1packer_1_1pack__counters__t_1aa51b39d34cf224805b014011ccee8c1e" prot="public" virt="non-virtual"><scope>ckernel::packer::pack_counters_t</scope><name>pack_yz_transposed</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,29 @@
+\hypertarget{tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__binary__bitwise_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/common/inc/sfpu/ckernel\+\_\+sfpu\+\_\+binary\+\_\+bitwise.h File Reference}
+\label{tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__binary__bitwise_8h}\index{tt\_llk\_wormhole\_b0/common/inc/sfpu/ckernel\_sfpu\_binary\_bitwise.h@{tt\_llk\_wormhole\_b0/common/inc/sfpu/ckernel\_sfpu\_binary\_bitwise.h}}
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sfpi.\+h\char`\"{}}\newline
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\item 
+ \mbox{\hyperlink{namespaceckernel_1_1sfpu}{ckernel\+::sfpu}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84}{ckernel\+::sfpu\+::\+Binary\+Bitwise\+Op}} \+: uint8\+\_\+t \{ \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}{ckernel\+::sfpu\+::\+AND}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}{ckernel\+::sfpu\+::\+OR}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}{ckernel\+::sfpu\+::\+XOR}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a558ffc8f5770d8e4f95f51d822685532}{ckernel\+::sfpu\+::\+AND}} = 0
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a1d00e7dce692e8dc3f6877f035e3a616}{ckernel\+::sfpu\+::\+OR}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a82ddeec98b9e7d648450f418da8d1d84a97675eb3f268048604dc5155511a2a4d}{ckernel\+::sfpu\+::\+XOR}} = 2
+ \}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Bitwise\+Op BITWISE\+\_\+\+OP, int ITERATIONS = 8$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a5f73659fc7e91bff445d9e90f6855375}{ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+bitwise\+\_\+}} (const uint dst\+\_\+offset)
+\end{DoxyCompactItemize}

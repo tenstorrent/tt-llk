@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__movb2d" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_movb2d</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__movb2d_1ab140e99983e70b922a0898a8bf8dc16a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2d::SRC_ZERO_OFFSET</definition>
+        <argsstring></argsstring>
+        <name>SRC_ZERO_OFFSET</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="226" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="226" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2d_1a3f8882789ef8036fa0ada751485f834b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2d::SRC_ROW16_OFFSET</definition>
+        <argsstring></argsstring>
+        <name>SRC_ROW16_OFFSET</name>
+        <initializer>= 0x10</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="227" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2d_1a7be84406a3b87505b770ad0ca347c188" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2d::MOV_1_ROW</definition>
+        <argsstring></argsstring>
+        <name>MOV_1_ROW</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="228" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="228" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2d_1a4f4ad4ade123393a7bfb2851cee4c791" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2d::MOV_1_ROW_D0_BRCST</definition>
+        <argsstring></argsstring>
+        <name>MOV_1_ROW_D0_BRCST</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="229" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="229" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2d_1afca960638d0f6d0bf4baeafb676acd00" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2d::MOV_8_ROW_BRCST</definition>
+        <argsstring></argsstring>
+        <name>MOV_8_ROW_BRCST</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="230" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="230" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2d_1a26dda25ea1cc93ae4ed6771e1a51ca4c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2d::MOV_8_ROW_BRCST_D0_BRCST</definition>
+        <argsstring></argsstring>
+        <name>MOV_8_ROW_BRCST_D0_BRCST</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="231" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="231" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2d_1a503ed4520d4aed13be84b4e89ea30669" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2d::MOV_4_ROWS</definition>
+        <argsstring></argsstring>
+        <name>MOV_4_ROWS</name>
+        <initializer>= 0x4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="232" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="232" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__movb2d_1aff4b94293e129d7a4bc2244ec5b8fd98" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_movb2d::MOV_4_ROWS_D0_BRCST</definition>
+        <argsstring></argsstring>
+        <name>MOV_4_ROWS_D0_BRCST</name>
+        <initializer>= 0x5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="233" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="224" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="225" bodyend="234"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__movb2d_1a7be84406a3b87505b770ad0ca347c188" prot="public" virt="non-virtual"><scope>ckernel::p_movb2d</scope><name>MOV_1_ROW</name></member>
+      <member refid="structckernel_1_1p__movb2d_1a4f4ad4ade123393a7bfb2851cee4c791" prot="public" virt="non-virtual"><scope>ckernel::p_movb2d</scope><name>MOV_1_ROW_D0_BRCST</name></member>
+      <member refid="structckernel_1_1p__movb2d_1a503ed4520d4aed13be84b4e89ea30669" prot="public" virt="non-virtual"><scope>ckernel::p_movb2d</scope><name>MOV_4_ROWS</name></member>
+      <member refid="structckernel_1_1p__movb2d_1aff4b94293e129d7a4bc2244ec5b8fd98" prot="public" virt="non-virtual"><scope>ckernel::p_movb2d</scope><name>MOV_4_ROWS_D0_BRCST</name></member>
+      <member refid="structckernel_1_1p__movb2d_1afca960638d0f6d0bf4baeafb676acd00" prot="public" virt="non-virtual"><scope>ckernel::p_movb2d</scope><name>MOV_8_ROW_BRCST</name></member>
+      <member refid="structckernel_1_1p__movb2d_1a26dda25ea1cc93ae4ed6771e1a51ca4c" prot="public" virt="non-virtual"><scope>ckernel::p_movb2d</scope><name>MOV_8_ROW_BRCST_D0_BRCST</name></member>
+      <member refid="structckernel_1_1p__movb2d_1a3f8882789ef8036fa0ada751485f834b" prot="public" virt="non-virtual"><scope>ckernel::p_movb2d</scope><name>SRC_ROW16_OFFSET</name></member>
+      <member refid="structckernel_1_1p__movb2d_1ab140e99983e70b922a0898a8bf8dc16a" prot="public" virt="non-virtual"><scope>ckernel::p_movb2d</scope><name>SRC_ZERO_OFFSET</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

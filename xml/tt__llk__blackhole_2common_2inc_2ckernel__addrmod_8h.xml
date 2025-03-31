@@ -1,0 +1,310 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2ckernel__addrmod_8h" kind="file" language="C++">
+    <compoundname>ckernel_addrmod.h</compoundname>
+    <includes local="yes">cfg_defines.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h" local="yes">ckernel_ops.h</includes>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel__include_8h" local="yes">tt_llk_blackhole/common/inc/ckernel_include.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>cfg_defines.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_ops.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h"/>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_addrmod.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__addrmod_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="6">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>tt_llk_blackhole/common/inc/ckernel_xmov.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__xmov_8h"/>
+      </node>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/ckernel.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_addrmod.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__addrmod_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>tt_llk_blackhole/common/inc/cpack_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h"/>
+      </node>
+      <node id="8">
+        <label>tt_llk_blackhole/common/inc/ckernel_template.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__template_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_blackhole/common/inc/ckernel_debug.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h"/>
+      </node>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/ckernel_include.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__include_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>tt_llk_blackhole/common/inc/cunpack_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cunpack__common_8h"/>
+      </node>
+      <node id="5">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structckernel_1_1addr__mod__t" prot="public">ckernel::addr_mod_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" prot="public">ckernel::addr_mod_t::addr_mod_src_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t" prot="public">ckernel::addr_mod_t::addr_mod_dest_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t" prot="public">ckernel::addr_mod_t::addr_mod_fidelity_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t" prot="public">ckernel::addr_mod_t::addr_mod_bias_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__pack__t" prot="public">ckernel::addr_mod_pack_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t" prot="public">ckernel::addr_mod_pack_t::addr_mod_vals_t</innerclass>
+    <innerclass refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t" prot="public">ckernel::addr_mod_pack_t::addr_mod_reduced_t</innerclass>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>MT:<sp/>This<sp/>should<sp/>be<sp/>dissolved<sp/>and<sp/>moved<sp/>to<sp/>the<sp/>appropriate<sp/>place</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cfg_defines.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h" kindref="compound">ckernel_ops.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="15" refid="namespaceckernel_1af9fa0f506fc2591268270984c3abbe47" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1af9fa0f506fc2591268270984c3abbe47" kindref="member">ADDR_MOD_1</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="16" refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref><sp/>=<sp/>2;</highlight></codeline>
+<codeline lineno="17" refid="namespaceckernel_1a05f4d4b4bc7c28a851063e49768311c9" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1a05f4d4b4bc7c28a851063e49768311c9" kindref="member">ADDR_MOD_3</ref><sp/>=<sp/>3;</highlight></codeline>
+<codeline lineno="18" refid="namespaceckernel_1afb6ef2763a2315c4e38e3ad67ce237d2" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1afb6ef2763a2315c4e38e3ad67ce237d2" kindref="member">ADDR_MOD_4</ref><sp/>=<sp/>4;</highlight></codeline>
+<codeline lineno="19" refid="namespaceckernel_1a0a314f12f4f0910b699783c7bce00d09" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1a0a314f12f4f0910b699783c7bce00d09" kindref="member">ADDR_MOD_5</ref><sp/>=<sp/>5;</highlight></codeline>
+<codeline lineno="20" refid="namespaceckernel_1a453cfb2c1d6f310d5125830e9f2065ff" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1a453cfb2c1d6f310d5125830e9f2065ff" kindref="member">ADDR_MOD_6</ref><sp/>=<sp/>6;</highlight></codeline>
+<codeline lineno="21" refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref><sp/>=<sp/>7;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="namespaceckernel_1a0eb76a1769776d2d02e797ecac036c7c" refkind="member"><highlight class="normal">constexpr<sp/>uint32_t<sp/><ref refid="namespaceckernel_1a0eb76a1769776d2d02e797ecac036c7c" kindref="member">SRC_INCR_MASK</ref><sp/><sp/>=<sp/>0x3F;</highlight></codeline>
+<codeline lineno="24" refid="namespaceckernel_1aadfbd675e81b85dbaef627e4763939cb" refkind="member"><highlight class="normal">constexpr<sp/>uint32_t<sp/><ref refid="namespaceckernel_1aadfbd675e81b85dbaef627e4763939cb" kindref="member">DEST_INCR_MASK</ref><sp/>=<sp/>0x3FF;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="comment">//<sp/>FIXME:<sp/>These<sp/>should<sp/>be<sp/>updated<sp/>from<sp/>cfg_defines.h</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="structckernel_1_1addr__mod__t" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref></highlight></codeline>
+<codeline lineno="29"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>CLR,<sp/>CR,<sp/>INCR(4<sp/>bits)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" refkind="compound"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="33" refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="34" refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a1ad23b445419f5664bb4499715395dd3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a1ad23b445419f5664bb4499715395dd3" kindref="member">clr</ref><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="35" refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a52409b033436b9fe14d02ff3457f4ce1" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a52409b033436b9fe14d02ff3457f4ce1" kindref="member">cr</ref><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1aa8de4f3c666681ce485cd990da0939c4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1aa8de4f3c666681ce485cd990da0939c4" kindref="member">val</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="38"><highlight class="keyword"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>&amp;<sp/><ref refid="namespaceckernel_1a0eb76a1769776d2d02e797ecac036c7c" kindref="member">SRC_INCR_MASK</ref>)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a52409b033436b9fe14d02ff3457f4ce1" kindref="member">cr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>6)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a1ad23b445419f5664bb4499715395dd3" kindref="member">clr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>7);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>CLR,<sp/>CR,<sp/>INCR(8<sp/>bits)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t" refkind="compound"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t" kindref="compound">addr_mod_dest_t</ref></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46" refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1ae9d01a207698d6ecc8f3eee9216a54ce" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>int16_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1ae9d01a207698d6ecc8f3eee9216a54ce" kindref="member">incr</ref><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47" refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a1b8d4c5686a12d5faac0bbce4e24cfc8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a1b8d4c5686a12d5faac0bbce4e24cfc8" kindref="member">clr</ref><sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="48" refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1ac7010bb7706bc0842902b114589ecef2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1ac7010bb7706bc0842902b114589ecef2" kindref="member">cr</ref><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="49" refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a40930c1674bd604d2b655563f73e4702" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a40930c1674bd604d2b655563f73e4702" kindref="member">c_to_cr</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a318bd4c677e52c19c2e68aa5f0291746" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint16_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a318bd4c677e52c19c2e68aa5f0291746" kindref="member">val</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="52"><highlight class="keyword"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1ae9d01a207698d6ecc8f3eee9216a54ce" kindref="member">incr</ref><sp/>&amp;<sp/><ref refid="namespaceckernel_1aadfbd675e81b85dbaef627e4763939cb" kindref="member">DEST_INCR_MASK</ref>)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1ac7010bb7706bc0842902b114589ecef2" kindref="member">cr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>10)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a1b8d4c5686a12d5faac0bbce4e24cfc8" kindref="member">clr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>11)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a40930c1674bd604d2b655563f73e4702" kindref="member">c_to_cr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>12);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>CLR,<sp/>INCT<sp/>(2<sp/>bits)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t" refkind="compound"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t" kindref="compound">addr_mod_fidelity_t</ref></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60" refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a9eda6f08eac9a91eaebe7c18e3948ab7" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a9eda6f08eac9a91eaebe7c18e3948ab7" kindref="member">incr</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="61" refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a6c5d97dc1fd23a22278ce152345b0c21" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a6c5d97dc1fd23a22278ce152345b0c21" kindref="member">clr</ref><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a40011a243caca2a1c3c5607bc8880a28" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint16_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a40011a243caca2a1c3c5607bc8880a28" kindref="member">val</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="64"><highlight class="keyword"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a9eda6f08eac9a91eaebe7c18e3948ab7" kindref="member">incr</ref><sp/>&amp;<sp/>0x3)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a6c5d97dc1fd23a22278ce152345b0c21" kindref="member">clr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>2);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>CLR,<sp/>INCT<sp/>(4<sp/>bits)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t" refkind="compound"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t" kindref="compound">addr_mod_bias_t</ref></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="72" refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1af26f21eea49b4314dc784593d701300e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1af26f21eea49b4314dc784593d701300e" kindref="member">incr</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="73" refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1a7f4e4475158ba9c4194dcf03a4ba27c2" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1a7f4e4475158ba9c4194dcf03a4ba27c2" kindref="member">clr</ref><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1ace4d1964ccadb2d57d572b7c225031af" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint16_t<sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1ace4d1964ccadb2d57d572b7c225031af" kindref="member">val</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="76"><highlight class="keyword"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1af26f21eea49b4314dc784593d701300e" kindref="member">incr</ref><sp/>&amp;<sp/>0xF)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1a7f4e4475158ba9c4194dcf03a4ba27c2" kindref="member">clr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>4);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Set<sp/>defaults<sp/>so<sp/>that<sp/>we<sp/>can<sp/>skip<sp/>unchanged<sp/>in<sp/>initialization<sp/>list</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref><sp/><ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="83" refid="structckernel_1_1addr__mod__t_1a8711333c8fbf2a5c13cf124683b0a1bf" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref><sp/><ref refid="structckernel_1_1addr__mod__t_1a8711333c8fbf2a5c13cf124683b0a1bf" kindref="member">srcb</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="84" refid="structckernel_1_1addr__mod__t_1a959a40c48d5ff0e1b38f28e8b2f3bbef" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t" kindref="compound">addr_mod_dest_t</ref><sp/><ref refid="structckernel_1_1addr__mod__t_1a959a40c48d5ff0e1b38f28e8b2f3bbef" kindref="member">dest</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="85" refid="structckernel_1_1addr__mod__t_1a5d490b8a5f4279df08bc2544c411c1f4" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t" kindref="compound">addr_mod_fidelity_t</ref><sp/><ref refid="structckernel_1_1addr__mod__t_1a5d490b8a5f4279df08bc2544c411c1f4" kindref="member">fidelity</ref><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="86" refid="structckernel_1_1addr__mod__t_1a7489ad2845ccb16d5b573f898e142978" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t" kindref="compound">addr_mod_bias_t</ref><sp/><ref refid="structckernel_1_1addr__mod__t_1a7489ad2845ccb16d5b573f898e142978" kindref="member">bias</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="87" refid="structckernel_1_1addr__mod__t_1ace99572a970153627c1574e36b32ef21" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref><sp/><ref refid="structckernel_1_1addr__mod__t_1ace99572a970153627c1574e36b32ef21" kindref="member">pack_ysrc</ref><sp/><sp/><sp/><sp/><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="88" refid="structckernel_1_1addr__mod__t_1a7c989db44f978ddbf6d313f9f0d73d35" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t" kindref="compound">addr_mod_src_t</ref><sp/><ref refid="structckernel_1_1addr__mod__t_1a7c989db44f978ddbf6d313f9f0d73d35" kindref="member">pack_ydst</ref><sp/><sp/><sp/><sp/><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>SrcA/B<sp/>register<sp/>is<sp/>combination<sp/>of<sp/>A<sp/>and<sp/>B<sp/>values</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91" refid="structckernel_1_1addr__mod__t_1a2c8c2ca2156f6a2c009791dd98216275" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>uint16_t<sp/><ref refid="structckernel_1_1addr__mod__t_1a2c8c2ca2156f6a2c009791dd98216275" kindref="member">src_val</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="92"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1aa8de4f3c666681ce485cd990da0939c4" kindref="member">val</ref>()<sp/>|<sp/>(<ref refid="structckernel_1_1addr__mod__t_1a8711333c8fbf2a5c13cf124683b0a1bf" kindref="member">srcb</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1aa8de4f3c666681ce485cd990da0939c4" kindref="member">val</ref>()<sp/>&lt;&lt;<sp/>8);</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="structckernel_1_1addr__mod__t_1a52661a552e4ad773e83f582129460dc3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>uint16_t<sp/><ref refid="structckernel_1_1addr__mod__t_1a52661a552e4ad773e83f582129460dc3" kindref="member">pack_val</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="97"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structckernel_1_1addr__mod__t_1ace99572a970153627c1574e36b32ef21" kindref="member">pack_ysrc</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1aa8de4f3c666681ce485cd990da0939c4" kindref="member">val</ref>()<sp/>|<sp/>(<ref refid="structckernel_1_1addr__mod__t_1a7c989db44f978ddbf6d313f9f0d73d35" kindref="member">pack_ydst</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1aa8de4f3c666681ce485cd990da0939c4" kindref="member">val</ref>()<sp/>&lt;&lt;<sp/>6);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>List<sp/>of<sp/>addresses<sp/>of<sp/>src/dest<sp/>reigsters</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102" refid="structckernel_1_1addr__mod__t_1a9060e554880f83205a4a2d1364919f64" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1addr__mod__t_1a9060e554880f83205a4a2d1364919f64" kindref="member">addr_mod_src_reg_addr</ref>[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_AB_SEC0_SrcAIncr_ADDR32,</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_AB_SEC1_SrcAIncr_ADDR32,</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_AB_SEC2_SrcAIncr_ADDR32,</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_AB_SEC3_SrcAIncr_ADDR32,</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_AB_SEC4_SrcAIncr_ADDR32,</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_AB_SEC5_SrcAIncr_ADDR32,</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_AB_SEC6_SrcAIncr_ADDR32,</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_AB_SEC7_SrcAIncr_ADDR32};</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight></codeline>
+<codeline lineno="112" refid="structckernel_1_1addr__mod__t_1a442eb502a3ab5c898263381b9c161808" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1addr__mod__t_1a442eb502a3ab5c898263381b9c161808" kindref="member">addr_mod_dest_reg_addr</ref>[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_DST_SEC0_DestIncr_ADDR32,</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_DST_SEC1_DestIncr_ADDR32,</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_DST_SEC2_DestIncr_ADDR32,</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_DST_SEC3_DestIncr_ADDR32,</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_DST_SEC4_DestIncr_ADDR32,</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_DST_SEC5_DestIncr_ADDR32,</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_DST_SEC6_DestIncr_ADDR32,</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_DST_SEC7_DestIncr_ADDR32};</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122" refid="structckernel_1_1addr__mod__t_1aa822cbd86048f784d3346d64a36d33bb" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1addr__mod__t_1aa822cbd86048f784d3346d64a36d33bb" kindref="member">addr_mod_bias_reg_addr</ref>[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_BIAS_SEC0_BiasIncr_ADDR32,</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_BIAS_SEC1_BiasIncr_ADDR32,</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_BIAS_SEC2_BiasIncr_ADDR32,</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_BIAS_SEC3_BiasIncr_ADDR32,</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_BIAS_SEC4_BiasIncr_ADDR32,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_BIAS_SEC5_BiasIncr_ADDR32,</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_BIAS_SEC6_BiasIncr_ADDR32,</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_BIAS_SEC7_BiasIncr_ADDR32};</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132" refid="structckernel_1_1addr__mod__t_1a3013db678eb2270664f32aa908ee54aa" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1addr__mod__t_1a3013db678eb2270664f32aa908ee54aa" kindref="member">addr_mod_pack_reg_addr</ref>[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_PACK_SEC0_YsrcIncr_ADDR32,<sp/>ADDR_MOD_PACK_SEC1_YsrcIncr_ADDR32,<sp/>ADDR_MOD_PACK_SEC2_YsrcIncr_ADDR32,<sp/>ADDR_MOD_PACK_SEC3_YsrcIncr_ADDR32};</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Program<sp/>source<sp/>and<sp/>dest<sp/>registers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136" refid="structckernel_1_1addr__mod__t_1ae3430ea7abf394ab3b1be0f0b978c0ba" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t_1ae3430ea7abf394ab3b1be0f0b978c0ba" kindref="member">__attribute__</ref>((always_inline))<sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>mod_index)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="137"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>KCM<sp/>-<sp/>This<sp/>gets<sp/>around<sp/>issue:<sp/>error:<sp/>impossible<sp/>constraint<sp/>in<sp/>&apos;asm&apos;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TTI_SETC16(addr_mod_src_reg_addr[mod_index],<sp/>src_val());</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(<ref refid="structckernel_1_1addr__mod__t_1a9060e554880f83205a4a2d1364919f64" kindref="member">addr_mod_src_reg_addr</ref>[mod_index],<sp/><ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1aa8de4f3c666681ce485cd990da0939c4" kindref="member">val</ref>()<sp/>|<sp/>(<ref refid="structckernel_1_1addr__mod__t_1a8711333c8fbf2a5c13cf124683b0a1bf" kindref="member">srcb</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1aa8de4f3c666681ce485cd990da0939c4" kindref="member">val</ref>()<sp/>&lt;&lt;<sp/>8));</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(<ref refid="structckernel_1_1addr__mod__t_1a442eb502a3ab5c898263381b9c161808" kindref="member">addr_mod_dest_reg_addr</ref>[mod_index],<sp/><ref refid="structckernel_1_1addr__mod__t_1a959a40c48d5ff0e1b38f28e8b2f3bbef" kindref="member">dest</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__dest__t_1a318bd4c677e52c19c2e68aa5f0291746" kindref="member">val</ref>()<sp/>|<sp/>(<ref refid="structckernel_1_1addr__mod__t_1a5d490b8a5f4279df08bc2544c411c1f4" kindref="member">fidelity</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__fidelity__t_1a40011a243caca2a1c3c5607bc8880a28" kindref="member">val</ref>()<sp/>&lt;&lt;<sp/>13));</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(<ref refid="structckernel_1_1addr__mod__t_1aa822cbd86048f784d3346d64a36d33bb" kindref="member">addr_mod_bias_reg_addr</ref>[mod_index],<sp/><ref refid="structckernel_1_1addr__mod__t_1a7489ad2845ccb16d5b573f898e142978" kindref="member">bias</ref>.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__bias__t_1ace4d1964ccadb2d57d572b7c225031af" kindref="member">val</ref>());</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146" refid="structckernel_1_1addr__mod__pack__t" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1addr__mod__pack__t" kindref="compound">addr_mod_pack_t</ref></highlight></codeline>
+<codeline lineno="147"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>CLR,<sp/>CR,<sp/>INCR(4<sp/>bits)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t" refkind="compound"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t" kindref="compound">addr_mod_vals_t</ref></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="151" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a3c6915700165ea01fd957964c9ffe4aa" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a3c6915700165ea01fd957964c9ffe4aa" kindref="member">incr</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="152" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a978228101036bf20bf459035e4b3aaf6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a978228101036bf20bf459035e4b3aaf6" kindref="member">clr</ref><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="153" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a1fcc67d9c443af52abba12a46057ee80" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a1fcc67d9c443af52abba12a46057ee80" kindref="member">cr</ref><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1ab219ddb814acd894afb334420ae4532d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1ab219ddb814acd894afb334420ae4532d" kindref="member">val</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="156"><highlight class="keyword"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a3c6915700165ea01fd957964c9ffe4aa" kindref="member">incr</ref><sp/>&amp;<sp/>0xF)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a1fcc67d9c443af52abba12a46057ee80" kindref="member">cr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>4)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1a978228101036bf20bf459035e4b3aaf6" kindref="member">clr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>5);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t" refkind="compound"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t" kindref="compound">addr_mod_reduced_t</ref></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="163" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1af77ead37caafa1d889d88c611c659be3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1af77ead37caafa1d889d88c611c659be3" kindref="member">incr</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="164" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1ab3e581cb979914a9d9f208c702ce8653" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1ab3e581cb979914a9d9f208c702ce8653" kindref="member">clr</ref><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166" refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1a95db535d455d81ff2514a27c2f4a8aa8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint8_t<sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1a95db535d455d81ff2514a27c2f4a8aa8" kindref="member">val</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="167"><highlight class="keyword"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1af77ead37caafa1d889d88c611c659be3" kindref="member">incr</ref><sp/>&amp;<sp/>0x1)<sp/>|<sp/>((<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1ab3e581cb979914a9d9f208c702ce8653" kindref="member">clr</ref><sp/>&amp;<sp/>0x1)<sp/>&lt;&lt;<sp/>1);</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Set<sp/>defaults<sp/>so<sp/>that<sp/>we<sp/>can<sp/>skip<sp/>unchanged<sp/>in<sp/>initialization<sp/>list</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173" refid="structckernel_1_1addr__mod__pack__t_1a96bc66f26a79e4c9524eea728cea2e38" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t" kindref="compound">addr_mod_vals_t</ref><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1a96bc66f26a79e4c9524eea728cea2e38" kindref="member">y_src</ref><sp/><sp/><sp/><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="174" refid="structckernel_1_1addr__mod__pack__t_1a21aa1e614036ea4d4b3e5c9754a8fe75" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t" kindref="compound">addr_mod_vals_t</ref><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1a21aa1e614036ea4d4b3e5c9754a8fe75" kindref="member">y_dst</ref><sp/><sp/><sp/><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="175" refid="structckernel_1_1addr__mod__pack__t_1a244e800d57cf2ace2cc5635d77a57e59" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t" kindref="compound">addr_mod_reduced_t</ref><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1a244e800d57cf2ace2cc5635d77a57e59" kindref="member">z_src</ref><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="176" refid="structckernel_1_1addr__mod__pack__t_1a1896a3be770ad4cf6b3a16044b96e937" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t" kindref="compound">addr_mod_reduced_t</ref><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1a1896a3be770ad4cf6b3a16044b96e937" kindref="member">z_dst</ref><sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178" refid="structckernel_1_1addr__mod__pack__t_1a21fb2e67254136287e8e7822e90117eb" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1a21fb2e67254136287e8e7822e90117eb" kindref="member">__attribute__</ref>((always_inline))<sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>constexpr<sp/>uint16_t<sp/>pack_val()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="179"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1a96bc66f26a79e4c9524eea728cea2e38" kindref="member">y_src</ref>.<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1ab219ddb814acd894afb334420ae4532d" kindref="member">val</ref>()<sp/>|<sp/>(<ref refid="structckernel_1_1addr__mod__pack__t_1a21aa1e614036ea4d4b3e5c9754a8fe75" kindref="member">y_dst</ref>.<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__vals__t_1ab219ddb814acd894afb334420ae4532d" kindref="member">val</ref>()<sp/>&lt;&lt;<sp/>6)<sp/>|<sp/>(<ref refid="structckernel_1_1addr__mod__pack__t_1a244e800d57cf2ace2cc5635d77a57e59" kindref="member">z_src</ref>.<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1a95db535d455d81ff2514a27c2f4a8aa8" kindref="member">val</ref>()<sp/>&lt;&lt;<sp/>12)<sp/>|<sp/>(<ref refid="structckernel_1_1addr__mod__pack__t_1a1896a3be770ad4cf6b3a16044b96e937" kindref="member">z_dst</ref>.<ref refid="structckernel_1_1addr__mod__pack__t_1_1addr__mod__reduced__t_1a95db535d455d81ff2514a27c2f4a8aa8" kindref="member">val</ref>()<sp/>&lt;&lt;<sp/>14);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>List<sp/>of<sp/>addresses<sp/>of<sp/>src/dest<sp/>reigsters</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="184" refid="structckernel_1_1addr__mod__pack__t_1addd1a060c0a45098fa5d7575c699f00f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1addr__mod__pack__t_1addd1a060c0a45098fa5d7575c699f00f" kindref="member">addr_mod_pack_reg_addr</ref>[]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ADDR_MOD_PACK_SEC0_YsrcIncr_ADDR32,<sp/>ADDR_MOD_PACK_SEC1_YsrcIncr_ADDR32,<sp/>ADDR_MOD_PACK_SEC2_YsrcIncr_ADDR32,<sp/>ADDR_MOD_PACK_SEC3_YsrcIncr_ADDR32};</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Program<sp/>source<sp/>and<sp/>dest<sp/>registers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="188" refid="structckernel_1_1addr__mod__pack__t_1a1b0d7ee65b2170154acf83a1661bdf95" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__pack__t_1a1b0d7ee65b2170154acf83a1661bdf95" kindref="member">__attribute__</ref>((always_inline))<sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>mod_index)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="189"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(<ref refid="structckernel_1_1addr__mod__pack__t_1addd1a060c0a45098fa5d7575c699f00f" kindref="member">addr_mod_pack_reg_addr</ref>[mod_index],<sp/>pack_val());</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="192"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/ckernel_addrmod.h"/>
+  </compounddef>
+</doxygen>

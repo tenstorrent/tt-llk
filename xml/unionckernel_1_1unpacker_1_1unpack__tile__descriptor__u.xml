@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="unionckernel_1_1unpacker_1_1unpack__tile__descriptor__u" kind="union" language="C++" prot="public">
+    <compoundname>ckernel::unpacker::unpack_tile_descriptor_u</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2cunpack__common_8h" local="no">cunpack_common.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionckernel_1_1unpacker_1_1unpack__tile__descriptor__u_1a1b58cca664aee9370fb21cc5b141fc8b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::unpacker::unpack_tile_descriptor_u::val</definition>
+        <argsstring>[4]</argsstring>
+        <name>val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="49" column="14" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1unpacker_1_1unpack__tile__descriptor__u_1a6855eddb7b65c340be59f7040e23dc61" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1unpacker_1_1unpack__tile__descriptor__t" kindref="compound">unpack_tile_descriptor_t</ref></type>
+        <definition>unpack_tile_descriptor_t ckernel::unpacker::unpack_tile_descriptor_u::f</definition>
+        <argsstring></argsstring>
+        <name>f</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="50" column="30" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ckernel::unpacker::unpack_tile_descriptor_t</label>
+        <link refid="structckernel_1_1unpacker_1_1unpack__tile__descriptor__t"/>
+      </node>
+      <node id="1">
+        <label>ckernel::unpacker::unpack_tile_descriptor_u</label>
+        <link refid="unionckernel_1_1unpacker_1_1unpack__tile__descriptor__u"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>f</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="47" column="1" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="48" bodyend="51"/>
+    <listofallmembers>
+      <member refid="unionckernel_1_1unpacker_1_1unpack__tile__descriptor__u_1a6855eddb7b65c340be59f7040e23dc61" prot="public" virt="non-virtual"><scope>ckernel::unpacker::unpack_tile_descriptor_u</scope><name>f</name></member>
+      <member refid="unionckernel_1_1unpacker_1_1unpack__tile__descriptor__u_1a1b58cca664aee9370fb21cc5b141fc8b" prot="public" virt="non-virtual"><scope>ckernel::unpacker::unpack_tile_descriptor_u</scope><name>val</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

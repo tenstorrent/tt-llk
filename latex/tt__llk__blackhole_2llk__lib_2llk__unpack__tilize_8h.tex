@@ -1,0 +1,48 @@
+\hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h}{}\doxysection{tt\+\_\+llk\+\_\+blackhole/llk\+\_\+lib/llk\+\_\+unpack\+\_\+tilize.h File Reference}
+\label{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h}\index{tt\_llk\_blackhole/llk\_lib/llk\_unpack\_tilize.h@{tt\_llk\_blackhole/llk\_lib/llk\_unpack\_tilize.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+defs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+globals.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+template.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}cunpack\+\_\+common.\+h\char`\"{}}\newline
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a1f013e56b1e8ddc34b717d58d521d281}{\+\_\+llk\+\_\+unpack\+\_\+tilize\+\_\+mop\+\_\+config\+\_\+}} (const bool narrow\+\_\+tile=false)
+\item 
+{\footnotesize template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, Stoch\+Rnd\+Type stoch\+\_\+rnd\+\_\+mode = Stoch\+Rnd\+Type\+::\+None$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a2d50d12ec8f9260a9c13d8c83f71f0ef}{\+\_\+llk\+\_\+unpack\+\_\+tilize\+\_\+hw\+\_\+configure\+\_\+}} (const std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t within\+\_\+face\+\_\+16x16\+\_\+transpose=0, const std\+::uint32\+\_\+t num\+\_\+faces=4)
+\item 
+void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_acfeeac0644e2b911276bb8312ba26b17}{\+\_\+llk\+\_\+unpack\+\_\+tilize\+\_\+init\+\_\+}} (const std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format=0, const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format=0, const std\+::uint32\+\_\+t ct\+\_\+dim=0, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const bool narrow\+\_\+tile=false)
+\item 
+void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a8d3272a4ec7701e1325cc601b4a5cf27}{\+\_\+llk\+\_\+unpack\+\_\+tilize\+\_\+}} (const std\+::uint32\+\_\+t base\+\_\+address, const std\+::uint32\+\_\+t tile\+\_\+index, std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format=0, std\+::uint32\+\_\+t block\+\_\+ct\+\_\+dim=0, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t num\+\_\+faces=4, const bool narrow\+\_\+tile=false)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a8d3272a4ec7701e1325cc601b4a5cf27}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a8d3272a4ec7701e1325cc601b4a5cf27}} 
+\index{llk\_unpack\_tilize.h@{llk\_unpack\_tilize.h}!\_llk\_unpack\_tilize\_@{\_llk\_unpack\_tilize\_}}
+\index{\_llk\_unpack\_tilize\_@{\_llk\_unpack\_tilize\_}!llk\_unpack\_tilize.h@{llk\_unpack\_tilize.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_tilize\_()}{\_llk\_unpack\_tilize\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+unpack\+\_\+tilize\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{base\+\_\+address,  }\item[{const std\+::uint32\+\_\+t}]{tile\+\_\+index,  }\item[{std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format = {\ttfamily 0},  }\item[{std\+::uint32\+\_\+t}]{block\+\_\+ct\+\_\+dim = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a2d50d12ec8f9260a9c13d8c83f71f0ef}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a2d50d12ec8f9260a9c13d8c83f71f0ef}} 
+\index{llk\_unpack\_tilize.h@{llk\_unpack\_tilize.h}!\_llk\_unpack\_tilize\_hw\_configure\_@{\_llk\_unpack\_tilize\_hw\_configure\_}}
+\index{\_llk\_unpack\_tilize\_hw\_configure\_@{\_llk\_unpack\_tilize\_hw\_configure\_}!llk\_unpack\_tilize.h@{llk\_unpack\_tilize.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_tilize\_hw\_configure\_()}{\_llk\_unpack\_tilize\_hw\_configure\_()}}
+{\footnotesize\ttfamily template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, Stoch\+Rnd\+Type stoch\+\_\+rnd\+\_\+mode = Stoch\+Rnd\+Type\+::\+None$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+tilize\+\_\+hw\+\_\+configure\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{within\+\_\+face\+\_\+16x16\+\_\+transpose = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_acfeeac0644e2b911276bb8312ba26b17}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_acfeeac0644e2b911276bb8312ba26b17}} 
+\index{llk\_unpack\_tilize.h@{llk\_unpack\_tilize.h}!\_llk\_unpack\_tilize\_init\_@{\_llk\_unpack\_tilize\_init\_}}
+\index{\_llk\_unpack\_tilize\_init\_@{\_llk\_unpack\_tilize\_init\_}!llk\_unpack\_tilize.h@{llk\_unpack\_tilize.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_tilize\_init\_()}{\_llk\_unpack\_tilize\_init\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+unpack\+\_\+tilize\+\_\+init\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{ct\+\_\+dim = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a1f013e56b1e8ddc34b717d58d521d281}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__tilize_8h_a1f013e56b1e8ddc34b717d58d521d281}} 
+\index{llk\_unpack\_tilize.h@{llk\_unpack\_tilize.h}!\_llk\_unpack\_tilize\_mop\_config\_@{\_llk\_unpack\_tilize\_mop\_config\_}}
+\index{\_llk\_unpack\_tilize\_mop\_config\_@{\_llk\_unpack\_tilize\_mop\_config\_}!llk\_unpack\_tilize.h@{llk\_unpack\_tilize.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_tilize\_mop\_config\_()}{\_llk\_unpack\_tilize\_mop\_config\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+unpack\+\_\+tilize\+\_\+mop\+\_\+config\+\_\+ (\begin{DoxyParamCaption}\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

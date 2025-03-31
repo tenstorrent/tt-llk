@@ -1,0 +1,498 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h" kind="file" language="C++">
+    <compoundname>llk_unpack_common.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes local="yes">ckernel.h</includes>
+    <includes local="yes">ckernel_defs.h</includes>
+    <includes local="yes">ckernel_instr_params.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">cunpack_common.h</includes>
+    <includes local="yes">fw_debug.h</includes>
+    <incdepgraph>
+      <node id="8">
+        <label>fw_debug.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_instr_params.h</label>
+      </node>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="4">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="7">
+        <label>cunpack_common.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a9b57d323c6360bc946f00fd7e6b22657" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_zero_buffer_</definition>
+        <argsstring>(const std::uint32_t base_address, const std::uint32_t size)</argsstring>
+        <name>_llk_zero_buffer_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>base_address</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="23" column="6" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="23" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a10a351b3d6889136a741b7a6ad532428" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>mail2math</declname>
+            <defname>mail2math</defname>
+            <defval>true</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>mail2pack</declname>
+            <defname>mail2pack</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_get_tile_</definition>
+        <argsstring>(std::uint32_t address, std::uint32_t *p_tile)</argsstring>
+        <name>_llk_unpack_get_tile_</name>
+        <param>
+          <type>std::uint32_t</type>
+          <declname>address</declname>
+        </param>
+        <param>
+          <type>std::uint32_t *</type>
+          <declname>p_tile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="38" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="38" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1ac0f644cecaf1e81922f179f8ff607f99" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>mail2math</declname>
+            <defname>mail2math</defname>
+            <defval>true</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>mail2pack</declname>
+            <defname>mail2pack</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_release_tile_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_unpack_release_tile_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="58" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="58" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a976999a4cc682d30dcb62e54fa80cfcf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_unpack_debug_dump_</definition>
+        <argsstring>(std::uint8_t *data, std::uint32_t byte_size)</argsstring>
+        <name>_llk_unpack_debug_dump_</name>
+        <param>
+          <type>std::uint8_t *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>std::uint32_t</type>
+          <declname>byte_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="64" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="64" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a0f36c104619f858976d95442c76b1cd4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_unpack_debug_dump_seek_</definition>
+        <argsstring>(std::uint8_t offset)</argsstring>
+        <name>_llk_unpack_debug_dump_seek_</name>
+        <param>
+          <type>std::uint8_t</type>
+          <declname>offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="69" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="69" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a478a48ac4052f6affeb3fe9982e056aa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_unpack_config_tile_dim_srca_impl_</definition>
+        <argsstring>(const std::uint32_t face_r_dim=FACE_R_DIM, const std::uint32_t num_faces=4)</argsstring>
+        <name>_llk_unpack_config_tile_dim_srca_impl_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="74" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="74" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a0ab085e683434b4e88ac1b3796dde88e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_unpack_config_tile_dim_srcb_impl_</definition>
+        <argsstring>(const std::uint32_t face_r_dim=FACE_R_DIM, const std::uint32_t num_faces=4)</argsstring>
+        <name>_llk_unpack_config_tile_dim_srcb_impl_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="80" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="80" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1ad301ab682cf12c0234a74e0634b4fe9a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>to_from_int8</declname>
+            <defname>to_from_int8</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_reconfig_data_format_srca_impl_</definition>
+        <argsstring>(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)</argsstring>
+        <name>_llk_unpack_reconfig_data_format_srca_impl_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpack_src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpack_dst_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>tile_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="88" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="88" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a387d285a59c3c4f23267427b2864fd00" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>to_from_int8</declname>
+            <defname>to_from_int8</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_reconfig_data_format_srcb_impl_</definition>
+        <argsstring>(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)</argsstring>
+        <name>_llk_unpack_reconfig_data_format_srcb_impl_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpack_src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpack_dst_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>tile_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="103" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="103" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a1d44147c4de067d61a5e6aebca44b5bc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_unpack_dbg_feature_disable_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_unpack_dbg_feature_disable_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="117" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="117" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1aa671b54bddefe5ceb4bc84065ae4a2f8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_unpack_clear_dbg_feature_disable_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_unpack_clear_dbg_feature_disable_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="123" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="123" bodyend="126"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a8fa81b2ebdcd2e96b34effab8ee7c2e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_enable_int8_fpu_math_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_enable_int8_fpu_math_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="128" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="128" bodyend="131"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a1658a3a08c1d1364d43eda246267e4a3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_unpack_set_srcb_dummy_valid_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_unpack_set_srcb_dummy_valid_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" line="133" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h" bodystart="133" bodyend="138"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_defs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_instr_params.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cunpack_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;fw_debug.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_perf_api.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel_1_1unpacker" kindref="compound">ckernel::unpacker</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a9b57d323c6360bc946f00fd7e6b22657" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a9b57d323c6360bc946f00fd7e6b22657" kindref="member">_llk_zero_buffer_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>base_address,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>size)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__unpack_1aa8642586c8b193109613b5141115bab7" kindref="member">p_gpr_unpack::OPERAND_OFFSET_ADDR</ref>));</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1aec97cd00a10543f8348d20daedde9de4" kindref="member">HI_16</ref>(<ref refid="structckernel_1_1p__gpr__unpack_1aa8642586c8b193109613b5141115bab7" kindref="member">p_gpr_unpack::OPERAND_OFFSET_ADDR</ref>));</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" kindref="member">LOWER_HALFWORD</ref>(base_address),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(p_gpr_unpack::p_gpr_unpack::OPERAND_BASE_ADDR));</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1abd1d3808327aaccd8e33a401cca17ab1" kindref="member">UPPER_HALFWORD</ref>(base_address),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1aec97cd00a10543f8348d20daedde9de4" kindref="member">HI_16</ref>(p_gpr_unpack::p_gpr_unpack::OPERAND_BASE_ADDR));</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(std::uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>size;<sp/>i++)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a8f296d3b66a973e2077c2419575ab7ce" kindref="member">TTI_STOREIND</ref>(1,<sp/>0,<sp/><ref refid="structckernel_1_1p__ind_1a70301501d69c6df30013fd372c8485be" kindref="member">p_ind::LD_16B</ref>,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__unpack_1aa8642586c8b193109613b5141115bab7" kindref="member">p_gpr_unpack::OPERAND_OFFSET_ADDR</ref>),<sp/><ref refid="structckernel_1_1p__ind_1a52500a1d6349ffa45832c754bd7e2ea3" kindref="member">p_ind::INC_16B</ref>,<sp/><ref refid="structckernel_1_1p__gpr__unpack_1abf18ac69ac8d1a6c9bdc7ed17a1dcdd4" kindref="member">p_gpr_unpack::ZERO_0</ref>,<sp/><ref refid="structckernel_1_1p__gpr__unpack_1a2274823fc46ca0b442da358d6dae15df" kindref="member">p_gpr_unpack::OPERAND_BASE_ADDR</ref>);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2math<sp/>=<sp/>true,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2pack<sp/>=<sp/>true&gt;</highlight></codeline>
+<codeline lineno="38" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a10a351b3d6889136a741b7a6ad532428" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a10a351b3d6889136a741b7a6ad532428" kindref="member">_llk_unpack_get_tile_</ref>(std::uint32_t<sp/>address,<sp/>std::uint32_t<sp/>*p_tile)</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>std::uint32_t<sp/>byte_address<sp/>=<sp/>(address)<sp/>&lt;&lt;<sp/>4;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(mail2math)</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a73b58fadbcaa0c8ad81f40db4f4d9bcd" kindref="member">mailbox_write</ref>(<ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a079f554139a19db0776aed7316dfa903" kindref="member">ThreadId::MathThreadId</ref>,<sp/>byte_address);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae16714cb61d79748381173d9f134afc2" kindref="member">semaphore_post</ref>(<ref refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" kindref="member">semaphore::UNPACK_OPERAND_SYNC</ref>);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(mail2pack)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a73b58fadbcaa0c8ad81f40db4f4d9bcd" kindref="member">mailbox_write</ref>(<ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39aa8c3e9c126c71d9877925886d258f78d" kindref="member">ThreadId::PackThreadId</ref>,<sp/>byte_address);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae16714cb61d79748381173d9f134afc2" kindref="member">semaphore_post</ref>(<ref refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" kindref="member">semaphore::UNPACK_OPERAND_SYNC</ref>);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>*p_tile<sp/>=<sp/>byte_address;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2math<sp/>=<sp/>true,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2pack<sp/>=<sp/>true&gt;</highlight></codeline>
+<codeline lineno="58" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1ac0f644cecaf1e81922f179f8ff607f99" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1ac0f644cecaf1e81922f179f8ff607f99" kindref="member">_llk_unpack_release_tile_</ref>()</highlight></codeline>
+<codeline lineno="59"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(<ref refid="namespaceckernel_1aa440ebb8f4010cbfd33f6a52660968d2" kindref="member">semaphore_read</ref>(<ref refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" kindref="member">semaphore::UNPACK_OPERAND_SYNC</ref>)<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a976999a4cc682d30dcb62e54fa80cfcf" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a976999a4cc682d30dcb62e54fa80cfcf" kindref="member">_llk_unpack_debug_dump_</ref>(std::uint8_t<sp/>*data,<sp/>std::uint32_t<sp/>byte_size)</highlight></codeline>
+<codeline lineno="65"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1828ef0cfbd5025629bcab857841b677" kindref="member">debug_dump</ref>(data,<sp/>byte_size);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a0f36c104619f858976d95442c76b1cd4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a0f36c104619f858976d95442c76b1cd4" kindref="member">_llk_unpack_debug_dump_seek_</ref>(std::uint8_t<sp/>offset)</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1b3a6ed62e58c743a3473657be3479b5" kindref="member">debug_dump_seek</ref>(offset);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a478a48ac4052f6affeb3fe9982e056aa" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a478a48ac4052f6affeb3fe9982e056aa" kindref="member">_llk_unpack_config_tile_dim_srca_impl_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>face_r_dim<sp/>=<sp/><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>num_faces<sp/>=<sp/>4)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC0_REG0_TileDescriptor_ADDR32<sp/>+<sp/>1,<sp/>16,<sp/>0xffff0000&gt;(num_faces);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>config_unpacker_0_face_dim&lt;true,<sp/>p_setadc::UNP_A&gt;(face_r_dim);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a0ab085e683434b4e88ac1b3796dde88e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a0ab085e683434b4e88ac1b3796dde88e" kindref="member">_llk_unpack_config_tile_dim_srcb_impl_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>face_r_dim<sp/>=<sp/><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>num_faces<sp/>=<sp/>4)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>face_dim<sp/>=<sp/>face_r_dim<sp/>*<sp/><ref refid="namespaceckernel_1a3f233953c7eb9ff380fe7f7f4ce0cef5" kindref="member">FACE_C_DIM</ref>;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC1_REG0_TileDescriptor_ADDR32,<sp/>16,<sp/>0xffff0000&gt;(face_dim);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC1_REG0_TileDescriptor_ADDR32<sp/>+<sp/>1,<sp/>16,<sp/>0xffff0000&gt;(num_faces);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>to_from_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">8<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="88" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1ad301ab682cf12c0234a74e0634b4fe9a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1ad301ab682cf12c0234a74e0634b4fe9a" kindref="member">_llk_unpack_reconfig_data_format_srca_impl_</ref>(</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>unpack_src_format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>unpack_dst_format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>tile_size)</highlight></codeline>
+<codeline lineno="90"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1ae2b1b1da63b605e04696e7aa39bd4c67" kindref="member">p_stall::UNPACK0</ref>);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(to_from_int8)</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert(is_fp32_dest_acc_en,<sp/></highlight><highlight class="stringliteral">&quot;Reconfiguring<sp/>unpack<sp/>to/from<sp/>Int8<sp/>formats<sp/>requires<sp/>FP32<sp/>Dest<sp/>mode<sp/>enabled&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;ALU_FORMAT_SPEC_REG0_SrcAUnsigned_RMW&gt;(((uint)unpack_src_format<sp/>==<sp/>(uint)DataFormat::UInt8)<sp/>?<sp/>1<sp/>:<sp/>0);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC0_REG0_TileDescriptor_ADDR32,<sp/>0,<sp/>0x0f&gt;(unpack_src_format);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC0_REG2_Out_data_format_RMW&gt;(unpack_dst_format);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" kindref="member">LOWER_HALFWORD</ref>(tile_size),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__unpack_1afe0ebeea76e467c03dc25a9cc04394b6" kindref="member">p_gpr_unpack::TILE_SIZE_A</ref>));<sp/></highlight><highlight class="comment">//<sp/>update<sp/>gpr<sp/>which<sp/>holds<sp/>tile<sp/>size<sp/>A</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>to_from_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">8<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="103" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a387d285a59c3c4f23267427b2864fd00" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a387d285a59c3c4f23267427b2864fd00" kindref="member">_llk_unpack_reconfig_data_format_srcb_impl_</ref>(</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>unpack_src_format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>unpack_dst_format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>tile_size)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a8ea658659a5eeee8e673678ea2e05149" kindref="member">p_stall::UNPACK1</ref>);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(to_from_int8)</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert(is_fp32_dest_acc_en,<sp/></highlight><highlight class="stringliteral">&quot;Reconfiguring<sp/>unpack<sp/>to/from<sp/>Int8<sp/>formats<sp/>requires<sp/>FP32<sp/>Dest<sp/>mode<sp/>enabled&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;ALU_FORMAT_SPEC_REG0_SrcBUnsigned_RMW&gt;(((uint)unpack_src_format<sp/>==<sp/>(uint)DataFormat::UInt8)<sp/>?<sp/>1<sp/>:<sp/>0);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC1_REG0_TileDescriptor_ADDR32,<sp/>0,<sp/>0x0f&gt;(unpack_src_format);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC1_REG2_Out_data_format_RMW&gt;(unpack_dst_format);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" kindref="member">LOWER_HALFWORD</ref>(tile_size),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__unpack_1a6d0744ac5fc1a5cf7d3c3a968bd8514a" kindref="member">p_gpr_unpack::TILE_SIZE_B</ref>));<sp/></highlight><highlight class="comment">//<sp/>update<sp/>gpr<sp/>which<sp/>holds<sp/>tile<sp/>size<sp/>B</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a1d44147c4de067d61a5e6aebca44b5bc" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a1d44147c4de067d61a5e6aebca44b5bc" kindref="member">_llk_unpack_dbg_feature_disable_</ref>()</highlight></codeline>
+<codeline lineno="118"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE,<sp/>1<sp/>&lt;&lt;<sp/>11);<sp/></highlight><highlight class="comment">//<sp/>Set<sp/>debug<sp/>feature<sp/>disable<sp/>bit<sp/>11</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>workaround<sp/>for<sp/>bug<sp/>tenstorrent/budabackend#1372</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1aa671b54bddefe5ceb4bc84065ae4a2f8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1aa671b54bddefe5ceb4bc84065ae4a2f8" kindref="member">_llk_unpack_clear_dbg_feature_disable_</ref>()</highlight></codeline>
+<codeline lineno="124"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE,<sp/>0);<sp/></highlight><highlight class="comment">//<sp/>Unset<sp/>debug<sp/>feature<sp/>disable</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a8fa81b2ebdcd2e96b34effab8ee7c2e3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a8fa81b2ebdcd2e96b34effab8ee7c2e3" kindref="member">_llk_enable_int8_fpu_math_</ref>()</highlight></codeline>
+<codeline lineno="129"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1unpacker_1a1d6f26900e4dc1a4766d9d39d60cb74f" kindref="member">enable_int8_fpu_math</ref>();</highlight></codeline>
+<codeline lineno="131"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133" refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h_1a1658a3a08c1d1364d43eda246267e4a3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__common_8h_1a1658a3a08c1d1364d43eda246267e4a3" kindref="member">_llk_unpack_set_srcb_dummy_valid_</ref>()</highlight></codeline>
+<codeline lineno="134"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1af117197b36df7b8570530d42047858a8" kindref="member">p_stall::STALL_UNPACK</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a1a0b1bf100abe1b328039ad79a1bcb78" kindref="member">p_stall::UNPACK</ref>);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ac99979deab44f7a2c277bfb61247b445" kindref="member">TTI_UNPACR_NOP</ref>(<ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edda956db99c8849c15529ae20135f6e0d26" kindref="member">SrcB</ref>,<sp/><ref refid="structckernel_1_1p__unpacr__nop_1ac780795b31aa9919a03ab69d35670bbe" kindref="member">p_unpacr_nop::UNP_SET_DVALID</ref>);</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ac99979deab44f7a2c277bfb61247b445" kindref="member">TTI_UNPACR_NOP</ref>(<ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edda85becaa2f53dbf50b609a09c545f2ba8" kindref="member">SrcA</ref>,<sp/><ref refid="structckernel_1_1p__unpacr__nop_1ac780795b31aa9919a03ab69d35670bbe" kindref="member">p_unpacr_nop::UNP_SET_DVALID</ref>);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h"/>
+  </compounddef>
+</doxygen>

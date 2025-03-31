@@ -1,0 +1,439 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2common_2inc_2ckernel__debug_8h" kind="file" language="C++">
+    <compoundname>ckernel_debug.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes refid="tt__llk__wormhole__b0_2common_2inc_2ckernel_8h" local="yes">ckernel.h</includes>
+    <incdepgraph>
+      <node id="9">
+        <label>cfg_defines.h</label>
+      </node>
+      <node id="16">
+        <label>fw_debug.h</label>
+      </node>
+      <node id="8">
+        <label>ckernel_addrmod.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__addrmod_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="4">
+        <label>ckernel_instr_params.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__instr__params_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>llk_defs.h</label>
+      </node>
+      <node id="5">
+        <label>tensix.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>ckernel_gpr_map.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__gpr__map_8h"/>
+      </node>
+      <node id="11">
+        <label>ckernel_defs.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>tensix_types.h</label>
+      </node>
+      <node id="6">
+        <label>risc_attribs.h</label>
+      </node>
+      <node id="15">
+        <label>ckernel_structs.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__structs_8h"/>
+      </node>
+      <node id="7">
+        <label>ckernel_include.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__include_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_debug.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__debug_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>ckernel_ops.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h"/>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structckernel_1_1dbg__cfgreg" prot="public">ckernel::dbg_cfgreg</innerclass>
+    <innerclass refid="structckernel_1_1dbg__array__id" prot="public">ckernel::dbg_array_id</innerclass>
+    <innerclass refid="structckernel_1_1dbg__daisy__id" prot="public">ckernel::dbg_daisy_id</innerclass>
+    <innerclass refid="structckernel_1_1dbg__bus__cntl__t" prot="public">ckernel::dbg_bus_cntl_t</innerclass>
+    <innerclass refid="unionckernel_1_1dbg__bus__cntl__u" prot="public">ckernel::dbg_bus_cntl_u</innerclass>
+    <innerclass refid="structckernel_1_1dbg__array__rd__en__t" prot="public">ckernel::dbg_array_rd_en_t</innerclass>
+    <innerclass refid="unionckernel_1_1dbg__array__rd__en__u" prot="public">ckernel::dbg_array_rd_en_u</innerclass>
+    <innerclass refid="structckernel_1_1dbg__array__rd__cmd__t" prot="public">ckernel::dbg_array_rd_cmd_t</innerclass>
+    <innerclass refid="unionckernel_1_1dbg__array__rd__cmd__u" prot="public">ckernel::dbg_array_rd_cmd_u</innerclass>
+    <innerclass refid="structckernel_1_1dbg__soft__reset__t" prot="public">ckernel::dbg_soft_reset_t</innerclass>
+    <innerclass refid="unionckernel_1_1dbg__soft__reset__u" prot="public">ckernel::dbg_soft_reset_u</innerclass>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel_8h" kindref="compound">ckernel.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Debug<sp/>bus<sp/>and<sp/>register<sp/>array<sp/>dump</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">dbg_cfgreg</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__cfgreg_1aaaa41d873e44282695f9e8fa5c2541a5" kindref="member">THREAD_0_CFG</ref><sp/><sp/><sp/><sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>Thread<sp/>0<sp/>config</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__cfgreg_1ab00af4329b932b699fc01c95663213dc" kindref="member">THREAD_1_CFG</ref><sp/><sp/><sp/><sp/>=<sp/>1;<sp/></highlight><highlight class="comment">//<sp/>Thread<sp/>1<sp/>config</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__cfgreg_1af3e004cad18462f64f08a911b315e774" kindref="member">THREAD_2_CFG</ref><sp/><sp/><sp/><sp/>=<sp/>2;<sp/></highlight><highlight class="comment">//<sp/>Thread<sp/>2<sp/>config</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__cfgreg_1a33cea054013caff2bb80bfe03833a5de" kindref="member">HW_CFG_0</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>3;<sp/></highlight><highlight class="comment">//<sp/>Hardware<sp/>config<sp/>state<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__cfgreg_1ad01a0ef2c4f9b66cd4c9b12c2fca6615" kindref="member">HW_CFG_1</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>4;<sp/></highlight><highlight class="comment">//<sp/>Hardware<sp/>config<sp/>state<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__cfgreg_1a6b305feb4470f6843672b5158215a66e" kindref="member">HW_CFG_SIZE</ref><sp/><sp/><sp/><sp/><sp/>=<sp/>187;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__cfgreg_1a1c303d05316ab3e0dad1e2d934cfaf86" kindref="member">THREAD_CFG_SIZE</ref><sp/>=<sp/>THD_STATE_SIZE;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">dbg_array_id</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__array__id_1a4804cf81d2fa5a225b24665a2d2a5f15" kindref="member">SRCA</ref><sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>SrcA<sp/>last<sp/>used<sp/>bank</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__array__id_1a9a7bc25825336b4afc616c168dc781b0" kindref="member">SRCB</ref><sp/>=<sp/>1;<sp/></highlight><highlight class="comment">//<sp/>SrcB<sp/>last<sp/>used<sp/>bank</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__array__id_1a11fcaf280e2fd537ed3e37530ecae895" kindref="member">DEST</ref><sp/>=<sp/>2;<sp/></highlight><highlight class="comment">//<sp/>Dest<sp/>acc</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">dbg_daisy_id</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__daisy__id_1aa73f5bac43adadda6ce624c1fbff8f33" kindref="member">INSTR_ISSUE_0</ref><sp/>=<sp/>4;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__daisy__id_1a4186c3b44dc273cca48cf315731ac3d2" kindref="member">INSTR_ISSUE_1</ref><sp/>=<sp/>5;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1dbg__daisy__id_1a9f84dad856c5674a46535e938d5f442a" kindref="member">INSTR_ISSUE_2</ref><sp/>=<sp/>6;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>sig_sel<sp/><sp/><sp/><sp/>:<sp/>16;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>daisy_sel<sp/><sp/>:<sp/>8;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>rd_sel<sp/><sp/><sp/><sp/><sp/>:<sp/>4;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>reserved_0<sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>en<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>reserved_1<sp/>:<sp/>2;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">}<sp/>dbg_bus_cntl_t;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>val;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_bus_cntl_t<sp/>f;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">}<sp/>dbg_bus_cntl_u;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal">;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>en<sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>reserved<sp/>:<sp/>31;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">}<sp/>dbg_array_rd_en_t;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>val;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_en_t<sp/>f;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">}<sp/>dbg_array_rd_en_u;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>row_addr<sp/><sp/><sp/><sp/>:<sp/>12;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>row_32b_sel<sp/>:<sp/>4;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>array_id<sp/><sp/><sp/><sp/>:<sp/>3;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>bank_id<sp/><sp/><sp/><sp/><sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>reserved<sp/><sp/><sp/><sp/>:<sp/>12;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">}<sp/>dbg_array_rd_cmd_t;</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>val;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_cmd_t<sp/>f;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal">}<sp/>dbg_array_rd_cmd_u;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>unp<sp/><sp/><sp/><sp/><sp/><sp/>:<sp/>2;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>pack<sp/><sp/><sp/><sp/><sp/>:<sp/>4;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>reserved<sp/>:<sp/>26;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">}<sp/>dbg_soft_reset_t;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>val;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_soft_reset_t<sp/>f;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal">}<sp/>dbg_soft_reset_u;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal">;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;ThreadId<sp/>thread_</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">&gt;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a2b3d0b57dccb0e138b87c9cca66303ad" kindref="member">dbg_thread_halt</ref>()</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>static_assert(</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a079f554139a19db0776aed7316dfa903" kindref="member">ThreadId::MathThreadId</ref>)<sp/>||<sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a728f3c92c0a4284b8413647bf320ad5e" kindref="member">ThreadId::UnpackThreadId</ref>)<sp/>||<sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39aa8c3e9c126c71d9877925886d258f78d" kindref="member">ThreadId::PackThreadId</ref>),</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Invalid<sp/>thread<sp/>id<sp/>set<sp/>in<sp/>dbg_wait_for_thread_idle(...)&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a728f3c92c0a4284b8413647bf320ad5e" kindref="member">ThreadId::UnpackThreadId</ref>)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>all<sp/>instructions<sp/>on<sp/>the<sp/>running<sp/>thread<sp/>to<sp/>complete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1e517edddbbf2e675b6c34bf684b240d" kindref="member">tensix_sync</ref>();</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Notify<sp/>math<sp/>thread<sp/>that<sp/>unpack<sp/>thread<sp/>is<sp/>idle</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a73b58fadbcaa0c8ad81f40db4f4d9bcd" kindref="member">mailbox_write</ref>(<ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a079f554139a19db0776aed7316dfa903" kindref="member">ThreadId::MathThreadId</ref>,<sp/>1);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>math<sp/>thread<sp/>to<sp/>complete<sp/>debug<sp/>dump</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint32_t<sp/>temp<sp/>=<sp/><ref refid="namespaceckernel_1a8b4271352cb5f8871d4ea8844b08cf54" kindref="member">mailbox_read</ref>(<ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a079f554139a19db0776aed7316dfa903" kindref="member">ThreadId::MathThreadId</ref>);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a079f554139a19db0776aed7316dfa903" kindref="member">ThreadId::MathThreadId</ref>)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>all<sp/>instructions<sp/>on<sp/>the<sp/>running<sp/>thread<sp/>to<sp/>complete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1e517edddbbf2e675b6c34bf684b240d" kindref="member">tensix_sync</ref>();</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>unpack<sp/>thread<sp/>to<sp/>complete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint32_t<sp/>temp<sp/>=<sp/><ref refid="namespaceckernel_1a8b4271352cb5f8871d4ea8844b08cf54" kindref="member">mailbox_read</ref>(<ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a728f3c92c0a4284b8413647bf320ad5e" kindref="member">ThreadId::UnpackThreadId</ref>);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>previous<sp/>packs<sp/>to<sp/>finish</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(<ref refid="namespaceckernel_1aa440ebb8f4010cbfd33f6a52660968d2" kindref="member">semaphore_read</ref>(<ref refid="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" kindref="member">semaphore::MATH_PACK</ref>)<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="128"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;ThreadId<sp/>thread_</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">&gt;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a6f66a7786a81ef4aad76acaee74e3c2a" kindref="member">dbg_thread_unhalt</ref>()</highlight></codeline>
+<codeline lineno="132"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/>static_assert(</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a079f554139a19db0776aed7316dfa903" kindref="member">ThreadId::MathThreadId</ref>)<sp/>||<sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a728f3c92c0a4284b8413647bf320ad5e" kindref="member">ThreadId::UnpackThreadId</ref>)<sp/>||<sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39aa8c3e9c126c71d9877925886d258f78d" kindref="member">ThreadId::PackThreadId</ref>),</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="stringliteral">&quot;Invalid<sp/>thread<sp/>id<sp/>set<sp/>in<sp/>dbg_wait_for_thread_idle(...)&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(thread_id<sp/>==<sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a079f554139a19db0776aed7316dfa903" kindref="member">ThreadId::MathThreadId</ref>)</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Reset<sp/>pack<sp/>0<sp/>(workaround)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_soft_reset_u<sp/>dbg_soft_reset;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_soft_reset.val<sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_soft_reset.f.pack<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_SOFT_RESET_0,<sp/>dbg_soft_reset.val);</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a444bd6957706d35abf0ec02bdaee803f" kindref="member">wait</ref>(5);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_soft_reset.val<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_SOFT_RESET_0,<sp/>dbg_soft_reset.val);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>all<sp/>instructions<sp/>to<sp/>complete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1e517edddbbf2e675b6c34bf684b240d" kindref="member">tensix_sync</ref>();</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Unhalt<sp/>unpack<sp/>thread</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a73b58fadbcaa0c8ad81f40db4f4d9bcd" kindref="member">mailbox_write</ref>(<ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a728f3c92c0a4284b8413647bf320ad5e" kindref="member">ThreadId::UnpackThreadId</ref>,<sp/>1);</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1aa901af958c50562564568f93371de38e" kindref="member">dbg_get_array_row</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>array_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>row_addr,<sp/>uint32_t<sp/>*rd_data)</highlight></codeline>
+<codeline lineno="157"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Dest<sp/>offset<sp/>is<sp/>added<sp/>to<sp/>row_addr<sp/>to<sp/>dump<sp/>currently<sp/>used<sp/>half<sp/>of<sp/>the<sp/>dest<sp/>accumulator<sp/>(SyncHalf<sp/>dest<sp/>mode)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/>std::uint32_t<sp/>dest_offset<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(array_id<sp/>==<sp/><ref refid="structckernel_1_1dbg__array__id_1a11fcaf280e2fd537ed3e37530ecae895" kindref="member">dbg_array_id::DEST</ref>)</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dest_offset<sp/>=<sp/>(<ref refid="namespaceckernel_1a9bded62901c795bc0a274b242c02d2e3" kindref="member">dest_offset_id</ref><sp/>==<sp/>1)<sp/>?<sp/>DEST_REGISTER_HALF_SIZE<sp/>:<sp/>0;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(array_id<sp/>==<sp/><ref refid="structckernel_1_1dbg__array__id_1a4804cf81d2fa5a225b24665a2d2a5f15" kindref="member">dbg_array_id::SRCA</ref>)</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Save<sp/>dest<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>WWhen<sp/>SrcA<sp/>array<sp/>is<sp/>selected<sp/>we<sp/>need<sp/>to<sp/>copy<sp/>row<sp/>from<sp/>src<sp/>register<sp/>into<sp/>dest<sp/>to<sp/>be<sp/>able<sp/>to<sp/>dump<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Dump<sp/>from<sp/>SrcA<sp/>array<sp/>is<sp/>not<sp/>supported</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Save<sp/>dest<sp/>row<sp/>to<sp/>SFPU<sp/>register</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Move<sp/>SrcA<sp/>into<sp/>dest<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Dump<sp/>dest<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Restore<sp/>dest<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>addr_mod_t<sp/>{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srca<sp/>=<sp/>{.incr<sp/>=<sp/>0,<sp/>.clr<sp/>=<sp/>0,<sp/>.cr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0,<sp/>.clr<sp/>=<sp/>0,<sp/>.cr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>0,<sp/>.clr<sp/>=<sp/>0,<sp/>.cr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>);</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Clear<sp/>counters</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a831ce6850ea6dbade5660f1a1579f3f3" kindref="member">p_setrwc::SET_ABD_F</ref>);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(<ref refid="structckernel_1_1p__sfpu_1aa0f33c600e9cae536edfa02c17925bc4" kindref="member">p_sfpu::LREG3</ref>,<sp/>0,<sp/>0,<sp/>0);<sp/></highlight><highlight class="comment">//<sp/>Save<sp/>dest<sp/>addr<sp/>0<sp/>(even<sp/>cols)<sp/>to<sp/>LREG_3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(<ref refid="structckernel_1_1p__sfpu_1aa0f33c600e9cae536edfa02c17925bc4" kindref="member">p_sfpu::LREG3</ref>,<sp/>0,<sp/>0,<sp/>2);<sp/></highlight><highlight class="comment">//<sp/>Save<sp/>dest<sp/>addr<sp/>0<sp/>(odd<sp/>cols)<sp/><sp/>to<sp/>LREG_3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1a51b99d461b320d2106440fec4e5cf08f" kindref="member">p_stall::STALL_MATH</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a49611798e132c8713e4f4ff15ee0f66c" kindref="member">p_stall::SFPU1</ref>);</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Move<sp/>to<sp/>the<sp/>last<sp/>used<sp/>bank</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a216e1b0bace91edde0cbb2151c410054" kindref="member">TTI_CLEARDVALID</ref>(0b01,<sp/>0);</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"></highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Copy<sp/>single<sp/>row<sp/>from<sp/>SrcA[row_addr]<sp/>to<sp/>dest<sp/>location<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a8e9a2b1f3e44e8d2c6deeb065bb225d2" kindref="member">TT_MOVDBGA2D</ref>(0,<sp/>row_addr,<sp/>0,<sp/><ref refid="structckernel_1_1p__mova2d_1a5494ee268d5c1246205c2e0daa08480f" kindref="member">p_mova2d::MOV_1_ROW</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>TT<sp/>instructions<sp/>to<sp/>complete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1e517edddbbf2e675b6c34bf684b240d" kindref="member">tensix_sync</ref>();</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(array_id<sp/>==<sp/><ref refid="structckernel_1_1dbg__array__id_1a9a7bc25825336b4afc616c168dc781b0" kindref="member">dbg_array_id::SRCB</ref>)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>addr_mod_t<sp/>{</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srca<sp/>=<sp/>{.incr<sp/>=<sp/>0,<sp/>.clr<sp/>=<sp/>0,<sp/>.cr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0,<sp/>.clr<sp/>=<sp/>0,<sp/>.cr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>0,<sp/>.clr<sp/>=<sp/>0,<sp/>.cr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Clear<sp/>counters</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a831ce6850ea6dbade5660f1a1579f3f3" kindref="member">p_setrwc::SET_ABD_F</ref>);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Move<sp/>to<sp/>the<sp/>last<sp/>used<sp/>bank</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a0366b540984c8eef01e1ef7e289a9fd4" kindref="member">TTI_SETDVALID</ref>(0b10);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a216e1b0bace91edde0cbb2151c410054" kindref="member">TTI_CLEARDVALID</ref>(0b10,<sp/>0);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Latch<sp/>debug<sp/>values</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a0366b540984c8eef01e1ef7e289a9fd4" kindref="member">TTI_SETDVALID</ref>(0b10);</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1af490b54d8ab6c24f474120ed16b6140b" kindref="member">TTI_SHIFTXB</ref>(<ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>0,<sp/>row_addr<sp/>&gt;&gt;<sp/>1);</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a216e1b0bace91edde0cbb2151c410054" kindref="member">TTI_CLEARDVALID</ref>(0b10,<sp/>0);</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>TT<sp/>instructions<sp/>to<sp/>complete</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1e517edddbbf2e675b6c34bf684b240d" kindref="member">tensix_sync</ref>();</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="222"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Get<sp/>last<sp/>used<sp/>bank<sp/>id<sp/>via<sp/>debug<sp/>bus</highlight></codeline>
+<codeline lineno="223"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_bus_cntl_u<sp/>dbg_bus_cntl;</highlight></codeline>
+<codeline lineno="224"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_bus_cntl.val<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="225"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_bus_cntl.f.rd_sel<sp/>=<sp/>6;<sp/>//<sp/>Read<sp/>bits<sp/>111:96,<sp/>110<sp/>(write_math_id_reg)</highlight></codeline>
+<codeline lineno="226"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_bus_cntl.f.sig_sel<sp/>=<sp/>0x4&lt;&lt;1;</highlight></codeline>
+<codeline lineno="227"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_bus_cntl.f.daisy_sel<sp/>=<sp/>dbg_daisy_id::INSTR_ISSUE_2;</highlight></codeline>
+<codeline lineno="228"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_bus_cntl.f.en<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="229"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>reg_write(RISCV_DEBUG_REG_DBG_BUS_CNTL_REG,<sp/>dbg_bus_cntl.val);</highlight></codeline>
+<codeline lineno="230"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>wait<sp/>(5);<sp/>//<sp/>Wait<sp/>for<sp/>value<sp/>to<sp/>get<sp/>stable</highlight></codeline>
+<codeline lineno="231"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>srcb_bank_id<sp/>=<sp/>((reg_read(RISCV_DEBUG_REG_DBG_RD_DATA))<sp/>&amp;<sp/>0x4000)<sp/>?<sp/>0<sp/>:<sp/>1;</highlight></codeline>
+<codeline lineno="232"><highlight class="comment"></highlight></codeline>
+<codeline lineno="233"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Disable<sp/>debug<sp/>bus</highlight></codeline>
+<codeline lineno="234"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_bus_cntl.val<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="235"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>reg_write(RISCV_DEBUG_REG_DBG_BUS_CNTL_REG,<sp/>dbg_bus_cntl.val);</highlight></codeline>
+<codeline lineno="236"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Get<sp/>actual<sp/>row<sp/>address<sp/>and<sp/>array<sp/>id<sp/>used<sp/>in<sp/>hw</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/>std::uint32_t<sp/>hw_row_addr<sp/>=<sp/>(array_id<sp/>==<sp/><ref refid="structckernel_1_1dbg__array__id_1a4804cf81d2fa5a225b24665a2d2a5f15" kindref="member">dbg_array_id::SRCA</ref>)<sp/>?<sp/>0<sp/>:<sp/>((array_id<sp/>==<sp/><ref refid="structckernel_1_1dbg__array__id_1a11fcaf280e2fd537ed3e37530ecae895" kindref="member">dbg_array_id::DEST</ref>)<sp/>?<sp/>dest_offset<sp/>+<sp/>row_addr<sp/>:<sp/>row_addr<sp/>&amp;<sp/>0x1);</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"></highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/>std::uint32_t<sp/>hw_array_id<sp/>=<sp/>(array_id<sp/>==<sp/><ref refid="structckernel_1_1dbg__array__id_1a4804cf81d2fa5a225b24665a2d2a5f15" kindref="member">dbg_array_id::SRCA</ref>)<sp/>?<sp/><ref refid="structckernel_1_1dbg__array__id_1a11fcaf280e2fd537ed3e37530ecae895" kindref="member">dbg_array_id::DEST</ref><sp/>:<sp/>array_id;</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/>std::uint32_t<sp/>hw_bank_id<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>sel_datums_15_8<sp/>=<sp/>hw_array_id<sp/>!=<sp/><ref refid="structckernel_1_1dbg__array__id_1a11fcaf280e2fd537ed3e37530ecae895" kindref="member">dbg_array_id::DEST</ref>;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_en_u<sp/>dbg_array_rd_en;</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_en.val<sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_en.f.en<sp/>=<sp/>0x1;</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_DBG_ARRAY_RD_EN,<sp/>dbg_array_rd_en.val);</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"></highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_cmd_u<sp/>dbg_array_rd_cmd;</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_cmd.val<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_cmd.f.array_id<sp/>=<sp/>hw_array_id;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_cmd.f.bank_id<sp/><sp/>=<sp/>hw_bank_id;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"></highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>8;<sp/>i++)</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_array_rd_cmd.f.row_addr<sp/><sp/><sp/><sp/>=<sp/>sel_datums_15_8<sp/>?<sp/>(hw_row_addr<sp/>|<sp/>((i<sp/>&gt;=<sp/>4)<sp/>?<sp/>(1<sp/>&lt;&lt;<sp/>6)<sp/>:<sp/>0))<sp/>:<sp/>hw_row_addr;</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dbg_array_rd_cmd.f.row_32b_sel<sp/>=<sp/>i;</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_DBG_ARRAY_RD_CMD,<sp/>dbg_array_rd_cmd.val);</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a444bd6957706d35abf0ec02bdaee803f" kindref="member">wait</ref>(5);<sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>value<sp/>to<sp/>get<sp/>stable</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>rd_data[i]<sp/>=<sp/><ref refid="namespaceckernel_1a7cccad24575c1ef79bfa8ae940a52d3d" kindref="member">reg_read</ref>(RISCV_DEBUG_REG_DBG_ARRAY_RD_DATA);</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"></highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Disable<sp/>debug<sp/>control</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_cmd.val<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_DBG_ARRAY_RD_CMD,<sp/>dbg_array_rd_cmd.val);</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/>dbg_array_rd_en.val<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_DBG_ARRAY_RD_EN,<sp/>dbg_array_rd_en.val);</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"></highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Restore<sp/>dest<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(array_id<sp/>==<sp/><ref refid="structckernel_1_1dbg__array__id_1a4804cf81d2fa5a225b24665a2d2a5f15" kindref="member">dbg_array_id::SRCA</ref>)</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(<ref refid="structckernel_1_1p__sfpu_1aa0f33c600e9cae536edfa02c17925bc4" kindref="member">p_sfpu::LREG3</ref>,<sp/>0,<sp/>0,<sp/>0);<sp/></highlight><highlight class="comment">//<sp/>Restore<sp/>dest<sp/>addr<sp/>0<sp/>(even<sp/>cols)<sp/>from<sp/>LREG_3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(<ref refid="structckernel_1_1p__sfpu_1aa0f33c600e9cae536edfa02c17925bc4" kindref="member">p_sfpu::LREG3</ref>,<sp/>0,<sp/>0,<sp/>2);<sp/></highlight><highlight class="comment">//<sp/>Restore<sp/>dest<sp/>addr<sp/>0<sp/>(odd<sp/>cols)<sp/>from<sp/>LREG_3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Move<sp/>to<sp/>the<sp/>current<sp/>bank</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a216e1b0bace91edde0cbb2151c410054" kindref="member">TTI_CLEARDVALID</ref>(1,<sp/>0);</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="281"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"></highlight></codeline>
+<codeline lineno="283"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1acae67e50dc2c43c55c6ba894204fda21" kindref="member">dbg_read_cfgreg</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>cfgreg_id,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>addr)</highlight></codeline>
+<codeline lineno="284"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>hw_base_addr<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(cfgreg_id)</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="structckernel_1_1dbg__cfgreg_1ad01a0ef2c4f9b66cd4c9b12c2fca6615" kindref="member">dbg_cfgreg::HW_CFG_1</ref>:</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>hw_base_addr<sp/>=<sp/><ref refid="structckernel_1_1dbg__cfgreg_1a6b305feb4470f6843672b5158215a66e" kindref="member">dbg_cfgreg::HW_CFG_SIZE</ref>;</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="structckernel_1_1dbg__cfgreg_1aaaa41d873e44282695f9e8fa5c2541a5" kindref="member">dbg_cfgreg::THREAD_0_CFG</ref>:</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="structckernel_1_1dbg__cfgreg_1ab00af4329b932b699fc01c95663213dc" kindref="member">dbg_cfgreg::THREAD_1_CFG</ref>:</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="structckernel_1_1dbg__cfgreg_1af3e004cad18462f64f08a911b315e774" kindref="member">dbg_cfgreg::THREAD_2_CFG</ref>:</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>hw_base_addr<sp/>=<sp/>2<sp/>*<sp/><ref refid="structckernel_1_1dbg__cfgreg_1a6b305feb4470f6843672b5158215a66e" kindref="member">dbg_cfgreg::HW_CFG_SIZE</ref><sp/>+<sp/>cfgreg_id<sp/>*<sp/><ref refid="structckernel_1_1dbg__cfgreg_1a1c303d05316ab3e0dad1e2d934cfaf86" kindref="member">dbg_cfgreg::THREAD_CFG_SIZE</ref>;</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"></highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>hw_addr<sp/>=<sp/>hw_base_addr<sp/>+<sp/>(addr<sp/>&amp;<sp/>0x7ff);<sp/></highlight><highlight class="comment">//<sp/>hw<sp/>address<sp/>is<sp/>4-byte<sp/>aligned</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_CFGREG_RD_CNTL,<sp/>hw_addr);</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"></highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a444bd6957706d35abf0ec02bdaee803f" kindref="member">wait</ref>(1);</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"></highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a7cccad24575c1ef79bfa8ae940a52d3d" kindref="member">reg_read</ref>(RISCV_DEBUG_REG_CFGREG_RDDATA);</highlight></codeline>
+<codeline lineno="307"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"></highlight></codeline>
+<codeline lineno="309"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/common/inc/ckernel_debug.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['b2d_235',['B2D',['../namespaceckernel.html#a3eac502a359be920e2fb1e446baadc32ab812a24dfc5be14f10b6fdb9d4ae8857',1,'ckernel']]],
+  ['backward_5fpass_236',['BACKWARD_PASS',['../structckernel_1_1p__srcb.html#aa99ffc0cf1f917689acc49f393a703b3',1,'ckernel::p_srcb']]],
+  ['bank_5fid_237',['bank_id',['../structckernel_1_1dbg__array__rd__cmd__t.html#a5fd98ac44762e441a3b5c68ceb136ee2',1,'ckernel::dbg_array_rd_cmd_t']]],
+  ['bias_238',['bias',['../structckernel_1_1addr__mod__t.html#a7489ad2845ccb16d5b573f898e142978',1,'ckernel::addr_mod_t']]],
+  ['binarybitwiseop_239',['BinaryBitwiseOp',['../namespaceckernel_1_1sfpu.html#a82ddeec98b9e7d648450f418da8d1d84',1,'ckernel::sfpu::BinaryBitwiseOp()'],['../namespaceckernel_1_1sfpu.html#a82ddeec98b9e7d648450f418da8d1d84',1,'ckernel::sfpu::BinaryBitwiseOp()']]],
+  ['binaryop_240',['BinaryOp',['../namespaceckernel_1_1sfpu.html#a1a472303115a1004c0fcc2c0102431c8',1,'ckernel::sfpu::BinaryOp()'],['../namespaceckernel_1_1sfpu.html#a1a472303115a1004c0fcc2c0102431c8',1,'ckernel::sfpu::BinaryOp()']]],
+  ['bitonic_5ftopk_5finc_5fx4_5fdest_241',['bitonic_topk_inc_x4_dest',['../namespaceckernel_1_1sfpu.html#af55b63283d53991ff3a5e840dd26c307',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5finc_5fx8_5fdest_242',['bitonic_topk_inc_x8_dest',['../namespaceckernel_1_1sfpu.html#a5918a3abf689934e61d107e840dd6a0c',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fload16_243',['bitonic_topk_load16',['../namespaceckernel_1_1sfpu.html#ad817f8d91090595404901c353dd054a7',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fload8_244',['bitonic_topk_load8',['../namespaceckernel_1_1sfpu.html#ac82f0878ae40af67f5642fdefbae9cac',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fph0_5fst1_5fto_5f1_245',['bitonic_topk_ph0_st1_to_1',['../namespaceckernel_1_1sfpu.html#a64ed6846e572c03fbe4f96fe29d1db93',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fph1_5fst2_5fto_5f1_246',['bitonic_topk_ph1_st2_to_1',['../namespaceckernel_1_1sfpu.html#a685c573bb9bb5c11da4c07c897b37cbd',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fph2_5fst3_5fto_5f1_247',['bitonic_topk_ph2_st3_to_1',['../namespaceckernel_1_1sfpu.html#a9390d0fce34a80f2ca17d72ffded6514',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fph3_5fst4_5fto_5f1_248',['bitonic_topk_ph3_st4_to_1',['../namespaceckernel_1_1sfpu.html#a04ef4c05da5b762d4f0da7b9627f3ca7',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fstep_5fn_249',['bitonic_topk_step_N',['../namespaceckernel_1_1sfpu.html#a2159b773bf5c420be456bafcd95243a9',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fstore16_250',['bitonic_topk_store16',['../namespaceckernel_1_1sfpu.html#ada23f48fce1bb22291c0c97997275f67',1,'ckernel::sfpu']]],
+  ['bitonic_5ftopk_5fstore8_251',['bitonic_topk_store8',['../namespaceckernel_1_1sfpu.html#a9e712a6c2eeb3b047a63ccad5072c325',1,'ckernel::sfpu']]],
+  ['blobs_5fper_5fxy_5fplane_252',['blobs_per_xy_plane',['../structckernel_1_1unpacker_1_1unpack__tile__descriptor__t.html#add2f91805176fa303a0e68fd57a6d9ef',1,'ckernel::unpacker::unpack_tile_descriptor_t']]],
+  ['blobs_5fy_5fstart_5fhi_253',['blobs_y_start_hi',['../structckernel_1_1unpacker_1_1unpack__tile__descriptor__t.html#a6c8919a81fe4c2fb25aebad898f1f4c2',1,'ckernel::unpacker::unpack_tile_descriptor_t']]],
+  ['blobs_5fy_5fstart_5flo_254',['blobs_y_start_lo',['../structckernel_1_1unpacker_1_1unpack__tile__descriptor__t.html#a9105de1c06dac4d15a6d08e3de7ea5aa',1,'ckernel::unpacker::unpack_tile_descriptor_t']]],
+  ['broadcasttype_255',['BroadcastType',['../namespaceckernel.html#a850ed05e8a4dc1ed46bf65150c9635c2',1,'ckernel::BroadcastType()'],['../namespaceckernel.html#a850ed05e8a4dc1ed46bf65150c9635c2',1,'ckernel::BroadcastType()']]],
+  ['bstatus_5fu_256',['bstatus_u',['../unionckernel_1_1bstatus__u.html',1,'ckernel']]]
+];

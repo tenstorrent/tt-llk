@@ -1,0 +1,232 @@
+\hypertarget{namespaceckernel_1_1unpacker}{}\doxysection{ckernel\+::unpacker Namespace Reference}
+\label{namespaceckernel_1_1unpacker}\index{ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__tile__descriptor__t}{unpack\+\_\+tile\+\_\+descriptor\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1unpacker_1_1unpack__tile__descriptor__u}{unpack\+\_\+tile\+\_\+descriptor\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__config__t}{unpack\+\_\+config\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1unpacker_1_1unpack__config__u}{unpack\+\_\+config\+\_\+u}}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1unpacker_1_1alu__config__t}{alu\+\_\+config\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1unpacker_1_1alu__config__u}{alu\+\_\+config\+\_\+u}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_ae416ef838f536bf7b82c1b6f4a53df0e}{unpacker\+\_\+addr\+\_\+counter\+\_\+init}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a300fcfac6b4c6f50523a6d91ca61cbba}{unpacker\+\_\+iteration\+\_\+cleanup}} (uint \&context)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a00fa08a893659caf5e6f38fd8f457824}{unpacker\+\_\+wrapup}} ()
+\item 
+uint \mbox{\hyperlink{namespaceckernel_1_1unpacker_a84ee2f15ec6fdc25e679d5725f41eda4}{unpack\+\_\+16\+B\+\_\+address}} (const uint addr)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a411f5461da0f41c0337f12fe14da7261}{flush\+\_\+xsearch\+\_\+cache}} (const uint unpacker)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a77b36a3adbe2119aacfea22bae6783ea}{wait\+\_\+for\+\_\+next\+\_\+context}} (const uint num\+\_\+contexts)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a8306dc71629a0dd7e9bfb91ca5932ac0}{switch\+\_\+config\+\_\+context}} (uint \&\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__globals_8h_ad599359d106464c9e12c1f131540a1c0}{unp\+\_\+cfg\+\_\+context}})
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a8b5c8845e7511cc758476b70631ca0fa}{reset\+\_\+config\+\_\+context}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_afb29c2b09196d9193e5fb695d65ee6b5}{wait\+\_\+for\+\_\+idle}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a1d6f26900e4dc1a4766d9d39d60cb74f}{enable\+\_\+int8\+\_\+fpu\+\_\+math}} ()
+\item 
+{\footnotesize template$<$bool row\+\_\+pool = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool fpu\+\_\+srnd\+\_\+en = false, bool pack\+\_\+srnd\+\_\+en = false, bool disable\+\_\+src\+\_\+zero\+\_\+flag = false$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a2a2c94eccb63b04fbd53f860b0c5c294}{configure\+\_\+unpack\+\_\+\+AB}} (const uint unp\+A\+\_\+src\+\_\+format, const uint unp\+B\+\_\+src\+\_\+format, const uint unp\+A\+\_\+dst\+\_\+format, const uint unp\+B\+\_\+dst\+\_\+format, const uint unp\+A\+\_\+face\+\_\+r\+\_\+dim=\mbox{\hyperlink{namespaceckernel_a870ab66757137fb4b2a9e0ccc22a2d3c}{FACE\+\_\+\+R\+\_\+\+DIM}}, const uint unp\+B\+\_\+face\+\_\+r\+\_\+dim=\mbox{\hyperlink{namespaceckernel_a870ab66757137fb4b2a9e0ccc22a2d3c}{FACE\+\_\+\+R\+\_\+\+DIM}}, const bool transpose\+\_\+xy\+\_\+srca\+\_\+en=false, const uint unp\+A\+\_\+num\+\_\+faces=4, const uint unp\+B\+\_\+num\+\_\+faces=4)
+\item 
+{\footnotesize template$<$std\+::uint32\+\_\+t UNP\+\_\+\+SEL = p\+\_\+setadc\+::\+UNP\+\_\+\+AB$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1unpacker_ae10a2c3c6eee080f92ec0640e4051633}{config\+\_\+unpacker\+\_\+x\+\_\+end}} (const uint32\+\_\+t face\+\_\+r\+\_\+dim)
+\item 
+{\footnotesize template$<$bool INSERT\+\_\+\+FENCE = false, std\+::uint32\+\_\+t UNP\+\_\+\+SEL = p\+\_\+setadc\+::\+UNP\+\_\+\+AB$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a15c5878a2c0819ecb7438ed0c0986f7c}{config\+\_\+unpacker\+\_\+0\+\_\+face\+\_\+dim}} (const uint32\+\_\+t face\+\_\+r\+\_\+dim)
+\item 
+constexpr bool \mbox{\hyperlink{namespaceckernel_1_1unpacker_a5603f8753ae0d5df57d79ebb80cbdf1c}{is\+\_\+32bit\+\_\+input}} (const std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a5938c0573ddffddd7a583aa0aab04224}{wait\+\_\+for\+\_\+dest\+\_\+available}} ()
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a19d9324285dbd9e512f3c5f403448757}{unpack\+\_\+to\+\_\+dest\+\_\+tile\+\_\+done}} (uint \&context\+\_\+id)
+\item 
+void \mbox{\hyperlink{namespaceckernel_1_1unpacker_a729cc5b2eb6ba464bb7fe3a7984d8ef7}{set\+\_\+dst\+\_\+write\+\_\+addr}} (const uint32\+\_\+t \&context\+\_\+id, const uint32\+\_\+t \&unpack\+\_\+dst\+\_\+format)
+\item 
+\mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__tile__descriptor__t}{unpack\+\_\+tile\+\_\+descriptor\+\_\+t}} \mbox{\hyperlink{namespaceckernel_1_1unpacker_a8c43186b56187b59c10ae7f167e75706}{read\+\_\+unpack\+\_\+tile\+\_\+descriptor\+\_\+helper}} (uint32\+\_\+t reg\+\_\+addr, const volatile uint $\ast$cfg)
+\item 
+std\+::array$<$ \mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__tile__descriptor__t}{unpack\+\_\+tile\+\_\+descriptor\+\_\+t}}, \mbox{\hyperlink{namespaceckernel_1_1unpacker_a48ecd61a0cad3db6981e38b1e2243d2a}{NUM\+\_\+\+UNPACKERS}} $>$ \mbox{\hyperlink{namespaceckernel_1_1unpacker_aced0dfa4d292d10e067c7acf621dade5}{read\+\_\+unpack\+\_\+tile\+\_\+descriptor}} ()
+\item 
+\mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__config__t}{unpack\+\_\+config\+\_\+t}} \mbox{\hyperlink{namespaceckernel_1_1unpacker_a4dd9ad611570cc646ad1a6688792003a}{read\+\_\+unpack\+\_\+config\+\_\+helper}} (uint32\+\_\+t reg\+\_\+addr, const volatile uint $\ast$cfg)
+\item 
+std\+::array$<$ \mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__config__t}{unpack\+\_\+config\+\_\+t}}, \mbox{\hyperlink{namespaceckernel_1_1unpacker_a48ecd61a0cad3db6981e38b1e2243d2a}{NUM\+\_\+\+UNPACKERS}} $>$ \mbox{\hyperlink{namespaceckernel_1_1unpacker_a65c91d62f702e8682ca2e04d770b2b1b}{read\+\_\+unpack\+\_\+config}} ()
+\item 
+\mbox{\hyperlink{structckernel_1_1unpacker_1_1alu__config__t}{alu\+\_\+config\+\_\+t}} \mbox{\hyperlink{namespaceckernel_1_1unpacker_a169ea23bb8dedb71ac5cf57a517df055}{read\+\_\+alu\+\_\+config}} ()
+\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+constexpr uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1unpacker_a852bf48fc41cd1f9fc95ba0c5cb327c3}{TILE\+\_\+\+DESC\+\_\+\+SIZE}} = 2
+\item 
+constexpr uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1unpacker_ad5954b3ef39d2586a634f51a038af643}{CONFIG\+\_\+\+SIZE}} = 2
+\item 
+constexpr uint32\+\_\+t \mbox{\hyperlink{namespaceckernel_1_1unpacker_a48ecd61a0cad3db6981e38b1e2243d2a}{NUM\+\_\+\+UNPACKERS}} = 2
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a15c5878a2c0819ecb7438ed0c0986f7c}\label{namespaceckernel_1_1unpacker_a15c5878a2c0819ecb7438ed0c0986f7c}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!config\_unpacker\_0\_face\_dim@{config\_unpacker\_0\_face\_dim}}
+\index{config\_unpacker\_0\_face\_dim@{config\_unpacker\_0\_face\_dim}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{config\_unpacker\_0\_face\_dim()}{config\_unpacker\_0\_face\_dim()}}
+{\footnotesize\ttfamily template$<$bool INSERT\+\_\+\+FENCE = false, std\+::uint32\+\_\+t UNP\+\_\+\+SEL = p\+\_\+setadc\+::\+UNP\+\_\+\+AB$>$ \\
+void ckernel\+::unpacker\+::config\+\_\+unpacker\+\_\+0\+\_\+face\+\_\+dim (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{face\+\_\+r\+\_\+dim }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_ae10a2c3c6eee080f92ec0640e4051633}\label{namespaceckernel_1_1unpacker_ae10a2c3c6eee080f92ec0640e4051633}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!config\_unpacker\_x\_end@{config\_unpacker\_x\_end}}
+\index{config\_unpacker\_x\_end@{config\_unpacker\_x\_end}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{config\_unpacker\_x\_end()}{config\_unpacker\_x\_end()}}
+{\footnotesize\ttfamily template$<$std\+::uint32\+\_\+t UNP\+\_\+\+SEL = p\+\_\+setadc\+::\+UNP\+\_\+\+AB$>$ \\
+void ckernel\+::unpacker\+::config\+\_\+unpacker\+\_\+x\+\_\+end (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{face\+\_\+r\+\_\+dim }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a2a2c94eccb63b04fbd53f860b0c5c294}\label{namespaceckernel_1_1unpacker_a2a2c94eccb63b04fbd53f860b0c5c294}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!configure\_unpack\_AB@{configure\_unpack\_AB}}
+\index{configure\_unpack\_AB@{configure\_unpack\_AB}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{configure\_unpack\_AB()}{configure\_unpack\_AB()}}
+{\footnotesize\ttfamily template$<$bool row\+\_\+pool = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool fpu\+\_\+srnd\+\_\+en = false, bool pack\+\_\+srnd\+\_\+en = false, bool disable\+\_\+src\+\_\+zero\+\_\+flag = false$>$ \\
+void ckernel\+::unpacker\+::configure\+\_\+unpack\+\_\+\+AB (\begin{DoxyParamCaption}\item[{const uint}]{unp\+A\+\_\+src\+\_\+format,  }\item[{const uint}]{unp\+B\+\_\+src\+\_\+format,  }\item[{const uint}]{unp\+A\+\_\+dst\+\_\+format,  }\item[{const uint}]{unp\+B\+\_\+dst\+\_\+format,  }\item[{const uint}]{unp\+A\+\_\+face\+\_\+r\+\_\+dim = {\ttfamily \mbox{\hyperlink{namespaceckernel_a870ab66757137fb4b2a9e0ccc22a2d3c}{FACE\+\_\+\+R\+\_\+\+DIM}}},  }\item[{const uint}]{unp\+B\+\_\+face\+\_\+r\+\_\+dim = {\ttfamily \mbox{\hyperlink{namespaceckernel_a870ab66757137fb4b2a9e0ccc22a2d3c}{FACE\+\_\+\+R\+\_\+\+DIM}}},  }\item[{const bool}]{transpose\+\_\+xy\+\_\+srca\+\_\+en = {\ttfamily false},  }\item[{const uint}]{unp\+A\+\_\+num\+\_\+faces = {\ttfamily 4},  }\item[{const uint}]{unp\+B\+\_\+num\+\_\+faces = {\ttfamily 4} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a1d6f26900e4dc1a4766d9d39d60cb74f}\label{namespaceckernel_1_1unpacker_a1d6f26900e4dc1a4766d9d39d60cb74f}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!enable\_int8\_fpu\_math@{enable\_int8\_fpu\_math}}
+\index{enable\_int8\_fpu\_math@{enable\_int8\_fpu\_math}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{enable\_int8\_fpu\_math()}{enable\_int8\_fpu\_math()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::enable\+\_\+int8\+\_\+fpu\+\_\+math (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a411f5461da0f41c0337f12fe14da7261}\label{namespaceckernel_1_1unpacker_a411f5461da0f41c0337f12fe14da7261}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!flush\_xsearch\_cache@{flush\_xsearch\_cache}}
+\index{flush\_xsearch\_cache@{flush\_xsearch\_cache}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{flush\_xsearch\_cache()}{flush\_xsearch\_cache()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::flush\+\_\+xsearch\+\_\+cache (\begin{DoxyParamCaption}\item[{const uint}]{unpacker }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a5603f8753ae0d5df57d79ebb80cbdf1c}\label{namespaceckernel_1_1unpacker_a5603f8753ae0d5df57d79ebb80cbdf1c}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!is\_32bit\_input@{is\_32bit\_input}}
+\index{is\_32bit\_input@{is\_32bit\_input}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{is\_32bit\_input()}{is\_32bit\_input()}}
+{\footnotesize\ttfamily constexpr bool ckernel\+::unpacker\+::is\+\_\+32bit\+\_\+input (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a169ea23bb8dedb71ac5cf57a517df055}\label{namespaceckernel_1_1unpacker_a169ea23bb8dedb71ac5cf57a517df055}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!read\_alu\_config@{read\_alu\_config}}
+\index{read\_alu\_config@{read\_alu\_config}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{read\_alu\_config()}{read\_alu\_config()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structckernel_1_1unpacker_1_1alu__config__t}{alu\+\_\+config\+\_\+t}} ckernel\+::unpacker\+::read\+\_\+alu\+\_\+config (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a65c91d62f702e8682ca2e04d770b2b1b}\label{namespaceckernel_1_1unpacker_a65c91d62f702e8682ca2e04d770b2b1b}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!read\_unpack\_config@{read\_unpack\_config}}
+\index{read\_unpack\_config@{read\_unpack\_config}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{read\_unpack\_config()}{read\_unpack\_config()}}
+{\footnotesize\ttfamily std\+::array$<$ \mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__config__t}{unpack\+\_\+config\+\_\+t}}, \mbox{\hyperlink{namespaceckernel_1_1unpacker_a48ecd61a0cad3db6981e38b1e2243d2a}{NUM\+\_\+\+UNPACKERS}} $>$ ckernel\+::unpacker\+::read\+\_\+unpack\+\_\+config (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a4dd9ad611570cc646ad1a6688792003a}\label{namespaceckernel_1_1unpacker_a4dd9ad611570cc646ad1a6688792003a}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!read\_unpack\_config\_helper@{read\_unpack\_config\_helper}}
+\index{read\_unpack\_config\_helper@{read\_unpack\_config\_helper}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{read\_unpack\_config\_helper()}{read\_unpack\_config\_helper()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__config__t}{unpack\+\_\+config\+\_\+t}} ckernel\+::unpacker\+::read\+\_\+unpack\+\_\+config\+\_\+helper (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{reg\+\_\+addr,  }\item[{const volatile uint $\ast$}]{cfg }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_aced0dfa4d292d10e067c7acf621dade5}\label{namespaceckernel_1_1unpacker_aced0dfa4d292d10e067c7acf621dade5}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!read\_unpack\_tile\_descriptor@{read\_unpack\_tile\_descriptor}}
+\index{read\_unpack\_tile\_descriptor@{read\_unpack\_tile\_descriptor}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{read\_unpack\_tile\_descriptor()}{read\_unpack\_tile\_descriptor()}}
+{\footnotesize\ttfamily std\+::array$<$ \mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__tile__descriptor__t}{unpack\+\_\+tile\+\_\+descriptor\+\_\+t}}, \mbox{\hyperlink{namespaceckernel_1_1unpacker_a48ecd61a0cad3db6981e38b1e2243d2a}{NUM\+\_\+\+UNPACKERS}} $>$ ckernel\+::unpacker\+::read\+\_\+unpack\+\_\+tile\+\_\+descriptor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a8c43186b56187b59c10ae7f167e75706}\label{namespaceckernel_1_1unpacker_a8c43186b56187b59c10ae7f167e75706}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!read\_unpack\_tile\_descriptor\_helper@{read\_unpack\_tile\_descriptor\_helper}}
+\index{read\_unpack\_tile\_descriptor\_helper@{read\_unpack\_tile\_descriptor\_helper}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{read\_unpack\_tile\_descriptor\_helper()}{read\_unpack\_tile\_descriptor\_helper()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structckernel_1_1unpacker_1_1unpack__tile__descriptor__t}{unpack\+\_\+tile\+\_\+descriptor\+\_\+t}} ckernel\+::unpacker\+::read\+\_\+unpack\+\_\+tile\+\_\+descriptor\+\_\+helper (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{reg\+\_\+addr,  }\item[{const volatile uint $\ast$}]{cfg }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a8b5c8845e7511cc758476b70631ca0fa}\label{namespaceckernel_1_1unpacker_a8b5c8845e7511cc758476b70631ca0fa}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!reset\_config\_context@{reset\_config\_context}}
+\index{reset\_config\_context@{reset\_config\_context}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{reset\_config\_context()}{reset\_config\_context()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::reset\+\_\+config\+\_\+context (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a729cc5b2eb6ba464bb7fe3a7984d8ef7}\label{namespaceckernel_1_1unpacker_a729cc5b2eb6ba464bb7fe3a7984d8ef7}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!set\_dst\_write\_addr@{set\_dst\_write\_addr}}
+\index{set\_dst\_write\_addr@{set\_dst\_write\_addr}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{set\_dst\_write\_addr()}{set\_dst\_write\_addr()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::set\+\_\+dst\+\_\+write\+\_\+addr (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t \&}]{context\+\_\+id,  }\item[{const uint32\+\_\+t \&}]{unpack\+\_\+dst\+\_\+format }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a8306dc71629a0dd7e9bfb91ca5932ac0}\label{namespaceckernel_1_1unpacker_a8306dc71629a0dd7e9bfb91ca5932ac0}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!switch\_config\_context@{switch\_config\_context}}
+\index{switch\_config\_context@{switch\_config\_context}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{switch\_config\_context()}{switch\_config\_context()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::switch\+\_\+config\+\_\+context (\begin{DoxyParamCaption}\item[{uint \&}]{unp\+\_\+cfg\+\_\+context }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a84ee2f15ec6fdc25e679d5725f41eda4}\label{namespaceckernel_1_1unpacker_a84ee2f15ec6fdc25e679d5725f41eda4}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!unpack\_16B\_address@{unpack\_16B\_address}}
+\index{unpack\_16B\_address@{unpack\_16B\_address}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{unpack\_16B\_address()}{unpack\_16B\_address()}}
+{\footnotesize\ttfamily uint ckernel\+::unpacker\+::unpack\+\_\+16\+B\+\_\+address (\begin{DoxyParamCaption}\item[{const uint}]{addr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a19d9324285dbd9e512f3c5f403448757}\label{namespaceckernel_1_1unpacker_a19d9324285dbd9e512f3c5f403448757}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!unpack\_to\_dest\_tile\_done@{unpack\_to\_dest\_tile\_done}}
+\index{unpack\_to\_dest\_tile\_done@{unpack\_to\_dest\_tile\_done}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{unpack\_to\_dest\_tile\_done()}{unpack\_to\_dest\_tile\_done()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::unpack\+\_\+to\+\_\+dest\+\_\+tile\+\_\+done (\begin{DoxyParamCaption}\item[{uint \&}]{context\+\_\+id }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_ae416ef838f536bf7b82c1b6f4a53df0e}\label{namespaceckernel_1_1unpacker_ae416ef838f536bf7b82c1b6f4a53df0e}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!unpacker\_addr\_counter\_init@{unpacker\_addr\_counter\_init}}
+\index{unpacker\_addr\_counter\_init@{unpacker\_addr\_counter\_init}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{unpacker\_addr\_counter\_init()}{unpacker\_addr\_counter\_init()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::unpacker\+\_\+addr\+\_\+counter\+\_\+init (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a300fcfac6b4c6f50523a6d91ca61cbba}\label{namespaceckernel_1_1unpacker_a300fcfac6b4c6f50523a6d91ca61cbba}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!unpacker\_iteration\_cleanup@{unpacker\_iteration\_cleanup}}
+\index{unpacker\_iteration\_cleanup@{unpacker\_iteration\_cleanup}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{unpacker\_iteration\_cleanup()}{unpacker\_iteration\_cleanup()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::unpacker\+\_\+iteration\+\_\+cleanup (\begin{DoxyParamCaption}\item[{uint \&}]{context }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a00fa08a893659caf5e6f38fd8f457824}\label{namespaceckernel_1_1unpacker_a00fa08a893659caf5e6f38fd8f457824}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!unpacker\_wrapup@{unpacker\_wrapup}}
+\index{unpacker\_wrapup@{unpacker\_wrapup}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{unpacker\_wrapup()}{unpacker\_wrapup()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::unpacker\+\_\+wrapup (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a5938c0573ddffddd7a583aa0aab04224}\label{namespaceckernel_1_1unpacker_a5938c0573ddffddd7a583aa0aab04224}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!wait\_for\_dest\_available@{wait\_for\_dest\_available}}
+\index{wait\_for\_dest\_available@{wait\_for\_dest\_available}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{wait\_for\_dest\_available()}{wait\_for\_dest\_available()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::wait\+\_\+for\+\_\+dest\+\_\+available (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_afb29c2b09196d9193e5fb695d65ee6b5}\label{namespaceckernel_1_1unpacker_afb29c2b09196d9193e5fb695d65ee6b5}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!wait\_for\_idle@{wait\_for\_idle}}
+\index{wait\_for\_idle@{wait\_for\_idle}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{wait\_for\_idle()}{wait\_for\_idle()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::wait\+\_\+for\+\_\+idle (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a77b36a3adbe2119aacfea22bae6783ea}\label{namespaceckernel_1_1unpacker_a77b36a3adbe2119aacfea22bae6783ea}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!wait\_for\_next\_context@{wait\_for\_next\_context}}
+\index{wait\_for\_next\_context@{wait\_for\_next\_context}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{wait\_for\_next\_context()}{wait\_for\_next\_context()}}
+{\footnotesize\ttfamily void ckernel\+::unpacker\+::wait\+\_\+for\+\_\+next\+\_\+context (\begin{DoxyParamCaption}\item[{const uint}]{num\+\_\+contexts }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+\doxysubsection{Variable Documentation}
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_ad5954b3ef39d2586a634f51a038af643}\label{namespaceckernel_1_1unpacker_ad5954b3ef39d2586a634f51a038af643}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!CONFIG\_SIZE@{CONFIG\_SIZE}}
+\index{CONFIG\_SIZE@{CONFIG\_SIZE}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{CONFIG\_SIZE}{CONFIG\_SIZE}}
+{\footnotesize\ttfamily constexpr uint32\+\_\+t ckernel\+::unpacker\+::\+CONFIG\+\_\+\+SIZE = 2\hspace{0.3cm}{\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a48ecd61a0cad3db6981e38b1e2243d2a}\label{namespaceckernel_1_1unpacker_a48ecd61a0cad3db6981e38b1e2243d2a}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!NUM\_UNPACKERS@{NUM\_UNPACKERS}}
+\index{NUM\_UNPACKERS@{NUM\_UNPACKERS}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{NUM\_UNPACKERS}{NUM\_UNPACKERS}}
+{\footnotesize\ttfamily constexpr uint32\+\_\+t ckernel\+::unpacker\+::\+NUM\+\_\+\+UNPACKERS = 2\hspace{0.3cm}{\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{namespaceckernel_1_1unpacker_a852bf48fc41cd1f9fc95ba0c5cb327c3}\label{namespaceckernel_1_1unpacker_a852bf48fc41cd1f9fc95ba0c5cb327c3}} 
+\index{ckernel::unpacker@{ckernel::unpacker}!TILE\_DESC\_SIZE@{TILE\_DESC\_SIZE}}
+\index{TILE\_DESC\_SIZE@{TILE\_DESC\_SIZE}!ckernel::unpacker@{ckernel::unpacker}}
+\doxysubsubsection{\texorpdfstring{TILE\_DESC\_SIZE}{TILE\_DESC\_SIZE}}
+{\footnotesize\ttfamily constexpr uint32\+\_\+t ckernel\+::unpacker\+::\+TILE\+\_\+\+DESC\+\_\+\+SIZE = 2\hspace{0.3cm}{\ttfamily [constexpr]}}
+

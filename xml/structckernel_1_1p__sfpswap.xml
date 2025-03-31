@@ -1,0 +1,151 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__sfpswap" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_sfpswap</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1a528b021cc9c1fb09f7fb0fc9e4359f10" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::UNCONDITIONALLY</definition>
+        <argsstring></argsstring>
+        <name>UNCONDITIONALLY</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="406" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="406" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1a0ad898927bcfd934c442129d87a982e4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::ALL_ROWS_MAX</definition>
+        <argsstring></argsstring>
+        <name>ALL_ROWS_MAX</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="407" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="407" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1ab53a255883ea9fd667e21400b6e93421" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::ROWS_01_MAX</definition>
+        <argsstring></argsstring>
+        <name>ROWS_01_MAX</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="408" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="408" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1acffcef4f8b8b2676caca32a21a6dc7a3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::ROWS_02_MAX</definition>
+        <argsstring></argsstring>
+        <name>ROWS_02_MAX</name>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="409" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="409" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1a99f9c4b778244011df611c8479c6a0b6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::ROWS_03_MAX</definition>
+        <argsstring></argsstring>
+        <name>ROWS_03_MAX</name>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="410" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="410" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1a1288d2c0a5c8be50f305265fb805de17" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::ROW_0_MAX</definition>
+        <argsstring></argsstring>
+        <name>ROW_0_MAX</name>
+        <initializer>= 5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="411" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="411" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1a1a75829934adb95b320f785dd1738ce2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::ROW_1_MAX</definition>
+        <argsstring></argsstring>
+        <name>ROW_1_MAX</name>
+        <initializer>= 6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="412" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="412" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1ac6943c27910a79a99ec256db77688591" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::ROW_2_MAX</definition>
+        <argsstring></argsstring>
+        <name>ROW_2_MAX</name>
+        <initializer>= 5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="413" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="413" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpswap_1a45e80ff24444e3e41f6b80bb16320166" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpswap::ROW_3_MAX</definition>
+        <argsstring></argsstring>
+        <name>ROW_3_MAX</name>
+        <initializer>= 6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="414" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="414" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="403" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="404" bodyend="415"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__sfpswap_1a0ad898927bcfd934c442129d87a982e4" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>ALL_ROWS_MAX</name></member>
+      <member refid="structckernel_1_1p__sfpswap_1a1288d2c0a5c8be50f305265fb805de17" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>ROW_0_MAX</name></member>
+      <member refid="structckernel_1_1p__sfpswap_1a1a75829934adb95b320f785dd1738ce2" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>ROW_1_MAX</name></member>
+      <member refid="structckernel_1_1p__sfpswap_1ac6943c27910a79a99ec256db77688591" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>ROW_2_MAX</name></member>
+      <member refid="structckernel_1_1p__sfpswap_1a45e80ff24444e3e41f6b80bb16320166" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>ROW_3_MAX</name></member>
+      <member refid="structckernel_1_1p__sfpswap_1ab53a255883ea9fd667e21400b6e93421" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>ROWS_01_MAX</name></member>
+      <member refid="structckernel_1_1p__sfpswap_1acffcef4f8b8b2676caca32a21a6dc7a3" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>ROWS_02_MAX</name></member>
+      <member refid="structckernel_1_1p__sfpswap_1a99f9c4b778244011df611c8479c6a0b6" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>ROWS_03_MAX</name></member>
+      <member refid="structckernel_1_1p__sfpswap_1a528b021cc9c1fb09f7fb0fc9e4359f10" prot="public" virt="non-virtual"><scope>ckernel::p_sfpswap</scope><name>UNCONDITIONALLY</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

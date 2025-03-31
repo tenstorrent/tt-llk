@@ -1,0 +1,651 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h" kind="file" language="C++">
+    <compoundname>llk_math_common.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes local="yes">ckernel_defs.h</includes>
+    <includes local="yes">ckernel_include.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">cmath_common.h</includes>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__binary_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_binary.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__binary__sfpu_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_binary_sfpu.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpu_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpu.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__matmul_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_math_matmul.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__transpose__dest_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_math_transpose_dest.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="3">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="4">
+        <label>ckernel_include.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>cmath_common.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="6">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpu.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpu_8h"/>
+      </node>
+      <node id="8">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h"/>
+      </node>
+      <node id="5">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h"/>
+      </node>
+      <node id="9">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_transpose_dest.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__transpose__dest_8h"/>
+      </node>
+      <node id="2">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_binary.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__binary_8h"/>
+      </node>
+      <node id="3">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_binary_sfpu.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__binary__sfpu_8h"/>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_matmul.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__matmul_8h"/>
+      </node>
+      <node id="4">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1ac3ad0076c0ea25c7ed67e5a297ac6fba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>untilize_en</declname>
+            <defname>untilize_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>row_pool</declname>
+            <defname>row_pool</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_hw_configure_</definition>
+        <argsstring>(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)</argsstring>
+        <name>_llk_math_hw_configure_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>srca_data_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>srcb_data_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="20" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="20" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a36edecf8cf9646166903701c29d92ad6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>DstSync</type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_wait_for_dest_available_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_wait_for_dest_available_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="34" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="34" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a8007454f57b40ab5cd4595bb2dc289b6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>DstSync</type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_dest_section_done_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_dest_section_done_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="49" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="49" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a0ec1fdea33ccf1eab279b52d4494764b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>DstSync</type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_pack_sync_init_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_pack_sync_init_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="75" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="75" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a237e60d2445aea77b69009035aac50b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>mail2math</declname>
+            <defname>mail2math</defname>
+            <defval>true</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>mail2pack</declname>
+            <defname>mail2pack</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_get_tile_</definition>
+        <argsstring>(std::uint32_t tile_index, std::uint32_t *p_tile)</argsstring>
+        <name>_llk_math_get_tile_</name>
+        <param>
+          <type>std::uint32_t</type>
+          <declname>tile_index</declname>
+        </param>
+        <param>
+          <type>std::uint32_t *</type>
+          <declname>p_tile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="122" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="122" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1aeaf98db271251c2def4c0de43a6642f9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>mail2math</declname>
+            <defname>mail2math</defname>
+            <defval>true</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>mail2pack</declname>
+            <defname>mail2pack</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_release_tile_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_release_tile_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="138" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="138" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a8b57de81f575789e02d57e1e59415f34" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_math_debug_dump_</definition>
+        <argsstring>(std::uint8_t *data, std::uint32_t byte_size)</argsstring>
+        <name>_llk_math_debug_dump_</name>
+        <param>
+          <type>std::uint8_t *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>std::uint32_t</type>
+          <declname>byte_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="146" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="146" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a5802e44c12a7d00aa87ef61a19ddcaa4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_math_debug_dump_seek_</definition>
+        <argsstring>(std::uint8_t offset)</argsstring>
+        <name>_llk_math_debug_dump_seek_</name>
+        <param>
+          <type>std::uint8_t</type>
+          <declname>offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="151" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="151" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1ae545bd64c2763efd337e3a3b4b137a22" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>to_from_int8</declname>
+            <defname>to_from_int8</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_reconfig_data_format_srca_</definition>
+        <argsstring>(const std::uint32_t srca_data_format)</argsstring>
+        <name>_llk_math_reconfig_data_format_srca_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>srca_data_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="157" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="157" bodyend="168"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a33e94887d862db2761083008eb751d95" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>to_from_int8</declname>
+            <defname>to_from_int8</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_reconfig_data_format_srcb_</definition>
+        <argsstring>(const std::uint32_t srcb_data_format)</argsstring>
+        <name>_llk_math_reconfig_data_format_srcb_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>srcb_data_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="171" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="171" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a57b467b1f25aa3d7b90d307c0032b9f1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>to_from_int8</declname>
+            <defname>to_from_int8</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_reconfig_data_format_</definition>
+        <argsstring>(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)</argsstring>
+        <name>_llk_math_reconfig_data_format_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>srca_data_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>srcb_data_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="185" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="185" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a6507aa3d56bf655de194693dcdcbe03c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::uint32_t</type>
+        <definition>std::uint32_t _llk_math_get_compute_special_value_flags_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_get_compute_special_value_flags_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="200" column="22" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="200" bodyend="203"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1ae423c3de00d439f9e3594b54e99833a7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_math_clear_compute_special_value_flags_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_clear_compute_special_value_flags_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" line="205" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_common.h" bodystart="205" bodyend="208"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_defs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_include.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cmath_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_perf_api.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel_1_1math" kindref="compound">ckernel::math</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>untilize_en<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>row_pool<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="20" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1ac3ad0076c0ea25c7ed67e5a297ac6fba" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1ac3ad0076c0ea25c7ed67e5a297ac6fba" kindref="member">_llk_math_hw_configure_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>srca_data_format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>srcb_data_format)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1aaf59ea6df69e5d5dbc171fd7e4a44cad" kindref="member">p_stall::MATH</ref><sp/>|<sp/><ref refid="structckernel_1_1p__stall_1a0c77d41129e9693b7d1a54a5b7f36645" kindref="member">p_stall::WAIT_SFPU</ref>);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>exp_width<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>((uint)srca_data_format<sp/>&gt;&gt;<sp/>2)<sp/>&amp;<sp/>0x1;<sp/></highlight><highlight class="comment">//<sp/>0=5-bit,<sp/>1=8-bit</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>int8_math_enabled<sp/>=<sp/>((uint)(srca_data_format<sp/>&amp;<sp/>0xF)<sp/>==<sp/>(uint)DataFormat::Int8)<sp/>||<sp/>((uint)(srcb_data_format<sp/>&amp;<sp/>0xF)<sp/>==<sp/>(uint)DataFormat::Int8)<sp/>||</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>((uint)srca_data_format<sp/>==<sp/>(uint)DataFormat::Int32)<sp/>||<sp/>((uint)srcb_data_format<sp/>==<sp/>(uint)DataFormat::Int32);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>srcb_format<sp/>=<sp/>(row_pool<sp/>?<sp/>((uint)DataFormat::Float16<sp/>|<sp/>(exp_width<sp/>&lt;&lt;<sp/>2))<sp/>:<sp/>srcb_data_format);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>uint<sp/>config_data<sp/>=<sp/>(srca_data_format<sp/>&lt;&lt;<sp/>ALU_FORMAT_SPEC_REG0_SrcA_SHAMT)<sp/>|<sp/>(srcb_format<sp/>&lt;&lt;<sp/>ALU_FORMAT_SPEC_REG1_SrcB_SHAMT)<sp/>|</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(int8_math_enabled<sp/>&lt;&lt;<sp/>ALU_ACC_CTRL_INT8_math_enabled_SHAMT);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>uint<sp/>config_mask<sp/>=<sp/>ALU_FORMAT_SPEC_REG0_SrcA_MASK<sp/>|<sp/>ALU_FORMAT_SPEC_REG1_SrcB_MASK<sp/>|<sp/>ALU_ACC_CTRL_INT8_math_enabled_MASK;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;ALU_FORMAT_SPEC_REG0_SrcA_ADDR32,<sp/>0,<sp/>config_mask&gt;(config_data);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>Dst&gt;</highlight></codeline>
+<codeline lineno="34" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a36edecf8cf9646166903701c29d92ad6" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a36edecf8cf9646166903701c29d92ad6" kindref="member">_llk_math_wait_for_dest_available_</ref>()</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>These<sp/>liteweight<sp/>functions<sp/>for<sp/>sync<sp/>with<sp/>packer<sp/>imply</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>no<sp/>mode<sp/>change<sp/>-<sp/>entire<sp/>epoch<sp/>is<sp/>either<sp/>double<sp/>buffer<sp/>or<sp/>single<sp/>buffer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel_8h_1a55bd0dd0b08aba5b9c5ded91ccf0f839" kindref="member">MATH_PACK_DECOUPLE</ref><sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a90a90b46d12d760b3060213a1033e582" kindref="member">math_dest_wait</ref>();</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a90a90b46d12d760b3060213a1033e582" kindref="member">math_dest_wait</ref>();</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>Dst,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="49" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a8007454f57b40ab5cd4595bb2dc289b6" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a8007454f57b40ab5cd4595bb2dc289b6" kindref="member">_llk_math_dest_section_done_</ref>()</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel_8h_1a55bd0dd0b08aba5b9c5ded91ccf0f839" kindref="member">MATH_PACK_DECOUPLE</ref>)</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>DEST_NUM_TILES_SHIFT<sp/>=<sp/>is_fp32_dest_acc_en<sp/>?<sp/>(1)<sp/>:<sp/>(0);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>DEST_NUM_TILES<sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/><ref refid="namespaceckernel_1a01cd9aa596c54bf7b93471602bdfc282" kindref="member">DEST_NUM_TILES_FP16</ref><sp/>&gt;&gt;<sp/>DEST_NUM_TILES_SHIFT;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a94d68b0dcbedd79068fbd8ed3a8e1139" kindref="member">set_math_semaphores</ref>();</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>((Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da179e90fbd3dae0aece30d8f84df8d13a" kindref="member">DstSync::SyncHalf</ref>)<sp/>||<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676" kindref="member">DstSync::SyncTile2</ref>))</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1ae8c1f492f739865279a21e7ee1c65286" kindref="member">dest_section_flip</ref>();</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e" kindref="member">DstSync::SyncTile16</ref>)</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref>++;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref><sp/>&amp;=<sp/>(DEST_NUM_TILES<sp/>-<sp/>1);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>Dst,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="75" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a0ec1fdea33ccf1eab279b52d4494764b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a0ec1fdea33ccf1eab279b52d4494764b" kindref="member">_llk_math_pack_sync_init_</ref>()</highlight></codeline>
+<codeline lineno="76"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel_8h_1a55bd0dd0b08aba5b9c5ded91ccf0f839" kindref="member">MATH_PACK_DECOUPLE</ref>)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1e517edddbbf2e675b6c34bf684b240d" kindref="member">tensix_sync</ref>();</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(<ref refid="namespaceckernel_1aa440ebb8f4010cbfd33f6a52660968d2" kindref="member">semaphore_read</ref>(<ref refid="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" kindref="member">semaphore::MATH_PACK</ref>)<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>};<sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>previous<sp/>packs<sp/>to<sp/>finish<sp/>before<sp/>claiming<sp/>all<sp/>dest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da6c7493e9a8ba7adde9205e7d001b5377" kindref="member">DstSync::SyncFull</ref>)</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a3015c2ecb2a08541d2f16bea88a1321d" kindref="member">TTI_SEMINIT</ref>(1,<sp/>0,<sp/><ref refid="structckernel_1_1p__stall_1afa642696a9e3899e19c27d5670b9a950" kindref="member">p_stall::SEMAPHORE_1</ref>);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac3d3d466aa3d49414a5416676ec279bc" kindref="member">reset_dest_offset_id</ref>();</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>set_dest_section_base&lt;StartZero&gt;();</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da179e90fbd3dae0aece30d8f84df8d13a" kindref="member">DstSync::SyncHalf</ref>)</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a3015c2ecb2a08541d2f16bea88a1321d" kindref="member">TTI_SEMINIT</ref>(2,<sp/>0,<sp/><ref refid="structckernel_1_1p__stall_1afa642696a9e3899e19c27d5670b9a950" kindref="member">p_stall::SEMAPHORE_1</ref>);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac3d3d466aa3d49414a5416676ec279bc" kindref="member">reset_dest_offset_id</ref>();</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>set_dest_section_base&lt;StartZero&gt;();</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676" kindref="member">DstSync::SyncTile2</ref>)</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a3015c2ecb2a08541d2f16bea88a1321d" kindref="member">TTI_SEMINIT</ref>(2,<sp/>0,<sp/><ref refid="structckernel_1_1p__stall_1afa642696a9e3899e19c27d5670b9a950" kindref="member">p_stall::SEMAPHORE_1</ref>);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac3d3d466aa3d49414a5416676ec279bc" kindref="member">reset_dest_offset_id</ref>();</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>set_dest_section_base&lt;StartZero&gt;();</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e" kindref="member">DstSync::SyncTile16</ref>);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>DEST_NUM_TILES_SHIFT<sp/>=<sp/>is_fp32_dest_acc_en<sp/>?<sp/>(1)<sp/>:<sp/>(0);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>DEST_NUM_TILES<sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/><ref refid="namespaceckernel_1a01cd9aa596c54bf7b93471602bdfc282" kindref="member">DEST_NUM_TILES_FP16</ref><sp/>&gt;&gt;<sp/>DEST_NUM_TILES_SHIFT;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>SEM_INIT_MAX<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>(DEST_NUM_TILES<sp/>&lt;<sp/>15)<sp/>?<sp/>DEST_NUM_TILES<sp/>:<sp/>15;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a3015c2ecb2a08541d2f16bea88a1321d" kindref="member">TTI_SEMINIT</ref>(SEM_INIT_MAX,<sp/>0,<sp/><ref refid="structckernel_1_1p__stall_1afa642696a9e3899e19c27d5670b9a950" kindref="member">p_stall::SEMAPHORE_1</ref>);</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac3d3d466aa3d49414a5416676ec279bc" kindref="member">reset_dest_offset_id</ref>();</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>set_dest_section_base&lt;StartZero&gt;();</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2math<sp/>=<sp/>true,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2pack<sp/>=<sp/>true&gt;</highlight></codeline>
+<codeline lineno="122" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a237e60d2445aea77b69009035aac50b3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a237e60d2445aea77b69009035aac50b3" kindref="member">_llk_math_get_tile_</ref>(std::uint32_t<sp/>tile_index,<sp/>std::uint32_t*<sp/>p_tile)</highlight></codeline>
+<codeline lineno="123"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>wait_sem<sp/>=<sp/>(mail2math<sp/>&amp;&amp;<sp/>mail2pack)<sp/>?<sp/>(2)<sp/>:<sp/>(1);</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(<ref refid="namespaceckernel_1aa440ebb8f4010cbfd33f6a52660968d2" kindref="member">semaphore_read</ref>(<ref refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" kindref="member">semaphore::UNPACK_OPERAND_SYNC</ref>)<sp/>&lt;<sp/>wait_sem)</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(mail2math)</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*p_tile<sp/>=<sp/><ref refid="namespaceckernel_1a8b4271352cb5f8871d4ea8844b08cf54" kindref="member">mailbox_read</ref>(<ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a728f3c92c0a4284b8413647bf320ad5e" kindref="member">ThreadId::UnpackThreadId</ref>);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*p_tile<sp/>=<sp/>0x0;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="135"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2math<sp/>=<sp/>true,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2pack<sp/>=<sp/>true&gt;</highlight></codeline>
+<codeline lineno="138" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1aeaf98db271251c2def4c0de43a6642f9" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1aeaf98db271251c2def4c0de43a6642f9" kindref="member">_llk_math_release_tile_</ref>()</highlight></codeline>
+<codeline lineno="139"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(mail2math)</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a2e438c022b8ff37c09e3c606d79e1844" kindref="member">semaphore_get</ref>(<ref refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" kindref="member">semaphore::UNPACK_OPERAND_SYNC</ref>);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a8b57de81f575789e02d57e1e59415f34" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a8b57de81f575789e02d57e1e59415f34" kindref="member">_llk_math_debug_dump_</ref>(std::uint8_t*<sp/>data,<sp/>std::uint32_t<sp/>byte_size)</highlight></codeline>
+<codeline lineno="147"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1828ef0cfbd5025629bcab857841b677" kindref="member">debug_dump</ref>(data,<sp/>byte_size);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a5802e44c12a7d00aa87ef61a19ddcaa4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a5802e44c12a7d00aa87ef61a19ddcaa4" kindref="member">_llk_math_debug_dump_seek_</ref>(std::uint8_t<sp/>offset)</highlight></codeline>
+<codeline lineno="152"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1b3a6ed62e58c743a3473657be3479b5" kindref="member">debug_dump_seek</ref>(offset);</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>to_from_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">8<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="157" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1ae545bd64c2763efd337e3a3b4b137a22" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1ae545bd64c2763efd337e3a3b4b137a22" kindref="member">_llk_math_reconfig_data_format_srca_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>srca_data_format)</highlight></codeline>
+<codeline lineno="158"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(to_from_int8)</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert(is_fp32_dest_acc_en,<sp/></highlight><highlight class="stringliteral">&quot;Reconfiguring<sp/>math<sp/>to/from<sp/>Int8<sp/>formats<sp/>requires<sp/>FP32<sp/>Dest<sp/>mode<sp/>enabled&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1aaf59ea6df69e5d5dbc171fd7e4a44cad" kindref="member">p_stall::MATH</ref><sp/>|<sp/><ref refid="structckernel_1_1p__stall_1a0c77d41129e9693b7d1a54a5b7f36645" kindref="member">p_stall::WAIT_SFPU</ref>);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>int8_math_enabled<sp/><sp/><sp/><sp/><sp/>=<sp/>((uint)(srca_data_format<sp/>&amp;<sp/>0xF)<sp/>==<sp/>(uint)DataFormat::Int8)<sp/>||<sp/>((uint)srca_data_format<sp/>==<sp/>(uint)DataFormat::Int32);</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>config_data<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>(srca_data_format<sp/>&lt;&lt;<sp/>ALU_FORMAT_SPEC_REG0_SrcA_SHAMT)<sp/>|<sp/>(int8_math_enabled<sp/>&lt;&lt;<sp/>ALU_ACC_CTRL_INT8_math_enabled_SHAMT);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint<sp/>config_mask<sp/>=<sp/>ALU_FORMAT_SPEC_REG0_SrcA_MASK<sp/>|<sp/>ALU_ACC_CTRL_INT8_math_enabled_MASK;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;ALU_FORMAT_SPEC_REG0_SrcA_ADDR32,<sp/>0,<sp/>config_mask&gt;(config_data);</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>to_from_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">8<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="171" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a33e94887d862db2761083008eb751d95" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a33e94887d862db2761083008eb751d95" kindref="member">_llk_math_reconfig_data_format_srcb_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>srcb_data_format)</highlight></codeline>
+<codeline lineno="172"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(to_from_int8)</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert(is_fp32_dest_acc_en,<sp/></highlight><highlight class="stringliteral">&quot;Reconfiguring<sp/>math<sp/>to/from<sp/>Int8<sp/>formats<sp/>requires<sp/>FP32<sp/>Dest<sp/>mode<sp/>enabled&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1aaf59ea6df69e5d5dbc171fd7e4a44cad" kindref="member">p_stall::MATH</ref><sp/>|<sp/><ref refid="structckernel_1_1p__stall_1a0c77d41129e9693b7d1a54a5b7f36645" kindref="member">p_stall::WAIT_SFPU</ref>);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>int8_math_enabled<sp/><sp/><sp/><sp/><sp/>=<sp/>((uint)(srcb_data_format<sp/>&amp;<sp/>0xF)<sp/>==<sp/>(uint)DataFormat::Int8)<sp/>||<sp/>((uint)srcb_data_format<sp/>==<sp/>(uint)DataFormat::Int32);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>config_data<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>(srcb_data_format<sp/>&lt;&lt;<sp/>ALU_FORMAT_SPEC_REG1_SrcB_SHAMT)<sp/>|<sp/>(int8_math_enabled<sp/>&lt;&lt;<sp/>ALU_ACC_CTRL_INT8_math_enabled_SHAMT);</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint<sp/>config_mask<sp/>=<sp/>ALU_FORMAT_SPEC_REG1_SrcB_MASK<sp/>|<sp/>ALU_ACC_CTRL_INT8_math_enabled_MASK;</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;ALU_FORMAT_SPEC_REG0_SrcA_ADDR32,<sp/>0,<sp/>config_mask&gt;(config_data);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="182"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>to_from_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">8<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="185" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a57b467b1f25aa3d7b90d307c0032b9f1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a57b467b1f25aa3d7b90d307c0032b9f1" kindref="member">_llk_math_reconfig_data_format_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>srca_data_format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>srcb_data_format)</highlight></codeline>
+<codeline lineno="186"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(to_from_int8)</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert(is_fp32_dest_acc_en,<sp/></highlight><highlight class="stringliteral">&quot;Reconfiguring<sp/>math<sp/>to/from<sp/>Int8<sp/>formats<sp/>requires<sp/>FP32<sp/>Dest<sp/>mode<sp/>enabled&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1aaf59ea6df69e5d5dbc171fd7e4a44cad" kindref="member">p_stall::MATH</ref><sp/>|<sp/><ref refid="structckernel_1_1p__stall_1a0c77d41129e9693b7d1a54a5b7f36645" kindref="member">p_stall::WAIT_SFPU</ref>);</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>int8_math_enabled<sp/>=<sp/>((uint)(srca_data_format<sp/>&amp;<sp/>0xF)<sp/>==<sp/>(uint)DataFormat::Int8)<sp/>||<sp/>((uint)(srcb_data_format<sp/>&amp;<sp/>0xF)<sp/>==<sp/>(uint)DataFormat::Int8)<sp/>||</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>((uint)srca_data_format<sp/>==<sp/>(uint)DataFormat::Int32)<sp/>||<sp/>((uint)srcb_data_format<sp/>==<sp/>(uint)DataFormat::Int32);</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>config_data<sp/>=<sp/>(srca_data_format<sp/>&lt;&lt;<sp/>ALU_FORMAT_SPEC_REG0_SrcA_SHAMT)<sp/>|<sp/>(srcb_data_format<sp/>&lt;&lt;<sp/>ALU_FORMAT_SPEC_REG1_SrcB_SHAMT)<sp/>|</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(int8_math_enabled<sp/>&lt;&lt;<sp/>ALU_ACC_CTRL_INT8_math_enabled_SHAMT);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint<sp/>config_mask<sp/>=<sp/>ALU_FORMAT_SPEC_REG0_SrcA_MASK<sp/>|<sp/>ALU_FORMAT_SPEC_REG1_SrcB_MASK<sp/>|<sp/>ALU_ACC_CTRL_INT8_math_enabled_MASK;</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;ALU_FORMAT_SPEC_REG0_SrcA_ADDR32,<sp/>0,<sp/>config_mask&gt;(config_data);</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="198"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1a6507aa3d56bf655de194693dcdcbe03c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>std::uint32_t<sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1a6507aa3d56bf655de194693dcdcbe03c" kindref="member">_llk_math_get_compute_special_value_flags_</ref>()</highlight></codeline>
+<codeline lineno="201"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a7cccad24575c1ef79bfa8ae940a52d3d" kindref="member">reg_read</ref>(RISCV_DEBUG_REG_FPU_STICKY_BITS);</highlight></codeline>
+<codeline lineno="203"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_1ae423c3de00d439f9e3594b54e99833a7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h_1ae423c3de00d439f9e3594b54e99833a7" kindref="member">_llk_math_clear_compute_special_value_flags_</ref>()</highlight></codeline>
+<codeline lineno="206"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aa6ecc90070a247f2f78af7b08942dcea" kindref="member">reg_write</ref>(RISCV_DEBUG_REG_FPU_STICKY_BITS,<sp/>0);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/llk_lib/llk_math_common.h"/>
+  </compounddef>
+</doxygen>

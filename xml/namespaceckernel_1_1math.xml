@@ -1,0 +1,514 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceckernel_1_1math" kind="namespace" language="C++">
+    <compoundname>ckernel::math</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceckernel_1_1math_1ac0e331bbcc18e7dbe4cc57e05e957e8e" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>constexpr uint ckernel::math::DstTileSize</definition>
+        <argsstring>[3]</argsstring>
+        <name>DstTileSize</name>
+        <initializer>= {
+    64, 
+    32, 
+    16  
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="29" column="16" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceckernel_1_1math_1aad0a07f82f3b1b09348627caab760d54" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>constexpr uint ckernel::math::DstTileSizeLog2</definition>
+        <argsstring>[3]</argsstring>
+        <name>DstTileSizeLog2</name>
+        <initializer>= {
+    6, 
+    5, 
+    4  
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="34" column="16" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceckernel_1_1math_1a2f1db8f3cdf795d6db3b187cc7929f9a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>constexpr uint ckernel::math::replay_buf_offset</definition>
+        <argsstring></argsstring>
+        <name>replay_buf_offset</name>
+        <initializer>= 16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="40" column="16" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a4de2f1cf6fdbf8440aa394f2509ea5de" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::reset_counters</definition>
+        <argsstring>(const uint setrwc)</argsstring>
+        <name>reset_counters</name>
+        <param>
+          <type>const uint</type>
+          <declname>setrwc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="43" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="43" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a6ca7832878c70ec82046689b83696156" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::incr_counters</definition>
+        <argsstring>(const uint incr_a, const uint incr_b, const uint incr_d, const uint incr_cr)</argsstring>
+        <name>incr_counters</name>
+        <param>
+          <type>const uint</type>
+          <declname>incr_a</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>incr_b</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>incr_d</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>incr_cr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="48" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="48" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1ac4a88ab2446a32c95db93a6aa27893c2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::move_d2a_fixed_face</definition>
+        <argsstring>(const uint8_t addrmod)</argsstring>
+        <name>move_d2a_fixed_face</name>
+        <param>
+          <type>const uint8_t</type>
+          <declname>addrmod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="57" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="57" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a05229ebc59a60cdd21418054c2b82120" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::move_d2b_fixed_face</definition>
+        <argsstring>(const uint8_t addrmod)</argsstring>
+        <name>move_d2b_fixed_face</name>
+        <param>
+          <type>const uint8_t</type>
+          <declname>addrmod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="66" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="66" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a567af8b0b49cb0ca30f02bbf7c0dda30" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::move_d2a_row_broadcast_fixed_face</definition>
+        <argsstring>(const uint8_t addrmod)</argsstring>
+        <name>move_d2a_row_broadcast_fixed_face</name>
+        <param>
+          <type>const uint8_t</type>
+          <declname>addrmod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="75" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="75" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a3b51a16548a7d08ff6b73358103375ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::move_a2d_fixed_face</definition>
+        <argsstring>(const uint8_t addrmod)</argsstring>
+        <name>move_a2d_fixed_face</name>
+        <param>
+          <type>const uint8_t</type>
+          <declname>addrmod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="96" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="96" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a0c0b2f9edd3d85e944f512cdc0e4916e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>uint</type>
+            <declname>SrcReg</declname>
+            <defname>SrcReg</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::math::wait_bank_valid</definition>
+        <argsstring>()</argsstring>
+        <name>wait_bank_valid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="103" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="103" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1af3de627d825588ac7eb8c6325f472644" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>uint</type>
+            <declname>SrcReg</declname>
+            <defname>SrcReg</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::math::clear_bank_valid</definition>
+        <argsstring>()</argsstring>
+        <name>clear_bank_valid</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="116" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="116" bodyend="126"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a66fbb2813180a9e151bc3239d6c8e30f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::wait_math_semaphores</definition>
+        <argsstring>()</argsstring>
+        <name>wait_math_semaphores</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="128" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="128" bodyend="132"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a94d68b0dcbedd79068fbd8ed3a8e1139" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::set_math_semaphores</definition>
+        <argsstring>()</argsstring>
+        <name>set_math_semaphores</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="134" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="134" bodyend="138"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a27f7211197bc82243e50f0a0458f0547" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::math_unpack_to_dest_math_ready</definition>
+        <argsstring>()</argsstring>
+        <name>math_unpack_to_dest_math_ready</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="140" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="140" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a6230929ea78574da9f2c89cf01c74c41" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::math_unpack_to_dest_tile_ready</definition>
+        <argsstring>()</argsstring>
+        <name>math_unpack_to_dest_tile_ready</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="150" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="150" bodyend="154"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1aa745169e071605203f424c819458c140" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1a9982dbd7b51552d3979dd824a1bcc96f" kindref="member">DstTileLayout</ref></type>
+            <declname>layout</declname>
+            <defname>layout</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1a36b266fd7ced67e51fbfd53f5b1bcd27" kindref="member">DstTileShape</ref></type>
+            <declname>tile_shape</declname>
+            <defname>tile_shape</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>unpack_to_dest</declname>
+            <defname>unpack_to_dest</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::math::set_dst_write_addr</definition>
+        <argsstring>(uint32_t tile_index)</argsstring>
+        <name>set_dst_write_addr</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>tile_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="157" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="157" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a67bcf29581cd07b43cb0540d8e0e238f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::clear_dst_reg_addr</definition>
+        <argsstring>()</argsstring>
+        <name>clear_dst_reg_addr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="180" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="180" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a53a52f6e764d81448260e7e66510a5c4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>uint</type>
+            <declname>num_rows</declname>
+            <defname>num_rows</defname>
+            <defval>8</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::math::inc_dst_addr</definition>
+        <argsstring>()</argsstring>
+        <name>inc_dst_addr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="186" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="186" bodyend="190"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a90a90b46d12d760b3060213a1033e582" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::math_dest_wait</definition>
+        <argsstring>()</argsstring>
+        <name>math_dest_wait</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="192" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="192" bodyend="196"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1ae8c1f492f739865279a21e7ee1c65286" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::dest_section_flip</definition>
+        <argsstring>()</argsstring>
+        <name>dest_section_flip</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="198" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="198" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a3f0fbdf7f8e43896efc2c9b59127562b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1ab6ed35012f0514997eedaf1933f4cfd7" kindref="member">DstStart</ref></type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::math::set_dest_section_base</definition>
+        <argsstring>()</argsstring>
+        <name>set_dest_section_base</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="207" column="13" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="207" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a58be621ab2361f2a2ae79b591edd14c5" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool ckernel::math::is_32bit_input</definition>
+        <argsstring>(const std::uint32_t src_format, const std::uint32_t dst_format)</argsstring>
+        <name>is_32bit_input</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>dst_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="221" column="23" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="221" bodyend="227"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a0a3ddb26bec88debce6e31ce3d545326" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>constexpr int ckernel::math::get_math_num_fidelity_phases</definition>
+        <argsstring>(const int math_fidelity_desc)</argsstring>
+        <name>get_math_num_fidelity_phases</name>
+        <param>
+          <type>const int</type>
+          <declname>math_fidelity_desc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="229" column="22" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="229" bodyend="232"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a1e0b0ac27da288d35a7316580da4f039" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>constexpr int ckernel::math::get_math_fidelity_increment</definition>
+        <argsstring>(const int math_fidelity_desc)</argsstring>
+        <name>get_math_fidelity_increment</name>
+        <param>
+          <type>const int</type>
+          <declname>math_fidelity_desc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="234" column="22" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="234" bodyend="237"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a48f719325d0035d33a855609197e715d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::uint32_t</type>
+        <definition>std::uint32_t ckernel::math::get_dest_buffer_base_16b</definition>
+        <argsstring>()</argsstring>
+        <name>get_dest_buffer_base_16b</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="241" column="22" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="241" bodyend="244"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a60af5b94ecd7b605f8d86907fd052f32" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::uint32_t</type>
+        <definition>std::uint32_t ckernel::math::get_dest_buffer_base_32b</definition>
+        <argsstring>()</argsstring>
+        <name>get_dest_buffer_base_32b</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="248" column="22" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="248" bodyend="251"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1a52373fff4a709f5939f40ad05ec70b16" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::uint32_t</type>
+        <definition>std::uint32_t ckernel::math::get_dest_index_in_faces</definition>
+        <argsstring>(const std::uint32_t dst_index, const std::uint32_t face_index)</argsstring>
+        <name>get_dest_index_in_faces</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>dst_index</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>face_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="254" column="22" bodyfile="tt_llk_blackhole/common/inc/cmath_common.h" bodystart="254" bodyend="260"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1adaff88647b6cd0c0d6195f765aed3e4f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::set_addr_mod_base</definition>
+        <argsstring>()</argsstring>
+        <name>set_addr_mod_base</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cmath_common.h" line="185" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/cmath_common.h" bodystart="185" bodyend="188"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1math_1af3550e48f55fb04a646104fbd2214b96" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::math::clear_addr_mod_base</definition>
+        <argsstring>()</argsstring>
+        <name>clear_addr_mod_base</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cmath_common.h" line="190" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/cmath_common.h" bodystart="190" bodyend="193"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/cmath_common.h" line="26" column="1"/>
+  </compounddef>
+</doxygen>

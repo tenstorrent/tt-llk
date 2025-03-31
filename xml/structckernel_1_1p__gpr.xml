@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__gpr" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_gpr</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__gpr__map_8h" local="no">ckernel_gpr_map.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__gpr_1a28d8f49d352fa33234133be2d70e215d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr::ZERO</definition>
+        <argsstring></argsstring>
+        <name>ZERO</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="14" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr_1a81a3fd83b579059de85184eba2106dce" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr::DBG_RESERVED</definition>
+        <argsstring></argsstring>
+        <name>DBG_RESERVED</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="15" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr_1a1912356db2d5c4494cc379cb5084b949" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr::DBG_MSG</definition>
+        <argsstring></argsstring>
+        <name>DBG_MSG</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="16" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr_1a53e0a29a4ba639d174d0d9938515a362" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr::DBG_CKID</definition>
+        <argsstring></argsstring>
+        <name>DBG_CKID</name>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="17" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="12" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="13" bodyend="18"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__gpr_1a53e0a29a4ba639d174d0d9938515a362" prot="public" virt="non-virtual"><scope>ckernel::p_gpr</scope><name>DBG_CKID</name></member>
+      <member refid="structckernel_1_1p__gpr_1a1912356db2d5c4494cc379cb5084b949" prot="public" virt="non-virtual"><scope>ckernel::p_gpr</scope><name>DBG_MSG</name></member>
+      <member refid="structckernel_1_1p__gpr_1a81a3fd83b579059de85184eba2106dce" prot="public" virt="non-virtual"><scope>ckernel::p_gpr</scope><name>DBG_RESERVED</name></member>
+      <member refid="structckernel_1_1p__gpr_1a28d8f49d352fa33234133be2d70e215d" prot="public" virt="non-virtual"><scope>ckernel::p_gpr</scope><name>ZERO</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

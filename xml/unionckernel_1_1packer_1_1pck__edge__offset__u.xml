@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="unionckernel_1_1packer_1_1pck__edge__offset__u" kind="union" language="C++" prot="public">
+    <compoundname>ckernel::packer::pck_edge_offset_u</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h" local="no">cpack_common.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionckernel_1_1packer_1_1pck__edge__offset__u_1a046b0eabcd1fb011e81a64c5e039db8d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pck_edge_offset_u::val</definition>
+        <argsstring></argsstring>
+        <name>val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="132" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1packer_1_1pck__edge__offset__t" kindref="compound">pck_edge_offset_t</ref></type>
+        <definition>pck_edge_offset_t ckernel::packer::pck_edge_offset_u::f</definition>
+        <argsstring></argsstring>
+        <name>f</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="133" column="23" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ckernel::packer::pck_edge_offset_t</label>
+        <link refid="structckernel_1_1packer_1_1pck__edge__offset__t"/>
+      </node>
+      <node id="1">
+        <label>ckernel::packer::pck_edge_offset_u</label>
+        <link refid="unionckernel_1_1packer_1_1pck__edge__offset__u"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>f</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="130" column="1" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="131" bodyend="134"/>
+    <listofallmembers>
+      <member refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_u</scope><name>f</name></member>
+      <member refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1a046b0eabcd1fb011e81a64c5e039db8d" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_u</scope><name>val</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

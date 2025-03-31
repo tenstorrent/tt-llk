@@ -1,0 +1,144 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h" kind="file" language="C++">
+    <compoundname>ckernel_sfpu_load_config.h</compoundname>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">sfpi.h</includes>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpu_8h" local="yes">tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__gelu_8h" local="yes">tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_gelu.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__quant_8h" local="yes">tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_quant.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__sigmoid_8h" local="yes">tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_sigmoid.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__tanh_8h" local="yes">tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_tanh.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__topk_8h" local="yes">tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_topk.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_load_config.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>sfpi.h</label>
+      </node>
+      <node id="2">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="9">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_topk.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__topk_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_tanh.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__tanh_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_load_config.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+      <node id="6">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_quant.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__quant_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_sigmoid.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__sigmoid_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_wormhole_b0/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_gelu.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__gelu_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <innernamespace refid="namespaceckernel_1_1sfpu">ckernel::sfpu</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpi.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">sfpu</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1aa1805e476841564c90326a9cb5db0a1f" kindref="member">_sfpu_load_imm32_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>dest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>val)</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a743cf6ce2dec634ae94d6a5ede97c996" kindref="member">TT_SFPLOADI</ref>(dest,<sp/>10,<sp/>(val<sp/>&amp;<sp/>0xFFFF));<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>insmod<sp/>==<sp/>10<sp/>will<sp/>write<sp/>the<sp/>lower<sp/>bits,<sp/>and<sp/>not<sp/>affect<sp/>the<sp/>upper<sp/>bits;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a743cf6ce2dec634ae94d6a5ede97c996" kindref="member">TT_SFPLOADI</ref>(dest,<sp/>8,<sp/>(val<sp/>&gt;&gt;<sp/>16)<sp/>&amp;<sp/>0xFFFF);<sp/></highlight><highlight class="comment">//<sp/>insmod<sp/>==<sp/>8<sp/>will<sp/>write<sp/>the<sp/>upper<sp/>bits,<sp/>and<sp/>not<sp/>affect<sp/>the<sp/>lower<sp/>bits;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1abc1197dac2a796ab4246a4925e57b89a" kindref="member">_sfpu_load_imm16_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>dest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>val)</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a743cf6ce2dec634ae94d6a5ede97c996" kindref="member">TT_SFPLOADI</ref>(dest,<sp/>2,<sp/>val);<sp/></highlight><highlight class="comment">//<sp/>insmod<sp/>==<sp/>2<sp/>will<sp/>write<sp/>imm16<sp/>value<sp/>treated<sp/>as<sp/>unsigned<sp/>integer,<sp/>right<sp/>justified<sp/>and<sp/>padded<sp/>with<sp/>zeroes<sp/>on<sp/>the<sp/>MSBs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1a33327d4082adce35914a3b47d4261d1f" kindref="member">_sfpu_load_config32_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>dest,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>upper16,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>lower16)</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>registers<sp/>11<sp/>through<sp/>14<sp/>are<sp/>programmable<sp/>&quot;constants&quot;<sp/>which<sp/>are<sp/>shared<sp/>across<sp/>all<sp/>4<sp/>rows</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>They<sp/>are<sp/>updated<sp/>only<sp/>through<sp/>the<sp/>CONFIG<sp/>path,<sp/>which<sp/>uses<sp/>LREG[0]<sp/>first<sp/>and<sp/>then<sp/>copies<sp/>it<sp/>to<sp/>the<sp/>desired<sp/>register<sp/>location</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a952d489a33d78e9eb5550de0f9bb1649" kindref="member">TTI_SFPLOADI</ref>(0,<sp/>10,<sp/>lower16);<sp/></highlight><highlight class="comment">//<sp/>insmod<sp/>==<sp/>A<sp/>will<sp/>write<sp/>the<sp/>lower<sp/>bits,<sp/>and<sp/>not<sp/>affect<sp/>the<sp/>upper<sp/>bits;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a952d489a33d78e9eb5550de0f9bb1649" kindref="member">TTI_SFPLOADI</ref>(0,<sp/>8,<sp/>upper16);<sp/><sp/></highlight><highlight class="comment">//<sp/>insmod<sp/>==<sp/>8<sp/>will<sp/>write<sp/>the<sp/>upper<sp/>bits,<sp/>and<sp/>not<sp/>affect<sp/>the<sp/>lower<sp/>bits;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ab069a86069d1625c2149100cd09862c4" kindref="member">TTI_SFPCONFIG</ref>(0,<sp/>dest,<sp/>0);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1_1sfpu_1ac4b8efd66f423f1165b5817545830a55" kindref="member">_init_sfpu_config_reg</ref>()</highlight></codeline>
+<codeline lineno="36"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1a33327d4082adce35914a3b47d4261d1f" kindref="member">_sfpu_load_config32_</ref>(0xF,<sp/>0x0,<sp/>0x0);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>sfpu</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_load_config.h"/>
+  </compounddef>
+</doxygen>

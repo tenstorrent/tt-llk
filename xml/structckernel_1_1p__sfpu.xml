@@ -1,0 +1,346 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__sfpu" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_sfpu</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1acab55b64504d9944b811e2fa792daeff" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG0</definition>
+        <argsstring></argsstring>
+        <name>LREG0</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="373" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="373" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1ab1d54f1a6f1987af99dc385eb2a0442d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG1</definition>
+        <argsstring></argsstring>
+        <name>LREG1</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="374" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="374" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1adced8f3b9b5eb95ea39975bcd8e0bab7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG2</definition>
+        <argsstring></argsstring>
+        <name>LREG2</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="375" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="375" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1aa0f33c600e9cae536edfa02c17925bc4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG3</definition>
+        <argsstring></argsstring>
+        <name>LREG3</name>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="376" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="376" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1ad4869de329508d66504d4f8e9ddee484" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG4</definition>
+        <argsstring></argsstring>
+        <name>LREG4</name>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="377" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="377" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1a26acc2a93265661b178da74a23e5592c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG5</definition>
+        <argsstring></argsstring>
+        <name>LREG5</name>
+        <initializer>= 5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="378" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="378" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1aef7f57d04018766d79183a49baf00a8c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG6</definition>
+        <argsstring></argsstring>
+        <name>LREG6</name>
+        <initializer>= 6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="379" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="379" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1ab107ccffd361dc67fab45610e6648e48" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG7</definition>
+        <argsstring></argsstring>
+        <name>LREG7</name>
+        <initializer>= 7</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="380" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="380" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1ac5300d2c124886cbd8852c3f048deae8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LCONST_0_8373</definition>
+        <argsstring></argsstring>
+        <name>LCONST_0_8373</name>
+        <initializer>= 8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="383" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="383" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1a86204b4489489621a036fd2565df8d1d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LCONST_0</definition>
+        <argsstring></argsstring>
+        <name>LCONST_0</name>
+        <initializer>= 9</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="384" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="384" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1a13ca26b072d019fe9ba9205bda581ff1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LCONST_1</definition>
+        <argsstring></argsstring>
+        <name>LCONST_1</name>
+        <initializer>= 10</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="385" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="385" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1ae2cd8ec9fd247cdf14d6d6632b546a24" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG11</definition>
+        <argsstring></argsstring>
+        <name>LREG11</name>
+        <initializer>= 11</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="388" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="388" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1ad49ab0e9b4d1bdcafe320bbad0f775d0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG12</definition>
+        <argsstring></argsstring>
+        <name>LREG12</name>
+        <initializer>= 12</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="389" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="389" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1adb0e6da057a33c6bc281f44b776ac255" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG13</definition>
+        <argsstring></argsstring>
+        <name>LREG13</name>
+        <initializer>= 13</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="390" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="390" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1ae35a2cd64274fe6ef6e834d67eb048f5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LREG14</definition>
+        <argsstring></argsstring>
+        <name>LREG14</name>
+        <initializer>= 14</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="391" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="391" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1acba4ff3d1ab11c49e5eb62eb16b640e3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LCONST_neg1</definition>
+        <argsstring></argsstring>
+        <name>LCONST_neg1</name>
+        <initializer>= 11</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="392" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="392" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1aa1c86b25bcb9f64b92f4dff36a0b194c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::LTILEID</definition>
+        <argsstring></argsstring>
+        <name>LTILEID</name>
+        <initializer>= 15</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="394" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="394" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1a74d372f3c3c574c4e455ff64ec81205a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::kCONST_1_FP16B</definition>
+        <argsstring></argsstring>
+        <name>kCONST_1_FP16B</name>
+        <initializer>= 0x3F80</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="396" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="396" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1a641d7f5a708f3416753f8dd8c0a2e458" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::kCONST_1_FP16A</definition>
+        <argsstring></argsstring>
+        <name>kCONST_1_FP16A</name>
+        <initializer>= 0x3C00</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="397" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="397" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1a301ebb168f4058cd0724efb06838f2e7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::kCONST_0</definition>
+        <argsstring></argsstring>
+        <name>kCONST_0</name>
+        <initializer>= 0x0000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="398" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="398" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1a22afb897fd630c31c77814316d32d6d8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::kCONST_Exp_8Bit</definition>
+        <argsstring></argsstring>
+        <name>kCONST_Exp_8Bit</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="399" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="399" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__sfpu_1ae116fc3b3e2e475062af109cb8807d72" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_sfpu::kCONST_Exp_5Bit</definition>
+        <argsstring></argsstring>
+        <name>kCONST_Exp_5Bit</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="400" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="400" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="370" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="371" bodyend="401"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__sfpu_1a301ebb168f4058cd0724efb06838f2e7" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>kCONST_0</name></member>
+      <member refid="structckernel_1_1p__sfpu_1a641d7f5a708f3416753f8dd8c0a2e458" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>kCONST_1_FP16A</name></member>
+      <member refid="structckernel_1_1p__sfpu_1a74d372f3c3c574c4e455ff64ec81205a" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>kCONST_1_FP16B</name></member>
+      <member refid="structckernel_1_1p__sfpu_1ae116fc3b3e2e475062af109cb8807d72" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>kCONST_Exp_5Bit</name></member>
+      <member refid="structckernel_1_1p__sfpu_1a22afb897fd630c31c77814316d32d6d8" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>kCONST_Exp_8Bit</name></member>
+      <member refid="structckernel_1_1p__sfpu_1a86204b4489489621a036fd2565df8d1d" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LCONST_0</name></member>
+      <member refid="structckernel_1_1p__sfpu_1ac5300d2c124886cbd8852c3f048deae8" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LCONST_0_8373</name></member>
+      <member refid="structckernel_1_1p__sfpu_1a13ca26b072d019fe9ba9205bda581ff1" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LCONST_1</name></member>
+      <member refid="structckernel_1_1p__sfpu_1acba4ff3d1ab11c49e5eb62eb16b640e3" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LCONST_neg1</name></member>
+      <member refid="structckernel_1_1p__sfpu_1acab55b64504d9944b811e2fa792daeff" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG0</name></member>
+      <member refid="structckernel_1_1p__sfpu_1ab1d54f1a6f1987af99dc385eb2a0442d" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG1</name></member>
+      <member refid="structckernel_1_1p__sfpu_1ae2cd8ec9fd247cdf14d6d6632b546a24" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG11</name></member>
+      <member refid="structckernel_1_1p__sfpu_1ad49ab0e9b4d1bdcafe320bbad0f775d0" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG12</name></member>
+      <member refid="structckernel_1_1p__sfpu_1adb0e6da057a33c6bc281f44b776ac255" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG13</name></member>
+      <member refid="structckernel_1_1p__sfpu_1ae35a2cd64274fe6ef6e834d67eb048f5" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG14</name></member>
+      <member refid="structckernel_1_1p__sfpu_1adced8f3b9b5eb95ea39975bcd8e0bab7" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG2</name></member>
+      <member refid="structckernel_1_1p__sfpu_1aa0f33c600e9cae536edfa02c17925bc4" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG3</name></member>
+      <member refid="structckernel_1_1p__sfpu_1ad4869de329508d66504d4f8e9ddee484" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG4</name></member>
+      <member refid="structckernel_1_1p__sfpu_1a26acc2a93265661b178da74a23e5592c" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG5</name></member>
+      <member refid="structckernel_1_1p__sfpu_1aef7f57d04018766d79183a49baf00a8c" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG6</name></member>
+      <member refid="structckernel_1_1p__sfpu_1ab107ccffd361dc67fab45610e6648e48" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LREG7</name></member>
+      <member refid="structckernel_1_1p__sfpu_1aa1c86b25bcb9f64b92f4dff36a0b194c" prot="public" virt="non-virtual"><scope>ckernel::p_sfpu</scope><name>LTILEID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

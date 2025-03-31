@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="unionckernel_1_1dbg__array__rd__en__u" kind="union" language="C++" prot="public">
+    <compoundname>ckernel::dbg_array_rd_en_u</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h" local="no">ckernel_debug.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionckernel_1_1dbg__array__rd__en__u_1a06958e60bd4705a9416467f281925ac3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_array_rd_en_u::val</definition>
+        <argsstring></argsstring>
+        <name>val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="68" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1dbg__array__rd__en__u_1ae640a36165dafb9723f758719747cdc7" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1dbg__array__rd__en__t" kindref="compound">dbg_array_rd_en_t</ref></type>
+        <definition>dbg_array_rd_en_t ckernel::dbg_array_rd_en_u::f</definition>
+        <argsstring></argsstring>
+        <name>f</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="69" column="23" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ckernel::dbg_array_rd_en_t</label>
+        <link refid="structckernel_1_1dbg__array__rd__en__t"/>
+      </node>
+      <node id="1">
+        <label>ckernel::dbg_array_rd_en_u</label>
+        <link refid="unionckernel_1_1dbg__array__rd__en__u"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>f</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="66" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="67" bodyend="70"/>
+    <listofallmembers>
+      <member refid="unionckernel_1_1dbg__array__rd__en__u_1ae640a36165dafb9723f758719747cdc7" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_en_u</scope><name>f</name></member>
+      <member refid="unionckernel_1_1dbg__array__rd__en__u_1a06958e60bd4705a9416467f281925ac3" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_en_u</scope><name>val</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,737 @@
+\hypertarget{classckernel_1_1ckernel__unpack__template}{}\doxysection{ckernel\+::ckernel\+\_\+unpack\+\_\+template Class Reference}
+\label{classckernel_1_1ckernel__unpack__template}\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+
+
+{\ttfamily \#include $<$ckernel\+\_\+template.\+h$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a16301be69027f2f425c27ce412fc1f25}{ckernel\+\_\+unpack\+\_\+template}} (bool unpackB, bool unpack\+Halo, uint A0\+\_\+instr, uint A1\+\_\+instr, uint A2\+\_\+instr, uint A3\+\_\+instr, uint skip\+A\+\_\+instr, uint B\+\_\+instr, uint skip\+B\+\_\+instr)
+\item 
+void \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a0b242ce125f55576f416d54c9ec0d455}{program}} (volatile uint $\ast$\mbox{\hyperlink{namespaceckernel_a2d69fb46f1972c372d8a89775ef780e3}{instrn\+\_\+buffer}}) const
+\item 
+void \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a63fcaa1f6cd74194d726a77b8d6b9edc}{program\+\_\+and\+\_\+run}} (volatile uint $\ast$\mbox{\hyperlink{namespaceckernel_a2d69fb46f1972c372d8a89775ef780e3}{instrn\+\_\+buffer}}, const uint8\+\_\+t count, const uint32\+\_\+t zmask=0)
+\item 
+\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a16301be69027f2f425c27ce412fc1f25}{ckernel\+\_\+unpack\+\_\+template}} (bool unpackB, bool unpack\+Halo, uint A0\+\_\+instr, uint A1\+\_\+instr, uint A2\+\_\+instr, uint A3\+\_\+instr, uint skip\+A\+\_\+instr, uint B\+\_\+instr, uint skip\+B\+\_\+instr)
+\item 
+void \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a0b242ce125f55576f416d54c9ec0d455}{program}} (volatile uint $\ast$\mbox{\hyperlink{namespaceckernel_a2d69fb46f1972c372d8a89775ef780e3}{instrn\+\_\+buffer}}) const
+\item 
+void \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a63fcaa1f6cd74194d726a77b8d6b9edc}{program\+\_\+and\+\_\+run}} (volatile uint $\ast$\mbox{\hyperlink{namespaceckernel_a2d69fb46f1972c372d8a89775ef780e3}{instrn\+\_\+buffer}}, const uint8\+\_\+t count, const uint32\+\_\+t zmask=0)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a9a528ad756f8b3f65f0d332a4a6e1635}{lzA}} (bool neginf, uint A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}}, uint skip\+A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a7ca1182cecf20084e816df13610b34a0}{lA}} (uint A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}}, uint skip\+A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a02d16c5449af360c5c5a895cb02f2d6e}{lB}} (uint B\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a1880ed21340aa071d747b700a97c6240}{DEF\+\_\+\+B\+\_\+cntx\+\_\+ovrd\+\_\+instr}}, uint skip\+B\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a302a15eda19f223cff4522425bc14b62}{lhA}} (const uint32\+\_\+t halo\+\_\+mask)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a274e89bea61f9d674944d81707a6eaaa}{flhA}} (const uint32\+\_\+t halo\+\_\+mask)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_afb1cfbf89162da8ca1c769344f140903}{l\+BhA}} (const uint32\+\_\+t halo\+\_\+mask, const bool rarefy=true)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aa07abd552e143e87ac9aa60c796c5ea2}{fl\+BhA}} (const uint32\+\_\+t halo\+\_\+mask)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aacb8fe7aa96882d4f6bea0908e27ce5f}{l\+BA}} (uint A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_af77d401b8731bbbb08bfcac3c4612559}{DEF\+\_\+\+A\+\_\+instr}}, uint skip\+A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}}, uint B\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a95316f28c38ad3b89679272e2e3dbc50}{DEF\+\_\+\+B\+\_\+instr}}, uint skip\+B\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_ac25de70a950bdfd566578d520de13867}{loopx1instr}} (uint instr0, uint skip0=\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_ac852738abf8b286f2183d1bd6bc0d39f}{loopx2instr}} (uint instr0, uint instr1, uint skip0=\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}}, uint skip1=\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}})
+\item 
+static void \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3028e769efaab777cc1b796af98edcf1}{run}} (volatile uint $\ast$\mbox{\hyperlink{namespaceckernel_a2d69fb46f1972c372d8a89775ef780e3}{instrn\+\_\+buffer}}, const uint8\+\_\+t count, const uint32\+\_\+t zmask)
+\item 
+static void \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a6fd37ae4492ee3a0c69c4bfc1abae331}{run}} (volatile uint $\ast$\mbox{\hyperlink{namespaceckernel_a2d69fb46f1972c372d8a89775ef780e3}{instrn\+\_\+buffer}}, const uint8\+\_\+t count)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aa9bddc260b05818db821ddb63dbed6a5}{lzA}} (bool neginf, uint A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}}, uint skip\+A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a9aff70fc5dbe3f850edac803b10aec7e}{lA}} (uint A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}}, uint skip\+A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a77b9617afb144647aa42fe9a0f7f7dde}{lB}} (uint B\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a1880ed21340aa071d747b700a97c6240}{DEF\+\_\+\+B\+\_\+cntx\+\_\+ovrd\+\_\+instr}}, uint skip\+B\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aa28f1e6a0f44aaba7760dc83d4d923d9}{lhA}} (const uint32\+\_\+t halo\+\_\+mask)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_ab89a8526ea0971d99b739b7413017453}{flhA}} (const uint32\+\_\+t halo\+\_\+mask)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a712e033db1931ad3362d49413c4a89b8}{l\+BhA}} (const uint32\+\_\+t halo\+\_\+mask, const bool rarefy=true)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aca529523568bf732ef679e0808c4d339}{fl\+BhA}} (const uint32\+\_\+t halo\+\_\+mask)
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_ac15b81608d5e21fe110e98505372dcb8}{l\+BA}} (uint A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_af77d401b8731bbbb08bfcac3c4612559}{DEF\+\_\+\+A\+\_\+instr}}, uint skip\+A\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}}, uint B\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a95316f28c38ad3b89679272e2e3dbc50}{DEF\+\_\+\+B\+\_\+instr}}, uint skip\+B\+\_\+instr=\mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a7831f73a9ce5ed38e4e377c6cacb7f04}{loopx1instr}} (uint instr0, uint skip0=\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}})
+\item 
+static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_ae9273fd9e9d0d931bea71619f650521b}{loopx2instr}} (uint instr0, uint instr1, uint skip0=\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}}, uint skip1=\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}})
+\item 
+static void \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_ab8a9d584521649f8ffbb1c7800d4df3e}{run}} (volatile uint $\ast$\mbox{\hyperlink{namespaceckernel_a2d69fb46f1972c372d8a89775ef780e3}{instrn\+\_\+buffer}}, const uint8\+\_\+t count, const uint32\+\_\+t zmask)
+\item 
+static void \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a5e7c7a8e14f1dfc597a812b8a7089dbb}{run}} (volatile uint $\ast$\mbox{\hyperlink{namespaceckernel_a2d69fb46f1972c372d8a89775ef780e3}{instrn\+\_\+buffer}}, const uint8\+\_\+t count)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aaaeee1e21596ba93b06f5ebc1e3ff986}{DEF\+\_\+\+ZEROSRCA}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ab80db24808208eea588d31e2561d1191}{TT\+\_\+\+OP\+\_\+\+UNPACR\+\_\+\+NOP}}(0, 0, 0, 0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a279beec2a15aa6c4fa454cbcafcd9523}{p\+\_\+unpacr\+::\+UNP\+\_\+\+CLRSRC\+\_\+\+ZERO}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a612ca544fce4e0ff27ab3cfdabd3452a}{p\+\_\+unpacr\+::\+UNP\+\_\+\+CLRSRC}})
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a0d67ee9477d4c42fd0b52d8cafeb7bee}{DEF\+\_\+\+NINFSRCA}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ab80db24808208eea588d31e2561d1191}{TT\+\_\+\+OP\+\_\+\+UNPACR\+\_\+\+NOP}}(0, 0, 0, 0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aaaa93d465aa172aee0f4c7425ad6c340}{p\+\_\+unpacr\+::\+UNP\+\_\+\+CLRSRC\+\_\+\+NEGINF}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a612ca544fce4e0ff27ab3cfdabd3452a}{p\+\_\+unpacr\+::\+UNP\+\_\+\+CLRSRC}})
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aade233c55805706d9fb148d5a4797117}{DEF\+\_\+\+UNPACR\+\_\+\+NOP}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ab80db24808208eea588d31e2561d1191}{TT\+\_\+\+OP\+\_\+\+UNPACR\+\_\+\+NOP}}(0, 0, 0, 0, 0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a9029626b4fcd676457f56276a408bc2d}{p\+\_\+unpacr\+::\+UNP\+\_\+\+NOP}})
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ae9285acc2f565c671bb60d557abe43c2}{TT\+\_\+\+OP\+\_\+\+INCADCZW}}(0b001, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ae9285acc2f565c671bb60d557abe43c2}{TT\+\_\+\+OP\+\_\+\+INCADCZW}}(0b010, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_af77d401b8731bbbb08bfcac3c4612559}{DEF\+\_\+\+A\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0b1, 0, 0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0b1, 0, 0, 0, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a81a74800c1c5596c4d0eda046aa600b9}{DEF\+\_\+\+B\+\_\+rarefy\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b01, 0, 0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a0a17bc11ccd90ea8fa1580f6ff6b2ca9}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+ENABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3321cde1ea90547d88f504a366f5a62a}{DEF\+\_\+\+B\+\_\+rarefy\+\_\+cntx\+\_\+ovrd\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b01, 0, 0, 0, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a0a17bc11ccd90ea8fa1580f6ff6b2ca9}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+ENABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a961f60873a5013a6feccc24b6c7b6636}{DEF\+\_\+\+B\+\_\+cntx\+\_\+ovrd\+\_\+no\+\_\+z\+\_\+inc\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b00, 0, 0, 0, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a1880ed21340aa071d747b700a97c6240}{DEF\+\_\+\+B\+\_\+cntx\+\_\+ovrd\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b01, 0, 0, 0, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a95316f28c38ad3b89679272e2e3dbc50}{DEF\+\_\+\+B\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b01, 0, 0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_abdfd8ab318c0bc2803a5fa046b2e64bb}{DEF\+\_\+\+A0\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a36f55a4b1b05bdc60b35a1508dc5b443}{DEF\+\_\+\+A1\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_adb90ce6d308edd4918351f20c653fe81}{DEF\+\_\+\+A2\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a9cdb76ed4b3bf05f757d8bae26bc1650}{DEF\+\_\+\+A3\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_ab916a027309b7231a5c4c8981ec3e9ac}{DEF\+\_\+\+A0\+\_\+last\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aa0b014ae00295bb292c954f8072b2461}{DEF\+\_\+\+A1\+\_\+last\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a04388292eaddbabc940b8f67969bed64}{DEF\+\_\+\+A2\+\_\+last\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a2c84ff2be348d2488ea814535997e24c}{SKIP\+\_\+\+A0\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a2fc0511e3aaf27e81b232f0bd8ac9d8d}{SKIP\+\_\+\+A1\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aabedb3e2a64169580a0a37793eff6528}{SKIP\+\_\+\+A2\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a5bf206f2a2a003726aff62c0da54b34c}{SKIP\+\_\+\+A3\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_af374ee63be5a085df4fd9c0ccb911dd8}{DEF\+\_\+\+A0\+\_\+fconv\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a80a31a917c6118e656bc5c226fdf6b51}{DEF\+\_\+\+A1\+\_\+fconv\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3a9b9f5e952f47d8d9ee61057b75adf0}{DEF\+\_\+\+A2\+\_\+fconv\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a2fcfc6382d51017a19933dc785745762}{DEF\+\_\+\+A3\+\_\+fconv\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a7c2242351bdb0b417012ff6bce1518cd}{DEF\+\_\+\+A0\+\_\+fconv\+\_\+last\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aab06ed5da6b9a07356c02ff13a472062}{DEF\+\_\+\+A1\+\_\+fconv\+\_\+last\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_abc1ba2bbe6556a67a1b3db0d423f82ce}{DEF\+\_\+\+A2\+\_\+fconv\+\_\+last\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3bfd3ca035ea0437b46a449fa2565ee8}{DEF\+\_\+\+Strip0\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\+\_\+unpacr\+::\+TILE0\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a88a7bca314d54a7a9f5caca6ed78e34d}{DEF\+\_\+\+Strip1\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\+\_\+unpacr\+::\+TILE1\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a55bf7db3343c91f8b2a17b9a87a3a5a2}{DEF\+\_\+\+Strip2\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0, 0, 2, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\+\_\+unpacr\+::\+TILE2\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_acd3d35933d7a6118524aea24b4607b45}{DEF\+\_\+\+Strip3\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0, 0, 3, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d79d1e9ac46bdeff084d6263862ae10}{p\+\_\+unpacr\+::\+TILE3\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a583751c4603c6973409ed424340d97f7}{DEF\+\_\+\+Strip0\+\_\+last\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 1, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\+\_\+unpacr\+::\+TILE0\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a21b785794651100e4cfdd6d616243c75}{DEF\+\_\+\+Strip1\+\_\+last\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 1, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\+\_\+unpacr\+::\+TILE1\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a7588731b970907a1f5cac06b93ef83b0}{DEF\+\_\+\+Strip2\+\_\+last\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 1, 0, 2, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\+\_\+unpacr\+::\+TILE2\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_aa2e5488a224eb4ee713bab313191807e}{DEF\+\_\+\+Strip3\+\_\+last\+\_\+instr}} = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 1, 0, 3, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d79d1e9ac46bdeff084d6263862ae10}{p\+\_\+unpacr\+::\+TILE3\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a8f1c9f9d70e4626f9effb26d2119c8d1}{DEF\+\_\+\+Strip0\+\_\+data\+\_\+valid\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a4519baddb9d2b1da6efb8757eb59a12c}{DEF\+\_\+\+Strip1\+\_\+data\+\_\+valid\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_ad9a13c4499e6feecffe53285b85cfc32}{DEF\+\_\+\+Strip2\+\_\+data\+\_\+valid\+\_\+instr}}
+\item 
+static constexpr uint \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a84d37353f1864902c142fee73fbfd3a0}{DEF\+\_\+\+Strip3\+\_\+data\+\_\+valid\+\_\+instr}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a16301be69027f2f425c27ce412fc1f25}\label{classckernel_1_1ckernel__unpack__template_a16301be69027f2f425c27ce412fc1f25}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!ckernel\_unpack\_template@{ckernel\_unpack\_template}}
+\index{ckernel\_unpack\_template@{ckernel\_unpack\_template}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{ckernel\_unpack\_template()}{ckernel\_unpack\_template()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::ckernel\+\_\+unpack\+\_\+template (\begin{DoxyParamCaption}\item[{bool}]{unpackB,  }\item[{bool}]{unpack\+Halo,  }\item[{uint}]{A0\+\_\+instr,  }\item[{uint}]{A1\+\_\+instr,  }\item[{uint}]{A2\+\_\+instr,  }\item[{uint}]{A3\+\_\+instr,  }\item[{uint}]{skip\+A\+\_\+instr,  }\item[{uint}]{B\+\_\+instr,  }\item[{uint}]{skip\+B\+\_\+instr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a16301be69027f2f425c27ce412fc1f25}\label{classckernel_1_1ckernel__unpack__template_a16301be69027f2f425c27ce412fc1f25}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!ckernel\_unpack\_template@{ckernel\_unpack\_template}}
+\index{ckernel\_unpack\_template@{ckernel\_unpack\_template}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{ckernel\_unpack\_template()}{ckernel\_unpack\_template()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::ckernel\+\_\+unpack\+\_\+template (\begin{DoxyParamCaption}\item[{bool}]{unpackB,  }\item[{bool}]{unpack\+Halo,  }\item[{uint}]{A0\+\_\+instr,  }\item[{uint}]{A1\+\_\+instr,  }\item[{uint}]{A2\+\_\+instr,  }\item[{uint}]{A3\+\_\+instr,  }\item[{uint}]{skip\+A\+\_\+instr,  }\item[{uint}]{B\+\_\+instr,  }\item[{uint}]{skip\+B\+\_\+instr }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aa07abd552e143e87ac9aa60c796c5ea2}\label{classckernel_1_1ckernel__unpack__template_aa07abd552e143e87ac9aa60c796c5ea2}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!flBhA@{flBhA}}
+\index{flBhA@{flBhA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{flBhA()}{flBhA()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::fl\+BhA (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{halo\+\_\+mask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aca529523568bf732ef679e0808c4d339}\label{classckernel_1_1ckernel__unpack__template_aca529523568bf732ef679e0808c4d339}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!flBhA@{flBhA}}
+\index{flBhA@{flBhA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{flBhA()}{flBhA()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::fl\+BhA (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{halo\+\_\+mask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a274e89bea61f9d674944d81707a6eaaa}\label{classckernel_1_1ckernel__unpack__template_a274e89bea61f9d674944d81707a6eaaa}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!flhA@{flhA}}
+\index{flhA@{flhA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{flhA()}{flhA()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::flhA (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{halo\+\_\+mask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_ab89a8526ea0971d99b739b7413017453}\label{classckernel_1_1ckernel__unpack__template_ab89a8526ea0971d99b739b7413017453}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!flhA@{flhA}}
+\index{flhA@{flhA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{flhA()}{flhA()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::flhA (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{halo\+\_\+mask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a7ca1182cecf20084e816df13610b34a0}\label{classckernel_1_1ckernel__unpack__template_a7ca1182cecf20084e816df13610b34a0}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lA@{lA}}
+\index{lA@{lA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lA()}{lA()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::lA (\begin{DoxyParamCaption}\item[{uint}]{A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}}},  }\item[{uint}]{skip\+A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a9aff70fc5dbe3f850edac803b10aec7e}\label{classckernel_1_1ckernel__unpack__template_a9aff70fc5dbe3f850edac803b10aec7e}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lA@{lA}}
+\index{lA@{lA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lA()}{lA()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::lA (\begin{DoxyParamCaption}\item[{uint}]{A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}}},  }\item[{uint}]{skip\+A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a02d16c5449af360c5c5a895cb02f2d6e}\label{classckernel_1_1ckernel__unpack__template_a02d16c5449af360c5c5a895cb02f2d6e}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lB@{lB}}
+\index{lB@{lB}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lB()}{lB()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::lB (\begin{DoxyParamCaption}\item[{uint}]{B\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a1880ed21340aa071d747b700a97c6240}{DEF\+\_\+\+B\+\_\+cntx\+\_\+ovrd\+\_\+instr}}},  }\item[{uint}]{skip\+B\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a77b9617afb144647aa42fe9a0f7f7dde}\label{classckernel_1_1ckernel__unpack__template_a77b9617afb144647aa42fe9a0f7f7dde}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lB@{lB}}
+\index{lB@{lB}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lB()}{lB()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::lB (\begin{DoxyParamCaption}\item[{uint}]{B\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a1880ed21340aa071d747b700a97c6240}{DEF\+\_\+\+B\+\_\+cntx\+\_\+ovrd\+\_\+instr}}},  }\item[{uint}]{skip\+B\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aacb8fe7aa96882d4f6bea0908e27ce5f}\label{classckernel_1_1ckernel__unpack__template_aacb8fe7aa96882d4f6bea0908e27ce5f}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lBA@{lBA}}
+\index{lBA@{lBA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lBA()}{lBA()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::l\+BA (\begin{DoxyParamCaption}\item[{uint}]{A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_af77d401b8731bbbb08bfcac3c4612559}{DEF\+\_\+\+A\+\_\+instr}}},  }\item[{uint}]{skip\+A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}}},  }\item[{uint}]{B\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a95316f28c38ad3b89679272e2e3dbc50}{DEF\+\_\+\+B\+\_\+instr}}},  }\item[{uint}]{skip\+B\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_ac15b81608d5e21fe110e98505372dcb8}\label{classckernel_1_1ckernel__unpack__template_ac15b81608d5e21fe110e98505372dcb8}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lBA@{lBA}}
+\index{lBA@{lBA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lBA()}{lBA()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::l\+BA (\begin{DoxyParamCaption}\item[{uint}]{A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_af77d401b8731bbbb08bfcac3c4612559}{DEF\+\_\+\+A\+\_\+instr}}},  }\item[{uint}]{skip\+A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}}},  }\item[{uint}]{B\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a95316f28c38ad3b89679272e2e3dbc50}{DEF\+\_\+\+B\+\_\+instr}}},  }\item[{uint}]{skip\+B\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}{DEF\+\_\+\+SKIP\+\_\+B}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_afb1cfbf89162da8ca1c769344f140903}\label{classckernel_1_1ckernel__unpack__template_afb1cfbf89162da8ca1c769344f140903}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lBhA@{lBhA}}
+\index{lBhA@{lBhA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lBhA()}{lBhA()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::l\+BhA (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{halo\+\_\+mask,  }\item[{const bool}]{rarefy = {\ttfamily true} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a712e033db1931ad3362d49413c4a89b8}\label{classckernel_1_1ckernel__unpack__template_a712e033db1931ad3362d49413c4a89b8}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lBhA@{lBhA}}
+\index{lBhA@{lBhA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lBhA()}{lBhA()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::l\+BhA (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{halo\+\_\+mask,  }\item[{const bool}]{rarefy = {\ttfamily true} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a302a15eda19f223cff4522425bc14b62}\label{classckernel_1_1ckernel__unpack__template_a302a15eda19f223cff4522425bc14b62}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lhA@{lhA}}
+\index{lhA@{lhA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lhA()}{lhA()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::lhA (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{halo\+\_\+mask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aa28f1e6a0f44aaba7760dc83d4d923d9}\label{classckernel_1_1ckernel__unpack__template_aa28f1e6a0f44aaba7760dc83d4d923d9}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lhA@{lhA}}
+\index{lhA@{lhA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lhA()}{lhA()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::lhA (\begin{DoxyParamCaption}\item[{const uint32\+\_\+t}]{halo\+\_\+mask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_ac25de70a950bdfd566578d520de13867}\label{classckernel_1_1ckernel__unpack__template_ac25de70a950bdfd566578d520de13867}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!loopx1instr@{loopx1instr}}
+\index{loopx1instr@{loopx1instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{loopx1instr()}{loopx1instr()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::loopx1instr (\begin{DoxyParamCaption}\item[{uint}]{instr0,  }\item[{uint}]{skip0 = {\ttfamily \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a7831f73a9ce5ed38e4e377c6cacb7f04}\label{classckernel_1_1ckernel__unpack__template_a7831f73a9ce5ed38e4e377c6cacb7f04}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!loopx1instr@{loopx1instr}}
+\index{loopx1instr@{loopx1instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{loopx1instr()}{loopx1instr()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::loopx1instr (\begin{DoxyParamCaption}\item[{uint}]{instr0,  }\item[{uint}]{skip0 = {\ttfamily \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_ac852738abf8b286f2183d1bd6bc0d39f}\label{classckernel_1_1ckernel__unpack__template_ac852738abf8b286f2183d1bd6bc0d39f}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!loopx2instr@{loopx2instr}}
+\index{loopx2instr@{loopx2instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{loopx2instr()}{loopx2instr()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::loopx2instr (\begin{DoxyParamCaption}\item[{uint}]{instr0,  }\item[{uint}]{instr1,  }\item[{uint}]{skip0 = {\ttfamily \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}}},  }\item[{uint}]{skip1 = {\ttfamily \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_ae9273fd9e9d0d931bea71619f650521b}\label{classckernel_1_1ckernel__unpack__template_ae9273fd9e9d0d931bea71619f650521b}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!loopx2instr@{loopx2instr}}
+\index{loopx2instr@{loopx2instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{loopx2instr()}{loopx2instr()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::loopx2instr (\begin{DoxyParamCaption}\item[{uint}]{instr0,  }\item[{uint}]{instr1,  }\item[{uint}]{skip0 = {\ttfamily \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}}},  }\item[{uint}]{skip1 = {\ttfamily \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_af462e63a19a2e6421ef5d12f7e7db4a1}{TT\+\_\+\+OP\+\_\+\+NOP}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a9a528ad756f8b3f65f0d332a4a6e1635}\label{classckernel_1_1ckernel__unpack__template_a9a528ad756f8b3f65f0d332a4a6e1635}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lzA@{lzA}}
+\index{lzA@{lzA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lzA()}{lzA()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::lzA (\begin{DoxyParamCaption}\item[{bool}]{neginf,  }\item[{uint}]{A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}}},  }\item[{uint}]{skip\+A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aa9bddc260b05818db821ddb63dbed6a5}\label{classckernel_1_1ckernel__unpack__template_aa9bddc260b05818db821ddb63dbed6a5}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!lzA@{lzA}}
+\index{lzA@{lzA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{lzA()}{lzA()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily static \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template}{ckernel\+\_\+unpack\+\_\+template}} ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::lzA (\begin{DoxyParamCaption}\item[{bool}]{neginf,  }\item[{uint}]{A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}{DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr}}},  }\item[{uint}]{skip\+A\+\_\+instr = {\ttfamily \mbox{\hyperlink{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}{DEF\+\_\+\+SKIP\+\_\+A}}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a0b242ce125f55576f416d54c9ec0d455}\label{classckernel_1_1ckernel__unpack__template_a0b242ce125f55576f416d54c9ec0d455}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!program@{program}}
+\index{program@{program}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{program()}{program()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily void ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::program (\begin{DoxyParamCaption}\item[{volatile uint $\ast$}]{instrn\+\_\+buffer }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a0b242ce125f55576f416d54c9ec0d455}\label{classckernel_1_1ckernel__unpack__template_a0b242ce125f55576f416d54c9ec0d455}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!program@{program}}
+\index{program@{program}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{program()}{program()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily void ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::program (\begin{DoxyParamCaption}\item[{volatile uint $\ast$}]{instrn\+\_\+buffer }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a63fcaa1f6cd74194d726a77b8d6b9edc}\label{classckernel_1_1ckernel__unpack__template_a63fcaa1f6cd74194d726a77b8d6b9edc}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!program\_and\_run@{program\_and\_run}}
+\index{program\_and\_run@{program\_and\_run}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{program\_and\_run()}{program\_and\_run()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily void ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::program\+\_\+and\+\_\+run (\begin{DoxyParamCaption}\item[{volatile uint $\ast$}]{instrn\+\_\+buffer,  }\item[{const uint8\+\_\+t}]{count,  }\item[{const uint32\+\_\+t}]{zmask = {\ttfamily 0} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a63fcaa1f6cd74194d726a77b8d6b9edc}\label{classckernel_1_1ckernel__unpack__template_a63fcaa1f6cd74194d726a77b8d6b9edc}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!program\_and\_run@{program\_and\_run}}
+\index{program\_and\_run@{program\_and\_run}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{program\_and\_run()}{program\_and\_run()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily void ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::program\+\_\+and\+\_\+run (\begin{DoxyParamCaption}\item[{volatile uint $\ast$}]{instrn\+\_\+buffer,  }\item[{const uint8\+\_\+t}]{count,  }\item[{const uint32\+\_\+t}]{zmask = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a6fd37ae4492ee3a0c69c4bfc1abae331}\label{classckernel_1_1ckernel__unpack__template_a6fd37ae4492ee3a0c69c4bfc1abae331}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!run@{run}}
+\index{run@{run}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
+{\footnotesize\ttfamily void ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::run (\begin{DoxyParamCaption}\item[{volatile uint $\ast$}]{instrn\+\_\+buffer,  }\item[{const uint8\+\_\+t}]{count }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a5e7c7a8e14f1dfc597a812b8a7089dbb}\label{classckernel_1_1ckernel__unpack__template_a5e7c7a8e14f1dfc597a812b8a7089dbb}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!run@{run}}
+\index{run@{run}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
+{\footnotesize\ttfamily static void ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::run (\begin{DoxyParamCaption}\item[{volatile uint $\ast$}]{instrn\+\_\+buffer,  }\item[{const uint8\+\_\+t}]{count }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a3028e769efaab777cc1b796af98edcf1}\label{classckernel_1_1ckernel__unpack__template_a3028e769efaab777cc1b796af98edcf1}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!run@{run}}
+\index{run@{run}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
+{\footnotesize\ttfamily void ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::run (\begin{DoxyParamCaption}\item[{volatile uint $\ast$}]{instrn\+\_\+buffer,  }\item[{const uint8\+\_\+t}]{count,  }\item[{const uint32\+\_\+t}]{zmask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_ab8a9d584521649f8ffbb1c7800d4df3e}\label{classckernel_1_1ckernel__unpack__template_ab8a9d584521649f8ffbb1c7800d4df3e}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!run@{run}}
+\index{run@{run}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
+{\footnotesize\ttfamily static void ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::run (\begin{DoxyParamCaption}\item[{volatile uint $\ast$}]{instrn\+\_\+buffer,  }\item[{const uint8\+\_\+t}]{count,  }\item[{const uint32\+\_\+t}]{zmask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_af374ee63be5a085df4fd9c0ccb911dd8}\label{classckernel_1_1ckernel__unpack__template_af374ee63be5a085df4fd9c0ccb911dd8}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A0\_fconv\_instr@{DEF\_A0\_fconv\_instr}}
+\index{DEF\_A0\_fconv\_instr@{DEF\_A0\_fconv\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A0\_fconv\_instr}{DEF\_A0\_fconv\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A0\+\_\+fconv\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d0eed775ad9cd8b3b0f66be1563b9ab}{p\_unpacr::TILE0\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\_unpacr::TILE0\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a7c2242351bdb0b417012ff6bce1518cd}\label{classckernel_1_1ckernel__unpack__template_a7c2242351bdb0b417012ff6bce1518cd}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A0\_fconv\_last\_instr@{DEF\_A0\_fconv\_last\_instr}}
+\index{DEF\_A0\_fconv\_last\_instr@{DEF\_A0\_fconv\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A0\_fconv\_last\_instr}{DEF\_A0\_fconv\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A0\+\_\+fconv\+\_\+last\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d0eed775ad9cd8b3b0f66be1563b9ab}{p\_unpacr::TILE0\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\_unpacr::TILE0\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_abdfd8ab318c0bc2803a5fa046b2e64bb}\label{classckernel_1_1ckernel__unpack__template_abdfd8ab318c0bc2803a5fa046b2e64bb}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A0\_instr@{DEF\_A0\_instr}}
+\index{DEF\_A0\_instr@{DEF\_A0\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A0\_instr}{DEF\_A0\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A0\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d0eed775ad9cd8b3b0f66be1563b9ab}{p\_unpacr::TILE0\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\_unpacr::TILE0\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_ab916a027309b7231a5c4c8981ec3e9ac}\label{classckernel_1_1ckernel__unpack__template_ab916a027309b7231a5c4c8981ec3e9ac}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A0\_last\_instr@{DEF\_A0\_last\_instr}}
+\index{DEF\_A0\_last\_instr@{DEF\_A0\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A0\_last\_instr}{DEF\_A0\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A0\+\_\+last\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b01, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d0eed775ad9cd8b3b0f66be1563b9ab}{p\_unpacr::TILE0\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\_unpacr::TILE0\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a80a31a917c6118e656bc5c226fdf6b51}\label{classckernel_1_1ckernel__unpack__template_a80a31a917c6118e656bc5c226fdf6b51}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A1\_fconv\_instr@{DEF\_A1\_fconv\_instr}}
+\index{DEF\_A1\_fconv\_instr@{DEF\_A1\_fconv\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A1\_fconv\_instr}{DEF\_A1\_fconv\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A1\+\_\+fconv\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a270140f80f8b849978317dad4855950e}{p\_unpacr::TILE1\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\_unpacr::TILE1\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aab06ed5da6b9a07356c02ff13a472062}\label{classckernel_1_1ckernel__unpack__template_aab06ed5da6b9a07356c02ff13a472062}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A1\_fconv\_last\_instr@{DEF\_A1\_fconv\_last\_instr}}
+\index{DEF\_A1\_fconv\_last\_instr@{DEF\_A1\_fconv\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A1\_fconv\_last\_instr}{DEF\_A1\_fconv\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A1\+\_\+fconv\+\_\+last\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a270140f80f8b849978317dad4855950e}{p\_unpacr::TILE1\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\_unpacr::TILE1\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a36f55a4b1b05bdc60b35a1508dc5b443}\label{classckernel_1_1ckernel__unpack__template_a36f55a4b1b05bdc60b35a1508dc5b443}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A1\_instr@{DEF\_A1\_instr}}
+\index{DEF\_A1\_instr@{DEF\_A1\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A1\_instr}{DEF\_A1\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A1\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a270140f80f8b849978317dad4855950e}{p\_unpacr::TILE1\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\_unpacr::TILE1\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aa0b014ae00295bb292c954f8072b2461}\label{classckernel_1_1ckernel__unpack__template_aa0b014ae00295bb292c954f8072b2461}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A1\_last\_instr@{DEF\_A1\_last\_instr}}
+\index{DEF\_A1\_last\_instr@{DEF\_A1\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A1\_last\_instr}{DEF\_A1\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A1\+\_\+last\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b01, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a270140f80f8b849978317dad4855950e}{p\_unpacr::TILE1\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\_unpacr::TILE1\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a3a9b9f5e952f47d8d9ee61057b75adf0}\label{classckernel_1_1ckernel__unpack__template_a3a9b9f5e952f47d8d9ee61057b75adf0}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A2\_fconv\_instr@{DEF\_A2\_fconv\_instr}}
+\index{DEF\_A2\_fconv\_instr@{DEF\_A2\_fconv\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A2\_fconv\_instr}{DEF\_A2\_fconv\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A2\+\_\+fconv\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ae5e97c98e032cc1c48e40b0911699096}{p\_unpacr::TILE2\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\_unpacr::TILE2\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_abc1ba2bbe6556a67a1b3db0d423f82ce}\label{classckernel_1_1ckernel__unpack__template_abc1ba2bbe6556a67a1b3db0d423f82ce}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A2\_fconv\_last\_instr@{DEF\_A2\_fconv\_last\_instr}}
+\index{DEF\_A2\_fconv\_last\_instr@{DEF\_A2\_fconv\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A2\_fconv\_last\_instr}{DEF\_A2\_fconv\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A2\+\_\+fconv\+\_\+last\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ae5e97c98e032cc1c48e40b0911699096}{p\_unpacr::TILE2\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\_unpacr::TILE2\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_adb90ce6d308edd4918351f20c653fe81}\label{classckernel_1_1ckernel__unpack__template_adb90ce6d308edd4918351f20c653fe81}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A2\_instr@{DEF\_A2\_instr}}
+\index{DEF\_A2\_instr@{DEF\_A2\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A2\_instr}{DEF\_A2\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A2\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ae5e97c98e032cc1c48e40b0911699096}{p\_unpacr::TILE2\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\_unpacr::TILE2\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a04388292eaddbabc940b8f67969bed64}\label{classckernel_1_1ckernel__unpack__template_a04388292eaddbabc940b8f67969bed64}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A2\_last\_instr@{DEF\_A2\_last\_instr}}
+\index{DEF\_A2\_last\_instr@{DEF\_A2\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A2\_last\_instr}{DEF\_A2\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A2\+\_\+last\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b01, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ae5e97c98e032cc1c48e40b0911699096}{p\_unpacr::TILE2\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\_unpacr::TILE2\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a2fcfc6382d51017a19933dc785745762}\label{classckernel_1_1ckernel__unpack__template_a2fcfc6382d51017a19933dc785745762}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A3\_fconv\_instr@{DEF\_A3\_fconv\_instr}}
+\index{DEF\_A3\_fconv\_instr@{DEF\_A3\_fconv\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A3\_fconv\_instr}{DEF\_A3\_fconv\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A3\+\_\+fconv\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a35eac6c1a1c5d3ec059dd30175c3586e}{p\_unpacr::TILE3\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d79d1e9ac46bdeff084d6263862ae10}{p\_unpacr::TILE3\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a9cdb76ed4b3bf05f757d8bae26bc1650}\label{classckernel_1_1ckernel__unpack__template_a9cdb76ed4b3bf05f757d8bae26bc1650}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A3\_instr@{DEF\_A3\_instr}}
+\index{DEF\_A3\_instr@{DEF\_A3\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A3\_instr}{DEF\_A3\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A3\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b01, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a35eac6c1a1c5d3ec059dd30175c3586e}{p\_unpacr::TILE3\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d79d1e9ac46bdeff084d6263862ae10}{p\_unpacr::TILE3\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}\label{classckernel_1_1ckernel__unpack__template_a292696b793f74a5d582361cd182b347a}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A\_cntx\_ovrd\_instr@{DEF\_A\_cntx\_ovrd\_instr}}
+\index{DEF\_A\_cntx\_ovrd\_instr@{DEF\_A\_cntx\_ovrd\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A\_cntx\_ovrd\_instr}{DEF\_A\_cntx\_ovrd\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A\+\_\+cntx\+\_\+ovrd\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0b1, 0, 0, 0, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_af77d401b8731bbbb08bfcac3c4612559}\label{classckernel_1_1ckernel__unpack__template_af77d401b8731bbbb08bfcac3c4612559}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_A\_instr@{DEF\_A\_instr}}
+\index{DEF\_A\_instr@{DEF\_A\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_A\_instr}{DEF\_A\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+A\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0b1, 0, 0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a1880ed21340aa071d747b700a97c6240}\label{classckernel_1_1ckernel__unpack__template_a1880ed21340aa071d747b700a97c6240}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_B\_cntx\_ovrd\_instr@{DEF\_B\_cntx\_ovrd\_instr}}
+\index{DEF\_B\_cntx\_ovrd\_instr@{DEF\_B\_cntx\_ovrd\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_B\_cntx\_ovrd\_instr}{DEF\_B\_cntx\_ovrd\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+B\+\_\+cntx\+\_\+ovrd\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b01, 0, 0, 0, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a961f60873a5013a6feccc24b6c7b6636}\label{classckernel_1_1ckernel__unpack__template_a961f60873a5013a6feccc24b6c7b6636}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_B\_cntx\_ovrd\_no\_z\_inc\_instr@{DEF\_B\_cntx\_ovrd\_no\_z\_inc\_instr}}
+\index{DEF\_B\_cntx\_ovrd\_no\_z\_inc\_instr@{DEF\_B\_cntx\_ovrd\_no\_z\_inc\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_B\_cntx\_ovrd\_no\_z\_inc\_instr}{DEF\_B\_cntx\_ovrd\_no\_z\_inc\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+B\+\_\+cntx\+\_\+ovrd\+\_\+no\+\_\+z\+\_\+inc\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b00, 0, 0, 0, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a95316f28c38ad3b89679272e2e3dbc50}\label{classckernel_1_1ckernel__unpack__template_a95316f28c38ad3b89679272e2e3dbc50}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_B\_instr@{DEF\_B\_instr}}
+\index{DEF\_B\_instr@{DEF\_B\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_B\_instr}{DEF\_B\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+B\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b01, 0, 0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a3321cde1ea90547d88f504a366f5a62a}\label{classckernel_1_1ckernel__unpack__template_a3321cde1ea90547d88f504a366f5a62a}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_B\_rarefy\_cntx\_ovrd\_instr@{DEF\_B\_rarefy\_cntx\_ovrd\_instr}}
+\index{DEF\_B\_rarefy\_cntx\_ovrd\_instr@{DEF\_B\_rarefy\_cntx\_ovrd\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_B\_rarefy\_cntx\_ovrd\_instr}{DEF\_B\_rarefy\_cntx\_ovrd\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+B\+\_\+rarefy\+\_\+cntx\+\_\+ovrd\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b01, 0, 0, 0, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a0a17bc11ccd90ea8fa1580f6ff6b2ca9}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+ENABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a81a74800c1c5596c4d0eda046aa600b9}\label{classckernel_1_1ckernel__unpack__template_a81a74800c1c5596c4d0eda046aa600b9}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_B\_rarefy\_instr@{DEF\_B\_rarefy\_instr}}
+\index{DEF\_B\_rarefy\_instr@{DEF\_B\_rarefy\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_B\_rarefy\_instr}{DEF\_B\_rarefy\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+B\+\_\+rarefy\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(1, 0b01, 0, 0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a0a17bc11ccd90ea8fa1580f6ff6b2ca9}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+ENABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a0d67ee9477d4c42fd0b52d8cafeb7bee}\label{classckernel_1_1ckernel__unpack__template_a0d67ee9477d4c42fd0b52d8cafeb7bee}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_NINFSRCA@{DEF\_NINFSRCA}}
+\index{DEF\_NINFSRCA@{DEF\_NINFSRCA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_NINFSRCA}{DEF\_NINFSRCA}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+NINFSRCA = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ab80db24808208eea588d31e2561d1191}{TT\+\_\+\+OP\+\_\+\+UNPACR\+\_\+\+NOP}}(0, 0, 0, 0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aaaa93d465aa172aee0f4c7425ad6c340}{p\+\_\+unpacr\+::\+UNP\+\_\+\+CLRSRC\+\_\+\+NEGINF}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a612ca544fce4e0ff27ab3cfdabd3452a}{p\+\_\+unpacr\+::\+UNP\+\_\+\+CLRSRC}})\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}\label{classckernel_1_1ckernel__unpack__template_addd8ba8f3a3a8fcd0b9d084113fe51e3}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_SKIP\_A@{DEF\_SKIP\_A}}
+\index{DEF\_SKIP\_A@{DEF\_SKIP\_A}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_SKIP\_A}{DEF\_SKIP\_A}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+SKIP\+\_\+A = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ae9285acc2f565c671bb60d557abe43c2}{TT\+\_\+\+OP\+\_\+\+INCADCZW}}(0b001, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}\label{classckernel_1_1ckernel__unpack__template_a3328618dae66955d7eca7e0b47994e25}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_SKIP\_B@{DEF\_SKIP\_B}}
+\index{DEF\_SKIP\_B@{DEF\_SKIP\_B}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_SKIP\_B}{DEF\_SKIP\_B}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+SKIP\+\_\+B = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ae9285acc2f565c671bb60d557abe43c2}{TT\+\_\+\+OP\+\_\+\+INCADCZW}}(0b010, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a8f1c9f9d70e4626f9effb26d2119c8d1}\label{classckernel_1_1ckernel__unpack__template_a8f1c9f9d70e4626f9effb26d2119c8d1}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip0\_data\_valid\_instr@{DEF\_Strip0\_data\_valid\_instr}}
+\index{DEF\_Strip0\_data\_valid\_instr@{DEF\_Strip0\_data\_valid\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip0\_data\_valid\_instr}{DEF\_Strip0\_data\_valid\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip0\+\_\+data\+\_\+valid\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\_unpacr::TILE0\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, 0, 0, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a3bfd3ca035ea0437b46a449fa2565ee8}\label{classckernel_1_1ckernel__unpack__template_a3bfd3ca035ea0437b46a449fa2565ee8}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip0\_instr@{DEF\_Strip0\_instr}}
+\index{DEF\_Strip0\_instr@{DEF\_Strip0\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip0\_instr}{DEF\_Strip0\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip0\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\+\_\+unpacr\+::\+TILE0\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a583751c4603c6973409ed424340d97f7}\label{classckernel_1_1ckernel__unpack__template_a583751c4603c6973409ed424340d97f7}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip0\_last\_instr@{DEF\_Strip0\_last\_instr}}
+\index{DEF\_Strip0\_last\_instr@{DEF\_Strip0\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip0\_last\_instr}{DEF\_Strip0\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip0\+\_\+last\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 1, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\+\_\+unpacr\+::\+TILE0\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a4519baddb9d2b1da6efb8757eb59a12c}\label{classckernel_1_1ckernel__unpack__template_a4519baddb9d2b1da6efb8757eb59a12c}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip1\_data\_valid\_instr@{DEF\_Strip1\_data\_valid\_instr}}
+\index{DEF\_Strip1\_data\_valid\_instr@{DEF\_Strip1\_data\_valid\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip1\_data\_valid\_instr}{DEF\_Strip1\_data\_valid\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip1\+\_\+data\+\_\+valid\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\_unpacr::TILE1\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, 0, 0, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a88a7bca314d54a7a9f5caca6ed78e34d}\label{classckernel_1_1ckernel__unpack__template_a88a7bca314d54a7a9f5caca6ed78e34d}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip1\_instr@{DEF\_Strip1\_instr}}
+\index{DEF\_Strip1\_instr@{DEF\_Strip1\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip1\_instr}{DEF\_Strip1\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip1\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\+\_\+unpacr\+::\+TILE1\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a21b785794651100e4cfdd6d616243c75}\label{classckernel_1_1ckernel__unpack__template_a21b785794651100e4cfdd6d616243c75}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip1\_last\_instr@{DEF\_Strip1\_last\_instr}}
+\index{DEF\_Strip1\_last\_instr@{DEF\_Strip1\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip1\_last\_instr}{DEF\_Strip1\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip1\+\_\+last\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 1, 0, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\+\_\+unpacr\+::\+TILE1\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_ad9a13c4499e6feecffe53285b85cfc32}\label{classckernel_1_1ckernel__unpack__template_ad9a13c4499e6feecffe53285b85cfc32}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip2\_data\_valid\_instr@{DEF\_Strip2\_data\_valid\_instr}}
+\index{DEF\_Strip2\_data\_valid\_instr@{DEF\_Strip2\_data\_valid\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip2\_data\_valid\_instr}{DEF\_Strip2\_data\_valid\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip2\+\_\+data\+\_\+valid\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(0, 0, 0, 2, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\_unpacr::TILE2\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, 0, 0, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a55bf7db3343c91f8b2a17b9a87a3a5a2}\label{classckernel_1_1ckernel__unpack__template_a55bf7db3343c91f8b2a17b9a87a3a5a2}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip2\_instr@{DEF\_Strip2\_instr}}
+\index{DEF\_Strip2\_instr@{DEF\_Strip2\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip2\_instr}{DEF\_Strip2\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip2\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0, 0, 2, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\+\_\+unpacr\+::\+TILE2\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a7588731b970907a1f5cac06b93ef83b0}\label{classckernel_1_1ckernel__unpack__template_a7588731b970907a1f5cac06b93ef83b0}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip2\_last\_instr@{DEF\_Strip2\_last\_instr}}
+\index{DEF\_Strip2\_last\_instr@{DEF\_Strip2\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip2\_last\_instr}{DEF\_Strip2\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip2\+\_\+last\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 1, 0, 2, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\+\_\+unpacr\+::\+TILE2\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a84d37353f1864902c142fee73fbfd3a0}\label{classckernel_1_1ckernel__unpack__template_a84d37353f1864902c142fee73fbfd3a0}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip3\_data\_valid\_instr@{DEF\_Strip3\_data\_valid\_instr}}
+\index{DEF\_Strip3\_data\_valid\_instr@{DEF\_Strip3\_data\_valid\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip3\_data\_valid\_instr}{DEF\_Strip3\_data\_valid\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip3\+\_\+data\+\_\+valid\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=}
+\DoxyCodeLine{        \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(0, 0, 0, 3, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d79d1e9ac46bdeff084d6263862ae10}{p\_unpacr::TILE3\_ADDRCNT\_CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, 0, 0, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_acd3d35933d7a6118524aea24b4607b45}\label{classckernel_1_1ckernel__unpack__template_acd3d35933d7a6118524aea24b4607b45}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip3\_instr@{DEF\_Strip3\_instr}}
+\index{DEF\_Strip3\_instr@{DEF\_Strip3\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip3\_instr}{DEF\_Strip3\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip3\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 0, 0, 3, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d79d1e9ac46bdeff084d6263862ae10}{p\+\_\+unpacr\+::\+TILE3\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aa2e5488a224eb4ee713bab313191807e}\label{classckernel_1_1ckernel__unpack__template_aa2e5488a224eb4ee713bab313191807e}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_Strip3\_last\_instr@{DEF\_Strip3\_last\_instr}}
+\index{DEF\_Strip3\_last\_instr@{DEF\_Strip3\_last\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_Strip3\_last\_instr}{DEF\_Strip3\_last\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+Strip3\+\_\+last\+\_\+instr = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_a0aab6e03f7dc94d6aebe378cba1da476}{TT\+\_\+\+OP\+\_\+\+UNPACR}}(0, 1, 0, 3, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d79d1e9ac46bdeff084d6263862ae10}{p\+\_\+unpacr\+::\+TILE3\+\_\+\+ADDRCNT\+\_\+\+CONTEXT}}, 1, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\+\_\+unpacr\+::\+RAREFYB\+\_\+\+DISABLE}}, 0, 0, 0, 0, 1)\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aade233c55805706d9fb148d5a4797117}\label{classckernel_1_1ckernel__unpack__template_aade233c55805706d9fb148d5a4797117}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_UNPACR\_NOP@{DEF\_UNPACR\_NOP}}
+\index{DEF\_UNPACR\_NOP@{DEF\_UNPACR\_NOP}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_UNPACR\_NOP}{DEF\_UNPACR\_NOP}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+UNPACR\+\_\+\+NOP = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ab80db24808208eea588d31e2561d1191}{TT\+\_\+\+OP\+\_\+\+UNPACR\+\_\+\+NOP}}(0, 0, 0, 0, 0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a9029626b4fcd676457f56276a408bc2d}{p\+\_\+unpacr\+::\+UNP\+\_\+\+NOP}})\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aaaeee1e21596ba93b06f5ebc1e3ff986}\label{classckernel_1_1ckernel__unpack__template_aaaeee1e21596ba93b06f5ebc1e3ff986}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!DEF\_ZEROSRCA@{DEF\_ZEROSRCA}}
+\index{DEF\_ZEROSRCA@{DEF\_ZEROSRCA}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{DEF\_ZEROSRCA}{DEF\_ZEROSRCA}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+DEF\+\_\+\+ZEROSRCA = \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h_ab80db24808208eea588d31e2561d1191}{TT\+\_\+\+OP\+\_\+\+UNPACR\+\_\+\+NOP}}(0, 0, 0, 0, 0, 0, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_a279beec2a15aa6c4fa454cbcafcd9523}{p\+\_\+unpacr\+::\+UNP\+\_\+\+CLRSRC\+\_\+\+ZERO}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a612ca544fce4e0ff27ab3cfdabd3452a}{p\+\_\+unpacr\+::\+UNP\+\_\+\+CLRSRC}})\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a2c84ff2be348d2488ea814535997e24c}\label{classckernel_1_1ckernel__unpack__template_a2c84ff2be348d2488ea814535997e24c}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!SKIP\_A0\_instr@{SKIP\_A0\_instr}}
+\index{SKIP\_A0\_instr@{SKIP\_A0\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{SKIP\_A0\_instr}{SKIP\_A0\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+SKIP\+\_\+\+A0\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d0eed775ad9cd8b3b0f66be1563b9ab}{p\_unpacr::TILE0\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a96b68162ec3093bd8c41dad7915b3675}{p\_unpacr::TILE0\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a2fc0511e3aaf27e81b232f0bd8ac9d8d}\label{classckernel_1_1ckernel__unpack__template_a2fc0511e3aaf27e81b232f0bd8ac9d8d}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!SKIP\_A1\_instr@{SKIP\_A1\_instr}}
+\index{SKIP\_A1\_instr@{SKIP\_A1\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{SKIP\_A1\_instr}{SKIP\_A1\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+SKIP\+\_\+\+A1\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a270140f80f8b849978317dad4855950e}{p\_unpacr::TILE1\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a5218ce3c9fba8804015dbafe95e2318b}{p\_unpacr::TILE1\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_aabedb3e2a64169580a0a37793eff6528}\label{classckernel_1_1ckernel__unpack__template_aabedb3e2a64169580a0a37793eff6528}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!SKIP\_A2\_instr@{SKIP\_A2\_instr}}
+\index{SKIP\_A2\_instr@{SKIP\_A2\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{SKIP\_A2\_instr}{SKIP\_A2\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+SKIP\+\_\+\+A2\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_ae5e97c98e032cc1c48e40b0911699096}{p\_unpacr::TILE2\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_af87e2372855fc7d8e483393857298f4a}{p\_unpacr::TILE2\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+\mbox{\Hypertarget{classckernel_1_1ckernel__unpack__template_a5bf206f2a2a003726aff62c0da54b34c}\label{classckernel_1_1ckernel__unpack__template_a5bf206f2a2a003726aff62c0da54b34c}} 
+\index{ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}!SKIP\_A3\_instr@{SKIP\_A3\_instr}}
+\index{SKIP\_A3\_instr@{SKIP\_A3\_instr}!ckernel::ckernel\_unpack\_template@{ckernel::ckernel\_unpack\_template}}
+\doxysubsubsection{\texorpdfstring{SKIP\_A3\_instr}{SKIP\_A3\_instr}}
+{\footnotesize\ttfamily static constexpr uint ckernel\+::ckernel\+\_\+unpack\+\_\+template\+::\+SKIP\+\_\+\+A3\+\_\+instr\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{= \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_ad724a1d1a672e04931567339338ce16f}{TT\_OP\_UNPACR}}(}
+\DoxyCodeLine{        0, 0b00, 1, \mbox{\hyperlink{structckernel_1_1p__unpacr_a35eac6c1a1c5d3ec059dd30175c3586e}{p\_unpacr::TILE3\_CFG\_CONTEXT}}, \mbox{\hyperlink{structckernel_1_1p__unpacr_a2d79d1e9ac46bdeff084d6263862ae10}{p\_unpacr::TILE3\_ADDRCNT\_CONTEXT}}, 1, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_aad37fb40a1348b3e0538f207f5ea324a}{p\_unpacr::RAREFYB\_DISABLE}}, 0, \mbox{\hyperlink{structckernel_1_1p__unpacr_ac051a4030310fed7cbd6a97de101c940}{p\_unpacr::AUTO\_INC\_CONTEXT}}, 1, 0, 1)}
+
+\end{DoxyCode}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+tt\+\_\+llk\+\_\+blackhole/common/inc/\mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__template_8h}{ckernel\+\_\+template.\+h}}\end{DoxyCompactItemize}

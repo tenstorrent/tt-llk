@@ -1,0 +1,399 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h" kind="file" language="C++">
+    <compoundname>llk_unpack_AB.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes local="yes">ckernel.h</includes>
+    <includes local="yes">ckernel_defs.h</includes>
+    <includes local="yes">ckernel_globals.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">ckernel_template.h</includes>
+    <includes local="yes">cunpack_common.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="4">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="8">
+        <label>cunpack_common.h</label>
+      </node>
+      <node id="7">
+        <label>ckernel_template.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_globals.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/llk_lib/llk_unpack_AB.h</label>
+        <link refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a83ebd0cf0057f346a50cdbc057caa571" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2" kindref="member">BroadcastType</ref></type>
+            <declname>BType</declname>
+            <defname>BType</defname>
+            <defval>BroadcastType::NONE</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_AB_mop_config_</definition>
+        <argsstring>(const bool transpose_of_faces=false, const std::uint32_t num_faces=4, const bool narrow_tile=false)</argsstring>
+        <name>_llk_unpack_AB_mop_config_</name>
+        <param>
+          <type>const bool</type>
+          <declname>transpose_of_faces</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>narrow_tile</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB.h" line="20" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_unpack_AB.h" bodystart="20" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a74d644d944088b38257f9606d002f43d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271ba" kindref="member">StochRndType</ref></type>
+            <declname>stoch_rnd_mode</declname>
+            <defname>stoch_rnd_mode</defname>
+            <defval>StochRndType::None</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_AB_hw_configure_</definition>
+        <argsstring>(const std::uint32_t unpA_src_format, const std::uint32_t unpB_src_format, const std::uint32_t unpA_dst_format, const std::uint32_t unpB_dst_format, const std::uint32_t face_r_dim=FACE_R_DIM, const std::uint32_t within_face_16x16_transpose=0, const std::uint32_t num_faces=4)</argsstring>
+        <name>_llk_unpack_AB_hw_configure_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpA_src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpB_src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpA_dst_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpB_dst_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>within_face_16x16_transpose</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB.h" line="88" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_unpack_AB.h" bodystart="88" bodyend="103"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1af880849363be084aec1cbff5e7e52e73" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2" kindref="member">BroadcastType</ref></type>
+            <declname>BType</declname>
+            <defname>BType</defname>
+            <defval>BroadcastType::NONE</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_AB_init_</definition>
+        <argsstring>(const std::uint32_t face_r_dim=FACE_R_DIM, const std::uint32_t num_faces=4, const bool narrow_tile=false, const std::uint32_t transpose=0, const std::uint32_t acc_to_dest=0)</argsstring>
+        <name>_llk_unpack_AB_init_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>narrow_tile</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>transpose</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>acc_to_dest</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB.h" line="106" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_unpack_AB.h" bodystart="106" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a7505bcf4fa3708409edfd40483d3ea37" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2" kindref="member">BroadcastType</ref></type>
+            <declname>BType</declname>
+            <defname>BType</defname>
+            <defval>BroadcastType::NONE</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_AB_</definition>
+        <argsstring>(const std::uint32_t address_a, const std::uint32_t address_b, const bool transpose_of_faces=0)</argsstring>
+        <name>_llk_unpack_AB_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>address_a</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>address_b</declname>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>transpose_of_faces</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB.h" line="122" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_unpack_AB.h" bodystart="122" bodyend="162"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_defs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_globals.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_template.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cunpack_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel_1_1unpacker" kindref="compound">ckernel::unpacker</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;BroadcastType<sp/>BType<sp/>=<sp/>BroadcastType::NONE&gt;</highlight></codeline>
+<codeline lineno="20" refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a83ebd0cf0057f346a50cdbc057caa571" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a83ebd0cf0057f346a50cdbc057caa571" kindref="member">_llk_unpack_AB_mop_config_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>transpose_of_faces<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>num_faces<sp/>=<sp/>4,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>narrow_tile<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>SKIP_UNP<sp/>==<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>unpack_srca<sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1af462e63a19a2e6421ef5d12f7e7db4a1" kindref="member">TT_OP_NOP</ref>;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>unpack_srcb<sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1af462e63a19a2e6421ef5d12f7e7db4a1" kindref="member">TT_OP_NOP</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>unpack_srca<sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad724a1d1a672e04931567339338ce16f" kindref="member">TT_OP_UNPACR</ref>(<ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edda85becaa2f53dbf50b609a09c545f2ba8" kindref="member">SrcA</ref>,<sp/>0b1,<sp/>0,<sp/>0,<sp/>0,<sp/>1,<sp/>1,<sp/><ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>unpack_srcb<sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad724a1d1a672e04931567339338ce16f" kindref="member">TT_OP_UNPACR</ref>(<ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edda956db99c8849c15529ae20135f6e0d26" kindref="member">SrcB</ref>,<sp/>0b1,<sp/>0,<sp/>0,<sp/>0,<sp/>1,<sp/>1,<sp/><ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(BType<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afedbce921685ff360217656e13481e17" kindref="member">BroadcastType::COL</ref>)</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>unpack_srcb_set_z<sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a99d80c7d797e7cf20cae7086358aa57e" kindref="member">TT_OP_SETADCZW</ref>(0b010,<sp/>0,<sp/>0,<sp/>0,<sp/>2,<sp/>0b0001);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>outerloop<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>num_faces<sp/>&lt;<sp/>4<sp/>?<sp/>1<sp/>:<sp/>2;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>innerloop<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>num_faces<sp/>&lt;<sp/>2<sp/>?<sp/>1<sp/>:<sp/>2;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/>unpack_srca);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1aa31db9db125154fb329a0182c240078c" kindref="member">set_start_op</ref>(unpack_srcb);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(narrow_tile)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(unpack_srcb);<sp/></highlight><highlight class="comment">//<sp/>Read<sp/>face<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(unpack_srcb_set_z);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(BType<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2ac1660f5f435b49f3062ae72e73f8fd3c" kindref="member">BroadcastType::ROW</ref>)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>unpack_srcb_clear_z<sp/><sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a99d80c7d797e7cf20cae7086358aa57e" kindref="member">TT_OP_SETADCZW</ref>(0b010,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b0001);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>unpack_srcb_no_z_inc<sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad724a1d1a672e04931567339338ce16f" kindref="member">TT_OP_UNPACR</ref>(<ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edda956db99c8849c15529ae20135f6e0d26" kindref="member">SrcB</ref>,<sp/>0b0,<sp/>0,<sp/>0,<sp/>0,<sp/>1,<sp/>1,<sp/><ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>outerloop<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>num_faces<sp/>&lt;<sp/>4<sp/>?<sp/>1<sp/>:<sp/>2;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>innerloop<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>num_faces<sp/>&lt;<sp/>2<sp/>?<sp/>1<sp/>:<sp/>2;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/>narrow_tile<sp/>?<sp/>unpack_srcb_no_z_inc<sp/>:<sp/>unpack_srcb,<sp/>unpack_srca);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(unpack_srcb_clear_z);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(BType<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afa6cc523436cb6f98e189ddaa82354fe" kindref="member">BroadcastType::SCALAR</ref>)</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>outerloop<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>innerloop<sp/>=<sp/>num_faces;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/>unpack_srca);</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1aa31db9db125154fb329a0182c240078c" kindref="member">set_start_op</ref>(unpack_srcb);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(transpose_of_faces)</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>srca_set_z<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a99d80c7d797e7cf20cae7086358aa57e" kindref="member">TT_OP_SETADCZW</ref>(0b001,<sp/>0,<sp/>0,<sp/>0,<sp/>1,<sp/>0b0001);<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>set<sp/>z<sp/>to<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>constexpr<sp/>uint<sp/>unpack_srca_skip_z<sp/>=<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad724a1d1a672e04931567339338ce16f" kindref="member">TT_OP_UNPACR</ref>(<ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edda85becaa2f53dbf50b609a09c545f2ba8" kindref="member">SrcA</ref>,<sp/>0b10,<sp/>0,<sp/>0,<sp/>0,<sp/>1,<sp/>1,<sp/><ref refid="structckernel_1_1p__unpacr_1aad37fb40a1348b3e0538f207f5ea324a" kindref="member">p_unpacr::RAREFYB_DISABLE</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1);<sp/></highlight><highlight class="comment">//<sp/>inc<sp/>z<sp/>by<sp/>2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>outerloop<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>num_faces<sp/>&lt;<sp/>4<sp/>?<sp/>1<sp/>:<sp/>2;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>innerloop<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>num_faces<sp/>&lt;<sp/>2<sp/>?<sp/>1<sp/>:<sp/>2;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/>num_faces<sp/>&lt;<sp/>4<sp/>?<sp/>unpack_srca<sp/>:<sp/>unpack_srca_skip_z,<sp/>unpack_srcb);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(srca_set_z);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>outerloop<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>innerloop<sp/><sp/><sp/><sp/><sp/>=<sp/>num_faces;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/>unpack_srca,<sp/>unpack_srcb);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false,<sp/>StochRndType<sp/>stoch_rnd_mode<sp/>=<sp/>StochRndType::None&gt;</highlight></codeline>
+<codeline lineno="88" refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a74d644d944088b38257f9606d002f43d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a74d644d944088b38257f9606d002f43d" kindref="member">_llk_unpack_AB_hw_configure_</ref>(</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>unpA_src_format,</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>unpB_src_format,</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>unpA_dst_format,</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>unpB_dst_format,</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>face_r_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref>,</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>within_face_16x16_transpose<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>num_faces<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>4)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_row_pool<sp/><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>stoch_rnd_en<sp/>=<sp/>(stoch_rnd_mode<sp/>==<sp/><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271baab1c94ca2fbc3e78fc30069c8d0f01680" kindref="member">StochRndType::All</ref>);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>fpu_srnd_en<sp/><sp/>=<sp/>stoch_rnd_en<sp/>||<sp/>(stoch_rnd_mode<sp/>==<sp/><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271baa332456e2efbb4ce23188022084a37a74" kindref="member">StochRndType::Fpu</ref>);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>pack_srnd_en<sp/>=<sp/>stoch_rnd_en<sp/>||<sp/>(stoch_rnd_mode<sp/>==<sp/><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271baa4492081ca02b059f9e8af4ddaf0f7292" kindref="member">StochRndType::Pack</ref>);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>configure_unpack_AB&lt;is_row_pool,<sp/>is_fp32_dest_acc_en,<sp/>fpu_srnd_en,<sp/>pack_srnd_en&gt;(</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpA_src_format,<sp/>unpB_src_format,<sp/>unpA_dst_format,<sp/>unpB_dst_format,<sp/>face_r_dim,<sp/>face_r_dim,<sp/>within_face_16x16_transpose,<sp/>num_faces,<sp/>num_faces);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;BroadcastType<sp/>BType<sp/>=<sp/>BroadcastType::NONE&gt;</highlight></codeline>
+<codeline lineno="106" refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1af880849363be084aec1cbff5e7e52e73" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1af880849363be084aec1cbff5e7e52e73" kindref="member">_llk_unpack_AB_init_</ref>(</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>face_r_dim<sp/><sp/>=<sp/><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref>,</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>num_faces<sp/><sp/><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>narrow_tile<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>transpose<sp/><sp/><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>acc_to_dest<sp/>=<sp/>0)</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC0_REG2_Haloize_mode_RMW&gt;(transpose);<sp/></highlight><highlight class="comment">//<sp/>transpose<sp/>within<sp/>the<sp/>face</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>std::uint32_t<sp/>UNP_SEL<sp/>=<sp/><ref refid="structckernel_1_1p__setadc_1a0c9eda7c2d12d5f3d68966b24a5834d0" kindref="member">p_setadc::UNP_AB</ref>;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>config_unpacker_x_end&lt;UNP_SEL&gt;(face_r_dim);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/>_llk_unpack_AB_mop_config_&lt;BType&gt;(transpose<sp/>&gt;<sp/>0,<sp/>num_faces,<sp/>narrow_tile);<sp/></highlight><highlight class="comment">//<sp/>transpose<sp/>of<sp/>faces<sp/>0,2,1,3</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;BroadcastType<sp/>BType<sp/>=<sp/>BroadcastType::NONE&gt;</highlight></codeline>
+<codeline lineno="122" refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a7505bcf4fa3708409edfd40483d3ea37" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB_8h_1a7505bcf4fa3708409edfd40483d3ea37" kindref="member">_llk_unpack_AB_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>address_a,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>address_b,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>transpose_of_faces<sp/>=<sp/>0<sp/></highlight><highlight class="comment">/*not<sp/>used*/</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="123"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a8063a6111ac22adc0f94b3ca5acdb61c" kindref="member">TTI_SETADCZW</ref>(0b011,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b1111);<sp/></highlight><highlight class="comment">//<sp/>reset<sp/>counters</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Program<sp/>srcA<sp/>and<sp/>srcB<sp/>base<sp/>addresses</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>uint<sp/>tt_reg_ptr<sp/>*cfg<sp/>=<sp/><ref refid="namespaceckernel_1a07f2f679f32de3ec88a11ef180abef27" kindref="member">get_cfg_pointer</ref>();<sp/></highlight><highlight class="comment">//<sp/>get<sp/>pointer<sp/>to<sp/>registers<sp/>for<sp/>current<sp/>state<sp/>ID</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>free<sp/>context</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1unpacker_1a77b36a3adbe2119aacfea22bae6783ea" kindref="member">wait_for_next_context</ref>(2);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Get<sp/>tile<sp/>address</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(0<sp/>==<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1ad599359d106464c9e12c1f131540a1c0" kindref="member">unp_cfg_context</ref>)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg[THCON_SEC0_REG3_Base_address_ADDR32]<sp/>=<sp/>address_a;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg[THCON_SEC1_REG3_Base_address_ADDR32]<sp/>=<sp/>address_b;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32]<sp/>=<sp/>address_a;</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32]<sp/>=<sp/>address_b;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Trisc::SEMPOST<sp/>for<sp/>context<sp/>acquire</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae16714cb61d79748381173d9f134afc2" kindref="member">semaphore_post</ref>(<ref refid="structckernel_1_1semaphore_1ae6026566f2685e3b447fab2d8594a4d3" kindref="member">semaphore::UNPACK_SYNC</ref>);</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Stall<sp/>unpacker<sp/>until<sp/>pending<sp/>CFG<sp/>writes<sp/>from<sp/>Trisc<sp/>have<sp/>completed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1af117197b36df7b8570530d42047858a8" kindref="member">p_stall::STALL_UNPACK</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a26b86b5ecb1d64e03d755b693d4cf957" kindref="member">p_stall::TRISC_CFG</ref>);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Run<sp/>MOP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel::ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"></highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>T6::SEMGET<sp/>for<sp/>context<sp/>release</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a41a3215be2be6d39b403d112d71d0c10" kindref="member">t6_semaphore_get</ref>(<ref refid="structckernel_1_1semaphore_1ae6026566f2685e3b447fab2d8594a4d3" kindref="member">semaphore::UNPACK_SYNC</ref>);</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Switch<sp/>unpacker<sp/>config<sp/>context</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1unpacker_1a8306dc71629a0dd7e9bfb91ca5932ac0" kindref="member">switch_config_context</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1ad599359d106464c9e12c1f131540a1c0" kindref="member">unp_cfg_context</ref>);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"></highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/>first_unpack_recorded<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB.h"/>
+  </compounddef>
+</doxygen>

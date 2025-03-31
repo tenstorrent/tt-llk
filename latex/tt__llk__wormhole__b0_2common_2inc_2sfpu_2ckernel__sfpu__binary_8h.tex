@@ -1,0 +1,42 @@
+\hypertarget{tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__binary_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/common/inc/sfpu/ckernel\+\_\+sfpu\+\_\+binary.h File Reference}
+\label{tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__binary_8h}\index{tt\_llk\_wormhole\_b0/common/inc/sfpu/ckernel\_sfpu\_binary.h@{tt\_llk\_wormhole\_b0/common/inc/sfpu/ckernel\_sfpu\_binary.h}}
+{\ttfamily \#include \char`\"{}ckernel\+\_\+sfpu\+\_\+binary.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+sfpu\+\_\+exp.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+sfpu\+\_\+recip.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sfpi.\+h\char`\"{}}\newline
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\item 
+ \mbox{\hyperlink{namespaceckernel_1_1sfpu}{ckernel\+::sfpu}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8}{ckernel\+::sfpu\+::\+Binary\+Op}} \+: uint8\+\_\+t \{ \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}{ckernel\+::sfpu\+::\+ADD}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}{ckernel\+::sfpu\+::\+SUB}} = 1
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}{ckernel\+::sfpu\+::\+MUL}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}{ckernel\+::sfpu\+::\+DIV}} = 3
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}{ckernel\+::sfpu\+::\+RSUB}} = 4
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}{ckernel\+::sfpu\+::\+POW}} = 5
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a9eeb52badb613229884838847294b90d}{ckernel\+::sfpu\+::\+ADD}} = 0
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb}{ckernel\+::sfpu\+::\+SUB}} = 1
+, \newline
+\mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a2cdf52a55876063ec93b7d18bc741f6c}{ckernel\+::sfpu\+::\+MUL}} = 2
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a29bbf66f7f8529ec47e394fb5a36c646}{ckernel\+::sfpu\+::\+DIV}} = 3
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a6d4af626fd28163541043f012daafcd6}{ckernel\+::sfpu\+::\+RSUB}} = 4
+, \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1a472303115a1004c0fcc2c0102431c8a17faf4e999b8cee4c36915c1f54ccffe}{ckernel\+::sfpu\+::\+POW}} = 5
+ \}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_a0b88c6487cabe31c882ff3b21e644790}{ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+power\+\_\+}} (sfpi\+::v\+Float base, sfpi\+::v\+Float pow)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Op BINOP, int ITERATIONS = 8$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a1d7184005efd316c470a17d5d47c905e}{ckernel\+::sfpu\+::\+\_\+calculate\+\_\+sfpu\+\_\+binary\+\_\+}} (const uint dst\+\_\+offset)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, Binary\+Op BINOP$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a81de7b2ba7ddf47db639b0de46e6b247}{ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+binary\+\_\+init\+\_\+}} ()
+\end{DoxyCompactItemize}

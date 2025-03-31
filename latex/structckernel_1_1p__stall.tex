@@ -1,0 +1,353 @@
+\hypertarget{structckernel_1_1p__stall}{}\doxysection{ckernel\+::p\+\_\+stall Struct Reference}
+\label{structckernel_1_1p__stall}\index{ckernel::p\_stall@{ckernel::p\_stall}}
+
+
+{\ttfamily \#include $<$ckernel\+\_\+instr\+\_\+params.\+h$>$}
+
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_aa0e4dc1e3180e2b0570fa67d0c9f7770}{NONE}} = 0x0
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a36ebcdc5e5af85ad72ee57d972c5f5c6}{THCON}} = 0x1
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_ae2b1b1da63b605e04696e7aa39bd4c67}{UNPACK0}} = 0x2
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a8ea658659a5eeee8e673678ea2e05149}{UNPACK1}} = 0x4
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a1a0b1bf100abe1b328039ad79a1bcb78}{UNPACK}} = \mbox{\hyperlink{structckernel_1_1p__stall_ae2b1b1da63b605e04696e7aa39bd4c67}{UNPACK0}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_a8ea658659a5eeee8e673678ea2e05149}{UNPACK1}}
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_ae73808109df06a176cb19ffa9c41e2bd}{PACK0}} = 0x8
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a51a4cd5fc4fe583be9d4b2560116621f}{PACK}} = \mbox{\hyperlink{structckernel_1_1p__stall_ae73808109df06a176cb19ffa9c41e2bd}{PACK0}}
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_aaf59ea6df69e5d5dbc171fd7e4a44cad}{MATH}} = 0x10
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_aed25d59e0d9219618c00664520f1edb5}{SRCA\+\_\+\+CLR}} = 0x20
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_aa627adb9f56bd106c8e278965fb625c3}{SRCB\+\_\+\+CLR}} = 0x40
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_aaf4563abd4563fdfbcb2fce83abf2efb}{SRCA\+\_\+\+VLD}} = 0x80
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a51dfa9eaca55e011aeb0f93d52451a62}{SRCB\+\_\+\+VLD}} = 0x100
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a6a6936baeb92581859a94bd1debb597d}{XMOV}} = 0x200
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a26b86b5ecb1d64e03d755b693d4cf957}{TRISC\+\_\+\+CFG}} = 0x400
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a49611798e132c8713e4f4ff15ee0f66c}{SFPU1}} = 0x800
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a0c77d41129e9693b7d1a54a5b7f36645}{WAIT\+\_\+\+SFPU}} = 0x800
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_aa72e8a6eb2b5b528198d1320002cd898}{CFGEXU}} = 0x1000
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a5783b7e1133ac9c77dda28a9047abe6e}{ALL\+\_\+\+THREAD\+\_\+\+RES}} = \mbox{\hyperlink{structckernel_1_1p__stall_a36ebcdc5e5af85ad72ee57d972c5f5c6}{THCON}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_ae2b1b1da63b605e04696e7aa39bd4c67}{UNPACK0}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_a8ea658659a5eeee8e673678ea2e05149}{UNPACK1}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_ae73808109df06a176cb19ffa9c41e2bd}{PACK0}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_a51a4cd5fc4fe583be9d4b2560116621f}{PACK}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_aaf59ea6df69e5d5dbc171fd7e4a44cad}{MATH}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_a6a6936baeb92581859a94bd1debb597d}{XMOV}}
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a460f3570364aefc2984f99bdf7ed3224}{STALL\+\_\+\+TDMA}} = 0x1
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_aeff5fdd7c5055ea687e740901595f02a}{STALL\+\_\+\+SYNC}} = 0x2
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a75b198406b26ea4c39b96fd633c62972}{STALL\+\_\+\+PACK}} = 0x4
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_af117197b36df7b8570530d42047858a8}{STALL\+\_\+\+UNPACK}} = 0x8
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_ac302a3ffd44706ff2f132393209273d5}{STALL\+\_\+\+XMOV}} = 0x10
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_ae8da566058238bcfeeed38eb0b8a8de3}{STALL\+\_\+\+THCON}} = 0x20
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a51b99d461b320d2106440fec4e5cf08f}{STALL\+\_\+\+MATH}} = 0x40
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_abba99fafeb3d6142ed7b4cda721b9e22}{STALL\+\_\+\+CFG}} = 0x80
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_aeae76dd111eccdcae0bca71d081b8106}{STALL\+\_\+\+SFPU}} = 0x100
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a3d45c0bd37b31a2bc08965b9f173fa99}{STALL\+\_\+\+THREAD}} = 0x1ff
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a1595fbeea95f9a66794a9f61128ce602}{STALL\+\_\+\+ON\+\_\+\+ZERO}} = 0x1
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_af37b573f64bd0ce0b876f03202de389b}{STALL\+\_\+\+ON\+\_\+\+MAX}} = 0x2
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_ac8f401a4e2ea33ff712c8536c791cd7d}{SEMAPHORE\+\_\+0}} = 0x1
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_afa642696a9e3899e19c27d5670b9a950}{SEMAPHORE\+\_\+1}} = 0x2
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_afa86e1fed5eb5db32d5f0d568886a444}{SEMAPHORE\+\_\+2}} = 0x4
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a7cf3fee94311b826153ee92084bced70}{SEMAPHORE\+\_\+3}} = 0x8
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a11cb297cb650f420058f0ef4188362b0}{SEMAPHORE\+\_\+4}} = 0x10
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_ae65344fdda637149804427dea2eb3d7d}{SEMAPHORE\+\_\+5}} = 0x20
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_afba577d7347de474eb13bcba192d2905}{SEMAPHORE\+\_\+6}} = 0x40
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_ac9c11ac0f3a7719e655ad139b6c97d76}{SEMAPHORE\+\_\+7}} = 0x80
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a67a8514503e22b52967e8cc0bd42da95}{SEMAPHORE\+\_\+\+BIAS}} = \mbox{\hyperlink{structckernel_1_1p__stall_a11cb297cb650f420058f0ef4188362b0}{SEMAPHORE\+\_\+4}}
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_ad29c59cf7f023c4cec232f11b980e92f}{PACK1}} = 0x10
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a83271312dfd514de030fac35c4594e42}{PACK2}} = 0x20
+\item 
+constexpr static uint \mbox{\hyperlink{structckernel_1_1p__stall_a1af2126ebc86fb737dfe1481202d3c31}{PACK3}} = 0x40
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structckernel_1_1p__stall_a5783b7e1133ac9c77dda28a9047abe6e}\label{structckernel_1_1p__stall_a5783b7e1133ac9c77dda28a9047abe6e}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!ALL\_THREAD\_RES@{ALL\_THREAD\_RES}}
+\index{ALL\_THREAD\_RES@{ALL\_THREAD\_RES}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{ALL\_THREAD\_RES}{ALL\_THREAD\_RES}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+ALL\+\_\+\+THREAD\+\_\+\+RES = \mbox{\hyperlink{structckernel_1_1p__stall_a36ebcdc5e5af85ad72ee57d972c5f5c6}{THCON}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_ae2b1b1da63b605e04696e7aa39bd4c67}{UNPACK0}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_a8ea658659a5eeee8e673678ea2e05149}{UNPACK1}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_ae73808109df06a176cb19ffa9c41e2bd}{PACK0}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_a51a4cd5fc4fe583be9d4b2560116621f}{PACK}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_aaf59ea6df69e5d5dbc171fd7e4a44cad}{MATH}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_a6a6936baeb92581859a94bd1debb597d}{XMOV}}\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_aa72e8a6eb2b5b528198d1320002cd898}\label{structckernel_1_1p__stall_aa72e8a6eb2b5b528198d1320002cd898}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!CFGEXU@{CFGEXU}}
+\index{CFGEXU@{CFGEXU}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{CFGEXU}{CFGEXU}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+CFGEXU = 0x1000\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_aaf59ea6df69e5d5dbc171fd7e4a44cad}\label{structckernel_1_1p__stall_aaf59ea6df69e5d5dbc171fd7e4a44cad}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!MATH@{MATH}}
+\index{MATH@{MATH}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{MATH}{MATH}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+MATH = 0x10\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_aa0e4dc1e3180e2b0570fa67d0c9f7770}\label{structckernel_1_1p__stall_aa0e4dc1e3180e2b0570fa67d0c9f7770}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!NONE@{NONE}}
+\index{NONE@{NONE}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{NONE}{NONE}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+NONE = 0x0\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a51a4cd5fc4fe583be9d4b2560116621f}\label{structckernel_1_1p__stall_a51a4cd5fc4fe583be9d4b2560116621f}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!PACK@{PACK}}
+\index{PACK@{PACK}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{PACK}{PACK}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+PACK = \mbox{\hyperlink{structckernel_1_1p__stall_ae73808109df06a176cb19ffa9c41e2bd}{PACK0}}\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_ae73808109df06a176cb19ffa9c41e2bd}\label{structckernel_1_1p__stall_ae73808109df06a176cb19ffa9c41e2bd}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!PACK0@{PACK0}}
+\index{PACK0@{PACK0}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{PACK0}{PACK0}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+PACK0 = 0x8\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_ad29c59cf7f023c4cec232f11b980e92f}\label{structckernel_1_1p__stall_ad29c59cf7f023c4cec232f11b980e92f}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!PACK1@{PACK1}}
+\index{PACK1@{PACK1}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{PACK1}{PACK1}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+PACK1 = 0x10\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a83271312dfd514de030fac35c4594e42}\label{structckernel_1_1p__stall_a83271312dfd514de030fac35c4594e42}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!PACK2@{PACK2}}
+\index{PACK2@{PACK2}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{PACK2}{PACK2}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+PACK2 = 0x20\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a1af2126ebc86fb737dfe1481202d3c31}\label{structckernel_1_1p__stall_a1af2126ebc86fb737dfe1481202d3c31}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!PACK3@{PACK3}}
+\index{PACK3@{PACK3}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{PACK3}{PACK3}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+PACK3 = 0x40\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_ac8f401a4e2ea33ff712c8536c791cd7d}\label{structckernel_1_1p__stall_ac8f401a4e2ea33ff712c8536c791cd7d}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_0@{SEMAPHORE\_0}}
+\index{SEMAPHORE\_0@{SEMAPHORE\_0}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_0}{SEMAPHORE\_0}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+0 = 0x1\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_afa642696a9e3899e19c27d5670b9a950}\label{structckernel_1_1p__stall_afa642696a9e3899e19c27d5670b9a950}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_1@{SEMAPHORE\_1}}
+\index{SEMAPHORE\_1@{SEMAPHORE\_1}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_1}{SEMAPHORE\_1}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+1 = 0x2\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_afa86e1fed5eb5db32d5f0d568886a444}\label{structckernel_1_1p__stall_afa86e1fed5eb5db32d5f0d568886a444}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_2@{SEMAPHORE\_2}}
+\index{SEMAPHORE\_2@{SEMAPHORE\_2}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_2}{SEMAPHORE\_2}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+2 = 0x4\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a7cf3fee94311b826153ee92084bced70}\label{structckernel_1_1p__stall_a7cf3fee94311b826153ee92084bced70}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_3@{SEMAPHORE\_3}}
+\index{SEMAPHORE\_3@{SEMAPHORE\_3}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_3}{SEMAPHORE\_3}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+3 = 0x8\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a11cb297cb650f420058f0ef4188362b0}\label{structckernel_1_1p__stall_a11cb297cb650f420058f0ef4188362b0}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_4@{SEMAPHORE\_4}}
+\index{SEMAPHORE\_4@{SEMAPHORE\_4}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_4}{SEMAPHORE\_4}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+4 = 0x10\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_ae65344fdda637149804427dea2eb3d7d}\label{structckernel_1_1p__stall_ae65344fdda637149804427dea2eb3d7d}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_5@{SEMAPHORE\_5}}
+\index{SEMAPHORE\_5@{SEMAPHORE\_5}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_5}{SEMAPHORE\_5}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+5 = 0x20\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_afba577d7347de474eb13bcba192d2905}\label{structckernel_1_1p__stall_afba577d7347de474eb13bcba192d2905}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_6@{SEMAPHORE\_6}}
+\index{SEMAPHORE\_6@{SEMAPHORE\_6}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_6}{SEMAPHORE\_6}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+6 = 0x40\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_ac9c11ac0f3a7719e655ad139b6c97d76}\label{structckernel_1_1p__stall_ac9c11ac0f3a7719e655ad139b6c97d76}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_7@{SEMAPHORE\_7}}
+\index{SEMAPHORE\_7@{SEMAPHORE\_7}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_7}{SEMAPHORE\_7}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+7 = 0x80\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a67a8514503e22b52967e8cc0bd42da95}\label{structckernel_1_1p__stall_a67a8514503e22b52967e8cc0bd42da95}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SEMAPHORE\_BIAS@{SEMAPHORE\_BIAS}}
+\index{SEMAPHORE\_BIAS@{SEMAPHORE\_BIAS}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SEMAPHORE\_BIAS}{SEMAPHORE\_BIAS}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SEMAPHORE\+\_\+\+BIAS = \mbox{\hyperlink{structckernel_1_1p__stall_a11cb297cb650f420058f0ef4188362b0}{SEMAPHORE\+\_\+4}}\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a49611798e132c8713e4f4ff15ee0f66c}\label{structckernel_1_1p__stall_a49611798e132c8713e4f4ff15ee0f66c}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SFPU1@{SFPU1}}
+\index{SFPU1@{SFPU1}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SFPU1}{SFPU1}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SFPU1 = 0x800\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_aed25d59e0d9219618c00664520f1edb5}\label{structckernel_1_1p__stall_aed25d59e0d9219618c00664520f1edb5}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SRCA\_CLR@{SRCA\_CLR}}
+\index{SRCA\_CLR@{SRCA\_CLR}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SRCA\_CLR}{SRCA\_CLR}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SRCA\+\_\+\+CLR = 0x20\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_aaf4563abd4563fdfbcb2fce83abf2efb}\label{structckernel_1_1p__stall_aaf4563abd4563fdfbcb2fce83abf2efb}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SRCA\_VLD@{SRCA\_VLD}}
+\index{SRCA\_VLD@{SRCA\_VLD}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SRCA\_VLD}{SRCA\_VLD}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SRCA\+\_\+\+VLD = 0x80\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_aa627adb9f56bd106c8e278965fb625c3}\label{structckernel_1_1p__stall_aa627adb9f56bd106c8e278965fb625c3}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SRCB\_CLR@{SRCB\_CLR}}
+\index{SRCB\_CLR@{SRCB\_CLR}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SRCB\_CLR}{SRCB\_CLR}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SRCB\+\_\+\+CLR = 0x40\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a51dfa9eaca55e011aeb0f93d52451a62}\label{structckernel_1_1p__stall_a51dfa9eaca55e011aeb0f93d52451a62}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!SRCB\_VLD@{SRCB\_VLD}}
+\index{SRCB\_VLD@{SRCB\_VLD}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{SRCB\_VLD}{SRCB\_VLD}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+SRCB\+\_\+\+VLD = 0x100\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_abba99fafeb3d6142ed7b4cda721b9e22}\label{structckernel_1_1p__stall_abba99fafeb3d6142ed7b4cda721b9e22}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_CFG@{STALL\_CFG}}
+\index{STALL\_CFG@{STALL\_CFG}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_CFG}{STALL\_CFG}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+CFG = 0x80\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a51b99d461b320d2106440fec4e5cf08f}\label{structckernel_1_1p__stall_a51b99d461b320d2106440fec4e5cf08f}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_MATH@{STALL\_MATH}}
+\index{STALL\_MATH@{STALL\_MATH}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_MATH}{STALL\_MATH}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+MATH = 0x40\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_af37b573f64bd0ce0b876f03202de389b}\label{structckernel_1_1p__stall_af37b573f64bd0ce0b876f03202de389b}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_ON\_MAX@{STALL\_ON\_MAX}}
+\index{STALL\_ON\_MAX@{STALL\_ON\_MAX}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_ON\_MAX}{STALL\_ON\_MAX}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+ON\+\_\+\+MAX = 0x2\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a1595fbeea95f9a66794a9f61128ce602}\label{structckernel_1_1p__stall_a1595fbeea95f9a66794a9f61128ce602}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_ON\_ZERO@{STALL\_ON\_ZERO}}
+\index{STALL\_ON\_ZERO@{STALL\_ON\_ZERO}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_ON\_ZERO}{STALL\_ON\_ZERO}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+ON\+\_\+\+ZERO = 0x1\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a75b198406b26ea4c39b96fd633c62972}\label{structckernel_1_1p__stall_a75b198406b26ea4c39b96fd633c62972}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_PACK@{STALL\_PACK}}
+\index{STALL\_PACK@{STALL\_PACK}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_PACK}{STALL\_PACK}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+PACK = 0x4\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_aeae76dd111eccdcae0bca71d081b8106}\label{structckernel_1_1p__stall_aeae76dd111eccdcae0bca71d081b8106}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_SFPU@{STALL\_SFPU}}
+\index{STALL\_SFPU@{STALL\_SFPU}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_SFPU}{STALL\_SFPU}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+SFPU = 0x100\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_aeff5fdd7c5055ea687e740901595f02a}\label{structckernel_1_1p__stall_aeff5fdd7c5055ea687e740901595f02a}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_SYNC@{STALL\_SYNC}}
+\index{STALL\_SYNC@{STALL\_SYNC}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_SYNC}{STALL\_SYNC}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+SYNC = 0x2\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a460f3570364aefc2984f99bdf7ed3224}\label{structckernel_1_1p__stall_a460f3570364aefc2984f99bdf7ed3224}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_TDMA@{STALL\_TDMA}}
+\index{STALL\_TDMA@{STALL\_TDMA}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_TDMA}{STALL\_TDMA}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+TDMA = 0x1\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_ae8da566058238bcfeeed38eb0b8a8de3}\label{structckernel_1_1p__stall_ae8da566058238bcfeeed38eb0b8a8de3}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_THCON@{STALL\_THCON}}
+\index{STALL\_THCON@{STALL\_THCON}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_THCON}{STALL\_THCON}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+THCON = 0x20\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a3d45c0bd37b31a2bc08965b9f173fa99}\label{structckernel_1_1p__stall_a3d45c0bd37b31a2bc08965b9f173fa99}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_THREAD@{STALL\_THREAD}}
+\index{STALL\_THREAD@{STALL\_THREAD}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_THREAD}{STALL\_THREAD}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+THREAD = 0x1ff\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_af117197b36df7b8570530d42047858a8}\label{structckernel_1_1p__stall_af117197b36df7b8570530d42047858a8}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_UNPACK@{STALL\_UNPACK}}
+\index{STALL\_UNPACK@{STALL\_UNPACK}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_UNPACK}{STALL\_UNPACK}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+UNPACK = 0x8\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_ac302a3ffd44706ff2f132393209273d5}\label{structckernel_1_1p__stall_ac302a3ffd44706ff2f132393209273d5}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!STALL\_XMOV@{STALL\_XMOV}}
+\index{STALL\_XMOV@{STALL\_XMOV}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{STALL\_XMOV}{STALL\_XMOV}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+STALL\+\_\+\+XMOV = 0x10\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a36ebcdc5e5af85ad72ee57d972c5f5c6}\label{structckernel_1_1p__stall_a36ebcdc5e5af85ad72ee57d972c5f5c6}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!THCON@{THCON}}
+\index{THCON@{THCON}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{THCON}{THCON}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+THCON = 0x1\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a26b86b5ecb1d64e03d755b693d4cf957}\label{structckernel_1_1p__stall_a26b86b5ecb1d64e03d755b693d4cf957}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!TRISC\_CFG@{TRISC\_CFG}}
+\index{TRISC\_CFG@{TRISC\_CFG}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{TRISC\_CFG}{TRISC\_CFG}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+TRISC\+\_\+\+CFG = 0x400\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a1a0b1bf100abe1b328039ad79a1bcb78}\label{structckernel_1_1p__stall_a1a0b1bf100abe1b328039ad79a1bcb78}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!UNPACK@{UNPACK}}
+\index{UNPACK@{UNPACK}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{UNPACK}{UNPACK}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+UNPACK = \mbox{\hyperlink{structckernel_1_1p__stall_ae2b1b1da63b605e04696e7aa39bd4c67}{UNPACK0}} $\vert$ \mbox{\hyperlink{structckernel_1_1p__stall_a8ea658659a5eeee8e673678ea2e05149}{UNPACK1}}\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_ae2b1b1da63b605e04696e7aa39bd4c67}\label{structckernel_1_1p__stall_ae2b1b1da63b605e04696e7aa39bd4c67}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!UNPACK0@{UNPACK0}}
+\index{UNPACK0@{UNPACK0}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{UNPACK0}{UNPACK0}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+UNPACK0 = 0x2\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a8ea658659a5eeee8e673678ea2e05149}\label{structckernel_1_1p__stall_a8ea658659a5eeee8e673678ea2e05149}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!UNPACK1@{UNPACK1}}
+\index{UNPACK1@{UNPACK1}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{UNPACK1}{UNPACK1}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+UNPACK1 = 0x4\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a0c77d41129e9693b7d1a54a5b7f36645}\label{structckernel_1_1p__stall_a0c77d41129e9693b7d1a54a5b7f36645}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!WAIT\_SFPU@{WAIT\_SFPU}}
+\index{WAIT\_SFPU@{WAIT\_SFPU}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{WAIT\_SFPU}{WAIT\_SFPU}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+WAIT\+\_\+\+SFPU = 0x800\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+\mbox{\Hypertarget{structckernel_1_1p__stall_a6a6936baeb92581859a94bd1debb597d}\label{structckernel_1_1p__stall_a6a6936baeb92581859a94bd1debb597d}} 
+\index{ckernel::p\_stall@{ckernel::p\_stall}!XMOV@{XMOV}}
+\index{XMOV@{XMOV}!ckernel::p\_stall@{ckernel::p\_stall}}
+\doxysubsubsection{\texorpdfstring{XMOV}{XMOV}}
+{\footnotesize\ttfamily constexpr static uint ckernel\+::p\+\_\+stall\+::\+XMOV = 0x200\hspace{0.3cm}{\ttfamily [static]}, {\ttfamily [constexpr]}}
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+tt\+\_\+llk\+\_\+blackhole/common/inc/\mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h}{ckernel\+\_\+instr\+\_\+params.\+h}}\end{DoxyCompactItemize}

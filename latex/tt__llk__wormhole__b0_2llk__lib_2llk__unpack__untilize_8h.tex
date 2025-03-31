@@ -1,0 +1,63 @@
+\hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/llk\+\_\+lib/llk\+\_\+unpack\+\_\+untilize.h File Reference}
+\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h}\index{tt\_llk\_wormhole\_b0/llk\_lib/llk\_unpack\_untilize.h@{tt\_llk\_wormhole\_b0/llk\_lib/llk\_unpack\_untilize.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+defs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+globals.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+template.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}cunpack\+\_\+common.\+h\char`\"{}}\newline
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_ae17d7bf18615ed016b7ea62d1d12423a}{SKIP\+\_\+\+UNP}}~(0)
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_a1c3cb5ff63a99db431093fe6bb63e33b}{\+\_\+llk\+\_\+unpack\+\_\+untilize\+\_\+mop\+\_\+config\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, Stoch\+Rnd\+Type stoch\+\_\+rnd\+\_\+mode = Stoch\+Rnd\+Type\+::\+None$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_aa29d0596fc873a1847217d614c9bdf71}{\+\_\+llk\+\_\+unpack\+\_\+untilize\+\_\+hw\+\_\+configure\+\_\+}} (const std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t within\+\_\+face\+\_\+16x16\+\_\+transpose=0, const std\+::uint32\+\_\+t num\+\_\+faces=4)
+\item 
+void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_af358382fce98296a9ebb7fb02321a932}{\+\_\+llk\+\_\+unpack\+\_\+untilize\+\_\+init\+\_\+}} (const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t tile\+\_\+size, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t num\+\_\+faces=4)
+\item 
+{\footnotesize template$<$bool first\+\_\+pass = true$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_af9c28f7d126627f4ff23a2ec34a781d5}{\+\_\+llk\+\_\+unpack\+\_\+untilize\+\_\+pass\+\_\+}} (const std\+::uint32\+\_\+t base\+\_\+address, const std\+::uint32\+\_\+t block\+\_\+tile\+\_\+cols)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_ae17d7bf18615ed016b7ea62d1d12423a}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_ae17d7bf18615ed016b7ea62d1d12423a}} 
+\index{llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}!SKIP\_UNP@{SKIP\_UNP}}
+\index{SKIP\_UNP@{SKIP\_UNP}!llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}}
+\doxysubsubsection{\texorpdfstring{SKIP\_UNP}{SKIP\_UNP}}
+{\footnotesize\ttfamily \#define SKIP\+\_\+\+UNP~(0)}
+
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_aa29d0596fc873a1847217d614c9bdf71}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_aa29d0596fc873a1847217d614c9bdf71}} 
+\index{llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}!\_llk\_unpack\_untilize\_hw\_configure\_@{\_llk\_unpack\_untilize\_hw\_configure\_}}
+\index{\_llk\_unpack\_untilize\_hw\_configure\_@{\_llk\_unpack\_untilize\_hw\_configure\_}!llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_untilize\_hw\_configure\_()}{\_llk\_unpack\_untilize\_hw\_configure\_()}}
+{\footnotesize\ttfamily template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, Stoch\+Rnd\+Type stoch\+\_\+rnd\+\_\+mode = Stoch\+Rnd\+Type\+::\+None$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+untilize\+\_\+hw\+\_\+configure\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{within\+\_\+face\+\_\+16x16\+\_\+transpose = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_af358382fce98296a9ebb7fb02321a932}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_af358382fce98296a9ebb7fb02321a932}} 
+\index{llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}!\_llk\_unpack\_untilize\_init\_@{\_llk\_unpack\_untilize\_init\_}}
+\index{\_llk\_unpack\_untilize\_init\_@{\_llk\_unpack\_untilize\_init\_}!llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_untilize\_init\_()}{\_llk\_unpack\_untilize\_init\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+unpack\+\_\+untilize\+\_\+init\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{tile\+\_\+size,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_a1c3cb5ff63a99db431093fe6bb63e33b}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_a1c3cb5ff63a99db431093fe6bb63e33b}} 
+\index{llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}!\_llk\_unpack\_untilize\_mop\_config\_@{\_llk\_unpack\_untilize\_mop\_config\_}}
+\index{\_llk\_unpack\_untilize\_mop\_config\_@{\_llk\_unpack\_untilize\_mop\_config\_}!llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_untilize\_mop\_config\_()}{\_llk\_unpack\_untilize\_mop\_config\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+unpack\+\_\+untilize\+\_\+mop\+\_\+config\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_af9c28f7d126627f4ff23a2ec34a781d5}\label{tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h_af9c28f7d126627f4ff23a2ec34a781d5}} 
+\index{llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}!\_llk\_unpack\_untilize\_pass\_@{\_llk\_unpack\_untilize\_pass\_}}
+\index{\_llk\_unpack\_untilize\_pass\_@{\_llk\_unpack\_untilize\_pass\_}!llk\_unpack\_untilize.h@{llk\_unpack\_untilize.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_untilize\_pass\_()}{\_llk\_unpack\_untilize\_pass\_()}}
+{\footnotesize\ttfamily template$<$bool first\+\_\+pass = true$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+untilize\+\_\+pass\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{base\+\_\+address,  }\item[{const std\+::uint32\+\_\+t}]{block\+\_\+tile\+\_\+cols }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

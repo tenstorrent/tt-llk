@@ -1,0 +1,178 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2ckernel__include_8h" kind="file" language="C++">
+    <compoundname>ckernel_include.h</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__addrmod_8h" local="yes">ckernel_addrmod.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h" local="yes">ckernel_defs.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__gpr__map_8h" local="yes">ckernel_gpr_map.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="yes">ckernel_instr_params.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h" local="yes">ckernel_structs.h</includes>
+    <includes local="yes">tensix.h</includes>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel_8h" local="yes">tt_llk_blackhole/common/inc/ckernel.h</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>cfg_defines.h</label>
+      </node>
+      <node id="10">
+        <label>ckernel_gpr_map.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__gpr__map_8h"/>
+      </node>
+      <node id="6">
+        <label>cstdint</label>
+      </node>
+      <node id="7">
+        <label>llk_defs.h</label>
+      </node>
+      <node id="8">
+        <label>tensix.h</label>
+      </node>
+      <node id="4">
+        <label>ckernel_ops.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h"/>
+      </node>
+      <node id="11">
+        <label>ckernel_instr_params.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ckernel_addrmod.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__addrmod_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>tensix_types.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_defs.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>ckernel_structs.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h"/>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_include.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__include_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="5">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>tt_llk_blackhole/common/inc/ckernel_xmov.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__xmov_8h"/>
+      </node>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/ckernel.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>tt_llk_blackhole/common/inc/cpack_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h"/>
+      </node>
+      <node id="7">
+        <label>tt_llk_blackhole/common/inc/ckernel_template.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__template_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/ckernel_debug.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h"/>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_include.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__include_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>tt_llk_blackhole/common/inc/cunpack_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cunpack__common_8h"/>
+      </node>
+      <node id="4">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>file<sp/>lists<sp/>the<sp/>includes<sp/>that<sp/>are<sp/>safe<sp/>to<sp/>be<sp/>included<sp/>for<sp/>both<sp/>firmware<sp/>and<sp/>ckernels</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>MT:<sp/>This<sp/>should<sp/>be<sp/>dissolved<sp/>and<sp/>moved<sp/>to<sp/>the<sp/>appropriate<sp/>place</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__addrmod_8h" kindref="compound">ckernel_addrmod.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h" kindref="compound">ckernel_defs.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__gpr__map_8h" kindref="compound">ckernel_gpr_map.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__instr__params_8h" kindref="compound">ckernel_instr_params.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__structs_8h" kindref="compound">ckernel_structs.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;tensix.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/ckernel_include.h"/>
+  </compounddef>
+</doxygen>

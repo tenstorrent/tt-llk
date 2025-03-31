@@ -1,0 +1,587 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h" kind="file" language="C++">
+    <compoundname>llk_math_reduce.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes local="yes">ckernel_globals.h</includes>
+    <includes local="yes">ckernel_include.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">ckernel_template.h</includes>
+    <includes local="yes">cmath_common.h</includes>
+    <includes refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h" local="yes">llk_math_common.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="4">
+        <label>ckernel_include.h</label>
+      </node>
+      <node id="6">
+        <label>ckernel_template.h</label>
+      </node>
+      <node id="8">
+        <label>llk_math_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>cmath_common.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_globals.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h_1a90961e47b43ec31280f3f3b04ee83cfe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void reduce_configure_addrmod</definition>
+        <argsstring>()</argsstring>
+        <name>reduce_configure_addrmod</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" line="318" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" bodystart="318" bodyend="344" declfile="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" declline="19" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h_1a57fa4e7b4cca53245406338595487ab7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139c" kindref="member">ReduceDim</ref></type>
+            <declname>dim</declname>
+            <defname>dim</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>num_fidelity_phases</declname>
+            <defname>num_fidelity_phases</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void reduce_configure_mop</definition>
+        <argsstring>()</argsstring>
+        <name>reduce_configure_mop</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" line="347" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" bodystart="347" bodyend="363" declfile="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" declline="22" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h_1a61944dcc1d5536b9951c695706ab7829" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526" kindref="member">PoolType</ref></type>
+            <declname>type</declname>
+            <defname>type</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139c" kindref="member">ReduceDim</ref></type>
+            <declname>dim</declname>
+            <defname>dim</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>MATH_FIDELITY_DESC</declname>
+            <defname>MATH_FIDELITY_DESC</defname>
+            <defval>0</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_int_fpu_en</declname>
+            <defname>is_int_fpu_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_reduce_</definition>
+        <argsstring>(const uint dst_index, bool narrow_tile=false, const uint num_faces=4)</argsstring>
+        <name>_llk_math_reduce_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>narrow_tile</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" line="25" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" bodystart="25" bodyend="315"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h_1a0636398dd99c5e07f7b609e1e55a4655" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526" kindref="member">PoolType</ref></type>
+            <declname>type</declname>
+            <defname>type</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139c" kindref="member">ReduceDim</ref></type>
+            <declname>dim</declname>
+            <defname>dim</defname>
+          </param>
+          <param>
+            <type>int</type>
+            <declname>MATH_FIDELITY_DESC</declname>
+            <defname>MATH_FIDELITY_DESC</defname>
+            <defval>0</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_reduce_init_</definition>
+        <argsstring>(const std::uint32_t within_face_16x16_transpose=0)</argsstring>
+        <name>_llk_math_reduce_init_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>within_face_16x16_transpose</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" line="366" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h" bodystart="366" bodyend="381"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_globals.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_include.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_template.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cmath_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h" kindref="compound">llk_math_common.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/>local<sp/>function<sp/>declarations</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__reduce_8h_1a90961e47b43ec31280f3f3b04ee83cfe" kindref="member">reduce_configure_addrmod</ref>();</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;ReduceDim<sp/>dim,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num_f</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">elity_phases&gt;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__reduce_8h_1a57fa4e7b4cca53245406338595487ab7" kindref="member">reduce_configure_mop</ref>();</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;PoolType<sp/>type,<sp/>ReduceDim<sp/>dim,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MATH_FIDELITY_DESC<sp/>=<sp/>0,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">_fpu_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="25" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h_1a61944dcc1d5536b9951c695706ab7829" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__reduce_8h_1a61944dcc1d5536b9951c695706ab7829" kindref="member">_llk_math_reduce_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>dst_index,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>narrow_tile<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>num_faces<sp/>=<sp/>4)</highlight></codeline>
+<codeline lineno="26"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MATH_FIDELITY_PHASES<sp/>=<sp/><ref refid="namespaceckernel_1_1math_1a0a3ddb26bec88debce6e31ce3d545326" kindref="member">get_math_num_fidelity_phases</ref>(MATH_FIDELITY_DESC);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>HIGH_FIDELITY<sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>MATH_FIDELITY_PHASES<sp/>&gt;<sp/>0;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>math::set_dst_write_addr&lt;DstTileLayout::Default,<sp/>DstTileShape::Tile32x32&gt;(dst_index);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(dim<sp/>==<sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139cabb9977378ef5f60f765fc03e5ed0055e" kindref="member">ReduceDim::REDUCE_ROW</ref>)</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Transpose<sp/>for<sp/>each<sp/>face<sp/>in<sp/>src<sp/>A<sp/>done<sp/>at<sp/>unpacker,<sp/>and<sp/>pool</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a216e1b0bace91edde0cbb2151c410054" kindref="member">TTI_CLEARDVALID</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Workaround<sp/>for<sp/>tenstorrent/budabackend#1948</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(is_int_fpu_en)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1aeae76dd111eccdcae0bca71d081b8106" kindref="member">p_stall::STALL_SFPU</ref>,<sp/><ref refid="structckernel_1_1p__stall_1aaf59ea6df69e5d5dbc171fd7e4a44cad" kindref="member">p_stall::MATH</ref>);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>4,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(0,<sp/>5,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>4,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>2);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(0,<sp/>5,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>2);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1a51b99d461b320d2106440fec4e5cf08f" kindref="member">p_stall::STALL_MATH</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a0c77d41129e9693b7d1a54a5b7f36645" kindref="member">p_stall::WAIT_SFPU</ref>);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(FP16A_FORCE_Enable_ADDR32,<sp/>0x1);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Move<sp/>back<sp/>to<sp/>B<sp/>and<sp/>transpose</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>we<sp/>avoid<sp/>clobbering<sp/>weights<sp/>in<sp/>src<sp/>B<sp/>by<sp/>moving<sp/>to<sp/>rows<sp/>16<sp/>-<sp/>31</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a86326ed99ec2b8f7e926f58ae3a31874" kindref="member">p_setrwc::SET_AB</ref>);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="83"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>constexpr<sp/>(is_fp32_dest_acc_en)<sp/>{</highlight></codeline>
+<codeline lineno="84"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(0<sp/>==<sp/>(((uint)unpack_dst_format[0]&gt;&gt;2)&amp;0x1))<sp/>{<sp/>//<sp/>fp32<sp/>to<sp/>fp16_a<sp/>conversion</highlight></codeline>
+<codeline lineno="85"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_STALLWAIT(p_stall::STALL_SFPU,<sp/>p_stall::MATH);</highlight></codeline>
+<codeline lineno="86"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SFPLOAD(0,<sp/>0,<sp/>3,<sp/>0);</highlight></codeline>
+<codeline lineno="87"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SFP_STOCH_RND(0,0,0,0,0,8);</highlight></codeline>
+<codeline lineno="88"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SFPSTORE(0,1,3,0);</highlight></codeline>
+<codeline lineno="89"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="90"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a759df47952bf58ccc66a38f56c5a2462" kindref="member">TTI_MOVD2B</ref>(0,<sp/><ref refid="structckernel_1_1p__movd2b_1afe0ed9813b4f543661492a3a808c10b7" kindref="member">p_movd2b::SRC_ROW16_OFFSET</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movd2b_1abd492d6031b0da14fc89dd8b104d7374" kindref="member">p_movd2b::MOV_1_ROW</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Note:<sp/>transpose<sp/>on<sp/>src<sp/>B<sp/>on<sp/>works<sp/>on<sp/>rows<sp/>16<sp/>-<sp/>31</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ae6bbf49eddfbfd4e80a7c466538d7456" kindref="member">TTI_TRNSPSRCB</ref>;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a759df47952bf58ccc66a38f56c5a2462" kindref="member">TTI_MOVD2B</ref>(0,<sp/><ref refid="structckernel_1_1p__movd2b_1afe0ed9813b4f543661492a3a808c10b7" kindref="member">p_movd2b::SRC_ROW16_OFFSET</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movd2b_1abd492d6031b0da14fc89dd8b104d7374" kindref="member">p_movd2b::MOV_1_ROW</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(is_int_fpu_en)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(FP16A_FORCE_Enable_ADDR32,<sp/>0x0);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" kindref="member">p_setrwc::CR_B</ref>,<sp/>0,<sp/>8,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" kindref="member">p_setrwc::SET_B</ref>);</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" kindref="member">p_setrwc::CR_B</ref>,<sp/>0,<sp/>8,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" kindref="member">p_setrwc::SET_B</ref>);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1add6b81a34ed1663cddbde54e0893060c" kindref="member">TTI_ZEROSRC</ref>(0,<sp/>1,<sp/>0,<sp/>1);<sp/></highlight><highlight class="comment">//<sp/>Clear<sp/>src<sp/>A</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a3881f166ed32ec6b12203f6f1588a181" kindref="member">TTI_ELWADD</ref>(0,<sp/>0,<sp/><ref refid="structckernel_1_1p__elwise_1ad617b6cda24568d71f1efeb973bae1ef" kindref="member">p_elwise::SRCB_NO_BCAST</ref>,<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a3881f166ed32ec6b12203f6f1588a181" kindref="member">TTI_ELWADD</ref>(0,<sp/>0,<sp/><ref refid="structckernel_1_1p__elwise_1ad617b6cda24568d71f1efeb973bae1ef" kindref="member">p_elwise::SRCB_NO_BCAST</ref>,<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Increment<sp/>dest<sp/>by<sp/>32<sp/>or<sp/>16<sp/>if<sp/>narrow<sp/>tile<sp/>for<sp/>the<sp/>next<sp/>accumulation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!narrow_tile)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>8,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" kindref="member">p_setrwc::SET_D</ref>);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>8,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" kindref="member">p_setrwc::SET_D</ref>);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>8,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" kindref="member">p_setrwc::SET_D</ref>);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>8,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a72a2da4e78be127fc0737d1f7cc2ae4e" kindref="member">p_setrwc::SET_BD</ref>);</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Second<sp/>Tile<sp/>Row<sp/>//</highlight></codeline>
+<codeline lineno="119"><highlight class="comment"></highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Transpose<sp/>at<sp/>unpacker<sp/>and<sp/>pool</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a216e1b0bace91edde0cbb2151c410054" kindref="member">TTI_CLEARDVALID</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Workaround<sp/>for<sp/>tenstorrent/budabackend#1948</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(is_int_fpu_en)</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1aeae76dd111eccdcae0bca71d081b8106" kindref="member">p_stall::STALL_SFPU</ref>,<sp/><ref refid="structckernel_1_1p__stall_1aaf59ea6df69e5d5dbc171fd7e4a44cad" kindref="member">p_stall::MATH</ref>);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>4,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(0,<sp/>5,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6c7eb5bdf85afb3e9b019018dbab4ea5" kindref="member">TTI_SFPLOAD</ref>(0,<sp/>4,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>2);</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92a42fa5f12ef7cf062939ab214a78bf" kindref="member">TTI_SFPSTORE</ref>(0,<sp/>5,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>2);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1a51b99d461b320d2106440fec4e5cf08f" kindref="member">p_stall::STALL_MATH</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a0c77d41129e9693b7d1a54a5b7f36645" kindref="member">p_stall::WAIT_SFPU</ref>);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(FP16A_FORCE_Enable_ADDR32,<sp/>0x1);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Move<sp/>back<sp/>to<sp/>B<sp/>and<sp/>transpose</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a86326ed99ec2b8f7e926f58ae3a31874" kindref="member">p_setrwc::SET_AB</ref>);</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="168"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>constexpr<sp/>(is_fp32_dest_acc_en)<sp/>{</highlight></codeline>
+<codeline lineno="169"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(0<sp/>==<sp/>(((uint)unpack_dst_format[0]&gt;&gt;2)&amp;0x1))<sp/>{<sp/>//<sp/>fp32<sp/>to<sp/>fp16_a<sp/>conversion</highlight></codeline>
+<codeline lineno="170"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_STALLWAIT(p_stall::STALL_SFPU,<sp/>p_stall::MATH);</highlight></codeline>
+<codeline lineno="171"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SFPLOAD(0,<sp/>0,<sp/>3,<sp/>0);</highlight></codeline>
+<codeline lineno="172"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SFP_STOCH_RND(0,0,0,0,0,8);</highlight></codeline>
+<codeline lineno="173"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SFPSTORE(0,1,3,0);</highlight></codeline>
+<codeline lineno="174"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="175"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="176"><highlight class="comment"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a759df47952bf58ccc66a38f56c5a2462" kindref="member">TTI_MOVD2B</ref>(0,<sp/><ref refid="structckernel_1_1p__movd2b_1afe0ed9813b4f543661492a3a808c10b7" kindref="member">p_movd2b::SRC_ROW16_OFFSET</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movd2b_1abd492d6031b0da14fc89dd8b104d7374" kindref="member">p_movd2b::MOV_1_ROW</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Note:<sp/>transpose<sp/>on<sp/>src<sp/>B<sp/>on<sp/>works<sp/>on<sp/>rows<sp/>16<sp/>-<sp/>31</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ae6bbf49eddfbfd4e80a7c466538d7456" kindref="member">TTI_TRNSPSRCB</ref>;</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a759df47952bf58ccc66a38f56c5a2462" kindref="member">TTI_MOVD2B</ref>(0,<sp/><ref refid="structckernel_1_1p__movd2b_1afe0ed9813b4f543661492a3a808c10b7" kindref="member">p_movd2b::SRC_ROW16_OFFSET</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movd2b_1abd492d6031b0da14fc89dd8b104d7374" kindref="member">p_movd2b::MOV_1_ROW</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(is_int_fpu_en)</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(FP16A_FORCE_Enable_ADDR32,<sp/>0x0);</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" kindref="member">p_setrwc::CR_B</ref>,<sp/>0,<sp/>8,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" kindref="member">p_setrwc::SET_B</ref>);</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" kindref="member">p_setrwc::CR_B</ref>,<sp/>0,<sp/>8,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" kindref="member">p_setrwc::SET_B</ref>);</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1add6b81a34ed1663cddbde54e0893060c" kindref="member">TTI_ZEROSRC</ref>(0,<sp/>1,<sp/>0,<sp/>1);<sp/></highlight><highlight class="comment">//<sp/>Clear<sp/>src<sp/>A</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a3881f166ed32ec6b12203f6f1588a181" kindref="member">TTI_ELWADD</ref>(0,<sp/>0,<sp/><ref refid="structckernel_1_1p__elwise_1ad617b6cda24568d71f1efeb973bae1ef" kindref="member">p_elwise::SRCB_NO_BCAST</ref>,<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a3881f166ed32ec6b12203f6f1588a181" kindref="member">TTI_ELWADD</ref>(0,<sp/>0,<sp/><ref refid="structckernel_1_1p__elwise_1ad617b6cda24568d71f1efeb973bae1ef" kindref="member">p_elwise::SRCB_NO_BCAST</ref>,<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Increment<sp/>dest<sp/>by<sp/>32<sp/>for<sp/>next<sp/>accumulation</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a72a2da4e78be127fc0737d1f7cc2ae4e" kindref="member">p_setrwc::SET_BD</ref>);</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(dim<sp/>==<sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139ca9b5a904566cb62933732a2ec8a44d03c" kindref="member">ReduceDim::REDUCE_COL</ref>)</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>num_row_tiles<sp/>=<sp/>narrow_tile<sp/>?<sp/>2<sp/>:<sp/>((num_faces<sp/>&gt;<sp/>1)<sp/>?<sp/>num_faces<sp/>/<sp/>2<sp/>:<sp/>1);</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint<sp/>row_tile<sp/>=<sp/>0;<sp/>row_tile<sp/>&lt;<sp/>num_row_tiles;<sp/>row_tile++)</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Just<sp/>pool</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((!narrow_tile)<sp/>&amp;&amp;<sp/>(num_faces<sp/>&gt;<sp/>1))</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>8,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" kindref="member">p_setrwc::SET_D</ref>);</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>8,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" kindref="member">p_setrwc::SET_D</ref>);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Reset<sp/>Dest<sp/>Counter</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1acb2432f96d4c0080a80ee93429863cd7" kindref="member">p_setrwc::SET_AD</ref>);</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(dim<sp/>==<sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139ca4882c6ddb9f85c7d283e5f4b453b1738" kindref="member">ReduceDim::REDUCE_SCALAR</ref>)</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tile<sp/>=<sp/>0;<sp/>tile<sp/>&lt;<sp/>3;<sp/>tile++)</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>and<sp/>pool</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>4);</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a216e1b0bace91edde0cbb2151c410054" kindref="member">TTI_CLEARDVALID</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>4);</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>and<sp/>pool</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>4);</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>4);</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"></highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Need<sp/>row<sp/>in<sp/>dest<sp/>as<sp/>column<sp/>in<sp/>src<sp/>A</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a86326ed99ec2b8f7e926f58ae3a31874" kindref="member">p_setrwc::SET_AB</ref>);</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>copy<sp/>over<sp/>from<sp/>dest<sp/>to<sp/>B<sp/>and<sp/>do<sp/>transpose</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>use<sp/>rows<sp/>16<sp/>-<sp/>31<sp/>in<sp/>src<sp/>B<sp/>as<sp/>scratch</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a759df47952bf58ccc66a38f56c5a2462" kindref="member">TTI_MOVD2B</ref>(0,<sp/><ref refid="structckernel_1_1p__movd2b_1afe0ed9813b4f543661492a3a808c10b7" kindref="member">p_movd2b::SRC_ROW16_OFFSET</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movd2b_1abd492d6031b0da14fc89dd8b104d7374" kindref="member">p_movd2b::MOV_1_ROW</ref>,<sp/>4);</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a20bed7dcce8cd06f1cdbea482ee94dab" kindref="member">TTI_GATESRCRST</ref>(0b1,<sp/>0b1);</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ae6bbf49eddfbfd4e80a7c466538d7456" kindref="member">TTI_TRNSPSRCB</ref>;</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>gate<sp/>math<sp/>instructions<sp/>until<sp/>src<sp/>B<sp/>has<sp/>been<sp/>updated</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a20bed7dcce8cd06f1cdbea482ee94dab" kindref="member">TTI_GATESRCRST</ref>(0b1,<sp/>0b1);</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>copy<sp/>over<sp/>all<sp/>16<sp/>rows<sp/>from<sp/>B<sp/>to<sp/>A</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a89ce085e72265b79b948f5c471a2246d" kindref="member">TTI_MOVB2A</ref>(<ref refid="structckernel_1_1p__movb2a_1a4990e12dac069e45e90076cf4eb5f1c4" kindref="member">p_movb2a::SRCA_ZERO_OFFSET</ref><sp/>+<sp/>0,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movb2a_1acbe167f15121f25caf7632f6186bd496" kindref="member">p_movb2a::MOV_4_ROWS</ref>,<sp/><ref refid="structckernel_1_1p__movb2a_1aeba4d4b07391e260c7ba4f7f3b61734d" kindref="member">p_movb2a::SRCB_ROW16_OFFSET</ref><sp/>+<sp/>0);</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a89ce085e72265b79b948f5c471a2246d" kindref="member">TTI_MOVB2A</ref>(<ref refid="structckernel_1_1p__movb2a_1a4990e12dac069e45e90076cf4eb5f1c4" kindref="member">p_movb2a::SRCA_ZERO_OFFSET</ref><sp/>+<sp/>4,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movb2a_1acbe167f15121f25caf7632f6186bd496" kindref="member">p_movb2a::MOV_4_ROWS</ref>,<sp/><ref refid="structckernel_1_1p__movb2a_1aeba4d4b07391e260c7ba4f7f3b61734d" kindref="member">p_movb2a::SRCB_ROW16_OFFSET</ref><sp/>+<sp/>4);</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a89ce085e72265b79b948f5c471a2246d" kindref="member">TTI_MOVB2A</ref>(<ref refid="structckernel_1_1p__movb2a_1a4990e12dac069e45e90076cf4eb5f1c4" kindref="member">p_movb2a::SRCA_ZERO_OFFSET</ref><sp/>+<sp/>8,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movb2a_1acbe167f15121f25caf7632f6186bd496" kindref="member">p_movb2a::MOV_4_ROWS</ref>,<sp/><ref refid="structckernel_1_1p__movb2a_1aeba4d4b07391e260c7ba4f7f3b61734d" kindref="member">p_movb2a::SRCB_ROW16_OFFSET</ref><sp/>+<sp/>8);</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a89ce085e72265b79b948f5c471a2246d" kindref="member">TTI_MOVB2A</ref>(<ref refid="structckernel_1_1p__movb2a_1a4990e12dac069e45e90076cf4eb5f1c4" kindref="member">p_movb2a::SRCA_ZERO_OFFSET</ref><sp/>+<sp/>12,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__movb2a_1acbe167f15121f25caf7632f6186bd496" kindref="member">p_movb2a::MOV_4_ROWS</ref>,<sp/><ref refid="structckernel_1_1p__movb2a_1aeba4d4b07391e260c7ba4f7f3b61734d" kindref="member">p_movb2a::SRCB_ROW16_OFFSET</ref><sp/>+<sp/>12);</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>gate<sp/>math<sp/>instructions<sp/>until<sp/>src<sp/>A<sp/>has<sp/>been<sp/>updated<sp/>by<sp/>MOV<sp/>instructions</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a20bed7dcce8cd06f1cdbea482ee94dab" kindref="member">TTI_GATESRCRST</ref>(0b1,<sp/>0b1);</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>zero<sp/>out<sp/>scratch<sp/>in<sp/>dest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a2c799ea526620ddbd24e7e654cd56304" kindref="member">TTI_ZEROACC</ref>(<ref refid="structckernel_1_1p__zeroacc_1a8cf762d90a6f324c0f7909cc986a61ff" kindref="member">p_zeroacc::CLR_SPECIFIC</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/>4);</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"></highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">PoolType::MAX</ref>)</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5add75a90174481abbba5990b26b6e1b" kindref="member">TTI_GMPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>MATH_FIDELITY_PHASES<sp/>-<sp/>1;<sp/>i++)</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a05f4d4b4bc7c28a851063e49768311c9" kindref="member">ADDR_MOD_3</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a1665317d186c29d0b3160222596093a1" kindref="member">TTI_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="315"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"></highlight></codeline>
+<codeline lineno="317"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;PoolType<sp/>type,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MATH_FIDELITY_DESC&gt;</highlight></codeline>
+<codeline lineno="318" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h_1a90961e47b43ec31280f3f3b04ee83cfe" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__reduce_8h_1a90961e47b43ec31280f3f3b04ee83cfe" kindref="member">reduce_configure_addrmod</ref>()</highlight></codeline>
+<codeline lineno="319"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>NUM_FIDELITY_PHASES<sp/>=<sp/><ref refid="namespaceckernel_1_1math_1a0a3ddb26bec88debce6e31ce3d545326" kindref="member">get_math_num_fidelity_phases</ref>(MATH_FIDELITY_DESC);</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>FIDELITY_INCREMENT<sp/><sp/>=<sp/><ref refid="namespaceckernel_1_1math_1a1e0b0ac27da288d35a7316580da4f039" kindref="member">get_math_fidelity_increment</ref>(MATH_FIDELITY_DESC);</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>HIGH_FIDELITY<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>NUM_FIDELITY_PHASES<sp/>&gt;<sp/>0;</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"></highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},<sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},<sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>0},<sp/>.fidelity<sp/>=<sp/>{.incr<sp/>=<sp/>0,<sp/>.clr<sp/>=<sp/>1}}.set(<ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>);</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>1},</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>1},</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1af9fa0f506fc2591268270984c3abbe47" kindref="member">ADDR_MOD_1</ref>);</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"></highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>8},</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>8},</highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>);</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"></highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},<sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},<sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>0},<sp/>.fidelity<sp/>=<sp/>{.incr<sp/>=<sp/>FIDELITY_INCREMENT}}.set(<ref refid="namespaceckernel_1a05f4d4b4bc7c28a851063e49768311c9" kindref="member">ADDR_MOD_3</ref>);</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="344"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"></highlight></codeline>
+<codeline lineno="346"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;ReduceDim<sp/>dim,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num_f</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">elity_phases&gt;</highlight></codeline>
+<codeline lineno="347" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h_1a57fa4e7b4cca53245406338595487ab7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__reduce_8h_1a57fa4e7b4cca53245406338595487ab7" kindref="member">reduce_configure_mop</ref>()</highlight></codeline>
+<codeline lineno="348"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(dim<sp/>==<sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139ca4882c6ddb9f85c7d283e5f4b453b1738" kindref="member">ReduceDim::REDUCE_SCALAR</ref>)</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(1,<sp/>num_fidelity_phases,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad981607f51b1b2750442b3d934a85cdf" kindref="member">TT_OP_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a05f4d4b4bc7c28a851063e49768311c9" kindref="member">ADDR_MOD_3</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>4));</highlight></codeline>
+<codeline lineno="352"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a73fc5a7659a1357cfb70484134bf36e5" kindref="member">set_last_inner_loop_instr</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad981607f51b1b2750442b3d934a85cdf" kindref="member">TT_OP_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>4));</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a1adf438d6ed4f065aa08301f99f82720" kindref="member">set_last_outer_loop_instr</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad981607f51b1b2750442b3d934a85cdf" kindref="member">TT_OP_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>4));</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(1,<sp/>num_fidelity_phases,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad981607f51b1b2750442b3d934a85cdf" kindref="member">TT_OP_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a05f4d4b4bc7c28a851063e49768311c9" kindref="member">ADDR_MOD_3</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0));</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a73fc5a7659a1357cfb70484134bf36e5" kindref="member">set_last_inner_loop_instr</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad981607f51b1b2750442b3d934a85cdf" kindref="member">TT_OP_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0));</highlight></codeline>
+<codeline lineno="360"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a1adf438d6ed4f065aa08301f99f82720" kindref="member">set_last_outer_loop_instr</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ad981607f51b1b2750442b3d934a85cdf" kindref="member">TT_OP_GAPOOL</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" kindref="member">p_gpool::DIM_16X16</ref>,<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>,<sp/><ref refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" kindref="member">p_gpool::INDEX_DIS</ref>,<sp/>0));</highlight></codeline>
+<codeline lineno="361"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="362"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="363"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"></highlight></codeline>
+<codeline lineno="365"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;PoolType<sp/>type,<sp/>ReduceDim<sp/>dim,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MATH_FIDELITY_DESC<sp/>=<sp/>0&gt;</highlight></codeline>
+<codeline lineno="366" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h_1a0636398dd99c5e07f7b609e1e55a4655" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__reduce_8h_1a0636398dd99c5e07f7b609e1e55a4655" kindref="member">_llk_math_reduce_init_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>within_face_16x16_transpose<sp/>=<sp/>0)</highlight></codeline>
+<codeline lineno="367"><highlight class="normal">{<sp/></highlight><highlight class="comment">//<sp/>within_face_16x16_transpose<sp/>used<sp/>for<sp/>unpack,<sp/>ignored<sp/>by<sp/>math</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="368"><highlight class="normal"></highlight></codeline>
+<codeline lineno="369"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>MATH_FIDELITY_PHASES<sp/>=<sp/><ref refid="namespaceckernel_1_1math_1a0a3ddb26bec88debce6e31ce3d545326" kindref="member">get_math_num_fidelity_phases</ref>(MATH_FIDELITY_DESC);</highlight></codeline>
+<codeline lineno="370"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>HIGH_FIDELITY<sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>MATH_FIDELITY_PHASES<sp/>&gt;<sp/>0;</highlight></codeline>
+<codeline lineno="371"><highlight class="normal"></highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/><sp/><sp/>reduce_configure_addrmod&lt;type,<sp/>MATH_FIDELITY_DESC&gt;();</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(HIGH_FIDELITY)</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="375"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>reduce_configure_mop&lt;dim,<sp/>MATH_FIDELITY_PHASES&gt;();</highlight></codeline>
+<codeline lineno="376"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="377"><highlight class="normal"></highlight></codeline>
+<codeline lineno="378"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(CLR_DVALID_SrcA_Disable_ADDR32,<sp/>0);</highlight></codeline>
+<codeline lineno="379"><highlight class="normal"></highlight></codeline>
+<codeline lineno="380"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a4de2f1cf6fdbf8440aa394f2509ea5de" kindref="member">math::reset_counters</ref>(<ref refid="structckernel_1_1p__setrwc_1a831ce6850ea6dbade5660f1a1579f3f3" kindref="member">p_setrwc::SET_ABD_F</ref>);</highlight></codeline>
+<codeline lineno="381"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h"/>
+  </compounddef>
+</doxygen>

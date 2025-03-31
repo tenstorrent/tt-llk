@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1dbg__array__rd__cmd__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::dbg_array_rd_cmd_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h" local="no">ckernel_debug.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__rd__cmd__t_1a183698848c8be6974c450443c49e0139" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_array_rd_cmd_t::row_addr</definition>
+        <argsstring></argsstring>
+        <name>row_addr</name>
+        <bitfield> 12</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="74" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__rd__cmd__t_1a9eeb0876d02283fa5b7ec55b89d4bcb8" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_array_rd_cmd_t::row_32b_sel</definition>
+        <argsstring></argsstring>
+        <name>row_32b_sel</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="75" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__rd__cmd__t_1a67271f28c8d7f46b44c5cceeea5950f4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_array_rd_cmd_t::array_id</definition>
+        <argsstring></argsstring>
+        <name>array_id</name>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="76" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__rd__cmd__t_1a5fd98ac44762e441a3b5c68ceb136ee2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_array_rd_cmd_t::bank_id</definition>
+        <argsstring></argsstring>
+        <name>bank_id</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="77" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__array__rd__cmd__t_1aa281cafcfff7378c88dee7ef7d0e7ebb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_array_rd_cmd_t::reserved</definition>
+        <argsstring></argsstring>
+        <name>reserved</name>
+        <bitfield> 12</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="78" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="72" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="73" bodyend="79"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1dbg__array__rd__cmd__t_1a67271f28c8d7f46b44c5cceeea5950f4" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_cmd_t</scope><name>array_id</name></member>
+      <member refid="structckernel_1_1dbg__array__rd__cmd__t_1a5fd98ac44762e441a3b5c68ceb136ee2" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_cmd_t</scope><name>bank_id</name></member>
+      <member refid="structckernel_1_1dbg__array__rd__cmd__t_1aa281cafcfff7378c88dee7ef7d0e7ebb" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_cmd_t</scope><name>reserved</name></member>
+      <member refid="structckernel_1_1dbg__array__rd__cmd__t_1a9eeb0876d02283fa5b7ec55b89d4bcb8" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_cmd_t</scope><name>row_32b_sel</name></member>
+      <member refid="structckernel_1_1dbg__array__rd__cmd__t_1a183698848c8be6974c450443c49e0139" prot="public" virt="non-virtual"><scope>ckernel::dbg_array_rd_cmd_t</scope><name>row_addr</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

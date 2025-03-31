@@ -1,0 +1,24 @@
+\hypertarget{tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__exp_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/common/inc/sfpu/ckernel\+\_\+sfpu\+\_\+exp.h File Reference}
+\label{tt__llk__wormhole__b0_2common_2inc_2sfpu_2ckernel__sfpu__exp_8h}\index{tt\_llk\_wormhole\_b0/common/inc/sfpu/ckernel\_sfpu\_exp.h@{tt\_llk\_wormhole\_b0/common/inc/sfpu/ckernel\_sfpu\_exp.h}}
+{\ttfamily \#include \char`\"{}ckernel\+\_\+sfpu\+\_\+exp.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+sfpu\+\_\+recip.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sfpi.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sfpi\+\_\+fp16.\+h\char`\"{}}\newline
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\item 
+ \mbox{\hyperlink{namespaceckernel_1_1sfpu}{ckernel\+::sfpu}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_a23207c482cd702e54502b743739d0dea}{ckernel\+::sfpu\+::\+\_\+sfpu\+\_\+exp\+\_\+}} (sfpi\+::v\+Float val)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE$>$ }\\sfpi\+\_\+inline sfpi\+::v\+Float \mbox{\hyperlink{namespaceckernel_1_1sfpu_aa2d6a6aae5b1190434dcb3a4b21f3719}{ckernel\+::sfpu\+::\+\_\+calculate\+\_\+exponential\+\_\+body\+\_\+}} (sfpi\+::v\+Float in)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool SCALE\+\_\+\+EN, int ITERATIONS, bool FAST\+\_\+\+APPROX = true$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a768b4fab68c490730d00cbd5ca300976}{ckernel\+::sfpu\+::\+\_\+calculate\+\_\+exponential\+\_\+}} (const int iterations, uint16\+\_\+t exp\+\_\+base\+\_\+scale\+\_\+factor=0)
+\item 
+{\footnotesize template$<$bool APPROXIMATION\+\_\+\+MODE, bool FAST\+\_\+\+APPROX = true$>$ }\\void \mbox{\hyperlink{namespaceckernel_1_1sfpu_a2fdf984f077e49ab162dd84871165972}{ckernel\+::sfpu\+::\+\_\+init\+\_\+exponential\+\_\+}} ()
+\end{DoxyCompactItemize}

@@ -1,0 +1,126 @@
+\hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h}{}\doxysection{tt\+\_\+llk\+\_\+blackhole/llk\+\_\+lib/llk\+\_\+pack\+\_\+common.h File Reference}
+\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h}\index{tt\_llk\_blackhole/llk\_lib/llk\_pack\_common.h@{tt\_llk\_blackhole/llk\_lib/llk\_pack\_common.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+defs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}cpack\+\_\+common.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}fw\+\_\+debug.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}llk\+\_\+defs.\+h\char`\"{}}\newline
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_aeb0efc1b3692a79593704ac7fe31f04b}{\+\_\+llk\+\_\+packer\+\_\+wait\+\_\+for\+\_\+math\+\_\+done\+\_\+}} ()
+\item 
+{\footnotesize template$<$uint Wait\+Res = p\+\_\+stall\+::\+NONE$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a35f2f148cbaa10af45c6880c4b4af963}{\+\_\+llk\+\_\+packer\+\_\+set\+\_\+math\+\_\+semaphore\+\_\+}} ()
+\item 
+{\footnotesize template$<$Dst\+Sync Dst, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_af57033a26583d64b1baa73d3fc8e0186}{\+\_\+llk\+\_\+pack\+\_\+dest\+\_\+section\+\_\+done\+\_\+}} ()
+\item 
+{\footnotesize template$<$Dst\+Sync Dst, Dst\+Tile\+Face\+Layout Face\+Layout$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a5536f3cd332d5e0c7f8820ee0c035fe3}{\+\_\+llk\+\_\+init\+\_\+packer\+\_\+dest\+\_\+offset\+\_\+registers\+\_\+}} (const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const bool narrow\+\_\+tile=false)
+\item 
+{\footnotesize template$<$Dst\+Sync Dst, Dst\+Tile\+Face\+Layout Face\+Layout = Row\+Major, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_abdf8b0a9d83d88c901ebb77215624490}{\+\_\+llk\+\_\+pack\+\_\+dest\+\_\+init\+\_\+}} (const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const bool narrow\+\_\+tile=false)
+\item 
+{\footnotesize template$<$bool mail2math = true, bool mail2pack = true$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a65bedb30f430f6701b7913d7e1397f08}{\+\_\+llk\+\_\+pack\+\_\+get\+\_\+tile\+\_\+}} (std\+::uint32\+\_\+t tile\+\_\+index, std\+::uint32\+\_\+t $\ast$p\+\_\+tile)
+\item 
+{\footnotesize template$<$bool mail2math = true, bool mail2pack = true$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a266a58f75dc3ba47a86d10f354a7afad}{\+\_\+llk\+\_\+pack\+\_\+release\+\_\+tile\+\_\+}} ()
+\item 
+void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a59527fb6a8e37f51a2c69b5b6d366b49}{\+\_\+llk\+\_\+pack\+\_\+debug\+\_\+dump\+\_\+}} (std\+::uint8\+\_\+t $\ast$data, std\+::uint32\+\_\+t byte\+\_\+size)
+\item 
+void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a1c8d68812806d384dd40e46b9ccc508c}{\+\_\+llk\+\_\+pack\+\_\+debug\+\_\+dump\+\_\+seek\+\_\+}} (std\+::uint8\+\_\+t offset)
+\item 
+\mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_ab36e27b12fbbaceddec7d1b3646f5557}{TT\+\_\+\+ALWAYS\+\_\+\+INLINE}} void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a497e00d545d8a02bc52d693cf282284b}{\+\_\+llk\+\_\+pack\+\_\+relu\+\_\+config\+\_\+}} (const std\+::uint32\+\_\+t config)
+\item 
+void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a067fd8198d10f6433cb417489ade1141}{\+\_\+llk\+\_\+pack\+\_\+reconfig\+\_\+l1\+\_\+acc\+\_\+}} (const std\+::uint32\+\_\+t enable)
+\item 
+{\footnotesize template$<$bool untilize = false, Reduce\+Dim dim$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a66466f232595a4acf633234cddebf1c8}{\+\_\+llk\+\_\+pack\+\_\+reduce\+\_\+mask\+\_\+config\+\_\+}} ()
+\item 
+void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_ad640c4eabaebf6ae5d97ace0019067de}{\+\_\+llk\+\_\+pack\+\_\+reduce\+\_\+mask\+\_\+clear\+\_\+}} ()
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a5536f3cd332d5e0c7f8820ee0c035fe3}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a5536f3cd332d5e0c7f8820ee0c035fe3}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_init\_packer\_dest\_offset\_registers\_@{\_llk\_init\_packer\_dest\_offset\_registers\_}}
+\index{\_llk\_init\_packer\_dest\_offset\_registers\_@{\_llk\_init\_packer\_dest\_offset\_registers\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_init\_packer\_dest\_offset\_registers\_()}{\_llk\_init\_packer\_dest\_offset\_registers\_()}}
+{\footnotesize\ttfamily template$<$Dst\+Sync Dst, Dst\+Tile\+Face\+Layout Face\+Layout$>$ \\
+void \+\_\+llk\+\_\+init\+\_\+packer\+\_\+dest\+\_\+offset\+\_\+registers\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a59527fb6a8e37f51a2c69b5b6d366b49}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a59527fb6a8e37f51a2c69b5b6d366b49}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_debug\_dump\_@{\_llk\_pack\_debug\_dump\_}}
+\index{\_llk\_pack\_debug\_dump\_@{\_llk\_pack\_debug\_dump\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_debug\_dump\_()}{\_llk\_pack\_debug\_dump\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+pack\+\_\+debug\+\_\+dump\+\_\+ (\begin{DoxyParamCaption}\item[{std\+::uint8\+\_\+t $\ast$}]{data,  }\item[{std\+::uint32\+\_\+t}]{byte\+\_\+size }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a1c8d68812806d384dd40e46b9ccc508c}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a1c8d68812806d384dd40e46b9ccc508c}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_debug\_dump\_seek\_@{\_llk\_pack\_debug\_dump\_seek\_}}
+\index{\_llk\_pack\_debug\_dump\_seek\_@{\_llk\_pack\_debug\_dump\_seek\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_debug\_dump\_seek\_()}{\_llk\_pack\_debug\_dump\_seek\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+pack\+\_\+debug\+\_\+dump\+\_\+seek\+\_\+ (\begin{DoxyParamCaption}\item[{std\+::uint8\+\_\+t}]{offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_abdf8b0a9d83d88c901ebb77215624490}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_abdf8b0a9d83d88c901ebb77215624490}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_dest\_init\_@{\_llk\_pack\_dest\_init\_}}
+\index{\_llk\_pack\_dest\_init\_@{\_llk\_pack\_dest\_init\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_dest\_init\_()}{\_llk\_pack\_dest\_init\_()}}
+{\footnotesize\ttfamily template$<$Dst\+Sync Dst, Dst\+Tile\+Face\+Layout Face\+Layout = Row\+Major, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+dest\+\_\+init\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_af57033a26583d64b1baa73d3fc8e0186}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_af57033a26583d64b1baa73d3fc8e0186}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_dest\_section\_done\_@{\_llk\_pack\_dest\_section\_done\_}}
+\index{\_llk\_pack\_dest\_section\_done\_@{\_llk\_pack\_dest\_section\_done\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_dest\_section\_done\_()}{\_llk\_pack\_dest\_section\_done\_()}}
+{\footnotesize\ttfamily template$<$Dst\+Sync Dst, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+dest\+\_\+section\+\_\+done\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a65bedb30f430f6701b7913d7e1397f08}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a65bedb30f430f6701b7913d7e1397f08}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_get\_tile\_@{\_llk\_pack\_get\_tile\_}}
+\index{\_llk\_pack\_get\_tile\_@{\_llk\_pack\_get\_tile\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_get\_tile\_()}{\_llk\_pack\_get\_tile\_()}}
+{\footnotesize\ttfamily template$<$bool mail2math = true, bool mail2pack = true$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+get\+\_\+tile\+\_\+ (\begin{DoxyParamCaption}\item[{std\+::uint32\+\_\+t}]{tile\+\_\+index,  }\item[{std\+::uint32\+\_\+t $\ast$}]{p\+\_\+tile }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a067fd8198d10f6433cb417489ade1141}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a067fd8198d10f6433cb417489ade1141}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_reconfig\_l1\_acc\_@{\_llk\_pack\_reconfig\_l1\_acc\_}}
+\index{\_llk\_pack\_reconfig\_l1\_acc\_@{\_llk\_pack\_reconfig\_l1\_acc\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_reconfig\_l1\_acc\_()}{\_llk\_pack\_reconfig\_l1\_acc\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+pack\+\_\+reconfig\+\_\+l1\+\_\+acc\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{enable }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_ad640c4eabaebf6ae5d97ace0019067de}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_ad640c4eabaebf6ae5d97ace0019067de}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_reduce\_mask\_clear\_@{\_llk\_pack\_reduce\_mask\_clear\_}}
+\index{\_llk\_pack\_reduce\_mask\_clear\_@{\_llk\_pack\_reduce\_mask\_clear\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_reduce\_mask\_clear\_()}{\_llk\_pack\_reduce\_mask\_clear\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+pack\+\_\+reduce\+\_\+mask\+\_\+clear\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a66466f232595a4acf633234cddebf1c8}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a66466f232595a4acf633234cddebf1c8}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_reduce\_mask\_config\_@{\_llk\_pack\_reduce\_mask\_config\_}}
+\index{\_llk\_pack\_reduce\_mask\_config\_@{\_llk\_pack\_reduce\_mask\_config\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_reduce\_mask\_config\_()}{\_llk\_pack\_reduce\_mask\_config\_()}}
+{\footnotesize\ttfamily template$<$bool untilize = false, Reduce\+Dim dim$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+reduce\+\_\+mask\+\_\+config\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a266a58f75dc3ba47a86d10f354a7afad}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a266a58f75dc3ba47a86d10f354a7afad}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_release\_tile\_@{\_llk\_pack\_release\_tile\_}}
+\index{\_llk\_pack\_release\_tile\_@{\_llk\_pack\_release\_tile\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_release\_tile\_()}{\_llk\_pack\_release\_tile\_()}}
+{\footnotesize\ttfamily template$<$bool mail2math = true, bool mail2pack = true$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+release\+\_\+tile\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a497e00d545d8a02bc52d693cf282284b}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a497e00d545d8a02bc52d693cf282284b}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_pack\_relu\_config\_@{\_llk\_pack\_relu\_config\_}}
+\index{\_llk\_pack\_relu\_config\_@{\_llk\_pack\_relu\_config\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_relu\_config\_()}{\_llk\_pack\_relu\_config\_()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_ab36e27b12fbbaceddec7d1b3646f5557}{TT\+\_\+\+ALWAYS\+\_\+\+INLINE}} void \+\_\+llk\+\_\+pack\+\_\+relu\+\_\+config\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{config }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a35f2f148cbaa10af45c6880c4b4af963}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_a35f2f148cbaa10af45c6880c4b4af963}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_packer\_set\_math\_semaphore\_@{\_llk\_packer\_set\_math\_semaphore\_}}
+\index{\_llk\_packer\_set\_math\_semaphore\_@{\_llk\_packer\_set\_math\_semaphore\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_packer\_set\_math\_semaphore\_()}{\_llk\_packer\_set\_math\_semaphore\_()}}
+{\footnotesize\ttfamily template$<$uint Wait\+Res = p\+\_\+stall\+::\+NONE$>$ \\
+void \+\_\+llk\+\_\+packer\+\_\+set\+\_\+math\+\_\+semaphore\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_aeb0efc1b3692a79593704ac7fe31f04b}\label{tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_aeb0efc1b3692a79593704ac7fe31f04b}} 
+\index{llk\_pack\_common.h@{llk\_pack\_common.h}!\_llk\_packer\_wait\_for\_math\_done\_@{\_llk\_packer\_wait\_for\_math\_done\_}}
+\index{\_llk\_packer\_wait\_for\_math\_done\_@{\_llk\_packer\_wait\_for\_math\_done\_}!llk\_pack\_common.h@{llk\_pack\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_packer\_wait\_for\_math\_done\_()}{\_llk\_packer\_wait\_for\_math\_done\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+packer\+\_\+wait\+\_\+for\+\_\+math\+\_\+done\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

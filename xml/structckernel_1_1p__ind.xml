@@ -1,0 +1,166 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__ind" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_ind</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1a1aedcb8c7880acd9b05d2edc00cbfad5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::HIER_REGFILE</definition>
+        <argsstring></argsstring>
+        <name>HIER_REGFILE</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="197" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1ac91267d68a942ea3fe2c61863e6f5dda" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::HIER_L1</definition>
+        <argsstring></argsstring>
+        <name>HIER_L1</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="198" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1aba2e76b63a827a820ff469e8232d543f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::INC_NONE</definition>
+        <argsstring></argsstring>
+        <name>INC_NONE</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="200" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="200" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1a48309bf4a69cd462bbd032a56bd5ddd7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::INC_2B</definition>
+        <argsstring></argsstring>
+        <name>INC_2B</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="201" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="201" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1a315dec14c79af6e6618b785c095da827" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::INC_4B</definition>
+        <argsstring></argsstring>
+        <name>INC_4B</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="202" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1a52500a1d6349ffa45832c754bd7e2ea3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::INC_16B</definition>
+        <argsstring></argsstring>
+        <name>INC_16B</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="203" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1a70301501d69c6df30013fd372c8485be" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::LD_16B</definition>
+        <argsstring></argsstring>
+        <name>LD_16B</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="205" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="205" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1a289f178c9227b9ab15131af597fb6507" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::LD_32bit</definition>
+        <argsstring></argsstring>
+        <name>LD_32bit</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="206" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="206" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1a3a93d23076eb356c2aceedd5284964f3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::LD_16bit</definition>
+        <argsstring></argsstring>
+        <name>LD_16bit</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="207" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="207" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__ind_1ab9b95e635f2a1093f653153eb422b4f6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_ind::LD_8bit</definition>
+        <argsstring></argsstring>
+        <name>LD_8bit</name>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="208" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="208" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="195" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="196" bodyend="209"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__ind_1ac91267d68a942ea3fe2c61863e6f5dda" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>HIER_L1</name></member>
+      <member refid="structckernel_1_1p__ind_1a1aedcb8c7880acd9b05d2edc00cbfad5" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>HIER_REGFILE</name></member>
+      <member refid="structckernel_1_1p__ind_1a52500a1d6349ffa45832c754bd7e2ea3" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>INC_16B</name></member>
+      <member refid="structckernel_1_1p__ind_1a48309bf4a69cd462bbd032a56bd5ddd7" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>INC_2B</name></member>
+      <member refid="structckernel_1_1p__ind_1a315dec14c79af6e6618b785c095da827" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>INC_4B</name></member>
+      <member refid="structckernel_1_1p__ind_1aba2e76b63a827a820ff469e8232d543f" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>INC_NONE</name></member>
+      <member refid="structckernel_1_1p__ind_1a70301501d69c6df30013fd372c8485be" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>LD_16B</name></member>
+      <member refid="structckernel_1_1p__ind_1a3a93d23076eb356c2aceedd5284964f3" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>LD_16bit</name></member>
+      <member refid="structckernel_1_1p__ind_1a289f178c9227b9ab15131af597fb6507" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>LD_32bit</name></member>
+      <member refid="structckernel_1_1p__ind_1ab9b95e635f2a1093f653153eb422b4f6" prot="public" virt="non-virtual"><scope>ckernel::p_ind</scope><name>LD_8bit</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

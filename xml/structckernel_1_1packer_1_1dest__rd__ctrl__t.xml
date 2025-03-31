@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1packer_1_1dest__rd__ctrl__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::packer::dest_rd_ctrl_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h" local="no">cpack_common.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1dest__rd__ctrl__t_1a9795f712caa6bfbba36c226d252ed5f1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::dest_rd_ctrl_t::PCK_DEST_RD_CTRL_Read_32b_data</definition>
+        <argsstring></argsstring>
+        <name>PCK_DEST_RD_CTRL_Read_32b_data</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="93" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1dest__rd__ctrl__t_1a7f41d7659f8d2d830c08792217b06169" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::dest_rd_ctrl_t::PCK_DEST_RD_CTRL_Read_unsigned</definition>
+        <argsstring></argsstring>
+        <name>PCK_DEST_RD_CTRL_Read_unsigned</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="94" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1dest__rd__ctrl__t_1a79e4caa92249064485da5b0433a9036e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::dest_rd_ctrl_t::PCK_DEST_RD_CTRL_Read_int8</definition>
+        <argsstring></argsstring>
+        <name>PCK_DEST_RD_CTRL_Read_int8</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="95" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1dest__rd__ctrl__t_1a215f94818a80741b894b99e607983874" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::dest_rd_ctrl_t::PCK_DEST_RD_CTRL_Round_10b_mant</definition>
+        <argsstring></argsstring>
+        <name>PCK_DEST_RD_CTRL_Round_10b_mant</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="96" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1dest__rd__ctrl__t_1aab9fe43751d71f557b9f18c2d383232c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::dest_rd_ctrl_t::PCK_DEST_RD_CTRL_Reserved</definition>
+        <argsstring></argsstring>
+        <name>PCK_DEST_RD_CTRL_Reserved</name>
+        <bitfield> 28</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="97" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="91" column="1" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="92" bodyend="98"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1packer_1_1dest__rd__ctrl__t_1a9795f712caa6bfbba36c226d252ed5f1" prot="public" virt="non-virtual"><scope>ckernel::packer::dest_rd_ctrl_t</scope><name>PCK_DEST_RD_CTRL_Read_32b_data</name></member>
+      <member refid="structckernel_1_1packer_1_1dest__rd__ctrl__t_1a79e4caa92249064485da5b0433a9036e" prot="public" virt="non-virtual"><scope>ckernel::packer::dest_rd_ctrl_t</scope><name>PCK_DEST_RD_CTRL_Read_int8</name></member>
+      <member refid="structckernel_1_1packer_1_1dest__rd__ctrl__t_1a7f41d7659f8d2d830c08792217b06169" prot="public" virt="non-virtual"><scope>ckernel::packer::dest_rd_ctrl_t</scope><name>PCK_DEST_RD_CTRL_Read_unsigned</name></member>
+      <member refid="structckernel_1_1packer_1_1dest__rd__ctrl__t_1aab9fe43751d71f557b9f18c2d383232c" prot="public" virt="non-virtual"><scope>ckernel::packer::dest_rd_ctrl_t</scope><name>PCK_DEST_RD_CTRL_Reserved</name></member>
+      <member refid="structckernel_1_1packer_1_1dest__rd__ctrl__t_1a215f94818a80741b894b99e607983874" prot="public" virt="non-virtual"><scope>ckernel::packer::dest_rd_ctrl_t</scope><name>PCK_DEST_RD_CTRL_Round_10b_mant</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

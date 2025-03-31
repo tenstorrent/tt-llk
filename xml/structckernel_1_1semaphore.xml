@@ -1,0 +1,159 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1semaphore" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::semaphore</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h" local="no">ckernel_structs.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::semaphore::MATH_PACK</definition>
+        <argsstring></argsstring>
+        <name>MATH_PACK</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="13" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1semaphore_1af449588e824d60c3ead92e96529fdf1e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::semaphore::UNPACK_TO_DEST</definition>
+        <argsstring></argsstring>
+        <name>UNPACK_TO_DEST</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="14" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::semaphore::UNPACK_OPERAND_SYNC</definition>
+        <argsstring></argsstring>
+        <name>UNPACK_OPERAND_SYNC</name>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="15" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1semaphore_1a823f7963e6a515506cb30380bcfc1687" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::semaphore::PACK_DONE</definition>
+        <argsstring></argsstring>
+        <name>PACK_DONE</name>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="16" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1semaphore_1ae6026566f2685e3b447fab2d8594a4d3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::semaphore::UNPACK_SYNC</definition>
+        <argsstring></argsstring>
+        <name>UNPACK_SYNC</name>
+        <initializer>= 5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="17" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1semaphore_1abedb313112b32dbd8a470259dfc11407" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::semaphore::UNPACK_MATH_DONE</definition>
+        <argsstring></argsstring>
+        <name>UNPACK_MATH_DONE</name>
+        <initializer>= 6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="20" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1semaphore_1af09abb85973c423cee84f46bef58291e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::semaphore::MATH_DONE</definition>
+        <argsstring></argsstring>
+        <name>MATH_DONE</name>
+        <initializer>= 7</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="21" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structckernel_1_1semaphore_1ab52641be16da31e957f2121419da9a21" prot="public" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr static uint16_t</type>
+        <definition>constexpr static uint16_t ckernel::semaphore::t6_sem</definition>
+        <argsstring>(const uint8_t sem_index)</argsstring>
+        <name>t6_sem</name>
+        <param>
+          <type>const uint8_t</type>
+          <declname>sem_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="23" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="23" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="structckernel_1_1semaphore_1ab52641be16da31e957f2121419da9a21" prot="public" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr static uint16_t</type>
+        <definition>constexpr static uint16_t ckernel::semaphore::t6_sem</definition>
+        <argsstring>(const uint8_t sem_index)</argsstring>
+        <name>t6_sem</name>
+        <param>
+          <type>const uint8_t</type>
+          <declname>sem_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_structs.h" line="23" column="31" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_structs.h" bodystart="23" bodyend="26"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="11" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="12" bodyend="27"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1semaphore_1af09abb85973c423cee84f46bef58291e" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>MATH_DONE</name></member>
+      <member refid="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>MATH_PACK</name></member>
+      <member refid="structckernel_1_1semaphore_1a823f7963e6a515506cb30380bcfc1687" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>PACK_DONE</name></member>
+      <member refid="structckernel_1_1semaphore_1ab52641be16da31e957f2121419da9a21" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>t6_sem</name></member>
+      <member refid="structckernel_1_1semaphore_1ab52641be16da31e957f2121419da9a21" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>t6_sem</name></member>
+      <member refid="structckernel_1_1semaphore_1abedb313112b32dbd8a470259dfc11407" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>UNPACK_MATH_DONE</name></member>
+      <member refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>UNPACK_OPERAND_SYNC</name></member>
+      <member refid="structckernel_1_1semaphore_1ae6026566f2685e3b447fab2d8594a4d3" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>UNPACK_SYNC</name></member>
+      <member refid="structckernel_1_1semaphore_1af449588e824d60c3ead92e96529fdf1e" prot="public" virt="non-virtual"><scope>ckernel::semaphore</scope><name>UNPACK_TO_DEST</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

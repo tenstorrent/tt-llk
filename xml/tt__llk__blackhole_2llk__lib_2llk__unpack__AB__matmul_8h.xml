@@ -1,0 +1,724 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h" kind="file" language="C++">
+    <compoundname>llk_unpack_AB_matmul.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes local="yes">ckernel.h</includes>
+    <includes local="yes">ckernel_defs.h</includes>
+    <includes local="yes">ckernel_globals.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">ckernel_template.h</includes>
+    <includes local="yes">cunpack_common.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="4">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="8">
+        <label>cunpack_common.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h</label>
+        <link refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>ckernel_template.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_globals.h</label>
+      </node>
+      <node id="6">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1a7ef8dadae829c3563a226f6901bf5c47" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>std::uint32_t</type>
+            <declname>kernel_broadcast_a</declname>
+            <defname>kernel_broadcast_a</defname>
+            <defval>0</defval>
+          </param>
+          <param>
+            <type>std::uint32_t</type>
+            <declname>kernel_broadcast_b</declname>
+            <defname>kernel_broadcast_b</defname>
+            <defval>0</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_AB_matmul_mop_config_</definition>
+        <argsstring>(const bool transpose, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const bool unpA_partial_face, const bool unpB_partial_face)</argsstring>
+        <name>_llk_unpack_AB_matmul_mop_config_</name>
+        <param>
+          <type>const bool</type>
+          <declname>transpose</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>ct_dim</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>rt_dim</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>kt_dim</declname>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>unpA_partial_face</declname>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>unpB_partial_face</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h" line="21" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h" bodystart="21" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1ad9fa80455850cbe9487fce030e4ac23f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271ba" kindref="member">StochRndType</ref></type>
+            <declname>stoch_rnd_mode</declname>
+            <defname>stoch_rnd_mode</defname>
+            <defval>StochRndType::None</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_AB_matmul_hw_configure_</definition>
+        <argsstring>(const std::uint32_t unpA_src_format, const std::uint32_t unpB_src_format, const std::uint32_t unpA_dst_format, const std::uint32_t unpB_dst_format, const std::uint32_t unpA_face_r_dim=FACE_R_DIM, const std::uint32_t unpB_face_r_dim=FACE_R_DIM, const std::uint32_t within_face_16x16_transpose=0, const std::uint32_t unpA_num_faces=4, const std::uint32_t unpB_num_faces=4, const std::uint32_t unpA_tile_size=0, const std::uint32_t unpB_tile_size=0)</argsstring>
+        <name>_llk_unpack_AB_matmul_hw_configure_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpA_src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpB_src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpA_dst_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpB_dst_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpA_face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpB_face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>within_face_16x16_transpose</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpA_num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpB_num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpA_tile_size</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpB_tile_size</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h" line="202" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h" bodystart="202" bodyend="240"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1a255e327f8114a7e4d808cf1f4558114f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>std::uint32_t</type>
+            <declname>kernel_broadcast_a</declname>
+            <defname>kernel_broadcast_a</defname>
+            <defval>0</defval>
+          </param>
+          <param>
+            <type>std::uint32_t</type>
+            <declname>kernel_broadcast_b</declname>
+            <defname>kernel_broadcast_b</defname>
+            <defval>0</defval>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>__attribute__</definition>
+        <argsstring>((always_inline)) inline void _llk_unpack_AB_matmul_init_(const std</argsstring>
+        <name>__attribute__</name>
+        <param>
+          <type>(always_inline)</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h" line="243" column="1" bodyfile="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h" bodystart="243" bodyend="294"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1a70a0375b0e6dafba78f35ab901bb3188" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>std::uint32_t</type>
+            <declname>kernel_broadcast_a</declname>
+            <defname>kernel_broadcast_a</defname>
+            <defval>0</defval>
+          </param>
+          <param>
+            <type>std::uint32_t</type>
+            <declname>kernel_broadcast_b</declname>
+            <defname>kernel_broadcast_b</defname>
+            <defval>0</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_unpack_AB_matmul_</definition>
+        <argsstring>(const std::uint32_t base_address_a, const std::uint32_t base_address_b, const std::uint32_t tile_index_a, const std::uint32_t tile_index_b, const std::uint32_t tile_size_a, const std::uint32_t tile_size_b, const std::uint32_t unpA_face_r_dim=FACE_R_DIM, const std::uint32_t unpB_face_r_dim=FACE_R_DIM, const bool unpA_partial_face=false, const bool unpB_partial_face=false, std::uint32_t ct_dim=1, const std::uint32_t rt_dim=1, const std::uint32_t kt_dim=1)</argsstring>
+        <name>_llk_unpack_AB_matmul_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>base_address_a</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>base_address_b</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>tile_index_a</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>tile_index_b</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>tile_size_a</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>tile_size_b</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpA_face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpB_face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>unpA_partial_face</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>unpB_partial_face</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>std::uint32_t</type>
+          <declname>ct_dim</declname>
+          <defval>1</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>rt_dim</declname>
+          <defval>1</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>kt_dim</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h" line="297" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h" bodystart="297" bodyend="416"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_defs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_globals.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_template.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cunpack_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel_1_1unpacker" kindref="compound">ckernel::unpacker</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//<sp/>transpose<sp/>is<sp/>unused,<sp/>math<sp/>is<sp/>adjusted<sp/>to<sp/>take<sp/>into<sp/>account<sp/>srca<sp/>face<sp/>layout<sp/>when<sp/>transpose=true</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;std::u</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">32_t<sp/>kernel_broadcast_a<sp/>=<sp/>0,<sp/>std::u</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">32_t<sp/>kernel_broadcast_b<sp/>=<sp/>0&gt;</highlight></codeline>
+<codeline lineno="21" refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1a7ef8dadae829c3563a226f6901bf5c47" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1a7ef8dadae829c3563a226f6901bf5c47" kindref="member">_llk_unpack_AB_matmul_mop_config_</ref>(</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>transpose,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>ct_dim,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>rt_dim,</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>kt_dim,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>unpA_partial_face,</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>unpB_partial_face)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>in0/inA<sp/>-<sp/>loaded<sp/>to<sp/>SrcB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>in1/inB<sp/>-<sp/>loaded<sp/>to<sp/>SrcA</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reuse_a<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>ct_dim<sp/>&gt;=<sp/>rt_dim;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>replay_buf_prog_len<sp/>=<sp/>(reuse_a<sp/>&amp;&amp;<sp/>unpA_partial_face)<sp/>?<sp/>18<sp/>:<sp/>((!reuse_a<sp/>&amp;&amp;<sp/>unpB_partial_face)<sp/>?<sp/>18<sp/>:<sp/>12);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>replay_buf_run_len<sp/><sp/>=<sp/>replay_buf_prog_len<sp/>/<sp/>2;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reuse_a)</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>SKIP_UNP<sp/>==<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>load_replay_buf&lt;0,<sp/>1&gt;([]<sp/>{<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a32d0bf7e5876c5cabb7700e432330300" kindref="member">TTI_NOP</ref>;<sp/>});</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert(kernel_broadcast_b<sp/>&lt;=<sp/>1,<sp/>&quot;kernel_broadcast&gt;1<sp/>on<sp/>matmul<sp/>input<sp/>1<sp/>is<sp/>not<sp/>supported<sp/>with<sp/>reuse<sp/>enabled</highlight><highlight class="stringliteral">&quot;);</highlight></codeline>
+<codeline lineno="42"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>load_replay_buf(</highlight></codeline>
+<codeline lineno="43"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0,</highlight></codeline>
+<codeline lineno="44"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>replay_buf_prog_len,</highlight></codeline>
+<codeline lineno="45"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>false,</highlight></codeline>
+<codeline lineno="46"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Lambda<sp/>function<sp/>to<sp/>set<sp/>up<sp/>replay<sp/>buffer</highlight></codeline>
+<codeline lineno="47"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>[unpA_partial_face]</highlight></codeline>
+<codeline lineno="48"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="49"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(unpA_partial_face)</highlight></codeline>
+<codeline lineno="50"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="51"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR_NOP(SrcA,<sp/>0,<sp/>0,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>p_unpacr_nop::UNP_ZEROSRC);</highlight></codeline>
+<codeline lineno="52"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="53"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcA,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="54"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="55"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcA,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="56"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SETADCZW(p_setadc::UNP_A,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b0101);<sp/>//<sp/>Set<sp/>ch0_z=0,<sp/>ch1_z=0</highlight></codeline>
+<codeline lineno="57"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="59"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(SrcA,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="61"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="62"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>constexpr<sp/>(kernel_broadcast_b<sp/>==<sp/>1)</highlight></codeline>
+<codeline lineno="63"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="65"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="66"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="67"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="68"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="70"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="71"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_RDCFG(p_gpr_unpack::TMP0,<sp/>THCON_SEC0_REG3_Base_address_ADDR32);</highlight></codeline>
+<codeline lineno="72"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_ADDDMAREG(0,<sp/>p_gpr_unpack::TMP0,<sp/>p_gpr_unpack::TMP0,<sp/>p_gpr_unpack::TILE_SIZE_A);</highlight></codeline>
+<codeline lineno="73"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_STALLWAIT(p_stall::STALL_CFG,<sp/>p_stall::THCON);</highlight></codeline>
+<codeline lineno="74"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_WRCFG(p_gpr_unpack::TMP0,<sp/>0,<sp/>THCON_SEC0_REG3_Base_address_ADDR32);</highlight></codeline>
+<codeline lineno="75"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="76"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Added<sp/>to<sp/>ensure<sp/>WRCFG<sp/>instruction<sp/>has<sp/>finished,<sp/>since<sp/>it<sp/>takes<sp/>2<sp/>cycles.</highlight></codeline>
+<codeline lineno="77"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="78"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="79"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(unpA_partial_face)</highlight></codeline>
+<codeline lineno="80"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="81"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR_NOP(SrcA,<sp/>0,<sp/>0,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>p_unpacr_nop::UNP_ZEROSRC);</highlight></codeline>
+<codeline lineno="82"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="83"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcA,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="84"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="85"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcA,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="86"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SETADCZW(p_setadc::UNP_A,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b0101);<sp/>//<sp/>Set<sp/>ch0_z=0,<sp/>ch1_z=0</highlight></codeline>
+<codeline lineno="87"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="89"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="90"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(SrcA,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="91"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="92"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>constexpr<sp/>(kernel_broadcast_b<sp/>==<sp/>1)</highlight></codeline>
+<codeline lineno="93"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="94"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="95"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="96"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="97"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="98"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="100"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="101"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_RDCFG(p_gpr_unpack::TMP0,<sp/>THCON_SEC0_REG3_Base_cntx1_address_ADDR32);</highlight></codeline>
+<codeline lineno="102"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_ADDDMAREG(0,<sp/>p_gpr_unpack::TMP0,<sp/>p_gpr_unpack::TMP0,<sp/>p_gpr_unpack::TILE_SIZE_A);</highlight></codeline>
+<codeline lineno="103"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_STALLWAIT(p_stall::STALL_CFG,<sp/>p_stall::THCON);</highlight></codeline>
+<codeline lineno="104"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_WRCFG(p_gpr_unpack::TMP0,<sp/>0,<sp/>THCON_SEC0_REG3_Base_cntx1_address_ADDR32);</highlight></codeline>
+<codeline lineno="105"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="106"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Added<sp/>to<sp/>ensure<sp/>WRCFG<sp/>instruction<sp/>has<sp/>finished,<sp/>since<sp/>it<sp/>takes<sp/>2<sp/>cycles.</highlight></codeline>
+<codeline lineno="107"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="108"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>});</highlight></codeline>
+<codeline lineno="109"><highlight class="stringliteral">#endif</highlight></codeline>
+<codeline lineno="110"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="112"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="113"><highlight class="stringliteral">#if<sp/>SKIP_UNP<sp/>==<sp/>1</highlight></codeline>
+<codeline lineno="114"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>load_replay_buf&lt;0,<sp/>1&gt;([]<sp/>{<sp/>TTI_NOP;<sp/>});</highlight></codeline>
+<codeline lineno="115"><highlight class="stringliteral">#else</highlight></codeline>
+<codeline lineno="116"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert(kernel_broadcast_a<sp/>&lt;=<sp/>1,<sp/>&quot;</highlight><highlight class="normal">kernel_broadcast&gt;1<sp/>on<sp/>matmul<sp/>input<sp/>0<sp/>is<sp/>not<sp/>supported<sp/>with<sp/>reuse<sp/>enabled</highlight><highlight class="stringliteral">&quot;);</highlight></codeline>
+<codeline lineno="117"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>load_replay_buf(</highlight></codeline>
+<codeline lineno="118"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0,</highlight></codeline>
+<codeline lineno="119"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>replay_buf_prog_len,</highlight></codeline>
+<codeline lineno="120"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>false,</highlight></codeline>
+<codeline lineno="121"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Lambda<sp/>function<sp/>to<sp/>set<sp/>up<sp/>replay<sp/>buffer</highlight></codeline>
+<codeline lineno="122"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>[unpB_partial_face]</highlight></codeline>
+<codeline lineno="123"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="124"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(unpB_partial_face)</highlight></codeline>
+<codeline lineno="125"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="126"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR_NOP(SrcB,<sp/>0,<sp/>0,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>p_unpacr_nop::UNP_ZEROSRC);</highlight></codeline>
+<codeline lineno="127"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="128"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcB,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="129"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="130"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcB,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="131"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SETADCZW(p_setadc::UNP_B,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b0101);<sp/>//<sp/>Set<sp/>ch0_z=0,<sp/>ch1_z=0</highlight></codeline>
+<codeline lineno="132"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="133"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="134"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(SrcB,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="136"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="137"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>constexpr<sp/>(kernel_broadcast_a<sp/>==<sp/>1)</highlight></codeline>
+<codeline lineno="138"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="139"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="140"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="141"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="142"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="143"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="144"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="145"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="146"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_RDCFG(p_gpr_unpack::TMP0,<sp/>THCON_SEC1_REG3_Base_address_ADDR32);</highlight></codeline>
+<codeline lineno="147"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_ADDDMAREG(0,<sp/>p_gpr_unpack::TMP0,<sp/>p_gpr_unpack::TMP0,<sp/>p_gpr_unpack::TMP_LO);</highlight></codeline>
+<codeline lineno="148"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_STALLWAIT(p_stall::STALL_CFG,<sp/>p_stall::THCON);</highlight></codeline>
+<codeline lineno="149"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_WRCFG(p_gpr_unpack::TMP0,<sp/>0,<sp/>THCON_SEC1_REG3_Base_address_ADDR32);</highlight></codeline>
+<codeline lineno="150"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="151"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Added<sp/>to<sp/>ensure<sp/>WRCFG<sp/>instruction<sp/>has<sp/>finished,<sp/>since<sp/>it<sp/>takes<sp/>2<sp/>cycles.</highlight></codeline>
+<codeline lineno="152"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="153"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="154"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(unpB_partial_face)</highlight></codeline>
+<codeline lineno="155"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="156"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR_NOP(SrcB,<sp/>0,<sp/>0,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>p_unpacr_nop::UNP_ZEROSRC);</highlight></codeline>
+<codeline lineno="157"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="158"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcB,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="159"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="160"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcB,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="161"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SETADCZW(p_setadc::UNP_B,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b0101);<sp/>//<sp/>Set<sp/>ch0_z=0,<sp/>ch1_z=0</highlight></codeline>
+<codeline lineno="162"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="163"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="164"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="165"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(SrcB,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="166"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="167"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>constexpr<sp/>(kernel_broadcast_a<sp/>==<sp/>1)</highlight></codeline>
+<codeline lineno="168"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="169"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="170"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="171"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="172"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="173"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="174"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="175"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="176"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_RDCFG(p_gpr_unpack::TMP0,<sp/>THCON_SEC1_REG3_Base_cntx1_address_ADDR32);</highlight></codeline>
+<codeline lineno="177"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_ADDDMAREG(0,<sp/>p_gpr_unpack::TMP0,<sp/>p_gpr_unpack::TMP0,<sp/>p_gpr_unpack::TMP_LO);</highlight></codeline>
+<codeline lineno="178"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_STALLWAIT(p_stall::STALL_CFG,<sp/>p_stall::THCON);</highlight></codeline>
+<codeline lineno="179"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_WRCFG(p_gpr_unpack::TMP0,<sp/>0,<sp/>THCON_SEC1_REG3_Base_cntx1_address_ADDR32);</highlight></codeline>
+<codeline lineno="180"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="181"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Added<sp/>to<sp/>ensure<sp/>WRCFG<sp/>instruction<sp/>has<sp/>finished,<sp/>since<sp/>it<sp/>takes<sp/>2<sp/>cycles.</highlight></codeline>
+<codeline lineno="182"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="183"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>});</highlight></codeline>
+<codeline lineno="184"><highlight class="stringliteral">#endif</highlight></codeline>
+<codeline lineno="185"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="186"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="187"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>ckernel_unpack_template<sp/>tmp<sp/>=<sp/>ckernel_unpack_template(</highlight></codeline>
+<codeline lineno="188"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>false,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>src<sp/>B</highlight></codeline>
+<codeline lineno="189"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>false,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>halo<sp/>-<sp/>just<sp/>used<sp/>for<sp/>4<sp/>unpacks</highlight></codeline>
+<codeline lineno="190"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TT_OP_REPLAY(0,<sp/>replay_buf_run_len,<sp/>0,<sp/>0),<sp/>//<sp/>runs<sp/>when<sp/>context<sp/>is<sp/>0</highlight></codeline>
+<codeline lineno="191"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0,</highlight></codeline>
+<codeline lineno="192"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0,</highlight></codeline>
+<codeline lineno="193"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0,</highlight></codeline>
+<codeline lineno="194"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TT_OP_REPLAY(replay_buf_run_len,<sp/>replay_buf_run_len,<sp/>0,<sp/>0),<sp/>//<sp/>runs<sp/>when<sp/>context<sp/>is<sp/>1</highlight></codeline>
+<codeline lineno="195"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0,</highlight></codeline>
+<codeline lineno="196"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>0);</highlight></codeline>
+<codeline lineno="197"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="198"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>tmp.program(instrn_buffer);</highlight></codeline>
+<codeline lineno="199"><highlight class="stringliteral">}</highlight></codeline>
+<codeline lineno="200"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="201"><highlight class="stringliteral">template<sp/>&lt;bool<sp/>is_fp32_dest_acc_en<sp/>=<sp/>false,<sp/>StochRndType<sp/>stoch_rnd_mode<sp/>=<sp/>StochRndType::None&gt;</highlight></codeline>
+<codeline lineno="202" refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1ad9fa80455850cbe9487fce030e4ac23f" refkind="member"><highlight class="stringliteral">inline<sp/>void<sp/>_llk_unpack_AB_matmul_hw_configure_(</highlight></codeline>
+<codeline lineno="203"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpA_src_format,</highlight></codeline>
+<codeline lineno="204"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpB_src_format,</highlight></codeline>
+<codeline lineno="205"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpA_dst_format,</highlight></codeline>
+<codeline lineno="206"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpB_dst_format,</highlight></codeline>
+<codeline lineno="207"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpA_face_r_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>FACE_R_DIM,</highlight></codeline>
+<codeline lineno="208"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpB_face_r_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>FACE_R_DIM,</highlight></codeline>
+<codeline lineno="209"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>within_face_16x16_transpose<sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="210"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpA_num_faces<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="211"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpB_num_faces<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="212"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpA_tile_size<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="213"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpB_tile_size<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0)</highlight></codeline>
+<codeline lineno="214"><highlight class="stringliteral">{</highlight></codeline>
+<codeline lineno="215"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>constexpr<sp/>bool<sp/>is_row_pool<sp/><sp/>=<sp/>false;</highlight></codeline>
+<codeline lineno="216"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>constexpr<sp/>bool<sp/>stoch_rnd_en<sp/>=<sp/>(stoch_rnd_mode<sp/>==<sp/>StochRndType::All);</highlight></codeline>
+<codeline lineno="217"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>constexpr<sp/>bool<sp/>fpu_srnd_en<sp/><sp/>=<sp/>stoch_rnd_en<sp/>||<sp/>(stoch_rnd_mode<sp/>==<sp/>StochRndType::Fpu);</highlight></codeline>
+<codeline lineno="218"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>constexpr<sp/>bool<sp/>pack_srnd_en<sp/>=<sp/>stoch_rnd_en<sp/>||<sp/>(stoch_rnd_mode<sp/>==<sp/>StochRndType::Pack);</highlight></codeline>
+<codeline lineno="219"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="220"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>configure_unpack_AB&lt;is_row_pool,<sp/>is_fp32_dest_acc_en,<sp/>fpu_srnd_en,<sp/>pack_srnd_en&gt;(</highlight></codeline>
+<codeline lineno="221"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpA_src_format,</highlight></codeline>
+<codeline lineno="222"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpB_src_format,</highlight></codeline>
+<codeline lineno="223"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpA_dst_format,</highlight></codeline>
+<codeline lineno="224"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpB_dst_format,</highlight></codeline>
+<codeline lineno="225"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpA_face_r_dim,</highlight></codeline>
+<codeline lineno="226"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpB_face_r_dim,</highlight></codeline>
+<codeline lineno="227"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>within_face_16x16_transpose,</highlight></codeline>
+<codeline lineno="228"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpA_num_faces,</highlight></codeline>
+<codeline lineno="229"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>unpB_num_faces);</highlight></codeline>
+<codeline lineno="230"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="231"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>//<sp/>Configure<sp/>tile<sp/>size<sp/>in<sp/>datums</highlight></codeline>
+<codeline lineno="232"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>uint32_t<sp/>unpA_x_end<sp/>=<sp/>unpA_num_faces<sp/>*<sp/>unpA_face_r_dim<sp/>*<sp/>FACE_C_DIM<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="233"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>uint32_t<sp/>unpB_x_end<sp/>=<sp/>unpB_num_faces<sp/>*<sp/>unpB_face_r_dim<sp/>*<sp/>FACE_C_DIM<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="234"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>TT_SETADCXX(p_setadc::UNP_A,<sp/>unpA_x_end,<sp/>0x0);</highlight></codeline>
+<codeline lineno="235"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>TT_SETADCXX(p_setadc::UNP_B,<sp/>unpB_x_end,<sp/>0x0);</highlight></codeline>
+<codeline lineno="236"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="237"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>regfile[p_gpr_unpack::TILE_SIZE_A]<sp/>=<sp/>unpA_tile_size;</highlight></codeline>
+<codeline lineno="238"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>regfile[p_gpr_unpack::TILE_SIZE_B]<sp/>=<sp/>unpB_tile_size;</highlight></codeline>
+<codeline lineno="239"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>sync_regfile_write(p_gpr_unpack::TILE_SIZE_B);</highlight></codeline>
+<codeline lineno="240"><highlight class="stringliteral">}</highlight></codeline>
+<codeline lineno="241"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="242"><highlight class="stringliteral">template<sp/>&lt;std::uint32_t<sp/>kernel_broadcast_a<sp/>=<sp/>0,<sp/>std::uint32_t<sp/>kernel_broadcast_b<sp/>=<sp/>0&gt;</highlight></codeline>
+<codeline lineno="243" refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1a255e327f8114a7e4d808cf1f4558114f" refkind="member"><highlight class="stringliteral">__attribute__((always_inline))<sp/>inline<sp/>void<sp/>_llk_unpack_AB_matmul_init_(</highlight></codeline>
+<codeline lineno="244"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>transpose<sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="245"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>ct_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="246"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>rt_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="247"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>kt_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="248"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpA_face_r_dim<sp/>=<sp/>FACE_R_DIM,</highlight></codeline>
+<codeline lineno="249"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpB_face_r_dim<sp/>=<sp/>FACE_R_DIM,</highlight></codeline>
+<codeline lineno="250"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpA_num_faces<sp/><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="251"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpB_num_faces<sp/><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="252"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>bool<sp/>unpA_partial_face<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>false,</highlight></codeline>
+<codeline lineno="253"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>bool<sp/>unpB_partial_face<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>false)</highlight></codeline>
+<codeline lineno="254"><highlight class="stringliteral">{</highlight></codeline>
+<codeline lineno="255"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>bool<sp/>reuse_a<sp/>=<sp/>ct_dim<sp/>&gt;=<sp/>rt_dim;</highlight></codeline>
+<codeline lineno="256"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="257"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>//<sp/>also<sp/>turn<sp/>on<sp/>within_face_16x16_transpose<sp/>if<sp/>it<sp/>was<sp/>turned<sp/>off<sp/>by<sp/>datacopy<sp/>at<sp/>runtime</highlight></codeline>
+<codeline lineno="258"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>//<sp/>on<sp/>WH,<sp/>the<sp/>unpacker<sp/>performs<sp/>both<sp/>transpose<sp/>of<sp/>faces<sp/>as<sp/>well<sp/>as<sp/>transpose<sp/>each<sp/>face.</highlight></codeline>
+<codeline lineno="259"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>//<sp/>the<sp/>former<sp/>is<sp/>configured<sp/>in<sp/>mop,<sp/>the<sp/>latter<sp/>is<sp/>configured<sp/>in<sp/>cfg<sp/>register<sp/>in<sp/>hw_configure</highlight></codeline>
+<codeline lineno="260"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>//<sp/>in<sp/>large<sp/>matmul,<sp/>datacopy<sp/>will<sp/>disable<sp/>the<sp/>transpose<sp/>of<sp/>faces,<sp/>so<sp/>we<sp/>need<sp/>it<sp/>turn<sp/>it<sp/>back<sp/>on<sp/>for<sp/>matmul.</highlight></codeline>
+<codeline lineno="261"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>cfg_reg_rmw_tensix&lt;THCON_SEC0_REG2_Haloize_mode_RMW&gt;(transpose);</highlight></codeline>
+<codeline lineno="262"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="263"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>TTI_SETADCZW(0b011,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b1111);</highlight></codeline>
+<codeline lineno="264"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="265"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>if<sp/>(unpA_partial_face)</highlight></codeline>
+<codeline lineno="266"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="267"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Do<sp/>face<sp/>by<sp/>face<sp/>unpacking.<sp/>Need<sp/>to<sp/>program<sp/>correct<sp/>face<sp/>dim</highlight></codeline>
+<codeline lineno="268"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>to<sp/>compute<sp/>address<sp/>of<sp/>the<sp/>next<sp/>face</highlight></codeline>
+<codeline lineno="269"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>config_unpacker_x_end&lt;p_setadc::UNP_A&gt;(unpA_face_r_dim);</highlight></codeline>
+<codeline lineno="270"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="271"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="272"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="273"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>const<sp/>uint32_t<sp/>unpA_x_end<sp/>=<sp/>unpA_num_faces<sp/>*<sp/>unpA_face_r_dim<sp/>*<sp/>FACE_C_DIM<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="274"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TT_SETADCXX(p_setadc::UNP_A,<sp/>unpA_x_end,<sp/>0x0);</highlight></codeline>
+<codeline lineno="275"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="276"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="277"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>if<sp/>(unpB_partial_face)</highlight></codeline>
+<codeline lineno="278"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="279"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Do<sp/>face<sp/>by<sp/>face<sp/>unpacking.<sp/>Need<sp/>to<sp/>program<sp/>correct<sp/>face<sp/>dim</highlight></codeline>
+<codeline lineno="280"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>to<sp/>compute<sp/>address<sp/>of<sp/>the<sp/>next<sp/>face</highlight></codeline>
+<codeline lineno="281"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>config_unpacker_x_end&lt;p_setadc::UNP_B&gt;(unpB_face_r_dim);</highlight></codeline>
+<codeline lineno="282"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="283"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="284"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="285"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Do<sp/>full<sp/>tile<sp/>unpacking.<sp/>No<sp/>need<sp/>to<sp/>program<sp/>face<sp/>dim</highlight></codeline>
+<codeline lineno="286"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>as<sp/>address<sp/>counter<sp/>pointing<sp/>to<sp/>the<sp/>face<sp/>is<sp/>not<sp/>incremented</highlight></codeline>
+<codeline lineno="287"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>const<sp/>uint32_t<sp/>unpB_x_end<sp/>=<sp/>unpB_num_faces<sp/>*<sp/>unpB_face_r_dim<sp/>*<sp/>FACE_C_DIM<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="288"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TT_SETADCXX(p_setadc::UNP_B,<sp/>unpB_x_end,<sp/>0x0);</highlight></codeline>
+<codeline lineno="289"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="290"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="291"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>TT_SETDMAREG(0,<sp/>LOWER_HALFWORD(kt_dim),<sp/>0,<sp/>LO_16(p_gpr_unpack::KT_DIM));<sp/>//<sp/>store<sp/>kt_dim<sp/>to<sp/>gpr<sp/>for<sp/>scaling<sp/>tile<sp/>size</highlight></codeline>
+<codeline lineno="292"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="293"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>_llk_unpack_AB_matmul_mop_config_&lt;kernel_broadcast_a,<sp/>kernel_broadcast_b&gt;(transpose<sp/>!=<sp/>0,<sp/>ct_dim,<sp/>rt_dim,<sp/>kt_dim,<sp/>unpA_partial_face,<sp/>unpB_partial_face);</highlight></codeline>
+<codeline lineno="294"><highlight class="stringliteral">}</highlight></codeline>
+<codeline lineno="295"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="296"><highlight class="stringliteral">template<sp/>&lt;std::uint32_t<sp/>kernel_broadcast_a<sp/>=<sp/>0,<sp/>std::uint32_t<sp/>kernel_broadcast_b<sp/>=<sp/>0&gt;</highlight></codeline>
+<codeline lineno="297" refid="tt__llk__blackhole_2llk__lib_2llk__unpack__AB__matmul_8h_1a70a0375b0e6dafba78f35ab901bb3188" refkind="member"><highlight class="stringliteral">inline<sp/>void<sp/>_llk_unpack_AB_matmul_(</highlight></codeline>
+<codeline lineno="298"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>base_address_a,</highlight></codeline>
+<codeline lineno="299"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>base_address_b,</highlight></codeline>
+<codeline lineno="300"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>tile_index_a,</highlight></codeline>
+<codeline lineno="301"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>tile_index_b,</highlight></codeline>
+<codeline lineno="302"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>tile_size_a,</highlight></codeline>
+<codeline lineno="303"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>tile_size_b,</highlight></codeline>
+<codeline lineno="304"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpA_face_r_dim<sp/>=<sp/>FACE_R_DIM,</highlight></codeline>
+<codeline lineno="305"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>unpB_face_r_dim<sp/>=<sp/>FACE_R_DIM,</highlight></codeline>
+<codeline lineno="306"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>bool<sp/>unpA_partial_face<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>false,</highlight></codeline>
+<codeline lineno="307"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>bool<sp/>unpB_partial_face<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>false,</highlight></codeline>
+<codeline lineno="308"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>std::uint32_t<sp/>ct_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="309"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>rt_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="310"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>kt_dim<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1)</highlight></codeline>
+<codeline lineno="311"><highlight class="stringliteral">{</highlight></codeline>
+<codeline lineno="312"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>//<sp/>In0/InA<sp/>-&gt;<sp/>srcB<sp/>(supports<sp/>partial<sp/>face)</highlight></codeline>
+<codeline lineno="313"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>//<sp/>In1/InB<sp/>-&gt;<sp/>srcA</highlight></codeline>
+<codeline lineno="314"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="315"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>volatile<sp/>uint<sp/>*cfg<sp/>=<sp/>get_cfg_pointer();<sp/>//<sp/>get<sp/>pointer<sp/>to<sp/>registers<sp/>for<sp/>current<sp/>state<sp/>ID</highlight></codeline>
+<codeline lineno="316"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="317"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>bool<sp/>reuse_a<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>ct_dim<sp/>&gt;=<sp/>rt_dim;</highlight></codeline>
+<codeline lineno="318"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>const<sp/>std::uint32_t<sp/>t_dim<sp/>=<sp/>reuse_a<sp/>?<sp/>rt_dim<sp/>:<sp/>ct_dim;</highlight></codeline>
+<codeline lineno="319"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="320"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>if<sp/>(!reuse_a)</highlight></codeline>
+<codeline lineno="321"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="322"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_MULDMAREG(0,<sp/>p_gpr_unpack::TMP_LO,<sp/>p_gpr_unpack::TILE_SIZE_B,<sp/>p_gpr_unpack::KT_DIM);</highlight></codeline>
+<codeline lineno="323"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="324"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="325"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>for<sp/>(uint<sp/>t<sp/>=<sp/>0;<sp/>t<sp/>&lt;<sp/>t_dim;<sp/>t++)</highlight></codeline>
+<codeline lineno="326"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="327"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>std::uint32_t<sp/>offset_address_a<sp/>=<sp/>tile_size_a<sp/>*<sp/>(tile_index_a<sp/>+<sp/>(reuse_a<sp/>?<sp/>(t<sp/>*<sp/>kt_dim)<sp/>:<sp/>(0)));</highlight></codeline>
+<codeline lineno="328"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>std::uint32_t<sp/>offset_address_b<sp/>=<sp/>tile_size_b<sp/>*<sp/>(tile_index_b<sp/>+<sp/>(reuse_a<sp/>?<sp/>(0)<sp/>:<sp/>(t)));</highlight></codeline>
+<codeline lineno="329"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>constexpr<sp/>(kernel_broadcast_a<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="330"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="331"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>offset_address_a<sp/>=<sp/>tile_size_a<sp/>*<sp/>((tile_index_a<sp/>+<sp/>(reuse_a<sp/>?<sp/>((t<sp/>*<sp/>kt_dim))<sp/>:<sp/>(0)))<sp/>%<sp/>kernel_broadcast_a);</highlight></codeline>
+<codeline lineno="332"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="333"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>constexpr<sp/>(kernel_broadcast_b<sp/>&gt;<sp/>0)</highlight></codeline>
+<codeline lineno="334"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="335"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>offset_address_b<sp/>=<sp/>tile_size_b<sp/>*<sp/>((tile_index_b<sp/>+<sp/>(reuse_a<sp/>?<sp/>(0)<sp/>:<sp/>(t)))<sp/>%<sp/>kernel_broadcast_b);</highlight></codeline>
+<codeline lineno="336"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="337"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="338"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>std::uint32_t<sp/>address_a<sp/>=<sp/>base_address_a<sp/>+<sp/>offset_address_a;</highlight></codeline>
+<codeline lineno="339"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>std::uint32_t<sp/>address_b<sp/>=<sp/>base_address_b<sp/>+<sp/>offset_address_b;</highlight></codeline>
+<codeline lineno="340"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="341"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Wait<sp/>for<sp/>free<sp/>context</highlight></codeline>
+<codeline lineno="342"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>wait_for_next_context(2);</highlight></codeline>
+<codeline lineno="343"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="344"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Program<sp/>unpacker<sp/>1<sp/>base<sp/>address</highlight></codeline>
+<codeline lineno="345"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(0<sp/>==<sp/>unp_cfg_context)</highlight></codeline>
+<codeline lineno="346"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="347"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg[THCON_SEC0_REG3_Base_address_ADDR32]<sp/>=<sp/>address_b;</highlight></codeline>
+<codeline lineno="348"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg[THCON_SEC1_REG3_Base_address_ADDR32]<sp/>=<sp/>address_a;</highlight></codeline>
+<codeline lineno="349"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="350"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="351"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="352"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32]<sp/>=<sp/>address_b;</highlight></codeline>
+<codeline lineno="353"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32]<sp/>=<sp/>address_a;</highlight></codeline>
+<codeline lineno="354"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="355"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="356"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>semaphore_post(semaphore::UNPACK_SYNC);<sp/>//<sp/>Trisc::SEMPOST<sp/>for<sp/>context<sp/>acquire</highlight></codeline>
+<codeline lineno="357"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="358"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Stall<sp/>unpacker<sp/>until<sp/>pending<sp/>CFG<sp/>writes<sp/>from<sp/>Trisc<sp/>have<sp/>completed</highlight></codeline>
+<codeline lineno="359"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_STALLWAIT(p_stall::STALL_UNPACK,<sp/>p_stall::TRISC_CFG);</highlight></codeline>
+<codeline lineno="360"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="361"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(reuse_a)</highlight></codeline>
+<codeline lineno="362"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="363"><highlight class="stringliteral">#if<sp/>SKIP_UNP<sp/>==<sp/>1</highlight></codeline>
+<codeline lineno="364"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="365"><highlight class="stringliteral">#else</highlight></codeline>
+<codeline lineno="366"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(unpB_partial_face)</highlight></codeline>
+<codeline lineno="367"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="368"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR_NOP(SrcB,<sp/>0,<sp/>0,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>p_unpacr_nop::UNP_ZEROSRC);</highlight></codeline>
+<codeline lineno="369"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Do<sp/>face<sp/>by<sp/>face<sp/>unpacking</highlight></codeline>
+<codeline lineno="370"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="371"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcB,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="372"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="373"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcB,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="374"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SETADCZW(p_setadc::UNP_B,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b0101);<sp/>//<sp/>Set<sp/>ch0_z=0,<sp/>ch1_z=0</highlight></codeline>
+<codeline lineno="375"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="376"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="377"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="378"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(SrcB,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="379"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="380"><highlight class="stringliteral">#endif</highlight></codeline>
+<codeline lineno="381"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="382"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="383"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="384"><highlight class="stringliteral">#if<sp/>SKIP_UNP<sp/>==<sp/>1</highlight></codeline>
+<codeline lineno="385"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_NOP;</highlight></codeline>
+<codeline lineno="386"><highlight class="stringliteral">#else</highlight></codeline>
+<codeline lineno="387"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>if<sp/>(unpA_partial_face)</highlight></codeline>
+<codeline lineno="388"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="389"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Do<sp/>face<sp/>by<sp/>face<sp/>unpacking</highlight></codeline>
+<codeline lineno="390"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR_NOP(SrcA,<sp/>0,<sp/>0,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>p_unpacr_nop::UNP_ZEROSRC);</highlight></codeline>
+<codeline lineno="391"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="392"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcA,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>0<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="393"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(</highlight></codeline>
+<codeline lineno="394"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SrcA,<sp/>0b00010001,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="395"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_SETADCZW(p_setadc::UNP_A,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0b0101);<sp/>//<sp/>Set<sp/>ch0_z=0,<sp/>ch1_z=0</highlight></codeline>
+<codeline lineno="396"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="397"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>else</highlight></codeline>
+<codeline lineno="398"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="399"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TTI_UNPACR(SrcA,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>1<sp/>/*Set<sp/>OvrdThreadId*/,<sp/>1<sp/>/*Set<sp/>Dvalid*/,<sp/>p_unpacr::RAREFYB_DISABLE,<sp/>0,<sp/>0<sp/>/*<sp/>Set<sp/>ContextIdInc<sp/>*/,<sp/>0,<sp/>0,<sp/>1);</highlight></codeline>
+<codeline lineno="400"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="401"><highlight class="stringliteral">#endif</highlight></codeline>
+<codeline lineno="402"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="403"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="404"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>TT_MOP(0,<sp/>(reuse_a<sp/>?<sp/>ct_dim<sp/>:<sp/>rt_dim)<sp/>-<sp/>1,<sp/>unp_cfg_context<sp/>==<sp/>0<sp/>?<sp/>0<sp/>:<sp/>0xff);<sp/>//<sp/>Run<sp/>the<sp/>MOP</highlight></codeline>
+<codeline lineno="405"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="406"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>T6::SEMGET<sp/>for<sp/>context<sp/>release</highlight></codeline>
+<codeline lineno="407"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>t6_semaphore_get(semaphore::UNPACK_SYNC);</highlight></codeline>
+<codeline lineno="408"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="409"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>//<sp/>Switch<sp/>unpacker<sp/>config<sp/>context</highlight></codeline>
+<codeline lineno="410"><highlight class="stringliteral"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>switch_config_context(unp_cfg_context);</highlight></codeline>
+<codeline lineno="411"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="412"><highlight class="stringliteral"></highlight></codeline>
+<codeline lineno="413"><highlight class="stringliteral">#ifdef<sp/>PERF_DUMP</highlight></codeline>
+<codeline lineno="414"><highlight class="stringliteral"><sp/><sp/><sp/><sp/>first_unpack_recorded<sp/>=<sp/>true;</highlight></codeline>
+<codeline lineno="415"><highlight class="stringliteral">#endif</highlight></codeline>
+<codeline lineno="416"><highlight class="stringliteral">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h"/>
+  </compounddef>
+</doxygen>

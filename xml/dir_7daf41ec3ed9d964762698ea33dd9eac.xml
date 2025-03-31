@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_7daf41ec3ed9d964762698ea33dd9eac" kind="dir">
+    <compoundname>tt_llk_wormhole_b0/llk_lib</compoundname>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__defs_8h">llk_defs.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h">llk_math_common.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__binary_8h">llk_math_eltwise_binary.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__binary__sfpu_8h">llk_math_eltwise_binary_sfpu.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h">llk_math_eltwise_unary_datacopy.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h">llk_math_eltwise_unary_sfpi.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpu_8h">llk_math_eltwise_unary_sfpu.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__matmul_8h">llk_math_matmul.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__reduce_8h">llk_math_reduce.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__transpose__dest_8h">llk_math_transpose_dest.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h">llk_pack.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h">llk_pack_common.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__untilize_8h">llk_pack_untilize.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__A_8h">llk_unpack_A.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__AB_8h">llk_unpack_AB.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__AB__matmul_8h">llk_unpack_AB_matmul.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__common_8h">llk_unpack_common.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__reduce_8h">llk_unpack_reduce.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__tilize_8h">llk_unpack_tilize.h</innerfile>
+    <innerfile refid="tt__llk__wormhole__b0_2llk__lib_2llk__unpack__untilize_8h">llk_unpack_untilize.h</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_wormhole_b0/llk_lib/"/>
+  </compounddef>
+</doxygen>

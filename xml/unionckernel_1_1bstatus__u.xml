@@ -1,0 +1,373 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="unionckernel_1_1bstatus__u" kind="union" language="C++" prot="public">
+    <compoundname>ckernel::bstatus_u</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel_8h" local="no">ckernel.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a732f71082035f6fb8f5c329de2d04185" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::bstatus_u::val</definition>
+        <argsstring></argsstring>
+        <name>val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="804" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="804" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a6154ec386bf4b829eef9ac91272e2576" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::replay</definition>
+        <argsstring></argsstring>
+        <name>replay</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="808" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="808" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1ac6f61ec2b74836be2cd51971520f7a8a" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::mop</definition>
+        <argsstring></argsstring>
+        <name>mop</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="809" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="809" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1ae152bd98f7fb793dff4e3353ffb4bd5d" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::thcon</definition>
+        <argsstring></argsstring>
+        <name>thcon</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="810" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="810" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a1a0b91841074c028987df9eaa030a34d" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::xmov</definition>
+        <argsstring></argsstring>
+        <name>xmov</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="811" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="811" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1ae59ea00c13c4a72de6b1c796657a016c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::unpack</definition>
+        <argsstring></argsstring>
+        <name>unpack</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="812" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="812" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a3a3f9e21d9d88000f751abe171105ffa" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::pack</definition>
+        <argsstring></argsstring>
+        <name>pack</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="813" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="813" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a0b196299df5b77b3e3948f3e15c3bcbb" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::cfg</definition>
+        <argsstring></argsstring>
+        <name>cfg</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="814" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="814" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a227b98e71827eb4703e9465667e2bb7d" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::sync</definition>
+        <argsstring></argsstring>
+        <name>sync</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="815" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="815" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a6c4315c2b611ebde7949497bd890056e" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::tdma</definition>
+        <argsstring></argsstring>
+        <name>tdma</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="816" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="816" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a1aaaf09ea718dba8dfcfe238154eb289" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::_sfpu</definition>
+        <argsstring></argsstring>
+        <name>_sfpu</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="817" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="817" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a9bf9108c2e8e65f169467e38a7d6d200" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::fpu</definition>
+        <argsstring></argsstring>
+        <name>fpu</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="818" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="818" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1ad617de667f673371d156d777104a2318" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_replay</definition>
+        <argsstring></argsstring>
+        <name>global_replay</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="820" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="820" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1ad425b0cb61f1b80b5b9917227482e10b" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_mop</definition>
+        <argsstring></argsstring>
+        <name>global_mop</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="821" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="821" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1af0ea99fd5a4cf8c79a0f2ca601242b7f" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_thcon</definition>
+        <argsstring></argsstring>
+        <name>global_thcon</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="822" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="822" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a71248683e944c24d69af54d456e5c702" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_xmov</definition>
+        <argsstring></argsstring>
+        <name>global_xmov</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="823" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="823" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1acbfc078e2c26c26ccfdf161d6d7ca70d" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_unpack</definition>
+        <argsstring></argsstring>
+        <name>global_unpack</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="824" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="824" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a22183f3d8372f53db3ebc4137e21290e" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_pack</definition>
+        <argsstring></argsstring>
+        <name>global_pack</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="825" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="825" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1af9a80d1bd04cee8eef86a0939b51bf98" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_cfg</definition>
+        <argsstring></argsstring>
+        <name>global_cfg</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="826" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="826" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1ac91f4d753fb71e872efc74b23d1cdf58" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_sync</definition>
+        <argsstring></argsstring>
+        <name>global_sync</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="827" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="827" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1ad53e9fdd9accc5e55c029f5b33045e20" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_tdma</definition>
+        <argsstring></argsstring>
+        <name>global_tdma</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="828" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="828" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1aed18d40265dba5b11b909b2da64ea405" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_sfpu</definition>
+        <argsstring></argsstring>
+        <name>global_sfpu</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="829" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="829" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1a0e41e2b8542c05c8348ce62799441304" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ckernel::bstatus_u::global_fpu</definition>
+        <argsstring></argsstring>
+        <name>global_fpu</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="830" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="830" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1bstatus__u_1add055dca8ad7ad905cb86c9170900ac1" prot="public" static="no" mutable="no">
+        <type>struct ckernel::bstatus_u::@2</type>
+        <definition>struct ckernel::bstatus_u::@2 ckernel::bstatus_u::@3</definition>
+        <argsstring></argsstring>
+        <name>@3</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel.h" line="831" column="5"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel.h" line="802" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel.h" bodystart="803" bodyend="832"/>
+    <listofallmembers>
+      <member refid="unionckernel_1_1bstatus__u_1a1aaaf09ea718dba8dfcfe238154eb289" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>_sfpu</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a0b196299df5b77b3e3948f3e15c3bcbb" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>cfg</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a9bf9108c2e8e65f169467e38a7d6d200" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>fpu</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1af9a80d1bd04cee8eef86a0939b51bf98" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_cfg</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a0e41e2b8542c05c8348ce62799441304" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_fpu</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1ad425b0cb61f1b80b5b9917227482e10b" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_mop</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a22183f3d8372f53db3ebc4137e21290e" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_pack</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1ad617de667f673371d156d777104a2318" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_replay</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1aed18d40265dba5b11b909b2da64ea405" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_sfpu</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1ac91f4d753fb71e872efc74b23d1cdf58" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_sync</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1ad53e9fdd9accc5e55c029f5b33045e20" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_tdma</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1af0ea99fd5a4cf8c79a0f2ca601242b7f" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_thcon</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1acbfc078e2c26c26ccfdf161d6d7ca70d" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_unpack</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a71248683e944c24d69af54d456e5c702" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>global_xmov</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1ac6f61ec2b74836be2cd51971520f7a8a" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>mop</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a3a3f9e21d9d88000f751abe171105ffa" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>pack</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a6154ec386bf4b829eef9ac91272e2576" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>replay</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a227b98e71827eb4703e9465667e2bb7d" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>sync</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a6c4315c2b611ebde7949497bd890056e" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>tdma</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1ae152bd98f7fb793dff4e3353ffb4bd5d" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>thcon</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1ae59ea00c13c4a72de6b1c796657a016c" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>unpack</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a732f71082035f6fb8f5c329de2d04185" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>val</name></member>
+      <member refid="unionckernel_1_1bstatus__u_1a1a0b91841074c028987df9eaa030a34d" prot="public" virt="non-virtual"><scope>ckernel::bstatus_u</scope><name>xmov</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,402 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h" kind="file" language="C++">
+    <compoundname>ckernel_defs.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h" local="yes">ckernel_ops.h</includes>
+    <includes local="yes">llk_defs.h</includes>
+    <includes local="yes">tensix.h</includes>
+    <includes local="yes">tensix_types.h</includes>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__include_8h" local="yes">tt_llk_wormhole_b0/common/inc/ckernel_include.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpu_8h" local="yes">tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2common_2inc_2cpack__common_8h" local="yes">tt_llk_wormhole_b0/common/inc/cpack_common.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="4">
+        <label>llk_defs.h</label>
+      </node>
+      <node id="5">
+        <label>tensix.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_defs.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>tensix_types.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_ops.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h"/>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="9">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_xmov.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__xmov_8h"/>
+      </node>
+      <node id="3">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_template.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__template_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+      <node id="10">
+        <label>tt_llk_wormhole_b0/common/inc/cpack_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2cpack__common_8h"/>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_defs.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>tt_llk_wormhole_b0/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>tt_llk_wormhole_b0/common/inc/cunpack_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2cunpack__common_8h"/>
+      </node>
+      <node id="2">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_include.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__include_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_wormhole_b0/common/inc/ckernel_debug.h</label>
+        <link refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__debug_8h"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" prot="public" static="no">
+        <name>LO_16</name>
+        <param><defname>REG</defname></param>
+        <initializer>(2 * (REG))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_defs.h" line="128" column="9" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_defs.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h_1aec97cd00a10543f8348d20daedde9de4" prot="public" static="no">
+        <name>HI_16</name>
+        <param><defname>REG</defname></param>
+        <initializer>(2 * (REG) + 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_defs.h" line="129" column="9" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_defs.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" prot="public" static="no">
+        <name>LOWER_HALFWORD</name>
+        <param><defname>x</defname></param>
+        <initializer>((x) &amp; 0xFFFF)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_defs.h" line="217" column="9" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_defs.h" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h_1abd1d3808327aaccd8e33a401cca17ab1" prot="public" static="no">
+        <name>UPPER_HALFWORD</name>
+        <param><defname>x</defname></param>
+        <initializer>((x) &gt;&gt; 16)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/ckernel_defs.h" line="218" column="9" bodyfile="tt_llk_wormhole_b0/common/inc/ckernel_defs.h" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__ops_8h" kindref="compound">ckernel_ops.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;llk_defs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;tensix.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;tensix_types.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edd" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edd" kindref="member">Srcs</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edda85becaa2f53dbf50b609a09c545f2ba8" kindref="member">SrcA</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5edda956db99c8849c15529ae20135f6e0d26" kindref="member">SrcB</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a879d5154a2972baa9f455bf1980e5eddae6af7000741b244061aec2918902a4a8" kindref="member">SrcC</ref><sp/>=<sp/>2</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="namespaceckernel_1a1a932ada74e74ba1233654a500577390" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a1a932ada74e74ba1233654a500577390" kindref="member">Unpackers</ref></highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1a932ada74e74ba1233654a500577390aa6d291020a7ca063d5f82f3f735986c7" kindref="member">Unp0</ref><sp/><sp/><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1a932ada74e74ba1233654a500577390aee29e606f1c5688b4c9f78e70fb8e37e" kindref="member">Unp1</ref><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1a932ada74e74ba1233654a500577390ad24fac7355a38d9bf99f381e477703a8" kindref="member">UnpAll</ref><sp/>=<sp/>2</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="namespaceckernel_1ab6ed35012f0514997eedaf1933f4cfd7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1ab6ed35012f0514997eedaf1933f4cfd7" kindref="member">DstStart</ref></highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ab6ed35012f0514997eedaf1933f4cfd7a675559db752c894d0077af9905bddf03" kindref="member">StartZero</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ab6ed35012f0514997eedaf1933f4cfd7a953146a046b12941606b9a63cd2e0482" kindref="member">StartHalf</ref><sp/>=<sp/>1</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="namespaceckernel_1abd81e282697e05431c89d88fd9ab4ba3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1abd81e282697e05431c89d88fd9ab4ba3" kindref="member">DstClear</ref></highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1abd81e282697e05431c89d88fd9ab4ba3aa8990abb9e95509364434951fd3bb46f" kindref="member">ClearRow</ref><sp/><sp/><sp/><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1abd81e282697e05431c89d88fd9ab4ba3ad3f191228c1a7ec15f62cb91d6ab2051" kindref="member">Clear16Rows</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1abd81e282697e05431c89d88fd9ab4ba3a45e1ee51b1a5a5420f7e53708395cb60" kindref="member">ClearHalf</ref><sp/><sp/><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1abd81e282697e05431c89d88fd9ab4ba3ac3c042fdd84d299b3c69e86fdcb649d3" kindref="member">ClearFull</ref><sp/><sp/><sp/>=<sp/>3</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="namespaceckernel_1af750c33d255a467519fada83802ecd39" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39" kindref="member">ThreadId</ref></highlight></codeline>
+<codeline lineno="46"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a728f3c92c0a4284b8413647bf320ad5e" kindref="member">UnpackThreadId</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a079f554139a19db0776aed7316dfa903" kindref="member">MathThreadId</ref><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39aa8c3e9c126c71d9877925886d258f78d" kindref="member">PackThreadId</ref><sp/><sp/><sp/>=<sp/>2</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="namespaceckernel_1a9982dbd7b51552d3979dd824a1bcc96f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a9982dbd7b51552d3979dd824a1bcc96f" kindref="member">DstTileLayout</ref></highlight></codeline>
+<codeline lineno="53"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a9982dbd7b51552d3979dd824a1bcc96fa75cce9cb5db5ce0bf25ba087697dea44" kindref="member">Default</ref>,</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a9982dbd7b51552d3979dd824a1bcc96fa14ddb76cec70314451dfd9b0a587fcc6" kindref="member">Interleaved</ref>,</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TightDest,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Conv3x3,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Conv1x1,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>L1ReadSource,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>NLLLoss,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>IndexAccumulate,<sp/>//Add<sp/>polling<sp/>before<sp/>packing<sp/>to<sp/>L1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="namespaceckernel_1aff023ac37fa3e4bbe12633678008b4a5" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1aff023ac37fa3e4bbe12633678008b4a5" kindref="member">DstTileFaceLayout</ref></highlight></codeline>
+<codeline lineno="65"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aff023ac37fa3e4bbe12633678008b4a5ad72e0d8c6f532ec3cad0c2f506fce8d0" kindref="member">RowMajor</ref>,<sp/></highlight><highlight class="comment">//<sp/>default</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aff023ac37fa3e4bbe12633678008b4a5a64c9a135efaddf1cee8768717139b614" kindref="member">ColMajor</ref>,</highlight></codeline>
+<codeline lineno="68"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="namespaceckernel_1a36b266fd7ced67e51fbfd53f5b1bcd27" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a36b266fd7ced67e51fbfd53f5b1bcd27" kindref="member">DstTileShape</ref></highlight></codeline>
+<codeline lineno="71"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a36b266fd7ced67e51fbfd53f5b1bcd27ab3f46e478e8d686b0e1f52477b578bc3" kindref="member">Tile32x32</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a36b266fd7ced67e51fbfd53f5b1bcd27ad2d6bb200b6a3f97bab12a0f0966a8c0" kindref="member">Tile32x16</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a36b266fd7ced67e51fbfd53f5b1bcd27aa855e86098128fed6628c4db7fd77aa9" kindref="member">Tile16x16</ref><sp/>=<sp/>2</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="76" refid="namespaceckernel_1aff29f26459236e37dcd116a4be598298" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1aff29f26459236e37dcd116a4be598298" kindref="member">ParallelPackerMode</ref></highlight></codeline>
+<codeline lineno="77"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aff29f26459236e37dcd116a4be598298ab9f5c797ebbf55adccdd8539a65a0241" kindref="member">Disabled</ref>,</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aff29f26459236e37dcd116a4be598298a926901a6c7cd9e3826719472f43e924a" kindref="member">SingleFTEntry</ref>,</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aff29f26459236e37dcd116a4be598298a1d4a137ba14fee328dd0ab34354a9f3c" kindref="member">MultiFTEntry</ref>,</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1aff29f26459236e37dcd116a4be598298aaed22d1f31b7760523441f4361acae88" kindref="member">TileParallel</ref></highlight></codeline>
+<codeline lineno="82"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="namespaceckernel_1a0fa9fea62729057bba3b70a970499c5e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a0fa9fea62729057bba3b70a970499c5e" kindref="member">register_space_e</ref></highlight></codeline>
+<codeline lineno="85"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a0fa9fea62729057bba3b70a970499c5ead8f078a4cae3fbed9c00a7e581ee53f8" kindref="member">TDMA_REGS</ref><sp/><sp/><sp/><sp/><sp/>=<sp/>0x0,</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a0fa9fea62729057bba3b70a970499c5ea6da8bf874cf1c4ce29dbc7937c50f5e3" kindref="member">LOCAL_REGS</ref><sp/><sp/><sp/><sp/>=<sp/>0x1,</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a0fa9fea62729057bba3b70a970499c5ea9c955732eee462f740b7e5ed93b5cbfc" kindref="member">ADDR_COUNTERS</ref><sp/>=<sp/>0x2</highlight></codeline>
+<codeline lineno="89"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91" refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11" kindref="member">PackSelMask</ref></highlight></codeline>
+<codeline lineno="92"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11a7d4c93eee101afcbf8b0bfafac330edc" kindref="member">PACK_ALL</ref><sp/>=<sp/>0xF,<sp/></highlight><highlight class="comment">//<sp/>default</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11a4a0f318e7d841dd8890b0b5caf767d89" kindref="member">PACK_0</ref><sp/><sp/><sp/>=<sp/>0x1,</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11ad54607be767bc659e253c1756365a713" kindref="member">PACK_1</ref><sp/><sp/><sp/>=<sp/>0x2,</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11aec7c8f123f178c1ac25f6ae379081e26" kindref="member">PACK_2</ref><sp/><sp/><sp/>=<sp/>0x4,</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11a3254361b7fa31803c632454ad308d47a" kindref="member">PACK_3</ref><sp/><sp/><sp/>=<sp/>0x8,</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11aa7a61144b1ebfce49fcf4aee2a86effe" kindref="member">PACK_01</ref><sp/><sp/>=<sp/>0x3,</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac1b47b00dc24c2873a83b8e78c9b4e11ac86b26a31d175ab1f2dafc1688d21cf0" kindref="member">PACK_23</ref><sp/><sp/>=<sp/>0xC</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102" refid="namespaceckernel_1a760bc8ac5604f4b657a1766a6acc8a99" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a760bc8ac5604f4b657a1766a6acc8a99" kindref="member">SortDir</ref><sp/>:<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a760bc8ac5604f4b657a1766a6acc8a99abb85e5fc9cf9d7ae41353e146af4bb05" kindref="member">ArgMax</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a760bc8ac5604f4b657a1766a6acc8a99a8ce2f5e28a76b671608c6329260f66c5" kindref="member">ArgMin</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="106"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1a2c199687ffea1193a4be4c29452ab269" kindref="member">FACE_HEIGHT</ref><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1aa71f20810bb9b5b9047733e52cff9a49" kindref="member">FACE_WIDTH</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1ad8f744ce5565b70a07d04005269f69c7" kindref="member">TILE_HEIGHT</ref><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>32;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1a70e55d5af4ea82fee79120efc52dec58" kindref="member">TILE_WIDTH</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>32;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1a04675bbbccad2f961c25d4748720e40d" kindref="member">DATUMS_PER_ROW</ref><sp/><sp/><sp/>=<sp/>16;</highlight></codeline>
+<codeline lineno="113"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1a9b8036e689235c36ac26d7eb5378066d" kindref="member">TILE_HEADER_SIZE</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref><sp/>=<sp/><ref refid="namespaceckernel_1a2c199687ffea1193a4be4c29452ab269" kindref="member">FACE_HEIGHT</ref>;</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1a3f233953c7eb9ff380fe7f7f4ce0cef5" kindref="member">FACE_C_DIM</ref><sp/>=<sp/><ref refid="namespaceckernel_1aa71f20810bb9b5b9047733e52cff9a49" kindref="member">FACE_WIDTH</ref>;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1ad245ccbce557030d23c4ff458bf1b1c1" kindref="member">TILE_R_DIM</ref><sp/>=<sp/><ref refid="namespaceckernel_1ad8f744ce5565b70a07d04005269f69c7" kindref="member">TILE_HEIGHT</ref>;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1ac4fa00dce38ec376efbb86281e0a101e" kindref="member">TILE_C_DIM</ref><sp/>=<sp/><ref refid="namespaceckernel_1a70e55d5af4ea82fee79120efc52dec58" kindref="member">TILE_WIDTH</ref>;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal">constexpr<sp/>std::uint32_t<sp/><ref refid="namespaceckernel_1abbe9daba3b328c505f911913621966e9" kindref="member">TILE_NUM_FACES</ref><sp/>=<sp/>((<ref refid="namespaceckernel_1ad245ccbce557030d23c4ff458bf1b1c1" kindref="member">TILE_R_DIM</ref><sp/>*<sp/><ref refid="namespaceckernel_1ac4fa00dce38ec376efbb86281e0a101e" kindref="member">TILE_C_DIM</ref>)<sp/>/<sp/>(<ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref><sp/>*<sp/><ref refid="namespaceckernel_1a3f233953c7eb9ff380fe7f7f4ce0cef5" kindref="member">FACE_C_DIM</ref>));</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal">constexpr<sp/>uint32_t<sp/><ref refid="namespaceckernel_1a01cd9aa596c54bf7b93471602bdfc282" kindref="member">DEST_NUM_TILES_FP16</ref><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>(DEST_REGISTER_FULL_SIZE<sp/>*<sp/>DEST_FACE_WIDTH)<sp/>/<sp/>(<ref refid="namespaceckernel_1ad8f744ce5565b70a07d04005269f69c7" kindref="member">TILE_HEIGHT</ref><sp/>*<sp/><ref refid="namespaceckernel_1ad8f744ce5565b70a07d04005269f69c7" kindref="member">TILE_HEIGHT</ref>);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal">constexpr<sp/>uint32_t<sp/><ref refid="namespaceckernel_1a0150b21816d0d22a673a6deaae02a104" kindref="member">DEST_NUM_TILES_FP16_HALF</ref><sp/>=<sp/><ref refid="namespaceckernel_1a01cd9aa596c54bf7b93471602bdfc282" kindref="member">DEST_NUM_TILES_FP16</ref><sp/>/<sp/>2;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">static_assert((<ref refid="namespaceckernel_1a01cd9aa596c54bf7b93471602bdfc282" kindref="member">DEST_NUM_TILES_FP16</ref><sp/>&amp;<sp/>(<ref refid="namespaceckernel_1a01cd9aa596c54bf7b93471602bdfc282" kindref="member">DEST_NUM_TILES_FP16</ref><sp/>-<sp/>1))<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight><highlight class="comment">//<sp/>For<sp/>instructions<sp/>that<sp/>address<sp/>lower/upper<sp/>16<sp/>bits<sp/>of<sp/>a<sp/>register</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128" refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LO_16(REG)<sp/>(2<sp/>*<sp/>(REG))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="129" refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h_1aec97cd00a10543f8348d20daedde9de4" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>HI_16(REG)<sp/>(2<sp/>*<sp/>(REG)<sp/>+<sp/>1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal">constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>GET_L1_HEADERLESS_TILE_SIZE(uint<sp/>format)</highlight></codeline>
+<codeline lineno="132"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(format<sp/>&amp;<sp/>0xF)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Int32):</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Float32):</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(4096<sp/>&gt;&gt;<sp/>4);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Float16):</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Float16_b):</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(2048<sp/>&gt;&gt;<sp/>4);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp8):</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp8_b):</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((1024<sp/>&gt;&gt;<sp/>4)<sp/>+<sp/>(64<sp/>&gt;&gt;<sp/>4));</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp4):</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp4_b):</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((512<sp/>&gt;&gt;<sp/>4)<sp/>+<sp/>(64<sp/>&gt;&gt;<sp/>4));</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp2):</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp2_b):</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((256<sp/>&gt;&gt;<sp/>4)<sp/>+<sp/>(64<sp/>&gt;&gt;<sp/>4));</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Int8):</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Lf8):</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(1024<sp/>&gt;&gt;<sp/>4);</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>((1024<sp/>&gt;&gt;<sp/>4)<sp/>+<sp/>(64<sp/>&gt;&gt;<sp/>4));</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="156"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal">constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>IS_BFP_FORMAT(uint<sp/>format)</highlight></codeline>
+<codeline lineno="159"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(format<sp/>&amp;<sp/>0xF)</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp8):</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp8_b):</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp4):</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp4_b):</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp2):</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp2_b):</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="172"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal">constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>IS_BFP_A_FORMAT(uint<sp/>format)</highlight></codeline>
+<codeline lineno="175"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(format<sp/>&amp;<sp/>0xF)</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp8):</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp4):</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp2):</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="185"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal">constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>IS_A_FORMAT(uint<sp/>format)</highlight></codeline>
+<codeline lineno="188"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(format<sp/>&amp;<sp/>0xF)</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Lf8):</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Float16):</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp8):</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp4):</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Bfp2):</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="200"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal">constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>SCALE_DATUM_SIZE(uint<sp/>format,<sp/>uint<sp/>datum_count)</highlight></codeline>
+<codeline lineno="203"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(format<sp/>&amp;<sp/>0xF)</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Int32):</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Float32):</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(datum_count<sp/>&lt;&lt;<sp/>2);</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Float16):</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>((uint8_t)DataFormat::Float16_b):</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(datum_count<sp/>&lt;&lt;<sp/>1);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>datum_count;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="215"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217" refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LOWER_HALFWORD(x)<sp/>((x)<sp/>&amp;<sp/>0xFFFF)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="218" refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h_1abd1d3808327aaccd8e33a401cca17ab1" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>UPPER_HALFWORD(x)<sp/>((x)<sp/>&gt;&gt;<sp/>16)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/common/inc/ckernel_defs.h"/>
+  </compounddef>
+</doxygen>

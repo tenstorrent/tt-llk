@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1dbg__cfgreg" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::dbg_cfgreg</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h" local="no">ckernel_debug.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1dbg__cfgreg_1aaaa41d873e44282695f9e8fa5c2541a5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_cfgreg::THREAD_0_CFG</definition>
+        <argsstring></argsstring>
+        <name>THREAD_0_CFG</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="19" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__cfgreg_1ab00af4329b932b699fc01c95663213dc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_cfgreg::THREAD_1_CFG</definition>
+        <argsstring></argsstring>
+        <name>THREAD_1_CFG</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="20" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__cfgreg_1af3e004cad18462f64f08a911b315e774" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_cfgreg::THREAD_2_CFG</definition>
+        <argsstring></argsstring>
+        <name>THREAD_2_CFG</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="21" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__cfgreg_1a33cea054013caff2bb80bfe03833a5de" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_cfgreg::HW_CFG_0</definition>
+        <argsstring></argsstring>
+        <name>HW_CFG_0</name>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="22" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__cfgreg_1ad01a0ef2c4f9b66cd4c9b12c2fca6615" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_cfgreg::HW_CFG_1</definition>
+        <argsstring></argsstring>
+        <name>HW_CFG_1</name>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="23" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__cfgreg_1a6b305feb4470f6843672b5158215a66e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_cfgreg::HW_CFG_SIZE</definition>
+        <argsstring></argsstring>
+        <name>HW_CFG_SIZE</name>
+        <initializer>= 187</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="24" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__cfgreg_1a1c303d05316ab3e0dad1e2d934cfaf86" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_cfgreg::THREAD_CFG_SIZE</definition>
+        <argsstring></argsstring>
+        <name>THREAD_CFG_SIZE</name>
+        <initializer>= THD_STATE_SIZE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="25" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="17" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="18" bodyend="26"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1dbg__cfgreg_1a33cea054013caff2bb80bfe03833a5de" prot="public" virt="non-virtual"><scope>ckernel::dbg_cfgreg</scope><name>HW_CFG_0</name></member>
+      <member refid="structckernel_1_1dbg__cfgreg_1ad01a0ef2c4f9b66cd4c9b12c2fca6615" prot="public" virt="non-virtual"><scope>ckernel::dbg_cfgreg</scope><name>HW_CFG_1</name></member>
+      <member refid="structckernel_1_1dbg__cfgreg_1a6b305feb4470f6843672b5158215a66e" prot="public" virt="non-virtual"><scope>ckernel::dbg_cfgreg</scope><name>HW_CFG_SIZE</name></member>
+      <member refid="structckernel_1_1dbg__cfgreg_1aaaa41d873e44282695f9e8fa5c2541a5" prot="public" virt="non-virtual"><scope>ckernel::dbg_cfgreg</scope><name>THREAD_0_CFG</name></member>
+      <member refid="structckernel_1_1dbg__cfgreg_1ab00af4329b932b699fc01c95663213dc" prot="public" virt="non-virtual"><scope>ckernel::dbg_cfgreg</scope><name>THREAD_1_CFG</name></member>
+      <member refid="structckernel_1_1dbg__cfgreg_1af3e004cad18462f64f08a911b315e774" prot="public" virt="non-virtual"><scope>ckernel::dbg_cfgreg</scope><name>THREAD_2_CFG</name></member>
+      <member refid="structckernel_1_1dbg__cfgreg_1a1c303d05316ab3e0dad1e2d934cfaf86" prot="public" virt="non-virtual"><scope>ckernel::dbg_cfgreg</scope><name>THREAD_CFG_SIZE</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

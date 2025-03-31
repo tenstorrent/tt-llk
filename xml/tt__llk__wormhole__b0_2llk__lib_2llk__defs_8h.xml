@@ -1,0 +1,180 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2llk__lib_2llk__defs_8h" kind="file" language="C++">
+    <compoundname>llk_defs.h</compoundname>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_pack.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_pack_common.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__untilize_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_pack_untilize.h</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_pack.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h"/>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_defs.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__defs_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_pack_untilize.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__untilize_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_pack_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="namespaceckernel_1ae03b3918af7d06d7bbebceabca4b82a4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1ae03b3918af7d06d7bbebceabca4b82a4" kindref="member">VectorMode</ref></highlight></codeline>
+<codeline lineno="11"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae03b3918af7d06d7bbebceabca4b82a4a04a282b50043006e7a0f14d2c4165527" kindref="member">None</ref><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae03b3918af7d06d7bbebceabca4b82a4a968de6171f9ccc5144e512bec50ebd47" kindref="member">R</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae03b3918af7d06d7bbebceabca4b82a4a83481da2773adaac4742ba80aed400c0" kindref="member">C</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae03b3918af7d06d7bbebceabca4b82a4ada8cd96e4086af5edb1465989fb2b5c9" kindref="member">RC</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae03b3918af7d06d7bbebceabca4b82a4ad3724ba1c3ed800f2d8406a32dbb23ac" kindref="member">RC_custom</ref><sp/>=<sp/>6,</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae03b3918af7d06d7bbebceabca4b82a4aea2fd784a4ab3bd855352ca7f1e7f87e" kindref="member">Invalid</ref><sp/><sp/><sp/>=<sp/>0xFF,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139c" kindref="member">ReduceDim</ref></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139cabb9977378ef5f60f765fc03e5ed0055e" kindref="member">REDUCE_ROW</ref>,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139ca9b5a904566cb62933732a2ec8a44d03c" kindref="member">REDUCE_COL</ref>,</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139ca4882c6ddb9f85c7d283e5f4b453b1738" kindref="member">REDUCE_SCALAR</ref>,</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="namespaceckernel_1acc5fcf81ac43a67043c5247c230f34d2" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1acc5fcf81ac43a67043c5247c230f34d2" kindref="member">TileDim</ref></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1acc5fcf81ac43a67043c5247c230f34d2aad44b36729d46d01baac9aeee6d8bdce" kindref="member">R_IDX</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1acc5fcf81ac43a67043c5247c230f34d2a530935031b10a902957a1f173c0e18d7" kindref="member">C_IDX</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526" kindref="member">PoolType</ref></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526aa078f9b3c9b7cd24afb797951679cb66" kindref="member">SUM</ref>,</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526aeed4c70ba5b6f68c7e8342d7de737810" kindref="member">AVG</ref>,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ad7332f13da2c5b67193ef7980f322526a53f2f8b789bbc1bec6f7115da92229d3" kindref="member">MAX</ref>,</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32" kindref="member">DataCopyType</ref></highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32aa240f0f637e4b6c366942c9c835acf86" kindref="member">A2D</ref>,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32ab812a24dfc5be14f10b6fdb9d4ae8857" kindref="member">B2D</ref>,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="namespaceckernel_1a9fdbd29e10b945957f508a485baa91a7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a9fdbd29e10b945957f508a485baa91a7" kindref="member">EltwiseBinaryType</ref></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a9fdbd29e10b945957f508a485baa91a7acf8c6134e2b8decb51638fd7f869181f" kindref="member">ELWMUL</ref>,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a9fdbd29e10b945957f508a485baa91a7a3aa51b27ff9137d2c4e54394a5781dca" kindref="member">ELWDIV</ref>,</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a9fdbd29e10b945957f508a485baa91a7a54206a7a0167727502261827b0d9881e" kindref="member">ELWADD</ref>,</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a9fdbd29e10b945957f508a485baa91a7afd509ae56a518346c59515a35b7aca4a" kindref="member">ELWSUB</ref>,</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a9fdbd29e10b945957f508a485baa91a7ade590dcf6798f6c5a6642d2df6c7a99e" kindref="member">ELWLESS</ref>,</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="namespaceckernel_1a43d3a772f345669425ffc553c9785ab4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a43d3a772f345669425ffc553c9785ab4" kindref="member">EltwiseBinaryReuseDestType</ref></highlight></codeline>
+<codeline lineno="56"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2ab50339a10e1de285ac99d4c3990b8693" kindref="member">NONE</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a43d3a772f345669425ffc553c9785ab4a853dbffdff1fbbe4dd245c5981f55fee" kindref="member">DEST_TO_SRCA</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a43d3a772f345669425ffc553c9785ab4a114d2123a9cb5450563b7154da1cff90" kindref="member">DEST_TO_SRCB</ref><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></highlight></codeline>
+<codeline lineno="63"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da179e90fbd3dae0aece30d8f84df8d13a" kindref="member">SyncHalf</ref><sp/><sp/><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da6c7493e9a8ba7adde9205e7d001b5377" kindref="member">SyncFull</ref><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e" kindref="member">SyncTile16</ref><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676" kindref="member">SyncTile2</ref><sp/><sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="68"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2" kindref="member">BroadcastType</ref></highlight></codeline>
+<codeline lineno="71"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2a6d818efd9af21aeeb3aa02cbd82bf2f8" kindref="member">NONE</ref><sp/><sp/><sp/>=<sp/>0x0,<sp/></highlight><highlight class="comment">//<sp/>A<sp/>-<sp/>None<sp/>||<sp/>B<sp/>-<sp/>None</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afedbce921685ff360217656e13481e17" kindref="member">COL</ref><sp/><sp/><sp/><sp/>=<sp/>0x1,<sp/></highlight><highlight class="comment">//<sp/>A<sp/>-<sp/>None<sp/>||<sp/>B<sp/>-<sp/>Col<sp/>Broadcast</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2ac1660f5f435b49f3062ae72e73f8fd3c" kindref="member">ROW</ref><sp/><sp/><sp/><sp/>=<sp/>0x2,<sp/></highlight><highlight class="comment">//<sp/>A<sp/>-<sp/>None<sp/>||<sp/>B<sp/>-<sp/>Row<sp/>Broadcast</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afa6cc523436cb6f98e189ddaa82354fe" kindref="member">SCALAR</ref><sp/>=<sp/>0x3,<sp/></highlight><highlight class="comment">//<sp/>A<sp/>-<sp/>None<sp/>||<sp/>B<sp/>-<sp/>Scalar<sp/>Broadcast</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="namespaceckernel_1a895d50b86dd66d8bde891e579d0cbffc" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a895d50b86dd66d8bde891e579d0cbffc" kindref="member">src_op_id_e</ref></highlight></codeline>
+<codeline lineno="79"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a895d50b86dd66d8bde891e579d0cbffcaf5772433496c23e0bd9abf35c30233a6" kindref="member">OP_SRC0</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a895d50b86dd66d8bde891e579d0cbffca453690b54d51bcbe880b81f6876f599c" kindref="member">OP_SRC1</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a895d50b86dd66d8bde891e579d0cbffca4118ed1610135f25b3d9b9a992068ee2" kindref="member">OP_SRC2</ref><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a895d50b86dd66d8bde891e579d0cbffca13deacb7863277ebb5ef069dd9424ade" kindref="member">OP_SRC3</ref><sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a895d50b86dd66d8bde891e579d0cbffcaf39d64aa40d7e8c77b566040a8b8b335" kindref="member">OP_SRC4</ref><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="namespaceckernel_1ae8e7efc9a6a93bd46c60027d0e75324d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1ae8e7efc9a6a93bd46c60027d0e75324d" kindref="member">local_op_id_e</ref></highlight></codeline>
+<codeline lineno="88"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae8e7efc9a6a93bd46c60027d0e75324da23ceac3ccfabef77b216c820f8dbc754" kindref="member">OP_LOCAL0</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae8e7efc9a6a93bd46c60027d0e75324dab40b96f00b3ad34fc85d1779fad6201f" kindref="member">OP_LOCAL1</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae8e7efc9a6a93bd46c60027d0e75324da23d225b5fd06c0f523de6b20754e6d07" kindref="member">OP_LOCAL2</ref><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae8e7efc9a6a93bd46c60027d0e75324daa7e1aa9c1ec9109e1cfcb98a61e4c4fb" kindref="member">OP_LOCAL3</ref><sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ae8e7efc9a6a93bd46c60027d0e75324da47c219df20fe01321c62ed4a02482798" kindref="member">OP_LOCAL4</ref><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="94"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="namespaceckernel_1ad51e83de9c2af6914e52fb7f02500193" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1ad51e83de9c2af6914e52fb7f02500193" kindref="member">out_op_id_e</ref></highlight></codeline>
+<codeline lineno="97"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ad51e83de9c2af6914e52fb7f02500193aefc6eb88ecf30b65cb89ede5b47f7313" kindref="member">OUT_ID0</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ad51e83de9c2af6914e52fb7f02500193ad684c6788301853e6e40bcf7a063686c" kindref="member">OUT_ID1</ref><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ad51e83de9c2af6914e52fb7f02500193ac5ec21716911495bc625259648013185" kindref="member">OUT_ID2</ref><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ad51e83de9c2af6914e52fb7f02500193a11496eb059ccf2e57e31c165cc2cb2fe" kindref="member">OUT_ID3</ref><sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ad51e83de9c2af6914e52fb7f02500193aecd9f02a67f0f4bbc6c52af7bb05530f" kindref="member">OUT_ID4</ref><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105" refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2" kindref="member">ReluType</ref></highlight></codeline>
+<codeline lineno="106"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2acfbd75e53db1722853882176a718bc26" kindref="member">NO_RELU</ref>,</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2a7592f2832969e5d2861dc29c5d48e91d" kindref="member">ZERO_RELU</ref>,</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2af0a5dd60417074e2b2e930f9cb51feaa" kindref="member">MIN_THRESHOLD_RELU</ref>,</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2a41365a5836393592b4a99d1474122e4a" kindref="member">MAX_THRESHOLD_RELU</ref>,</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal">constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a0ab0b9799b9bb131e8909da15194cf0f" kindref="member">UnpackToDestEn</ref><sp/><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal">constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1a6ab1d467ee9e0c7d328781e96619dcb8" kindref="member">UnpackToDestDis</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="117"><highlight class="comment">Stochastic<sp/>rounding<sp/>modes:</highlight></codeline>
+<codeline lineno="118"><highlight class="comment"><sp/><sp/><sp/><sp/>None:<sp/>No<sp/>stochastic<sp/>rounding<sp/>enabled,<sp/>default<sp/>rounding<sp/>is<sp/>round<sp/>to<sp/>nearest<sp/>even.</highlight></codeline>
+<codeline lineno="119"><highlight class="comment"><sp/><sp/><sp/><sp/>Fpu:<sp/>Enables<sp/>stochastic<sp/>rounding<sp/>for<sp/>every<sp/>accumulation<sp/>in<sp/>the<sp/>fpu</highlight></codeline>
+<codeline lineno="120"><highlight class="comment"><sp/><sp/><sp/><sp/>Pack:<sp/>Enables<sp/>stochastic<sp/>rounding<sp/>in<sp/>both<sp/>gasket<sp/>and<sp/>packer.<sp/>Gasket<sp/>rounding<sp/>is<sp/>in</highlight></codeline>
+<codeline lineno="121"><highlight class="comment"><sp/><sp/><sp/><sp/>data<sp/>format<sp/>conversion<sp/>stage<sp/>from<sp/>dest<sp/>format<sp/>to<sp/>pack_src_format.<sp/>Packer<sp/>rounding</highlight></codeline>
+<codeline lineno="122"><highlight class="comment"><sp/><sp/><sp/><sp/>is<sp/>in<sp/>data<sp/>format<sp/>conversion<sp/>stage<sp/>from<sp/>pack_src_format<sp/>to<sp/>pack_dst_format.</highlight></codeline>
+<codeline lineno="123"><highlight class="comment"><sp/><sp/><sp/><sp/>All:<sp/>Enables<sp/>fpu,<sp/>pack<sp/>and<sp/>gasket<sp/>rounding.</highlight></codeline>
+<codeline lineno="124"><highlight class="comment">*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125" refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271ba" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>struct</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271ba" kindref="member">StochRndType</ref></highlight></codeline>
+<codeline lineno="126"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271baa6adf97f83acf6453d4a6a4b1070f3754" kindref="member">None</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271baa332456e2efbb4ce23188022084a37a74" kindref="member">Fpu</ref><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271baa4492081ca02b059f9e8af4ddaf0f7292" kindref="member">Pack</ref><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1af54694b63325ef3aa20ba271e4a271baab1c94ca2fbc3e78fc30069c8d0f01680" kindref="member">All</ref><sp/><sp/>=<sp/>0xf,</highlight></codeline>
+<codeline lineno="131"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/llk_lib/llk_defs.h"/>
+  </compounddef>
+</doxygen>

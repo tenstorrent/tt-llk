@@ -1,0 +1,409 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespacesfpi__test" kind="namespace" language="C++">
+    <compoundname>sfpi_test</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacesfpi__test_1a9b0276ae1d990a75379ffaee74faa7ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>sfpi_inline void</type>
+        <definition>sfpi_inline void sfpi_test::copy_result_to_dreg0</definition>
+        <argsstring>(int addr)</argsstring>
+        <name>copy_result_to_dreg0</name>
+        <param>
+          <type>int</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="25" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="25" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1ac1a033816cc9dfffcf2c585f7f1d76c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>sfpi_inline void</type>
+        <definition>sfpi_inline void sfpi_test::set_expected_result</definition>
+        <argsstring>(int addr, float sentinel, int expected, sfpi::vInt v)</argsstring>
+        <name>set_expected_result</name>
+        <param>
+          <type>int</type>
+          <declname>addr</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>sentinel</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>expected</declname>
+        </param>
+        <param>
+          <type>sfpi::vInt</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="35" column="18" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="35" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1af7bb914a1122c9c334b27558c3d957fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>sfpi_inline sfpi::vInt</type>
+        <definition>sfpi_inline sfpi::vInt sfpi_test::test_interleaved_scalar_vector_cond</definition>
+        <argsstring>(bool scalar_bool, sfpi::vFloat vec, float a, float b)</argsstring>
+        <name>test_interleaved_scalar_vector_cond</name>
+        <param>
+          <type>bool</type>
+          <declname>scalar_bool</declname>
+        </param>
+        <param>
+          <type>sfpi::vFloat</type>
+          <declname>vec</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="51" column="24" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="51" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a8dbd314f5daeb3ecac8280d2775674a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class vType</type>
+          </param>
+        </templateparamlist>
+        <type>sfpi_inline vType</type>
+        <definition>sfpi_inline vType sfpi_test::reduce_bool4</definition>
+        <argsstring>(vType a, vType b, vType c, vType d, int reference)</argsstring>
+        <name>reduce_bool4</name>
+        <param>
+          <type>vType</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>vType</type>
+          <declname>b</declname>
+        </param>
+        <param>
+          <type>vType</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>vType</type>
+          <declname>d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>reference</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="64" column="19" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="64" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a8b8ef6081fbf37228dc7deb7a2a9d687" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test1</definition>
+        <argsstring>()</argsstring>
+        <name>test1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="90" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="90" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a7eddcef1b5ca1e2a50d16183d560c677" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test2</definition>
+        <argsstring>()</argsstring>
+        <name>test2</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="96" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="96" bodyend="103"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a68b6c523d9835b578ac612246ec6bfcf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test3</definition>
+        <argsstring>()</argsstring>
+        <name>test3</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="105" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="105" bodyend="317"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1aa938f2dcd804b6653a02d46b9e1213c6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test4</definition>
+        <argsstring>()</argsstring>
+        <name>test4</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="319" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="319" bodyend="505"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1ab4a38ffc12175612f437a1233bf340b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test5</definition>
+        <argsstring>()</argsstring>
+        <name>test5</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="507" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="507" bodyend="705"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a4e5f94a450564713dfe34349e24955e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test6</definition>
+        <argsstring>()</argsstring>
+        <name>test6</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="707" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="707" bodyend="1060"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a58c19f4c8688378f0676ab4d24a70dfe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test7</definition>
+        <argsstring>()</argsstring>
+        <name>test7</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="1062" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="1062" bodyend="1252"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a2570e4dddb511d5c0fba38d65f38d5e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test8</definition>
+        <argsstring>()</argsstring>
+        <name>test8</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="1254" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="1254" bodyend="1567"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a741905585aba7f0af489e8a8eab902dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test9</definition>
+        <argsstring>()</argsstring>
+        <name>test9</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="1569" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="1569" bodyend="1740"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a5492d4422eb4e5f7748475a2c994eb58" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test10</definition>
+        <argsstring>()</argsstring>
+        <name>test10</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="1742" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="1742" bodyend="1829"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a3a241040766cd6036dc65b47e84f5ecd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test11</definition>
+        <argsstring>()</argsstring>
+        <name>test11</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="1831" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="1831" bodyend="2166"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a503cb009eb8bdcc33b87f9a62cb7bb77" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test12</definition>
+        <argsstring>(int imm)</argsstring>
+        <name>test12</name>
+        <param>
+          <type>int</type>
+          <declname>imm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="2168" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="2168" bodyend="2356"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a4ec4017f2dc56d54300046aeff330be1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test13</definition>
+        <argsstring>(int imm)</argsstring>
+        <name>test13</name>
+        <param>
+          <type>int</type>
+          <declname>imm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="2361" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="2361" bodyend="2621"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1ad57949102225f4e06d3ba22a3c1e72da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test14</definition>
+        <argsstring>(int imm)</argsstring>
+        <name>test14</name>
+        <param>
+          <type>int</type>
+          <declname>imm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="2623" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="2623" bodyend="3127"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1aaaf9e95749e6b6123ece3e13410a1b97" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__sfpi_8h_1a289e52dcc275cca3b999708010eecc7e" kindref="member">sfpi_test_noinline</ref> void</type>
+        <definition>sfpi_test_noinline void sfpi_test::test15</definition>
+        <argsstring>()</argsstring>
+        <name>test15</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="3129" column="25" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="3129" bodyend="3256"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a31b301dcc0df873008e2b4d3e9008929" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sfpi_test::test16</definition>
+        <argsstring>()</argsstring>
+        <name>test16</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="3258" column="6" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="3258" bodyend="3363"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a5c5b8531a64f0a263b548a75bbe9fc04" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sfpi_test::test17</definition>
+        <argsstring>()</argsstring>
+        <name>test17</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="3365" column="6" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="3365" bodyend="3421"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesfpi__test_1a3a5715209b7091989c201c2e66114a13" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>SfpiTestType</type>
+            <declname>operation</declname>
+            <defname>operation</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void sfpi_test::calculate_sfpi</definition>
+        <argsstring>(uint param0=0, uint param1=0, uint param2=0, uint param3=0, uint param4=0, uint param5=0)</argsstring>
+        <name>calculate_sfpi</name>
+        <param>
+          <type>uint</type>
+          <declname>param0</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param1</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param2</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param3</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param4</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param5</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="3428" column="13" bodyfile="tt_llk_blackhole/common/inc/ckernel_sfpi.h" bodystart="3428" bodyend="3498"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_sfpi.h" line="22" column="1"/>
+  </compounddef>
+</doxygen>

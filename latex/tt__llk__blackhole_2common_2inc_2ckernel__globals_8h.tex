@@ -1,0 +1,83 @@
+\hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h}{}\doxysection{tt\+\_\+llk\+\_\+blackhole/common/inc/ckernel\+\_\+globals.h File Reference}
+\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h}\index{tt\_llk\_blackhole/common/inc/ckernel\_globals.h@{tt\_llk\_blackhole/common/inc/ckernel\_globals.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+structs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}risc\+\_\+attribs.\+h\char`\"{}}\newline
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a9c05ec734dd70877abef2cc14912e0a9}{cfg\+\_\+state\+\_\+id}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_ad599359d106464c9e12c1f131540a1c0}{unp\+\_\+cfg\+\_\+context}}
+\item 
+uint32\+\_\+t volatile \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_aa1f6e66cf66f12ae4766078f901d9512}{l1\+\_\+buffer}} \mbox{[}16\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_af429823be62c0e6a8c9e6555b930f7c9}{pack\+\_\+sync\+\_\+tile\+\_\+dst\+\_\+ptr}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_af5d8a9899c9fbdf4094574a9600663db}{math\+\_\+sync\+\_\+tile\+\_\+dst\+\_\+index}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a127d6f144e1152157722241e5abfa2a4}{\+\_\+\+\_\+local\+\_\+mem\+\_\+rodata\+\_\+start\+\_\+addr}} \mbox{[}$\,$\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a93f88257669206af337b8d3c4bb8d06f}{\+\_\+\+\_\+local\+\_\+mem\+\_\+rodata\+\_\+end\+\_\+addr}} \mbox{[}$\,$\mbox{]}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a8cac23f916049ce01d508cf6f317ad77}{\+\_\+\+\_\+firmware\+\_\+start}} \mbox{[}$\,$\mbox{]}
+\item 
+int32\+\_\+t \mbox{\hyperlink{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a6bba9967d9866a462c58f70e274039c9}{topk\+\_\+replay\+\_\+init}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Variable Documentation}
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a8cac23f916049ce01d508cf6f317ad77}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a8cac23f916049ce01d508cf6f317ad77}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!\_\_firmware\_start@{\_\_firmware\_start}}
+\index{\_\_firmware\_start@{\_\_firmware\_start}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{\_\_firmware\_start}{\_\_firmware\_start}}
+{\footnotesize\ttfamily uint32\+\_\+t \+\_\+\+\_\+firmware\+\_\+start\mbox{[}$\,$\mbox{]}\hspace{0.3cm}{\ttfamily [extern]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a93f88257669206af337b8d3c4bb8d06f}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a93f88257669206af337b8d3c4bb8d06f}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!\_\_local\_mem\_rodata\_end\_addr@{\_\_local\_mem\_rodata\_end\_addr}}
+\index{\_\_local\_mem\_rodata\_end\_addr@{\_\_local\_mem\_rodata\_end\_addr}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{\_\_local\_mem\_rodata\_end\_addr}{\_\_local\_mem\_rodata\_end\_addr}}
+{\footnotesize\ttfamily uint32\+\_\+t \+\_\+\+\_\+local\+\_\+mem\+\_\+rodata\+\_\+end\+\_\+addr\mbox{[}$\,$\mbox{]}\hspace{0.3cm}{\ttfamily [extern]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a127d6f144e1152157722241e5abfa2a4}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a127d6f144e1152157722241e5abfa2a4}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!\_\_local\_mem\_rodata\_start\_addr@{\_\_local\_mem\_rodata\_start\_addr}}
+\index{\_\_local\_mem\_rodata\_start\_addr@{\_\_local\_mem\_rodata\_start\_addr}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{\_\_local\_mem\_rodata\_start\_addr}{\_\_local\_mem\_rodata\_start\_addr}}
+{\footnotesize\ttfamily uint32\+\_\+t \+\_\+\+\_\+local\+\_\+mem\+\_\+rodata\+\_\+start\+\_\+addr\mbox{[}$\,$\mbox{]}\hspace{0.3cm}{\ttfamily [extern]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a9c05ec734dd70877abef2cc14912e0a9}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a9c05ec734dd70877abef2cc14912e0a9}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!cfg\_state\_id@{cfg\_state\_id}}
+\index{cfg\_state\_id@{cfg\_state\_id}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{cfg\_state\_id}{cfg\_state\_id}}
+{\footnotesize\ttfamily uint32\+\_\+t cfg\+\_\+state\+\_\+id\hspace{0.3cm}{\ttfamily [extern]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_aa1f6e66cf66f12ae4766078f901d9512}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_aa1f6e66cf66f12ae4766078f901d9512}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!l1\_buffer@{l1\_buffer}}
+\index{l1\_buffer@{l1\_buffer}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{l1\_buffer}{l1\_buffer}}
+{\footnotesize\ttfamily uint32\+\_\+t volatile l1\+\_\+buffer\mbox{[}16\mbox{]}\hspace{0.3cm}{\ttfamily [extern]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_af5d8a9899c9fbdf4094574a9600663db}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_af5d8a9899c9fbdf4094574a9600663db}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!math\_sync\_tile\_dst\_index@{math\_sync\_tile\_dst\_index}}
+\index{math\_sync\_tile\_dst\_index@{math\_sync\_tile\_dst\_index}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{math\_sync\_tile\_dst\_index}{math\_sync\_tile\_dst\_index}}
+{\footnotesize\ttfamily uint32\+\_\+t math\+\_\+sync\+\_\+tile\+\_\+dst\+\_\+index\hspace{0.3cm}{\ttfamily [extern]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_af429823be62c0e6a8c9e6555b930f7c9}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_af429823be62c0e6a8c9e6555b930f7c9}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!pack\_sync\_tile\_dst\_ptr@{pack\_sync\_tile\_dst\_ptr}}
+\index{pack\_sync\_tile\_dst\_ptr@{pack\_sync\_tile\_dst\_ptr}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{pack\_sync\_tile\_dst\_ptr}{pack\_sync\_tile\_dst\_ptr}}
+{\footnotesize\ttfamily uint32\+\_\+t pack\+\_\+sync\+\_\+tile\+\_\+dst\+\_\+ptr\hspace{0.3cm}{\ttfamily [extern]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a6bba9967d9866a462c58f70e274039c9}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_a6bba9967d9866a462c58f70e274039c9}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!topk\_replay\_init@{topk\_replay\_init}}
+\index{topk\_replay\_init@{topk\_replay\_init}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{topk\_replay\_init}{topk\_replay\_init}}
+{\footnotesize\ttfamily int32\+\_\+t topk\+\_\+replay\+\_\+init\hspace{0.3cm}{\ttfamily [extern]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_ad599359d106464c9e12c1f131540a1c0}\label{tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_ad599359d106464c9e12c1f131540a1c0}} 
+\index{ckernel\_globals.h@{ckernel\_globals.h}!unp\_cfg\_context@{unp\_cfg\_context}}
+\index{unp\_cfg\_context@{unp\_cfg\_context}!ckernel\_globals.h@{ckernel\_globals.h}}
+\doxysubsubsection{\texorpdfstring{unp\_cfg\_context}{unp\_cfg\_context}}
+{\footnotesize\ttfamily uint32\+\_\+t unp\+\_\+cfg\+\_\+context\hspace{0.3cm}{\ttfamily [extern]}}
+

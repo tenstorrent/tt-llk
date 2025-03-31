@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__gpool" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_gpool</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__gpool_1a52b70cc3da20982f573c3ba95ffdc636" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpool::DIM_1X16</definition>
+        <argsstring></argsstring>
+        <name>DIM_1X16</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="350" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="350" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpool::DIM_16X16</definition>
+        <argsstring></argsstring>
+        <name>DIM_16X16</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="351" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="351" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpool::INDEX_DIS</definition>
+        <argsstring></argsstring>
+        <name>INDEX_DIS</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="352" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="352" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpool_1a63af9431877e2796aeb09e3c349f127e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpool::INDEX_EN</definition>
+        <argsstring></argsstring>
+        <name>INDEX_EN</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="353" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="353" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="348" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="349" bodyend="354"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__gpool_1ad1e577413e9f3187ba8afbbdcebd10b9" prot="public" virt="non-virtual"><scope>ckernel::p_gpool</scope><name>DIM_16X16</name></member>
+      <member refid="structckernel_1_1p__gpool_1a52b70cc3da20982f573c3ba95ffdc636" prot="public" virt="non-virtual"><scope>ckernel::p_gpool</scope><name>DIM_1X16</name></member>
+      <member refid="structckernel_1_1p__gpool_1a2a479af81744a728988021146b6b6666" prot="public" virt="non-virtual"><scope>ckernel::p_gpool</scope><name>INDEX_DIS</name></member>
+      <member refid="structckernel_1_1p__gpool_1a63af9431877e2796aeb09e3c349f127e" prot="public" virt="non-virtual"><scope>ckernel::p_gpool</scope><name>INDEX_EN</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,498 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h" kind="file" language="C++">
+    <compoundname>llk_math_eltwise_unary_datacopy.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes local="yes">ckernel_globals.h</includes>
+    <includes local="yes">ckernel_include.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">ckernel_template.h</includes>
+    <includes local="yes">cmath_common.h</includes>
+    <includes refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h" local="yes">llk_math_common.h</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="9">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="4">
+        <label>ckernel_include.h</label>
+      </node>
+      <node id="6">
+        <label>ckernel_template.h</label>
+      </node>
+      <node id="8">
+        <label>llk_math_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>cmath_common.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_globals.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_ops.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a41e46a4d018b3de33edeae43e68419b0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void eltwise_unary_configure_addrmod</definition>
+        <argsstring>()</argsstring>
+        <name>eltwise_unary_configure_addrmod</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" line="73" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" bodystart="73" bodyend="130" declfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" declline="19" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a63cf0ffbb44c5809cd71a864ca1d568b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32" kindref="member">DataCopyType</ref></type>
+            <declname>type</declname>
+            <defname>type</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2" kindref="member">BroadcastType</ref></type>
+            <declname>src_b_bcast_type</declname>
+            <defname>src_b_bcast_type</defname>
+            <defval>BroadcastType::NONE</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>unpack_to_dest</declname>
+            <defname>unpack_to_dest</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_eltwise_unary_datacopy_</definition>
+        <argsstring>(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)</argsstring>
+        <name>_llk_math_eltwise_unary_datacopy_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>dst_index</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>dst_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" line="22" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" bodystart="22" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a25864e90ebf1d07904c26acd3a6b2768" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32" kindref="member">DataCopyType</ref></type>
+            <declname>type</declname>
+            <defname>type</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2" kindref="member">BroadcastType</ref></type>
+            <declname>bcast_type</declname>
+            <defname>bcast_type</defname>
+            <defval>BroadcastType::NONE</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_int_fpu_en</declname>
+            <defname>is_int_fpu_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void eltwise_unary_configure_mop</definition>
+        <argsstring>(uint rows_per_inst, uint total_rows, const uint num_faces, const uint dst_format)</argsstring>
+        <name>eltwise_unary_configure_mop</name>
+        <param>
+          <type>uint</type>
+          <declname>rows_per_inst</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>total_rows</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>num_faces</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>dst_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" line="133" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" bodystart="133" bodyend="213"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1af293525844e0cbb981136f2ec212ed2c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32" kindref="member">DataCopyType</ref></type>
+            <declname>type</declname>
+            <defname>type</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2" kindref="member">BroadcastType</ref></type>
+            <declname>src_b_bcast_type</declname>
+            <defname>src_b_bcast_type</defname>
+            <defval>BroadcastType::NONE</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_int_fpu_en</declname>
+            <defname>is_int_fpu_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_eltwise_unary_datacopy_init_</definition>
+        <argsstring>(const std::uint32_t transpose_of_faces=0, const std::uint32_t within_face_16x16_transpose=0, const std::uint32_t num_faces=4, const std::uint32_t dst_format=255)</argsstring>
+        <name>_llk_math_eltwise_unary_datacopy_init_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>transpose_of_faces</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>within_face_16x16_transpose</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>dst_format</declname>
+          <defval>255</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" line="217" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h" bodystart="217" bodyend="241"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_globals.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_include.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_template.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cmath_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h" kindref="compound">llk_math_common.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/>local<sp/>function<sp/>declarations</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a41e46a4d018b3de33edeae43e68419b0" kindref="member">eltwise_unary_configure_addrmod</ref>();</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DataCopyType<sp/>type,<sp/>DstSync<sp/>Dst,<sp/>BroadcastType<sp/>src_b_bcast_type<sp/>=<sp/>BroadcastType::NONE,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>unpack_to_dest<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="22" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a63cf0ffbb44c5809cd71a864ca1d568b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a63cf0ffbb44c5809cd71a864ca1d568b" kindref="member">_llk_math_eltwise_unary_datacopy_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>dst_index,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>src_format,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>dst_format)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(unpack_to_dest<sp/>&amp;&amp;<sp/><ref refid="namespaceckernel_1_1math_1a58be621ab2361f2a2ae79b591edd14c5" kindref="member">is_32bit_input</ref>(src_format,<sp/>dst_format))</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>SKIP_UNP<sp/>==<sp/>1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a27f7211197bc82243e50f0a0458f0547" kindref="member">math_unpack_to_dest_math_ready</ref>();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>math::set_dst_write_addr&lt;DstTileLayout::Default,<sp/>DstTileShape::Tile32x32,<sp/>true&gt;(dst_index);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a6230929ea78574da9f2c89cf01c74c41" kindref="member">math::math_unpack_to_dest_tile_ready</ref>();</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>((Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e" kindref="member">DstSync::SyncTile16</ref>)<sp/>||<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676" kindref="member">DstSync::SyncTile2</ref>))</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>math::set_dst_write_addr&lt;DstTileLayout::Default,<sp/>DstTileShape::Tile32x32&gt;(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref>);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>math::set_dst_write_addr&lt;DstTileLayout::Default,<sp/>DstTileShape::Tile32x32&gt;(dst_index);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32aa240f0f637e4b6c366942c9c835acf86" kindref="member">A2D</ref>)</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32ab812a24dfc5be14f10b6fdb9d4ae8857" kindref="member">B2D</ref>)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(src_b_bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afedbce921685ff360217656e13481e17" kindref="member">BroadcastType::COL</ref>)</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Mop<sp/>for<sp/>col<sp/>broadcast<sp/>only<sp/>does<sp/>2<sp/>outerloops.<sp/><sp/>Needs<sp/>to<sp/>clear<sp/>B<sp/>manually<sp/>and<sp/>call<sp/>twice</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a0648d2e74da9ab9c492cb2c30f4ff8e7" kindref="member">p_setrwc::CLR_B</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template_1abef3e894a0d41dc257c3e1e836ed2971" kindref="member">ckernel_template::run</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>FWASSERT(</highlight><highlight class="stringliteral">&quot;Unsupported<sp/>op!&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a67bcf29581cd07b43cb0540d8e0e238f" kindref="member">math::clear_dst_reg_addr</ref>();</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DataCopyType<sp/>type,<sp/>BroadcastType<sp/>bcast_type<sp/>=<sp/>BroadcastType::NONE&gt;</highlight></codeline>
+<codeline lineno="73" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a41e46a4d018b3de33edeae43e68419b0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a41e46a4d018b3de33edeae43e68419b0" kindref="member">eltwise_unary_configure_addrmod</ref>()</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Use<sp/>srcA<sp/>for<sp/>data<sp/>movement</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32aa240f0f637e4b6c366942c9c835acf86" kindref="member">A2D</ref>)</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>1},</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>1},</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Just<sp/>unpack<sp/>into<sp/>A<sp/>and<sp/>move<sp/>to<sp/>Dest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>8},</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>8},</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2ac1660f5f435b49f3062ae72e73f8fd3c" kindref="member">BroadcastType::ROW</ref><sp/>||<sp/>bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afa6cc523436cb6f98e189ddaa82354fe" kindref="member">BroadcastType::SCALAR</ref>)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>1},</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Just<sp/>unpack<sp/>into<sp/>B<sp/>and<sp/>move<sp/>to<sp/>Dest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>8},</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>1},</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>1},</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref>);</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Just<sp/>unpack<sp/>into<sp/>B<sp/>and<sp/>move<sp/>to<sp/>Dest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>8},</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>8},</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>);</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DataCopyType<sp/>type,<sp/>BroadcastType<sp/>bcast_type<sp/>=<sp/>BroadcastType::NONE,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">_fpu_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="133" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a25864e90ebf1d07904c26acd3a6b2768" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a18832445180e8e449f8ca73a8f44a252" kindref="member">eltwise_unary_configure_mop</ref>(uint<sp/>rows_per_inst,<sp/>uint<sp/>total_rows,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>num_faces,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>dst_format)</highlight></codeline>
+<codeline lineno="134"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>always<sp/>move<sp/>32x32<sp/>tile,<sp/>packed<sp/>as<sp/>16x16x4</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32aa240f0f637e4b6c366942c9c835acf86" kindref="member">A2D</ref>)</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>addr_mod<sp/><sp/>=<sp/>(rows_per_inst<sp/>==<sp/><ref refid="structckernel_1_1p__mova2d_1a5494ee268d5c1246205c2e0daa08480f" kindref="member">p_mova2d::MOV_1_ROW</ref>)<sp/>?<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref><sp/>:<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>innerloop<sp/>=<sp/>(rows_per_inst<sp/>==<sp/><ref refid="structckernel_1_1p__mova2d_1a5494ee268d5c1246205c2e0daa08480f" kindref="member">p_mova2d::MOV_1_ROW</ref>)<sp/>?<sp/>total_rows<sp/>:<sp/>(total_rows<sp/>&gt;&gt;<sp/>3);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>outerloop<sp/>=<sp/>num_faces;</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(((is_fp32_dest_acc_en<sp/>||<sp/>is_int_fpu_en)<sp/>&amp;&amp;<sp/>!(dst_format<sp/>==<sp/>(uint)DataFormat::UInt16))<sp/>||<sp/>(dst_format<sp/>==<sp/>(uint)DataFormat::UInt8))</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>use<sp/>elwadd<sp/>to<sp/>handle<sp/>unpacking<sp/>data<sp/>into<sp/>src<sp/>A<sp/>as<sp/>fp16,<sp/>but<sp/>dest<sp/>is<sp/>in<sp/>fp32<sp/>mode<sp/>OR<sp/>to<sp/>handle<sp/>uint8<sp/>datums</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1afe93f186b2cb85d06ef5ce3fb3a3dc58" kindref="member">TT_OP_ELWADD</ref>(0,<sp/>0,<sp/><ref refid="structckernel_1_1p__elwise_1ad617b6cda24568d71f1efeb973bae1ef" kindref="member">p_elwise::SRCB_NO_BCAST</ref>,<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>,<sp/>0));</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a23260559f44ee93f26bdfca2104f993e" kindref="member">TT_OP_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a86326ed99ec2b8f7e926f58ae3a31874" kindref="member">p_setrwc::SET_AB</ref>));</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a6430e6b61e76dd669380378eb6aef595" kindref="member">TT_OP_MOVA2D</ref>(0,<sp/>0,<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>,<sp/><ref refid="structckernel_1_1p__mova2d_1a54936ace42a887fdac6d183429174549" kindref="member">p_mova2d::MOV_8_ROWS</ref>,<sp/>0));</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a23260559f44ee93f26bdfca2104f993e" kindref="member">TT_OP_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a86326ed99ec2b8f7e926f58ae3a31874" kindref="member">p_setrwc::SET_AB</ref>));</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32ab812a24dfc5be14f10b6fdb9d4ae8857" kindref="member">B2D</ref>)</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>addr_mod<sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>(rows_per_inst<sp/>==<sp/><ref refid="structckernel_1_1p__movb2d_1a7be84406a3b87505b770ad0ca347c188" kindref="member">p_movb2d::MOV_1_ROW</ref>)<sp/>?<sp/><ref refid="namespaceckernel_1a6ab834d63e10ce17129462b13dac571e" kindref="member">ADDR_MOD_0</ref><sp/>:<sp/><ref refid="namespaceckernel_1a4e23f10e88925e4b5263ca7a2b882965" kindref="member">ADDR_MOD_2</ref>;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>innerloop<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>(rows_per_inst<sp/>==<sp/><ref refid="structckernel_1_1p__movb2d_1a7be84406a3b87505b770ad0ca347c188" kindref="member">p_movb2d::MOV_1_ROW</ref>)<sp/>?<sp/>total_rows<sp/>:<sp/>(total_rows<sp/>&gt;&gt;<sp/>2);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>uint<sp/>outerloop<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>4;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>broadcast_type<sp/>=<sp/><ref refid="structckernel_1_1p__movb2d_1a7be84406a3b87505b770ad0ca347c188" kindref="member">p_movb2d::MOV_1_ROW</ref>;<sp/></highlight><highlight class="comment">//<sp/>No<sp/>broadcast;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afedbce921685ff360217656e13481e17" kindref="member">BroadcastType::COL</ref>)</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>innerloop<sp/>=<sp/>16<sp/>&gt;&gt;<sp/>3;<sp/></highlight><highlight class="comment">//<sp/>elwadd<sp/>produces<sp/>8<sp/>rows<sp/>per<sp/>op</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>mop<sp/>only<sp/>runs<sp/>for<sp/>2<sp/>outer<sp/>loops<sp/>and<sp/>mop<sp/>is<sp/>called<sp/>twice<sp/>for<sp/>col<sp/>broadcast</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>outerloop<sp/>=<sp/>2;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>broadcast_type<sp/>=<sp/>p_movb2d::MOV_8_ROW_BRCST_D0_BRCST;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>MOVB2D<sp/>with<sp/>column<sp/>broadcast<sp/>doesn&apos;t<sp/>work<sp/>due<sp/>to<sp/>the<sp/>bug<sp/>in<sp/>FPU<sp/>tile</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>which<sp/>masks<sp/>dest<sp/>write<sp/>enable<sp/>signals<sp/>when<sp/>instrn_mode[1:0]<sp/>==<sp/>2&apos;b01</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>ELTWADD<sp/>with<sp/>zeros<sp/>will<sp/>be<sp/>used<sp/>as<sp/>a<sp/>workaround</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>broadcast_type<sp/>=<sp/><ref refid="structckernel_1_1p__elwise_1a53983f987a81aabe428f216993dfc484" kindref="member">p_elwise::SRCB_BCAST_COL</ref>;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2ac1660f5f435b49f3062ae72e73f8fd3c" kindref="member">BroadcastType::ROW</ref>)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>innerloop<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>(total_rows<sp/>&gt;&gt;<sp/>3);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>broadcast_type<sp/>=<sp/><ref refid="structckernel_1_1p__movb2d_1afca960638d0f6d0bf4baeafb676acd00" kindref="member">p_movb2d::MOV_8_ROW_BRCST</ref>;</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afa6cc523436cb6f98e189ddaa82354fe" kindref="member">BroadcastType::SCALAR</ref>)</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>ELTWADD<sp/>with<sp/>zeros<sp/>will<sp/>be<sp/>used<sp/>as<sp/>a<sp/>workaround</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>outerloop<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>innerloop<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>num_faces<sp/>*<sp/>(total_rows<sp/>&gt;&gt;<sp/>3);</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>broadcast_type<sp/>=<sp/><ref refid="structckernel_1_1p__elwise_1a995004e8b2a9889ba848f11c38b72fcf" kindref="member">p_elwise::SRCB_BCAST_ALL</ref>;</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afa6cc523436cb6f98e189ddaa82354fe" kindref="member">BroadcastType::SCALAR</ref>)</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1afe93f186b2cb85d06ef5ce3fb3a3dc58" kindref="member">TT_OP_ELWADD</ref>(0,<sp/>0,<sp/>broadcast_type,<sp/>addr_mod,<sp/>0));</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a23260559f44ee93f26bdfca2104f993e" kindref="member">TT_OP_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1ab5d804ba63885c15ce9409ad544f61c0" kindref="member">p_setrwc::CLR_AB</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/>0,<sp/>0));</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2afedbce921685ff360217656e13481e17" kindref="member">BroadcastType::COL</ref>)</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1afe93f186b2cb85d06ef5ce3fb3a3dc58" kindref="member">TT_OP_ELWADD</ref>(0,<sp/>0,<sp/>broadcast_type,<sp/>addr_mod,<sp/>0));</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a23260559f44ee93f26bdfca2104f993e" kindref="member">TT_OP_SETRWC</ref>(0,<sp/><ref refid="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" kindref="member">p_setrwc::CR_B</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" kindref="member">p_setrwc::SET_B</ref>));</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(bcast_type<sp/>==<sp/><ref refid="namespaceckernel_1a850ed05e8a4dc1ed46bf65150c9635c2ac1660f5f435b49f3062ae72e73f8fd3c" kindref="member">BroadcastType::ROW</ref>)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1afd3886d302e16dcaf5f2dc7006799cab" kindref="member">TT_OP_MOVB2D</ref>(0,<sp/>0,<sp/>addr_mod,<sp/>broadcast_type,<sp/>0));</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a23260559f44ee93f26bdfca2104f993e" kindref="member">TT_OP_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a0648d2e74da9ab9c492cb2c30f4ff8e7" kindref="member">p_setrwc::CLR_B</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" kindref="member">p_setrwc::CR_B</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" kindref="member">p_setrwc::SET_B</ref>));</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classckernel_1_1ckernel__template" kindref="compound">ckernel_template</ref><sp/>tmp(outerloop,<sp/>innerloop,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1afd3886d302e16dcaf5f2dc7006799cab" kindref="member">TT_OP_MOVB2D</ref>(0,<sp/>0,<sp/>addr_mod,<sp/>rows_per_inst,<sp/>0));</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a06f4931ffd243af6cff94df51579715f" kindref="member">set_end_op</ref>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a23260559f44ee93f26bdfca2104f993e" kindref="member">TT_OP_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a0648d2e74da9ab9c492cb2c30f4ff8e7" kindref="member">p_setrwc::CLR_B</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a6ae0887aba372a3e7dbe119e1560eda6" kindref="member">p_setrwc::CR_B</ref>,<sp/>0,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a9637a01f7f55dc303ca08dadaec064c1" kindref="member">p_setrwc::SET_B</ref>));</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>tmp.<ref refid="classckernel_1_1ckernel__template_1a3b91c3688a20652ab9e379348effb2e5" kindref="member">program</ref>(<ref refid="namespaceckernel_1a2d69fb46f1972c372d8a89775ef780e3" kindref="member">instrn_buffer</ref>);</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="213"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DataCopyType<sp/>type,<sp/>BroadcastType<sp/>src_b_bcast_type<sp/>=<sp/>BroadcastType::NONE,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">_fpu_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight><highlight class="comment">//<sp/>within_face_16x16_transpose<sp/>is<sp/>used<sp/>by<sp/>unpacker,<sp/>math<sp/>does<sp/>not<sp/>transpose</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1af293525844e0cbb981136f2ec212ed2c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_1a9060959a47076840435383182a8ecc19" kindref="member">_llk_math_eltwise_unary_datacopy_init_</ref>(</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>transpose_of_faces<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0<sp/></highlight><highlight class="comment">/*unused*/</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>within_face_16x16_transpose<sp/>=<sp/>0<sp/></highlight><highlight class="comment">/*<sp/>unused<sp/>*/</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>num_faces<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>4,</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>dst_format<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>255)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/>eltwise_unary_configure_addrmod&lt;type,<sp/>src_b_bcast_type&gt;();</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32aa240f0f637e4b6c366942c9c835acf86" kindref="member">A2D</ref>)</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eltwise_unary_configure_mop&lt;type,<sp/>src_b_bcast_type,<sp/>is_fp32_dest_acc_en,<sp/>is_int_fpu_en&gt;(<ref refid="structckernel_1_1p__mova2d_1a54936ace42a887fdac6d183429174549" kindref="member">p_mova2d::MOV_8_ROWS</ref>,<sp/>16,<sp/>num_faces,<sp/>dst_format);</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(type<sp/>==<sp/><ref refid="namespaceckernel_1a3eac502a359be920e2fb1e446baadc32ab812a24dfc5be14f10b6fdb9d4ae8857" kindref="member">B2D</ref>)</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>eltwise_unary_configure_mop&lt;type,<sp/>src_b_bcast_type&gt;(<ref refid="structckernel_1_1p__movb2d_1a503ed4520d4aed13be84b4e89ea30669" kindref="member">p_movb2d::MOV_4_ROWS</ref>,<sp/>16,<sp/>num_faces,<sp/>dst_format);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>FWASSERT(</highlight><highlight class="stringliteral">&quot;Unsupported<sp/>op!&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1aefdf36a2f28e581b63a360bef288fecb" kindref="member">TTI_SETC16</ref>(CLR_DVALID_SrcA_Disable_ADDR32,<sp/>0);</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a4de2f1cf6fdbf8440aa394f2509ea5de" kindref="member">math::reset_counters</ref>(<ref refid="structckernel_1_1p__setrwc_1a831ce6850ea6dbade5660f1a1579f3f3" kindref="member">p_setrwc::SET_ABD_F</ref>);</highlight></codeline>
+<codeline lineno="241"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1dbg__daisy__id" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::dbg_daisy_id</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h" local="no">ckernel_debug.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1dbg__daisy__id_1aa73f5bac43adadda6ce624c1fbff8f33" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_daisy_id::INSTR_ISSUE_0</definition>
+        <argsstring></argsstring>
+        <name>INSTR_ISSUE_0</name>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="37" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__daisy__id_1a4186c3b44dc273cca48cf315731ac3d2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_daisy_id::INSTR_ISSUE_1</definition>
+        <argsstring></argsstring>
+        <name>INSTR_ISSUE_1</name>
+        <initializer>= 5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="38" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__daisy__id_1a9f84dad856c5674a46535e938d5f442a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::dbg_daisy_id::INSTR_ISSUE_2</definition>
+        <argsstring></argsstring>
+        <name>INSTR_ISSUE_2</name>
+        <initializer>= 6</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="39" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="35" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="36" bodyend="40"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1dbg__daisy__id_1aa73f5bac43adadda6ce624c1fbff8f33" prot="public" virt="non-virtual"><scope>ckernel::dbg_daisy_id</scope><name>INSTR_ISSUE_0</name></member>
+      <member refid="structckernel_1_1dbg__daisy__id_1a4186c3b44dc273cca48cf315731ac3d2" prot="public" virt="non-virtual"><scope>ckernel::dbg_daisy_id</scope><name>INSTR_ISSUE_1</name></member>
+      <member refid="structckernel_1_1dbg__daisy__id_1a9f84dad856c5674a46535e938d5f442a" prot="public" virt="non-virtual"><scope>ckernel::dbg_daisy_id</scope><name>INSTR_ISSUE_2</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

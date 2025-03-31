@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1packer_1_1pck__edge__offset__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::packer::pck_edge_offset_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h" local="no">cpack_common.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pck__edge__offset__t_1a3d2dc7157ecc02b3c9b022db1c268ef7" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pck_edge_offset_t::mask</definition>
+        <argsstring></argsstring>
+        <name>mask</name>
+        <bitfield> 16</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="119" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="119" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pck__edge__offset__t_1afac36038e776fef1f71525833845a4c5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pck_edge_offset_t::mode</definition>
+        <argsstring></argsstring>
+        <name>mode</name>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="120" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pck__edge__offset__t_1a2f274c236f8431c6f1f9046627bea90c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pck_edge_offset_t::tile_row_set_select_pack0</definition>
+        <argsstring></argsstring>
+        <name>tile_row_set_select_pack0</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="121" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pck__edge__offset__t_1aad061a5076c0c6fa3283e1b0742d22ab" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pck_edge_offset_t::tile_row_set_select_pack1</definition>
+        <argsstring></argsstring>
+        <name>tile_row_set_select_pack1</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="122" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="122" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pck__edge__offset__t_1a7eb92f1c283c8ce388c826cbacd2fb37" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pck_edge_offset_t::tile_row_set_select_pack2</definition>
+        <argsstring></argsstring>
+        <name>tile_row_set_select_pack2</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="123" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pck__edge__offset__t_1a519ae36aa209aea2e022e87187f09144" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pck_edge_offset_t::tile_row_set_select_pack3</definition>
+        <argsstring></argsstring>
+        <name>tile_row_set_select_pack3</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="124" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1packer_1_1pck__edge__offset__t_1a7aaefe3ceef43136d352b881749e3830" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::pck_edge_offset_t::reserved</definition>
+        <argsstring></argsstring>
+        <name>reserved</name>
+        <bitfield> 7</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="125" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="117" column="1" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="118" bodyend="126"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a3d2dc7157ecc02b3c9b022db1c268ef7" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_t</scope><name>mask</name></member>
+      <member refid="structckernel_1_1packer_1_1pck__edge__offset__t_1afac36038e776fef1f71525833845a4c5" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_t</scope><name>mode</name></member>
+      <member refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a7aaefe3ceef43136d352b881749e3830" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_t</scope><name>reserved</name></member>
+      <member refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a2f274c236f8431c6f1f9046627bea90c" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_t</scope><name>tile_row_set_select_pack0</name></member>
+      <member refid="structckernel_1_1packer_1_1pck__edge__offset__t_1aad061a5076c0c6fa3283e1b0742d22ab" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_t</scope><name>tile_row_set_select_pack1</name></member>
+      <member refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a7eb92f1c283c8ce388c826cbacd2fb37" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_t</scope><name>tile_row_set_select_pack2</name></member>
+      <member refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a519ae36aa209aea2e022e87187f09144" prot="public" virt="non-virtual"><scope>ckernel::packer::pck_edge_offset_t</scope><name>tile_row_set_select_pack3</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

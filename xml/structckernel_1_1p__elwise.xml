@@ -1,0 +1,151 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__elwise" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_elwise</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1ad617b6cda24568d71f1efeb973bae1ef" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::SRCB_NO_BCAST</definition>
+        <argsstring></argsstring>
+        <name>SRCB_NO_BCAST</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="358" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="358" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1ae54975a00eb7a816530b84c4a502e200" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::DEST_ACCUM_EN</definition>
+        <argsstring></argsstring>
+        <name>DEST_ACCUM_EN</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="359" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="359" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1a4ad0a79951c076b121be9f7e1bdcb4df" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::DEST_ACCUM_DIS</definition>
+        <argsstring></argsstring>
+        <name>DEST_ACCUM_DIS</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="360" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="360" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1a53983f987a81aabe428f216993dfc484" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::SRCB_BCAST_COL</definition>
+        <argsstring></argsstring>
+        <name>SRCB_BCAST_COL</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="361" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="361" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1a7e5bf9a0786e3f21ee2c274a5a73dfd2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::SRCB_BCAST_ROW</definition>
+        <argsstring></argsstring>
+        <name>SRCB_BCAST_ROW</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="362" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="362" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1a995004e8b2a9889ba848f11c38b72fcf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::SRCB_BCAST_ALL</definition>
+        <argsstring></argsstring>
+        <name>SRCB_BCAST_ALL</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="363" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="363" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1a0c2955e1992c1a9bf7a39193733b3c02" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::CLR_A</definition>
+        <argsstring></argsstring>
+        <name>CLR_A</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="365" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="365" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1ab99aea7a22c33578df2c7ab05059ccf6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::CLR_B</definition>
+        <argsstring></argsstring>
+        <name>CLR_B</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="366" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="366" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__elwise_1a849e65ba54c60f1cd1ab115d99118f35" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_elwise::CLR_AB</definition>
+        <argsstring></argsstring>
+        <name>CLR_AB</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="367" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="367" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="356" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="357" bodyend="368"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__elwise_1a0c2955e1992c1a9bf7a39193733b3c02" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>CLR_A</name></member>
+      <member refid="structckernel_1_1p__elwise_1a849e65ba54c60f1cd1ab115d99118f35" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>CLR_AB</name></member>
+      <member refid="structckernel_1_1p__elwise_1ab99aea7a22c33578df2c7ab05059ccf6" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>CLR_B</name></member>
+      <member refid="structckernel_1_1p__elwise_1a4ad0a79951c076b121be9f7e1bdcb4df" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>DEST_ACCUM_DIS</name></member>
+      <member refid="structckernel_1_1p__elwise_1ae54975a00eb7a816530b84c4a502e200" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>DEST_ACCUM_EN</name></member>
+      <member refid="structckernel_1_1p__elwise_1a995004e8b2a9889ba848f11c38b72fcf" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>SRCB_BCAST_ALL</name></member>
+      <member refid="structckernel_1_1p__elwise_1a53983f987a81aabe428f216993dfc484" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>SRCB_BCAST_COL</name></member>
+      <member refid="structckernel_1_1p__elwise_1a7e5bf9a0786e3f21ee2c274a5a73dfd2" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>SRCB_BCAST_ROW</name></member>
+      <member refid="structckernel_1_1p__elwise_1ad617b6cda24568d71f1efeb973bae1ef" prot="public" virt="non-virtual"><scope>ckernel::p_elwise</scope><name>SRCB_NO_BCAST</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

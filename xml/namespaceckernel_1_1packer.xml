@@ -1,0 +1,767 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceckernel_1_1packer" kind="namespace" language="C++">
+    <compoundname>ckernel::packer</compoundname>
+    <innerclass refid="structckernel_1_1packer_1_1pack__config__t" prot="public">ckernel::packer::pack_config_t</innerclass>
+    <innerclass refid="unionckernel_1_1packer_1_1pack__config__u" prot="public">ckernel::packer::pack_config_u</innerclass>
+    <innerclass refid="structckernel_1_1packer_1_1relu__config__t" prot="public">ckernel::packer::relu_config_t</innerclass>
+    <innerclass refid="unionckernel_1_1packer_1_1relu__config__u" prot="public">ckernel::packer::relu_config_u</innerclass>
+    <innerclass refid="structckernel_1_1packer_1_1dest__rd__ctrl__t" prot="public">ckernel::packer::dest_rd_ctrl_t</innerclass>
+    <innerclass refid="unionckernel_1_1packer_1_1dest__rd__ctrl__u" prot="public">ckernel::packer::dest_rd_ctrl_u</innerclass>
+    <innerclass refid="structckernel_1_1packer_1_1pck__edge__offset__t" prot="public">ckernel::packer::pck_edge_offset_t</innerclass>
+    <innerclass refid="unionckernel_1_1packer_1_1pck__edge__offset__u" prot="public">ckernel::packer::pck_edge_offset_u</innerclass>
+    <innerclass refid="structckernel_1_1packer_1_1pack__counters__t" prot="public">ckernel::packer::pack_counters_t</innerclass>
+    <innerclass refid="unionckernel_1_1packer_1_1pack__counters__u" prot="public">ckernel::packer::pack_counters_u</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceckernel_1_1packer_1ad1a2745e818386ea6937dc94161d8696" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint</type>
+        <definition>constexpr uint ckernel::packer::replay_buf_offset</definition>
+        <argsstring></argsstring>
+        <name>replay_buf_offset</name>
+        <initializer>= 16</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="17" column="16" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceckernel_1_1packer_1a91f14a85fd256e2c07cf31a4d420ad74" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t ckernel::packer::NUM_PACKERS</definition>
+        <argsstring></argsstring>
+        <name>NUM_PACKERS</name>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="19" column="20" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceckernel_1_1packer_1a43f4441b202e07872b70218b2925992c" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t ckernel::packer::PACK_CNT</definition>
+        <argsstring></argsstring>
+        <name>PACK_CNT</name>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="17" column="20" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1ac85fd6798f9c86b65ca98b8be5c99c2f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::packer::packer_addr_counter_init</definition>
+        <argsstring>()</argsstring>
+        <name>packer_addr_counter_init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="155" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="155" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1abd2ce28423d002e8c8f8e86862fcd96c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>untilize</declname>
+            <defname>untilize</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>tilize</declname>
+            <defname>tilize</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::set_packer_strides</definition>
+        <argsstring>(const uint pack_src_format, const uint pack_dst_format, const uint tile_c_dim)</argsstring>
+        <name>set_packer_strides</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>tile_c_dim</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="162" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="162" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a4c77d790c601bdf40ff22deb472dfaa1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::set_packer_config</definition>
+        <argsstring>(const uint pack_src_format, const uint pack_dst_format, const uint num_faces=4, const bool partial_face=false)</argsstring>
+        <name>set_packer_config</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>partial_face</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="198" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="198" bodyend="282"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a99899bb9bfa404371eb922bce25ab2c5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::reconfig_packer_data_format</definition>
+        <argsstring>(const uint pack_src_format, const uint pack_dst_format, const uint tile_size, const uint face_r_dim, const uint tile_c_dim)</argsstring>
+        <name>reconfig_packer_data_format</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>tile_size</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>face_r_dim</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>tile_c_dim</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="285" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="285" bodyend="356"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a36e8eb12be6e8a76f0915990bd1c26a9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>untilize</declname>
+            <defname>untilize</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>tilize</declname>
+            <defname>tilize</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::configure_pack</definition>
+        <argsstring>(const uint pack_src_format, const uint pack_dst_format, const uint tile_size, const uint face_r_dim=FACE_R_DIM, const uint tile_c_dim=TILE_C_DIM, const uint num_faces=4, const bool partial_face=false, const bool narrow_tile=false, const uint relu_config=0)</argsstring>
+        <name>configure_pack</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>tile_size</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>face_r_dim</declname>
+          <defval><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref></defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>tile_c_dim</declname>
+          <defval><ref refid="namespaceckernel_1ac4fa00dce38ec376efbb86281e0a101e" kindref="member">TILE_C_DIM</ref></defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>partial_face</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>narrow_tile</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>relu_config</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="359" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="359" bodyend="430"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a69124133099b1d373357e4483be8d469" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint8_t</type>
+        <definition>uint8_t ckernel::packer::get_packer_dest_offset_index</definition>
+        <argsstring>()</argsstring>
+        <name>get_packer_dest_offset_index</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="432" column="16" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="432" bodyend="435"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a9f24b629e3f20a814c662173155bc8cf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::get_packer_dest_offset</definition>
+        <argsstring>()</argsstring>
+        <name>get_packer_dest_offset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="437" column="17" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="437" bodyend="440"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a3f1bcf53143d8e51a3cfeefaccfa9e87" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::packer::flip_packer_dest_offset_id</definition>
+        <argsstring>()</argsstring>
+        <name>flip_packer_dest_offset_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="442" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="442" bodyend="445"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a6a020efb1f7cabb04a999db27cc83ff4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>DstSync</type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::select_packer_dest_registers</definition>
+        <argsstring>()</argsstring>
+        <name>select_packer_dest_registers</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="450" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="450" bodyend="462"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1ae823e981e5058a5fd45dedfa91900794" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::packer::program_packer_destination</definition>
+        <argsstring>(uint32_t addr)</argsstring>
+        <name>program_packer_destination</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="465" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="465" bodyend="475"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a45c3497936f81346642ca970d1b5ff73" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>uint32_t</type>
+            <declname>block_ct_dim</declname>
+            <defname>block_ct_dim</defname>
+          </param>
+          <param>
+            <type>uint32_t</type>
+            <declname>full_ct_dim</declname>
+            <defname>full_ct_dim</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>diagonal</declname>
+            <defname>diagonal</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::program_packer_untilized_destination</definition>
+        <argsstring>(const uint32_t addr, const uint32_t pack_dst_format)</argsstring>
+        <name>program_packer_untilized_destination</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>addr</declname>
+        </param>
+        <param>
+          <type>const uint32_t</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="480" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="480" bodyend="503"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1ab43ea04dff51e5d6999120d760c88385" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::packer::program_packer_dest_offset_registers</definition>
+        <argsstring>(uint32_t dest_tile_offset)</argsstring>
+        <name>program_packer_dest_offset_registers</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>dest_tile_offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="505" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="505" bodyend="513"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1ad5ad1ab49c0a36f36d0ca472786cc888" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::packer::reconfigure_packer_l1_acc</definition>
+        <argsstring>(const std::uint32_t pack_l1_acc)</argsstring>
+        <name>reconfigure_packer_l1_acc</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>pack_l1_acc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="515" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="515" bodyend="538"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1ade4216ae219ef4c187665a3ef5e06e62" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::packer::write_tile_header</definition>
+        <argsstring>()</argsstring>
+        <name>write_tile_header</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="541" column="13" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="541" bodyend="544"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a8306791bfdb25077db266dc1fef47bbf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structckernel_1_1packer_1_1pack__config__t" kindref="compound">pack_config_t</ref></type>
+        <definition>pack_config_t ckernel::packer::read_pack_config_helper</definition>
+        <argsstring>(uint32_t reg_addr, const volatile uint *cfg)</argsstring>
+        <name>read_pack_config_helper</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>reg_addr</declname>
+        </param>
+        <param>
+          <type>const volatile uint *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="548" column="22" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="548" bodyend="557"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a96140e6f420556625917a477790ec251" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::array&lt; <ref refid="structckernel_1_1packer_1_1pack__config__t" kindref="compound">pack_config_t</ref>, <ref refid="namespaceckernel_1_1packer_1a91f14a85fd256e2c07cf31a4d420ad74" kindref="member">NUM_PACKERS</ref> &gt;</type>
+        <definition>std::array&lt; pack_config_t, NUM_PACKERS &gt; ckernel::packer::read_pack_config</definition>
+        <argsstring>()</argsstring>
+        <name>read_pack_config</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="559" column="19" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="559" bodyend="569"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a8317a52a69e305f9de1e55a1d719411d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structckernel_1_1packer_1_1relu__config__t" kindref="compound">relu_config_t</ref></type>
+        <definition>relu_config_t ckernel::packer::read_relu_config</definition>
+        <argsstring>()</argsstring>
+        <name>read_relu_config</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="571" column="22" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="571" bodyend="580"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a921e6ff7bb7c1031ae5b051fede2351c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structckernel_1_1packer_1_1dest__rd__ctrl__t" kindref="compound">dest_rd_ctrl_t</ref></type>
+        <definition>dest_rd_ctrl_t ckernel::packer::read_dest_rd_ctrl</definition>
+        <argsstring>()</argsstring>
+        <name>read_dest_rd_ctrl</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="582" column="23" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="582" bodyend="592"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a57f0e5b4b4dbc790bba6045dafb6a70d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structckernel_1_1packer_1_1pck__edge__offset__t" kindref="compound">pck_edge_offset_t</ref></type>
+        <definition>pck_edge_offset_t ckernel::packer::read_pack_edge_offset_helper</definition>
+        <argsstring>(uint32_t reg_addr, const volatile uint *cfg)</argsstring>
+        <name>read_pack_edge_offset_helper</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>reg_addr</declname>
+        </param>
+        <param>
+          <type>const volatile uint *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="594" column="26" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="594" bodyend="601"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1ab7f7533fc4f3f5d38e90806c5c44f230" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::array&lt; <ref refid="structckernel_1_1packer_1_1pck__edge__offset__t" kindref="compound">pck_edge_offset_t</ref>, <ref refid="namespaceckernel_1_1packer_1a91f14a85fd256e2c07cf31a4d420ad74" kindref="member">NUM_PACKERS</ref> &gt;</type>
+        <definition>std::array&lt; pck_edge_offset_t, NUM_PACKERS &gt; ckernel::packer::read_pack_edge_offset</definition>
+        <argsstring>()</argsstring>
+        <name>read_pack_edge_offset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="603" column="19" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="603" bodyend="613"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a1137dd78d7fb35a9b9d67cdce380f487" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structckernel_1_1packer_1_1pack__counters__t" kindref="compound">pack_counters_t</ref></type>
+        <definition>pack_counters_t ckernel::packer::read_pack_counters_helper</definition>
+        <argsstring>(uint32_t reg_addr, const volatile uint *cfg)</argsstring>
+        <name>read_pack_counters_helper</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>reg_addr</declname>
+        </param>
+        <param>
+          <type>const volatile uint *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="615" column="24" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="615" bodyend="621"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a5cc62230a26b82298ab5b38d83db66db" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::array&lt; <ref refid="structckernel_1_1packer_1_1pack__counters__t" kindref="compound">pack_counters_t</ref>, <ref refid="namespaceckernel_1_1packer_1a91f14a85fd256e2c07cf31a4d420ad74" kindref="member">NUM_PACKERS</ref> &gt;</type>
+        <definition>std::array&lt; pack_counters_t, NUM_PACKERS &gt; ckernel::packer::read_pack_counters</definition>
+        <argsstring>()</argsstring>
+        <name>read_pack_counters</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="623" column="19" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="623" bodyend="633"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a9b6709e7d740a0377f8ddd767e4d652d" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>constexpr uint</type>
+        <definition>constexpr uint ckernel::packer::PACK_SEL</definition>
+        <argsstring>(const uint pack_count)</argsstring>
+        <name>PACK_SEL</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="20" column="16" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="20" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1afded8137c61d84c227841943584a49f4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::packer::set_packer_strides</definition>
+        <argsstring>(const uint pack_src_format, const uint pack_dst_format)</argsstring>
+        <name>set_packer_strides</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="159" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="159" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1ac4ae645413ee091b508332458b7f60dd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::packer::set_packer_l1_offset</definition>
+        <argsstring>(const uint pack_dst_format, const uint face_r_dim=FACE_R_DIM)</argsstring>
+        <name>set_packer_l1_offset</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>face_r_dim</declname>
+          <defval><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="316" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="316" bodyend="341"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a6425ec747b10ceae5a5b440000026219" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::reconfig_packer_data_format</definition>
+        <argsstring>(const uint pack_src_format, const uint pack_dst_format, const uint tile_size, const uint face_r_dim=FACE_R_DIM)</argsstring>
+        <name>reconfig_packer_data_format</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>tile_size</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>face_r_dim</declname>
+          <defval><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="344" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="344" bodyend="452"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a077c90af7c03c61513376970a85b4297" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>untilize</declname>
+            <defname>untilize</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::configure_pack</definition>
+        <argsstring>(const uint pack_src_format, const uint pack_dst_format, const uint tile_size, const uint face_r_dim=FACE_R_DIM, const uint num_faces=4, const bool partial_face=false, const bool narrow_tile=false, const uint relu_config=0)</argsstring>
+        <name>configure_pack</name>
+        <param>
+          <type>const uint</type>
+          <declname>pack_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>tile_size</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>face_r_dim</declname>
+          <defval><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref></defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>partial_face</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>narrow_tile</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>relu_config</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="455" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="455" bodyend="531"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1packer_1a1fad67303afb641800c73ab4849c2439" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>uint32_t</type>
+            <declname>block_ct_dim</declname>
+            <defname>block_ct_dim</defname>
+          </param>
+          <param>
+            <type>uint32_t</type>
+            <declname>full_ct_dim</declname>
+            <defname>full_ct_dim</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>diagonal</declname>
+            <defname>diagonal</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>uint32_t</type>
+            <declname>row_num_datums</declname>
+            <defname>row_num_datums</defname>
+            <defval>TILE_C_DIM</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::packer::program_packer_untilized_destination</definition>
+        <argsstring>(const uint32_t addr, const uint32_t pack_dst_format)</argsstring>
+        <name>program_packer_untilized_destination</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>addr</declname>
+        </param>
+        <param>
+          <type>const uint32_t</type>
+          <declname>pack_dst_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/common/inc/cpack_common.h" line="582" column="13" bodyfile="tt_llk_wormhole_b0/common/inc/cpack_common.h" bodystart="582" bodyend="633"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="15" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,508 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespaceckernel_1_1unpacker" kind="namespace" language="C++">
+    <compoundname>ckernel::unpacker</compoundname>
+    <innerclass refid="structckernel_1_1unpacker_1_1unpack__tile__descriptor__t" prot="public">ckernel::unpacker::unpack_tile_descriptor_t</innerclass>
+    <innerclass refid="unionckernel_1_1unpacker_1_1unpack__tile__descriptor__u" prot="public">ckernel::unpacker::unpack_tile_descriptor_u</innerclass>
+    <innerclass refid="structckernel_1_1unpacker_1_1unpack__config__t" prot="public">ckernel::unpacker::unpack_config_t</innerclass>
+    <innerclass refid="unionckernel_1_1unpacker_1_1unpack__config__u" prot="public">ckernel::unpacker::unpack_config_u</innerclass>
+    <innerclass refid="structckernel_1_1unpacker_1_1alu__config__t" prot="public">ckernel::unpacker::alu_config_t</innerclass>
+    <innerclass refid="unionckernel_1_1unpacker_1_1alu__config__u" prot="public">ckernel::unpacker::alu_config_u</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceckernel_1_1unpacker_1a852bf48fc41cd1f9fc95ba0c5cb327c3" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t ckernel::unpacker::TILE_DESC_SIZE</definition>
+        <argsstring></argsstring>
+        <name>TILE_DESC_SIZE</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="19" column="20" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceckernel_1_1unpacker_1ad5954b3ef39d2586a634f51a038af643" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t ckernel::unpacker::CONFIG_SIZE</definition>
+        <argsstring></argsstring>
+        <name>CONFIG_SIZE</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="20" column="20" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceckernel_1_1unpacker_1a48ecd61a0cad3db6981e38b1e2243d2a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t ckernel::unpacker::NUM_UNPACKERS</definition>
+        <argsstring></argsstring>
+        <name>NUM_UNPACKERS</name>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="21" column="20" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1ae416ef838f536bf7b82c1b6f4a53df0e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::unpacker_addr_counter_init</definition>
+        <argsstring>()</argsstring>
+        <name>unpacker_addr_counter_init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="120" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="120" bodyend="124"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a300fcfac6b4c6f50523a6d91ca61cbba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::unpacker_iteration_cleanup</definition>
+        <argsstring>(uint &amp;context)</argsstring>
+        <name>unpacker_iteration_cleanup</name>
+        <param>
+          <type>uint &amp;</type>
+          <declname>context</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="126" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="126" bodyend="139"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a00fa08a893659caf5e6f38fd8f457824" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::unpacker_wrapup</definition>
+        <argsstring>()</argsstring>
+        <name>unpacker_wrapup</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="141" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="141" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a84ee2f15ec6fdc25e679d5725f41eda4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint</type>
+        <definition>uint ckernel::unpacker::unpack_16B_address</definition>
+        <argsstring>(const uint addr)</argsstring>
+        <name>unpack_16B_address</name>
+        <param>
+          <type>const uint</type>
+          <declname>addr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="155" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="155" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a411f5461da0f41c0337f12fe14da7261" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::flush_xsearch_cache</definition>
+        <argsstring>(const uint unpacker)</argsstring>
+        <name>flush_xsearch_cache</name>
+        <param>
+          <type>const uint</type>
+          <declname>unpacker</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="160" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="160" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a77b36a3adbe2119aacfea22bae6783ea" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::wait_for_next_context</definition>
+        <argsstring>(const uint num_contexts)</argsstring>
+        <name>wait_for_next_context</name>
+        <param>
+          <type>const uint</type>
+          <declname>num_contexts</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="166" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="166" bodyend="171"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a8306dc71629a0dd7e9bfb91ca5932ac0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::switch_config_context</definition>
+        <argsstring>(uint &amp;unp_cfg_context)</argsstring>
+        <name>switch_config_context</name>
+        <param>
+          <type>uint &amp;</type>
+          <declname>unp_cfg_context</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="173" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="173" bodyend="185"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a8b5c8845e7511cc758476b70631ca0fa" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::reset_config_context</definition>
+        <argsstring>()</argsstring>
+        <name>reset_config_context</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="187" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="187" bodyend="192"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1afb29c2b09196d9193e5fb695d65ee6b5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::wait_for_idle</definition>
+        <argsstring>()</argsstring>
+        <name>wait_for_idle</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="195" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="195" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a1d6f26900e4dc1a4766d9d39d60cb74f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::enable_int8_fpu_math</definition>
+        <argsstring>()</argsstring>
+        <name>enable_int8_fpu_math</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="202" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="202" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a2a2c94eccb63b04fbd53f860b0c5c294" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>row_pool</declname>
+            <defname>row_pool</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>fpu_srnd_en</declname>
+            <defname>fpu_srnd_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>pack_srnd_en</declname>
+            <defname>pack_srnd_en</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>disable_src_zero_flag</declname>
+            <defname>disable_src_zero_flag</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::unpacker::configure_unpack_AB</definition>
+        <argsstring>(const uint unpA_src_format, const uint unpB_src_format, const uint unpA_dst_format, const uint unpB_dst_format, const uint unpA_face_r_dim=FACE_R_DIM, const uint unpB_face_r_dim=FACE_R_DIM, const bool transpose_xy_srca_en=false, const uint unpA_num_faces=4, const uint unpB_num_faces=4)</argsstring>
+        <name>configure_unpack_AB</name>
+        <param>
+          <type>const uint</type>
+          <declname>unpA_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>unpB_src_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>unpA_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>unpB_dst_format</declname>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>unpA_face_r_dim</declname>
+          <defval><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref></defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>unpB_face_r_dim</declname>
+          <defval><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref></defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>transpose_xy_srca_en</declname>
+          <defval>false</defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>unpA_num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <param>
+          <type>const uint</type>
+          <declname>unpB_num_faces</declname>
+          <defval>4</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="210" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="210" bodyend="415"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1ae10a2c3c6eee080f92ec0640e4051633" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>std::uint32_t</type>
+            <declname>UNP_SEL</declname>
+            <defname>UNP_SEL</defname>
+            <defval>p_setadc::UNP_AB</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::unpacker::config_unpacker_x_end</definition>
+        <argsstring>(const uint32_t face_r_dim)</argsstring>
+        <name>config_unpacker_x_end</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>face_r_dim</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="418" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="418" bodyend="438"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a15c5878a2c0819ecb7438ed0c0986f7c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>INSERT_FENCE</declname>
+            <defname>INSERT_FENCE</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>std::uint32_t</type>
+            <declname>UNP_SEL</declname>
+            <defname>UNP_SEL</defname>
+            <defval>p_setadc::UNP_AB</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ckernel::unpacker::config_unpacker_0_face_dim</definition>
+        <argsstring>(const uint32_t face_r_dim)</argsstring>
+        <name>config_unpacker_0_face_dim</name>
+        <param>
+          <type>const uint32_t</type>
+          <declname>face_r_dim</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="441" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="441" bodyend="474"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a5603f8753ae0d5df57d79ebb80cbdf1c" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>constexpr bool ckernel::unpacker::is_32bit_input</definition>
+        <argsstring>(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)</argsstring>
+        <name>is_32bit_input</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpack_src_format</declname>
+        </param>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>unpack_dst_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="476" column="23" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="476" bodyend="482"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a5938c0573ddffddd7a583aa0aab04224" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::wait_for_dest_available</definition>
+        <argsstring>()</argsstring>
+        <name>wait_for_dest_available</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="484" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="484" bodyend="487"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a19d9324285dbd9e512f3c5f403448757" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::unpack_to_dest_tile_done</definition>
+        <argsstring>(uint &amp;context_id)</argsstring>
+        <name>unpack_to_dest_tile_done</name>
+        <param>
+          <type>uint &amp;</type>
+          <declname>context_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="489" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="489" bodyend="505"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a729cc5b2eb6ba464bb7fe3a7984d8ef7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ckernel::unpacker::set_dst_write_addr</definition>
+        <argsstring>(const uint32_t &amp;context_id, const uint32_t &amp;unpack_dst_format)</argsstring>
+        <name>set_dst_write_addr</name>
+        <param>
+          <type>const uint32_t &amp;</type>
+          <declname>context_id</declname>
+        </param>
+        <param>
+          <type>const uint32_t &amp;</type>
+          <declname>unpack_dst_format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="507" column="13" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="507" bodyend="528"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a8c43186b56187b59c10ae7f167e75706" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structckernel_1_1unpacker_1_1unpack__tile__descriptor__t" kindref="compound">unpack_tile_descriptor_t</ref></type>
+        <definition>unpack_tile_descriptor_t ckernel::unpacker::read_unpack_tile_descriptor_helper</definition>
+        <argsstring>(uint32_t reg_addr, const volatile uint *cfg)</argsstring>
+        <name>read_unpack_tile_descriptor_helper</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>reg_addr</declname>
+        </param>
+        <param>
+          <type>const volatile uint *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="532" column="33" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="532" bodyend="542"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1aced0dfa4d292d10e067c7acf621dade5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::array&lt; <ref refid="structckernel_1_1unpacker_1_1unpack__tile__descriptor__t" kindref="compound">unpack_tile_descriptor_t</ref>, <ref refid="namespaceckernel_1_1unpacker_1a48ecd61a0cad3db6981e38b1e2243d2a" kindref="member">NUM_UNPACKERS</ref> &gt;</type>
+        <definition>std::array&lt; unpack_tile_descriptor_t, NUM_UNPACKERS &gt; ckernel::unpacker::read_unpack_tile_descriptor</definition>
+        <argsstring>()</argsstring>
+        <name>read_unpack_tile_descriptor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="544" column="19" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="544" bodyend="554"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a4dd9ad611570cc646ad1a6688792003a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structckernel_1_1unpacker_1_1unpack__config__t" kindref="compound">unpack_config_t</ref></type>
+        <definition>unpack_config_t ckernel::unpacker::read_unpack_config_helper</definition>
+        <argsstring>(uint32_t reg_addr, const volatile uint *cfg)</argsstring>
+        <name>read_unpack_config_helper</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>reg_addr</declname>
+        </param>
+        <param>
+          <type>const volatile uint *</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="556" column="24" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="556" bodyend="566"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a65c91d62f702e8682ca2e04d770b2b1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::array&lt; <ref refid="structckernel_1_1unpacker_1_1unpack__config__t" kindref="compound">unpack_config_t</ref>, <ref refid="namespaceckernel_1_1unpacker_1a48ecd61a0cad3db6981e38b1e2243d2a" kindref="member">NUM_UNPACKERS</ref> &gt;</type>
+        <definition>std::array&lt; unpack_config_t, NUM_UNPACKERS &gt; ckernel::unpacker::read_unpack_config</definition>
+        <argsstring>()</argsstring>
+        <name>read_unpack_config</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="568" column="19" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="568" bodyend="578"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceckernel_1_1unpacker_1a169ea23bb8dedb71ac5cf57a517df055" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structckernel_1_1unpacker_1_1alu__config__t" kindref="compound">alu_config_t</ref></type>
+        <definition>alu_config_t ckernel::unpacker::read_alu_config</definition>
+        <argsstring>()</argsstring>
+        <name>read_alu_config</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="580" column="21" bodyfile="tt_llk_blackhole/common/inc/cunpack_common.h" bodystart="580" bodyend="588"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/cunpack_common.h" line="17" column="1"/>
+  </compounddef>
+</doxygen>

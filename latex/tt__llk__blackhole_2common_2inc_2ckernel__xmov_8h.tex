@@ -1,0 +1,30 @@
+\hypertarget{tt__llk__blackhole_2common_2inc_2ckernel__xmov_8h}{}\doxysection{tt\+\_\+llk\+\_\+blackhole/common/inc/ckernel\+\_\+xmov.h File Reference}
+\label{tt__llk__blackhole_2common_2inc_2ckernel__xmov_8h}\index{tt\_llk\_blackhole/common/inc/ckernel\_xmov.h@{tt\_llk\_blackhole/common/inc/ckernel\_xmov.h}}
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structckernel_1_1risc__compact__mov__instrn__t}{ckernel\+::risc\+\_\+compact\+\_\+mov\+\_\+instrn\+\_\+t}}
+\item 
+union \mbox{\hyperlink{unionckernel_1_1risc__compact__mov__instrn__u}{ckernel\+::risc\+\_\+compact\+\_\+mov\+\_\+instrn\+\_\+u}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespaceckernel}{ckernel}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{namespaceckernel_af1aec2ebbd8b8d16ad48cc7e9c1a711c}{ckernel\+::xmov\+\_\+set\+\_\+base}} (const uint32\+\_\+t l1\+\_\+base\+\_\+addr\+\_\+16B)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a7bbec018a0e71fff2c3dadb9d5e0566f}{ckernel\+::xmov\+\_\+cfg\+\_\+instr\+\_\+set}} (risc\+\_\+compact\+\_\+mov\+\_\+instrn\+\_\+u \&risc\+\_\+mov\+\_\+instrn, const uint32\+\_\+t l1\+\_\+offset\+\_\+16B, const uint32\+\_\+t reg\+\_\+addr32, const uint32\+\_\+t xfer\+\_\+size=1)
+\item 
+void \mbox{\hyperlink{namespaceckernel_aa13b8d07f1692a749403bc61931f1785}{ckernel\+::xmov\+\_\+cfg\+\_\+instr\+\_\+program}} (const risc\+\_\+compact\+\_\+mov\+\_\+instrn\+\_\+t xmov, const uint32\+\_\+t l1\+\_\+offset\+\_\+16B, const uint32\+\_\+t reg\+\_\+addr32)
+\item 
+void \mbox{\hyperlink{namespaceckernel_aba7186deb2ceaff298d0c4448658ce39}{ckernel\+::xmov\+\_\+cfg\+\_\+program}} (const uint32\+\_\+t l1\+\_\+offset\+\_\+16B, const uint32\+\_\+t reg\+\_\+addr32, const uint32\+\_\+t xfer\+\_\+size=1)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a90cceb86c0f0d243be14c8bab3675725}{ckernel\+::xmov\+\_\+l1\+\_\+to\+\_\+l1\+\_\+non\+\_\+compact}} (const uint32\+\_\+t src\+\_\+addr\+\_\+16B, const uint32\+\_\+t dst\+\_\+addr\+\_\+16B, const uint32\+\_\+t xfer\+\_\+size\+\_\+16B=1)
+\item 
+void \mbox{\hyperlink{namespaceckernel_a110798c06d50d4be1983f8803e35aeb1}{ckernel\+::xmov\+\_\+wait\+\_\+till\+\_\+idle}} ()
+\end{DoxyCompactItemize}

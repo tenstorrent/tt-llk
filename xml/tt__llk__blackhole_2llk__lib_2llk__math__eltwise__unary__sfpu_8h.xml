@@ -1,0 +1,273 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h" kind="file" language="C++">
+    <compoundname>llk_math_eltwise_unary_sfpu.h</compoundname>
+    <includes local="no">type_traits</includes>
+    <includes local="yes">ckernel_globals.h</includes>
+    <includes local="yes">ckernel_include.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">ckernel_sfpu.h</includes>
+    <includes local="yes">ckernel_template.h</includes>
+    <includes local="yes">cmath_common.h</includes>
+    <includes refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h" local="yes">llk_math_common.h</includes>
+    <includes local="yes">llk_sfpu_types.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>cstdint</label>
+      </node>
+      <node id="11">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="9">
+        <label>llk_math_common.h</label>
+        <link refid="tt__llk__blackhole_2llk__lib_2llk__math__common_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ckernel_include.h</label>
+      </node>
+      <node id="7">
+        <label>ckernel_template.h</label>
+      </node>
+      <node id="6">
+        <label>ckernel_sfpu.h</label>
+      </node>
+      <node id="2">
+        <label>type_traits</label>
+      </node>
+      <node id="8">
+        <label>cmath_common.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_globals.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_ops.h</label>
+      </node>
+      <node id="12">
+        <label>llk_sfpu_types.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1aaf65e2f05c7d114d425cd50d155f9816" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>SfpuType</type>
+            <declname>sfpu_op</declname>
+            <defname>sfpu_op</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void eltwise_unary_sfpu_configure_addrmod</definition>
+        <argsstring>()</argsstring>
+        <name>eltwise_unary_sfpu_configure_addrmod</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" line="21" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" bodystart="21" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a1d2cba9ee6f92074ab522243759aa073" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void eltwise_unary_sfpu_configure_mop</definition>
+        <argsstring>()</argsstring>
+        <name>eltwise_unary_sfpu_configure_mop</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" line="45" column="13" declfile="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" declline="45" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a2540ab3f6950ccea8a1dcabee2a538bc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_eltwise_unary_sfpu_start_</definition>
+        <argsstring>(const uint dst_index)</argsstring>
+        <name>_llk_math_eltwise_unary_sfpu_start_</name>
+        <param>
+          <type>const uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" line="48" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" bodystart="48" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a8ea2f054e4844be92a244c2f97e7817e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_math_eltwise_unary_sfpu_done_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_eltwise_unary_sfpu_done_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" line="61" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" bodystart="61" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1ae0cd1ac63bc0b11fdd7905a53668a985" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_eltwise_unary_sfpu_inc_dst_face_addr_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" line="66" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" bodystart="66" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a5c6eda8fac60d9c5152a9b8f6c52b80d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>SfpuType</type>
+            <declname>sfpu_op</declname>
+            <defname>sfpu_op</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_math_eltwise_unary_sfpu_init_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_math_eltwise_unary_sfpu_init_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" line="73" column="13" bodyfile="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h" bodystart="73" bodyend="78"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;type_traits&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_globals.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_include.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_sfpu.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_template.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cmath_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h" kindref="compound">llk_math_common.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;llk_sfpu_types.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//<sp/>local<sp/>function<sp/>declarations</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;SfpuType<sp/>sfpu_op&gt;</highlight></codeline>
+<codeline lineno="21" refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1aaf65e2f05c7d114d425cd50d155f9816" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1aaf65e2f05c7d114d425cd50d155f9816" kindref="member">eltwise_unary_sfpu_configure_addrmod</ref>()</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>NOTE:<sp/>this<sp/>kernel<sp/>is<sp/>typically<sp/>used<sp/>in<sp/>conjunction<sp/>with</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/>A2D,<sp/>which<sp/>is<sp/>using<sp/>ADDR_MOD_0<sp/>and<sp/>ADDR_MOD_2,<sp/>so<sp/>use<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/>that<sp/>doesn&apos;t<sp/>conflict!</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1aae86145776c685fa507a0d0bc4093238" kindref="member">ADDR_MOD_7</ref>);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(sfpu_op<sp/>==<sp/>SfpuType::topk_local_sort)</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>32},</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a453cfb2c1d6f310d5125830e9f2065ff" kindref="member">ADDR_MOD_6</ref>);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a1d2cba9ee6f92074ab522243759aa073" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a1d2cba9ee6f92074ab522243759aa073" kindref="member">eltwise_unary_sfpu_configure_mop</ref>();</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>Dst&gt;</highlight></codeline>
+<codeline lineno="48" refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a2540ab3f6950ccea8a1dcabee2a538bc" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a2540ab3f6950ccea8a1dcabee2a538bc" kindref="member">_llk_math_eltwise_unary_sfpu_start_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>((Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e" kindref="member">DstSync::SyncTile16</ref>)<sp/>||<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676" kindref="member">DstSync::SyncTile2</ref>))</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>math::set_dst_write_addr&lt;DstTileLayout::Default,<sp/>DstTileShape::Tile32x32&gt;(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref>);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>math::set_dst_write_addr&lt;DstTileLayout::Default,<sp/>DstTileShape::Tile32x32&gt;(dst_index);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1aeae76dd111eccdcae0bca71d081b8106" kindref="member">p_stall::STALL_SFPU</ref>,<sp/><ref refid="structckernel_1_1p__stall_1aaf59ea6df69e5d5dbc171fd7e4a44cad" kindref="member">p_stall::MATH</ref>);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a8ea2f054e4844be92a244c2f97e7817e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a8ea2f054e4844be92a244c2f97e7817e" kindref="member">_llk_math_eltwise_unary_sfpu_done_</ref>()</highlight></codeline>
+<codeline lineno="62"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a67bcf29581cd07b43cb0540d8e0e238f" kindref="member">math::clear_dst_reg_addr</ref>();</highlight></codeline>
+<codeline lineno="64"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1ae0cd1ac63bc0b11fdd7905a53668a985" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1ae0cd1ac63bc0b11fdd7905a53668a985" kindref="member">_llk_math_eltwise_unary_sfpu_inc_dst_face_addr_</ref>()</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>math::inc_dst_addr&lt;8&gt;();</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>math::inc_dst_addr&lt;8&gt;();</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;SfpuType<sp/>sfpu_op&gt;</highlight></codeline>
+<codeline lineno="73" refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a5c6eda8fac60d9c5152a9b8f6c52b80d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpu_8h_1a5c6eda8fac60d9c5152a9b8f6c52b80d" kindref="member">_llk_math_eltwise_unary_sfpu_init_</ref>()</highlight></codeline>
+<codeline lineno="74"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1ac4b8efd66f423f1165b5817545830a55" kindref="member">sfpu::_init_sfpu_config_reg</ref>();</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>eltwise_unary_sfpu_configure_addrmod&lt;sfpu_op&gt;();</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a4de2f1cf6fdbf8440aa394f2509ea5de" kindref="member">math::reset_counters</ref>(<ref refid="structckernel_1_1p__setrwc_1a831ce6850ea6dbade5660f1a1579f3f3" kindref="member">p_setrwc::SET_ABD_F</ref>);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h"/>
+  </compounddef>
+</doxygen>

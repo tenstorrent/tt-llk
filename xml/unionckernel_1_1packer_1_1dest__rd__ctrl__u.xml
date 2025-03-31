@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="unionckernel_1_1packer_1_1dest__rd__ctrl__u" kind="union" language="C++" prot="public">
+    <compoundname>ckernel::packer::dest_rd_ctrl_u</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h" local="no">cpack_common.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionckernel_1_1packer_1_1dest__rd__ctrl__u_1acf737bcf77f6d27b745532b1693791e2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::packer::dest_rd_ctrl_u::val</definition>
+        <argsstring></argsstring>
+        <name>val</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="104" column="14" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionckernel_1_1packer_1_1dest__rd__ctrl__u_1a792e2cf83da327f1f60ed95c7dd272ad" prot="public" static="no" mutable="no">
+        <type><ref refid="structckernel_1_1packer_1_1dest__rd__ctrl__t" kindref="compound">dest_rd_ctrl_t</ref></type>
+        <definition>dest_rd_ctrl_t ckernel::packer::dest_rd_ctrl_u::f</definition>
+        <argsstring></argsstring>
+        <name>f</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="105" column="20" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ckernel::packer::dest_rd_ctrl_t</label>
+        <link refid="structckernel_1_1packer_1_1dest__rd__ctrl__t"/>
+      </node>
+      <node id="1">
+        <label>ckernel::packer::dest_rd_ctrl_u</label>
+        <link refid="unionckernel_1_1packer_1_1dest__rd__ctrl__u"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>f</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="tt_llk_blackhole/common/inc/cpack_common.h" line="102" column="1" bodyfile="tt_llk_blackhole/common/inc/cpack_common.h" bodystart="103" bodyend="106"/>
+    <listofallmembers>
+      <member refid="unionckernel_1_1packer_1_1dest__rd__ctrl__u_1a792e2cf83da327f1f60ed95c7dd272ad" prot="public" virt="non-virtual"><scope>ckernel::packer::dest_rd_ctrl_u</scope><name>f</name></member>
+      <member refid="unionckernel_1_1packer_1_1dest__rd__ctrl__u_1acf737bcf77f6d27b745532b1693791e2" prot="public" virt="non-virtual"><scope>ckernel::packer::dest_rd_ctrl_u</scope><name>val</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

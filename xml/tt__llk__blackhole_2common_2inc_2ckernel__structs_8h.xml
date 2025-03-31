@@ -1,0 +1,153 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h" kind="file" language="C++">
+    <compoundname>ckernel_structs.h</compoundname>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h" local="yes">tt_llk_blackhole/common/inc/ckernel_globals.h</includedby>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel__include_8h" local="yes">tt_llk_blackhole/common/inc/ckernel_include.h</includedby>
+    <invincdepgraph>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>tt_llk_blackhole/common/inc/ckernel_xmov.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__xmov_8h"/>
+      </node>
+      <node id="9">
+        <label>tt_llk_blackhole/common/inc/ckernel.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>tt_llk_blackhole/common/inc/cpack_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h"/>
+      </node>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/ckernel_globals.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>tt_llk_blackhole/common/inc/ckernel_template.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__template_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_structs.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>tt_llk_blackhole/common/inc/ckernel_debug.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h"/>
+      </node>
+      <node id="8">
+        <label>tt_llk_blackhole/common/inc/ckernel_include.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__include_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>tt_llk_blackhole/common/inc/cunpack_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cunpack__common_8h"/>
+      </node>
+      <node id="5">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structckernel_1_1semaphore" prot="public">ckernel::semaphore</innerclass>
+    <innerclass refid="structckernel_1_1mutex" prot="public">ckernel::mutex</innerclass>
+    <innernamespace refid="namespaceckernel">ckernel</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Semaphores<sp/>mapping<sp/>and<sp/>trisc<sp/>space<sp/>-&gt;<sp/>tensix<sp/>space<sp/>conversion</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="structckernel_1_1semaphore" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1semaphore" kindref="compound">semaphore</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13" refid="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" kindref="member">MATH_PACK</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1;<sp/></highlight><highlight class="comment">//<sp/>math<sp/>&lt;-&gt;<sp/>pack<sp/>sync<sp/>on<sp/>dest<sp/>register</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="structckernel_1_1semaphore_1af449588e824d60c3ead92e96529fdf1e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1semaphore_1af449588e824d60c3ead92e96529fdf1e" kindref="member">UNPACK_TO_DEST</ref><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>2;<sp/></highlight><highlight class="comment">//<sp/>unpack<sp/>&lt;-&gt;<sp/>math<sp/>sync<sp/>on<sp/>unpack<sp/>to<sp/>dest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" kindref="member">UNPACK_OPERAND_SYNC</ref><sp/>=<sp/>3;<sp/></highlight><highlight class="comment">//<sp/>unpack<sp/>&lt;-&gt;<sp/>pack,<sp/>math<sp/>sync<sp/>on<sp/>operand<sp/>get/release</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="structckernel_1_1semaphore_1a823f7963e6a515506cb30380bcfc1687" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1semaphore_1a823f7963e6a515506cb30380bcfc1687" kindref="member">PACK_DONE</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>4;<sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>beinning<sp/>and<sp/>end<sp/>of<sp/>each<sp/>pack-iteration.<sp/>For<sp/>recording<sp/>perf<sp/>events<sp/>and<sp/>inserting<sp/>delay.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="structckernel_1_1semaphore_1ae6026566f2685e3b447fab2d8594a4d3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1semaphore_1ae6026566f2685e3b447fab2d8594a4d3" kindref="member">UNPACK_SYNC</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>5;<sp/></highlight><highlight class="comment">//<sp/>trisc<sp/>&lt;-&gt;<sp/>unpack<sp/>sync<sp/>on<sp/>hw<sp/>kernel</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>beinning<sp/>and<sp/>end<sp/>of<sp/>each<sp/>unpack<sp/>or<sp/>math<sp/>iteration.<sp/>For<sp/>recording<sp/>perf<sp/>events<sp/>and<sp/>inserting<sp/>delay.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>semaphore<sp/>should<sp/>only<sp/>be<sp/>used<sp/>for<sp/>either<sp/>unpack<sp/>or<sp/>math.<sp/>Not<sp/>both<sp/>at<sp/>the<sp/>same<sp/>time.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="structckernel_1_1semaphore_1abedb313112b32dbd8a470259dfc11407" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1semaphore_1abedb313112b32dbd8a470259dfc11407" kindref="member">UNPACK_MATH_DONE</ref><sp/>=<sp/>6;</highlight></codeline>
+<codeline lineno="21" refid="structckernel_1_1semaphore_1af09abb85973c423cee84f46bef58291e" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1semaphore_1af09abb85973c423cee84f46bef58291e" kindref="member">MATH_DONE</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>7;<sp/></highlight><highlight class="comment">//<sp/>wait<sp/>for<sp/>math<sp/>to<sp/>finish<sp/>when<sp/>unpacking<sp/>to<sp/>dest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="structckernel_1_1semaphore_1ab52641be16da31e957f2121419da9a21" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint16_t<sp/><ref refid="structckernel_1_1semaphore_1ab52641be16da31e957f2121419da9a21" kindref="member">t6_sem</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint8_t<sp/>sem_index)</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(1<sp/>&lt;&lt;<sp/>sem_index);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="structckernel_1_1mutex" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structckernel_1_1mutex" kindref="compound">mutex</ref></highlight></codeline>
+<codeline lineno="30"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="31" refid="structckernel_1_1mutex_1a2e6185a2bb30d967f295a00e1661753d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="structckernel_1_1mutex_1a2e6185a2bb30d967f295a00e1661753d" kindref="member">REG_RMW</ref><sp/>=<sp/>0;<sp/></highlight><highlight class="comment">//<sp/>used<sp/>for<sp/>atomic<sp/>register<sp/>read-modify-write<sp/>from<sp/>different<sp/>threads</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="namespaceckernel_1a97a707b5bb68b0d910d5dba48788068c" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1a97a707b5bb68b0d910d5dba48788068c" kindref="member">PC_BUF_SEMAPHORE_BASE</ref><sp/>=<sp/>8;<sp/><sp/></highlight><highlight class="comment">//<sp/>base<sp/>address<sp/>for<sp/>semaphores<sp/>in<sp/>PC<sp/>buffer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="namespaceckernel_1ae5caf762310c865581ad360ce80557c7" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1ae5caf762310c865581ad360ce80557c7" kindref="member">MATH_HALF_DEST_SIZE</ref><sp/><sp/><sp/>=<sp/>32;<sp/></highlight><highlight class="comment">//<sp/>arch<sp/>specific<sp/>1/2<sp/>dest<sp/>registers<sp/>size<sp/>in<sp/>16x16<sp/>faces</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="namespaceckernel_1a4455050410ba59843a790fb9e03315b1" refkind="member"><highlight class="normal">constexpr<sp/>uint8_t<sp/><ref refid="namespaceckernel_1a4455050410ba59843a790fb9e03315b1" kindref="member">MAX_CONFIG_STATES</ref><sp/><sp/><sp/><sp/><sp/>=<sp/>2;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Firmware<sp/>messages<sp/>to<sp/>ckernels</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3a" kindref="member">firmware_msg_e</ref></highlight></codeline>
+<codeline lineno="40"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="41" refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3aa044a21190442ec0a6a670e63e9b650bb" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3aa044a21190442ec0a6a670e63e9b650bb" kindref="member">FLIP_STATE_ID</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1,</highlight></codeline>
+<codeline lineno="42" refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3aa3e5563137a56134469fba06b7f321486" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3aa3e5563137a56134469fba06b7f321486" kindref="member">RUN_INSTRUCTIONS</ref><sp/><sp/><sp/><sp/><sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="43" refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3aa56035a8f7758293451c030eaa2275b48" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3aa56035a8f7758293451c030eaa2275b48" kindref="member">RESET_DEST_OFFSET_ID</ref><sp/>=<sp/>3,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3aab95c57dbcff09060b6338a0d9224e6ce" kindref="member">SET_PERF_SCRATCH</ref><sp/><sp/><sp/><sp/><sp/>=<sp/>4</highlight></codeline>
+<codeline lineno="45" refid="namespaceckernel_1acb07daee1464632d122cb7ff97106a3aab95c57dbcff09060b6338a0d9224e6ce" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ckernel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/ckernel_structs.h"/>
+  </compounddef>
+</doxygen>

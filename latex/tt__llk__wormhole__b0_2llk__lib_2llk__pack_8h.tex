@@ -1,0 +1,79 @@
+\hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/llk\+\_\+lib/llk\+\_\+pack.h File Reference}
+\label{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h}\index{tt\_llk\_wormhole\_b0/llk\_lib/llk\_pack.h@{tt\_llk\_wormhole\_b0/llk\_lib/llk\_pack.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+globals.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+template.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}llk\+\_\+defs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}llk\+\_\+pack\+\_\+common.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}llk\+\_\+pack\+\_\+untilize.\+h\char`\"{}}\newline
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$bool untilize = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a9f3844d254c4cdd44e0c2664d3f40aaf}{\+\_\+llk\+\_\+pack\+\_\+configure\+\_\+addrmod\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool untilize = false, bool zero\+\_\+output = false, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Row\+Major, bool write\+\_\+tile\+\_\+header = true$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a076610ac60f98c7e5948565cb1a38b9f}{\+\_\+llk\+\_\+pack\+\_\+mop\+\_\+config\+\_\+}} (const std\+::uint32\+\_\+t pack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t num\+\_\+faces=4, const bool partial\+\_\+face=false, const bool narrow\+\_\+tile=false)
+\item 
+{\footnotesize template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool is\+\_\+tile\+\_\+dim\+\_\+reconfig\+\_\+en = false, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Row\+Major, bool write\+\_\+tile\+\_\+header = true$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_ae822cb524317a31a10f3d30d1acb3042}{\+\_\+llk\+\_\+pack\+\_\+reconfig\+\_\+data\+\_\+format\+\_\+}} (const std\+::uint32\+\_\+t pack\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t pack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t tile\+\_\+size, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t num\+\_\+faces=4, const bool partial\+\_\+face=false, const bool narrow\+\_\+tile=false)
+\item 
+{\footnotesize template$<$bool untilize = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_af5b2373fa9eca359fee73a3cc7545104}{\+\_\+llk\+\_\+pack\+\_\+hw\+\_\+configure\+\_\+}} (const std\+::uint32\+\_\+t pack\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t pack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t tile\+\_\+size, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t num\+\_\+faces=4, const bool partial\+\_\+face=false, const bool narrow\+\_\+tile=false, const std\+::uint32\+\_\+t relu\+\_\+config=0)
+\item 
+{\footnotesize template$<$bool untilize = false, Pool\+Type type, Reduce\+Dim dim, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a9cbe5a15ee66e5951020e3dd94ca8324}{\+\_\+llk\+\_\+pack\+\_\+reduce\+\_\+hw\+\_\+configure\+\_\+}} (const std\+::uint32\+\_\+t pack\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t pack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t tile\+\_\+size, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t num\+\_\+faces=4, const bool partial\+\_\+face=false, const bool narrow\+\_\+tile=false, const std\+::uint32\+\_\+t relu\+\_\+config=0)
+\item 
+{\footnotesize template$<$bool untilize = false, bool zero\+\_\+output = false, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Row\+Major, bool write\+\_\+tile\+\_\+header = true$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a3a265dd41b8e1671e12094fab4bdef1b}{\+\_\+llk\+\_\+pack\+\_\+init\+\_\+}} (const std\+::uint32\+\_\+t pack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t num\+\_\+faces=4, const bool partial\+\_\+face=false, const bool narrow\+\_\+tile=false)
+\item 
+{\footnotesize template$<$Dst\+Sync Dst, bool untilize = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_aa35d2ea21d3088701be5da8409b218f8}{\+\_\+llk\+\_\+pack\+\_\+}} (const std\+::uint32\+\_\+t tile\+\_\+index, const std\+::uint32\+\_\+t address)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_aa35d2ea21d3088701be5da8409b218f8}\label{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_aa35d2ea21d3088701be5da8409b218f8}} 
+\index{llk\_pack.h@{llk\_pack.h}!\_llk\_pack\_@{\_llk\_pack\_}}
+\index{\_llk\_pack\_@{\_llk\_pack\_}!llk\_pack.h@{llk\_pack.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_()}{\_llk\_pack\_()}}
+{\footnotesize\ttfamily template$<$Dst\+Sync Dst, bool untilize = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{tile\+\_\+index,  }\item[{const std\+::uint32\+\_\+t}]{address }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a9f3844d254c4cdd44e0c2664d3f40aaf}\label{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a9f3844d254c4cdd44e0c2664d3f40aaf}} 
+\index{llk\_pack.h@{llk\_pack.h}!\_llk\_pack\_configure\_addrmod\_@{\_llk\_pack\_configure\_addrmod\_}}
+\index{\_llk\_pack\_configure\_addrmod\_@{\_llk\_pack\_configure\_addrmod\_}!llk\_pack.h@{llk\_pack.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_configure\_addrmod\_()}{\_llk\_pack\_configure\_addrmod\_()}}
+{\footnotesize\ttfamily template$<$bool untilize = false$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+configure\+\_\+addrmod\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_af5b2373fa9eca359fee73a3cc7545104}\label{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_af5b2373fa9eca359fee73a3cc7545104}} 
+\index{llk\_pack.h@{llk\_pack.h}!\_llk\_pack\_hw\_configure\_@{\_llk\_pack\_hw\_configure\_}}
+\index{\_llk\_pack\_hw\_configure\_@{\_llk\_pack\_hw\_configure\_}!llk\_pack.h@{llk\_pack.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_hw\_configure\_()}{\_llk\_pack\_hw\_configure\_()}}
+{\footnotesize\ttfamily template$<$bool untilize = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+hw\+\_\+configure\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{pack\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{pack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{tile\+\_\+size,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4},  }\item[{const bool}]{partial\+\_\+face = {\ttfamily false},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false},  }\item[{const std\+::uint32\+\_\+t}]{relu\+\_\+config = {\ttfamily 0} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a3a265dd41b8e1671e12094fab4bdef1b}\label{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a3a265dd41b8e1671e12094fab4bdef1b}} 
+\index{llk\_pack.h@{llk\_pack.h}!\_llk\_pack\_init\_@{\_llk\_pack\_init\_}}
+\index{\_llk\_pack\_init\_@{\_llk\_pack\_init\_}!llk\_pack.h@{llk\_pack.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_init\_()}{\_llk\_pack\_init\_()}}
+{\footnotesize\ttfamily template$<$bool untilize = false, bool zero\+\_\+output = false, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Row\+Major, bool write\+\_\+tile\+\_\+header = true$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+init\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{pack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4},  }\item[{const bool}]{partial\+\_\+face = {\ttfamily false},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a076610ac60f98c7e5948565cb1a38b9f}\label{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a076610ac60f98c7e5948565cb1a38b9f}} 
+\index{llk\_pack.h@{llk\_pack.h}!\_llk\_pack\_mop\_config\_@{\_llk\_pack\_mop\_config\_}}
+\index{\_llk\_pack\_mop\_config\_@{\_llk\_pack\_mop\_config\_}!llk\_pack.h@{llk\_pack.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_mop\_config\_()}{\_llk\_pack\_mop\_config\_()}}
+{\footnotesize\ttfamily template$<$bool untilize = false, bool zero\+\_\+output = false, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Row\+Major, bool write\+\_\+tile\+\_\+header = true$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+mop\+\_\+config\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{pack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4},  }\item[{const bool}]{partial\+\_\+face = {\ttfamily false},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_ae822cb524317a31a10f3d30d1acb3042}\label{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_ae822cb524317a31a10f3d30d1acb3042}} 
+\index{llk\_pack.h@{llk\_pack.h}!\_llk\_pack\_reconfig\_data\_format\_@{\_llk\_pack\_reconfig\_data\_format\_}}
+\index{\_llk\_pack\_reconfig\_data\_format\_@{\_llk\_pack\_reconfig\_data\_format\_}!llk\_pack.h@{llk\_pack.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_reconfig\_data\_format\_()}{\_llk\_pack\_reconfig\_data\_format\_()}}
+{\footnotesize\ttfamily template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool is\+\_\+tile\+\_\+dim\+\_\+reconfig\+\_\+en = false, Dst\+Tile\+Face\+Layout Face\+Layout = Dst\+Tile\+Face\+Layout\+::\+Row\+Major, bool write\+\_\+tile\+\_\+header = true$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+reconfig\+\_\+data\+\_\+format\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{pack\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{pack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{tile\+\_\+size,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4},  }\item[{const bool}]{partial\+\_\+face = {\ttfamily false},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a9cbe5a15ee66e5951020e3dd94ca8324}\label{tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h_a9cbe5a15ee66e5951020e3dd94ca8324}} 
+\index{llk\_pack.h@{llk\_pack.h}!\_llk\_pack\_reduce\_hw\_configure\_@{\_llk\_pack\_reduce\_hw\_configure\_}}
+\index{\_llk\_pack\_reduce\_hw\_configure\_@{\_llk\_pack\_reduce\_hw\_configure\_}!llk\_pack.h@{llk\_pack.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_pack\_reduce\_hw\_configure\_()}{\_llk\_pack\_reduce\_hw\_configure\_()}}
+{\footnotesize\ttfamily template$<$bool untilize = false, Pool\+Type type, Reduce\+Dim dim, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+pack\+\_\+reduce\+\_\+hw\+\_\+configure\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{pack\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{pack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{tile\+\_\+size,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4},  }\item[{const bool}]{partial\+\_\+face = {\ttfamily false},  }\item[{const bool}]{narrow\+\_\+tile = {\ttfamily false},  }\item[{const std\+::uint32\+\_\+t}]{relu\+\_\+config = {\ttfamily 0} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

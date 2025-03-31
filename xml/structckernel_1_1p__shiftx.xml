@@ -1,0 +1,136 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__shiftx" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_shiftx</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__shiftx_1a4127388145c5d58501cf86fdf6a27f08" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_shiftx::SHIFT_1</definition>
+        <argsstring></argsstring>
+        <name>SHIFT_1</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="324" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="324" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__shiftx_1ae4877ff6dc5a48882183611516c2301b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_shiftx::SHIFT_2</definition>
+        <argsstring></argsstring>
+        <name>SHIFT_2</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="325" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="325" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__shiftx_1a1aacd78d34c40962302a82fdb3a2b5e4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_shiftx::SHIFT_4</definition>
+        <argsstring></argsstring>
+        <name>SHIFT_4</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="326" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="326" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__shiftx_1aa01be34d0b49f25afad31188eb9e65f6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_shiftx::SHIFT_8</definition>
+        <argsstring></argsstring>
+        <name>SHIFT_8</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="327" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="327" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__shiftx_1a7b909f1d221fb6f442d783da5d00d440" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_shiftx::RESERVED0</definition>
+        <argsstring></argsstring>
+        <name>RESERVED0</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="329" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="329" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__shiftx_1a0d04a6326e325e8f9c320ab4e8603f19" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_shiftx::RESERVED1</definition>
+        <argsstring></argsstring>
+        <name>RESERVED1</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="330" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="330" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__shiftx_1a1e4aa0a18e4baf5e2bdcc00aed40b6a7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_shiftx::RIGHT_AWAY0</definition>
+        <argsstring></argsstring>
+        <name>RIGHT_AWAY0</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="331" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="331" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__shiftx_1ad983ee68ea6f279aa8f1ceabbdf7a166" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_shiftx::LEFT_TOWARD0</definition>
+        <argsstring></argsstring>
+        <name>LEFT_TOWARD0</name>
+        <initializer>= 0x3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="332" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="332" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="322" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="323" bodyend="333"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__shiftx_1ad983ee68ea6f279aa8f1ceabbdf7a166" prot="public" virt="non-virtual"><scope>ckernel::p_shiftx</scope><name>LEFT_TOWARD0</name></member>
+      <member refid="structckernel_1_1p__shiftx_1a7b909f1d221fb6f442d783da5d00d440" prot="public" virt="non-virtual"><scope>ckernel::p_shiftx</scope><name>RESERVED0</name></member>
+      <member refid="structckernel_1_1p__shiftx_1a0d04a6326e325e8f9c320ab4e8603f19" prot="public" virt="non-virtual"><scope>ckernel::p_shiftx</scope><name>RESERVED1</name></member>
+      <member refid="structckernel_1_1p__shiftx_1a1e4aa0a18e4baf5e2bdcc00aed40b6a7" prot="public" virt="non-virtual"><scope>ckernel::p_shiftx</scope><name>RIGHT_AWAY0</name></member>
+      <member refid="structckernel_1_1p__shiftx_1a4127388145c5d58501cf86fdf6a27f08" prot="public" virt="non-virtual"><scope>ckernel::p_shiftx</scope><name>SHIFT_1</name></member>
+      <member refid="structckernel_1_1p__shiftx_1ae4877ff6dc5a48882183611516c2301b" prot="public" virt="non-virtual"><scope>ckernel::p_shiftx</scope><name>SHIFT_2</name></member>
+      <member refid="structckernel_1_1p__shiftx_1a1aacd78d34c40962302a82fdb3a2b5e4" prot="public" virt="non-virtual"><scope>ckernel::p_shiftx</scope><name>SHIFT_4</name></member>
+      <member refid="structckernel_1_1p__shiftx_1aa01be34d0b49f25afad31188eb9e65f6" prot="public" virt="non-virtual"><scope>ckernel::p_shiftx</scope><name>SHIFT_8</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

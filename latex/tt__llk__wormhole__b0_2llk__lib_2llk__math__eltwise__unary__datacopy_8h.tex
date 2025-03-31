@@ -1,0 +1,50 @@
+\hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/llk\+\_\+lib/llk\+\_\+math\+\_\+eltwise\+\_\+unary\+\_\+datacopy.h File Reference}
+\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h}\index{tt\_llk\_wormhole\_b0/llk\_lib/llk\_math\_eltwise\_unary\_datacopy.h@{tt\_llk\_wormhole\_b0/llk\_lib/llk\_math\_eltwise\_unary\_datacopy.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+globals.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+include.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+template.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}cmath\+\_\+common.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}llk\+\_\+math\+\_\+common.\+h\char`\"{}}\newline
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a41e46a4d018b3de33edeae43e68419b0}{eltwise\+\_\+unary\+\_\+configure\+\_\+addrmod}} ()
+\item 
+{\footnotesize template$<$Data\+Copy\+Type type, Dst\+Sync Dst, Broadcast\+Type src\+\_\+b\+\_\+bcast\+\_\+type = Broadcast\+Type\+::\+NONE, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool unpack\+\_\+to\+\_\+dest = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a63cf0ffbb44c5809cd71a864ca1d568b}{\+\_\+llk\+\_\+math\+\_\+eltwise\+\_\+unary\+\_\+datacopy\+\_\+}} (const std\+::uint32\+\_\+t dst\+\_\+index, const std\+::uint32\+\_\+t src\+\_\+format, const std\+::uint32\+\_\+t dst\+\_\+format)
+\item 
+{\footnotesize template$<$Data\+Copy\+Type type, Broadcast\+Type bcast\+\_\+type = Broadcast\+Type\+::\+NONE, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool is\+\_\+int\+\_\+fpu\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a25864e90ebf1d07904c26acd3a6b2768}{eltwise\+\_\+unary\+\_\+configure\+\_\+mop}} (uint rows\+\_\+per\+\_\+inst, uint total\+\_\+rows, const uint num\+\_\+faces, const uint dst\+\_\+format)
+\item 
+{\footnotesize template$<$Data\+Copy\+Type type, Broadcast\+Type src\+\_\+b\+\_\+bcast\+\_\+type = Broadcast\+Type\+::\+NONE, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool is\+\_\+int\+\_\+fpu\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_af293525844e0cbb981136f2ec212ed2c}{\+\_\+llk\+\_\+math\+\_\+eltwise\+\_\+unary\+\_\+datacopy\+\_\+init\+\_\+}} (const std\+::uint32\+\_\+t transpose\+\_\+of\+\_\+faces=0, const std\+::uint32\+\_\+t within\+\_\+face\+\_\+16x16\+\_\+transpose=0, const std\+::uint32\+\_\+t num\+\_\+faces=4, const std\+::uint32\+\_\+t dst\+\_\+format=255)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a63cf0ffbb44c5809cd71a864ca1d568b}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a63cf0ffbb44c5809cd71a864ca1d568b}} 
+\index{llk\_math\_eltwise\_unary\_datacopy.h@{llk\_math\_eltwise\_unary\_datacopy.h}!\_llk\_math\_eltwise\_unary\_datacopy\_@{\_llk\_math\_eltwise\_unary\_datacopy\_}}
+\index{\_llk\_math\_eltwise\_unary\_datacopy\_@{\_llk\_math\_eltwise\_unary\_datacopy\_}!llk\_math\_eltwise\_unary\_datacopy.h@{llk\_math\_eltwise\_unary\_datacopy.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_eltwise\_unary\_datacopy\_()}{\_llk\_math\_eltwise\_unary\_datacopy\_()}}
+{\footnotesize\ttfamily template$<$Data\+Copy\+Type type, Dst\+Sync Dst, Broadcast\+Type src\+\_\+b\+\_\+bcast\+\_\+type = Broadcast\+Type\+::\+NONE, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool unpack\+\_\+to\+\_\+dest = false$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+eltwise\+\_\+unary\+\_\+datacopy\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{dst\+\_\+index,  }\item[{const std\+::uint32\+\_\+t}]{src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{dst\+\_\+format }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_af293525844e0cbb981136f2ec212ed2c}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_af293525844e0cbb981136f2ec212ed2c}} 
+\index{llk\_math\_eltwise\_unary\_datacopy.h@{llk\_math\_eltwise\_unary\_datacopy.h}!\_llk\_math\_eltwise\_unary\_datacopy\_init\_@{\_llk\_math\_eltwise\_unary\_datacopy\_init\_}}
+\index{\_llk\_math\_eltwise\_unary\_datacopy\_init\_@{\_llk\_math\_eltwise\_unary\_datacopy\_init\_}!llk\_math\_eltwise\_unary\_datacopy.h@{llk\_math\_eltwise\_unary\_datacopy.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_eltwise\_unary\_datacopy\_init\_()}{\_llk\_math\_eltwise\_unary\_datacopy\_init\_()}}
+{\footnotesize\ttfamily template$<$Data\+Copy\+Type type, Broadcast\+Type src\+\_\+b\+\_\+bcast\+\_\+type = Broadcast\+Type\+::\+NONE, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool is\+\_\+int\+\_\+fpu\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+eltwise\+\_\+unary\+\_\+datacopy\+\_\+init\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{transpose\+\_\+of\+\_\+faces = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{within\+\_\+face\+\_\+16x16\+\_\+transpose = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4},  }\item[{const std\+::uint32\+\_\+t}]{dst\+\_\+format = {\ttfamily 255} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a41e46a4d018b3de33edeae43e68419b0}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a41e46a4d018b3de33edeae43e68419b0}} 
+\index{llk\_math\_eltwise\_unary\_datacopy.h@{llk\_math\_eltwise\_unary\_datacopy.h}!eltwise\_unary\_configure\_addrmod@{eltwise\_unary\_configure\_addrmod}}
+\index{eltwise\_unary\_configure\_addrmod@{eltwise\_unary\_configure\_addrmod}!llk\_math\_eltwise\_unary\_datacopy.h@{llk\_math\_eltwise\_unary\_datacopy.h}}
+\doxysubsubsection{\texorpdfstring{eltwise\_unary\_configure\_addrmod()}{eltwise\_unary\_configure\_addrmod()}}
+{\footnotesize\ttfamily void eltwise\+\_\+unary\+\_\+configure\+\_\+addrmod (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a25864e90ebf1d07904c26acd3a6b2768}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__datacopy_8h_a25864e90ebf1d07904c26acd3a6b2768}} 
+\index{llk\_math\_eltwise\_unary\_datacopy.h@{llk\_math\_eltwise\_unary\_datacopy.h}!eltwise\_unary\_configure\_mop@{eltwise\_unary\_configure\_mop}}
+\index{eltwise\_unary\_configure\_mop@{eltwise\_unary\_configure\_mop}!llk\_math\_eltwise\_unary\_datacopy.h@{llk\_math\_eltwise\_unary\_datacopy.h}}
+\doxysubsubsection{\texorpdfstring{eltwise\_unary\_configure\_mop()}{eltwise\_unary\_configure\_mop()}}
+{\footnotesize\ttfamily template$<$Data\+Copy\+Type type, Broadcast\+Type bcast\+\_\+type = Broadcast\+Type\+::\+NONE, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, bool is\+\_\+int\+\_\+fpu\+\_\+en = false$>$ \\
+void eltwise\+\_\+unary\+\_\+configure\+\_\+mop (\begin{DoxyParamCaption}\item[{uint}]{rows\+\_\+per\+\_\+inst,  }\item[{uint}]{total\+\_\+rows,  }\item[{const uint}]{num\+\_\+faces,  }\item[{const uint}]{dst\+\_\+format }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

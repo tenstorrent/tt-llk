@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['scalar_3164',['SCALAR',['../namespaceckernel.html#a850ed05e8a4dc1ed46bf65150c9635c2afa6cc523436cb6f98e189ddaa82354fe',1,'ckernel']]],
+  ['set_5fperf_5fscratch_3165',['SET_PERF_SCRATCH',['../namespaceckernel.html#acb07daee1464632d122cb7ff97106a3aab95c57dbcff09060b6338a0d9224e6ce',1,'ckernel']]],
+  ['singleftentry_3166',['SingleFTEntry',['../namespaceckernel.html#aff29f26459236e37dcd116a4be598298a926901a6c7cd9e3826719472f43e924a',1,'ckernel::SingleFTEntry()'],['../namespaceckernel.html#aff29f26459236e37dcd116a4be598298a926901a6c7cd9e3826719472f43e924a',1,'ckernel::SingleFTEntry()'],['../namespaceckernel.html#aff29f26459236e37dcd116a4be598298a926901a6c7cd9e3826719472f43e924a',1,'ckernel::SingleFTEntry()'],['../namespaceckernel.html#aff29f26459236e37dcd116a4be598298a926901a6c7cd9e3826719472f43e924a',1,'ckernel::SingleFTEntry()']]],
+  ['srca_3167',['SrcA',['../namespaceckernel.html#a879d5154a2972baa9f455bf1980e5edda85becaa2f53dbf50b609a09c545f2ba8',1,'ckernel']]],
+  ['srcb_3168',['SrcB',['../namespaceckernel.html#a879d5154a2972baa9f455bf1980e5edda956db99c8849c15529ae20135f6e0d26',1,'ckernel']]],
+  ['srcc_3169',['SrcC',['../namespaceckernel.html#a879d5154a2972baa9f455bf1980e5eddae6af7000741b244061aec2918902a4a8',1,'ckernel']]],
+  ['starthalf_3170',['StartHalf',['../namespaceckernel.html#ab6ed35012f0514997eedaf1933f4cfd7a953146a046b12941606b9a63cd2e0482',1,'ckernel']]],
+  ['startzero_3171',['StartZero',['../namespaceckernel.html#ab6ed35012f0514997eedaf1933f4cfd7a675559db752c894d0077af9905bddf03',1,'ckernel']]],
+  ['stream_5fcurr_5fphase_5f0_3172',['stream_curr_phase_0',['../namespaceckernel.html#afb0cd4582f903ebca47797fbd2257402ac74ec4a045472ed931e20a37cc3d3f67',1,'ckernel']]],
+  ['stream_5fcurr_5fphase_5f1_3173',['stream_curr_phase_1',['../namespaceckernel.html#afb0cd4582f903ebca47797fbd2257402af751513b7a83d35470d62ea7093159f9',1,'ckernel']]],
+  ['stream_5fcurr_5fphase_5f2_3174',['stream_curr_phase_2',['../namespaceckernel.html#afb0cd4582f903ebca47797fbd2257402aa0a3d209148ac7f54a8b03ed6abe26e4',1,'ckernel']]],
+  ['stream_5fcurr_5fphase_5f3_3175',['stream_curr_phase_3',['../namespaceckernel.html#afb0cd4582f903ebca47797fbd2257402a4fabc620d27a843b8947919badb62812',1,'ckernel']]],
+  ['stream_5fnum_5fmsgs_5freceived_5f0_3176',['stream_num_msgs_received_0',['../namespaceckernel.html#afb0cd4582f903ebca47797fbd2257402ae8f8464afbfbccf39744a655197945c0',1,'ckernel']]],
+  ['stream_5fnum_5fmsgs_5freceived_5f1_3177',['stream_num_msgs_received_1',['../namespaceckernel.html#afb0cd4582f903ebca47797fbd2257402a989a5061ab7106d3f1764795ea437d3a',1,'ckernel']]],
+  ['stream_5fnum_5fmsgs_5freceived_5f2_3178',['stream_num_msgs_received_2',['../namespaceckernel.html#afb0cd4582f903ebca47797fbd2257402a80cd10ef8021f063917584c201473a39',1,'ckernel']]],
+  ['stream_5fnum_5fmsgs_5freceived_5f3_3179',['stream_num_msgs_received_3',['../namespaceckernel.html#afb0cd4582f903ebca47797fbd2257402ac85d573363d483f26e6329652a8ccfea',1,'ckernel']]],
+  ['sub_3180',['SUB',['../namespaceckernel_1_1sfpu.html#a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb',1,'ckernel::sfpu::SUB()'],['../namespaceckernel_1_1sfpu.html#a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb',1,'ckernel::sfpu::SUB()'],['../namespaceckernel_1_1sfpu.html#a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb',1,'ckernel::sfpu::SUB()'],['../namespaceckernel_1_1sfpu.html#a1a472303115a1004c0fcc2c0102431c8a241dd841abade20fcb27b8a9f494e1eb',1,'ckernel::sfpu::SUB()']]],
+  ['sum_3181',['SUM',['../namespaceckernel.html#ad7332f13da2c5b67193ef7980f322526aa078f9b3c9b7cd24afb797951679cb66',1,'ckernel']]],
+  ['syncfull_3182',['SyncFull',['../namespaceckernel.html#abafe4c2fdc04e3e87416c5e2f723cd5da6c7493e9a8ba7adde9205e7d001b5377',1,'ckernel']]],
+  ['synchalf_3183',['SyncHalf',['../namespaceckernel.html#abafe4c2fdc04e3e87416c5e2f723cd5da179e90fbd3dae0aece30d8f84df8d13a',1,'ckernel']]],
+  ['synctile16_3184',['SyncTile16',['../namespaceckernel.html#abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e',1,'ckernel']]],
+  ['synctile2_3185',['SyncTile2',['../namespaceckernel.html#abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676',1,'ckernel']]]
+];

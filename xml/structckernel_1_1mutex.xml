@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1mutex" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::mutex</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h" local="no">ckernel_structs.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1mutex_1a2e6185a2bb30d967f295a00e1661753d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint32_t</type>
+        <definition>constexpr static uint32_t ckernel::mutex::REG_RMW</definition>
+        <argsstring></argsstring>
+        <name>REG_RMW</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="31" column="31" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_structs.h" line="29" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_structs.h" bodystart="30" bodyend="32"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1mutex_1a2e6185a2bb30d967f295a00e1661753d" prot="public" virt="non-virtual"><scope>ckernel::mutex</scope><name>REG_RMW</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

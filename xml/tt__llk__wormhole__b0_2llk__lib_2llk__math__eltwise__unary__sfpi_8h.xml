@@ -1,0 +1,885 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h" kind="file" language="C++">
+    <compoundname>llk_math_eltwise_unary_sfpi.h</compoundname>
+    <includes local="no">type_traits</includes>
+    <includes local="yes">ckernel_globals.h</includes>
+    <includes local="yes">ckernel_include.h</includes>
+    <includes local="yes">ckernel_ops.h</includes>
+    <includes local="yes">ckernel_sfpi.h</includes>
+    <includes local="yes">ckernel_template.h</includes>
+    <includes local="yes">cmath_common.h</includes>
+    <includes refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h" local="yes">llk_math_common.h</includes>
+    <incdepgraph>
+      <node id="10">
+        <label>cstdint</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="4">
+        <label>ckernel_include.h</label>
+      </node>
+      <node id="7">
+        <label>ckernel_template.h</label>
+      </node>
+      <node id="6">
+        <label>ckernel_sfpi.h</label>
+      </node>
+      <node id="9">
+        <label>llk_math_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>type_traits</label>
+      </node>
+      <node id="8">
+        <label>cmath_common.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_globals.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_ops.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a44bf6157b6985bae067a35fbe1133b88" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>SfpiTestType</type>
+            <declname>sfpu_type</declname>
+            <defname>sfpu_type</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void static_assert_sfpi_type_dependent</definition>
+        <argsstring>()</argsstring>
+        <name>static_assert_sfpi_type_dependent</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="20" column="6" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="20" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a8497a3ff2f3eae1f570ac4901ec517fb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void eltwise_unary_sfpi_configure_addrmod</definition>
+        <argsstring>()</argsstring>
+        <name>eltwise_unary_sfpi_configure_addrmod</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="26" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="26" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a03549662818d95f93a6f2d7fe5678c4c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void eltwise_unary_sfpi_configure_mop</definition>
+        <argsstring>()</argsstring>
+        <name>eltwise_unary_sfpi_configure_mop</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="39" column="13" declfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" declline="39" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a86d4672c384f7700a6bda326220ef45e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>SfpiTestType</type>
+            <declname>sfpu_op</declname>
+            <defname>sfpu_op</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi</definition>
+        <argsstring>(uint dst_index, uint param0=0, uint param1=0, uint param2=0, uint param3=0, uint param4=0, uint param5=0)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param0</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param1</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param2</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param3</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param4</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param5</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="42" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="42" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aa37f555581f160bcd5d4908e852f0f83" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_init</definition>
+        <argsstring>(uint param0=0, uint param1=0, uint param2=0, uint param3=0, uint param4=0, uint param5=0)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_init</name>
+        <param>
+          <type>uint</type>
+          <declname>param0</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param1</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param2</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param3</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param4</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param5</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="62" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="62" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a4c05f4a7d23795769836e755bb15ab78" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test1</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test1</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="72" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="72" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae5fa9cf39b6f4b4d9a88ffd734d0fce6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test2</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test2</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="78" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="78" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab27b457e783de890c8faf35b02ea88f2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test3</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test3</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="84" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="84" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1abc05e01055718a13a656ac4b6113f064" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test4</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test4</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="90" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="90" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab0d1a977af974a0bd095501e798773bf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test5</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test5</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="96" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="96" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab985ada2e1f57004810b601d04e0399f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test6</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test6</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="102" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="102" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1af0ae05e59e5f66bd2de85fe697f04be0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test7</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test7</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="108" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="108" bodyend="111"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a4fe96d096ee0f5707995e60d690362bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test8</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test8</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="114" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="114" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aae0163b31f7b173b4479adf1e6d1ba5d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test9</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test9</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="120" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="120" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae43915187770e67e801ed072986e5653" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test10</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test10</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="126" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="126" bodyend="129"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aff42a2e298e4d804b408aaa20ceb9d67" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test11</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test11</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="132" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="132" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae148e23adffb2c24f94d59731def524f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test12</definition>
+        <argsstring>(uint dst_index, uint param0)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test12</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param0</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="138" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="138" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a1efacc4dd56e2ef89ad683c7c3eb0992" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test13</definition>
+        <argsstring>(uint dst_index, uint param0)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test13</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param0</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="144" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="144" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a520c08ae32a5b6b3f053f5356048adb1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test14</definition>
+        <argsstring>(uint dst_index, uint param0)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test14</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <param>
+          <type>uint</type>
+          <declname>param0</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="150" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="150" bodyend="153"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a55b2828de267d50a6e04c13cbd17e8d7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test15</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test15</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="156" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="156" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a8c99022a08402387ed30affddfb39404" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test16</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test16</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="162" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="162" bodyend="165"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab29eb1ce11bf673d76ab9e6f8b792237" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test17</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test17</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="168" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="168" bodyend="171"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae6ffdb98c12a39d200535df5da1faec0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test18</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test18</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="174" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="174" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab2e6ed0b172ba9e30b6f19bb8ab7ccbb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>dst_sync</declname>
+            <defname>dst_sync</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void llk_math_eltwise_unary_sfpi_test19</definition>
+        <argsstring>(uint dst_index)</argsstring>
+        <name>llk_math_eltwise_unary_sfpi_test19</name>
+        <param>
+          <type>uint</type>
+          <declname>dst_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" line="180" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h" bodystart="180" bodyend="183"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;type_traits&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_globals.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_include.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_ops.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_sfpi.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_template.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cmath_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h" kindref="compound">llk_math_common.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;SfpiTestType<sp/>sfpu_type&gt;</highlight></codeline>
+<codeline lineno="20" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a44bf6157b6985bae067a35fbe1133b88" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a44bf6157b6985bae067a35fbe1133b88" kindref="member">static_assert_sfpi_type_dependent</ref>()</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/>static_assert(sfpu_type<sp/>==<sp/>SfpiTestType::unused_test,<sp/></highlight><highlight class="stringliteral">&quot;sfpu_type<sp/>exception&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>local<sp/>function<sp/>declarations</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a8497a3ff2f3eae1f570ac4901ec517fb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a8497a3ff2f3eae1f570ac4901ec517fb" kindref="member">eltwise_unary_sfpi_configure_addrmod</ref>()</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>NOTE:<sp/>this<sp/>kernel<sp/>is<sp/>typically<sp/>used<sp/>in<sp/>conjunction<sp/>with</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/>A2D,<sp/>which<sp/>is<sp/>using<sp/>ADDR_MOD_0<sp/>and<sp/>ADDR_MOD_2,<sp/>so<sp/>use<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/><sp/><sp/>that<sp/>doesn&apos;t<sp/>conflict!</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="structckernel_1_1addr__mod__t" kindref="compound">addr_mod_t</ref><sp/>{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.<ref refid="structckernel_1_1addr__mod__t_1ad745d7240af5385ed6266be363297ef4" kindref="member">srca</ref><sp/>=<sp/>{.<ref refid="structckernel_1_1addr__mod__t_1_1addr__mod__src__t_1a2821fc099c970f79e7c6555e8df5b715" kindref="member">incr</ref><sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.srcb<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.dest<sp/>=<sp/>{.incr<sp/>=<sp/>0},</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>.set(<ref refid="namespaceckernel_1a05f4d4b4bc7c28a851063e49768311c9" kindref="member">ADDR_MOD_3</ref>);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a03549662818d95f93a6f2d7fe5678c4c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a03549662818d95f93a6f2d7fe5678c4c" kindref="member">eltwise_unary_sfpi_configure_mop</ref>();</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;SfpiTestType<sp/>sfpu_op,<sp/>DstSync<sp/>Dst&gt;</highlight></codeline>
+<codeline lineno="42" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a86d4672c384f7700a6bda326220ef45e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a86d4672c384f7700a6bda326220ef45e" kindref="member">llk_math_eltwise_unary_sfpi</ref>(uint<sp/>dst_index,<sp/>uint<sp/>param0<sp/>=<sp/>0,<sp/>uint<sp/>param1<sp/>=<sp/>0,<sp/>uint<sp/>param2<sp/>=<sp/>0,<sp/>uint<sp/>param3<sp/>=<sp/>0,<sp/>uint<sp/>param4<sp/>=<sp/>0,<sp/>uint<sp/>param5<sp/>=<sp/>0)</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1aeae76dd111eccdcae0bca71d081b8106" kindref="member">p_stall::STALL_SFPU</ref>,<sp/><ref refid="structckernel_1_1p__stall_1aaf59ea6df69e5d5dbc171fd7e4a44cad" kindref="member">p_stall::MATH</ref>);</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>((Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e" kindref="member">DstSync::SyncTile16</ref>)<sp/>||<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676" kindref="member">DstSync::SyncTile2</ref>))</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>math::set_dst_write_addr&lt;DstTileLayout::Default,<sp/>DstTileShape::Tile32x32&gt;(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref>);</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>math::set_dst_write_addr&lt;DstTileLayout::Default,<sp/>DstTileShape::Tile32x32&gt;(dst_index);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>face<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>sfpi_test::calculate_sfpi&lt;sfpu_op&gt;(param0,<sp/>param1,<sp/>param2,<sp/>param3,<sp/>param4,<sp/>param5);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>8,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" kindref="member">p_setrwc::SET_D</ref>);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a7d9fbf178efd8ba39997462ea19a4229" kindref="member">TTI_SETRWC</ref>(<ref refid="structckernel_1_1p__setrwc_1a1100317ed5c227efbb31645d8d5ae7c6" kindref="member">p_setrwc::CLR_NONE</ref>,<sp/><ref refid="structckernel_1_1p__setrwc_1a250c7f9b8756a580842ab6a87ac3d3b2" kindref="member">p_setrwc::CR_D</ref>,<sp/>8,<sp/>0,<sp/>0,<sp/><ref refid="structckernel_1_1p__setrwc_1a250128269d680a265e9109c426b5a84a" kindref="member">p_setrwc::SET_D</ref>);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a67bcf29581cd07b43cb0540d8e0e238f" kindref="member">math::clear_dst_reg_addr</ref>();</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aa37f555581f160bcd5d4908e852f0f83" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aa37f555581f160bcd5d4908e852f0f83" kindref="member">llk_math_eltwise_unary_sfpi_init</ref>(uint<sp/>param0<sp/>=<sp/>0,<sp/>uint<sp/>param1<sp/>=<sp/>0,<sp/>uint<sp/>param2<sp/>=<sp/>0,<sp/>uint<sp/>param3<sp/>=<sp/>0,<sp/>uint<sp/>param4<sp/>=<sp/>0,<sp/>uint<sp/>param5<sp/>=<sp/>0)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1sfpu_1ac4b8efd66f423f1165b5817545830a55" kindref="member">sfpu::_init_sfpu_config_reg</ref>();</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a8497a3ff2f3eae1f570ac4901ec517fb" kindref="member">eltwise_unary_sfpi_configure_addrmod</ref>();</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1math_1a4de2f1cf6fdbf8440aa394f2509ea5de" kindref="member">math::reset_counters</ref>(<ref refid="structckernel_1_1p__setrwc_1a831ce6850ea6dbade5660f1a1579f3f3" kindref="member">p_setrwc::SET_ABD_F</ref>);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="comment">//<sp/>New<sp/>LLK<sp/>SFPU<sp/>APIs</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="72" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a4c05f4a7d23795769836e755bb15ab78" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a4c05f4a7d23795769836e755bb15ab78" kindref="member">llk_math_eltwise_unary_sfpi_test1</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test1,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="78" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae5fa9cf39b6f4b4d9a88ffd734d0fce6" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae5fa9cf39b6f4b4d9a88ffd734d0fce6" kindref="member">llk_math_eltwise_unary_sfpi_test2</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test2,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="84" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab27b457e783de890c8faf35b02ea88f2" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab27b457e783de890c8faf35b02ea88f2" kindref="member">llk_math_eltwise_unary_sfpi_test3</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test3,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="90" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1abc05e01055718a13a656ac4b6113f064" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1abc05e01055718a13a656ac4b6113f064" kindref="member">llk_math_eltwise_unary_sfpi_test4</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="91"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test4,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="93"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="96" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab0d1a977af974a0bd095501e798773bf" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab0d1a977af974a0bd095501e798773bf" kindref="member">llk_math_eltwise_unary_sfpi_test5</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="97"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test5,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="102" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab985ada2e1f57004810b601d04e0399f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab985ada2e1f57004810b601d04e0399f" kindref="member">llk_math_eltwise_unary_sfpi_test6</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test6,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="108" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1af0ae05e59e5f66bd2de85fe697f04be0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1af0ae05e59e5f66bd2de85fe697f04be0" kindref="member">llk_math_eltwise_unary_sfpi_test7</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test7,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="114" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a4fe96d096ee0f5707995e60d690362bd" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a4fe96d096ee0f5707995e60d690362bd" kindref="member">llk_math_eltwise_unary_sfpi_test8</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="115"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test8,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="120" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aae0163b31f7b173b4479adf1e6d1ba5d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aae0163b31f7b173b4479adf1e6d1ba5d" kindref="member">llk_math_eltwise_unary_sfpi_test9</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="121"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test9,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="126" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae43915187770e67e801ed072986e5653" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae43915187770e67e801ed072986e5653" kindref="member">llk_math_eltwise_unary_sfpi_test10</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test10,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="132" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aff42a2e298e4d804b408aaa20ceb9d67" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1aff42a2e298e4d804b408aaa20ceb9d67" kindref="member">llk_math_eltwise_unary_sfpi_test11</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="133"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test11,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="135"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="138" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae148e23adffb2c24f94d59731def524f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae148e23adffb2c24f94d59731def524f" kindref="member">llk_math_eltwise_unary_sfpi_test12</ref>(uint<sp/>dst_index,<sp/>uint<sp/>param0)</highlight></codeline>
+<codeline lineno="139"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test12,<sp/>dst_sync&gt;(dst_index,<sp/>param0);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="144" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a1efacc4dd56e2ef89ad683c7c3eb0992" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a1efacc4dd56e2ef89ad683c7c3eb0992" kindref="member">llk_math_eltwise_unary_sfpi_test13</ref>(uint<sp/>dst_index,<sp/>uint<sp/>param0)</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test13,<sp/>dst_sync&gt;(dst_index,<sp/>param0);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="150" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a520c08ae32a5b6b3f053f5356048adb1" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a520c08ae32a5b6b3f053f5356048adb1" kindref="member">llk_math_eltwise_unary_sfpi_test14</ref>(uint<sp/>dst_index,<sp/>uint<sp/>param0)</highlight></codeline>
+<codeline lineno="151"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test14,<sp/>dst_sync&gt;(dst_index,<sp/>param0);</highlight></codeline>
+<codeline lineno="153"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="156" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a55b2828de267d50a6e04c13cbd17e8d7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a55b2828de267d50a6e04c13cbd17e8d7" kindref="member">llk_math_eltwise_unary_sfpi_test15</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="157"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test15,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="162" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a8c99022a08402387ed30affddfb39404" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1a8c99022a08402387ed30affddfb39404" kindref="member">llk_math_eltwise_unary_sfpi_test16</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="163"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test16,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="168" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab29eb1ce11bf673d76ab9e6f8b792237" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab29eb1ce11bf673d76ab9e6f8b792237" kindref="member">llk_math_eltwise_unary_sfpi_test17</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="169"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test17,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="171"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="174" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae6ffdb98c12a39d200535df5da1faec0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ae6ffdb98c12a39d200535df5da1faec0" kindref="member">llk_math_eltwise_unary_sfpi_test18</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="175"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test18,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="177"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>dst_sync&gt;</highlight></codeline>
+<codeline lineno="180" refid="tt__llk__wormhole__b0_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab2e6ed0b172ba9e30b6f19bb8ab7ccbb" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__math__eltwise__unary__sfpi_8h_1ab2e6ed0b172ba9e30b6f19bb8ab7ccbb" kindref="member">llk_math_eltwise_unary_sfpi_test19</ref>(uint<sp/>dst_index)</highlight></codeline>
+<codeline lineno="181"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/>llk_math_eltwise_unary_sfpi&lt;SfpiTestType::test19,<sp/>dst_sync&gt;(dst_index);</highlight></codeline>
+<codeline lineno="183"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h"/>
+  </compounddef>
+</doxygen>

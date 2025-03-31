@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__cfg" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_cfg</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__cfg_1a08f7512eea1a484f5cea26518caed563" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_cfg::WRCFG_128b</definition>
+        <argsstring></argsstring>
+        <name>WRCFG_128b</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="337" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_cfg::WRCFG_32b</definition>
+        <argsstring></argsstring>
+        <name>WRCFG_32b</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="338" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="338" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="335" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="336" bodyend="339"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__cfg_1a08f7512eea1a484f5cea26518caed563" prot="public" virt="non-virtual"><scope>ckernel::p_cfg</scope><name>WRCFG_128b</name></member>
+      <member refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" prot="public" virt="non-virtual"><scope>ckernel::p_cfg</scope><name>WRCFG_32b</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

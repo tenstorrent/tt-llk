@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__exp" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_exp</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__exp_1a70be1667efd73b86d9fd9752923a3689" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_exp::FRAC_BITS</definition>
+        <argsstring></argsstring>
+        <name>FRAC_BITS</name>
+        <initializer>= 3</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="419" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="419" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__exp_1a5ea2376c1a6d31d6a0deb299bcacc8b5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_exp::C23_73</definition>
+        <argsstring></argsstring>
+        <name>C23_73</name>
+        <initializer>= 0x4340</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="420" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="420" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__exp_1afe6e032abb817844f35d88c235ccda0e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_exp::ADJ_EXP</definition>
+        <argsstring></argsstring>
+        <name>ADJ_EXP</name>
+        <initializer>= 0xBD3F</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="426" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="426" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="417" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="418" bodyend="427"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__exp_1afe6e032abb817844f35d88c235ccda0e" prot="public" virt="non-virtual"><scope>ckernel::p_exp</scope><name>ADJ_EXP</name></member>
+      <member refid="structckernel_1_1p__exp_1a5ea2376c1a6d31d6a0deb299bcacc8b5" prot="public" virt="non-virtual"><scope>ckernel::p_exp</scope><name>C23_73</name></member>
+      <member refid="structckernel_1_1p__exp_1a70be1667efd73b86d9fd9752923a3689" prot="public" virt="non-virtual"><scope>ckernel::p_exp</scope><name>FRAC_BITS</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

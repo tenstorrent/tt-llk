@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1dbg__soft__reset__t" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::dbg_soft_reset_t</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__debug_8h" local="no">ckernel_debug.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structckernel_1_1dbg__soft__reset__t_1a959c094a4be2b69895e6d6cf140e83eb" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_soft_reset_t::unp</definition>
+        <argsstring></argsstring>
+        <name>unp</name>
+        <bitfield> 2</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="89" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__soft__reset__t_1a24600ebf7d274d04d31b8dd24b4cdbd0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_soft_reset_t::pack</definition>
+        <argsstring></argsstring>
+        <name>pack</name>
+        <bitfield> 4</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="90" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1dbg__soft__reset__t_1a9e7d4b303ef681789fad122734caf49b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ckernel::dbg_soft_reset_t::reserved</definition>
+        <argsstring></argsstring>
+        <name>reserved</name>
+        <bitfield> 26</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="91" column="14" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_debug.h" line="87" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_debug.h" bodystart="88" bodyend="92"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1dbg__soft__reset__t_1a24600ebf7d274d04d31b8dd24b4cdbd0" prot="public" virt="non-virtual"><scope>ckernel::dbg_soft_reset_t</scope><name>pack</name></member>
+      <member refid="structckernel_1_1dbg__soft__reset__t_1a9e7d4b303ef681789fad122734caf49b" prot="public" virt="non-virtual"><scope>ckernel::dbg_soft_reset_t</scope><name>reserved</name></member>
+      <member refid="structckernel_1_1dbg__soft__reset__t_1a959c094a4be2b69895e6d6cf140e83eb" prot="public" virt="non-virtual"><scope>ckernel::dbg_soft_reset_t</scope><name>unp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

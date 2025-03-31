@@ -1,0 +1,223 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h" kind="file" language="C++">
+    <compoundname>ckernel_globals.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h" local="yes">ckernel_structs.h</includes>
+    <includes local="yes">risc_attribs.h</includes>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h" local="yes">tt_llk_blackhole/common/inc/ckernel_sfpu.h</includedby>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h" local="yes">tt_llk_blackhole/common/inc/cmath_common.h</includedby>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h" local="yes">tt_llk_blackhole/common/inc/cpack_common.h</includedby>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2cunpack__common_8h" local="yes">tt_llk_blackhole/common/inc/cunpack_common.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_globals.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>risc_attribs.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel_structs.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h"/>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>tt_llk_blackhole/common/inc/cpack_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cpack__common_8h"/>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_globals.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>tt_llk_blackhole/common/inc/cunpack_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cunpack__common_8h"/>
+      </node>
+      <node id="4">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a9c05ec734dd70877abef2cc14912e0a9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t cfg_state_id</definition>
+        <argsstring></argsstring>
+        <name>cfg_state_id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="12" column="17" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="12" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1ad599359d106464c9e12c1f131540a1c0" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t unp_cfg_context</definition>
+        <argsstring></argsstring>
+        <name>unp_cfg_context</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="13" column="17" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="13" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1aa1f6e66cf66f12ae4766078f901d9512" prot="public" static="no" mutable="no">
+        <type>uint32_t volatile</type>
+        <definition>uint32_t volatile l1_buffer[16]</definition>
+        <argsstring>[16]</argsstring>
+        <name>l1_buffer</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="15" column="27" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="15" declcolumn="27"/>
+      </memberdef>
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af429823be62c0e6a8c9e6555b930f7c9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t pack_sync_tile_dst_ptr</definition>
+        <argsstring></argsstring>
+        <name>pack_sync_tile_dst_ptr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="17" column="17" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="17" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t math_sync_tile_dst_index</definition>
+        <argsstring></argsstring>
+        <name>math_sync_tile_dst_index</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="18" column="17" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="18" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a127d6f144e1152157722241e5abfa2a4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t __local_mem_rodata_start_addr[]</definition>
+        <argsstring>[]</argsstring>
+        <name>__local_mem_rodata_start_addr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="20" column="17" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="20" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a93f88257669206af337b8d3c4bb8d06f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t __local_mem_rodata_end_addr[]</definition>
+        <argsstring>[]</argsstring>
+        <name>__local_mem_rodata_end_addr</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="21" column="17" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="21" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a8cac23f916049ce01d508cf6f317ad77" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t __firmware_start[]</definition>
+        <argsstring>[]</argsstring>
+        <name>__firmware_start</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="22" column="17" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="22" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="variable" id="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a6bba9967d9866a462c58f70e274039c9" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t topk_replay_init</definition>
+        <argsstring></argsstring>
+        <name>topk_replay_init</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_globals.h" line="24" column="16" declfile="tt_llk_blackhole/common/inc/ckernel_globals.h" declline="24" declcolumn="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__structs_8h" kindref="compound">ckernel_structs.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;risc_attribs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a9c05ec734dd70877abef2cc14912e0a9" kindref="member">cfg_state_id</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1ad599359d106464c9e12c1f131540a1c0" kindref="member">unp_cfg_context</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>uint32_t<sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>tt_l1_ptr<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1aa1f6e66cf66f12ae4766078f901d9512" kindref="member">l1_buffer</ref>[16];</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af429823be62c0e6a8c9e6555b930f7c9" kindref="member">pack_sync_tile_dst_ptr</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af5d8a9899c9fbdf4094574a9600663db" kindref="member">math_sync_tile_dst_index</ref>;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a127d6f144e1152157722241e5abfa2a4" kindref="member">__local_mem_rodata_start_addr</ref>[];</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a93f88257669206af337b8d3c4bb8d06f" kindref="member">__local_mem_rodata_end_addr</ref>[];</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a8cac23f916049ce01d508cf6f317ad77" kindref="member">__firmware_start</ref>[];</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>int32_t<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1a6bba9967d9866a462c58f70e274039c9" kindref="member">topk_replay_init</ref>;</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/ckernel_globals.h"/>
+  </compounddef>
+</doxygen>

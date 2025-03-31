@@ -1,0 +1,526 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__gpr__unpack" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_gpr_unpack</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__gpr__map_8h" local="no">ckernel_gpr_map.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a2274823fc46ca0b442da358d6dae15df" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::OPERAND_BASE_ADDR</definition>
+        <argsstring></argsstring>
+        <name>OPERAND_BASE_ADDR</name>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="23" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1aa8642586c8b193109613b5141115bab7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::OPERAND_OFFSET_ADDR</definition>
+        <argsstring></argsstring>
+        <name>OPERAND_OFFSET_ADDR</name>
+        <initializer>= 5</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="24" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1abf18ac69ac8d1a6c9bdc7ed17a1dcdd4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::ZERO_0</definition>
+        <argsstring></argsstring>
+        <name>ZERO_0</name>
+        <initializer>= 8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="25" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a8fa71bee21f1ab58da1518feb106736a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::ZERO_1</definition>
+        <argsstring></argsstring>
+        <name>ZERO_1</name>
+        <initializer>= 9</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="26" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1ac5016ea8c905710116d5f9a81d416f98" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::ZERO_2</definition>
+        <argsstring></argsstring>
+        <name>ZERO_2</name>
+        <initializer>= 10</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="27" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a5f0c228877cbc99fbc0447e08e8dd1fd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::ZERO_3</definition>
+        <argsstring></argsstring>
+        <name>ZERO_3</name>
+        <initializer>= 11</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="28" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a5f3ea799ff51f118dd0efde17e3d6864" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::TMP0</definition>
+        <argsstring></argsstring>
+        <name>TMP0</name>
+        <initializer>= 12</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="29" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1aa1c7b1d2fea93922b64d400d71450325" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::TMP1</definition>
+        <argsstring></argsstring>
+        <name>TMP1</name>
+        <initializer>= 13</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="30" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a05c8073591bd642b6192226d0cc51ca7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::TILE_SIZE</definition>
+        <argsstring></argsstring>
+        <name>TILE_SIZE</name>
+        <initializer>= 14</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="31" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a5fdfbb068ed27e9c927a0cfed9a00ce8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::TILE_OFFSET</definition>
+        <argsstring></argsstring>
+        <name>TILE_OFFSET</name>
+        <initializer>= 15</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="32" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1aa603289c6c63a5d2d3fd7438d9ae183b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::L1_BUFFER_ADDR</definition>
+        <argsstring></argsstring>
+        <name>L1_BUFFER_ADDR</name>
+        <initializer>= 17</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="33" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a5783e35cc8b86083e75907d4ace99606" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::TMP_LO</definition>
+        <argsstring></argsstring>
+        <name>TMP_LO</name>
+        <initializer>= 18</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="34" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1aedf39c4346836714dc90caf3f5061c9a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::TMP_HI</definition>
+        <argsstring></argsstring>
+        <name>TMP_HI</name>
+        <initializer>= 19</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="35" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a637fc103a187354a4260bc7e99630449" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::PERF_FIRST_UNP_LO</definition>
+        <argsstring></argsstring>
+        <name>PERF_FIRST_UNP_LO</name>
+        <initializer>= 32</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="36" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1aeb806dfe5a7c4fac57860c0c129a523d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::PERF_FIRST_UNP_HI</definition>
+        <argsstring></argsstring>
+        <name>PERF_FIRST_UNP_HI</name>
+        <initializer>= 33</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="37" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1afe0ebeea76e467c03dc25a9cc04394b6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::TILE_SIZE_A</definition>
+        <argsstring></argsstring>
+        <name>TILE_SIZE_A</name>
+        <initializer>= 36</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="38" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a6d0744ac5fc1a5cf7d3c3a968bd8514a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::TILE_SIZE_B</definition>
+        <argsstring></argsstring>
+        <name>TILE_SIZE_B</name>
+        <initializer>= 37</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="39" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1ade70a442e060a40e081b179e7e2e3398" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::KT_DIM</definition>
+        <argsstring></argsstring>
+        <name>KT_DIM</name>
+        <initializer>= 38</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="40" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a984cbf5271df6a297d0c32b2e0e6651d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::FACE_DIM_16x16</definition>
+        <argsstring></argsstring>
+        <name>FACE_DIM_16x16</name>
+        <initializer>= 40</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="41" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a1f01f69f614d481b55336cbcb6f61795" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::FACE_DIM_8x16</definition>
+        <argsstring></argsstring>
+        <name>FACE_DIM_8x16</name>
+        <initializer>= 41</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="42" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a5609b41906e458d0f0e197830d0644d7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::FACE_DIM_4x16</definition>
+        <argsstring></argsstring>
+        <name>FACE_DIM_4x16</name>
+        <initializer>= 42</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="43" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a73868b9229c83366bffc7cd6bec1cc72" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::FACE_DIM_2x16</definition>
+        <argsstring></argsstring>
+        <name>FACE_DIM_2x16</name>
+        <initializer>= 43</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="44" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a78c8b3170214002b17bd9eaf4dcf9daa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::FACE_DIM_1x16</definition>
+        <argsstring></argsstring>
+        <name>FACE_DIM_1x16</name>
+        <initializer>= 44</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="45" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a1a38ddf355059445ed541f2c76837468" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::PERF_UNPACK_NUM_TILES_0</definition>
+        <argsstring></argsstring>
+        <name>PERF_UNPACK_NUM_TILES_0</name>
+        <initializer>= 45</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="46" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a9bb401f7f059c0d692dd312e4a1ec528" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::PERF_UNPACK_NUM_TILES_1</definition>
+        <argsstring></argsstring>
+        <name>PERF_UNPACK_NUM_TILES_1</name>
+        <initializer>= 46</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="47" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1ac57c8f41d66825f96d3bfb0e96011c84" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::PERF_UNPACK_NUM_TILES_2</definition>
+        <argsstring></argsstring>
+        <name>PERF_UNPACK_NUM_TILES_2</name>
+        <initializer>= 47</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="48" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a9cae2ec0efbaeeea99c22679edb3a0fa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::PERF_UNPACK_NUM_TILES_3</definition>
+        <argsstring></argsstring>
+        <name>PERF_UNPACK_NUM_TILES_3</name>
+        <initializer>= 48</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="49" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a2887af75d878e3d9b72b89c192639ed3" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::UNPACK_STRIDE</definition>
+        <argsstring></argsstring>
+        <name>UNPACK_STRIDE</name>
+        <initializer>= 52</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="50" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1adfad521cfb3bbe484419330f2bc99a70" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::SR_UNPACK_TILIZER_STATE_0</definition>
+        <argsstring></argsstring>
+        <name>SR_UNPACK_TILIZER_STATE_0</name>
+        <initializer>= 54</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="52" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a85653b126f633156f22d1089f7e782b1" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::SR_UNPACK_TILIZER_STATE_1</definition>
+        <argsstring></argsstring>
+        <name>SR_UNPACK_TILIZER_STATE_1</name>
+        <initializer>= 55</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="53" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1ad0719fc72881940bff2ebcfda5643d0e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0</definition>
+        <argsstring></argsstring>
+        <name>SR_UNPACK_UNTILIZER_STATE_0</name>
+        <initializer>= 56</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="54" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1aaf369cc730a6b1a4b5fbc58a42f2653e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1</definition>
+        <argsstring></argsstring>
+        <name>SR_UNPACK_UNTILIZER_STATE_1</name>
+        <initializer>= 57</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="55" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1acb6ca8a097822fc4b3ceddce1b00355f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2</definition>
+        <argsstring></argsstring>
+        <name>SR_UNPACK_UNTILIZER_STATE_2</name>
+        <initializer>= 58</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="56" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__gpr__unpack_1a4c8944af928801817a3acbf6248d3c06" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_3</definition>
+        <argsstring></argsstring>
+        <name>SR_UNPACK_UNTILIZER_STATE_3</name>
+        <initializer>= 59</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="57" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" line="21" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_gpr_map.h" bodystart="22" bodyend="58"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__gpr__unpack_1a984cbf5271df6a297d0c32b2e0e6651d" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>FACE_DIM_16x16</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a78c8b3170214002b17bd9eaf4dcf9daa" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>FACE_DIM_1x16</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a73868b9229c83366bffc7cd6bec1cc72" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>FACE_DIM_2x16</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a5609b41906e458d0f0e197830d0644d7" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>FACE_DIM_4x16</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a1f01f69f614d481b55336cbcb6f61795" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>FACE_DIM_8x16</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1ade70a442e060a40e081b179e7e2e3398" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>KT_DIM</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1aa603289c6c63a5d2d3fd7438d9ae183b" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>L1_BUFFER_ADDR</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a2274823fc46ca0b442da358d6dae15df" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>OPERAND_BASE_ADDR</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1aa8642586c8b193109613b5141115bab7" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>OPERAND_OFFSET_ADDR</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1aeb806dfe5a7c4fac57860c0c129a523d" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>PERF_FIRST_UNP_HI</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a637fc103a187354a4260bc7e99630449" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>PERF_FIRST_UNP_LO</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a1a38ddf355059445ed541f2c76837468" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>PERF_UNPACK_NUM_TILES_0</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a9bb401f7f059c0d692dd312e4a1ec528" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>PERF_UNPACK_NUM_TILES_1</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1ac57c8f41d66825f96d3bfb0e96011c84" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>PERF_UNPACK_NUM_TILES_2</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a9cae2ec0efbaeeea99c22679edb3a0fa" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>PERF_UNPACK_NUM_TILES_3</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1adfad521cfb3bbe484419330f2bc99a70" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>SR_UNPACK_TILIZER_STATE_0</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a85653b126f633156f22d1089f7e782b1" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>SR_UNPACK_TILIZER_STATE_1</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1ad0719fc72881940bff2ebcfda5643d0e" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>SR_UNPACK_UNTILIZER_STATE_0</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1aaf369cc730a6b1a4b5fbc58a42f2653e" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>SR_UNPACK_UNTILIZER_STATE_1</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1acb6ca8a097822fc4b3ceddce1b00355f" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>SR_UNPACK_UNTILIZER_STATE_2</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a4c8944af928801817a3acbf6248d3c06" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>SR_UNPACK_UNTILIZER_STATE_3</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a5fdfbb068ed27e9c927a0cfed9a00ce8" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>TILE_OFFSET</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a05c8073591bd642b6192226d0cc51ca7" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>TILE_SIZE</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1afe0ebeea76e467c03dc25a9cc04394b6" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>TILE_SIZE_A</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a6d0744ac5fc1a5cf7d3c3a968bd8514a" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>TILE_SIZE_B</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a5f3ea799ff51f118dd0efde17e3d6864" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>TMP0</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1aa1c7b1d2fea93922b64d400d71450325" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>TMP1</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1aedf39c4346836714dc90caf3f5061c9a" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>TMP_HI</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a5783e35cc8b86083e75907d4ace99606" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>TMP_LO</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a2887af75d878e3d9b72b89c192639ed3" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>UNPACK_STRIDE</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1abf18ac69ac8d1a6c9bdc7ed17a1dcdd4" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>ZERO_0</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a8fa71bee21f1ab58da1518feb106736a" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>ZERO_1</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1ac5016ea8c905710116d5f9a81d416f98" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>ZERO_2</name></member>
+      <member refid="structckernel_1_1p__gpr__unpack_1a5f0c228877cbc99fbc0447e08e8dd1fd" prot="public" virt="non-virtual"><scope>ckernel::p_gpr_unpack</scope><name>ZERO_3</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

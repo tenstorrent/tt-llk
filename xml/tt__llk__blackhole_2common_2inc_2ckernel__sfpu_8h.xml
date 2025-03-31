@@ -1,0 +1,609 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h" kind="file" language="C++">
+    <compoundname>ckernel_sfpu.h</compoundname>
+    <includes local="no">limits</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel_8h" local="yes">ckernel.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h" local="yes">ckernel_defs.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h" local="yes">ckernel_globals.h</includes>
+    <includes local="yes">sfpi.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__abs_8h" local="yes">sfpu/ckernel_sfpu_abs.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__add__int32_8h" local="yes">sfpu/ckernel_sfpu_add_int32.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__binary_8h" local="yes">sfpu/ckernel_sfpu_binary.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__binary__bitwise_8h" local="yes">sfpu/ckernel_sfpu_binary_bitwise.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__cast__fp32__to__fp16a_8h" local="yes">sfpu/ckernel_sfpu_cast_fp32_to_fp16a.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__clamp_8h" local="yes">sfpu/ckernel_sfpu_clamp.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__comp_8h" local="yes">sfpu/ckernel_sfpu_comp.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__cumsum_8h" local="yes">sfpu/ckernel_sfpu_cumsum.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__dropout_8h" local="yes">sfpu/ckernel_sfpu_dropout.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__exp_8h" local="yes">sfpu/ckernel_sfpu_exp.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__gelu_8h" local="yes">sfpu/ckernel_sfpu_gelu.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__hardtanh_8h" local="yes">sfpu/ckernel_sfpu_hardtanh.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__is__fp16__zero_8h" local="yes">sfpu/ckernel_sfpu_is_fp16_zero.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h" local="yes">sfpu/ckernel_sfpu_load_config.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__log_8h" local="yes">sfpu/ckernel_sfpu_log.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__max_8h" local="yes">sfpu/ckernel_sfpu_max.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__max__int32_8h" local="yes">sfpu/ckernel_sfpu_max_int32.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__power_8h" local="yes">sfpu/ckernel_sfpu_power.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__quant_8h" local="yes">sfpu/ckernel_sfpu_quant.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__recip_8h" local="yes">sfpu/ckernel_sfpu_recip.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__relu_8h" local="yes">sfpu/ckernel_sfpu_relu.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__shift_8h" local="yes">sfpu/ckernel_sfpu_shift.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sigmoid_8h" local="yes">sfpu/ckernel_sfpu_sigmoid.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sign_8h" local="yes">sfpu/ckernel_sfpu_sign.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sqrt_8h" local="yes">sfpu/ckernel_sfpu_sqrt.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__square_8h" local="yes">sfpu/ckernel_sfpu_square.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sub__int32_8h" local="yes">sfpu/ckernel_sfpu_sub_int32.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__tanh_8h" local="yes">sfpu/ckernel_sfpu_tanh.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__tanh__derivative_8h" local="yes">sfpu/ckernel_sfpu_tanh_derivative.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__topk_8h" local="yes">sfpu/ckernel_sfpu_topk.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__trigonometry_8h" local="yes">sfpu/ckernel_sfpu_trigonometry.h</includes>
+    <includes refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__typecast_8h" local="yes">sfpu/ckernel_sfpu_typecast.h</includes>
+    <includedby refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h" local="yes">tt_llk_blackhole/common/inc/cmath_common.h</includedby>
+    <incdepgraph>
+      <node id="50">
+        <label>sfpu/ckernel_sfpu_square.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__square_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>ckernel_addrmod.h</label>
+      </node>
+      <node id="10">
+        <label>cfg_defines.h</label>
+      </node>
+      <node id="17">
+        <label>fw_debug.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>limits</label>
+      </node>
+      <node id="26">
+        <label>ckernel_sfpu_recip.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__recip_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>ckernel_gpr_map.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__gpr__map_8h"/>
+      </node>
+      <node id="42">
+        <label>sfpu/ckernel_sfpu_power.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__power_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="56">
+        <label>ckernel_instr_params.h</label>
+      </node>
+      <node id="29">
+        <label>sfpu/ckernel_sfpu_cast_fp32_to_fp16a.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__cast__fp32__to__fp16a_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="54">
+        <label>sfpu/ckernel_sfpu_topk.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__topk_8h"/>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>sfpi_fp16.h</label>
+      </node>
+      <node id="7">
+        <label>cstdint</label>
+      </node>
+      <node id="36">
+        <label>sfpu/ckernel_sfpu_gelu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__gelu_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>sfpu/ckernel_sfpu_shift.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__shift_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>sfpu/ckernel_sfpu_binary_bitwise.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__binary__bitwise_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>ckernel_sfpu_exp.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__exp_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>llk_defs.h</label>
+      </node>
+      <node id="5">
+        <label>tensix.h</label>
+      </node>
+      <node id="3">
+        <label>ckernel.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>ckernel_ops.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h"/>
+      </node>
+      <node id="4">
+        <label>ckernel_instr_params.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>sfpu/ckernel_sfpu_max.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__max_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>sfpu/ckernel_sfpu_log.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__log_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="45">
+        <label>ckernel_sfpu_converter.h</label>
+      </node>
+      <node id="49">
+        <label>sfpu/ckernel_sfpu_sqrt.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sqrt_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>sfpu/ckernel_sfpu_max_int32.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__max__int32_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+      </node>
+      <node id="58">
+        <label>sfpu/ckernel_sfpu_typecast.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__typecast_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>noc_nonblocking_api.h</label>
+      </node>
+      <node id="9">
+        <label>ckernel_addrmod.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__addrmod_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>sfpu/ckernel_sfpu_clamp.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__clamp_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>ckernel_sfpu_load_config.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__load__config_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>sfpu/ckernel_sfpu_sub_int32.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sub__int32_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>sfpu/ckernel_sfpu_hardtanh.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__hardtanh_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>ckernel_sfpu_is_fp16_zero.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__is__fp16__zero_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>sfpu/ckernel_sfpu_add_int32.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__add__int32_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>sfpu/ckernel_sfpu_tanh.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__tanh_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>ckernel_globals.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>sfpu/ckernel_sfpu_dropout.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__dropout_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>sfpu/ckernel_sfpu_relu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__relu_8h"/>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="24">
+        <label>sfpu/ckernel_sfpu_binary.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__binary_8h"/>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>tensix_types.h</label>
+      </node>
+      <node id="20">
+        <label>sfpu/ckernel_sfpu_abs.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__abs_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>sfpu/ckernel_sfpu_sigmoid.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sigmoid_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>ckernel.h</label>
+      </node>
+      <node id="57">
+        <label>sfpu/ckernel_sfpu_trigonometry.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__trigonometry_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="33">
+        <label>sfpu/ckernel_sfpu_cumsum.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__cumsum_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>sfpu/ckernel_sfpu_quant.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__quant_8h"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="53">
+        <label>sfpu/ckernel_sfpu_tanh_derivative.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__tanh__derivative_8h"/>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>ckernel_defs.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>risc_attribs.h</label>
+      </node>
+      <node id="16">
+        <label>ckernel_structs.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__structs_8h"/>
+      </node>
+      <node id="19">
+        <label>sfpi.h</label>
+      </node>
+      <node id="48">
+        <label>sfpu/ckernel_sfpu_sign.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__sign_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>sfpu/ckernel_sfpu_comp.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2sfpu_2ckernel__sfpu__comp_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>ckernel_ops.h</label>
+      </node>
+      <node id="8">
+        <label>ckernel_include.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__include_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpu.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpu_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>tt_llk_blackhole/common/inc/cmath_common.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2cmath__common_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>tt_llk_blackhole/common/inc/ckernel_sfpi.h</label>
+        <link refid="tt__llk__blackhole_2common_2inc_2ckernel__sfpi_8h"/>
+      </node>
+    </invincdepgraph>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;limits&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel_8h" kindref="compound">ckernel.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__defs_8h" kindref="compound">ckernel_defs.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel__globals_8h" kindref="compound">ckernel_globals.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpi.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_abs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_add_int32.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_binary.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_binary_bitwise.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_cast_fp32_to_fp16a.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_clamp.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_comp.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_cumsum.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_dropout.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_exp.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_gelu.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_hardtanh.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_is_fp16_zero.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_load_config.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_log.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_max.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_max_int32.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_power.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_quant.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_recip.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_relu.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_shift.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_sigmoid.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_sign.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_sqrt.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_square.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_sub_int32.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_tanh.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_tanh_derivative.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_topk.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_trigonometry.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;sfpu/ckernel_sfpu_typecast.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_blackhole/common/inc/ckernel_sfpu.h"/>
+  </compounddef>
+</doxygen>

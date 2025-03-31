@@ -1,0 +1,760 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h" kind="file" language="C++">
+    <compoundname>llk_pack_common.h</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes local="yes">ckernel.h</includes>
+    <includes local="yes">ckernel_defs.h</includes>
+    <includes local="yes">ckernel_instr_params.h</includes>
+    <includes local="yes">cpack_common.h</includes>
+    <includes local="yes">fw_debug.h</includes>
+    <includes refid="tt__llk__wormhole__b0_2llk__lib_2llk__defs_8h" local="yes">llk_defs.h</includes>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_pack.h</includedby>
+    <includedby refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__untilize_8h" local="yes">tt_llk_wormhole_b0/llk_lib/llk_pack_untilize.h</includedby>
+    <incdepgraph>
+      <node id="7">
+        <label>fw_debug.h</label>
+      </node>
+      <node id="5">
+        <label>ckernel_instr_params.h</label>
+      </node>
+      <node id="8">
+        <label>llk_defs.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__defs_8h"/>
+      </node>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="6">
+        <label>cpack_common.h</label>
+      </node>
+      <node id="4">
+        <label>ckernel_defs.h</label>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_pack_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ckernel.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_pack.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack_8h"/>
+      </node>
+      <node id="3">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_pack_untilize.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__untilize_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>tt_llk_wormhole_b0/llk_lib/llk_pack_common.h</label>
+        <link refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1aeb0efc1b3692a79593704ac7fe31f04b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_packer_wait_for_math_done_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_packer_wait_for_math_done_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="24" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="24" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a35f2f148cbaa10af45c6880c4b4af963" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>uint</type>
+            <declname>WaitRes</declname>
+            <defname>WaitRes</defname>
+            <defval>p_stall::NONE</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_packer_set_math_semaphore_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_packer_set_math_semaphore_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="38" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="38" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1af57033a26583d64b1baa73d3fc8e0186" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_pack_dest_section_done_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_pack_dest_section_done_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="47" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="47" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1ac7f5a416a331321546a52a5c42bb4d46" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1aff023ac37fa3e4bbe12633678008b4a5" kindref="member">DstTileFaceLayout</ref></type>
+            <declname>FaceLayout</declname>
+            <defname>FaceLayout</defname>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>untilize</declname>
+            <defname>untilize</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>diagonal</declname>
+            <defname>diagonal</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_init_packer_dest_offset_registers_</definition>
+        <argsstring>(const std::uint32_t face_r_dim=FACE_R_DIM, const bool narrow_tile=false)</argsstring>
+        <name>_llk_init_packer_dest_offset_registers_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>narrow_tile</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="91" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="91" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a8f2a60104cc6165eb8b7b0a80725470b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5d" kindref="member">DstSync</ref></type>
+            <declname>Dst</declname>
+            <defname>Dst</defname>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1aff023ac37fa3e4bbe12633678008b4a5" kindref="member">DstTileFaceLayout</ref></type>
+            <declname>FaceLayout</declname>
+            <defname>FaceLayout</defname>
+            <defval>RowMajor</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>untilize</declname>
+            <defname>untilize</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>is_fp32_dest_acc_en</declname>
+            <defname>is_fp32_dest_acc_en</defname>
+            <defval>false</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_pack_dest_init_</definition>
+        <argsstring>(const std::uint32_t face_r_dim=FACE_R_DIM, const bool narrow_tile=false)</argsstring>
+        <name>_llk_pack_dest_init_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>face_r_dim</declname>
+          <defval>FACE_R_DIM</defval>
+        </param>
+        <param>
+          <type>const bool</type>
+          <declname>narrow_tile</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="177" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="177" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a65bedb30f430f6701b7913d7e1397f08" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>mail2math</declname>
+            <defname>mail2math</defname>
+            <defval>true</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>mail2pack</declname>
+            <defname>mail2pack</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_pack_get_tile_</definition>
+        <argsstring>(std::uint32_t tile_index, std::uint32_t *p_tile)</argsstring>
+        <name>_llk_pack_get_tile_</name>
+        <param>
+          <type>std::uint32_t</type>
+          <declname>tile_index</declname>
+        </param>
+        <param>
+          <type>std::uint32_t *</type>
+          <declname>p_tile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="187" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="187" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a266a58f75dc3ba47a86d10f354a7afad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>mail2math</declname>
+            <defname>mail2math</defname>
+            <defval>true</defval>
+          </param>
+          <param>
+            <type>bool</type>
+            <declname>mail2pack</declname>
+            <defname>mail2pack</defname>
+            <defval>true</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_pack_release_tile_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_pack_release_tile_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="203" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="203" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a59527fb6a8e37f51a2c69b5b6d366b49" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_pack_debug_dump_</definition>
+        <argsstring>(std::uint8_t *data, std::uint32_t byte_size)</argsstring>
+        <name>_llk_pack_debug_dump_</name>
+        <param>
+          <type>std::uint8_t *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>std::uint32_t</type>
+          <declname>byte_size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="211" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="211" bodyend="214"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a1c8d68812806d384dd40e46b9ccc508c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_pack_debug_dump_seek_</definition>
+        <argsstring>(std::uint8_t offset)</argsstring>
+        <name>_llk_pack_debug_dump_seek_</name>
+        <param>
+          <type>std::uint8_t</type>
+          <declname>offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="216" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="216" bodyend="219"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a497e00d545d8a02bc52d693cf282284b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="tt__llk__wormhole__b0_2common_2inc_2ckernel_8h_1ab36e27b12fbbaceddec7d1b3646f5557" kindref="member">TT_ALWAYS_INLINE</ref> void</type>
+        <definition>TT_ALWAYS_INLINE void _llk_pack_relu_config_</definition>
+        <argsstring>(const std::uint32_t config)</argsstring>
+        <name>_llk_pack_relu_config_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>config</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="221" column="23" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="221" bodyend="231"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a067fd8198d10f6433cb417489ade1141" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_pack_reconfig_l1_acc_</definition>
+        <argsstring>(const std::uint32_t enable)</argsstring>
+        <name>_llk_pack_reconfig_l1_acc_</name>
+        <param>
+          <type>const std::uint32_t</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="233" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="233" bodyend="236"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a66466f232595a4acf633234cddebf1c8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>bool</type>
+            <declname>untilize</declname>
+            <defname>untilize</defname>
+            <defval>false</defval>
+          </param>
+          <param>
+            <type><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139c" kindref="member">ReduceDim</ref></type>
+            <declname>dim</declname>
+            <defname>dim</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void _llk_pack_reduce_mask_config_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_pack_reduce_mask_config_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="239" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="239" bodyend="320"/>
+      </memberdef>
+      <memberdef kind="function" id="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1ad640c4eabaebf6ae5d97ace0019067de" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void _llk_pack_reduce_mask_clear_</definition>
+        <argsstring>()</argsstring>
+        <name>_llk_pack_reduce_mask_clear_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" line="322" column="13" bodyfile="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h" bodystart="322" bodyend="346"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>SPDX-FileCopyrightText:<sp/>©<sp/>2025<sp/>Tenstorrent<sp/>AI<sp/>ULC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>SPDX-License-Identifier:<sp/>Apache-2.0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_defs.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_instr_params.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;cpack_common.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;fw_debug.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="tt__llk__wormhole__b0_2llk__lib_2llk__defs_8h" kindref="compound">llk_defs.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel" kindref="compound">ckernel</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">using<sp/>namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceckernel_1_1packer" kindref="compound">ckernel::packer</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;ckernel_perf_api.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/>wait<sp/>until<sp/>math<sp/>is<sp/>done<sp/>and<sp/>has<sp/>produced<sp/>something<sp/>to<sp/>pack</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1aeb0efc1b3692a79593704ac7fe31f04b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1aeb0efc1b3692a79593704ac7fe31f04b" kindref="member">_llk_packer_wait_for_math_done_</ref>()</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel_8h_1a55bd0dd0b08aba5b9c5ded91ccf0f839" kindref="member">MATH_PACK_DECOUPLE</ref><sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a402e2224dee8789ec4ec3936516e990a" kindref="member">TTI_SEMWAIT</ref>(<ref refid="structckernel_1_1p__stall_1a460f3570364aefc2984f99bdf7ed3224" kindref="member">p_stall::STALL_TDMA</ref>,<sp/><ref refid="structckernel_1_1semaphore_1ab52641be16da31e957f2121419da9a21" kindref="member">semaphore::t6_sem</ref>(<ref refid="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" kindref="member">semaphore::MATH_PACK</ref>),<sp/><ref refid="structckernel_1_1p__stall_1a1595fbeea95f9a66794a9f61128ce602" kindref="member">p_stall::STALL_ON_ZERO</ref>);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a402e2224dee8789ec4ec3936516e990a" kindref="member">TTI_SEMWAIT</ref>(<ref refid="structckernel_1_1p__stall_1a460f3570364aefc2984f99bdf7ed3224" kindref="member">p_stall::STALL_TDMA</ref>,<sp/><ref refid="structckernel_1_1semaphore_1ab52641be16da31e957f2121419da9a21" kindref="member">semaphore::t6_sem</ref>(<ref refid="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" kindref="member">semaphore::MATH_PACK</ref>),<sp/><ref refid="structckernel_1_1p__stall_1a1595fbeea95f9a66794a9f61128ce602" kindref="member">p_stall::STALL_ON_ZERO</ref>);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Tell<sp/>math<sp/>that<sp/>it<sp/>can<sp/>write<sp/>again</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;u</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>WaitRes<sp/>=<sp/>p_stall::NONE&gt;</highlight></codeline>
+<codeline lineno="38" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a35f2f148cbaa10af45c6880c4b4af963" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a35f2f148cbaa10af45c6880c4b4af963" kindref="member">_llk_packer_set_math_semaphore_</ref>()</highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>t6_semaphore_get&lt;WaitRes&gt;(<ref refid="structckernel_1_1semaphore_1a80a82ad29e125ab123b27a5a42f4c054" kindref="member">semaphore::MATH_PACK</ref>);<sp/></highlight><highlight class="comment">//<sp/>Indicate<sp/>that<sp/>packer<sp/>is<sp/>done<sp/>and<sp/>header<sp/>is<sp/>written<sp/>into<sp/>L1</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>all<sp/>writes<sp/>to<sp/>complete<sp/>in<sp/>L1<sp/>(header<sp/>+<sp/>data)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Tell<sp/>math<sp/>it<sp/>can<sp/>write<sp/>again</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Clear<sp/>dest</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>Dst,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="47" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1af57033a26583d64b1baa73d3fc8e0186" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1af57033a26583d64b1baa73d3fc8e0186" kindref="member">_llk_pack_dest_section_done_</ref>()</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight><highlight class="preprocessor">#ifdef<sp/>PERF_DUMP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(<ref refid="tt__llk__blackhole_2common_2inc_2ckernel_8h_1a55bd0dd0b08aba5b9c5ded91ccf0f839" kindref="member">MATH_PACK_DECOUPLE</ref>)</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>clear_dest<sp/>=<sp/>(Dst<sp/>!=<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e" kindref="member">DstSync::SyncTile16</ref>);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(clear_dest)</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1a51b99d461b320d2106440fec4e5cf08f" kindref="member">p_stall::STALL_MATH</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a51a4cd5fc4fe583be9d4b2560116621f" kindref="member">p_stall::PACK</ref>);<sp/></highlight><highlight class="comment">//<sp/>wait<sp/>for<sp/>pack<sp/>to<sp/>finish</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da6c7493e9a8ba7adde9205e7d001b5377" kindref="member">DstSync::SyncFull</ref>)</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>CLEAR_MODE<sp/>=<sp/>is_fp32_dest_acc_en<sp/>?<sp/><ref refid="structckernel_1_1p__zeroacc_1a127345f3bf4460e91ae30f810477f067" kindref="member">p_zeroacc::CLR_ALL_32B</ref><sp/>:<sp/><ref refid="structckernel_1_1p__zeroacc_1ac1141aa68c3a47292807562f92d60a26" kindref="member">p_zeroacc::CLR_ALL</ref>;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a87a82e35a79cda3c745db6fcf11ebe2f" kindref="member">TT_ZEROACC</ref>(CLEAR_MODE,<sp/><ref refid="namespaceckernel_1af9fa0f506fc2591268270984c3abbe47" kindref="member">ADDR_MOD_1</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>static_assert((Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da179e90fbd3dae0aece30d8f84df8d13a" kindref="member">DstSync::SyncHalf</ref>)<sp/>||<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676" kindref="member">DstSync::SyncTile2</ref>));</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>CLEAR_MODE<sp/>=<sp/>is_fp32_dest_acc_en<sp/>?<sp/><ref refid="structckernel_1_1p__zeroacc_1a13039cd868d98b6936c90432b80ac6d1" kindref="member">p_zeroacc::CLR_HALF_32B</ref><sp/>:<sp/><ref refid="structckernel_1_1p__zeroacc_1ae7b7c1b8c08cff2c5be5d16061fc5a56" kindref="member">p_zeroacc::CLR_HALF</ref>;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a87a82e35a79cda3c745db6fcf11ebe2f" kindref="member">TT_ZEROACC</ref>(CLEAR_MODE,<sp/><ref refid="namespaceckernel_1af9fa0f506fc2591268270984c3abbe47" kindref="member">ADDR_MOD_1</ref>,<sp/>(<ref refid="namespaceckernel_1a9bded62901c795bc0a274b242c02d2e3" kindref="member">dest_offset_id</ref>)<sp/>%<sp/>2);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Note:<sp/>we<sp/>should<sp/>have<sp/>already<sp/>stalled<sp/>math<sp/>in<sp/>non-tile<sp/>dest<sp/>modes<sp/>due<sp/>to<sp/>clearing</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>WaitRes<sp/>=<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da9b4ce543506ca1a92a3779d0420f5d4e" kindref="member">DstSync::SyncTile16</ref>)<sp/>?<sp/>(<ref refid="structckernel_1_1p__stall_1a51a4cd5fc4fe583be9d4b2560116621f" kindref="member">p_stall::PACK</ref>)<sp/>:<sp/>(<ref refid="structckernel_1_1p__stall_1aa0e4dc1e3180e2b0570fa67d0c9f7770" kindref="member">p_stall::NONE</ref>);</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Tell<sp/>math<sp/>that<sp/>it<sp/>can<sp/>write<sp/>again</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>_llk_packer_set_math_semaphore_&lt;WaitRes&gt;();</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>flip_dest<sp/>=<sp/>((Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da179e90fbd3dae0aece30d8f84df8d13a" kindref="member">DstSync::SyncHalf</ref>)<sp/>||<sp/>(Dst<sp/>==<sp/><ref refid="namespaceckernel_1abafe4c2fdc04e3e87416c5e2f723cd5da4c5b657bdcf133d0deb87e48d6fcb676" kindref="member">DstSync::SyncTile2</ref>));</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(flip_dest)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1packer_1a3f1bcf53143d8e51a3cfeefaccfa9e87" kindref="member">flip_packer_dest_offset_id</ref>();</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>select_packer_dest_registers&lt;Dst&gt;();</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>Dst,<sp/>DstTileFaceLayout<sp/>FaceLayout,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>untilize<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>diagonal<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="91" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1ac7f5a416a331321546a52a5c42bb4d46" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a5536f3cd332d5e0c7f8820ee0c035fe3" kindref="member">_llk_init_packer_dest_offset_registers_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>face_r_dim<sp/>=<sp/><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>narrow_tile<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="92"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1a460f3570364aefc2984f99bdf7ed3224" kindref="member">p_stall::STALL_TDMA</ref><sp/>|<sp/><ref refid="structckernel_1_1p__stall_1ae8da566058238bcfeeed38eb0b8a8de3" kindref="member">p_stall::STALL_THCON</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a51a4cd5fc4fe583be9d4b2560116621f" kindref="member">p_stall::PACK</ref>);<sp/></highlight><highlight class="comment">//<sp/>wait<sp/>for<sp/>pack<sp/>to<sp/>finish</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(untilize)</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint<sp/>face_r_offset<sp/>=<sp/>((face_r_dim<sp/>==<sp/>1)<sp/>||<sp/>narrow_tile<sp/>||<sp/>diagonal)<sp/>?<sp/><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref><sp/>:<sp/>(face_r_dim<sp/>&gt;&gt;<sp/>1);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(FaceLayout<sp/>==<sp/><ref refid="namespaceckernel_1aff023ac37fa3e4bbe12633678008b4a5a64c9a135efaddf1cee8768717139b614" kindref="member">ColMajor</ref>)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Packer0<sp/>:<sp/><sp/>0,32,<sp/><sp/>1,33<sp/>...<sp/><sp/>7,<sp/>39</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Packer1<sp/>:<sp/><sp/>8,40,<sp/><sp/>9,41<sp/>...<sp/>15,<sp/>47</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Packer2<sp/>:<sp/>16,48,<sp/>17,49<sp/>...<sp/>23,<sp/>55</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Packer3<sp/>:<sp/>23,56,<sp/>24,57<sp/>...<sp/>31,<sp/>63</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x08,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x10,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>2));</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x18,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>3));</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x08,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x10,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>2));</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x18,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>3));</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(diagonal)</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>For<sp/>example<sp/>if<sp/>face_offset<sp/>=<sp/>8:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Packer0<sp/>:<sp/><sp/>0,16,<sp/><sp/>1,17<sp/>...<sp/><sp/>7,<sp/>23</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Packer1<sp/>:<sp/><sp/>8,24,<sp/><sp/>9,25<sp/>...<sp/>15,<sp/>31</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Packer2<sp/>:<sp/>32,48,<sp/>33,49<sp/>...<sp/>39,<sp/>55</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Packer3<sp/>:<sp/>40,56,<sp/>41,57<sp/>...<sp/>47,<sp/>63</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x20<sp/>+<sp/>face_r_offset,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TT_SETDMAREG(0,<sp/>0x000<sp/>+<sp/>0x20,<sp/>0,<sp/>LO_16(p_gpr_pack::DEST_OFFSET_LO<sp/>+<sp/>2));</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TT_SETDMAREG(0,<sp/>0x000<sp/>+<sp/>0x20<sp/>+<sp/>face_r_offset,<sp/>0,<sp/>LO_16(p_gpr_pack::DEST_OFFSET_LO<sp/>+<sp/>3));</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x20<sp/>+<sp/>face_r_offset,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TT_SETDMAREG(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x20,<sp/>0,<sp/>LO_16(p_gpr_pack::DEST_OFFSET_HI<sp/>+<sp/>2));</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TT_SETDMAREG(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x20<sp/>+<sp/>face_r_offset,<sp/>0,<sp/>LO_16(p_gpr_pack::DEST_OFFSET_HI<sp/>+<sp/>3));</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>For<sp/>example<sp/>if<sp/>face_offset<sp/>=<sp/>8:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Packer0<sp/>:<sp/><sp/>0,16,<sp/><sp/>1,17<sp/>...<sp/><sp/>7,<sp/>23</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Packer1<sp/>:<sp/><sp/>8,24,<sp/><sp/>9,25<sp/>...<sp/>15,<sp/>31</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Packer2<sp/>:<sp/>32,48,<sp/>33,49<sp/>...<sp/>39,<sp/>55</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Packer3<sp/>:<sp/>40,56,<sp/>41,57<sp/>...<sp/>47,<sp/>63</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>face_r_offset,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x20,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>2));</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x000<sp/>+<sp/>0x20<sp/>+<sp/>face_r_offset,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>3));</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>face_r_offset,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x20,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>2));</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x20<sp/>+<sp/>face_r_offset,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>3));</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(FaceLayout<sp/>==<sp/><ref refid="namespaceckernel_1aff023ac37fa3e4bbe12633678008b4a5a64c9a135efaddf1cee8768717139b614" kindref="member">ColMajor</ref>)</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x20,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x10,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>2));</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x30,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>3));</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x20,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x10,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>2));</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x30,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>3));</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{<sp/></highlight><highlight class="comment">//<sp/>Default<sp/>to<sp/>row<sp/>major<sp/>layout</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x10,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x20,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>2));</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>0x30,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a24152b6aaa54cdf4909190a95297c2a6" kindref="member">p_gpr_pack::DEST_OFFSET_LO</ref><sp/>+<sp/>3));</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x00,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>0));</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x10,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>1));</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x20,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>2));</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1ada10e7d8a7be1a4ecc2feb5ba33efb1c" kindref="member">TT_SETDMAREG</ref>(0,<sp/>DEST_REGISTER_HALF_SIZE<sp/>+<sp/>0x30,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1aad2b38d6d7a65f57f229ef433c5419f2" kindref="member">p_gpr_pack::DEST_OFFSET_HI</ref><sp/>+<sp/>3));</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/>select_packer_dest_registers&lt;Dst&gt;();</highlight></codeline>
+<codeline lineno="174"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;DstSync<sp/>Dst,<sp/>DstTileFaceLayout<sp/>FaceLayout<sp/>=<sp/>RowMajor,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>untilize<sp/>=<sp/>false,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_fp32_dest_acc_en<sp/>=<sp/>false&gt;</highlight></codeline>
+<codeline lineno="177" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a8f2a60104cc6165eb8b7b0a80725470b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1abdf8b0a9d83d88c901ebb77215624490" kindref="member">_llk_pack_dest_init_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>face_r_dim<sp/>=<sp/><ref refid="namespaceckernel_1a870ab66757137fb4b2a9e0ccc22a2d3c" kindref="member">FACE_R_DIM</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>narrow_tile<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="178"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1e517edddbbf2e675b6c34bf684b240d" kindref="member">tensix_sync</ref>();</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1ac3d3d466aa3d49414a5416676ec279bc" kindref="member">reset_dest_offset_id</ref>();</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/>_llk_init_packer_dest_offset_registers_&lt;Dst,<sp/>FaceLayout,<sp/>untilize&gt;(face_r_dim,<sp/>narrow_tile);</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1packer_1ac85fd6798f9c86b65ca98b8be5c99c2f" kindref="member">packer_addr_counter_init</ref>();</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__globals_8h_1af429823be62c0e6a8c9e6555b930f7c9" kindref="member">pack_sync_tile_dst_ptr</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="184"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"></highlight></codeline>
+<codeline lineno="186"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2math<sp/>=<sp/>true,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2pack<sp/>=<sp/>true&gt;</highlight></codeline>
+<codeline lineno="187" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a65bedb30f430f6701b7913d7e1397f08" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a65bedb30f430f6701b7913d7e1397f08" kindref="member">_llk_pack_get_tile_</ref>(std::uint32_t<sp/>tile_index,<sp/>std::uint32_t<sp/>*p_tile)</highlight></codeline>
+<codeline lineno="188"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/>constexpr<sp/>uint32_t<sp/>wait_sem<sp/>=<sp/>(mail2math<sp/>&amp;&amp;<sp/>mail2pack)<sp/>?<sp/>(2)<sp/>:<sp/>(1);</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(<ref refid="namespaceckernel_1aa440ebb8f4010cbfd33f6a52660968d2" kindref="member">semaphore_read</ref>(<ref refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" kindref="member">semaphore::UNPACK_OPERAND_SYNC</ref>)<sp/>&lt;<sp/>wait_sem)</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(mail2pack)</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*p_tile<sp/>=<sp/><ref refid="namespaceckernel_1a8b4271352cb5f8871d4ea8844b08cf54" kindref="member">mailbox_read</ref>(<ref refid="namespaceckernel_1af750c33d255a467519fada83802ecd39a728f3c92c0a4284b8413647bf320ad5e" kindref="member">ThreadId::UnpackThreadId</ref>);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*p_tile<sp/>=<sp/>0x0;</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="200"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2math<sp/>=<sp/>true,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mail2pack<sp/>=<sp/>true&gt;</highlight></codeline>
+<codeline lineno="203" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a266a58f75dc3ba47a86d10f354a7afad" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a266a58f75dc3ba47a86d10f354a7afad" kindref="member">_llk_pack_release_tile_</ref>()</highlight></codeline>
+<codeline lineno="204"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(mail2pack)</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a2e438c022b8ff37c09e3c606d79e1844" kindref="member">semaphore_get</ref>(<ref refid="structckernel_1_1semaphore_1a626b53bf428397dc2318af5d210f8592" kindref="member">semaphore::UNPACK_OPERAND_SYNC</ref>);</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="209"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="211" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a59527fb6a8e37f51a2c69b5b6d366b49" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a59527fb6a8e37f51a2c69b5b6d366b49" kindref="member">_llk_pack_debug_dump_</ref>(std::uint8_t<sp/>*data,<sp/>std::uint32_t<sp/>byte_size)</highlight></codeline>
+<codeline lineno="212"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1828ef0cfbd5025629bcab857841b677" kindref="member">debug_dump</ref>(data,<sp/>byte_size);</highlight></codeline>
+<codeline lineno="214"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight></codeline>
+<codeline lineno="216" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a1c8d68812806d384dd40e46b9ccc508c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a1c8d68812806d384dd40e46b9ccc508c" kindref="member">_llk_pack_debug_dump_seek_</ref>(std::uint8_t<sp/>offset)</highlight></codeline>
+<codeline lineno="217"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1b3a6ed62e58c743a3473657be3479b5" kindref="member">debug_dump_seek</ref>(offset);</highlight></codeline>
+<codeline lineno="219"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a497e00d545d8a02bc52d693cf282284b" refkind="member"><highlight class="normal"><ref refid="tt__llk__blackhole_2common_2inc_2ckernel_8h_1ab36e27b12fbbaceddec7d1b3646f5557" kindref="member">TT_ALWAYS_INLINE</ref><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a497e00d545d8a02bc52d693cf282284b" kindref="member">_llk_pack_relu_config_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>config)</highlight></codeline>
+<codeline lineno="222"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2" kindref="member">ReluType</ref><sp/>mode<sp/>=<sp/>(config<sp/>&amp;<sp/>0xf)<sp/>==<sp/>0<sp/>?<sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2acfbd75e53db1722853882176a718bc26" kindref="member">ReluType::NO_RELU</ref><sp/>:<sp/>((config<sp/>&amp;<sp/>0xf)<sp/>==<sp/>3<sp/>?<sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2a41365a5836393592b4a99d1474122e4a" kindref="member">ReluType::MAX_THRESHOLD_RELU</ref><sp/>:<sp/><ref refid="namespaceckernel_1a1bf6f077ac3df4632fc6065c464d1ac2af0a5dd60417074e2b2e930f9cb51feaa" kindref="member">ReluType::MIN_THRESHOLD_RELU</ref>);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>val<sp/><sp/>=<sp/>((config<sp/>&gt;&gt;<sp/>16)<sp/>&lt;&lt;<sp/>STACC_RELU_ReluThreshold_SHAMT)<sp/>|<sp/>(((uint32_t)mode)<sp/>&lt;&lt;<sp/>STACC_RELU_ApplyRelu_SHAMT);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/>val<sp/>&amp;<sp/>0xffff,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>));</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/>val<sp/>&gt;&gt;<sp/>16,<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1aec97cd00a10543f8348d20daedde9de4" kindref="member">HI_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>));</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a51a4cd5fc4fe583be9d4b2560116621f" kindref="member">p_stall::PACK</ref>);</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92e18886c7926a85bee236c12b673f8d" kindref="member">TTI_WRCFG</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>,<sp/><ref refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" kindref="member">p_cfg::WRCFG_32b</ref>,<sp/>STACC_RELU_ApplyRelu_ADDR32);</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a32d0bf7e5876c5cabb7700e432330300" kindref="member">TTI_NOP</ref>;</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a32d0bf7e5876c5cabb7700e432330300" kindref="member">TTI_NOP</ref>;</highlight></codeline>
+<codeline lineno="231"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"></highlight></codeline>
+<codeline lineno="233" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a067fd8198d10f6433cb417489ade1141" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a067fd8198d10f6433cb417489ade1141" kindref="member">_llk_pack_reconfig_l1_acc_</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::uint32_t<sp/>enable)</highlight></codeline>
+<codeline lineno="234"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceckernel_1_1packer_1ad5ad1ab49c0a36f36d0ca472786cc888" kindref="member">reconfigure_packer_l1_acc</ref>(enable);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>untilize<sp/>=<sp/>false,<sp/>ReduceDim<sp/>dim&gt;</highlight></codeline>
+<codeline lineno="239" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1a66466f232595a4acf633234cddebf1c8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1a66466f232595a4acf633234cddebf1c8" kindref="member">_llk_pack_reduce_mask_config_</ref>()</highlight></codeline>
+<codeline lineno="240"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u" kindref="compound">ckernel::packer::pck_edge_offset_u</ref><sp/>pack_edge_offset<sp/>=<sp/>{.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1a046b0eabcd1fb011e81a64c5e039db8d" kindref="member">val</ref><sp/>=<sp/>0};</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>We<sp/>initialize<sp/>PCK_EDGE_OFFSET_SEC0<sp/>mask<sp/>to<sp/>clear<sp/>out<sp/>all<sp/>the<sp/>datums<sp/>in<sp/>the<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a3d2dc7157ecc02b3c9b022db1c268ef7" kindref="member">mask</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0x0;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>row_set_mapping_1<sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>edge_offset_sec1_mask<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(dim<sp/>==<sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139cabb9977378ef5f60f765fc03e5ed0055e" kindref="member">ReduceDim::REDUCE_ROW</ref>)</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>PCK_EDGE_OFFSET_SEC1<sp/>mask<sp/>will<sp/>clear<sp/>out<sp/>all<sp/>the<sp/>datums<sp/>in<sp/>the<sp/>row<sp/>except<sp/>the<sp/>first<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>edge_offset_sec1_mask<sp/>=<sp/>0x0001;</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(untilize)</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a2f274c236f8431c6f1f9046627bea90c" kindref="member">tile_row_set_select_pack0</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1aad061a5076c0c6fa3283e1b0742d22ab" kindref="member">tile_row_set_select_pack1</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a7eb92f1c283c8ce388c826cbacd2fb37" kindref="member">tile_row_set_select_pack2</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a519ae36aa209aea2e022e87187f09144" kindref="member">tile_row_set_select_pack3</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>row_set_mapping_1<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0x11111111;<sp/></highlight><highlight class="comment">//<sp/>each<sp/>packer<sp/>packs<sp/>1x32<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Packer<sp/>0<sp/>and<sp/>2<sp/>will<sp/>use<sp/>TILE_ROW_SET_MAPPING_1,<sp/>while<sp/>packer<sp/>1<sp/>and<sp/>3<sp/>will<sp/>keep<sp/>using</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TILE_ROW_SET_MAPPING_0<sp/>configuration<sp/>which<sp/>is<sp/>the<sp/>default<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a2f274c236f8431c6f1f9046627bea90c" kindref="member">tile_row_set_select_pack0</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a7eb92f1c283c8ce388c826cbacd2fb37" kindref="member">tile_row_set_select_pack2</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"></highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TILE_ROW_SET_MAPPING_1<sp/>configuration<sp/>sets<sp/>all<sp/>rows<sp/>to<sp/>use<sp/>PCK_EDGE_OFFSET_SEC1<sp/>mask</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>row_set_mapping_1<sp/>=<sp/>0x55555555;<sp/></highlight><highlight class="comment">//<sp/>each<sp/>packer<sp/>packs<sp/>1x16<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(dim<sp/>==<sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139ca9b5a904566cb62933732a2ec8a44d03c" kindref="member">ReduceDim::REDUCE_COL</ref>)</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>PCK_EDGE_OFFSET_SEC1<sp/>mask<sp/>will<sp/>pass<sp/>through<sp/>all<sp/>the<sp/>datums<sp/>in<sp/>the<sp/>row<sp/>as<sp/>they<sp/>are</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>edge_offset_sec1_mask<sp/>=<sp/>0xffff;</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Packer<sp/>0<sp/>and<sp/>1<sp/>will<sp/>use<sp/>TILE_ROW_SET_MAPPING_1,<sp/>while<sp/>packer<sp/>2<sp/>and<sp/>3<sp/>will<sp/>keep<sp/>using</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TILE_ROW_SET_MAPPING_0<sp/>configuration<sp/>which<sp/>is<sp/>the<sp/>default<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a2f274c236f8431c6f1f9046627bea90c" kindref="member">tile_row_set_select_pack0</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1aad061a5076c0c6fa3283e1b0742d22ab" kindref="member">tile_row_set_select_pack1</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(untilize)</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>row_set_mapping_1<sp/>=<sp/>0x00000005;<sp/></highlight><highlight class="comment">//<sp/>each<sp/>packer<sp/>packs<sp/>1x32<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TILE_ROW_SET_MAPPING_1<sp/>configuration<sp/>sets<sp/>only<sp/>first<sp/>row<sp/>to<sp/>use<sp/>PCK_EDGE_OFFSET_SEC1<sp/>mask</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>row_set_mapping_1<sp/>=<sp/>0x00000001;<sp/></highlight><highlight class="comment">//<sp/>each<sp/>packer<sp/>packs<sp/>1x16<sp/>row</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>constexpr<sp/>(dim<sp/>==<sp/><ref refid="namespaceckernel_1a2eff0510f04caed9c01e5f4286d6139ca4882c6ddb9f85c7d283e5f4b453b1738" kindref="member">ReduceDim::REDUCE_SCALAR</ref>)</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>PCK_EDGE_OFFSET_SEC1<sp/>mask<sp/>will<sp/>clear<sp/>out<sp/>all<sp/>the<sp/>datums<sp/>in<sp/>the<sp/>row<sp/>except<sp/>the<sp/>first<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>edge_offset_sec1_mask<sp/>=<sp/>0x0001;</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Packer<sp/>0<sp/><sp/>will<sp/>use<sp/>TILE_ROW_SET_MAPPING_1,<sp/>while<sp/>packers<sp/>1,2<sp/>and<sp/>3<sp/>will<sp/>keep<sp/>using</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TILE_ROW_SET_MAPPING_0<sp/>configuration<sp/>which<sp/>is<sp/>the<sp/>default<sp/>one</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a2f274c236f8431c6f1f9046627bea90c" kindref="member">tile_row_set_select_pack0</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"></highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>TILE_ROW_SET_MAPPING_1<sp/>configuration<sp/>sets<sp/>only<sp/>first<sp/>row<sp/>to<sp/>use<sp/>PCK_EDGE_OFFSET_SEC1<sp/>mask</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>row_set_mapping_1<sp/>=<sp/>0x00000001;</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"></highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Initialize<sp/>TMP<sp/>registers<sp/>with<sp/>values<sp/>we<sp/>need<sp/>to<sp/>write<sp/>in<sp/>CFG<sp/>registers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" kindref="member">LOWER_HALFWORD</ref>(pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1a046b0eabcd1fb011e81a64c5e039db8d" kindref="member">val</ref>),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>));</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1abd1d3808327aaccd8e33a401cca17ab1" kindref="member">UPPER_HALFWORD</ref>(pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1a046b0eabcd1fb011e81a64c5e039db8d" kindref="member">val</ref>),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1aec97cd00a10543f8348d20daedde9de4" kindref="member">HI_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>));</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" kindref="member">LOWER_HALFWORD</ref>(edge_offset_sec1_mask),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a77cebeed8457a60c2f883c63e1f24d6b" kindref="member">p_gpr_pack::TMP_LO</ref>));</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" kindref="member">LOWER_HALFWORD</ref>(row_set_mapping_1),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a4b64cb65c3c6a6d46177c3211eda81c9" kindref="member">p_gpr_pack::TMP1</ref>));</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1abd1d3808327aaccd8e33a401cca17ab1" kindref="member">UPPER_HALFWORD</ref>(row_set_mapping_1),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1aec97cd00a10543f8348d20daedde9de4" kindref="member">HI_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a4b64cb65c3c6a6d46177c3211eda81c9" kindref="member">p_gpr_pack::TMP1</ref>));</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"></highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>packer<sp/>to<sp/>finish<sp/>to<sp/>avoid<sp/>breaking<sp/>its<sp/>current<sp/>configuration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a51a4cd5fc4fe583be9d4b2560116621f" kindref="member">p_stall::PACK</ref>);</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"></highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Configure<sp/>packer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92e18886c7926a85bee236c12b673f8d" kindref="member">TTI_WRCFG</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>,<sp/><ref refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" kindref="member">p_cfg::WRCFG_32b</ref>,<sp/>PCK_EDGE_OFFSET_SEC0_mask_ADDR32);</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92e18886c7926a85bee236c12b673f8d" kindref="member">TTI_WRCFG</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a77cebeed8457a60c2f883c63e1f24d6b" kindref="member">p_gpr_pack::TMP_LO</ref>,<sp/><ref refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" kindref="member">p_cfg::WRCFG_32b</ref>,<sp/>PCK_EDGE_OFFSET_SEC1_mask_ADDR32);</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92e18886c7926a85bee236c12b673f8d" kindref="member">TTI_WRCFG</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a4b64cb65c3c6a6d46177c3211eda81c9" kindref="member">p_gpr_pack::TMP1</ref>,<sp/><ref refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" kindref="member">p_cfg::WRCFG_32b</ref>,<sp/>TILE_ROW_SET_MAPPING_1_row_set_mapping_0_ADDR32);</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"></highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a32d0bf7e5876c5cabb7700e432330300" kindref="member">TTI_NOP</ref>;</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a32d0bf7e5876c5cabb7700e432330300" kindref="member">TTI_NOP</ref>;</highlight></codeline>
+<codeline lineno="320"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="321"><highlight class="normal"></highlight></codeline>
+<codeline lineno="322" refid="tt__llk__wormhole__b0_2llk__lib_2llk__pack__common_8h_1ad640c4eabaebf6ae5d97ace0019067de" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="tt__llk__blackhole_2llk__lib_2llk__pack__common_8h_1ad640c4eabaebf6ae5d97ace0019067de" kindref="member">_llk_pack_reduce_mask_clear_</ref>()</highlight></codeline>
+<codeline lineno="323"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>By<sp/>default,<sp/>all<sp/>packers<sp/>are<sp/>set<sp/>to<sp/>use<sp/>TILE_ROW_SET_MAPPING_0<sp/>and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>mask<sp/>is<sp/>configured<sp/>to<sp/>pass<sp/>through<sp/>all<sp/>the<sp/>datums</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u" kindref="compound">pck_edge_offset_u</ref><sp/>pack_edge_offset<sp/>=<sp/>{.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1a046b0eabcd1fb011e81a64c5e039db8d" kindref="member">val</ref><sp/>=<sp/>0};</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"><sp/><sp/><sp/><sp/>pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1afc54a29bf53e24f149fc9c7f608eac54" kindref="member">f</ref>.<ref refid="structckernel_1_1packer_1_1pck__edge__offset__t_1a3d2dc7157ecc02b3c9b022db1c268ef7" kindref="member">mask</ref><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0xffff;</highlight></codeline>
+<codeline lineno="328"><highlight class="normal"></highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Initialize<sp/>TMP<sp/>registers<sp/>with<sp/>values<sp/>we<sp/>need<sp/>to<sp/>write<sp/>in<sp/>CFG<sp/>registers</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1ac078c789c14b3457323aab60b0ebf214" kindref="member">LOWER_HALFWORD</ref>(pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1a046b0eabcd1fb011e81a64c5e039db8d" kindref="member">val</ref>),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1a0fcd79ea7df2880c1cc3cf49f861188c" kindref="member">LO_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>));</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a4c82b9ec27a3bc29c0f923283affb08c" kindref="member">TTI_SETDMAREG</ref>(0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1abd1d3808327aaccd8e33a401cca17ab1" kindref="member">UPPER_HALFWORD</ref>(pack_edge_offset.<ref refid="unionckernel_1_1packer_1_1pck__edge__offset__u_1a046b0eabcd1fb011e81a64c5e039db8d" kindref="member">val</ref>),<sp/>0,<sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__defs_8h_1aec97cd00a10543f8348d20daedde9de4" kindref="member">HI_16</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>));</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"></highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Wait<sp/>for<sp/>packer<sp/>to<sp/>finish<sp/>to<sp/>avoid<sp/>breaking<sp/>its<sp/>current<sp/>configuration</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a5e93e576b2f490f899e1e9c33cd13d22" kindref="member">TTI_STALLWAIT</ref>(<ref refid="structckernel_1_1p__stall_1abba99fafeb3d6142ed7b4cda721b9e22" kindref="member">p_stall::STALL_CFG</ref>,<sp/><ref refid="structckernel_1_1p__stall_1a51a4cd5fc4fe583be9d4b2560116621f" kindref="member">p_stall::PACK</ref>);</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"></highlight></codeline>
+<codeline lineno="336"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Clear<sp/>out<sp/>packer<sp/>configuration<sp/>for<sp/>reduce</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92e18886c7926a85bee236c12b673f8d" kindref="member">TTI_WRCFG</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>,<sp/><ref refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" kindref="member">p_cfg::WRCFG_32b</ref>,<sp/>PCK_EDGE_OFFSET_SEC0_mask_ADDR32);</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92e18886c7926a85bee236c12b673f8d" kindref="member">TTI_WRCFG</ref>(<ref refid="structckernel_1_1p__gpr__pack_1a19db703faded615da89f555597864921" kindref="member">p_gpr_pack::TMP0</ref>,<sp/><ref refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" kindref="member">p_cfg::WRCFG_32b</ref>,<sp/>PCK_EDGE_OFFSET_SEC1_mask_ADDR32);</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"></highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>All<sp/>mappings<sp/>point<sp/>to<sp/>PCK_EDGE_OFFSET_SEC0_mask_ADDR32</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92e18886c7926a85bee236c12b673f8d" kindref="member">TTI_WRCFG</ref>(<ref refid="structckernel_1_1p__gpr_1a28d8f49d352fa33234133be2d70e215d" kindref="member">p_gpr::ZERO</ref>,<sp/><ref refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" kindref="member">p_cfg::WRCFG_32b</ref>,<sp/>TILE_ROW_SET_MAPPING_0_row_set_mapping_0_ADDR32);</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a92e18886c7926a85bee236c12b673f8d" kindref="member">TTI_WRCFG</ref>(<ref refid="structckernel_1_1p__gpr_1a28d8f49d352fa33234133be2d70e215d" kindref="member">p_gpr::ZERO</ref>,<sp/><ref refid="structckernel_1_1p__cfg_1a5bd138766b507e537c54bc002c7021e1" kindref="member">p_cfg::WRCFG_32b</ref>,<sp/>TILE_ROW_SET_MAPPING_1_row_set_mapping_0_ADDR32);</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"></highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a32d0bf7e5876c5cabb7700e432330300" kindref="member">TTI_NOP</ref>;</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="tt__llk__blackhole_2common_2inc_2ckernel__ops_8h_1a32d0bf7e5876c5cabb7700e432330300" kindref="member">TTI_NOP</ref>;</highlight></codeline>
+<codeline lineno="346"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="tt_llk_wormhole_b0/llk_lib/llk_pack_common.h"/>
+  </compounddef>
+</doxygen>

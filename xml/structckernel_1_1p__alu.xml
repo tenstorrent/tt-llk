@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structckernel_1_1p__alu" kind="struct" language="C++" prot="public">
+    <compoundname>ckernel::p_alu</compoundname>
+    <includes refid="tt__llk__blackhole_2common_2inc_2ckernel__instr__params_8h" local="no">ckernel_instr_params.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structckernel_1_1p__alu_1af7725ab73f984a299347fafd30935055" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_alu::AND</definition>
+        <argsstring></argsstring>
+        <name>AND</name>
+        <initializer>= 0x0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="343" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="343" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__alu_1a16d0d73f5380b1caeaf7e63c2411b9cb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_alu::OR</definition>
+        <argsstring></argsstring>
+        <name>OR</name>
+        <initializer>= 0x1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="344" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="344" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structckernel_1_1p__alu_1a4a3bde7307b2b799440e5623346da191" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr static uint</type>
+        <definition>constexpr static uint ckernel::p_alu::XOR</definition>
+        <argsstring></argsstring>
+        <name>XOR</name>
+        <initializer>= 0x2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="345" column="27" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="345" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tt_llk_blackhole/common/inc/ckernel_instr_params.h" line="341" column="1" bodyfile="tt_llk_blackhole/common/inc/ckernel_instr_params.h" bodystart="342" bodyend="346"/>
+    <listofallmembers>
+      <member refid="structckernel_1_1p__alu_1af7725ab73f984a299347fafd30935055" prot="public" virt="non-virtual"><scope>ckernel::p_alu</scope><name>AND</name></member>
+      <member refid="structckernel_1_1p__alu_1a16d0d73f5380b1caeaf7e63c2411b9cb" prot="public" virt="non-virtual"><scope>ckernel::p_alu</scope><name>OR</name></member>
+      <member refid="structckernel_1_1p__alu_1a4a3bde7307b2b799440e5623346da191" prot="public" virt="non-virtual"><scope>ckernel::p_alu</scope><name>XOR</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

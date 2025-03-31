@@ -1,0 +1,126 @@
+\hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h}{}\doxysection{tt\+\_\+llk\+\_\+wormhole\+\_\+b0/llk\+\_\+lib/llk\+\_\+math\+\_\+common.h File Reference}
+\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h}\index{tt\_llk\_wormhole\_b0/llk\_lib/llk\_math\_common.h@{tt\_llk\_wormhole\_b0/llk\_lib/llk\_math\_common.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+defs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+include.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}cmath\+\_\+common.\+h\char`\"{}}\newline
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$bool untilize\+\_\+en = false, bool row\+\_\+pool = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ac3ad0076c0ea25c7ed67e5a297ac6fba}{\+\_\+llk\+\_\+math\+\_\+hw\+\_\+configure\+\_\+}} (const std\+::uint32\+\_\+t srca\+\_\+data\+\_\+format, const std\+::uint32\+\_\+t srcb\+\_\+data\+\_\+format)
+\item 
+{\footnotesize template$<$Dst\+Sync Dst$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a36edecf8cf9646166903701c29d92ad6}{\+\_\+llk\+\_\+math\+\_\+wait\+\_\+for\+\_\+dest\+\_\+available\+\_\+}} ()
+\item 
+{\footnotesize template$<$Dst\+Sync Dst, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a8007454f57b40ab5cd4595bb2dc289b6}{\+\_\+llk\+\_\+math\+\_\+dest\+\_\+section\+\_\+done\+\_\+}} ()
+\item 
+{\footnotesize template$<$Dst\+Sync Dst, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a0ec1fdea33ccf1eab279b52d4494764b}{\+\_\+llk\+\_\+math\+\_\+pack\+\_\+sync\+\_\+init\+\_\+}} ()
+\item 
+{\footnotesize template$<$bool mail2math = true, bool mail2pack = true$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a237e60d2445aea77b69009035aac50b3}{\+\_\+llk\+\_\+math\+\_\+get\+\_\+tile\+\_\+}} (std\+::uint32\+\_\+t tile\+\_\+index, std\+::uint32\+\_\+t $\ast$p\+\_\+tile)
+\item 
+{\footnotesize template$<$bool mail2math = true, bool mail2pack = true$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_aeaf98db271251c2def4c0de43a6642f9}{\+\_\+llk\+\_\+math\+\_\+release\+\_\+tile\+\_\+}} ()
+\item 
+void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a8b57de81f575789e02d57e1e59415f34}{\+\_\+llk\+\_\+math\+\_\+debug\+\_\+dump\+\_\+}} (std\+::uint8\+\_\+t $\ast$data, std\+::uint32\+\_\+t byte\+\_\+size)
+\item 
+void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a5802e44c12a7d00aa87ef61a19ddcaa4}{\+\_\+llk\+\_\+math\+\_\+debug\+\_\+dump\+\_\+seek\+\_\+}} (std\+::uint8\+\_\+t offset)
+\item 
+{\footnotesize template$<$bool to\+\_\+from\+\_\+int8 = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ae545bd64c2763efd337e3a3b4b137a22}{\+\_\+llk\+\_\+math\+\_\+reconfig\+\_\+data\+\_\+format\+\_\+srca\+\_\+}} (const std\+::uint32\+\_\+t srca\+\_\+data\+\_\+format)
+\item 
+{\footnotesize template$<$bool to\+\_\+from\+\_\+int8 = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a33e94887d862db2761083008eb751d95}{\+\_\+llk\+\_\+math\+\_\+reconfig\+\_\+data\+\_\+format\+\_\+srcb\+\_\+}} (const std\+::uint32\+\_\+t srcb\+\_\+data\+\_\+format)
+\item 
+{\footnotesize template$<$bool to\+\_\+from\+\_\+int8 = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ }\\void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a57b467b1f25aa3d7b90d307c0032b9f1}{\+\_\+llk\+\_\+math\+\_\+reconfig\+\_\+data\+\_\+format\+\_\+}} (const std\+::uint32\+\_\+t srca\+\_\+data\+\_\+format, const std\+::uint32\+\_\+t srcb\+\_\+data\+\_\+format)
+\item 
+std\+::uint32\+\_\+t \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a6507aa3d56bf655de194693dcdcbe03c}{\+\_\+llk\+\_\+math\+\_\+get\+\_\+compute\+\_\+special\+\_\+value\+\_\+flags\+\_\+}} ()
+\item 
+void \mbox{\hyperlink{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ae423c3de00d439f9e3594b54e99833a7}{\+\_\+llk\+\_\+math\+\_\+clear\+\_\+compute\+\_\+special\+\_\+value\+\_\+flags\+\_\+}} ()
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ae423c3de00d439f9e3594b54e99833a7}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ae423c3de00d439f9e3594b54e99833a7}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_clear\_compute\_special\_value\_flags\_@{\_llk\_math\_clear\_compute\_special\_value\_flags\_}}
+\index{\_llk\_math\_clear\_compute\_special\_value\_flags\_@{\_llk\_math\_clear\_compute\_special\_value\_flags\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_clear\_compute\_special\_value\_flags\_()}{\_llk\_math\_clear\_compute\_special\_value\_flags\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+math\+\_\+clear\+\_\+compute\+\_\+special\+\_\+value\+\_\+flags\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a8b57de81f575789e02d57e1e59415f34}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a8b57de81f575789e02d57e1e59415f34}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_debug\_dump\_@{\_llk\_math\_debug\_dump\_}}
+\index{\_llk\_math\_debug\_dump\_@{\_llk\_math\_debug\_dump\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_debug\_dump\_()}{\_llk\_math\_debug\_dump\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+math\+\_\+debug\+\_\+dump\+\_\+ (\begin{DoxyParamCaption}\item[{std\+::uint8\+\_\+t $\ast$}]{data,  }\item[{std\+::uint32\+\_\+t}]{byte\+\_\+size }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a5802e44c12a7d00aa87ef61a19ddcaa4}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a5802e44c12a7d00aa87ef61a19ddcaa4}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_debug\_dump\_seek\_@{\_llk\_math\_debug\_dump\_seek\_}}
+\index{\_llk\_math\_debug\_dump\_seek\_@{\_llk\_math\_debug\_dump\_seek\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_debug\_dump\_seek\_()}{\_llk\_math\_debug\_dump\_seek\_()}}
+{\footnotesize\ttfamily void \+\_\+llk\+\_\+math\+\_\+debug\+\_\+dump\+\_\+seek\+\_\+ (\begin{DoxyParamCaption}\item[{std\+::uint8\+\_\+t}]{offset }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a8007454f57b40ab5cd4595bb2dc289b6}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a8007454f57b40ab5cd4595bb2dc289b6}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_dest\_section\_done\_@{\_llk\_math\_dest\_section\_done\_}}
+\index{\_llk\_math\_dest\_section\_done\_@{\_llk\_math\_dest\_section\_done\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_dest\_section\_done\_()}{\_llk\_math\_dest\_section\_done\_()}}
+{\footnotesize\ttfamily template$<$Dst\+Sync Dst, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+dest\+\_\+section\+\_\+done\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a6507aa3d56bf655de194693dcdcbe03c}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a6507aa3d56bf655de194693dcdcbe03c}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_get\_compute\_special\_value\_flags\_@{\_llk\_math\_get\_compute\_special\_value\_flags\_}}
+\index{\_llk\_math\_get\_compute\_special\_value\_flags\_@{\_llk\_math\_get\_compute\_special\_value\_flags\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_get\_compute\_special\_value\_flags\_()}{\_llk\_math\_get\_compute\_special\_value\_flags\_()}}
+{\footnotesize\ttfamily std\+::uint32\+\_\+t \+\_\+llk\+\_\+math\+\_\+get\+\_\+compute\+\_\+special\+\_\+value\+\_\+flags\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a237e60d2445aea77b69009035aac50b3}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a237e60d2445aea77b69009035aac50b3}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_get\_tile\_@{\_llk\_math\_get\_tile\_}}
+\index{\_llk\_math\_get\_tile\_@{\_llk\_math\_get\_tile\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_get\_tile\_()}{\_llk\_math\_get\_tile\_()}}
+{\footnotesize\ttfamily template$<$bool mail2math = true, bool mail2pack = true$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+get\+\_\+tile\+\_\+ (\begin{DoxyParamCaption}\item[{std\+::uint32\+\_\+t}]{tile\+\_\+index,  }\item[{std\+::uint32\+\_\+t $\ast$}]{p\+\_\+tile }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ac3ad0076c0ea25c7ed67e5a297ac6fba}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ac3ad0076c0ea25c7ed67e5a297ac6fba}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_hw\_configure\_@{\_llk\_math\_hw\_configure\_}}
+\index{\_llk\_math\_hw\_configure\_@{\_llk\_math\_hw\_configure\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_hw\_configure\_()}{\_llk\_math\_hw\_configure\_()}}
+{\footnotesize\ttfamily template$<$bool untilize\+\_\+en = false, bool row\+\_\+pool = false$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+hw\+\_\+configure\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{srca\+\_\+data\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{srcb\+\_\+data\+\_\+format }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a0ec1fdea33ccf1eab279b52d4494764b}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a0ec1fdea33ccf1eab279b52d4494764b}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_pack\_sync\_init\_@{\_llk\_math\_pack\_sync\_init\_}}
+\index{\_llk\_math\_pack\_sync\_init\_@{\_llk\_math\_pack\_sync\_init\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_pack\_sync\_init\_()}{\_llk\_math\_pack\_sync\_init\_()}}
+{\footnotesize\ttfamily template$<$Dst\+Sync Dst, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+pack\+\_\+sync\+\_\+init\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a57b467b1f25aa3d7b90d307c0032b9f1}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a57b467b1f25aa3d7b90d307c0032b9f1}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_reconfig\_data\_format\_@{\_llk\_math\_reconfig\_data\_format\_}}
+\index{\_llk\_math\_reconfig\_data\_format\_@{\_llk\_math\_reconfig\_data\_format\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_reconfig\_data\_format\_()}{\_llk\_math\_reconfig\_data\_format\_()}}
+{\footnotesize\ttfamily template$<$bool to\+\_\+from\+\_\+int8 = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+reconfig\+\_\+data\+\_\+format\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{srca\+\_\+data\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{srcb\+\_\+data\+\_\+format }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ae545bd64c2763efd337e3a3b4b137a22}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_ae545bd64c2763efd337e3a3b4b137a22}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_reconfig\_data\_format\_srca\_@{\_llk\_math\_reconfig\_data\_format\_srca\_}}
+\index{\_llk\_math\_reconfig\_data\_format\_srca\_@{\_llk\_math\_reconfig\_data\_format\_srca\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_reconfig\_data\_format\_srca\_()}{\_llk\_math\_reconfig\_data\_format\_srca\_()}}
+{\footnotesize\ttfamily template$<$bool to\+\_\+from\+\_\+int8 = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+reconfig\+\_\+data\+\_\+format\+\_\+srca\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{srca\+\_\+data\+\_\+format }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a33e94887d862db2761083008eb751d95}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a33e94887d862db2761083008eb751d95}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_reconfig\_data\_format\_srcb\_@{\_llk\_math\_reconfig\_data\_format\_srcb\_}}
+\index{\_llk\_math\_reconfig\_data\_format\_srcb\_@{\_llk\_math\_reconfig\_data\_format\_srcb\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_reconfig\_data\_format\_srcb\_()}{\_llk\_math\_reconfig\_data\_format\_srcb\_()}}
+{\footnotesize\ttfamily template$<$bool to\+\_\+from\+\_\+int8 = false, bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+reconfig\+\_\+data\+\_\+format\+\_\+srcb\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{srcb\+\_\+data\+\_\+format }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_aeaf98db271251c2def4c0de43a6642f9}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_aeaf98db271251c2def4c0de43a6642f9}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_release\_tile\_@{\_llk\_math\_release\_tile\_}}
+\index{\_llk\_math\_release\_tile\_@{\_llk\_math\_release\_tile\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_release\_tile\_()}{\_llk\_math\_release\_tile\_()}}
+{\footnotesize\ttfamily template$<$bool mail2math = true, bool mail2pack = true$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+release\+\_\+tile\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a36edecf8cf9646166903701c29d92ad6}\label{tt__llk__wormhole__b0_2llk__lib_2llk__math__common_8h_a36edecf8cf9646166903701c29d92ad6}} 
+\index{llk\_math\_common.h@{llk\_math\_common.h}!\_llk\_math\_wait\_for\_dest\_available\_@{\_llk\_math\_wait\_for\_dest\_available\_}}
+\index{\_llk\_math\_wait\_for\_dest\_available\_@{\_llk\_math\_wait\_for\_dest\_available\_}!llk\_math\_common.h@{llk\_math\_common.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_math\_wait\_for\_dest\_available\_()}{\_llk\_math\_wait\_for\_dest\_available\_()}}
+{\footnotesize\ttfamily template$<$Dst\+Sync Dst$>$ \\
+void \+\_\+llk\+\_\+math\+\_\+wait\+\_\+for\+\_\+dest\+\_\+available\+\_\+ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+

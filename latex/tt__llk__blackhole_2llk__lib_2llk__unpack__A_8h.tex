@@ -1,0 +1,65 @@
+\hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h}{}\doxysection{tt\+\_\+llk\+\_\+blackhole/llk\+\_\+lib/llk\+\_\+unpack\+\_\+A.h File Reference}
+\label{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h}\index{tt\_llk\_blackhole/llk\_lib/llk\_unpack\_A.h@{tt\_llk\_blackhole/llk\_lib/llk\_unpack\_A.h}}
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include \char`\"{}ckernel.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+defs.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+globals.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+ops.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}ckernel\+\_\+template.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}cunpack\+\_\+common.\+h\char`\"{}}\newline
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_ae17d7bf18615ed016b7ea62d1d12423a}{SKIP\+\_\+\+UNP}}~0
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$Broadcast\+Type BType = Broadcast\+Type\+::\+NONE, bool acc\+\_\+to\+\_\+dest = false, Eltwise\+Binary\+Reuse\+Dest\+Type binary\+\_\+reuse\+\_\+dest = Eltwise\+Binary\+Reuse\+Dest\+Type\+::\+NONE, bool unpack\+\_\+to\+\_\+dest = false$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a302b5df5fde96e34080a0def3af61307}{\+\_\+llk\+\_\+unpack\+\_\+\+A\+\_\+mop\+\_\+config\+\_\+}} (const bool transpose\+\_\+of\+\_\+faces, const std\+::uint32\+\_\+t num\+\_\+faces, const std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format=0)
+\item 
+{\footnotesize template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, Stoch\+Rnd\+Type stoch\+\_\+rnd\+\_\+mode = Stoch\+Rnd\+Type\+::\+None, bool disable\+\_\+src\+\_\+zero\+\_\+flag = false$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a8157dadc58eaf614cdb55d86c6d06e5f}{\+\_\+llk\+\_\+unpack\+\_\+\+A\+\_\+hw\+\_\+configure\+\_\+}} (const std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format, const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t within\+\_\+face\+\_\+16x16\+\_\+transpose=0, const std\+::uint32\+\_\+t num\+\_\+faces=4)
+\item 
+{\footnotesize template$<$Broadcast\+Type BType = Broadcast\+Type\+::\+NONE, bool acc\+\_\+to\+\_\+dest = false, Eltwise\+Binary\+Reuse\+Dest\+Type binary\+\_\+reuse\+\_\+dest = Eltwise\+Binary\+Reuse\+Dest\+Type\+::\+NONE, bool unpack\+\_\+to\+\_\+dest = false$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a476f6b283e5471a2f3bccba41ec7a355}{\+\_\+llk\+\_\+unpack\+\_\+\+A\+\_\+init\+\_\+}} (const std\+::uint32\+\_\+t transpose\+\_\+of\+\_\+faces=0, const std\+::uint32\+\_\+t within\+\_\+face\+\_\+16x16\+\_\+transpose=0, const std\+::uint32\+\_\+t face\+\_\+r\+\_\+dim=FACE\+\_\+\+R\+\_\+\+DIM, const std\+::uint32\+\_\+t num\+\_\+faces=4, const std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format=0, const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format=0)
+\item 
+{\footnotesize template$<$Broadcast\+Type BType = Broadcast\+Type\+::\+NONE, bool acc\+\_\+to\+\_\+dest = false, Eltwise\+Binary\+Reuse\+Dest\+Type binary\+\_\+reuse\+\_\+dest = Eltwise\+Binary\+Reuse\+Dest\+Type\+::\+NONE, bool unpack\+\_\+to\+\_\+dest = false$>$ }\\void \mbox{\hyperlink{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a8e0413310fef8416a9f8fe5ab67bb8a0}{\+\_\+llk\+\_\+unpack\+\_\+\+A\+\_\+}} (const std\+::uint32\+\_\+t address, const bool transpose\+\_\+of\+\_\+faces=0, const std\+::uint32\+\_\+t unpack\+\_\+src\+\_\+format=0, const std\+::uint32\+\_\+t unpack\+\_\+dst\+\_\+format=0)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_ae17d7bf18615ed016b7ea62d1d12423a}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_ae17d7bf18615ed016b7ea62d1d12423a}} 
+\index{llk\_unpack\_A.h@{llk\_unpack\_A.h}!SKIP\_UNP@{SKIP\_UNP}}
+\index{SKIP\_UNP@{SKIP\_UNP}!llk\_unpack\_A.h@{llk\_unpack\_A.h}}
+\doxysubsubsection{\texorpdfstring{SKIP\_UNP}{SKIP\_UNP}}
+{\footnotesize\ttfamily \#define SKIP\+\_\+\+UNP~0}
+
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a8e0413310fef8416a9f8fe5ab67bb8a0}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a8e0413310fef8416a9f8fe5ab67bb8a0}} 
+\index{llk\_unpack\_A.h@{llk\_unpack\_A.h}!\_llk\_unpack\_A\_@{\_llk\_unpack\_A\_}}
+\index{\_llk\_unpack\_A\_@{\_llk\_unpack\_A\_}!llk\_unpack\_A.h@{llk\_unpack\_A.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_A\_()}{\_llk\_unpack\_A\_()}}
+{\footnotesize\ttfamily template$<$Broadcast\+Type BType = Broadcast\+Type\+::\+NONE, bool acc\+\_\+to\+\_\+dest = false, Eltwise\+Binary\+Reuse\+Dest\+Type binary\+\_\+reuse\+\_\+dest = Eltwise\+Binary\+Reuse\+Dest\+Type\+::\+NONE, bool unpack\+\_\+to\+\_\+dest = false$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+\+A\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{address,  }\item[{const bool}]{transpose\+\_\+of\+\_\+faces = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format = {\ttfamily 0} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a8157dadc58eaf614cdb55d86c6d06e5f}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a8157dadc58eaf614cdb55d86c6d06e5f}} 
+\index{llk\_unpack\_A.h@{llk\_unpack\_A.h}!\_llk\_unpack\_A\_hw\_configure\_@{\_llk\_unpack\_A\_hw\_configure\_}}
+\index{\_llk\_unpack\_A\_hw\_configure\_@{\_llk\_unpack\_A\_hw\_configure\_}!llk\_unpack\_A.h@{llk\_unpack\_A.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_A\_hw\_configure\_()}{\_llk\_unpack\_A\_hw\_configure\_()}}
+{\footnotesize\ttfamily template$<$bool is\+\_\+fp32\+\_\+dest\+\_\+acc\+\_\+en = false, Stoch\+Rnd\+Type stoch\+\_\+rnd\+\_\+mode = Stoch\+Rnd\+Type\+::\+None, bool disable\+\_\+src\+\_\+zero\+\_\+flag = false$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+\+A\+\_\+hw\+\_\+configure\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{within\+\_\+face\+\_\+16x16\+\_\+transpose = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a476f6b283e5471a2f3bccba41ec7a355}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a476f6b283e5471a2f3bccba41ec7a355}} 
+\index{llk\_unpack\_A.h@{llk\_unpack\_A.h}!\_llk\_unpack\_A\_init\_@{\_llk\_unpack\_A\_init\_}}
+\index{\_llk\_unpack\_A\_init\_@{\_llk\_unpack\_A\_init\_}!llk\_unpack\_A.h@{llk\_unpack\_A.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_A\_init\_()}{\_llk\_unpack\_A\_init\_()}}
+{\footnotesize\ttfamily template$<$Broadcast\+Type BType = Broadcast\+Type\+::\+NONE, bool acc\+\_\+to\+\_\+dest = false, Eltwise\+Binary\+Reuse\+Dest\+Type binary\+\_\+reuse\+\_\+dest = Eltwise\+Binary\+Reuse\+Dest\+Type\+::\+NONE, bool unpack\+\_\+to\+\_\+dest = false$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+\+A\+\_\+init\+\_\+ (\begin{DoxyParamCaption}\item[{const std\+::uint32\+\_\+t}]{transpose\+\_\+of\+\_\+faces = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{within\+\_\+face\+\_\+16x16\+\_\+transpose = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{face\+\_\+r\+\_\+dim = {\ttfamily FACE\+\_\+R\+\_\+DIM},  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces = {\ttfamily 4},  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format = {\ttfamily 0},  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format = {\ttfamily 0} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\mbox{\Hypertarget{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a302b5df5fde96e34080a0def3af61307}\label{tt__llk__blackhole_2llk__lib_2llk__unpack__A_8h_a302b5df5fde96e34080a0def3af61307}} 
+\index{llk\_unpack\_A.h@{llk\_unpack\_A.h}!\_llk\_unpack\_A\_mop\_config\_@{\_llk\_unpack\_A\_mop\_config\_}}
+\index{\_llk\_unpack\_A\_mop\_config\_@{\_llk\_unpack\_A\_mop\_config\_}!llk\_unpack\_A.h@{llk\_unpack\_A.h}}
+\doxysubsubsection{\texorpdfstring{\_llk\_unpack\_A\_mop\_config\_()}{\_llk\_unpack\_A\_mop\_config\_()}}
+{\footnotesize\ttfamily template$<$Broadcast\+Type BType = Broadcast\+Type\+::\+NONE, bool acc\+\_\+to\+\_\+dest = false, Eltwise\+Binary\+Reuse\+Dest\+Type binary\+\_\+reuse\+\_\+dest = Eltwise\+Binary\+Reuse\+Dest\+Type\+::\+NONE, bool unpack\+\_\+to\+\_\+dest = false$>$ \\
+void \+\_\+llk\+\_\+unpack\+\_\+\+A\+\_\+mop\+\_\+config\+\_\+ (\begin{DoxyParamCaption}\item[{const bool}]{transpose\+\_\+of\+\_\+faces,  }\item[{const std\+::uint32\+\_\+t}]{num\+\_\+faces,  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+src\+\_\+format,  }\item[{const std\+::uint32\+\_\+t}]{unpack\+\_\+dst\+\_\+format = {\ttfamily 0} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
