@@ -51,15 +51,15 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
     for i in range(0, len(result), 2):
         result[i], result[i + 1] = result[i + 1], result[i]
 
-    # Patch Up! Fixes incorrect reading of numbers in L1:
-    # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
-    # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
-    # This caused the test to fail as the results were correctly computed but read incorrectly.
-    # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
-    if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
-        for i in range(0, len(result), 2):
-            result[i], result[i + 1] = result[i + 1], result[i]
-    return result
+    # # Patch Up! Fixes incorrect reading of numbers in L1:
+    # # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
+    # # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
+    # # This caused the test to fail as the results were correctly computed but read incorrectly.
+    # # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
+    # if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
+    #     for i in range(0, len(result), 2):
+    #         result[i], result[i + 1] = result[i + 1], result[i]
+    # return result
 
 
 def unpack_float32(packed_list):
