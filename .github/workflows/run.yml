@@ -49,3 +49,14 @@ jobs:
           cd python_tests/
           export CHIP_ARCH=wormhole
           pytest --force-sugar .
+
+      - name: Create documentation
+        run: |
+          mkdir -p build/docs
+          doxygen Doxyfile
+
+      - name: Deploy documentation to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/docs

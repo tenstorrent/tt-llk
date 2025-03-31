@@ -53,7 +53,7 @@ fi
 if [[ "$REUSE" == false ]]; then
     echo "Updating system packages..."
     sudo apt update
-    sudo apt install -y curl cmake software-properties-common build-essential libyaml-cpp-dev libhwloc-dev libzmq3-dev git-lfs xxd wget
+    sudo apt install -y curl cmake doxygen software-properties-common build-essential libyaml-cpp-dev libhwloc-dev libzmq3-dev git-lfs xxd wget
 
     # Clone tt-smi repository if not already cloned
     if [ ! -d "tt-smi" ]; then
