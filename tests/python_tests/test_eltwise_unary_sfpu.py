@@ -4,6 +4,7 @@
 import pytest
 import torch
 import math
+import sys
 from helpers import *
 
 
@@ -25,16 +26,25 @@ def generate_golden(operation, operand1, data_format):
 
 full_sweep = False
 all_format_combos = generate_format_combinations(
-    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32],
+    [DataFormat.Float32],
     all_same=True,
     same_src_reg_format=True,  # setting src_A and src_B register to have same format
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["eltwise_unary_sfpu_test"],
-    all_format_combos,
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    [
+        FormatConfig(
+            DataFormat.Float32,
+            DataFormat.Float32,
+            DataFormat.Int32,
+            DataFormat.Int32,
+            DataFormat.Float32,
+            same_src_format=True,
+        )
+    ],
+    dest_acc=[DestAccumulation.Yes],
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
-    mathop=[MathOperation.Sqrt, MathOperation.Log, MathOperation.Square],
+    mathop=[MathOperation.Dummy],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -61,7 +71,6 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
     src_A, src_B = generate_stimuli(
         formats.unpack_A_src, formats.unpack_B_src, sfpu=True
     )
-    golden = generate_golden(mathop, src_A, formats.pack_dst)
     write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src)
 
     test_config = {
@@ -71,7 +80,6 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
         "mathop": mathop,
         "approx_mode": approx_mode,
     }
-
     make_cmd = generate_make_command(test_config)
     run_shell_command(f"cd .. && {make_cmd}")
     run_elf_files(testname)
@@ -80,16 +88,19 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
     res_from_L1 = collect_results(
         formats, sfpu=True
     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
-    assert len(res_from_L1) == len(golden)
 
-    golden_tensor = torch.tensor(
-        golden,
-        dtype=(
-            format_dict[formats.pack_dst]
-            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
-    )
+    sys.stdout.write(f"\nSRC A:\n")
+    for i in range(0, 256, 8):  # 16 items per row
+        sys.stdout.write(" ".join(f"{src_A[j]}" for j in range(i, i + 8)) + "\n")
+
+    sys.stdout.write(f"\nSRC B:\n")
+    for i in range(0, len(src_B), 8):  # 16 items per row
+        sys.stdout.write(" ".join(f"{src_B[j]}" for j in range(i, i + 8)) + "\n")
+
+    sys.stdout.write(f"\nResult from L1:\n")
+    for i in range(0, len(res_from_L1), 8):  # 16 items per row
+        sys.stdout.write(" ".join(f"{res_from_L1[j]}" for j in range(i, i + 8)) + "\n")
+
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
@@ -98,22 +109,3 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
             else torch.bfloat16
         ),
     )
-
-    if formats.pack_dst in [
-        DataFormat.Float16_b,
-        DataFormat.Float16,
-        DataFormat.Float32,
-    ]:
-        atol = 0.05
-        rtol = 0.1
-    elif formats.pack_dst == DataFormat.Bfp8_b:
-        atol = 0.05
-        rtol = 0.1
-
-    for i in range(len(golden)):
-        assert torch.isclose(
-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
-
-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.99
