@@ -11,6 +11,11 @@ namespace ckernel
 {
 namespace sfpu
 {
+sfpi_inline void _calculate_dummy_()
+{
+    sfpi::vInt input = 4;
+    sfpi::dst_reg[0] = sfpi::setsgn(input, -5);
+}
 
 template <bool HAS_BASE_SCALING>
 sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor)

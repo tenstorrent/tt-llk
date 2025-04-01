@@ -191,6 +191,9 @@ constexpr auto SFPU_OPERATION = SfpuType::log;
 #ifdef SFPU_OP_SQUARE
 constexpr auto SFPU_OPERATION = SfpuType::square;
 #endif
+#ifdef SFPU_OP_DUMMY
+constexpr auto SFPU_OPERATION = SfpuType::dummy;
+#endif
 
 inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
 {
