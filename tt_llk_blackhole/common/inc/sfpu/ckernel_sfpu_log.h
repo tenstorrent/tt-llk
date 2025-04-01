@@ -14,7 +14,7 @@ namespace sfpu
 sfpi_inline void _calculate_dummy_()
 {
     sfpi::vInt input = 4;
-    sfpi::dst_reg[0] = sfpi::setsgn(input, -5);
+    sfpi::dst_reg[0] = input; // sfpi::setsgn(input, -5);
 }
 
 template <bool HAS_BASE_SCALING>
