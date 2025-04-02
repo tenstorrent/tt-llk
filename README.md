@@ -5,11 +5,12 @@ This repository contains low level kernels for Tenstorrent AI chips (Grayskull (
 
 LLKs are header-only.
 
-
 # Install
 1. Clone repo
 2. Set up test environment per https://github.com/tenstorrent/tt-llk/blob/main/tests/README.md
 
+# Software dependencies
+Test environment requires SFPI compiler for building, which is automatically ingested from https://github.com/tenstorrent/sfpi
 
 # Contributing
 1. Create a new branch.
