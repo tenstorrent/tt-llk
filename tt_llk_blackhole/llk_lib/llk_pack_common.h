@@ -13,9 +13,6 @@
 #include "fw_debug.h"
 #include "llk_defs.h"
 
-using namespace ckernel;
-using namespace ckernel::packer;
-
 #ifdef PERF_DUMP
 #include "ckernel_perf_api.h"
 #endif
@@ -26,24 +23,24 @@ inline void _llk_packer_wait_for_math_done_()
 #ifdef PERF_DUMP
     if constexpr (MATH_PACK_DECOUPLE == 0)
     {
-        TTI_SEMWAIT(p_stall::STALL_TDMA, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_ZERO);
+        TTI_SEMWAIT(ckernel::p_stall::STALL_TDMA, ckernel::semaphore::t6_sem(ckernel::semaphore::MATH_PACK), ckernel::p_stall::STALL_ON_ZERO);
     }
 #else
-    TTI_SEMWAIT(p_stall::STALL_TDMA, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_ZERO);
+    TTI_SEMWAIT(ckernel::p_stall::STALL_TDMA, ckernel::semaphore::t6_sem(ckernel::semaphore::MATH_PACK), ckernel::p_stall::STALL_ON_ZERO);
 #endif
 }
 
 // Tell math that it can write again
-template <uint WaitRes = p_stall::NONE>
+template <uint WaitRes = ckernel::p_stall::NONE>
 inline void _llk_packer_set_math_semaphore_()
 {
-    t6_semaphore_get<WaitRes>(semaphore::MATH_PACK); // Indicate that packer is done and header is written into L1
+    ckernel::t6_semaphore_get<WaitRes>(ckernel::semaphore::MATH_PACK); // Indicate that packer is done and header is written into L1
 }
 
 // Wait for all writes to complete in L1 (header + data)
 // Tell math it can write again
 // Clear dest
-template <DstSync Dst, bool is_fp32_dest_acc_en = false>
+template <ckernel::DstSync Dst, bool is_fp32_dest_acc_en = false>
 inline void _llk_pack_dest_section_done_()
 {
 #ifdef PERF_DUMP
@@ -53,58 +50,58 @@ inline void _llk_pack_dest_section_done_()
     }
 #endif
 
-    constexpr bool clear_dest = (Dst != DstSync::SyncTile16);
+    constexpr bool clear_dest = (Dst != ckernel::DstSync::SyncTile16);
 
     if constexpr (clear_dest)
     {
-        TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
+        TTI_STALLWAIT(ckernel::p_stall::STALL_MATH, ckernel::p_stall::PACK); // wait for pack to finish
 
-        if constexpr (Dst == DstSync::SyncFull)
+        if constexpr (Dst == ckernel::DstSync::SyncFull)
         {
-            TT_ZEROACC(p_zeroacc::CLR_ALL, is_fp32_dest_acc_en, 0, ADDR_MOD_1, 0);
+            TT_ZEROACC(ckernel::p_zeroacc::CLR_ALL, is_fp32_dest_acc_en, 0, ckernel::ADDR_MOD_1, 0);
         }
         else
         {
-            static_assert((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
-            TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+            static_assert((Dst == ckernel::DstSync::SyncHalf) || (Dst == ckernel::DstSync::SyncTile2));
+            TT_ZEROACC(ckernel::p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ckernel::ADDR_MOD_1, (ckernel::dest_offset_id) % 2);
         }
     }
 
     // Note: we should have already stalled math in non-tile dest modes due to clearing
-    constexpr uint32_t WaitRes = (Dst == DstSync::SyncTile16) ? (p_stall::PACK) : (p_stall::NONE);
+    constexpr uint32_t WaitRes = (Dst == ckernel::DstSync::SyncTile16) ? (ckernel::p_stall::PACK) : (ckernel::p_stall::NONE);
 
     // Tell math that it can write again
     _llk_packer_set_math_semaphore_<WaitRes>();
 
-    constexpr bool flip_dest = ((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
+    constexpr bool flip_dest = ((Dst == ckernel::DstSync::SyncHalf) || (Dst == ckernel::DstSync::SyncTile2));
 
     if constexpr (flip_dest)
     {
-        flip_packer_dest_offset_id();
-        select_packer_dest_registers<Dst>();
+        ckernel::packer::flip_packer_dest_offset_id();
+        ckernel::packer::select_packer_dest_registers<Dst>();
     }
 }
 
-template <DstSync Dst, DstTileFaceLayout FaceLayout>
-inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
+template <ckernel::DstSync Dst, ckernel::DstTileFaceLayout FaceLayout>
+inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_dim = ckernel::FACE_R_DIM, const bool narrow_tile = false)
 {
-    TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK); // wait for pack to finish
+    TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA | ckernel::p_stall::STALL_THCON, ckernel::p_stall::PACK); // wait for pack to finish
 
     // RowMajor order
-    TT_SETDMAREG(0, 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
-    TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
+    TT_SETDMAREG(0, 0x00, 0, LO_16(ckernel::p_gpr_pack::DEST_OFFSET_LO + 0));
+    TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(ckernel::p_gpr_pack::DEST_OFFSET_HI + 0));
 
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-    select_packer_dest_registers<Dst>();
+    TTI_STALLWAIT(ckernel::p_stall::STALL_CFG, ckernel::p_stall::THCON);
+    ckernel::packer::select_packer_dest_registers<Dst>();
 }
 
-template <DstSync Dst, DstTileFaceLayout FaceLayout = RowMajor, bool is_fp32_dest_acc_en = false>
-inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
+template <ckernel::DstSync Dst, ckernel::DstTileFaceLayout FaceLayout = ckernel::DstTileFaceLayout::RowMajor, bool is_fp32_dest_acc_en = false>
+inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = ckernel::FACE_R_DIM, const bool narrow_tile = false)
 {
-    tensix_sync();
-    reset_dest_offset_id();
+    ckernel::tensix_sync();
+    ckernel::reset_dest_offset_id();
     _llk_init_packer_dest_offset_registers_<Dst, FaceLayout>(face_r_dim, narrow_tile);
-    packer_addr_counter_init();
+    ckernel::packer::packer_addr_counter_init();
     pack_sync_tile_dst_ptr = 0;
 }
 
@@ -113,7 +110,7 @@ inline void _llk_pack_get_tile_(std::uint32_t tile_index, std::uint32_t *p_tile)
 {
     if constexpr (mail2pack)
     {
-        *p_tile = mailbox_read(ThreadId::UnpackThreadId);
+        *p_tile = mailbox_read(ckernel::ThreadId::UnpackThreadId);
     }
     else
     {
@@ -126,38 +123,39 @@ inline void _llk_pack_release_tile_()
 {
     if constexpr (mail2pack)
     {
-        semaphore_get(semaphore::UNPACK_OPERAND_SYNC);
+        ckernel::semaphore_get(ckernel::semaphore::UNPACK_OPERAND_SYNC);
     }
 }
 
 inline void _llk_pack_debug_dump_(std::uint8_t *data, std::uint32_t byte_size)
 {
-    debug_dump(data, byte_size);
+    ckernel::debug_dump(data, byte_size);
 }
 
 inline void _llk_pack_debug_dump_seek_(std::uint8_t offset)
 {
-    debug_dump_seek(offset);
+    ckernel::debug_dump_seek(offset);
 }
 
 TT_ALWAYS_INLINE void _llk_pack_relu_config_(const std::uint32_t config)
 {
-    ReluType mode = (config & 0xf) == 0 ? ReluType::NO_RELU : ((config & 0xf) == 3 ? ReluType::MAX_THRESHOLD_RELU : ReluType::MIN_THRESHOLD_RELU);
-    uint32_t val  = ((config >> 16) << STACC_RELU_ReluThreshold_SHAMT) | (((uint32_t)mode) << STACC_RELU_ApplyRelu_SHAMT);
-    TTI_SETDMAREG(0, val & 0xffff, 0, LO_16(p_gpr_pack::TMP0));
-    TTI_SETDMAREG(0, val >> 16, 0, HI_16(p_gpr_pack::TMP0));
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK | p_stall::THCON);
-    TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, STACC_RELU_ApplyRelu_ADDR32);
+    ckernel::ReluType mode = (config & 0xf) == 0 ? ckernel::ReluType::NO_RELU
+                                                 : ((config & 0xf) == 3 ? ckernel::ReluType::MAX_THRESHOLD_RELU : ckernel::ReluType::MIN_THRESHOLD_RELU);
+    uint32_t val           = ((config >> 16) << STACC_RELU_ReluThreshold_SHAMT) | (((uint32_t)mode) << STACC_RELU_ApplyRelu_SHAMT);
+    TTI_SETDMAREG(0, val & 0xffff, 0, LO_16(ckernel::p_gpr_pack::TMP0));
+    TTI_SETDMAREG(0, val >> 16, 0, HI_16(ckernel::p_gpr_pack::TMP0));
+    TTI_STALLWAIT(ckernel::p_stall::STALL_CFG, ckernel::p_stall::PACK | ckernel::p_stall::THCON);
+    TTI_WRCFG(ckernel::p_gpr_pack::TMP0, ckernel::p_cfg::WRCFG_32b, STACC_RELU_ApplyRelu_ADDR32);
     TTI_NOP;
     TTI_NOP;
 }
 
 inline void _llk_pack_reconfig_l1_acc_(const std::uint32_t enable)
 {
-    reconfigure_packer_l1_acc(enable);
+    ckernel::packer::reconfigure_packer_l1_acc(enable);
 }
 
-template <bool untilize = false, ReduceDim dim>
+template <bool untilize = false, ckernel::ReduceDim dim>
 inline void _llk_pack_reduce_mask_config_()
 {
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
@@ -167,7 +165,7 @@ inline void _llk_pack_reduce_mask_config_()
     uint32_t row_set_mapping_1     = 0;
     uint32_t edge_offset_sec1_mask = 0;
 
-    if constexpr (dim == ReduceDim::REDUCE_ROW)
+    if constexpr (dim == ckernel::ReduceDim::REDUCE_ROW)
     {
         // PCK_EDGE_OFFSET_SEC1 mask will clear out all the datums in the row except the first one
         edge_offset_sec1_mask = 0x0001;
@@ -190,7 +188,7 @@ inline void _llk_pack_reduce_mask_config_()
             row_set_mapping_1 = 0x55555555; // each packer packs 1x16 row
         }
     }
-    else if constexpr (dim == ReduceDim::REDUCE_COL)
+    else if constexpr (dim == ckernel::ReduceDim::REDUCE_COL)
     {
         // PCK_EDGE_OFFSET_SEC1 mask will pass through all the datums in the row as they are
         edge_offset_sec1_mask = 0xffff;
@@ -210,7 +208,7 @@ inline void _llk_pack_reduce_mask_config_()
             row_set_mapping_1 = 0x00000001; // each packer packs 1x16 row
         }
     }
-    else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
+    else if constexpr (dim == ckernel::ReduceDim::REDUCE_SCALAR)
     {
         // PCK_EDGE_OFFSET_SEC1 mask will clear out all the datums in the row except the first one
         edge_offset_sec1_mask = 0x0001;
@@ -223,19 +221,19 @@ inline void _llk_pack_reduce_mask_config_()
     }
 
     // Initialize TMP registers with values we need to write in CFG registers
-    TTI_SETDMAREG(0, LOWER_HALFWORD(pack_edge_offset.val), 0, LO_16(p_gpr_pack::TMP0));
-    TTI_SETDMAREG(0, UPPER_HALFWORD(pack_edge_offset.val), 0, HI_16(p_gpr_pack::TMP0));
-    TTI_SETDMAREG(0, LOWER_HALFWORD(edge_offset_sec1_mask), 0, LO_16(p_gpr_pack::TMP_LO));
-    TTI_SETDMAREG(0, LOWER_HALFWORD(row_set_mapping_1), 0, LO_16(p_gpr_pack::TMP1));
-    TTI_SETDMAREG(0, UPPER_HALFWORD(row_set_mapping_1), 0, HI_16(p_gpr_pack::TMP1));
+    TTI_SETDMAREG(0, LOWER_HALFWORD(pack_edge_offset.val), 0, LO_16(ckernel::p_gpr_pack::TMP0));
+    TTI_SETDMAREG(0, UPPER_HALFWORD(pack_edge_offset.val), 0, HI_16(ckernel::p_gpr_pack::TMP0));
+    TTI_SETDMAREG(0, LOWER_HALFWORD(edge_offset_sec1_mask), 0, LO_16(ckernel::p_gpr_pack::TMP_LO));
+    TTI_SETDMAREG(0, LOWER_HALFWORD(row_set_mapping_1), 0, LO_16(ckernel::p_gpr_pack::TMP1));
+    TTI_SETDMAREG(0, UPPER_HALFWORD(row_set_mapping_1), 0, HI_16(ckernel::p_gpr_pack::TMP1));
 
     // Wait for packer to finish to avoid breaking its current configuration
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
+    TTI_STALLWAIT(ckernel::p_stall::STALL_CFG, ckernel::p_stall::PACK);
 
     // Configure packer
-    TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK_EDGE_OFFSET_SEC0_mask_ADDR32);
-    TTI_WRCFG(p_gpr_pack::TMP_LO, p_cfg::WRCFG_32b, PCK_EDGE_OFFSET_SEC1_mask_ADDR32);
-    TTI_WRCFG(p_gpr_pack::TMP1, p_cfg::WRCFG_32b, TILE_ROW_SET_MAPPING_1_row_set_mapping_0_ADDR32);
+    TTI_WRCFG(ckernel::p_gpr_pack::TMP0, ckernel::p_cfg::WRCFG_32b, PCK_EDGE_OFFSET_SEC0_mask_ADDR32);
+    TTI_WRCFG(ckernel::p_gpr_pack::TMP_LO, ckernel::p_cfg::WRCFG_32b, PCK_EDGE_OFFSET_SEC1_mask_ADDR32);
+    TTI_WRCFG(ckernel::p_gpr_pack::TMP1, ckernel::p_cfg::WRCFG_32b, TILE_ROW_SET_MAPPING_1_row_set_mapping_0_ADDR32);
 
     TTI_NOP;
     TTI_NOP;
@@ -245,23 +243,23 @@ inline void _llk_pack_reduce_mask_clear_()
 {
     // By default, all packers are set to use TILE_ROW_SET_MAPPING_0 and
     // mask is configured to pass through all the datums
-    pck_edge_offset_u pack_edge_offset = {.val = 0};
-    pack_edge_offset.f.mask            = 0xffff;
+    ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
+    pack_edge_offset.f.mask                             = 0xffff;
 
     // Initialize TMP registers with values we need to write in CFG registers
-    TTI_SETDMAREG(0, LOWER_HALFWORD(pack_edge_offset.val), 0, LO_16(p_gpr_pack::TMP0));
-    TTI_SETDMAREG(0, UPPER_HALFWORD(pack_edge_offset.val), 0, HI_16(p_gpr_pack::TMP0));
+    TTI_SETDMAREG(0, LOWER_HALFWORD(pack_edge_offset.val), 0, LO_16(ckernel::p_gpr_pack::TMP0));
+    TTI_SETDMAREG(0, UPPER_HALFWORD(pack_edge_offset.val), 0, HI_16(ckernel::p_gpr_pack::TMP0));
 
     // Wait for packer to finish to avoid breaking its current configuration
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
+    TTI_STALLWAIT(ckernel::p_stall::STALL_CFG, ckernel::p_stall::PACK);
 
     // Clear out packer configuration for reduce
-    TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK_EDGE_OFFSET_SEC0_mask_ADDR32);
-    TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK_EDGE_OFFSET_SEC1_mask_ADDR32);
+    TTI_WRCFG(ckernel::p_gpr_pack::TMP0, ckernel::p_cfg::WRCFG_32b, PCK_EDGE_OFFSET_SEC0_mask_ADDR32);
+    TTI_WRCFG(ckernel::p_gpr_pack::TMP0, ckernel::p_cfg::WRCFG_32b, PCK_EDGE_OFFSET_SEC1_mask_ADDR32);
 
     // All mappings point to PCK_EDGE_OFFSET_SEC0_mask_ADDR32
-    TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, TILE_ROW_SET_MAPPING_0_row_set_mapping_0_ADDR32);
-    TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, TILE_ROW_SET_MAPPING_1_row_set_mapping_0_ADDR32);
+    TTI_WRCFG(ckernel::p_gpr::ZERO, ckernel::p_cfg::WRCFG_32b, TILE_ROW_SET_MAPPING_0_row_set_mapping_0_ADDR32);
+    TTI_WRCFG(ckernel::p_gpr::ZERO, ckernel::p_cfg::WRCFG_32b, TILE_ROW_SET_MAPPING_1_row_set_mapping_0_ADDR32);
 
     TTI_NOP;
     TTI_NOP;
