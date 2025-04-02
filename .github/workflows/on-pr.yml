@@ -25,7 +25,6 @@ jobs:
     uses: ./.github/workflows/build-images.yml
     needs: pre-commit
     secrets: inherit
-    timeout-minutes: 60
 
   setup-and-test-wormhole:
     name: "🧪 Perform checks (Wormhole)"
