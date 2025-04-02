@@ -11,11 +11,15 @@ on:
         description: "The Docker image to use for the container"
         required: true
         type: string
+      runs_on:
+        description: "The runner to use for the job"
+        required: true
+        type: string
 
 jobs:
   setup-and-test:
     name: "🦄 Run tests"
-    runs-on: tt-beta-ubuntu-2204-n150-large-stable
+    runs-on: $${ inputs.runs_on }
     timeout-minutes: 60
     container:
       image: ${{ inputs.docker_image }}

@@ -53,9 +53,10 @@ jobs:
           echo "docker-image=$DOCKER_CI_IMAGE" >> "$GITHUB_OUTPUT"
 
   setup-and-test:
-    name: "🧪 Run tests (Wormhole)"
+    name: "🧪 Perform checks (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
     with:
       chip_arch: "wormhole"
       docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: "tt-beta-ubuntu-2204-n150-large-stable"
