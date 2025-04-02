@@ -35,16 +35,14 @@ jobs:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-beta-ubuntu-2204-n150-large-stable
 
-  check-all-green:
+  all-checks-passed:
     name: "✅ Check all green"
-    if: always()
+    runs-on: ubuntu-latest
     needs:
       - pre-commit
       - build-images
       - setup-and-test-wormhole
-    runs-on: ubuntu-latest
     steps:
-      - name: Check if the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
+      - uses: wechuli/allcheckspassed@v1
         with:
-          jobs: ${{ toJSON(needs) }}
+          checks_include: 'pre-commit, build-images, setup-and-test-wormhole'

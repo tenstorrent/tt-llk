@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
 #
 # SPDX-License-Identifier: Apache-2.0
+
 set -e
 
 wget -O ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl \
