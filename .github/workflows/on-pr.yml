@@ -24,6 +24,7 @@ jobs:
   build-images:
     name: "🐳️ Build images"
     runs-on: ubuntu-latest
+    needs: pre-commit
     timeout-minutes: 30
     outputs:
       docker-image: ${{ steps.build.outputs.docker-image }}
@@ -45,7 +46,7 @@ jobs:
         run: |
           # Output the image name
           set pipefail
-          .github/build-docker-images.sh | tee docker.log
+          .github/scripts/build-docker-images.sh | tee docker.log
           DOCKER_CI_IMAGE=$(tail -n 1 docker.log)
           echo "DOCKER_CI_IMAGE $DOCKER_CI_IMAGE"
           echo "docker-image=$DOCKER_CI_IMAGE" >> "$GITHUB_OUTPUT"
