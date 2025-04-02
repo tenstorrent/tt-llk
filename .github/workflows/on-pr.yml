@@ -19,19 +19,19 @@ concurrency:
 
 jobs:
   pre-commit:
-    uses: ./.github/workflows/pre-commit.yml@main
+    uses: ./.github/workflows/pre-commit.yml
     with:
       python_version: "3.10"
 
   build-images:
-    uses: ./.github/workflows/build-images.yml@main
+    uses: ./.github/workflows/build-images.yml
     with:
       registry: ghcr.io
       username: ${{ github.repository_owner }}
       password: ${{ secrets.GITHUB_TOKEN }}
 
   setup-and-test:
-    uses: ./.github/workflows/setup-and-test.yml@main
+    uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
     with:
       chip_arch: "wormhole"
