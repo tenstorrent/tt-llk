@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.7.0/sfpi-release.tgz"
+SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.8.0/sfpi-release.tgz"
 
 if [ ! -d "sfpi" ]; then
     echo "sfpi directory not found. Downloading and extracting SFPI release..."
