@@ -1,0 +1,30 @@
+name: 🔍 Pre-commit checks
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: "Python version to use for pre-commit"
+        required: false
+        type: string
+        default: "3.10"
+
+jobs:
+  pre-commit:
+    name: Run pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history so 'origin/main' is available
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Run pre-commit and fix issues
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: "--from-ref origin/main --to-ref HEAD"

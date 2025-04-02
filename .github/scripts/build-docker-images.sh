@@ -12,7 +12,7 @@ BASE_IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-base-ird-ubuntu-22-04
 IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-ird-ubuntu-22-04
 
 # Compute the hash of the Dockerfile
-DOCKER_TAG=$(./.github/get-docker-tag.sh)
+DOCKER_TAG=$(./.github/scripts/get-docker-tag.sh)
 echo "Docker tag: $DOCKER_TAG"
 
 # Are we on main branch

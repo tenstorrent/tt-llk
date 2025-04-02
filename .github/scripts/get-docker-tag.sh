@@ -5,6 +5,6 @@
 
 # Calculate hash from the following files. This hash is used to tag the docker images.
 # Any change in these files will result in a new docker image build
-DOCKERFILE_HASH_FILES=".github/Dockerfile.base .github/Dockerfile.ci .github/Dockerfile.ird tests/requirements.txt .github/build-docker-images.sh"
+DOCKERFILE_HASH_FILES=".github/Dockerfile.base .github/Dockerfile.ci .github/Dockerfile.ird tests/requirements.txt .github/scripts/build-docker-images.sh"
 DOCKERFILE_HASH=$(sha256sum $DOCKERFILE_HASH_FILES | sha256sum | cut -d ' ' -f 1)
 echo dt-$DOCKERFILE_HASH

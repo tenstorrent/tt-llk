@@ -1,0 +1,36 @@
+name: 🌀 Wormhole tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  # Use github.run_id on main branch (or any protected branch)
+  # This ensures that no runs get cancelled on main.
+  # Use github.event.pull_request.number on pull requests, so it's unique per pull request
+  # and will cancel obsolete runs.
+  # Use github.ref on other branches, so it's unique per branch.
+  group: ${{ github.workflow }}-${{ github.ref_protected && github.run_id ||
+    github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    uses: ./.github/workflows/pre-commit.yml
+
+  build-images:
+    uses: ./.github/workflows/build-images.yml
+    with:
+      registry: ghcr.io
+      username: ${{ github.repository_owner }}
+      password: ${{ secrets.GITHUB_TOKEN }}
+
+  setup-and-test:
+    uses: ./.github/workflows/setup-and-test.yml
+    needs: build-images
+    with:
+      chip_arch: "wormhole"
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
