@@ -1,4 +1,4 @@
-name: 🌀 Wormhole tests
+name: 🛠️ PR Pipeline
 on:
   push:
     branches:
@@ -19,6 +19,7 @@ concurrency:
 
 jobs:
   pre-commit:
+    name: "🔍 Pre-commit checks"
     uses: ./.github/workflows/pre-commit.yml
 
   build-images:
@@ -52,6 +53,7 @@ jobs:
           echo "docker-image=$DOCKER_CI_IMAGE" >> "$GITHUB_OUTPUT"
 
   setup-and-test:
+    name: "🦄 Run tests (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
     with:
