@@ -17,3 +17,22 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     python3-pip \
     clangd
+
+# Clean up
+RUN apt-get clean
+
+# Install Python dependencies globally
+RUN pip install --upgrade pip
+COPY tests/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install wheel build setuptools
+
+# Install exalens
+RUN wget -O ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl \
+    https://github.com/tenstorrent/tt-exalens/releases/download/0.1/ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
+RUN pip install --no-cache-dir ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
+RUN rm ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
+
+# Install tt-smi
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && pip install git+https://github.com/tenstorrent/tt-smi.git
