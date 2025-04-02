@@ -17,11 +17,11 @@ concurrency:
 
 jobs:
   pre-commit:
-    name: "🔍 Pre-commit checks"
+    name: "🔍 Static checks"
     uses: ./.github/workflows/pre-commit.yml
 
   build-images:
-    name: "🐳️ Build images"
+    name: "🐳️ Docker setup"
     uses: ./.github/workflows/build-images.yml
     needs: pre-commit
     secrets: inherit
