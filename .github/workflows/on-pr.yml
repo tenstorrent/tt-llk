@@ -53,7 +53,7 @@ jobs:
           echo "docker-image=$DOCKER_CI_IMAGE" >> "$GITHUB_OUTPUT"
 
   setup-and-test:
-    name: "🦄 Run tests (Wormhole)"
+    name: "🧪 Run tests (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
     with:
