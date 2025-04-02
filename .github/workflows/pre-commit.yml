@@ -11,7 +11,7 @@ on:
 
 jobs:
   pre-commit:
-    name: Run pre-commit
+    name: Pre-commit checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

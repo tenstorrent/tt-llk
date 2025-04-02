@@ -4,26 +4,19 @@ SHELL ["/bin/bash", "-c"]
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Install Python dependencies globally
-RUN pip install --upgrade pip
-COPY tests/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
-RUN pip install wheel build setuptools
+# Copy scripts into the image
+COPY .github/scripts/ /home/
 
-# Install exalens
-RUN wget -O ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl \
-    https://github.com/tenstorrent/tt-exalens/releases/download/0.1/ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
-RUN pip install --no-cache-dir ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
-RUN rm ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
+COPY tests/requirements.txt /tmp/requirements_tests.txt
+
+# Install pytest dependencies
+RUN ./home/install-tests-dependencies.sh
+
+# Install tt-exalens
+RUN ./home/install-exalens.sh
 
 # Install tt-smi
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    && pip install git+https://github.com/tenstorrent/tt-smi.git
+RUN ./home/install-smi.sh
 
 # Fetch sfpi
-ARG SFPI_RELEASE_URL=https://github.com/tenstorrent/sfpi/releases/download/v6.7.0/sfpi-release.tgz
-RUN mkdir -p /home/sfpi \
-    && wget "$SFPI_RELEASE_URL" -O /home/sfpi/sfpi-release.tgz \
-    && tar -xzf /home/sfpi/sfpi-release.tgz -C /home/sfpi \
-    && ls -l /home/sfpi \
-    && rm /home/sfpi/sfpi-release.tgz
+RUN ./home/fetch-sfpi.sh
