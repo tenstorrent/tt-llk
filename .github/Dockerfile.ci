@@ -17,6 +17,3 @@ RUN ./home/install-exalens.sh
 
 # Install tt-smi
 RUN ./home/install-smi.sh
-
-# Fetch sfpi
-RUN ./home/fetch-sfpi.sh

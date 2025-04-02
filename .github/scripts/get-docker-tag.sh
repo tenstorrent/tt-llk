@@ -10,7 +10,6 @@ DOCKERFILE_HASH_FILES=".github/Dockerfile.base \
     .github/Dockerfile.ird \
     tests/requirements.txt \
     .github/scripts/build-docker-images.sh \
-    .github/scripts/fetch-sfpi \
     .github/scripts/install-exalens.sh \
     .github/scripts/install-smi.sh \
     .github/scripts/install-tests-dependencies.sh"
