@@ -52,11 +52,24 @@ jobs:
           echo "DOCKER_CI_IMAGE $DOCKER_CI_IMAGE"
           echo "docker-image=$DOCKER_CI_IMAGE" >> "$GITHUB_OUTPUT"
 
-  setup-and-test:
+  setup-and-test-wormhole:
     name: "🧪 Perform checks (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
     with:
-      chip_arch: "wormhole"
+      chip_arch: wormhole
       docker_image: ${{ needs.build-images.outputs.docker-image }}
-      runs_on: "tt-beta-ubuntu-2204-n150-large-stable"
+      runs_on: tt-beta-ubuntu-2204-n150-large-stable
+
+  check-all-green:
+    if: always()
+    needs:
+      - pre-commit
+      - build-images
+      - setup-and-test-wormhole
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
