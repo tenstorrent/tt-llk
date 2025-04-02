@@ -62,6 +62,7 @@ jobs:
       runs_on: tt-beta-ubuntu-2204-n150-large-stable
 
   check-all-green:
+    name: "✅ Check all green"
     if: always()
     needs:
       - pre-commit
