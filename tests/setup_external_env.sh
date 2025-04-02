@@ -126,22 +126,6 @@ else   # Reuse existing environment setup
     fi
     echo "Reusing existing virtual environment setup..."
     source .venv/bin/activate
-
-    echo "Running tt-smi -ls to detect architecture..."
-    ARCH_DUMP=$(mktemp)
-    tt-smi -ls > "$ARCH_DUMP"
-    result=$(python3 helpers/find_arch.py "Wormhole" "Blackhole" "$ARCH_DUMP")
-    rm -f "$ARCH_DUMP"
-    echo "Detected architecture: $result"
-
-    if [ -z "$result" ]; then
-        echo "Error: Architecture detection failed!"
-        exit 1
-    fi
-
-    echo "Setting CHIP_ARCH variable..."
-    export CHIP_ARCH="$result"
-    echo "CHIP_ARCH is: $CHIP_ARCH"
 fi
 
 echo "Setup completed successfully!"
