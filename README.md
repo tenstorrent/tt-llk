@@ -13,10 +13,11 @@ LLKs are header-only.
 Test environment requires SFPI compiler for building, which is automatically ingested from https://github.com/tenstorrent/sfpi
 
 # Contributing
-1. Create a new branch.
-2. Make your changes and commit.
-3. Add new tests to cover your changes if needed and run existing ones.
-4. Start a pull request (PR).
+1. Go over https://github.com/tenstorrent/tt-llk/blob/main/CONTRIBUTING.md
+2. Create a new branch.
+3. Make your changes and commit.
+4. Add new tests to cover your changes if needed and run existing ones.
+5. Start a pull request (PR).
 
 
 ### Note
