@@ -1,4 +1,4 @@
-name: 🐳️ Build Images
+name: 🐳️ Docker setup and build
 
 on:
   workflow_call:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-images:
-    name: "🐳️ Build images"
+    name: "🏗️ Build images"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:

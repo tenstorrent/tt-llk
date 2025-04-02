@@ -1,4 +1,4 @@
-name: 🔍 Pre-commit checks
+name: 🔍 Static checks
 
 on:
   workflow_call:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   pre-commit:
-    name: Run pre-commit hooks
+    name: Run pre-commit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
