@@ -5,6 +5,7 @@ on:
     outputs:
       docker-image:
         description: "The built Docker image"
+        value: ${{ jobs.build-images.outputs.docker-image }}
 
 jobs:
   build-images:
