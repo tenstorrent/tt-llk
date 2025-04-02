@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [ "main" ]
+    branches: ["main"]
 
 concurrency:
   # Use github.run_id on main branch (or any protected branch)
@@ -30,7 +30,6 @@ jobs:
     name: "🧪 Perform checks (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
-    timeout-minutes: 30
     with:
       chip_arch: wormhole
       docker_image: ${{ needs.build-images.outputs.docker-image }}

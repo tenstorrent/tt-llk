@@ -10,6 +10,7 @@ jobs:
   build-images:
     name: "🐳️ Build images"
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       docker-image: ${{ steps.build.outputs.docker-image }}
     steps:
