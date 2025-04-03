@@ -16,6 +16,10 @@
 #define HF 0
 #endif
 
+#ifndef MM_ADD_NOPS
+#define MM_ADD_NOPS 0
+#endif
+
 using namespace ckernel;
 
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
@@ -266,7 +270,7 @@ inline void matmul_configure_addrmod(
     }
 }
 
-template <int NUM_FIDELITY_PHASES, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
+template <int NUM_FIDELITY_PHASES, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int ADD_NOPS = 0>
 inline void matmul_configure_mop(
     bool transpose,
     const std::uint32_t ct_dim,
@@ -296,13 +300,8 @@ inline void matmul_configure_mop(
     const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
     const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
 
-#ifdef MM_ADD_NOPS
     const std::uint32_t replay_buf_len = (is_in0_16x32 && is_in1_32x16) ? 4 :
-                                         ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 21);
-#else    
-    const std::uint32_t replay_buf_len = (is_in0_16x32 && is_in1_32x16) ? 4 :
-                                         ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 16);
-#endif
+                                        ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : (16 + 5*ADD_NOPS)); // up to 31 needed
 
     load_replay_buf(
         ckernel::math::replay_buf_offset,
@@ -357,16 +356,28 @@ inline void matmul_configure_mop(
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A0 // srca=srca, srcb+=8,  dest+=8
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B0A0 // srca+=16/32, srcb=0, dest+=8  // srca+=32 if transposed
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A1 // srca=srca, srcb+=8,  dest+=8  // A1 -> A2 if transposed
-                #ifdef MM_ADD_NOPS
-                TTI_NOP;
-                #endif
+                if constexpr (ADD_NOPS) {
+                    TTI_NOP;
+                    if constexpr (ADD_NOPS > 1) {
+                        TTI_NOP;
+                        if constexpr (ADD_NOPS > 2) {
+                            TTI_NOP;
+                        }
+                    }
+                }
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A1 // srca=0,    srcb=32,  dest+=8  // A1 -> A2 if transposed
 
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A0 // srca=srca, srcb+=8,  dest+=8
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B2A0 // srca+=16/32, srcb=0, dest+=8 // srca+=32 if transposed
-                #ifdef MM_ADD_NOPS
-                TTI_NOP;
-                #endif
+                if constexpr (ADD_NOPS) {
+                    TTI_NOP;
+                    if constexpr (ADD_NOPS > 1) {
+                        TTI_NOP;
+                        if constexpr (ADD_NOPS > 2) {
+                            TTI_NOP;
+                        }
+                    }
+                }
 
                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A1 // srca=srca, srcb+=8,  dest+=8 // A1 -> A2 if transposed
                 if (!is_in1_16x32)
@@ -375,23 +386,41 @@ inline void matmul_configure_mop(
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
 
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A2 // srca=srca, srcb+=8,  dest+=8 // A2 -> A1 if transposed
-                    #ifdef MM_ADD_NOPS
-                    TTI_NOP;
-                    #endif
+                    if constexpr (ADD_NOPS) {
+                        TTI_NOP;
+                        if constexpr (ADD_NOPS > 1) {
+                            TTI_NOP;
+                            if constexpr (ADD_NOPS > 2) {
+                                TTI_NOP;
+                            }
+                        }
+                    }
 
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B1A2 // srca+=16,  srcb=16,  dest+=8 // A2 -> A1 if transposed
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A3 // srca=srca, srcb+=8,  dest+=8
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B1A3 // srca=32,   srcb=48,  dest+=8
-                    #ifdef MM_ADD_NOPS
-                    TTI_NOP;
-                    #endif
+                    if constexpr (ADD_NOPS) {
+                        TTI_NOP;
+                        if constexpr (ADD_NOPS > 1) {
+                            TTI_NOP;
+                            if constexpr (ADD_NOPS > 2) {
+                                TTI_NOP;
+                            }
+                        }
+                    }
 
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A2 // srca=srca, srcb+=8,  dest+=8 // A2 -> A1 if transposed
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B3A2 // srca+=16,  srcb=0,   dest+=8 // A2 -> A1 if transposed
                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A3 // srca=srca, srcb+=8,  dest+=8
-                    #ifdef MM_ADD_NOPS
-                    TTI_NOP;
-                    #endif
+                    if constexpr (ADD_NOPS) {
+                        TTI_NOP;
+                        if constexpr (ADD_NOPS > 1) {
+                            TTI_NOP;
+                            if constexpr (ADD_NOPS > 2) {
+                                TTI_NOP;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -447,7 +476,7 @@ inline void _llk_math_matmul_init_(
         transpose, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
 
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    matmul_configure_mop<MATH_FIDELITY_PHASES, FaceLayout>(
+    matmul_configure_mop<MATH_FIDELITY_PHASES, FaceLayout, MM_ADD_NOPS>(
         transpose > 0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
