@@ -10,6 +10,10 @@
 
 // Debug bus and register array dump
 
+#define DEBUG_BUS_TRISC0_PC {2 * 6 + 1, 7, 2, 0, 1, 0}
+#define DEBUG_BUS_TRISC1_PC {2 * 7 + 1, 7, 2, 0, 1, 0}
+#define DEBUG_BUS_TRISC2_PC {2 * 8 + 1, 7, 2, 0, 1, 0}
+
 namespace ckernel
 {
 
@@ -47,6 +51,13 @@ typedef struct
     uint32_t en         : 1;
     uint32_t reserved_1 : 2;
 } dbg_bus_cntl_t;
+
+typedef struct
+{
+    dbg_bus_cntl_t dbg_bus_cntl;
+    uint32_t start_bit;
+    uint32_t mask;
+} dbg_bus_field_t;
 
 typedef union
 {
@@ -304,6 +315,52 @@ inline std::uint32_t dbg_read_cfgreg(const uint32_t cfgreg_id, const uint32_t ad
     wait(1);
 
     return reg_read(RISCV_DEBUG_REG_CFGREG_RDDATA);
+}
+
+inline uint32_t dbg_read_debug_bus(const dbg_bus_cntl_t debug_bus_sel) 
+{
+    dbg_bus_cntl_u dbg_bus_cntl;
+    dbg_bus_cntl.f = debug_bus_sel;
+
+    reg_write(RISCV_DEBUG_REG_DBG_BUS_CNTL_REG, dbg_bus_cntl.val);
+    wait(5);
+    uint32_t result = reg_read(RISCV_DEBUG_REG_DBG_RD_DATA);
+
+    dbg_bus_cntl.val = 0;
+    reg_write(RISCV_DEBUG_REG_DBG_BUS_CNTL_REG, dbg_bus_cntl.val);
+
+    return result;
+}
+
+inline uint32_t dbg_read_debug_bus(const uint32_t daisy_sel, const uint32_t sig_sel, const uint32_t word_sel) 
+{
+    return dbg_read_debug_bus({sig_sel, daisy_sel, word_sel, 0, 1, 0});
+}
+
+inline uint32_t dbg_read_debug_bus_field(const dbg_bus_field_t debug_bus_field) 
+{
+    uint32_t result = dbg_read_debug_bus(debug_bus_field.dbg_bus_cntl);
+
+    return (result >> debug_bus_field.start_bit) & debug_bus_field.mask;
+}
+
+inline void dbg_write_runtime_dump(const uint32_t offset, const uint32_t value) 
+{
+    dprint_buffer[thread_id * 51 + 1 + offset] = value;
+}
+
+inline void dbg_close_runtime_dump(const uint32_t type, int32_t code = -1)
+{
+    if (code == -1) 
+    {
+        code = dump_counter++;
+    }
+    dprint_buffer[thread_id * 51] = type << 16 | code;
+}
+
+inline void dbg_init_runtime_dump()
+{
+    dprint_buffer[thread_id * 51] = 0;
 }
 
 } // namespace ckernel
