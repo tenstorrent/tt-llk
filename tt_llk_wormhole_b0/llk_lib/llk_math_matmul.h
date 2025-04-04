@@ -22,7 +22,7 @@
 
 using namespace ckernel;
 
-template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
+template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int NUM_NOPS>
 inline void matmul_configure_addrmod(
     const bool transpose,
     const std::uint32_t ct_dim,
@@ -77,17 +77,17 @@ inline void matmul_configure_addrmod(
     }
         .set(ADDR_MOD_5);
 
-#if MM_ADD_NOPS
-    // reset all, including fidelity
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 1, .cr = 1},
-        .srcb     = {.incr = 0, .clr = 1, .cr = 1},
-        .dest     = {.incr = 0, .clr = 1, .cr = 1},
-        .fidelity = {.incr = 0, .clr = 1},
-        .bias     = {.incr = 1},
-    }
+    if constexpr (NUM_NOPS) {
+        // reset all, including fidelity
+        addr_mod_t {
+            .srca     = {.incr = 0, .clr = 1, .cr = 1},
+            .srcb     = {.incr = 0, .clr = 1, .cr = 1},
+            .dest     = {.incr = 0, .clr = 1, .cr = 1},
+            .fidelity = {.incr = 0, .clr = 1},
+            .bias     = {.incr = 1},
+        }
         .set(ADDR_MOD_6);
-#endif
+    }
 
     const uint8_t srca_increment = transpose == false ? 16 : 32;
     const uint8_t srca_set       = transpose == false ? 32 : 16;
@@ -614,7 +614,7 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t rt_dim         = 1,
     const std::uint32_t kt_dim         = 1)
 {
-    matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout>(
+    matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout, MM_ADD_NOPS>(
         transpose, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
