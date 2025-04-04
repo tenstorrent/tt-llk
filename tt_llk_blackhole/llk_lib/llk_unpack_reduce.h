@@ -24,7 +24,7 @@ inline void _llk_unpack_reduce_mop_config_()
 #else
     static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 #endif
-    static constexpr uint unpack_zerosrca = TT_OP_UNPACR_NOP(p_unpacr_nop::UNP0, 0, 0, 0, 0, 0, 0, p_unpacr_nop::CLR_SRC_0, p_unpacr_nop::CLR_SRC);
+    static constexpr uint unpack_ckernel::zerosrca = TT_OP_UNPACR_NOP(p_unpacr_nop::UNP0, 0, 0, 0, 0, 0, 0, p_unpacr_nop::CLR_SRC_0, p_unpacr_nop::CLR_SRC);
 #if SKIP_UNP == 1
     static constexpr uint unpack_srcb = TT_OP_NOP;
 #else
@@ -33,7 +33,7 @@ inline void _llk_unpack_reduce_mop_config_()
     ckernel_unpack_template tmp = ckernel_unpack_template(
         true, // src B
         true, // halo - just used for 4 unpacks
-        unpack_zerosrca,
+        unpack_ckernel::zerosrca,
         unpack_srca,
         TT_OP_NOP,
         TT_OP_NOP,
@@ -77,7 +77,7 @@ inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_trans
 {
     // REDUCE_ROW requires transpose itself; additionaly, within_face_16x16_transpose flag could require transpose;
     // if we have the flag set with REDUCE_ROW, we don't need to do anything
-    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ckernel::ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
 
     TTI_SETADCXX(0b11, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
 

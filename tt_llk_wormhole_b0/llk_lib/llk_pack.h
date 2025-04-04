@@ -159,7 +159,7 @@ inline void _llk_pack_reduce_hw_configure_(
 
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
     pack_edge_offset.f.mask                             = 0x0;
-    if constexpr (dim == ReduceDim::REDUCE_ROW)
+    if constexpr (dim == ckernel::ReduceDim::REDUCE_ROW)
     {
         cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32 + 1] = 0x0001;
         if constexpr (untilize)
@@ -192,7 +192,7 @@ inline void _llk_pack_reduce_hw_configure_(
         }
         cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32 + 0] = pack_edge_offset.val;
     }
-    else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
+    else if constexpr (dim == ckernel::ReduceDim::REDUCE_SCALAR)
     {
         pack_edge_offset.f.tile_row_set_select_pack0         = 1;
         cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32 + 0]            = pack_edge_offset.val;

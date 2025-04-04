@@ -496,7 +496,7 @@ ZEROACC:
       are nonzero, this instruction will cause srcA and/or srcB data valid to be 
       cleared.
 
-ZEROSRC:
+ckernel::zerosrc:
     op_binary: 0x11
     ex_resource: MATH
     instrn_type: COMPUTE
@@ -921,7 +921,7 @@ MVMUL:
           fcov_point_bool:
     description: "Vector-matrix multiply. Outputs 4x 16-wide row"
 
-ELWMUL:
+ckernel::ELWMUL:
     op_binary: 0x27
     ex_resource: MATH
     instrn_type: COMPUTE
@@ -962,7 +962,7 @@ ELWMUL:
           fcov_point_bool:
     description: "Elementwise multiply operation"
 
-ELWADD:
+ckernel::ELWADD:
     op_binary: 0x28
     ex_resource: MATH
     instrn_type: COMPUTE
@@ -979,7 +979,7 @@ DOTPV:
     arguments: *ELW_ARGS
     description: "dot product of two vectors"
 
-ELWSUB:
+ckernel::ELWSUB:
     op_binary: 0x30
     ex_resource: MATH
     fcov:

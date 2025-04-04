@@ -342,7 +342,7 @@ typedef union {
 #define INSTRN_FLUSH(arg) (0x81000000 | (arg))         // Flush all buffers of oustanding instructions, reads/writes.
 #define INSTRN_NOP(arg) (0x02000000 | (arg))           // Do nothing and consume an instruction slot and a cycle
 #define INSTRN_MOVA2D(arg) (0x1a000000 | (arg))        // Move SRCA register to DST
-#define INSTRN_ZEROSRC(arg) (0x1b000000 | (arg))       // Clear SRC registers
+#define INSTRN_ckernel::zerosrc(arg) (0x1b000000 | (arg))       // Clear SRC registers
 #define INSTRN_SETPKEDGEOF(arg) (0x1d000000 | (arg))   // Set packer edge masking offsets
 #define INSTRN_STALLWAIT(arg) (0xa2000000 | (arg))     // Stall resource until condition is met
 #define INSTRN_CLEAR_DVALID(arg) (0x37000000 | (arg))  // Clear dvalid bits

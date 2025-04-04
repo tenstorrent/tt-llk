@@ -166,20 +166,20 @@ MATH_CASE(Bfp8_b)
 #undef MATH_CASE
 
 #ifdef ELTWISE_BINARY_ADD
-constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWADD;
+constexpr auto ELTWISE_BINARY_OP = ckernel::ckernel::EltwiseBinaryType::ELWADD;
 #endif
 #ifdef ELTWISE_BINARY_SUB
-constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWSUB;
+constexpr auto ELTWISE_BINARY_OP = ckernel::ckernel::EltwiseBinaryType::ELWSUB;
 #endif
 #ifdef ELTWISE_BINARY_MUL
-constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWMUL;
+constexpr auto ELTWISE_BINARY_OP = ckernel::ckernel::EltwiseBinaryType::ELWMUL;
 #endif
 // TO BE IMPLEMENTED IN LLKs
 #ifdef ELTWISE_BINARY_DIV
-constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWDIV;
+constexpr auto ELTWISE_BINARY_OP = ckernel::ckernel::EltwiseBinaryType::ELWDIV;
 #endif
 #ifdef ELTWISE_BINARY_LESS
-constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWLESS;
+constexpr auto ELTWISE_BINARY_OP = ckernel::ckernel::EltwiseBinaryType::ELWLESS;
 #endif
 
 #ifdef SFPU_OP_SQRT

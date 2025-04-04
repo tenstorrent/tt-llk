@@ -434,7 +434,7 @@ ZEROACC:
                     {name: "clear_all_registers - 32b dest mode",                               value: "0x7"} ]
     description: "Zero out accumulator. Single (00) mode clears one register and updates counters using the addressing mode. For other modes, zero-flags are set to emulate clearing of the dest memory, and dest_index is used to determine which portion is to be cleared."
 
-ZEROSRC:
+ckernel::zerosrc:
     op_binary: 0x11
     ex_resource: MATH
     instrn_type: COMPUTE
@@ -849,7 +849,7 @@ MVMUL:
           fcov_point_bool:
     description: "Vector-matrix multiply. Outputs 4x 16-wide row"
 
-ELWMUL:
+ckernel::ELWMUL:
     op_binary: 0x27
     ex_resource: MATH
     instrn_type: COMPUTE
@@ -890,7 +890,7 @@ ELWMUL:
           fcov_point_bool:
     description: "Elementwise multiply operation"
 
-ELWADD:
+ckernel::ELWADD:
     op_binary: 0x28
     ex_resource: MATH
     instrn_type: COMPUTE
@@ -907,7 +907,7 @@ DOTPV:
     arguments: *ELW_ARGS
     description: "dot product of two vectors"
 
-ELWSUB:
+ckernel::ELWSUB:
     op_binary: 0x30
     ex_resource: MATH
     fcov:
@@ -1332,9 +1332,9 @@ UNPACR:
     description: "Search and unpack row from tile in L0 to SRCA/SRCB registers (by UNPACK0/UNPACK1)"
 
 
-# Do not use this instruction with ZEROSRC + SETDVALID options set at same time due issue:
+# Do not use this instruction with ckernel::zerosrc + SETDVALID options set at same time due issue:
 # tenstorrent/budabackend#1230
-# Use 2 UNPACR_NOP instructions with zerosrc in once cycle and setdvalid in second
+# Use 2 UNPACR_NOP instructions with ckernel::zerosrc in once cycle and setdvalid in second
 UNPACR_NOP: # Misc unpack instruction with side effect (skips actual search and unpack)
     op_binary: 0x43
     ex_resource: UNPACK

@@ -203,13 +203,13 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
 
     Example:
     >>> all_params = [
-    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, MathOperation.Elwadd, TileCount.One, MathFidelity.HiFi4, ReduceDimension.Column, ReducePoolArgs.Max),
-    ...     ("reduce_test", FormatConfig(DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32), DestAccumulation.No, None, MathOperation.Elwmul, None, None, ReduceDimension.Column, ReducePollArgs.Avg)
+    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, MathOperation.ckernel::ELWADD, TileCount.One, MathFidelity.HiFi4, ReduceDimension.Column, ReducePoolArgs.Max),
+    ...     ("reduce_test", FormatConfig(DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32), DestAccumulation.No, None, MathOperation.ckernel::ELWMUL, None, None, ReduceDimension.Column, ReducePollArgs.Avg)
     ... ]
     >>> generate_param_ids(all_params)
     [
-        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=No | approx_mode=true | mathop=ElwAdd | tile_cnt=1 | math_fidelity=HiFi4 | reduce_dim=Column | pool_type=Max',
-        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=No | mathop=ElwMul | reduce_dim=Column | pool_type=Average'
+        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=No | approx_mode=true | mathop=ckernel::ELWADD | tile_cnt=1 | math_fidelity=HiFi4 | reduce_dim=Column | pool_type=Max',
+        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=No | mathop=ckernel::ELWMUL | reduce_dim=Column | pool_type=Average'
     ]
     """
 

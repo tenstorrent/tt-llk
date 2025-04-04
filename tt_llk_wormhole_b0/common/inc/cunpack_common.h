@@ -40,15 +40,15 @@ typedef struct
     uint32_t blobs_y_start_hi : 16;
     uint32_t digest_type      : 8; // Not used
     uint32_t digest_size      : 8; // Not used
-} unpack_tile_descriptor_t;        // Unpack configuration
+} unckernel::pack_tile_descriptor_t;        // Unpack configuration
 
-static_assert(sizeof(unpack_tile_descriptor_t) == (sizeof(uint32_t) * 4));
+static_assert(sizeof(unckernel::pack_tile_descriptor_t) == (sizeof(uint32_t) * 4));
 
 typedef union
 {
     uint32_t val[4];
-    unpack_tile_descriptor_t f;
-} unpack_tile_descriptor_u;
+    unckernel::pack_tile_descriptor_t f;
+} unckernel::pack_tile_descriptor_u;
 
 // Unpack config
 typedef struct
@@ -296,7 +296,7 @@ inline void configure_unpack_AB(
     t6_mutex_release(mutex::REG_RMW);
 
     // Set tile descriptor
-    unpack_tile_descriptor_u tile_descriptor;
+    unckernel::pack_tile_descriptor_u tile_descriptor;
     for (uint i = 0; i < TILE_DESC_SIZE; i++)
     {
         tile_descriptor.val[i] = 0;
@@ -508,9 +508,9 @@ inline void set_dst_write_addr(const uint32_t &context_id, const uint32_t &unpac
 
 // READERS FOR STRUCTS
 
-inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg)
+inline unckernel::pack_tile_descriptor_t read_unckernel::pack_tile_descriptor_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg)
 {
-    unpack_tile_descriptor_u tile_descriptor = {.val = 0};
+    unckernel::pack_tile_descriptor_u tile_descriptor = {.val = 0};
 
     tile_descriptor.val[0] = cfg[reg_addr];
     tile_descriptor.val[1] = cfg[reg_addr + 1];
@@ -520,14 +520,14 @@ inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(uint32_t reg_
     return tile_descriptor.f;
 }
 
-inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_descriptor()
+inline std::array<unckernel::pack_tile_descriptor_t, NUM_UNPACKERS> read_unckernel::pack_tile_descriptor()
 {
-    std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec;
+    std::array<unckernel::pack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec;
     // Get pointer to registers for current state ID
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
 
-    tile_descriptor_vec[0] = read_unpack_tile_descriptor_helper(THCON_SEC0_REG0_TileDescriptor_ADDR32, cfg);
-    tile_descriptor_vec[1] = read_unpack_tile_descriptor_helper(THCON_SEC1_REG0_TileDescriptor_ADDR32, cfg);
+    tile_descriptor_vec[0] = read_unckernel::pack_tile_descriptor_helper(THCON_SEC0_REG0_TileDescriptor_ADDR32, cfg);
+    tile_descriptor_vec[1] = read_unckernel::pack_tile_descriptor_helper(THCON_SEC1_REG0_TileDescriptor_ADDR32, cfg);
 
     return tile_descriptor_vec;
 }

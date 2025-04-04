@@ -19,9 +19,9 @@ def generate_golden(operation, operand1, operand2, data_format):
     )
 
     operations = {
-        "elwadd": tensor1_float + tensor2_float,
-        "elwsub": tensor1_float - tensor2_float,
-        "elwmul": tensor1_float * tensor2_float,
+        "ckernel::ELWADD": tensor1_float + tensor2_float,
+        "ckernel::ELWSUB": tensor1_float - tensor2_float,
+        "ckernel::ELWMUL": tensor1_float * tensor2_float,
     }
 
     if operation not in operations:
@@ -38,7 +38,7 @@ all_params = generate_params(
     ["sfpu_binary_test"],
     all_format_combos,
     dest_acc=[DestAccumulation.Yes],
-    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+    mathop=[MathOperation.ckernel::ELWADD, MathOperation.ckernel::ELWSUB, MathOperation.ckernel::ELWMUL],
 )
 param_ids = generate_param_ids(all_params)
 

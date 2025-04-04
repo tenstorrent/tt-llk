@@ -291,7 +291,7 @@ inline void mop_run(const uint8_t type, const uint8_t count)
 // tenstorrent/tensix#976
 // now handled by the compiler)
 // workaround is needed only for GS
-inline uint reg_read(uint32_t addr)
+inline uint ckernel::reg_read(uint32_t addr)
 {
     volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
     return p_reg[0];
@@ -328,9 +328,9 @@ inline void zeroacc()
     TT_ZEROACC(p_zeroacc::CLR_ALL, ADDR_MOD_1, 0);
 }
 
-inline void zerosrc()
+inline void ckernel::ckernel::zerosrc()
 {
-    TTI_ZEROSRC(0, 0, 1, 3); // Zero all srcA&B banks
+    TTI_ckernel::zerosrc(0, 0, 1, 3); // Zero all srcA&B banks
 }
 
 inline void sync_regfile_write(const uint index)
@@ -486,8 +486,8 @@ inline void clear_mailbox_values(uint16_t value = 0)
 
 inline uint64_t read_wall_clock()
 {
-    uint32_t timestamp_low  = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
-    uint32_t timestamp_high = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
+    uint32_t timestamp_low  = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
+    uint32_t timestamp_high = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
     return ((uint64_t)timestamp_high << 32) | timestamp_low;
 }
 
@@ -506,11 +506,11 @@ inline void stall_kernel(uint32_t num_cycles)
 {
 #if DELAY_EN > 0
     TT_LLK_DUMP("stall_kernel({})", num_cycles);
-    uint32_t start_clk_l  = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
+    uint32_t start_clk_l  = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
     uint32_t elapsed_time = 0;
     while (elapsed_time <= num_cycles)
     {
-        uint32_t current_clk_l = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
+        uint32_t current_clk_l = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
         if (current_clk_l >= start_clk_l)
         {
             elapsed_time = current_clk_l - start_clk_l;

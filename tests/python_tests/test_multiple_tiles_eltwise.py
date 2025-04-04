@@ -8,7 +8,7 @@ from helpers import *
 
 def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     op_num = list(MathOperation).index(op) + 1
-    if op.value == "Elwadd":
+    if op.value == "ckernel::ELWADD":
         assert op_num == 1
     tensor1_float = (
         operand1.clone()
@@ -51,7 +51,7 @@ all_params = generate_params(
     ["multiple_tiles_eltwise_test"],
     all_format_combos,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+    mathop=[MathOperation.ckernel::ELWADD, MathOperation.ckernel::ELWSUB, MathOperation.ckernel::ELWMUL],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
@@ -70,7 +70,7 @@ param_ids = generate_param_ids(all_params)
 )
 def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
     if (
-        mathop in [MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul]
+        mathop in [MathOperation.ckernel::ELWADD, MathOperation.ckernel::ELWSUB, MathOperation.ckernel::ELWMUL]
         and formats.unpack_A_src == DataFormat.Float16
         and dest_acc == DestAccumulation.Yes
     ):
@@ -88,7 +88,7 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
         src_A, src_B, formats.unpack_A_src, formats.unpack_B_src, "0,0", tile_cnt
     )
 
-    if mathop != MathOperation.Elwmul:
+    if mathop != MathOperation.ckernel::ELWMUL:
         math_fidelity = MathFidelity.LoFi
 
     test_config = {

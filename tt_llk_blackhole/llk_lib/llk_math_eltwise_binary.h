@@ -46,7 +46,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
     {
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
 
-        if constexpr (eltwise_binary_type == ELWMUL)
+        if constexpr (eltwise_binary_type == ckernel::ELWMUL)
         {
             if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
             {
@@ -92,9 +92,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
     }
 
-    if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB))
+    if constexpr ((eltwise_binary_type == ckernel::ELWADD) || (eltwise_binary_type == ckernel::ELWSUB))
     {
-        if constexpr (src_b_bcast_type == BroadcastType::COL)
+        if constexpr (src_b_bcast_type == ckernel::BroadcastType::COL)
         {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
@@ -123,15 +123,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                 ckernel_template::run(instrn_buffer);
             }
             // Manually clear B once mop is done for scaler bcast
-            if constexpr (src_b_bcast_type == BroadcastType::SCALAR)
+            if constexpr (src_b_bcast_type == ckernel::BroadcastType::SCALAR)
             {
                 TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_D);
             }
         }
     }
-    else if constexpr (eltwise_binary_type == ELWMUL)
+    else if constexpr (eltwise_binary_type == ckernel::ELWMUL)
     {
-        if constexpr (src_b_bcast_type == BroadcastType::COL)
+        if constexpr (src_b_bcast_type == ckernel::BroadcastType::COL)
         {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
@@ -312,7 +312,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                     ckernel_template::run(instrn_buffer);
                 }
             }
-            if constexpr (src_b_bcast_type == BroadcastType::SCALAR)
+            if constexpr (src_b_bcast_type == ckernel::BroadcastType::SCALAR)
             {
                 TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_D);
             }
@@ -329,9 +329,9 @@ template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::
 inline void eltwise_binary_configure_addrmod()
 {
     // Use srcA for data movement
-    if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
+    if constexpr ((eltwise_binary_type == ckernel::ELWADD) || (eltwise_binary_type == ckernel::ELWSUB) || (eltwise_binary_type == ckernel::ELWMUL))
     {
-        if constexpr (bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL)
+        if constexpr (bcast_type == ckernel::BroadcastType::NONE || bcast_type == ckernel::BroadcastType::COL)
         {
             addr_mod_t {
                 .srca = {.incr = 8},
@@ -340,7 +340,7 @@ inline void eltwise_binary_configure_addrmod()
             }
                 .set(ADDR_MOD_0);
         }
-        else if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
+        else if constexpr (bcast_type == ckernel::BroadcastType::ROW || bcast_type == ckernel::BroadcastType::SCALAR)
         {
             addr_mod_t {
                 .srca = {.incr = 8},
@@ -381,17 +381,17 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
     constexpr uint innerloop     = 16 >> 3; // 8 rows per eltwise op at a time.
     uint outerloop               = num_faces;
     auto broadcast_type          = p_elwise::SRCB_NO_BCAST;
-    if constexpr (bcast_type == BroadcastType::COL)
+    if constexpr (bcast_type == ckernel::BroadcastType::COL)
     {
         // The mop only runs for 2 outer loops and mop is called twice for col broadcast
         outerloop      = 2;
         broadcast_type = p_elwise::SRCB_BCAST_COL;
     }
-    else if constexpr (bcast_type == BroadcastType::ROW)
+    else if constexpr (bcast_type == ckernel::BroadcastType::ROW)
     {
         broadcast_type = p_elwise::SRCB_BCAST_ROW;
     }
-    else if constexpr (bcast_type == BroadcastType::SCALAR)
+    else if constexpr (bcast_type == ckernel::BroadcastType::SCALAR)
     {
         broadcast_type = p_elwise::SRCB_BCAST_ALL;
     }
@@ -402,27 +402,27 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
     }
 
     // Scalar and Col broadcast should not Clear B within a mop.  This is controlled outside of MOP.
-    if constexpr (bcast_type == BroadcastType::COL || bcast_type == BroadcastType::SCALAR)
+    if constexpr (bcast_type == ckernel::BroadcastType::COL || bcast_type == ckernel::BroadcastType::SCALAR)
     {
-        if constexpr (eltwise_binary_type == ELWADD)
+        if constexpr (eltwise_binary_type == ckernel::ELWADD)
         {
-            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, acc_to_dest, broadcast_type, addr_mod, 0));
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ckernel::ELWADD(0, acc_to_dest, broadcast_type, addr_mod, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program(instrn_buffer);
         }
-        else if constexpr (eltwise_binary_type == ELWSUB)
+        else if constexpr (eltwise_binary_type == ckernel::ELWSUB)
         {
-            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWSUB(0, acc_to_dest, broadcast_type, addr_mod, 0));
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ckernel::ELWSUB(0, acc_to_dest, broadcast_type, addr_mod, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program(instrn_buffer);
         }
-        else if constexpr (eltwise_binary_type == ELWMUL)
+        else if constexpr (eltwise_binary_type == ckernel::ELWMUL)
         {
-            ckernel_template tmp(high_fidelity ? NUM_FIDELITY_PHASES : outerloop, innerloop, TT_OP_ELWMUL(0, 0, broadcast_type, addr_mod, 0));
+            ckernel_template tmp(high_fidelity ? NUM_FIDELITY_PHASES : outerloop, innerloop, TT_OP_ckernel::ELWMUL(0, 0, broadcast_type, addr_mod, 0));
             if constexpr (high_fidelity)
             {
-                tmp.set_last_inner_loop_instr(TT_OP_ELWMUL(0, 0, broadcast_type, ADDR_MOD_2, 0)); // Incr fidelity last inst of inner loop
-                tmp.set_last_outer_loop_instr(TT_OP_ELWMUL(p_setrwc::CLR_A, 0, broadcast_type, ADDR_MOD_3, 0));
+                tmp.set_last_inner_loop_instr(TT_OP_ckernel::ELWMUL(0, 0, broadcast_type, ADDR_MOD_2, 0)); // Incr fidelity last inst of inner loop
+                tmp.set_last_outer_loop_instr(TT_OP_ckernel::ELWMUL(p_setrwc::CLR_A, 0, broadcast_type, ADDR_MOD_3, 0));
             }
             else
             {
@@ -433,25 +433,25 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
     }
     else
     {
-        if constexpr (eltwise_binary_type == ELWADD)
+        if constexpr (eltwise_binary_type == ckernel::ELWADD)
         {
-            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, acc_to_dest, broadcast_type, addr_mod, 0));
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ckernel::ELWADD(0, acc_to_dest, broadcast_type, addr_mod, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program(instrn_buffer);
         }
-        else if constexpr (eltwise_binary_type == ELWSUB)
+        else if constexpr (eltwise_binary_type == ckernel::ELWSUB)
         {
-            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWSUB(0, acc_to_dest, broadcast_type, addr_mod, 0));
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ckernel::ELWSUB(0, acc_to_dest, broadcast_type, addr_mod, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program(instrn_buffer);
         }
-        else if constexpr (eltwise_binary_type == ELWMUL)
+        else if constexpr (eltwise_binary_type == ckernel::ELWMUL)
         {
-            ckernel_template tmp(high_fidelity ? NUM_FIDELITY_PHASES : outerloop, innerloop, TT_OP_ELWMUL(0, 0, broadcast_type, addr_mod, 0));
+            ckernel_template tmp(high_fidelity ? NUM_FIDELITY_PHASES : outerloop, innerloop, TT_OP_ckernel::ELWMUL(0, 0, broadcast_type, addr_mod, 0));
             if constexpr (high_fidelity)
             {
-                tmp.set_last_inner_loop_instr(TT_OP_ELWMUL(0, 0, broadcast_type, ADDR_MOD_2, 0)); // Incr fidelity last inst of inner loop
-                tmp.set_last_outer_loop_instr(TT_OP_ELWMUL(p_setrwc::CLR_AB, 0, broadcast_type, ADDR_MOD_3, 0));
+                tmp.set_last_inner_loop_instr(TT_OP_ckernel::ELWMUL(0, 0, broadcast_type, ADDR_MOD_2, 0)); // Incr fidelity last inst of inner loop
+                tmp.set_last_outer_loop_instr(TT_OP_ckernel::ELWMUL(p_setrwc::CLR_AB, 0, broadcast_type, ADDR_MOD_3, 0));
             }
             else
             {
@@ -474,7 +474,7 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const 
 
     eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_INCREMENT>();
 
-    if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
+    if constexpr ((eltwise_binary_type == ckernel::ELWADD) || (eltwise_binary_type == ckernel::ELWSUB) || (eltwise_binary_type == ckernel::ELWMUL))
     {
         eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
     }

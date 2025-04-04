@@ -417,7 +417,7 @@ inline void configure_pack(
 
     relu_config_u hw_relu_config;
     // Config RELU
-    uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
+    uint32_t current_relu_val = ckernel::reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
     hw_relu_config.val[0]     = current_relu_val;
 
     hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;

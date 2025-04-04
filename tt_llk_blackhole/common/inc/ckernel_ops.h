@@ -167,35 +167,35 @@
 #define TTI_DOTPV(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
     INSTRUCTION_WORD(TT_OP_DOTPV(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst))
 
-#define TT_OP_ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+#define TT_OP_ckernel::ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
     TT_OP(0x28, (((clear_dvalid) << 22) + ((dest_accum_en) << 21) + ((instr_mod19) << 19) + ((addr_mode) << 14) + ((dst) << 0)))
-#define TT_ELWADD_VALID(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)                                                                         \
+#define TT_ckernel::ELWADD_VALID(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)                                                                         \
     (ckernel::is_valid(clear_dvalid, 2) && ckernel::is_valid(dest_accum_en, 1) && ckernel::is_valid(instr_mod19, 2) && ckernel::is_valid(addr_mode, 5) && \
      ckernel::is_valid(dst, 14))
-#define TT_ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
-    ckernel::instrn_buffer[0] = TT_OP_ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)
-#define TTI_ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
-    INSTRUCTION_WORD(TT_OP_ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst))
+#define TT_ckernel::ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+    ckernel::instrn_buffer[0] = TT_OP_ckernel::ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)
+#define TTI_ckernel::ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+    INSTRUCTION_WORD(TT_OP_ckernel::ELWADD(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst))
 
-#define TT_OP_ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+#define TT_OP_ckernel::ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
     TT_OP(0x27, (((clear_dvalid) << 22) + ((dest_accum_en) << 21) + ((instr_mod19) << 19) + ((addr_mode) << 14) + ((dst) << 0)))
-#define TT_ELWMUL_VALID(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)                                                                         \
+#define TT_ckernel::ELWMUL_VALID(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)                                                                         \
     (ckernel::is_valid(clear_dvalid, 2) && ckernel::is_valid(dest_accum_en, 1) && ckernel::is_valid(instr_mod19, 2) && ckernel::is_valid(addr_mode, 5) && \
      ckernel::is_valid(dst, 14))
-#define TT_ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
-    ckernel::instrn_buffer[0] = TT_OP_ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)
-#define TTI_ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
-    INSTRUCTION_WORD(TT_OP_ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst))
+#define TT_ckernel::ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+    ckernel::instrn_buffer[0] = TT_OP_ckernel::ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)
+#define TTI_ckernel::ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+    INSTRUCTION_WORD(TT_OP_ckernel::ELWMUL(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst))
 
-#define TT_OP_ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+#define TT_OP_ckernel::ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
     TT_OP(0x30, (((clear_dvalid) << 22) + ((dest_accum_en) << 21) + ((instr_mod19) << 19) + ((addr_mode) << 14) + ((dst) << 0)))
-#define TT_ELWSUB_VALID(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)                                                                         \
+#define TT_ckernel::ELWSUB_VALID(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)                                                                         \
     (ckernel::is_valid(clear_dvalid, 2) && ckernel::is_valid(dest_accum_en, 1) && ckernel::is_valid(instr_mod19, 2) && ckernel::is_valid(addr_mode, 5) && \
      ckernel::is_valid(dst, 14))
-#define TT_ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
-    ckernel::instrn_buffer[0] = TT_OP_ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)
-#define TTI_ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
-    INSTRUCTION_WORD(TT_OP_ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst))
+#define TT_ckernel::ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+    ckernel::instrn_buffer[0] = TT_OP_ckernel::ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst)
+#define TTI_ckernel::ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
+    INSTRUCTION_WORD(TT_OP_ckernel::ELWSUB(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst))
 
 #define TT_OP_FLUSHDMA(FlushSpec)    TT_OP(0x46, (((FlushSpec) << 0)))
 #define TT_FLUSHDMA_VALID(FlushSpec) (ckernel::is_valid(FlushSpec, 24))
@@ -1065,8 +1065,8 @@
 #define TTI_ZEROACC(clear_mode, use_32_bit_mode, clear_zero_flags, addr_mode, where) \
     INSTRUCTION_WORD(TT_OP_ZEROACC(clear_mode, use_32_bit_mode, clear_zero_flags, addr_mode, where))
 
-#define TT_OP_ZEROSRC(zero_val, write_mode, bank_mask, src_mask) TT_OP(0x11, (((zero_val) << 4) + ((write_mode) << 3) + ((bank_mask) << 2) + ((src_mask) << 0)))
-#define TT_ZEROSRC_VALID(zero_val, write_mode, bank_mask, src_mask) \
+#define TT_OP_ckernel::zerosrc(zero_val, write_mode, bank_mask, src_mask) TT_OP(0x11, (((zero_val) << 4) + ((write_mode) << 3) + ((bank_mask) << 2) + ((src_mask) << 0)))
+#define TT_ckernel::zerosrc_VALID(zero_val, write_mode, bank_mask, src_mask) \
     (ckernel::is_valid(zero_val, 20) && ckernel::is_valid(write_mode, 1) && ckernel::is_valid(bank_mask, 1) && ckernel::is_valid(src_mask, 2))
-#define TT_ZEROSRC(zero_val, write_mode, bank_mask, src_mask)  ckernel::instrn_buffer[0] = TT_OP_ZEROSRC(zero_val, write_mode, bank_mask, src_mask)
-#define TTI_ZEROSRC(zero_val, write_mode, bank_mask, src_mask) INSTRUCTION_WORD(TT_OP_ZEROSRC(zero_val, write_mode, bank_mask, src_mask))
+#define TT_ckernel::zerosrc(zero_val, write_mode, bank_mask, src_mask)  ckernel::instrn_buffer[0] = TT_OP_ckernel::zerosrc(zero_val, write_mode, bank_mask, src_mask)
+#define TTI_ckernel::zerosrc(zero_val, write_mode, bank_mask, src_mask) INSTRUCTION_WORD(TT_OP_ckernel::zerosrc(zero_val, write_mode, bank_mask, src_mask))

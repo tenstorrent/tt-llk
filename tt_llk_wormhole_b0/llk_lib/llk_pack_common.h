@@ -245,7 +245,7 @@ inline void _llk_pack_reduce_mask_config_()
     uint32_t row_set_mapping_1     = 0;
     uint32_t edge_offset_sec1_mask = 0;
 
-    if constexpr (dim == ReduceDim::REDUCE_ROW)
+    if constexpr (dim == ckernel::ReduceDim::REDUCE_ROW)
     {
         // PCK_EDGE_OFFSET_SEC1 mask will clear out all the datums in the row except the first one
         edge_offset_sec1_mask = 0x0001;
@@ -268,7 +268,7 @@ inline void _llk_pack_reduce_mask_config_()
             row_set_mapping_1 = 0x55555555; // each packer packs 1x16 row
         }
     }
-    else if constexpr (dim == ReduceDim::REDUCE_COL)
+    else if constexpr (dim == ckernel::ReduceDim::REDUCE_COL)
     {
         // PCK_EDGE_OFFSET_SEC1 mask will pass through all the datums in the row as they are
         edge_offset_sec1_mask = 0xffff;
@@ -288,7 +288,7 @@ inline void _llk_pack_reduce_mask_config_()
             row_set_mapping_1 = 0x00000001; // each packer packs 1x16 row
         }
     }
-    else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
+    else if constexpr (dim == ckernel::ReduceDim::REDUCE_SCALAR)
     {
         // PCK_EDGE_OFFSET_SEC1 mask will clear out all the datums in the row except the first one
         edge_offset_sec1_mask = 0x0001;

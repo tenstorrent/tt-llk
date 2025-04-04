@@ -53,13 +53,13 @@ void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
-    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWADD, BroadcastType::NONE>(4, 0, 0);
+    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::ELWADD, ckernel::BroadcastType::NONE>(4, 0, 0);
 
     for (auto index = 0; index < 16; ++index)
     {
         // index is passed ass index of tile in dest
         _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-        _llk_math_eltwise_binary_<EltwiseBinaryType::ELWADD, BroadcastType::NONE, DstSync::SyncFull, 0, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(
+        _llk_math_eltwise_binary_<ckernel::EltwiseBinaryType::ELWADD, ckernel::BroadcastType::NONE, DstSync::SyncFull, 0, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(
             4, index, true);
     }
     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();

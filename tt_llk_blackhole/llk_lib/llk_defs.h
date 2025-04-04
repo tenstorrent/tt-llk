@@ -45,10 +45,10 @@ enum DataCopyType
 
 enum EltwiseBinaryType
 {
-    ELWMUL,
+    ckernel::ELWMUL,
     ELWDIV,
-    ELWADD,
-    ELWSUB,
+    ckernel::ELWADD,
+    ckernel::ELWSUB,
     ELWLESS,
 };
 

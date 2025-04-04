@@ -125,8 +125,8 @@ public:
     }
 
 public:
-    // Default ZeroSrcA UNPACR_NOP
-    static constexpr uint DEF_ZEROSRCA   = TT_OP_UNPACR_NOP(0, 0, 0, 0, 0, 0, 0, p_unpacr::UNP_CLRSRC_ZERO, p_unpacr::UNP_CLRSRC);
+    // Default ckernel::zerosrcA UNPACR_NOP
+    static constexpr uint DEF_ckernel::zerosrcA   = TT_OP_UNPACR_NOP(0, 0, 0, 0, 0, 0, 0, p_unpacr::UNP_CLRSRC_ZERO, p_unpacr::UNP_CLRSRC);
     static constexpr uint DEF_NINFSRCA   = TT_OP_UNPACR_NOP(0, 0, 0, 0, 0, 0, 0, p_unpacr::UNP_CLRSRC_NEGINF, p_unpacr::UNP_CLRSRC);
     static constexpr uint DEF_UNPACR_NOP = TT_OP_UNPACR_NOP(0, 0, 0, 0, 0, 0, 0, 0, p_unpacr::UNP_NOP);
 
@@ -429,7 +429,7 @@ inline ckernel_unpack_template ckernel_unpack_template::lzA(bool neginf, uint A_
     return ckernel_unpack_template(
         false, // src B
         true,  // halo
-        neginf ? DEF_NINFSRCA : DEF_ZEROSRCA,
+        neginf ? DEF_NINFSRCA : DEF_ckernel::zerosrcA,
         A_instr,
         DEF_UNPACR_NOP,
         DEF_UNPACR_NOP,

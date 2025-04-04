@@ -199,7 +199,7 @@ inline void _llk_math_reconfig_data_format_(const std::uint32_t srca_data_format
 
 inline std::uint32_t _llk_math_get_compute_special_value_flags_()
 {
-    return reg_read(RISCV_DEBUG_REG_FPU_STICKY_BITS);
+    return ckernel::reg_read(RISCV_DEBUG_REG_FPU_STICKY_BITS);
 }
 
 inline void _llk_math_clear_compute_special_value_flags_()

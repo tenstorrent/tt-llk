@@ -55,14 +55,14 @@ void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, ckernel::BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
 
     for (int index = 0; index < KERN_CNT; index++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
         _llk_math_eltwise_binary_<
             ELTWISE_BINARY_OP,
-            BroadcastType::NONE,
+            ckernel::BroadcastType::NONE,
             DstSync::SyncFull,
             MATH_FIDELITY,
             EltwiseBinaryReuseDestType::NONE,

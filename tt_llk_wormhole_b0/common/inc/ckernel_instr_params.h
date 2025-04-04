@@ -91,14 +91,14 @@ struct p_unpacr_nop
     constexpr static uint UNP_POP = 0b000;
     constexpr static uint UNP_NOP = 0b010;
 
-    constexpr static uint UNP_ZEROSRC   = 0b001;
+    constexpr static uint UNP_ckernel::zerosrc   = 0b001;
     constexpr static uint UNP_NEGINFSRC = 0b101;
 
     constexpr static uint UNP_SET_DVALID = 0b111;
 
-    constexpr static uint UNP_ZEROSRC_RESET_ALL_BANKS    = 0b1001; // default is clear current bank
-    constexpr static uint UNP_ZEROSRC_STALL_RESET_WR_RDY = 0b10001;
-    constexpr static uint UNP_ZEROSRC_SET_DVALID         = 0b1000001;
+    constexpr static uint UNP_ckernel::zerosrc_RESET_ALL_BANKS    = 0b1001; // default is clear current bank
+    constexpr static uint UNP_ckernel::zerosrc_STALL_RESET_WR_RDY = 0b10001;
+    constexpr static uint UNP_ckernel::zerosrc_SET_DVALID         = 0b1000001;
 
     constexpr static uint UNP0 = 0x0;
     constexpr static uint UNP1 = 0x1;
@@ -255,7 +255,7 @@ struct p_zeroacc
     constexpr static uint CLR_ALL_32B  = 0b111;
 };
 
-struct p_zerosrc
+struct p_ckernel::zerosrc
 {
     constexpr static uint CLR_A  = 0x1;
     constexpr static uint CLR_B  = 0x2;

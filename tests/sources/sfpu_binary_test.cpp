@@ -31,8 +31,8 @@ void run_kernel()
     volatile uint32_t* buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
 
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_init_<ckernel::BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_<ckernel::BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
 }
 
 #endif
@@ -54,21 +54,21 @@ void run_kernel()
     const bool is_int_fpu_en              = false;
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ckernel::BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ckernel::BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
 
     // copy srcA
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, ckernel::BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
         0, MATH_FORMAT, MATH_FORMAT);
 
     // copy srcB
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, ckernel::BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
         1, MATH_FORMAT, MATH_FORMAT);
 
     _sfpu_binary_init_<false, ELTWISE_BINARY_SFPU_OP>();

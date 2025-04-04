@@ -33,11 +33,11 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     tensor2_float = tilize(tensor2_float, data_format)
 
     # Second step is to perform the operation
-    if op == MathOperation.Elwadd:
+    if op == MathOperation.ckernel::ELWADD:
         res = tensor1_float + tensor2_float
-    elif op == MathOperation.Elwsub:
+    elif op == MathOperation.ckernel::ELWSUB:
         res = tensor1_float - tensor2_float
-    elif op == MathOperation.Elwmul:
+    elif op == MathOperation.ckernel::ELWMUL:
         res = tensor1_float * tensor2_float
     else:
         raise ValueError("Unsupported operation!")
@@ -55,7 +55,7 @@ all_params = generate_params(
     ["tilize_calculate_untilize_L1"],
     all_format_combos,
     dest_acc=[DestAccumulation.No],
-    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+    mathop=[MathOperation.ckernel::ELWADD, MathOperation.ckernel::ELWSUB, MathOperation.ckernel::ELWMUL],
     math_fidelity=[MathFidelity.HiFi4],
     tile_cnt=[TileCount.One],
 )

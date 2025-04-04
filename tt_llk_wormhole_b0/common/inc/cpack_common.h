@@ -328,10 +328,10 @@ inline void set_packer_l1_offset(const uint pack_dst_format, const uint face_r_d
     // with new L1 addressing mode, the effective address for pack1/2/3
     // will be pack[i] += pack[0], which leads to double counting of tile header
     // subtract by this amount when programming the offset
-    constexpr uint32_t PACK_TILE_HEADER_OFFSET = 1; // in 16B
-    l1_offset_1 -= PACK_TILE_HEADER_OFFSET;
-    l1_offset_2 -= PACK_TILE_HEADER_OFFSET;
-    l1_offset_3 -= PACK_TILE_HEADER_OFFSET;
+    constexpr uint32_t ckernel::pack_tile_HEADER_OFFSET = 1; // in 16B
+    l1_offset_1 -= ckernel::pack_tile_HEADER_OFFSET;
+    l1_offset_2 -= ckernel::pack_tile_HEADER_OFFSET;
+    l1_offset_3 -= ckernel::pack_tile_HEADER_OFFSET;
     TT_SETDMAREG(0, LOWER_HALFWORD(l1_offset_1), 0, LO_16(p_gpr_pack::TMP_LO));
     TTI_REG2FLOP(2, 0, 0, 0, THCON_SEC0_REG8_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_LO);
     TT_SETDMAREG(0, LOWER_HALFWORD(l1_offset_2), 0, LO_16(p_gpr_pack::TMP_LO));
@@ -513,7 +513,7 @@ inline void configure_pack(
 
     relu_config_u hw_relu_config;
     // Config RELU
-    uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
+    uint32_t current_relu_val = ckernel::reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
     hw_relu_config.val[0]     = current_relu_val;
 
     hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;

@@ -3889,12 +3889,12 @@
     THCON_SEC0_REG8_pack_dis_y_pos_start_offset_ADDR32, THCON_SEC0_REG8_pack_dis_y_pos_start_offset_SHAMT, \
         THCON_SEC0_REG8_pack_dis_y_pos_start_offset_MASK
 
-#define THCON_SEC0_REG8_unpack_tile_offset_ADDR32 98
-#define THCON_SEC0_REG8_unpack_tile_offset_SHAMT 19
-#define THCON_SEC0_REG8_unpack_tile_offset_MASK 0xf80000
-#define THCON_SEC0_REG8_unpack_tile_offset_RMW                                           \
-    THCON_SEC0_REG8_unpack_tile_offset_ADDR32, THCON_SEC0_REG8_unpack_tile_offset_SHAMT, \
-        THCON_SEC0_REG8_unpack_tile_offset_MASK
+#define THCON_SEC0_REG8_unckernel::pack_tile_offset_ADDR32 98
+#define THCON_SEC0_REG8_unckernel::pack_tile_offset_SHAMT 19
+#define THCON_SEC0_REG8_unckernel::pack_tile_offset_MASK 0xf80000
+#define THCON_SEC0_REG8_unckernel::pack_tile_offset_RMW                                           \
+    THCON_SEC0_REG8_unckernel::pack_tile_offset_ADDR32, THCON_SEC0_REG8_unckernel::pack_tile_offset_SHAMT, \
+        THCON_SEC0_REG8_unckernel::pack_tile_offset_MASK
 
 #define THCON_SEC0_REG8_L1_source_addr_ADDR32 98
 #define THCON_SEC0_REG8_L1_source_addr_SHAMT 24
@@ -4843,12 +4843,12 @@
     THCON_SEC1_REG8_pack_dis_y_pos_start_offset_ADDR32, THCON_SEC1_REG8_pack_dis_y_pos_start_offset_SHAMT, \
         THCON_SEC1_REG8_pack_dis_y_pos_start_offset_MASK
 
-#define THCON_SEC1_REG8_unpack_tile_offset_ADDR32 146
-#define THCON_SEC1_REG8_unpack_tile_offset_SHAMT 19
-#define THCON_SEC1_REG8_unpack_tile_offset_MASK 0xf80000
-#define THCON_SEC1_REG8_unpack_tile_offset_RMW                                           \
-    THCON_SEC1_REG8_unpack_tile_offset_ADDR32, THCON_SEC1_REG8_unpack_tile_offset_SHAMT, \
-        THCON_SEC1_REG8_unpack_tile_offset_MASK
+#define THCON_SEC1_REG8_unckernel::pack_tile_offset_ADDR32 146
+#define THCON_SEC1_REG8_unckernel::pack_tile_offset_SHAMT 19
+#define THCON_SEC1_REG8_unckernel::pack_tile_offset_MASK 0xf80000
+#define THCON_SEC1_REG8_unckernel::pack_tile_offset_RMW                                           \
+    THCON_SEC1_REG8_unckernel::pack_tile_offset_ADDR32, THCON_SEC1_REG8_unckernel::pack_tile_offset_SHAMT, \
+        THCON_SEC1_REG8_unckernel::pack_tile_offset_MASK
 
 #define THCON_SEC1_REG8_L1_source_addr_ADDR32 146
 #define THCON_SEC1_REG8_L1_source_addr_SHAMT 24

@@ -28,10 +28,10 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
-    if constexpr (dim == ReduceDim::REDUCE_ROW)
+    if constexpr (dim == ckernel::ReduceDim::REDUCE_ROW)
     {
         // Transpose for each face in src A done at unpacker, and pool
-        if constexpr (type == PoolType::MAX)
+        if constexpr (type == ckernel::PoolType::MAX)
         {
             TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
@@ -48,7 +48,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             }
         }
 
-        if constexpr (type == PoolType::MAX)
+        if constexpr (type == ckernel::PoolType::MAX)
         {
             TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
@@ -100,9 +100,9 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
 
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
-        TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+        TTI_ckernel::zerosrc(0, 1, 0, 1); // Clear src A
+        TTI_ckernel::ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+        TTI_ckernel::ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
 
         // Increment dest by 32 or 16 if narrow tile for the next accumulation
         if (!narrow_tile)
@@ -118,7 +118,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         /////////////////////
 
         // Transpose at unpacker and pool
-        if constexpr (type == PoolType::MAX)
+        if constexpr (type == ckernel::PoolType::MAX)
         {
             TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
@@ -135,7 +135,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             }
         }
 
-        if constexpr (type == PoolType::MAX)
+        if constexpr (type == ckernel::PoolType::MAX)
         {
             TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
@@ -185,20 +185,20 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
 
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
-        TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+        TTI_ckernel::zerosrc(0, 1, 0, 1); // Clear src A
+        TTI_ckernel::ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+        TTI_ckernel::ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
 
         // Increment dest by 32 for next accumulation
         TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
     }
-    else if constexpr (dim == ReduceDim::REDUCE_COL)
+    else if constexpr (dim == ckernel::ReduceDim::REDUCE_COL)
     {
         const uint num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
         for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++)
         {
             // Just pool
-            if constexpr (type == PoolType::MAX)
+            if constexpr (type == ckernel::PoolType::MAX)
             {
                 TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
@@ -218,7 +218,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                 TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
 
-                if constexpr (type == PoolType::MAX)
+                if constexpr (type == ckernel::PoolType::MAX)
                 {
                     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
                 }
@@ -238,12 +238,12 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AD);
         }
     }
-    else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
+    else if constexpr (dim == ckernel::ReduceDim::REDUCE_SCALAR)
     {
         for (int tile = 0; tile < 3; tile++)
         {
             // Wait and pool
-            if constexpr (type == PoolType::MAX)
+            if constexpr (type == ckernel::PoolType::MAX)
             {
                 TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
             }
@@ -261,7 +261,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             }
         }
         // Wait and pool
-        if constexpr (type == PoolType::MAX)
+        if constexpr (type == ckernel::PoolType::MAX)
         {
             TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
         }
@@ -296,7 +296,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         // zero out scratch in dest
         TTI_ZEROACC(p_zeroacc::CLR_SPECIFIC, ADDR_MOD_0, 4);
 
-        if constexpr (type == PoolType::MAX)
+        if constexpr (type == ckernel::PoolType::MAX)
         {
             TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
@@ -346,7 +346,7 @@ inline void reduce_configure_addrmod()
 template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop()
 {
-    if constexpr (dim == ReduceDim::REDUCE_SCALAR)
+    if constexpr (dim == ckernel::ReduceDim::REDUCE_SCALAR)
     {
         ckernel_template tmp(1, num_fidelity_phases, TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 4));
         tmp.set_last_inner_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4));

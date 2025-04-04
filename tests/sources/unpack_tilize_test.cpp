@@ -52,14 +52,14 @@ void run_kernel()
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     // set tilize flag to true
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, TILIZE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ckernel::BroadcastType::NONE, TILIZE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ckernel::BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(0, MATH_FORMAT, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, ckernel::BroadcastType::NONE, is_fp32_dest_acc_en, false>(0, MATH_FORMAT, MATH_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 }
 

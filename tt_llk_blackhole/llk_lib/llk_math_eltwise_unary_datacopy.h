@@ -18,7 +18,7 @@ using namespace ckernel;
 // local function declarations
 inline void eltwise_unary_configure_addrmod();
 
-template <DataCopyType type, DstSync Dst, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_fp32_dest_acc_en = false, bool unpack_to_dest = false>
+template <DataCopyType type, DstSync Dst, BroadcastType src_b_bcast_type = ckernel::BroadcastType::NONE, bool is_fp32_dest_acc_en = false, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
 {
     std::uint32_t constexpr num_faces = 4;
@@ -67,7 +67,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
         }
         else if constexpr (type == B2D)
         {
-            if constexpr (src_b_bcast_type == BroadcastType::COL)
+            if constexpr (src_b_bcast_type == ckernel::BroadcastType::COL)
             {
                 // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
                 ckernel_template::run(instrn_buffer);
@@ -89,7 +89,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
     }
 }
 
-template <DataCopyType type, BroadcastType bcast_type = BroadcastType::NONE>
+template <DataCopyType type, BroadcastType bcast_type = ckernel::BroadcastType::NONE>
 inline void eltwise_unary_configure_addrmod()
 {
     addr_mod_t {
@@ -119,7 +119,7 @@ inline void eltwise_unary_configure_addrmod()
     }
     else
     {
-        if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
+        if constexpr (bcast_type == ckernel::BroadcastType::ROW || bcast_type == ckernel::BroadcastType::SCALAR)
         {
             addr_mod_t {
                 .srca = {.incr = 0},
@@ -156,7 +156,7 @@ inline void eltwise_unary_configure_addrmod()
     }
 }
 
-template <DataCopyType type, BroadcastType bcast_type = BroadcastType::NONE, bool tilize = false, bool is_fp32_dest_acc_en = false, bool is_int_fpu_en = false>
+template <DataCopyType type, BroadcastType bcast_type = ckernel::BroadcastType::NONE, bool tilize = false, bool is_fp32_dest_acc_en = false, bool is_int_fpu_en = false>
 inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, const uint num_faces, const uint dst_format)
 {
     // always move 32x32 tile, packed as 16x16x4
@@ -169,8 +169,8 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
 
         if (((is_fp32_dest_acc_en || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) || (dst_format == (uint)DataFormat::UInt8))
         {
-            // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
-            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
+            // use ckernel::ELWADD to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ckernel::ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program(instrn_buffer);
         }
@@ -188,9 +188,9 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         uint outerloop      = 4;
         auto broadcast_type = p_movb2d::MOV_1_ROW; // No broadcast;
 
-        if constexpr (bcast_type == BroadcastType::COL)
+        if constexpr (bcast_type == ckernel::BroadcastType::COL)
         {
-            innerloop = 16 >> 3; // elwadd produces 8 rows per op
+            innerloop = 16 >> 3; // ckernel::ELWADD produces 8 rows per op
             // The mop only runs for 2 outer loops and mop is called twice for col broadcast
             outerloop = 2;
             // broadcast_type = p_movb2d::MOV_8_ROW_BRCST_D0_BRCST;
@@ -199,12 +199,12 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
             // ELTWADD with zeros will be used as a workaround
             broadcast_type = p_elwise::SRCB_BCAST_COL;
         }
-        else if constexpr (bcast_type == BroadcastType::ROW)
+        else if constexpr (bcast_type == ckernel::BroadcastType::ROW)
         {
             innerloop      = (total_rows >> 3);
             broadcast_type = p_movb2d::MOV_8_ROW_BRCST;
         }
-        else if constexpr (bcast_type == BroadcastType::SCALAR)
+        else if constexpr (bcast_type == ckernel::BroadcastType::SCALAR)
         {
             // ELTWADD with zeros will be used as a workaround
             outerloop      = 1;
@@ -212,19 +212,19 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
             broadcast_type = p_elwise::SRCB_BCAST_ALL;
         }
 
-        if constexpr (bcast_type == BroadcastType::SCALAR)
+        if constexpr (bcast_type == ckernel::BroadcastType::SCALAR)
         {
-            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ckernel::ELWADD(0, 0, broadcast_type, addr_mod, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0));
             tmp.program(instrn_buffer);
         }
-        else if constexpr (bcast_type == BroadcastType::COL)
+        else if constexpr (bcast_type == ckernel::BroadcastType::COL)
         {
-            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ckernel::ELWADD(0, 0, broadcast_type, addr_mod, 0));
             tmp.set_end_op(TT_OP_SETRWC(0, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));
             tmp.program(instrn_buffer);
         }
-        else if constexpr (bcast_type == BroadcastType::ROW)
+        else if constexpr (bcast_type == ckernel::BroadcastType::ROW)
         {
             ckernel_template tmp(outerloop, innerloop, TT_OP_MOVB2D(0, 0, addr_mod, broadcast_type, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_B, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));
@@ -241,7 +241,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
 
 template <
     DataCopyType type,
-    BroadcastType src_b_bcast_type = BroadcastType::NONE,
+    BroadcastType src_b_bcast_type = ckernel::BroadcastType::NONE,
     bool tilize                    = false,
     bool is_fp32_dest_acc_en       = false,
     bool is_int_fpu_en             = false>

@@ -21,7 +21,7 @@ using namespace ckernel::unpacker;
 #endif
 
 template <
-    BroadcastType BType                          = BroadcastType::NONE,
+    BroadcastType BType                          = ckernel::BroadcastType::NONE,
     bool acc_to_dest                             = false,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
     bool unpack_to_dest                          = false>
@@ -29,9 +29,9 @@ inline void _llk_unpack_A_mop_config_(
     const bool transpose_of_faces, const std::uint32_t num_faces, const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format = 0)
 {
     static_assert(
-        !((BType != BroadcastType::NONE) && acc_to_dest && (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)), "Not supported configuration!");
+        !((BType != ckernel::BroadcastType::NONE) && acc_to_dest && (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)), "Not supported configuration!");
     static_assert(
-        (((BType == BroadcastType::NONE) && (!acc_to_dest) && (binary_reuse_dest == EltwiseBinaryReuseDestType::NONE)) || (!unpack_to_dest)),
+        (((BType == ckernel::BroadcastType::NONE) && (!acc_to_dest) && (binary_reuse_dest == EltwiseBinaryReuseDestType::NONE)) || (!unpack_to_dest)),
         "Not supported configuration when unpacking to dest!");
 
 #if SKIP_UNP == 1
@@ -40,7 +40,7 @@ inline void _llk_unpack_A_mop_config_(
     static constexpr uint unpack_srca_set_dvalid = TT_OP_NOP;
     static constexpr uint unpack_srcb            = TT_OP_NOP;
     static constexpr uint unpack_srcb_inc_z_0    = TT_OP_NOP;
-    static constexpr uint unpack_srcb_zerosrc    = TT_OP_NOP;
+    static constexpr uint unpack_srcb_ckernel::zerosrc    = TT_OP_NOP;
     static constexpr uint unpack_srcb_set_dvalid = TT_OP_NOP;
     static constexpr uint srca_set_z_1           = TT_OP_NOP;
     static constexpr uint srcb_set_z_2           = TT_OP_NOP;
@@ -53,23 +53,23 @@ inline void _llk_unpack_A_mop_config_(
         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srca_to_dest =
         TT_OP_UNPACR(SrcA, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // ch0/ch1 z_inc
-    static constexpr uint unpack_srca_zerosrc    = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr uint unpack_srca_ckernel::zerosrc    = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ckernel::zerosrc);
     static constexpr uint unpack_srca_set_dvalid = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
     static constexpr uint unpack_srcb =
         TT_OP_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srcb_inc_z_0 =
         TT_OP_UNPACR(SrcB, 0b0 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srcb_zerosrc    = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr uint unpack_srcb_ckernel::zerosrc    = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ckernel::zerosrc);
     static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID); // WA for tenstorrent/budabackend#1230
     static constexpr uint srca_set_z_1           = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);  // set srcA ch0_z = 1
     static constexpr uint srcb_set_z_2           = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2, 0b0001);  // set srcB ch0_z = 2
     static constexpr uint srcb_clear_z           = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);  // set srcB ch0_z = 0
     TTI_REPLAY(0, 4, 0, 1);
-    TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
+    TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ckernel::zerosrc);
     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
     TTI_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srca_zerosrc_set_dvalid = TT_OP_REPLAY(0, 2, 0, 0);
+    static constexpr uint unpack_srca_ckernel::zerosrc_set_dvalid = TT_OP_REPLAY(0, 2, 0, 0);
     static constexpr uint unpack_srcb_unpack_srcb        = TT_OP_REPLAY(2, 2, 0, 0);
 #endif
 
@@ -80,36 +80,36 @@ inline void _llk_unpack_A_mop_config_(
         ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
         tmp.program(instrn_buffer);
     }
-    else if constexpr (BType == BroadcastType::COL)
+    else if constexpr (BType == ckernel::BroadcastType::COL)
     {
         constexpr uint32_t innerloop = 1;
         constexpr uint32_t outerloop = 1; // TODO: add support for num_faces, add support for dest to srcB
         ckernel_template tmp(outerloop, innerloop, unpack_srcb, srcb_set_z_2);
-        // ELWADD used in datacopy due to WH broadcast bug, use zerosrca regardless of acc_to_dest
-        tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
+        // ckernel::ELWADD used in datacopy due to WH broadcast bug, use ckernel::zerosrca regardless of acc_to_dest
+        tmp.set_start_op(unpack_srca_ckernel::zerosrc_set_dvalid);
         tmp.set_end_op(unpack_srcb);
         tmp.program(instrn_buffer);
     }
-    else if constexpr (BType == BroadcastType::ROW)
+    else if constexpr (BType == ckernel::BroadcastType::ROW)
     {
         constexpr uint32_t innerloop = 1;
         constexpr uint32_t outerloop = 1; // TODO: add support for num_faces
         ckernel_template tmp(outerloop, innerloop, unpack_srcb_unpack_srcb, srcb_clear_z);
         if constexpr (acc_to_dest)
         {
-            tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
+            tmp.set_start_op(unpack_srca_ckernel::zerosrc_set_dvalid);
         }
         tmp.set_end_op(unpack_srcb_unpack_srcb);
         tmp.program(instrn_buffer);
     }
-    else if constexpr (BType == BroadcastType::SCALAR)
+    else if constexpr (BType == ckernel::BroadcastType::SCALAR)
     {
         static_assert((!acc_to_dest) && "accumulate into dest with broadcast scaler is not supported!");
         const uint32_t outerloop     = 1;
         constexpr uint32_t innerloop = 1;
         ckernel_template tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
-        // ELWADD used in datacopy due to WH broadcast bug, use zerosrca regardless of acc_to_dest
-        tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
+        // ckernel::ELWADD used in datacopy due to WH broadcast bug, use ckernel::zerosrca regardless of acc_to_dest
+        tmp.set_start_op(unpack_srca_ckernel::zerosrc_set_dvalid);
         tmp.program(instrn_buffer);
     }
     else
@@ -119,7 +119,7 @@ inline void _llk_unpack_A_mop_config_(
 #if SKIP_UNP == 0
             constexpr uint replay_buf_len = 3;
             TTI_REPLAY(4, replay_buf_len, 0, 1);
-            TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+            TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ckernel::zerosrc);
             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
             if (num_faces > 2)
             {
@@ -144,9 +144,9 @@ inline void _llk_unpack_A_mop_config_(
         {
             if constexpr (acc_to_dest)
             {
-                static constexpr uint unpack_srca_reuse = (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA) ? unpack_srca_zerosrc : unpack_srca;
+                static constexpr uint unpack_srca_reuse = (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA) ? unpack_srca_ckernel::zerosrc : unpack_srca;
 
-                static constexpr uint unpack_srcb_reuse = (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ? unpack_srcb_zerosrc : unpack_srcb;
+                static constexpr uint unpack_srcb_reuse = (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ? unpack_srcb_ckernel::zerosrc : unpack_srcb;
 
                 const uint32_t outerloop     = num_faces;
                 constexpr uint32_t innerloop = 1;
@@ -165,7 +165,7 @@ inline void _llk_unpack_A_mop_config_(
             {
                 const uint32_t outerloop     = num_faces;
                 constexpr uint32_t innerloop = 1;
-                ckernel_template tmp(outerloop, innerloop, unpack_srcb_zerosrc, unpack_srcb_set_dvalid);
+                ckernel_template tmp(outerloop, innerloop, unpack_srcb_ckernel::zerosrc, unpack_srcb_set_dvalid);
                 tmp.set_start_op(unpack_srca);
                 tmp.program(instrn_buffer);
             }
@@ -190,7 +190,7 @@ inline void _llk_unpack_A_hw_configure_(
 }
 
 template <
-    BroadcastType BType                          = BroadcastType::NONE,
+    BroadcastType BType                          = ckernel::BroadcastType::NONE,
     bool acc_to_dest                             = false,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
     bool unpack_to_dest                          = false>
@@ -202,13 +202,13 @@ inline void _llk_unpack_A_init_(
     const std::uint32_t unpack_src_format           = 0,
     const std::uint32_t unpack_dst_format           = 0)
 {
-    constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
+    constexpr std::uint32_t UNP_SEL = (BType == ckernel::BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
     config_unpacker_x_end<UNP_SEL>(face_r_dim);
     _llk_unpack_A_mop_config_<BType, acc_to_dest, binary_reuse_dest, unpack_to_dest>(transpose_of_faces > 0, num_faces, unpack_src_format, unpack_dst_format);
 }
 
 template <
-    BroadcastType BType                          = BroadcastType::NONE,
+    BroadcastType BType                          = ckernel::BroadcastType::NONE,
     bool acc_to_dest                             = false,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
     bool unpack_to_dest                          = false>
@@ -227,7 +227,7 @@ inline void _llk_unpack_A_(
     // Get tile address
     if (0 == unp_cfg_context)
     {
-        if constexpr ((BType == BroadcastType::NONE) && (!acc_to_dest))
+        if constexpr ((BType == ckernel::BroadcastType::NONE) && (!acc_to_dest))
         {
             cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
         }
@@ -242,7 +242,7 @@ inline void _llk_unpack_A_(
     }
     else
     {
-        if constexpr ((BType == BroadcastType::NONE) && (!acc_to_dest))
+        if constexpr ((BType == ckernel::BroadcastType::NONE) && (!acc_to_dest))
         {
             cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
         }

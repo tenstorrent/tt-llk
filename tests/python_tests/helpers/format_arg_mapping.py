@@ -86,9 +86,9 @@ class MathOperation(Enum):
     It's a good choice for things like state machines, categories, or settings where values should not be changed or duplicated.
     """
 
-    Elwadd = "ELTWISE_BINARY_ADD"
-    Elwsub = "ELTWISE_BINARY_SUB"
-    Elwmul = "ELTWISE_BINARY_MUL"
+    ckernel::ELWADD = "ELTWISE_BINARY_ADD"
+    ckernel::ELWSUB = "ELTWISE_BINARY_SUB"
+    ckernel::ELWMUL = "ELTWISE_BINARY_MUL"
     Sqrt = "SFPU_OP_SQRT"
     Square = "SFPU_OP_SQUARE"
     Log = "SFPU_OP_LOG"
@@ -98,16 +98,16 @@ class MathOperation(Enum):
 
 
 class ReduceDimension(Enum):
-    Column = "ReduceDim::REDUCE_COL"
-    Row = "ReduceDim::REDUCE_ROW"
-    Scalar = "ReduceDim::REDUCE_SCALAR"
+    Column = "ckernel::ReduceDim::REDUCE_COL"
+    Row = "ckernel::ReduceDim::REDUCE_ROW"
+    Scalar = "ckernel::ReduceDim::REDUCE_SCALAR"
     No = " "
 
 
 class ReducePool(Enum):
-    Max = "PoolType::MAX"
-    Sum = "PoolType::SUM"
-    Average = "PoolType::AVG"
+    Max = "ckernel::PoolType::MAX"
+    Sum = "ckernel::PoolType::SUM"
+    Average = "ckernel::PoolType::AVG"
 
 
 class DestAccumulation(Enum):

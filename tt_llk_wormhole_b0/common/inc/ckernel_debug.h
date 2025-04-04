@@ -228,7 +228,7 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
         dbg_bus_cntl.f.en = 1;
         reg_write(RISCV_DEBUG_REG_DBG_BUS_CNTL_REG, dbg_bus_cntl.val);
         wait (5); // Wait for value to get stable
-        srcb_bank_id = ((reg_read(RISCV_DEBUG_REG_DBG_RD_DATA)) & 0x4000) ? 0 : 1;
+        srcb_bank_id = ((ckernel::reg_read(RISCV_DEBUG_REG_DBG_RD_DATA)) & 0x4000) ? 0 : 1;
 
         // Disable debug bus
         dbg_bus_cntl.val = 0;
@@ -261,7 +261,7 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
         dbg_array_rd_cmd.f.row_32b_sel = i;
         reg_write(RISCV_DEBUG_REG_DBG_ARRAY_RD_CMD, dbg_array_rd_cmd.val);
         wait(5); // Wait for value to get stable
-        rd_data[i] = reg_read(RISCV_DEBUG_REG_DBG_ARRAY_RD_DATA);
+        rd_data[i] = ckernel::reg_read(RISCV_DEBUG_REG_DBG_ARRAY_RD_DATA);
     }
 
     // Disable debug control
@@ -303,7 +303,7 @@ inline std::uint32_t dbg_read_cfgreg(const uint32_t cfgreg_id, const uint32_t ad
 
     wait(1);
 
-    return reg_read(RISCV_DEBUG_REG_CFGREG_RDDATA);
+    return ckernel::reg_read(RISCV_DEBUG_REG_CFGREG_RDDATA);
 }
 
 } // namespace ckernel

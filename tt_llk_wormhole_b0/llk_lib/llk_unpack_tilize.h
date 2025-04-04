@@ -20,18 +20,18 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false)
 {
 #if SKIP_UNP == 1
     static constexpr uint unpack_srca            = TT_OP_NOP;
-    static constexpr uint unpack_srcb_zerosrc    = TT_OP_NOP;
+    static constexpr uint unpack_srcb_ckernel::zerosrc    = TT_OP_NOP;
     static constexpr uint unpack_srcb_set_dvalid = TT_OP_NOP;
 #else
     static constexpr uint unpack_srca =
         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srcb_zerosrc    = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr uint unpack_srcb_ckernel::zerosrc    = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ckernel::zerosrc);
     static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID); // WA for tenstorrent/budabackend#1230
 #endif
 
     const uint32_t outerloop     = narrow_tile ? 1 : 2;
     constexpr uint32_t innerloop = 1;
-    ckernel_template tmp(outerloop, innerloop, unpack_srcb_zerosrc, unpack_srcb_set_dvalid);
+    ckernel_template tmp(outerloop, innerloop, unpack_srcb_ckernel::zerosrc, unpack_srcb_set_dvalid);
     tmp.set_start_op(unpack_srca);
     tmp.program(instrn_buffer);
 }

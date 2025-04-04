@@ -88,9 +88,9 @@ void run_kernel()
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, TILIZE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ckernel::BroadcastType::NONE, TILIZE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ckernel::BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
@@ -98,18 +98,18 @@ void run_kernel()
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, ckernel::BroadcastType::NONE, is_fp32_dest_acc_en, false>(
         operand_A_dst_index, MATH_FORMAT, MATH_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, ckernel::BroadcastType::NONE, is_fp32_dest_acc_en, false>(
         operand_B_dst_index, MATH_FORMAT, MATH_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, ckernel::BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncFull, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(
+    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, ckernel::BroadcastType::NONE, DstSync::SyncFull, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(
         4, res_dst_index, false);
     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 }
