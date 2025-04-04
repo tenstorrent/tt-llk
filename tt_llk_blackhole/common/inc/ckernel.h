@@ -86,6 +86,8 @@ extern volatile uint16_t tt_reg_ptr *debug_mailbox_base;
 extern uint8_t mailbox_index;
 const extern uint8_t mailbox_end;
 
+extern volatile uint32_t dump_counter;
+
 // Internal scope to namespace methods only (C++ does not allow namespace private ownership)
 namespace internal
 {
