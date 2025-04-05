@@ -2,7 +2,7 @@ name: 🛠️ PR Pipeline
 on:
   workflow_dispatch:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
     branches: ["main"]
 
 concurrency:
@@ -16,6 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
   pre-commit:
     name: "🔍 Static checks"
     uses: ./.github/workflows/pre-commit.yml
@@ -33,6 +34,15 @@ jobs:
     with:
       chip_arch: wormhole
       docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: tt-beta-ubuntu-2204-n150-large-stable
+
+  test-tt-metal:
+    name: "🧩 tt-metal integration (Wormhole)"
+    needs: setup-and-test-wormhole
+    uses: ./.github/workflows/tt-metal-integration-tests.yml
+    secrets: inherit
+    with:
+      branch_name: ${{ github.head_ref }}
       runs_on: tt-beta-ubuntu-2204-n150-large-stable
 
   check-all-green:

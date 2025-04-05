@@ -29,8 +29,6 @@ jobs:
       # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch all history so 'origin/main' is available
 
       # Step 2: Run the tests
       - name: Run tests
