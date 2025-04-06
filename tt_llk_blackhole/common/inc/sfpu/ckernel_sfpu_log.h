@@ -13,8 +13,14 @@ namespace sfpu
 {
 sfpi_inline void _calculate_dummy_()
 {
+    // TTI_SFPLOADI(p_sfpu::LREG3, 4, 4);
+    // TTI_SFPSETSGN(1, p_sfpu::LREG3, p_sfpu::LREG3, 1);
+    // TTI_SFPSTORE(p_sfpu::LREG3, 4, 0, 0);
+    // TTI_SFPSTORE(p_sfpu::LREG3, 4, 0, 0);
+    
     sfpi::vInt input = 4;
-    sfpi::dst_reg[0] = input; // sfpi::setsgn(input, -5);
+    sfpi::dst_reg[0] = sfpi::setsgn(input, -5);
+    // sfpi::dst_reg[0] = input; // sfpi::setsgn(input, -5);
 }
 
 template <bool HAS_BASE_SCALING>
