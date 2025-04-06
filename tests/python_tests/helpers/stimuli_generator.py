@@ -15,10 +15,12 @@ def generate_random_face(
 ):
 
     if stimuli_format in [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32]:
-        if const_face:
-            srcA_face = torch.ones(256, dtype=format_dict[stimuli_format]) * const_value
-        else:  # random for both faces
-            srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) + 0.1
+        srcA_face = torch.arange(256)
+        # srcA_face = torch.arange(1, 257, dtype=format_dict[stimuli_format])
+        # if const_face:
+        #     srcA_face = torch.ones(256, dtype=format_dict[stimuli_format]) * const_value
+        # else:  # random for both faces
+        #     srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) + 0.1
 
     elif stimuli_format == DataFormat.Bfp8_b:
         size = 256

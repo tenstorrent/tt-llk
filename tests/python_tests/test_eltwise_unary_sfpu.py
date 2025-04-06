@@ -93,10 +93,6 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
     for i in range(0, 256, 8):  # 16 items per row
         sys.stdout.write(" ".join(f"{src_A[j]}" for j in range(i, i + 8)) + "\n")
 
-    sys.stdout.write(f"\nSRC B:\n")
-    for i in range(0, len(src_B), 8):  # 16 items per row
-        sys.stdout.write(" ".join(f"{src_B[j]}" for j in range(i, i + 8)) + "\n")
-
     sys.stdout.write(f"\nResult from L1:\n")
     for i in range(0, len(res_from_L1), 8):  # 16 items per row
         sys.stdout.write(" ".join(f"{res_from_L1[j]}" for j in range(i, i + 8)) + "\n")
