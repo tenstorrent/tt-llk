@@ -75,11 +75,4 @@ jobs:
             -e PYTHONPATH=/workspace/tt-metal \
             ${DOCKER_IMAGE}:${IMAGE_HASH} \
             bash -c "./build_metal.sh --build-metal-tests && \
-              TT_METAL_SLOW_DISPATCH_MODE=1 ./build_Release/test/tt_metal/unit_tests_llk | \
-              tee /workspace/tt_metal_test_results.log"
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: llk-test-results
-          path: tt_metal_test_results.log
+              TT_METAL_SLOW_DISPATCH_MODE=1 ./build_Release/test/tt_metal/unit_tests_llk
