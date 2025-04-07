@@ -16,7 +16,7 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
-inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const bool is_32bit_integer = false)
+inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const bool unpack_to_dest = false)
 {
 #if SKIP_UNP == 1
     static constexpr uint unpack_srca            = TT_OP_NOP;
@@ -30,21 +30,17 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const
         TT_OP_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
 #endif
-    if (is_32bit_integer)
+    const uint32_t outerloop = 1;
+    const uint32_t innerloop = 1;
+
+    ckernel_template tmp(outerloop, innerloop, unpack_to_dest ? unpack_srca_to_dest : unpack_srcb_set_dvalid);
+
+    if (!unpack_to_dest)
     {
-        const uint32_t outerloop     = 1;
-        constexpr uint32_t innerloop = 1;
-        ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
-        tmp.program(instrn_buffer);
-    }
-    else
-    {
-        const uint32_t outerloop     = 1;
-        constexpr uint32_t innerloop = 1;
-        ckernel_template tmp(outerloop, innerloop, unpack_srcb_set_dvalid);
         tmp.set_start_op(unpack_srca);
-        tmp.program(instrn_buffer);
     }
+
+    tmp.program(instrn_buffer);
 }
 
 template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
@@ -69,12 +65,15 @@ inline void _llk_unpack_tilize_init_(
     const std::uint32_t unpack_dst_format = 0,
     const std::uint32_t ct_dim            = 0,
     const std::uint32_t face_r_dim        = FACE_R_DIM,
-    const bool narrow_tile                = false,
-    const bool is_32bit_integer           = false)
+    const bool narrow_tile                = false)
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
+
+    // In case of 32-bit integer numbers, we have to unpack into dest register
+    const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
+                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
 
     // Set face dim
     TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
@@ -105,7 +104,7 @@ inline void _llk_unpack_tilize_init_(
     // Force x-end for Unpackers to 1024
     TTI_SETADCXX(p_setadc::UNP0, 1023, 0x0);
 
-    _llk_unpack_tilize_mop_config_(narrow_tile, is_32bit_integer);
+    _llk_unpack_tilize_mop_config_(narrow_tile, unpack_to_dest);
 }
 
 inline void _llk_unpack_tilize_(
@@ -115,10 +114,13 @@ inline void _llk_unpack_tilize_(
     std::uint32_t block_ct_dim      = 0,
     const std::uint32_t face_r_dim  = FACE_R_DIM,
     const std::uint32_t num_faces   = 4,
-    const bool narrow_tile          = false,
-    const bool is_32bit_integer     = false)
+    const bool narrow_tile          = false)
 {
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // In case of 32-bit integer numbers, we have to unpack into dest register
+    const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
+                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)
@@ -154,7 +156,7 @@ inline void _llk_unpack_tilize_(
     // Trisc::SEMPOST for context acquire
     semaphore_post(semaphore::UNPACK_SYNC);
 
-    if (is_32bit_integer)
+    if (unpack_to_dest)
     {
         // Unpack to dest
         set_dst_write_addr(unp_cfg_context, unpack_src_format);
@@ -170,7 +172,7 @@ inline void _llk_unpack_tilize_(
     // T6::SEMGET for context release
     t6_semaphore_get(semaphore::UNPACK_SYNC);
 
-    if (is_32bit_integer)
+    if (unpack_to_dest)
     {
         unpack_to_dest_tile_done(unp_cfg_context);
     }
