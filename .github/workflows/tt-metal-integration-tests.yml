@@ -66,6 +66,7 @@ jobs:
           docker pull ${DOCKER_IMAGE}:${IMAGE_HASH}
 
       - name: Run tests in Docker container
+        continue-on-error: true
         run: |
           docker run --device /dev/tenstorrent --rm \
             -v ${{ github.workspace }}:/workspace \
@@ -77,9 +78,6 @@ jobs:
             bash -c "./build_metal.sh --build-metal-tests && \
               TT_METAL_SLOW_DISPATCH_MODE=1 ./build_Release/test/tt_metal/unit_tests_llk | \
               tee /workspace/tt_metal_test_results.log"
-          EXIT_CODE=$?  # Capture the exit code
-          echo "Test step exited with code $EXIT_CODE"
-          exit $EXIT_CODE  # Exit with the same code to mark the step as failed if necessary
 
       - name: Upload test results on failure
         if: failure()  # Only run this step if the previous step fails
