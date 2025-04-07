@@ -113,7 +113,7 @@ inline void tensix_sync()
     pc_buf_base[1] = foo;
 
     // Now read -- this read will block until we're idle
-    *fooptr = pc_buf_base[1];
+    *fooptr = pc_buf_base[1]
 }
 
 inline void mop_sync()
