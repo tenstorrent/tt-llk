@@ -1,4 +1,18 @@
-# tt-llk: CPP Low Level Kernels (LLK) & test infrastructure #
+[![tt-llk CI](https://github.com/tenstorrent/tt-llk/actions/workflows/on-pr.yml/badge.svg)](https://github.com/tenstorrent/tt-llk/actions/workflows/on-pr.yml)
+
+<div align="center">
+
+<h1>
+
+[Bounties](https://github.com/tenstorrent/tt-llk/issues?q=is%3Aissue%20state%3Aopen%20label%3Abounty) | [Buy](https://tenstorrent.com/cards/) | [Discord](https://discord.gg/tvhGzHQwaj)
+
+</h1>
+
+**TT-LLK** is Tenstorrent's Low Level Kernels library.
+
+[![C++](https://img.shields.io/badge/C++-20-blue.svg)](#)
+[![Python](https://img.shields.io/badge/python-3.10-blue.svg)](#)
+</div>
 
 ## Overview ##
 
