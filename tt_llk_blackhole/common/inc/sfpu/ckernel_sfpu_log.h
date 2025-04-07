@@ -13,10 +13,12 @@ namespace sfpu
 {
 sfpi_inline void _calculate_dummy_()
 {
-    // TTI_SFPLOADI(p_sfpu::LREG3, 4, 4);
-    // TTI_SFPSETSGN(1, p_sfpu::LREG3, p_sfpu::LREG3, 1);
-    // TTI_SFPSTORE(p_sfpu::LREG3, 4, 0, 0);
-    // TTI_SFPSTORE(p_sfpu::LREG3, 4, 0, 0);
+    TTI_SFPLOADI(p_sfpu::LREG3, 4, 4);
+    TTI_SFPSETSGN(1, p_sfpu::LREG3, p_sfpu::LREG3, 1);
+    TTI_SFPCAST(p_sfpu::LREG3, p_sfpu::LREG3, 3);
+    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG3, 0);
+    TTI_SFPSTORE(p_sfpu::LREG3, 12, 0, 0); // by casting the number before storing it makes sfpi interpret it as signed int32 2's compliment and we get -4 in output for blackhole.
+    // this already works on wormhole and we don't need to cast but on blackhole SFPSTPRE does not effect interpretation of number in 2's complement and it is read as sign+magnitude thus we get -2147483644 instead of -4.
     
     sfpi::vInt input = 4;
     sfpi::dst_reg[0] = sfpi::setsgn(input, -5);
