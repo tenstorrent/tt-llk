@@ -66,7 +66,6 @@ jobs:
           docker pull ${DOCKER_IMAGE}:${IMAGE_HASH}
 
       - name: Run tests in Docker container
-        continue-on-error: true
         run: |
           docker run --device /dev/tenstorrent --rm \
             -v ${{ github.workspace }}:/workspace \
@@ -79,8 +78,7 @@ jobs:
               TT_METAL_SLOW_DISPATCH_MODE=1 ./build_Release/test/tt_metal/unit_tests_llk | \
               tee /workspace/tt_metal_test_results.log"
 
-      - name: Upload test results on failure
-        if: failure()  # Only run this step if the previous step fails
+      - name: Upload test results
         uses: actions/upload-artifact@v4
         with:
           name: llk-test-results
