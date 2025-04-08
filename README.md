@@ -18,7 +18,7 @@
 
 This repository contains header-only low-level kernels for Tenstorrent AI chips, including Grayskull (deprecated), Wormhole, and Blackhole.
 
-These kernels serve as foundational compute primitives, acting as building blocks for higher-level software stacks that implement machine learning (ML) operations. 
+These kernels serve as foundational compute primitives, acting as building blocks for higher-level software stacks that implement machine learning (ML) operations.
 
 Additionally, the repository includes a test environment designed to validate LLK APIs.
 
