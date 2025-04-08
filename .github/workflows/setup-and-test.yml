@@ -1,0 +1,50 @@
+name: "⚙️ Setup and Test"
+
+on:
+  workflow_call:
+    inputs:
+      docker_image:
+        description: "The Docker image to use for the container"
+        required: true
+        type: string
+      runs_on:
+        description: "The runner to use for the job"
+        required: true
+        type: string
+
+jobs:
+  setup-and-test:
+    name: "🦄 Run tests"
+    runs-on: ${{ inputs.runs_on }}
+    timeout-minutes: 40
+    container:
+      image: ${{ inputs.docker_image }}
+      options: "--device /dev/tenstorrent"
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install SFPI
+      - name: Install SFPI
+        shell: bash
+        run: |
+          cd tests
+          ./setup_testing_env.sh
+          cd ..
+
+      # Step 3: Run the tests
+      - name: Run tests
+        shell: bash
+        run: |
+          cd tests/python_tests/
+          pytest --timeout=60 --color=yes --force-sugar .
+
+      # Step 4: Upload test log as an artifact
+      - name: Upload logs if tests fail
+        if: failure()  # Only upload the log if the previous step failed
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: tests/python_tests/pytest_errors.log
