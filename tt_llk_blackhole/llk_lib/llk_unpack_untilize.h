@@ -139,8 +139,13 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
 #if SKIP_UNP == 1
                 TTI_NOP;
 #else
+            #ifndef LLK_UNPACK_PERF
                 TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);  // set data valid
                 TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+            #else
+                TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);  // not set dvalid to keep unpacker running
+                TTI_UNPACR_NOP(SrcB, 0, 0, 0, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+            #endif
 #endif
                 TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1000);  // Clear srcA addr y cnt
                 rem_blocks_in_row -= (8 - face_2xr_cnt);
