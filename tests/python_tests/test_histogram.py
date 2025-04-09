@@ -1,12 +1,16 @@
 import pytest
 import torch
 import random
-import ttlens
-from helpers import *
-from ttlens.tt_lens_lib import write_to_device, write_words_to_device, read_from_device, read_word_from_device, read_words_from_device, run_elf
-from ttlens.tt_coordinate import OnChipCoordinate
-from ttlens.tt_debug_risc import RiscDebug, RiscLoc
-from ttlens.tt_lens_init import init_ttlens
+from ttexalens.tt_exalens_lib import (
+    write_to_device,
+    write_words_to_device,
+    read_words_from_device,
+    read_word_from_device,
+    load_elf,
+    run_elf,
+    check_context,
+)
+from helpers import generate_make_command, run_shell_command, run_elf_files
 
 def generate_image(size, buckets, const = False):
     image = []
@@ -118,98 +122,20 @@ START_ADDRESS     = 0x19FF0
 BUFFER_ADDRESS    = 0x20000
 BUCKET_ADDRESS    = 0x30000
 
-def run_histogram(version, cores, pipeline_factor, buffer_size, buckets):
-    print(ttlens.__file__)
-    context = init_ttlens()
-
-    bucket_bpp = 2 if version < 16 else 16
-
-    img = generate_image(buffer_size, buckets)
-    res = golden(img, buckets)
-
-    if version == 17:
-        res = [2 * r for r in res]
-
-    write_words_to_device("0,0", TIMESTAMP_ADDRESS, [0] * 4 * cores)
-    write_words_to_device("0,0", START_ADDRESS,     [0])
-    write_words_to_device("0,0", BUFFER_ADDRESS,    img)
-    write_words_to_device("0,0", BUCKET_ADDRESS,    [0] * ((buckets * bucket_bpp) // 4))
+@pytest.mark.parametrize("version", [0])
+def test_histogram(version):
+    write_words_to_device("0,0", TIMESTAMP_ADDRESS, [0] * 4 * 4)
 
     testname = "histogram_test"
-    def_dict = {
-        "HISTOGRAM_BUFFER_SIZE"    : buffer_size,
-        "HISTOGRAM_NUM_CORES"      : cores,
-        "HISTOGRAM_PIPELINE_FACTOR": pipeline_factor,
-        "HISTOGRAM_VERSION"        : version
-    }
+
     test_config = { 
         "testname": testname,
-        "def_dict": def_dict
     }
     make_cmd = generate_make_command(test_config)
     run_shell_command(f"cd .. && {make_cmd}")
     run_elf_files(testname)
-    context.devices[0].all_riscs_deassert_soft_reset()
 
-    write_words_to_device("0,0", START_ADDRESS, [1])
+    st, et = report_timing(TIMESTAMP_ADDRESS, 32, 4)
+    print(st, et)
 
-    buffer = read_words_from_device("0,0", BUFFER_ADDRESS, word_count=buffer_size)
-    bucket = read_words_from_device("0,0", BUCKET_ADDRESS, word_count=(buckets * bucket_bpp) // 4)
-    if bucket_bpp == 2:
-        bucket = split_words(bucket)
-    if bucket_bpp == 16:
-        bucket = merge_words(bucket)
-    
-
-    print("img == buffer", img == buffer)
-    if img != buffer:
-        print("img")
-        print(img)
-        print("buffer")
-        print(buffer)
-
-    print("img == buffer",res == bucket)
-    if res != bucket:
-        print("res")
-        print(res)
-        print("bucket")
-        print(bucket)
-        print("sum res", sum(res))
-        print("sum bucket", sum(bucket))
-
-        print("diff")
-        for i in range(len(res)):
-            if res[i] != bucket[i]:
-                print("bucket", i, "res", res[i], "bucket", bucket[i])
-
-    st, et = report_timing(TIMESTAMP_ADDRESS, buffer_size, cores)
-    return version, cores, pipeline_factor, buffer_size, buckets, img == buffer, res == bucket, st, et
-
-def loop_histogram(version, cores, pipeline_factor, buffer_size, buckets, loops):
-    res = []
-    for i in range(loops):
-        res.append(run_histogram(version, cores, pipeline_factor, buffer_size, buckets))
-    return res
-
-def sweep_histogram(version, cores, pipeline_factor, buffer_size, buckets, loops):
-    res = []
-    for v in version:
-        for c in cores:
-            for p in pipeline_factor:
-                for b in buffer_size:
-                    for bck in buckets:
-                        for l in loops:
-                            res.append(loop_histogram(v, c, p, b, bck, l))
-    return res
-
-def test_histogram():
-    res = []
-
-    #res += sweep_histogram([0, 1], [1, 4], [1, 2, 4, 8],     [4096], [256], [10])
-    #res += sweep_histogram([2, 3], [1, 4], [1, 2, 4, 8, 16], [4096], [256], [10])
-
-    #res += sweep_histogram([16], [1, 3], [1, 2],    [3072], [256], [1])
-    #res += sweep_histogram([17], [1, 3], [1, 2, 4], [3072], [256], [1])
-    res += sweep_histogram([18], [1, 3], [1, 2, 4], [3072], [256], [10])
-
-    print_end_of_test(res, True)
+    assert 1==2

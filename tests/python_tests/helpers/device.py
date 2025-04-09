@@ -1,7 +1,4 @@
-from ttlens.tt_lens_init import init_ttlens
-from ttlens.tt_lens_lib import write_to_device, read_words_from_device, read_word_from_device, run_elf
-from helpers import *
-
+from ttexalens.tt_exalens_lib import run_elf
 
 def collect_results(format,address=0x1c000,core_loc = "0,0", sfpu=False):
     read_words_cnt = calculate_read_words_count(format,sfpu)

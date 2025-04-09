@@ -8,7 +8,7 @@ GXX=$(TOOL_PATH)/riscv32-unknown-elf-g++
 OBJDUMP=$(TOOL_PATH)/riscv32-unknown-elf-objdump
 
 # GCC options
-OPTIONS_ALL=-O3 -mabi=ilp32 -std=c++20 -ffast-math -ftest-coverage
+OPTIONS_ALL=-O3 -mabi=ilp32 -std=c++20 -ffast-math -ftest-coverage -mtune=rocket
 OPTIONS_COMPILE=-fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE #-DDEBUG_PRINT_ENABLED
 
 # Default values
