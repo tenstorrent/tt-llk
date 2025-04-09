@@ -74,5 +74,9 @@ jobs:
             -e TT_METAL_HOME=/workspace/tt-metal \
             -e PYTHONPATH=/workspace/tt-metal \
             ${DOCKER_IMAGE}:${IMAGE_HASH} \
-            bash -c "./build_metal.sh --build-metal-tests && \
-              TT_METAL_SLOW_DISPATCH_MODE=1 ./build_Release/test/tt_metal/unit_tests_llk"
+            bash -c "
+              ./create_venv.sh && source ./python_env/bin/activate &&
+              ./build_metal.sh --build-metal-tests --build-ttnn-tests &&
+              TT_METAL_SLOW_DISPATCH_MODE=1 ./build_Release/test/tt_metal/unit_tests_llk &&
+              pytest tests/ttnn/unit_tests
+            "
