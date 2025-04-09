@@ -81,7 +81,7 @@ inline void stop_measuring()
     asm("fence");
 }
 
-constexpr uint32_t ITERATIONS = 200;
+constexpr uint32_t ITERATIONS = 1000;
 
 #if defined(LLK_TRISC_UNPACK)
 
@@ -111,7 +111,30 @@ void run_kernel()
 #endif
 
 #if defined(LLK_TRISC_MATH)
-void run_kernel() {}
+void run_kernel() {
+
+
+    volatile uint32_t a  = 123;
+    volatile uint32_t b  = 4574579;
+    volatile uint32_t c  = 1234;
+    volatile uint32_t d  = 45714579;
+    volatile uint32_t res1;
+    volatile uint32_t res2;
+
+    start_measuring();
+
+    for(uint32_t j = 0; j < ITERATIONS; j++) {
+        res1 = b/a;
+        res2 = d/c;
+    }
+
+    stop_measuring();
+
+    res1 = 20;
+    res2 = 20;
+
+
+}
 #endif 
 
 #if defined(LLK_TRISC_PACK)

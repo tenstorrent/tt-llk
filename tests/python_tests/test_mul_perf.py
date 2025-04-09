@@ -53,6 +53,7 @@ def test_histogram(version):
     make_cmd = generate_make_command(test_config)
     run_shell_command(f"cd .. && {make_cmd}")
     run_elf_files(testname)
+    
 
     st, et = report_timing(TIMESTAMP_ADDRESS, 32, 4)
     assert 1==2
