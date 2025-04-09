@@ -78,7 +78,7 @@ jobs:
               set -e  # Exit immediately if a command fails
 
               # Set up the Python environment
-              PYTHON_ENV_DIR=$(pwd)/python_env
+              PYTHON_ENV_DIR=python_env
               echo \"Creating virtual env in: $PYTHON_ENV_DIR\"
               $PYTHON_CMD -m venv $PYTHON_ENV_DIR
               source $PYTHON_ENV_DIR/bin/activate
