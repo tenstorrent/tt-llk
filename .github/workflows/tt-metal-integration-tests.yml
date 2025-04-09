@@ -78,8 +78,8 @@ jobs:
               set -e  # Exit immediately if a command fails
 
               # Set up the Python environment
-              echo \"Creating virtual env in: python_env"
-              $PYTHON_CMD -m venv python_env
+              echo \"Creating virtual env in: python_env\"
+              python3 -m venv python_env
               source python_env/bin/activate
 
               # Install pip and dependencies
