@@ -78,10 +78,9 @@ jobs:
               set -e  # Exit immediately if a command fails
 
               # Set up the Python environment
-              PYTHON_ENV_DIR=python_env
-              echo \"Creating virtual env in: $PYTHON_ENV_DIR\"
-              $PYTHON_CMD -m venv $PYTHON_ENV_DIR
-              source $PYTHON_ENV_DIR/bin/activate
+              echo \"Creating virtual env in: python_env"
+              $PYTHON_CMD -m venv python_env
+              source python_env/bin/activate
 
               # Install pip and dependencies
               echo \"Forcefully using a version of pip that will work with our view of editable installs\"
