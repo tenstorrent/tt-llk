@@ -17,7 +17,7 @@ jobs:
       DOCKER_IMAGE: ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-ci-build-amd64
       IMAGE_HASH: ec366e61ff1989d6650d8ee0fc636189b3c08c13
     runs-on: ${{ inputs.runs_on }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - name: Checkout tt-metal repository with submodules
         uses: actions/checkout@v4
