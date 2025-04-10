@@ -5,8 +5,10 @@ import pytest
 import os
 import logging
 import subprocess
+from helpers.output_test_results import format_results, pass_fail_results
 
 
+all_test_results = []
 @pytest.fixture(scope="session", autouse=True)
 def setup_chip_arch():
     def detect_architecture(output):
@@ -86,3 +88,10 @@ def pytest_runtest_protocol(item, nextitem):
 
     # Continue the test execution as usual
     return None
+
+@pytest.fixture(scope='session', autouse=True)
+def test_results():
+    global all_test_results
+    yield all_test_results  # This makes the fixture available globally
+    format_results(all_test_results)
+    all_test_results.extend(all_test_results)

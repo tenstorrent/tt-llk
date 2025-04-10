@@ -44,6 +44,9 @@ UNPACK_A_SRC_CASE(Int32)
 #if defined(UNPACK_A_SRC_BFP8_B)
 UNPACK_A_SRC_CASE(Bfp8_b)
 #endif
+#if defined(UNPACK_A_SRC_TF32)
+UNPACK_A_SRC_CASE(Tf32)
+#endif
 
 #undef UNPACK_A_SRC_CASE
 
@@ -64,6 +67,9 @@ UNPACK_B_SRC_CASE(Int32)
 #if defined(UNPACK_B_SRC_BFP8_B)
 UNPACK_B_SRC_CASE(Bfp8_b)
 #endif
+#if defined(UNPACK_B_SRC_TF32)
+UNPACK_B_SRC_CASE(Tf32)
+#endif
 
 #undef UNPACK_B_SRC_CASE
 
@@ -83,6 +89,9 @@ UNPACK_A_DST_CASE(Int32)
 #if defined(UNPACK_A_DST_BFP8_B)
 UNPACK_A_DST_CASE(Bfp8_b)
 #endif
+#if defined(UNPACK_A_DST_TF32)
+UNPACK_A_DST_CASE(Tf32)
+#endif
 
 #undef UNPACK_A_DST_CASE
 
@@ -101,6 +110,9 @@ UNPACK_B_DST_CASE(Int32)
 #endif
 #if defined(UNPACK_B_DST_BFP8_B)
 UNPACK_B_DST_CASE(Bfp8_b)
+#endif
+#if defined(UNPACK_B_DST_TF32)
+UNPACK_B_DST_CASE(Tf32)
 #endif
 
 #undef UNPACK_B_DST_CASE
@@ -142,6 +154,9 @@ PACK_DST_CASE(Int32)
 #if defined(PACK_DST_BFP8_B)
 PACK_DST_CASE(Bfp8_b)
 #endif
+#if defined(PACK_DST_TF32)
+PACK_DST_CASE(Tf32)
+#endif
 
 #undef PACK_DST_CASE
 
@@ -161,6 +176,9 @@ MATH_CASE(Int32)
 #endif
 #if defined(MATH_BFP8_B)
 MATH_CASE(Bfp8_b)
+#endif
+#if defined(MATH_TF32)
+MATH_CASE(Tf32)
 #endif
 
 #undef MATH_CASE

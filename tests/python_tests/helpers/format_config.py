@@ -20,7 +20,7 @@ class DataFormat(Enum):
     Bfp8_b = "Bfp8_b"
     Float32 = "Float32"
     Int32 = "Int32"
-
+    Tf32 = "Tf32"
 
 @dataclass
 class FormatConfig:
@@ -142,3 +142,17 @@ def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatC
                 )
             )
     return format_configs
+
+def gen_format_combos():
+    generate_format_convs = []
+    try_formats = [DataFormat.Float16, DataFormat.Float32, DataFormat.Float16_b, DataFormat.Tf32, DataFormat.Bfp8_b]
+    for unpack_in in try_formats:
+        if unpack_in == DataFormat.Tf32: continue
+        for unpack_out in try_formats:
+            if unpack_out not in [DataFormat.Tf32, unpack_in]: continue
+            for pack_in in try_formats:
+                if pack_in == DataFormat.Tf32: continue
+                for pack_out in try_formats:
+                    if pack_out == DataFormat.Tf32:continue
+                    generate_format_convs.append(FormatConfig(unpack_A_src=unpack_in, unpack_A_dst=unpack_out, pack_src=pack_in, pack_dst=pack_out, math=unpack_out))
+    return generate_format_convs

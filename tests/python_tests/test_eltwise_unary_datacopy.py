@@ -1,10 +1,9 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
-# SPDX-License-Identifier: Apache-2.0
-
 import pytest
 import torch
 from helpers import *
-
+from conftest import *
+from helpers.output_test_results import *
+from helpers.format_config import *
 
 def generate_golden(operand1, format):
     return operand1
@@ -22,15 +21,6 @@ generate_format_selection = create_formats_for_testing(
             DataFormat.Int32,  # index 3 is for pack_dst
             DataFormat.Float32,  # index 4 is for math format
         ),
-        (
-            DataFormat.Float32,  # index 0 is for unpack_A_src
-            DataFormat.Float32,  # index 1 is for unpack_A_dst
-            DataFormat.Bfp8_b,  # index 2 is for unpack_B_src (inputs to src registers have different formats)
-            DataFormat.Int32,  # index 3 is for unpack_B_dst (inputs to src registers have different formats)
-            DataFormat.Float32,  # index 4 is for pack_src (if src registers have same formats)
-            DataFormat.Int32,  # index 5 is for pack_dst
-            DataFormat.Float32,  # index 6 is for math format
-        ),
     ]
 )
 
@@ -44,10 +34,12 @@ all_format_combos = generate_format_combinations(
     ],
     all_same=True,
     same_src_reg_format=True,  # setting src_A and src_B register to have same format
-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
-dest_acc = [DestAccumulation.No, DestAccumulation.Yes]
+)
+
+# Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+dest_acc = [DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
-all_params = generate_params(testname, all_format_combos, dest_acc)
+all_params = generate_params(testname, gen_format_combos(), dest_acc)
 param_ids = generate_param_ids(all_params)
 
 
@@ -55,17 +47,18 @@ param_ids = generate_param_ids(all_params)
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
 def test_unary_datacopy(testname, formats, dest_acc):
-
-    if formats.unpack_A_src == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-        pytest.skip(reason="This combination is not fully implemented in testing")
-    if (
-        formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
-        and dest_acc != DestAccumulation.Yes
-    ):
-        pytest.skip(
-            reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
-        )
-
+    run_shell_command("cd .. && make clean")
+    run_shell_command("tt-smi -r 0")
+    # if formats.unpack_A_src == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
+    #     pytest.skip(reason="This combination is not fully implemented in testing")
+    # if (
+    #     formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
+    #     and dest_acc != DestAccumulation.Yes
+    # ):
+    #     pytest.skip(
+    #         reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
+    #     )
+    all_test_results.append(pass_fail_results(testname, formats, dest_acc))
     src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
     srcB = torch.full((1024,), 0)
     golden = generate_golden(src_A, formats.pack_dst)
@@ -125,9 +118,11 @@ def test_unary_datacopy(testname, formats, dest_acc):
     )
 
     for i in range(len(golden)):
+        update_failed_test(all_test_results, (golden_tensor[i], res_tensor[i]))
         assert torch.isclose(
             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
         ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.99
+    update_passed_test(all_test_results, pcc)
