@@ -79,10 +79,10 @@ class MathOperation(Enum):
     It's a good choice for things like state machines, categories, or settings where values should not be changed or duplicated.
     """
 
-    Abs = "SFPU_OP_ABS"
     Elwadd = "ELTWISE_BINARY_ADD"
     Elwsub = "ELTWISE_BINARY_SUB"
     Elwmul = "ELTWISE_BINARY_MUL"
+    Abs = "SFPU_OP_ABS"
     Sqrt = "SFPU_OP_SQRT"
     Square = "SFPU_OP_SQUARE"
     Log = "SFPU_OP_LOG"
