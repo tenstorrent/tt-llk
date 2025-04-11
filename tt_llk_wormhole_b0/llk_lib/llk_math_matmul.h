@@ -591,4 +591,26 @@ inline void _llk_math_matmul_(
         }
         t++;
     }
+
+    /*math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index + (reuse_a ? ct_dim * 0 : 0 * ct_dim));
+    TTI_MOVB2D(0, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
+    TTI_MOVB2D(0, 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
+    TTI_MOVB2D(0, 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+    TTI_MOVB2D(0, 0 + 16, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0 + 16);
+    TTI_MOVB2D(0, 4 + 16, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4 + 16);
+    TTI_MOVB2D(0, 8 + 16, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8 + 16);
+    TTI_MOVB2D(0, 12 + 16, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12 + 16);
+    TTI_MOVB2D(0, 0 + 32, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0 + 32);
+    TTI_MOVB2D(0, 4 + 32, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4 + 32);
+    TTI_MOVB2D(0, 8 + 32, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8 + 32);
+    TTI_MOVB2D(0, 12 + 32, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12 + 32);
+    TTI_MOVB2D(0, 0 + 32 + 16, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0 + 32 + 16);
+    TTI_MOVB2D(0, 4 + 32 + 16, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4 + 32 + 16);
+    TTI_MOVB2D(0, 8 + 32 + 16, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8 + 32 + 16);
+    TTI_MOVB2D(0, 12 + 32 + 16, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12 + 32 + 16);
+    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD); // Clear srcA valid as reuse is done and move to next srcA bank
+    TTI_CLEARDVALID(p_setrwc::CLR_B, 0);                        // Clear srcB valid as reuse is done and move to next srcB bank
+    */
+
 }
