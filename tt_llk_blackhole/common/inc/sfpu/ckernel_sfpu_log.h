@@ -21,7 +21,7 @@ sfpi_inline void try_setsgn()
     // this already works on wormhole and we don't need to cast but on blackhole SFPSTPRE does not effect interpretation of number in 2's complement and it is read as sign+magnitude thus we get -2147483644 instead of -4.
     
     sfpi::vInt input = 4;
-    sfpi::dst_reg[0] = sfpi::setsgn(input, -5);
+    sfpi::dst_reg[0] = sfpi::setsgn(input, 1);
     // sfpi::dst_reg[0] = input; // sfpi::setsgn(input, -5);
 }
 
