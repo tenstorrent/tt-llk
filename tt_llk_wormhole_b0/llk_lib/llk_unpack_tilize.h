@@ -151,20 +151,6 @@ inline void _llk_unpack_tilize_(
  * LLK UNPACK TILIZE SRC A, UNPACK SRC B
  *************************************************************************/
 
-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
-inline void _llk_unpack_tilizeA_B_hw_configure_(
-    const uint32_t unpA_src_format,
-    const uint32_t unpB_src_format,
-    const uint32_t unpA_dst_format,
-    const uint32_t unpB_dst_format,
-    const uint32_t num_faces,
-    const uint32_t face_r_dim,
-    const int within_face_16x16_transpose = 0)
-{
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, stoch_rnd_mode>(
-        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, within_face_16x16_transpose, num_faces);
-}
-
 template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
 inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, const std::uint32_t num_faces = 4)
 {
