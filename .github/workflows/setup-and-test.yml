@@ -37,9 +37,12 @@ jobs:
       # Step 3: Run the tests
       - name: Run tests
         shell: bash
+        env:
+          TERM: xterm-256color
+          PY_COLORS: 1
         run: |
           cd tests/python_tests/
-          PY_COLORS=1 pytest --timeout=60 --color=yes --force-sugar .
+          pytest --timeout=60 --color=yes --force-sugar .
 
       # Step 4: Upload test log as an artifact
       - name: Upload logs if tests fail
