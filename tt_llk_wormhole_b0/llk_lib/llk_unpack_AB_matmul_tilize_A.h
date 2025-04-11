@@ -17,30 +17,30 @@ using namespace ckernel;
 using namespace ckernel::unpacker;
 
 inline void _llk_unpack_AB_matmul_tilize_A_mop_config() {
-    const std::uint32_t replay_buf_run_len = 10;
+    const std::uint32_t replay_buf_run_len = 2;
     const std::uint32_t replay_buf_half_len = replay_buf_run_len >> 1;
 
     TT_REPLAY(0, replay_buf_run_len, 0, 1);
 
     //Unpacks 1x16 row of datums to SrcB
-    TTI_UNPACR(SrcB, 0b01000000/*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcB, 0b01000001/*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     // THCON_SEC0_REG3_Base_address_ADDR32 =  THCON_SEC0_REG3_Base_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
     //TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_address_ADDR32);
-    TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
-    TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_OFFSET);
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG3_Base_address_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::TMP0);
-    TTI_NOP;
+    //TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
+    //TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_OFFSET);
+    //TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG3_Base_address_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::TMP0);
+    //TTI_NOP;
 
     //Unpacks 1x16 row of datums to SrcA
-    TTI_UNPACR(SrcB, 0b01000000/*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcB, 0b01000001/*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     // THCON_SEC0_REG3_Base_cntx1_address_ADDR32 =  THCON_SEC0_REG3_Base_cntx1_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
     //TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
-    TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
-    TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_OFFSET);
-    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::TMP0);
-    TTI_NOP;
+    //TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
+    //TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_OFFSET);
+    //TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::TMP0);
+    //TTI_NOP;
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
         false,  // src B
@@ -84,6 +84,20 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_tilize_A_init(c
     //TTI_WRCFG(p_gpr_unpack::TILE_OFFSET, 0, SCRATCH_SEC0_val_ADDR32);
     //TTI_NOP;
 
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
+    unpack_tile_descriptor_u tile_descriptor;
+    for (uint i = 0; i < TILE_DESC_SIZE; i++)
+    {
+        tile_descriptor.val[i] = cfg[THCON_SEC1_REG0_TileDescriptor_ADDR32 + i];
+    }
+    tile_descriptor.f.x_dim          = 1;
+    tile_descriptor.f.y_dim          = c_dim_size * 8;
+    tile_descriptor.f.z_dim          = unpB_num_faces;
+    for (uint i = 0; i < TILE_DESC_SIZE; i++)
+    {
+        cfg[THCON_SEC1_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
+    }
+
     TTI_SETADCXX(p_setadc::UNP_A, unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1, 0x0);
     TTI_SETADCXX(p_setadc::UNP_B, 1 * FACE_C_DIM - 1, 0x0);
     
@@ -98,6 +112,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_tilize_A_init(c
 inline void _llk_unpack_AB_matmul_tilize_A_unpack_A()
 {
     TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, 0b1010);
+    TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b1111);
 
     if (0 == unp_cfg_context)
     {
@@ -150,6 +165,7 @@ inline void _llk_unpack_AB_matmul_tilize_A_unpack_A()
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 inline void _llk_unpack_AB_matmul_tilize_A(const std::uint32_t base_address_a, const std::uint32_t base_address_b, const std::uint32_t tile_index_a, const std::uint32_t tile_index_b, const std::uint32_t tile_size_a, const std::uint32_t tile_size_b, const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim, const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const std::uint32_t reuse_a_hint = 0) {
     volatile uint *cfg        = get_cfg_pointer();
+    TTI_SETADCXY(0b011, 0, 0, 0, 0, 0b1010);
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
     const bool reuse_a            = reuse_a_hint == 0 ? ct_dim >= rt_dim : reuse_a_hint == 1 ? true : false;
