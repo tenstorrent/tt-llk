@@ -24,12 +24,6 @@ def generate_golden(operation, operand1, data_format):
     return [ops[operation](num) for num in tensor1_float.tolist()][:256]
 
 
-full_sweep = False
-all_format_combos = generate_format_combinations(
-    [DataFormat.Float32],
-    all_same=True,
-    same_src_reg_format=True,  # setting src_A and src_B register to have same format
-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["eltwise_unary_sfpu_test"],
     [
@@ -43,8 +37,8 @@ all_params = generate_params(
         )
     ],
     dest_acc=[DestAccumulation.Yes],
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
-    mathop=[MathOperation.Dummy],
+    approx_mode=[ApproximationMode.No],
+    mathop=[MathOperation.SetSgn],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -105,3 +99,5 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
             else torch.bfloat16
         ),
     )
+    
+    

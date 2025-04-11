@@ -56,8 +56,8 @@ void call_sfpu_operation(SfpuType operation)
 {
     switch (operation)
     {
-        case SfpuType::dummy:
-            ckernel::sfpu::_calculate_dummy_();
+        case SfpuType::setsgn:
+            ckernel::sfpu::try_setsgn();
             break;
         case SfpuType::sqrt:
             ckernel::sfpu::_init_sqrt_<APPROX_MODE>();

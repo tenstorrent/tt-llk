@@ -91,7 +91,7 @@ class MathOperation(Enum):
     Elwmul = "ELTWISE_BINARY_MUL"
     Sqrt = "SFPU_OP_SQRT"
     Square = "SFPU_OP_SQUARE"
-    Dummy = "SFPU_OP_DUMMY"
+    SetSgn = "SFPU_OP_SETSGN"
     Log = "SFPU_OP_LOG"
     ReduceColumn = "REDUCE_COL_OPERATION"
     ReduceRow = "REDUCE_ROW_OPERATION"
