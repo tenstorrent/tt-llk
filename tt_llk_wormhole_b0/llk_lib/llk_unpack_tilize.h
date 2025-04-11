@@ -161,15 +161,8 @@ inline void _llk_unpack_tilizeA_B_hw_configure_(
     const uint32_t face_r_dim,
     const int within_face_16x16_transpose = 0)
 {
-
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, stoch_rnd_mode>(
-				unpA_src_format,
-				unpB_src_format,
-				unpA_dst_format,
-				unpB_dst_format,
-        face_r_dim,
-        within_face_16x16_transpose,
-        num_faces);
+        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, within_face_16x16_transpose, num_faces);
 }
 
 template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
@@ -231,7 +224,6 @@ inline void _llk_unpack_tilizeA_B_init_(
     const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
     const std::uint32_t unpB_face_r_dim = FACE_R_DIM)
 {
-
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     const std::uint32_t block_c_dim = ct_dim * ((narrow_tile || (num_faces == 1)) ? FACE_C_DIM : TILE_C_DIM);
@@ -274,18 +266,15 @@ inline void _llk_unpack_tilizeA_B_(
     std::uint32_t block_ct_dim,
     std::uint32_t num_faces = 4)
 {
-    std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpA_src_format, tile_index_a)
-                                            << (narrow_tile ? 0 : 1);
+    std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpA_src_format, tile_index_a) << (narrow_tile ? 0 : 1);
 
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)
     // For narrow tile we unpack 1 face in each iteration
     // Offset address is in 16B words
     // Datum count = tile_index*face_r_dim (/16 to get word count)
 
-    const std::uint32_t block_c_dim_16B =
-        block_ct_dim * ((narrow_tile || (num_faces == 1)) ? FACE_C_DIM / 16 : TILE_C_DIM / 16);
-    std::uint32_t bot_face_offset_address = SCALE_DATUM_SIZE(
-        unpA_src_format, face_r_dim * block_c_dim_16B);  //*N rows / 16 to get 16B word aligned address
+    const std::uint32_t block_c_dim_16B   = block_ct_dim * ((narrow_tile || (num_faces == 1)) ? FACE_C_DIM / 16 : TILE_C_DIM / 16);
+    std::uint32_t bot_face_offset_address = SCALE_DATUM_SIZE(unpA_src_format, face_r_dim * block_c_dim_16B); //*N rows / 16 to get 16B word aligned address
 
     // Program srcA and srcB base addresses
     std::uint32_t num_loops = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
@@ -294,19 +283,26 @@ inline void _llk_unpack_tilizeA_B_(
     TTI_SETADCZW(UNP1, 0, 0, 0, 0, 0b1111);
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr* cfg = get_cfg_pointer();  // get pointer to registers for current state ID
+    volatile uint tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
-    for (std::uint32_t n = 0; n < num_loops; n++) {
+    for (std::uint32_t n = 0; n < num_loops; n++)
+    {
         std::uint32_t address_a = base_address_a + top_face_offset_address + ((n == 1) ? bot_face_offset_address : 0);
 
         // Clear z/w start counters
-        if constexpr (zero_srcA) {
-            if (num_faces == 4 && n == 1) {
+        if constexpr (zero_srcA)
+        {
+            if (num_faces == 4 && n == 1)
+            {
                 TTI_SETADCZW(UNP0, 0, 0, 0, 0, 0b1011);
-            } else {
+            }
+            else
+            {
                 TTI_SETADCZW(UNP0, 0, 0, 0, 0, 0b1111);
             }
-        } else {
+        }
+        else
+        {
             TTI_SETADCZW(UNP0, 0, 0, 0, 0, 0b1111);
         }
 
@@ -314,10 +310,13 @@ inline void _llk_unpack_tilizeA_B_(
         wait_for_next_context(2);
 
         // Get tile address
-        if (0 == unp_cfg_context) {
+        if (0 == unp_cfg_context)
+        {
             cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
             cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
-        } else {
+        }
+        else
+        {
             cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
             cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
         }
@@ -329,20 +328,29 @@ inline void _llk_unpack_tilizeA_B_(
         TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
         // Run MOP
-        if constexpr (zero_srcA) {
-            if (num_faces == 4) {
-                if (n == 0) {
+        if constexpr (zero_srcA)
+        {
+            if (num_faces == 4)
+            {
+                if (n == 0)
+                {
                     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
                     ckernel::ckernel_template::run(instrn_buffer);
-                } else {
+                }
+                else
+                {
                     ckernel::ckernel_template::run(instrn_buffer);
                     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
                     TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
                 }
-            } else {
+            }
+            else
+            {
                 ckernel::ckernel_template::run(instrn_buffer);
             }
-        } else {
+        }
+        else
+        {
             ckernel::ckernel_template::run(instrn_buffer);
         }
 
