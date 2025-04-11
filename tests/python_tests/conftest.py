@@ -5,7 +5,7 @@ import pytest
 import os
 import logging
 import subprocess
-from helpers.output_test_results import format_results, pass_fail_results
+from helpers.output_test_results import format_results
 
 
 all_test_results = []

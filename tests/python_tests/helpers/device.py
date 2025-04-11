@@ -24,6 +24,9 @@ def collect_results(
 ):
     read_words_cnt = calculate_read_words_count(formats.pack_dst, sfpu)
     read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
+    print(f"\nread_data: {read_data}\n")
+    int_to_bytes_l = [int_to_bytes_list(data) for data in read_data]
+    print(f"\nint_to_bytes_l: {int_to_bytes_l}\n")
     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
     res_from_L1 = get_result_from_device(formats, read_data_bytes, sfpu)
     return res_from_L1

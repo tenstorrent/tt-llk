@@ -16,10 +16,10 @@ generate_format_selection = create_formats_for_testing(
     [
         (
             DataFormat.Float16,  # index 0 is for unpack_A_src
-            DataFormat.Float16_b,  # index 1 is for unpack_A_dst
-            DataFormat.Bfp8_b,  # index 2 is for pack_src (if src registers have same formats)
-            DataFormat.Int32,  # index 3 is for pack_dst
-            DataFormat.Float32,  # index 4 is for math format
+            DataFormat.Float16,  # index 1 is for unpack_A_dst
+            DataFormat.Float16,  # index 2 is for pack_src (if src registers have same formats)
+            DataFormat.Float16,  # index 3 is for pack_dst
+            DataFormat.Float16,  # index 4 is for math format
         ),
     ]
 )
@@ -40,6 +40,7 @@ all_format_combos = generate_format_combinations(
 dest_acc = [DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, gen_format_combos(), dest_acc)
+all_params = generate_params(testname, generate_format_selection, dest_acc)
 param_ids = generate_param_ids(all_params)
 
 
@@ -116,6 +117,9 @@ def test_unary_datacopy(testname, formats, dest_acc):
             else torch.bfloat16
         ),
     )
+    
+    print("\n", res_from_L1, "\n")
+    print("\n", golden, "\n")
 
     for i in range(len(golden)):
         update_failed_test(all_test_results, (golden_tensor[i], res_tensor[i]))

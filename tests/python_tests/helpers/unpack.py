@@ -4,13 +4,17 @@
 # unpack.py
 
 import struct
-import torch
 from .utils import reverse_endian_chunk
 from .format_config import DataFormat
 
 
 def int_to_bytes_list(n):
-    return [(n >> (24 - i * 8)) & 0xFF for i in range(4)]
+    # return [(n >> (24 - i * 8)) & 0xFF for i in range(2,4)] + [(n >> (24 - i * 8)) & 0xFF for i in range(0,2)]
+    b0 = (n >> 0) & 0xFF
+    b1 = (n >> 8) & 0xFF
+    b2 = (n >> 16) & 0xFF
+    b3 = (n >> 24) & 0xFF
+    return [b1, b0, b3, b2]
 
 
 def unpack_fp16(packed_list, unpack_src, pack_dst):
@@ -20,10 +24,13 @@ def unpack_fp16(packed_list, unpack_src, pack_dst):
         return unpacked_value
 
     limited_packed_list = packed_list[:2048]
+    print(f"\npacked_list: {packed_list}\n")
+
     result = [
         bytes_to_float16(limited_packed_list[i : i + 2])
         for i in range(0, len(limited_packed_list), 2)
     ]
+    print(f"\nresult: {result}\n")
 
     # Patch Up! Fixes incorrect reading of numbers in L1:
     # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
@@ -149,11 +156,11 @@ def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
     # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
     # This caused the test to fail as the results were correctly computed but read from L1 incorrectly.
     # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
-    if unpack_src != pack_dst:
-        for i in range(0, len(bfloat16_values), 2):
-            bfloat16_values[i], bfloat16_values[i + 1] = (
-                bfloat16_values[i + 1],
-                bfloat16_values[i],
-            )
+    # if unpack_src == DataFormat.Float16:
+    #     for i in range(0, len(bfloat16_values), 2):
+    #         bfloat16_values[i], bfloat16_values[i + 1] = (
+    #             bfloat16_values[i + 1],
+    #             bfloat16_values[i],
+    #         )
 
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
