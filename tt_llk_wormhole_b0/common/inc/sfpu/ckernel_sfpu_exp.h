@@ -83,6 +83,17 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
     return out;
 }
 
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+void _calculate_fast_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0)
+{
+#pragma GCC unroll 8
+    for (int d = 0; d < iterations; d++)
+    {
+        sfpi::dst_reg[0] = _calculate_exponential_body_<APPROXIMATION_MODE>(exp_base_scale_factor);
+        sfpi::dst_reg++;
+    }
+}
+
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX = true>
 void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0)
 {

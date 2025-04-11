@@ -92,6 +92,7 @@ class MathOperation(Enum):
     Sqrt = "SFPU_OP_SQRT"
     Square = "SFPU_OP_SQUARE"
     Log = "SFPU_OP_LOG"
+    Exp = "SFPU_OP_EXP"
     ReduceColumn = "REDUCE_COL_OPERATION"
     ReduceRow = "REDUCE_ROW_OPERATION"
     ReduceScalar = "REDUCE_SCALAR_OPERATION"

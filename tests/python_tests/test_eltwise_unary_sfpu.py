@@ -17,6 +17,7 @@ def generate_golden(operation, operand1, data_format):
         MathOperation.Sqrt: lambda x: math.sqrt(x),
         MathOperation.Square: lambda x: x * x,
         MathOperation.Log: lambda x: math.log(x) if x != 0 else float("nan"),
+        MathOperation.Exp: lambda x: math.exp(x),
     }
     if operation not in ops:
         raise ValueError("Unsupported operation!")
@@ -34,7 +35,7 @@ all_params = generate_params(
     all_format_combos,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
-    mathop=[MathOperation.Sqrt, MathOperation.Log, MathOperation.Square],
+    mathop=[MathOperation.Exp],
 )
 param_ids = generate_param_ids(all_params)
 

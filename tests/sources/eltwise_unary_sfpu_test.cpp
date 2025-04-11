@@ -67,6 +67,10 @@ void call_sfpu_operation(SfpuType operation)
         case SfpuType::square:
             ckernel::sfpu::_calculate_square_<APPROX_MODE, 10>(10);
             break;
+        case SfpuType::exponential:
+            ckernel::sfpu::_init_exponential_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false, 10>(10, 2);
+            break;
         default:
             return;
     }
