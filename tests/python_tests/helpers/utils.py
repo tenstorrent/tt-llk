@@ -56,6 +56,15 @@ def calculate_read_words_count(format, sfpu=False):
 
     return format_sizes[format]
 
+def calculate_read_byte_count(format, sfpu=False):
+    if format not in format_sizes:
+        raise ValueError(f"Unsupported format: {format}")
+
+    if sfpu:  # for now just for 16 bit formats
+        return 256 if format in [DataFormat.Float32, DataFormat.Int32] else 128
+
+    return format_sizes[format]
+
 
 def reverse_endian_chunk(input_list, chunk_size=4):
     output_list = []

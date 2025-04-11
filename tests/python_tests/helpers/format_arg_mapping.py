@@ -76,10 +76,10 @@ pack_dst_dict = {
 }
 
 format_sizes = {
-    DataFormat.Float32: 1024,
-    DataFormat.Float16: 512,
-    DataFormat.Float16_b: 512,
-    DataFormat.Bfp8_b: 272,
+    DataFormat.Float32: 4,
+    DataFormat.Float16: 2,
+    DataFormat.Float16_b: 2,
+    DataFormat.Bfp8_b: 1,
     DataFormat.Int32: 1024,
 }
 

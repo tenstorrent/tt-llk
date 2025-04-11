@@ -21,7 +21,6 @@ from .unpack import (
     unpack_float32,
     unpack_int32,
     unpack_bfp8_b,
-    int_to_bytes_list,
 )
 from .utils import (
     run_shell_command,
@@ -30,6 +29,7 @@ from .utils import (
     format_kernel_list,
     print_faces,
     get_chip_architecture,
+    calculate_read_byte_count,
 )
 from .device import (
     collect_results,

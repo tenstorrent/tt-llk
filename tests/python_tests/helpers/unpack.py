@@ -4,17 +4,14 @@
 # unpack.py
 
 import struct
+import torch
 from .utils import reverse_endian_chunk
 from .format_config import DataFormat
 
 
-def int_to_bytes_list(n):
-    # return [(n >> (24 - i * 8)) & 0xFF for i in range(2,4)] + [(n >> (24 - i * 8)) & 0xFF for i in range(0,2)]
-    b0 = (n >> 0) & 0xFF
-    b1 = (n >> 8) & 0xFF
-    b2 = (n >> 16) & 0xFF
-    b3 = (n >> 24) & 0xFF
-    return [b1, b0, b3, b2]
+def flip_bytes(list_of_bytes):
+    return list_of_bytes[::-1]
+    
 
 
 def unpack_fp16(packed_list, unpack_src, pack_dst):
@@ -27,19 +24,19 @@ def unpack_fp16(packed_list, unpack_src, pack_dst):
     print(f"\npacked_list: {packed_list}\n")
 
     result = [
-        bytes_to_float16(limited_packed_list[i : i + 2])
+        bytes_to_float16(limited_packed_list[i : i + 2][::-1])
         for i in range(0, len(limited_packed_list), 2)
     ]
     print(f"\nresult: {result}\n")
 
-    # Patch Up! Fixes incorrect reading of numbers in L1:
-    # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
-    # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
-    # This caused the test to fail as the results were correctly computed but read incorrectly.
-    # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
-    if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
-        for i in range(0, len(result), 2):
-            result[i], result[i + 1] = result[i + 1], result[i]
+    # # Patch Up! Fixes incorrect reading of numbers in L1:
+    # # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
+    # # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
+    # # This caused the test to fail as the results were correctly computed but read incorrectly.
+    # # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
+    # if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
+    #     for i in range(0, len(result), 2):
+    #         result[i], result[i + 1] = result[i + 1], result[i]
     return result
 
 
@@ -51,7 +48,7 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
 
     limited_packed_list = packed_list[:2048]
     result = [
-        bytes_to_bfloat16(limited_packed_list[i : i + 2])
+        bytes_to_bfloat16(limited_packed_list[i : i + 2][::-1])
         for i in range(0, len(limited_packed_list), 2)
     ]
 
@@ -75,9 +72,10 @@ def unpack_float32(packed_list):
         bytes_data = bytes(byte_list)
         unpacked_value = struct.unpack(">f", bytes_data)[0]
         return unpacked_value
-
+    
+    # print(f"\npacked_list: {[int(byte) for byte in packed_list]}\n")
     return [
-        bytes_to_float32(packed_list[i : i + 4]) for i in range(0, len(packed_list), 4)
+        bytes_to_float32(packed_list[i : i + 4][::-1]) for i in range(0, len(packed_list), 4)
     ]
 
 
@@ -145,22 +143,11 @@ def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
     for i in range(len(reversed_exponents)):
         exponent = reversed_exponents[i]
         bfp8_mantissas = mantissas[i * 16 : (i + 1) * 16]
-        reversed_sign_mantissa = reverse_endian_chunk(bfp8_mantissas)
+        reversed_sign_mantissa = reversed#reverse_endian_chunk(bfp8_mantissas)
         block_bfloat16_values = bfp8_to_float_block(
             exponent, reversed_sign_mantissa, unpacked_bfp8
         )
         bfloat16_values.extend(block_bfloat16_values)
 
-    # Patch Up! Fixes incorrect reading of numbers in L1:
-    # When input source i.e `unpack_src` is not BFP8_B, but it is packed as BFP8_B then consecutive pairs of numbers are inverted and placed in L1.
-    # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
-    # This caused the test to fail as the results were correctly computed but read from L1 incorrectly.
-    # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
-    # if unpack_src == DataFormat.Float16:
-    #     for i in range(0, len(bfloat16_values), 2):
-    #         bfloat16_values[i], bfloat16_values[i + 1] = (
-    #             bfloat16_values[i + 1],
-    #             bfloat16_values[i],
-    #         )
 
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
