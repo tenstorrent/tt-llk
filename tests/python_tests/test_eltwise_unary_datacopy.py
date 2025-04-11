@@ -123,11 +123,16 @@ def test_unary_datacopy(testname, formats, dest_acc):
             else torch.bfloat16
         ),
     )
+    
+    print("\n", res_from_L1, "\n")
+    print("\n", golden, "\n")
 
     for i in range(len(golden)):
+        update_failed_test(all_test_results, (golden_tensor[i], res_tensor[i]))
         assert torch.isclose(
             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
         ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
 
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.99
+    update_passed_test(all_test_results, pcc)
