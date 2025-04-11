@@ -105,7 +105,8 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                 ckernel_template::run(instrn_buffer);
             }
             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
-            if (num_faces == 4) {
+            if (num_faces == 4)
+            {
 #pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < outerloop; n++)
                 { // N-num faces
@@ -188,7 +189,8 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                 }
             }
             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
-            if (num_faces == 4) {
+            if (num_faces == 4)
+            {
                 if constexpr (high_fidelity)
                 {
 #pragma GCC unroll 0
@@ -206,7 +208,8 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                                 TT_ZEROACC(
                                     ZERO_ACC_MODE,
                                     ADDR_MOD_1,
-                                    ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
+                                    ((get_dest_buffer_base() >> 4) + (dst_index << 3)) +
+                                        (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
                             }
                             else
                             {
@@ -233,7 +236,8 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                                 TT_ZEROACC(
                                     ZERO_ACC_MODE,
                                     ADDR_MOD_1,
-                                    ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
+                                    ((get_dest_buffer_base() >> 4) + (dst_index << 3)) +
+                                        (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
                             }
                             else
                             {
