@@ -316,23 +316,17 @@ inline void _llk_unpack_tilizeA_B_(
         // Run MOP
         if constexpr (zero_srcA)
         {
-            if (num_faces == 4)
+            if (num_faces == 4 && n == 0)
             {
-                if (n == 0)
-                {
-                    TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
-                    ckernel::ckernel_template::run(instrn_buffer);
-                }
-                else
-                {
-                    ckernel::ckernel_template::run(instrn_buffer);
-                    TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
-                    TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
-                }
+                TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
             }
-            else
+
+            ckernel::ckernel_template::run(instrn_buffer);
+
+            if (num_faces == 4 && n != 0)
             {
-                ckernel::ckernel_template::run(instrn_buffer);
+                TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
+                TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
             }
         }
         else
