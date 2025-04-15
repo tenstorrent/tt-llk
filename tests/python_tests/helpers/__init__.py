@@ -5,7 +5,7 @@ from .format_config import FormatConfig, DataFormat, create_formats_for_testing
 from .stimuli_generator import flatten_list, generate_stimuli
 from .format_arg_mapping import (
     format_dict,
-    format_sizes,
+    format_num_bytes,
     ApproximationMode,
     MathOperation,
     ReduceDimension,
@@ -24,11 +24,11 @@ from .unpack import (
 )
 from .utils import (
     run_shell_command,
-    calculate_read_words_count,
     compare_pcc,
     format_kernel_list,
     print_faces,
     get_chip_architecture,
+    calculate_read_byte_count,
 )
 from .device import (
     collect_results,

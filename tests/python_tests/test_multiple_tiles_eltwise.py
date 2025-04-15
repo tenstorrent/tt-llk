@@ -112,7 +112,7 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     res_from_L1 = []
 
     for address in pack_addresses:
-        res_from_L1.append(collect_results(formats, address))
+        res_from_L1.append(collect_results(formats, len(src_A), address))
 
     res_from_L1 = flatten_list(res_from_L1)
 

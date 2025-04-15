@@ -18,11 +18,14 @@ from helpers.param_config import *
 
 def collect_results(
     formats: FormatConfig,
+    tensor_size: int,
     address: int = 0x1C000,
     core_loc: str = "0,0",
     sfpu: bool = False,
 ):
-    read_data = read_from_device(core_loc, address, num_bytes=4096)
+
+    read_bytes_cnt = calculate_read_byte_count(formats, tensor_size, sfpu)
+    read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
     res_from_L1 = get_result_from_device(formats, read_data, sfpu)
     return res_from_L1
 
@@ -102,6 +105,7 @@ def get_result_from_device(
     read_data_bytes: bytes,
     core_loc: str = "0,0",
     sfpu: bool = False,
+    num_tiles: int = 1,
 ):
     # Dictionary of format to unpacking function mappings
     unpackers = {
@@ -116,6 +120,14 @@ def get_result_from_device(
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
     else:
         unpack_func = unpackers.get(formats.pack_dst)
+
+    if formats.pack_dst in [
+        DataFormat.Float16_b,
+        DataFormat.Float16,
+    ]:  # and num_tiles > 1:
+        read_data_bytes = read_data_bytes[
+            :2048
+        ]  # truncating tensor size so that we only read one tile at a time
 
     if unpack_func:
         num_args = len(inspect.signature(unpack_func).parameters)
