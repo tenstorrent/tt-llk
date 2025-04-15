@@ -53,7 +53,6 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
     else:
         pytest.skip("To be implemented")
 
-
     return result.view(1024)
 
 

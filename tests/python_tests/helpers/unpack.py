@@ -5,8 +5,7 @@
 
 import struct
 import torch
-from .utils import reverse_endian_chunk
-from .format_config import DataFormat
+
 
 def unpack_fp16(packed_list, unpack_src, pack_dst):
     def bytes_to_float16(byte_list):
@@ -20,6 +19,7 @@ def unpack_fp16(packed_list, unpack_src, pack_dst):
         bytes_to_float16(limited_packed_list[i : i + 2][::-1])
         for i in range(0, len(limited_packed_list), 2)
     ]
+
 
 def unpack_bfp16(packed_list, unpack_src, pack_dst):
     def bytes_to_bfloat16(byte_list):
@@ -39,9 +39,10 @@ def unpack_float32(packed_list):
         bytes_data = bytes(byte_list)
         unpacked_value = struct.unpack(">f", bytes_data)[0]
         return unpacked_value
-    
+
     return [
-        bytes_to_float32(packed_list[i : i + 4][::-1]) for i in range(0, len(packed_list), 4)
+        bytes_to_float32(packed_list[i : i + 4][::-1])
+        for i in range(0, len(packed_list), 4)
     ]
 
 
@@ -112,6 +113,5 @@ def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
             exponent, bytes(bfp8_mantissas), unpacked_bfp8
         )
         bfloat16_values.extend(block_bfloat16_values)
-
 
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
