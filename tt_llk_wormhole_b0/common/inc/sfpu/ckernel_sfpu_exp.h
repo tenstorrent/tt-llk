@@ -8,7 +8,6 @@
 #include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-
 namespace ckernel
 {
 namespace sfpu
@@ -190,12 +189,13 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
             }
             if constexpr (APPROXIMATION_MODE)
             {
-                v_if (val >= 89)
-                {
-                    sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
-                    sfpi::dst_reg[0]     = val_inf;
-                }
-                v_elseif (val < -42)
+                /*Remove check for large positive since all SDPA values are <= 0*/
+                // v_if (val >= 89)
+                // {
+                //     sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
+                //     sfpi::dst_reg[0]     = val_inf;
+                // }
+                v_if (val < -42)
                 {
                     sfpi::dst_reg[0] = 0.0f;
                 }
@@ -218,7 +218,6 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
             }
             else
             {
-                // Force sign to 0 (make number positive)
                 sfpi::vFloat result = _sfpu_exp_(sfpi::setsgn(val, 0));
 
                 v_if (val < 0)
