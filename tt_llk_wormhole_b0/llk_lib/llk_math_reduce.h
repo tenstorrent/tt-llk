@@ -35,43 +35,40 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         {
             TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
+        else if constexpr (HIGH_FIDELITY)
+        {
+            ckernel_template::run(instrn_buffer);
+            TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+        }
         else
         {
-            if constexpr (HIGH_FIDELITY)
-            {
-                ckernel_template::run(instrn_buffer);
-                TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
-            }
-            else
-            {
-                TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-            }
+            TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
 
         if constexpr (type == PoolType::MAX)
         {
             TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
+        else if constexpr (HIGH_FIDELITY)
+        {
+            ckernel_template::run(instrn_buffer);
+        }
         else
         {
-            if constexpr (HIGH_FIDELITY)
-            {
-                ckernel_template::run(instrn_buffer);
-            }
-            else
-            {
-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-            }
+            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
 
-        // Workaround for tenstorrent/budabackend#1948
+        // Datums stored in int32 dest cannot be moved to SrcB which is configured for int8 inputs
+        // Cast int32 datums to int8 using SFPU instructions (load int32, store int8) before moving data to srcB
+        // Besides SFPU instructions to do cast we also need to set chicken bit FP16A_FORCE_Enable to force dest
+        // view to be fp16a as int8 datums are stored in src registers as fp16a
         if constexpr (is_int_fpu_en)
         {
             TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 0);
-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 0);
-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 2);
-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 2);
+            TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 0 /*DEST offset*/);
+            TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 0 /*DEST offset*/);
+            TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 2 /*DEST offset*/);
+            TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 2 /*DEST offset*/);
             TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
             TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
         }
@@ -106,7 +103,6 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
 
         if (num_faces == 2 && !narrow_tile)
         {
-            // TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_ABD);
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
         }
         else
@@ -129,42 +125,39 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             {
                 TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
+            else if constexpr (HIGH_FIDELITY)
+            {
+                ckernel_template::run(instrn_buffer);
+                TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+            }
             else
             {
-                if constexpr (HIGH_FIDELITY)
-                {
-                    ckernel_template::run(instrn_buffer);
-                    TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
-                }
-                else
-                {
-                    TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-                }
+                TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
 
             if constexpr (type == PoolType::MAX)
             {
                 TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
+            else if constexpr (HIGH_FIDELITY)
+            {
+                ckernel_template::run(instrn_buffer);
+            }
             else
             {
-                if constexpr (HIGH_FIDELITY)
-                {
-                    ckernel_template::run(instrn_buffer);
-                }
-                else
-                {
-                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-                }
+                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
-            // Workaround for tenstorrent/budabackend#1948
+            // Datums stored in int32 dest cannot be moved to SrcB which is configured for int8 inputs
+            // Cast int32 datums to int8 using SFPU instructions (load int32, store int8) before moving data to srcB
+            // Besides SFPU instructions to do cast we also need to set chicken bit FP16A_FORCE_Enable to force dest
+            // view to be fp16a as int8 datums are stored in src registers as fp16a
             if constexpr (is_int_fpu_en)
             {
                 TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
-                TTI_SFPLOAD(0, 4, ADDR_MOD_0, 0);
-                TTI_SFPSTORE(0, 5, ADDR_MOD_0, 0);
-                TTI_SFPLOAD(0, 4, ADDR_MOD_0, 2);
-                TTI_SFPSTORE(0, 5, ADDR_MOD_0, 2);
+                TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 0 /*DEST offset*/);
+                TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 0 /*DEST offset*/);
+                TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 2 /*DEST offset*/);
+                TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 2 /*DEST offset*/);
                 TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
                 TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
             }
