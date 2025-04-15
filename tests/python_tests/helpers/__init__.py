@@ -5,7 +5,6 @@ from .format_config import FormatConfig, DataFormat, create_formats_for_testing
 from .stimuli_generator import flatten_list, generate_stimuli
 from .format_arg_mapping import (
     format_dict,
-    format_num_bytes,
     ApproximationMode,
     MathOperation,
     ReduceDimension,

@@ -5,7 +5,6 @@ import os
 import torch
 import numpy as np
 import subprocess
-from .format_arg_mapping import format_num_bytes
 from .format_config import DataFormat, FormatConfig
 
 torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
@@ -48,20 +47,10 @@ def run_shell_command(command: str):
 
 
 def calculate_read_byte_count(format: FormatConfig, array_size: int, sfpu=False) -> int:
-    num_elements_per_word = (
-        4 // format_num_bytes[format.pack_dst]
-    )  # num_bytes_per_word/num_element_bytes
-    print(f"\nnum_elements_per_word: {num_elements_per_word}")
-    num_words = (
-        array_size // num_elements_per_word
-    )  # num_elements // num_elements_per_word
-    print(f"\nnum_words: {num_words}")
-    num_bytes = num_words * 4  # num_words * num_bytes_per_word
-    print(f"\nnum_bytes: {num_bytes}")
+    total_bytes = array_size * format.pack_dst.size
     if format.pack_dst == DataFormat.Bfp8_b:
-        num_blocks = num_words // 4
-        num_bytes += num_blocks  # note: in bfp8_b each block is represented by an extra byte in order to represent the exponent
-    return int(num_bytes)
+        total_bytes += total_bytes // 16
+    return total_bytes
 
 
 def reverse_endian_chunk(input_list, chunk_size=4):

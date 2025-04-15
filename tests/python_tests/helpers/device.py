@@ -15,6 +15,8 @@ import inspect
 import time
 from helpers.param_config import *
 
+MAX_READ_BYTE_SIZE_16BIT = 2048
+
 
 def collect_results(
     formats: FormatConfig,
@@ -105,7 +107,6 @@ def get_result_from_device(
     read_data_bytes: bytes,
     core_loc: str = "0,0",
     sfpu: bool = False,
-    num_tiles: int = 1,
 ):
     # Dictionary of format to unpacking function mappings
     unpackers = {
@@ -120,14 +121,6 @@ def get_result_from_device(
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
     else:
         unpack_func = unpackers.get(formats.pack_dst)
-
-    if formats.pack_dst in [
-        DataFormat.Float16_b,
-        DataFormat.Float16,
-    ]:  # and num_tiles > 1:
-        read_data_bytes = read_data_bytes[
-            :2048
-        ]  # truncating tensor size so that we only read one tile at a time
 
     if unpack_func:
         num_args = len(inspect.signature(unpack_func).parameters)
