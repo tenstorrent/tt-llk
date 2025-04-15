@@ -92,7 +92,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_tilize_A_init(c
     }
     tile_descriptor.f.x_dim          = 1;
     tile_descriptor.f.y_dim          = c_dim_size * 8;
-    tile_descriptor.f.z_dim          = unpB_num_faces;
+    tile_descriptor.f.z_dim          = 128;
     for (uint i = 0; i < TILE_DESC_SIZE; i++)
     {
         cfg[THCON_SEC1_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
