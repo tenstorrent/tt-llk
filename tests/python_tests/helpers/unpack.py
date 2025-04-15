@@ -32,14 +32,14 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
     ]
 
 
-def unpack_float32(packed_list):
-    def bytes_to_float32(byte_list):
+def unpack_fp32(packed_list):
+    def bytes_to_fp32(byte_list):
         bytes_data = bytes(byte_list)
         unpacked_value = struct.unpack("<f", bytes_data)[0]
         return unpacked_value
 
     return [
-        bytes_to_float32(packed_list[i : i + 4]) for i in range(0, len(packed_list), 4)
+        bytes_to_fp32(packed_list[i : i + 4]) for i in range(0, len(packed_list), 4)
     ]
 
 

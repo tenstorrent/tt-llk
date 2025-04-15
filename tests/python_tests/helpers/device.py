@@ -107,7 +107,7 @@ def get_result_from_device(
     unpackers = {
         DataFormat.Float16: unpack_fp16,
         DataFormat.Float16_b: unpack_bfp16,
-        DataFormat.Float32: unpack_float32,
+        DataFormat.Float32: unpack_fp32,
         DataFormat.Int32: unpack_int32,
     }
 
