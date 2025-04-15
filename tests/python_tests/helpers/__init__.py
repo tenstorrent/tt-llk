@@ -21,7 +21,6 @@ from .unpack import (
     unpack_float32,
     unpack_int32,
     unpack_bfp8_b,
-    int_to_bytes_list,
 )
 from .utils import (
     run_shell_command,
