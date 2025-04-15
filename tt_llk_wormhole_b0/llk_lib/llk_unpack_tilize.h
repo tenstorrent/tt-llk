@@ -150,7 +150,7 @@ inline void unpack_tilize_to_dest_impl(
     std::uint32_t top_face_offset_address,
     std::uint32_t bot_face_offset_address)
 {
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile uint tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Unpack to dest register
     set_dst_write_addr(unp_cfg_context, unpack_src_format);
