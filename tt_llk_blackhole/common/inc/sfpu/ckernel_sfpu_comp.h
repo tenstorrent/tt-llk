@@ -1,22 +1,26 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
+#include "ckernel_defs.h"
+#include "ckernel.h"
 #include "ckernel_sfpu_is_fp16_zero.h"
+
 #include "sfpi.h"
+
+using namespace sfpi;
 
 namespace ckernel
 {
 namespace sfpu
 {
 
-sfpi_inline void _calculate_comp_init_flag_(bool check, sfpi::vFloat& flag1, sfpi::vFloat& flag2, float init)
+sfpi_inline void _calculate_comp_init_flag_(bool check, vFloat& flag1, vFloat& flag2, float init)
 {
     flag1 = init;
-    if (check)
-    {
+    if (check) {
         flag2 = init;
     }
 }
@@ -24,6 +28,7 @@ sfpi_inline void _calculate_comp_init_flag_(bool check, sfpi::vFloat& flag1, sfp
 template <bool APPROXIMATION_MODE, bool invert_output, bool check_zero, bool second_check, bool is_less_than_equal_zero, int ITERATIONS>
 inline void _calculate_comp_(const int iterations, uint exponent_size_8)
 {
+
     // output_0 and output_1 hold the outputs use use when a zero or negative check is true/false.
     // False = 0.0 = kCONST_0 (5/8-bit exponent format)
     // True  = 1.0 = kCONST_1_FP16B (8-bit exponent format)
@@ -35,34 +40,28 @@ inline void _calculate_comp_(const int iterations, uint exponent_size_8)
 
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat v = sfpi::dst_reg[0];
-        sfpi::vFloat flag1, flag2;
-        if constexpr (check_zero)
+        vFloat v = dst_reg[0];
+        vFloat flag1, flag2;
+        if constexpr(check_zero)
         {
-            v_if (_sfpu_is_fp16_zero_(v, exponent_size_8))
-            {
+            v_if (_sfpu_is_fp16_zero_(v, exponent_size_8)) {
                 _calculate_comp_init_flag_(second_check, flag1, flag2, output_0);
-            }
-            v_else
-            {
+            } v_else {
                 _calculate_comp_init_flag_(second_check, flag1, flag2, output_1);
             }
             v_endif;
         }
         else
         {
-            v_if (v < 0.0F)
-            {
+            v_if (v < 0.0F) {
                 _calculate_comp_init_flag_(second_check, flag1, flag2, output_0);
-            }
-            v_else
-            {
+            } v_else {
                 _calculate_comp_init_flag_(second_check, flag1, flag2, output_1);
             }
             v_endif;
         }
 
-        sfpi::vFloat result;
+        vFloat result;
         if constexpr (second_check)
         {
             // less_than_equal_zero
@@ -71,9 +70,8 @@ inline void _calculate_comp_(const int iterations, uint exponent_size_8)
             // Do a bitwise Or (flag1 | flag2) to get <= condition.
             // flag1 < 0 OR flag2 == 0 => DST is Less than or Equal to zero.
             // Result will be either 0x0000(0.0) or 0x3F80(1.0)
-            if constexpr (is_less_than_equal_zero)
-            {
-                result = sfpi::reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vUInt>(flag1) | sfpi::reinterpret<sfpi::vUInt>(flag2));
+            if constexpr (is_less_than_equal_zero) {
+                result = reinterpret<vFloat>(reinterpret<vUInt>(flag1) | reinterpret<vUInt>(flag2));
             }
             else
             {
@@ -83,17 +81,15 @@ inline void _calculate_comp_(const int iterations, uint exponent_size_8)
                 // Do a bitwise And (flag1 & flag2) to get > condition.
                 // flag2 >= 0 AND flag1 != 0 => DST is Greater than zero
                 // Result will be either 0x0000(0.0) or 0x3F80(1.0)
-                result = sfpi::reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vUInt>(flag1) & sfpi::reinterpret<sfpi::vUInt>(flag2));
+                result = reinterpret<vFloat>(reinterpret<vUInt>(flag1) & reinterpret<vUInt>(flag2));
             }
-        }
-        else
-        {
+        } else {
             result = flag1;
         }
 
-        sfpi::dst_reg[0] = result;
+        dst_reg[0] = result;
 
-        sfpi::dst_reg++;
+        dst_reg++;
     }
 }
 

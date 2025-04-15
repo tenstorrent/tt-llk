@@ -1,12 +1,16 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "ckernel_addrmod.h"
-#include "ckernel_ops.h"
+#include "ckernel_defs.h"
+#include "ckernel.h"
+#include "noc_nonblocking_api.h"
+
 #include "sfpi.h"
+
+using namespace sfpi;
 
 namespace ckernel
 {
@@ -16,7 +20,7 @@ namespace sfpu
 template <bool APPROXIMATION_MODE /*unused*/, int ITERATIONS /*unused*/>
 inline void _calculate_cumsum_(const bool first)
 {
-    if (first)
+    if(first)
     {
         // Clear context for F0
         TTI_SFPMOV(0, 9, 4, 0);
@@ -150,25 +154,24 @@ template <bool APPROXIMATION_MODE /*unused*/>
 inline void _cumsum_init_()
 {
     load_replay_buf<0, 16, 0>(
-        []
-        {
-            TTI_SFPADD(10, 7, 0, 0, 0);
-            TTI_SFPNOP;
-            TTI_SFPADD(10, 0, 1, 1, 0);
-            TTI_SFPNOP;
-            TTI_SFPADD(10, 1, 2, 2, 0);
-            TTI_SFPNOP;
-            TTI_SFPADD(10, 2, 3, 3, 0);
-            TTI_SFPNOP;
-            TTI_SFPADD(10, 3, 4, 4, 0);
-            TTI_SFPNOP;
-            TTI_SFPADD(10, 4, 5, 5, 0);
-            TTI_SFPNOP;
-            TTI_SFPADD(10, 5, 6, 6, 0);
-            TTI_SFPNOP;
-            TTI_SFPADD(10, 6, 7, 7, 0);
-            TTI_SFPNOP;
-        });
+    [] {
+        TTI_SFPADD(10, 7, 0, 0, 0);
+        TTI_SFPNOP;
+        TTI_SFPADD(10, 0, 1, 1, 0);
+        TTI_SFPNOP;
+        TTI_SFPADD(10, 1, 2, 2, 0);
+        TTI_SFPNOP;
+        TTI_SFPADD(10, 2, 3, 3, 0);
+        TTI_SFPNOP;
+        TTI_SFPADD(10, 3, 4, 4, 0);
+        TTI_SFPNOP;
+        TTI_SFPADD(10, 4, 5, 5, 0);
+        TTI_SFPNOP;
+        TTI_SFPADD(10, 5, 6, 6, 0);
+        TTI_SFPNOP;
+        TTI_SFPADD(10, 6, 7, 7, 0);
+        TTI_SFPNOP;
+    });
 }
 
 } // namespace sfpu

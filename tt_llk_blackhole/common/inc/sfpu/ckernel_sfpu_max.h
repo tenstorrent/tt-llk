@@ -1,10 +1,15 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
+#include "ckernel_defs.h"
+#include "ckernel.h"
+
 #include "sfpi.h"
+
+using namespace sfpi;
 
 namespace ckernel
 {
@@ -16,15 +21,14 @@ inline void _calculate_max_(const int iterations)
 {
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat a = sfpi::dst_reg[0];
-        sfpi::vFloat b = sfpi::dst_reg[32];
-        v_if (a < b)
-        {
-            sfpi::dst_reg[0] = b;
+        vFloat a = dst_reg[0];
+        vFloat b = dst_reg[32];
+        v_if(a < b) {
+            dst_reg[0] = b;
         }
         v_endif;
 
-        sfpi::dst_reg++;
+        dst_reg++;
     }
 }
 

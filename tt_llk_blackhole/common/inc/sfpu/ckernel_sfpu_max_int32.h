@@ -1,11 +1,15 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2024 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
-#include "ckernel_addrmod.h"
-#include "ckernel_ops.h"
+#include "ckernel_defs.h"
+#include "ckernel.h"
+
+#include "sfpi.h"
+
+using namespace sfpi;
 
 namespace ckernel
 {
@@ -39,11 +43,11 @@ inline void _calculate_max_int32_(const int iterations)
 
         TTI_SFPCAST(0 /*lreg*/, 1 /*ldest*/, INSTR_MOD_CAST);
         // Required after cast due to a bug in Blackhole RTL.
-        TTI_SFPSETSGN(0 /* imm */, 1 /*lreg_c*/, 0 /*ldest*/, 0 /*imod*/);
+        TTI_SFPSETSGN (0 /* imm */, 1 /*lreg_c*/, 0 /*ldest*/, 0 /*imod*/);
         TTI_SFPSTORE(0, INSTR_MOD_LOAD_STORE, ADDR_MOD_7, 0);
 
         TTI_SFPENCC(0x003, 0, 0, 10);
-        sfpi::dst_reg++;
+        dst_reg++;
     }
 }
 
