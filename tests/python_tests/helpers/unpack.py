@@ -9,27 +9,25 @@ import torch
 
 def unpack_fp16(packed_list, unpack_src, pack_dst):
     def bytes_to_float16(byte_list):
-        bytes_data = bytes(byte_list[:2])
-        unpacked_value = struct.unpack(">e", bytes_data)[0]
-        return unpacked_value
+        return struct.unpack("<e", bytes(byte_list))[0]
 
     limited_packed_list = packed_list[:2048]
 
     return [
-        bytes_to_float16(limited_packed_list[i : i + 2][::-1])
+        bytes_to_float16(limited_packed_list[i : i + 2])
         for i in range(0, len(limited_packed_list), 2)
     ]
 
 
 def unpack_bfp16(packed_list, unpack_src, pack_dst):
     def bytes_to_bfloat16(byte_list):
-        bytes_data = bytes(list(byte_list[:2]) + [0, 0])  # Ensure we include padding
-        unpacked_value = struct.unpack(">f", bytes_data)[0]
+        bytes_data = b"\x00\x00" + bytes(byte_list)  # Ensure we include padding
+        unpacked_value = struct.unpack("<f", bytes_data)[0]
         return unpacked_value
 
     limited_packed_list = packed_list[:2048]
     return [
-        bytes_to_bfloat16(limited_packed_list[i : i + 2][::-1])
+        bytes_to_bfloat16(limited_packed_list[i : i + 2])
         for i in range(0, len(limited_packed_list), 2)
     ]
 
@@ -37,12 +35,11 @@ def unpack_bfp16(packed_list, unpack_src, pack_dst):
 def unpack_float32(packed_list):
     def bytes_to_float32(byte_list):
         bytes_data = bytes(byte_list)
-        unpacked_value = struct.unpack(">f", bytes_data)[0]
+        unpacked_value = struct.unpack("<f", bytes_data)[0]
         return unpacked_value
 
     return [
-        bytes_to_float32(packed_list[i : i + 4][::-1])
-        for i in range(0, len(packed_list), 4)
+        bytes_to_float32(packed_list[i : i + 4]) for i in range(0, len(packed_list), 4)
     ]
 
 
