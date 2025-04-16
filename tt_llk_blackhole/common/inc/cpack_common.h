@@ -261,10 +261,10 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     // cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32+3]=config.val[3];
 
     dest_rd_ctrl_u dest_rd_ctrl;
-    dest_rd_ctrl.val                              = 0;
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = (pack_output_src_format == (uint)DataFormat::Int32) | (pack_output_src_format == (uint)DataFormat::Float32) |
-                                                    (is_fp32_dest_acc_en ? 1 : 0);
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !is_fp32_dest_acc_en && (pack_output_src_format == (uint)DataFormat::Int8);
+    dest_rd_ctrl.val = 0;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data =
+        (pack_output_src_format == (uint)DataFormat::Int32) | (pack_output_src_format == (uint)DataFormat::Float32) | (is_fp32_dest_acc_en ? 1 : 0);
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8 = !is_fp32_dest_acc_en && (pack_output_src_format == (uint)DataFormat::Int8);
     if (pack_dst_format == (uint)DataFormat::UInt8)
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_unsigned = 1;
@@ -304,10 +304,10 @@ inline void reconfig_packer_data_format(
     TTI_WRCFG(p_gpr_pack::TMP_LO, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 2);
 
     dest_rd_ctrl_u dest_rd_ctrl;
-    dest_rd_ctrl.val                              = 0;
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = (pack_output_src_format == (uint)DataFormat::Int32) | (pack_output_src_format == (uint)DataFormat::Float32) |
-                                                    (is_fp32_dest_acc_en ? 1 : 0);
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !is_fp32_dest_acc_en && (pack_output_src_format == (uint)DataFormat::Int8);
+    dest_rd_ctrl.val = 0;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data =
+        (pack_output_src_format == (uint)DataFormat::Int32) | (pack_output_src_format == (uint)DataFormat::Float32) | (is_fp32_dest_acc_en ? 1 : 0);
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8 = !is_fp32_dest_acc_en && (pack_output_src_format == (uint)DataFormat::Int8);
     if (pack_dst_format == (uint)DataFormat::UInt8)
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_unsigned = 1;
