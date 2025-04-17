@@ -268,11 +268,10 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     dest_rd_ctrl_u dest_rd_ctrl;
     dest_rd_ctrl.val = 0;
 
-    bool is_32b_format = pack_output_src_format == static_cast<DataFormatType>(DataFormat::Int32) ||
-                         pack_output_src_format == static_cast<DataFormatType>(DataFormat::UInt32) ||
-                         pack_output_src_format == static_cast<DataFormatType>(DataFormat::Float32);
-    bool is_int8_format =
-        pack_output_src_format == static_cast<DataFormatType>(DataFormat::Int8) || pack_output_src_format == static_cast<DataFormatType>(DataFormat::UInt8);
+    bool is_32b_format = pack_src_format == static_cast<DataFormatType>(DataFormat::Int32) ||
+                         pack_src_format == static_cast<DataFormatType>(DataFormat::UInt32) ||
+                         pack_src_format == static_cast<DataFormatType>(DataFormat::Float32);
+    bool is_int8_format = pack_src_format == static_cast<DataFormatType>(DataFormat::Int8) || pack_src_format == static_cast<DataFormatType>(DataFormat::UInt8);
 
     dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || is_fp32_dest_acc_en;
     dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(is_fp32_dest_acc_en || is_32b_format) && is_int8_format;
