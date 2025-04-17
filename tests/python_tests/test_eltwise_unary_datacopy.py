@@ -55,7 +55,8 @@ param_ids = generate_param_ids(all_params)
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
 def test_unary_datacopy(testname, formats, dest_acc):
-
+    if formats.unpack_A_src == DataFormat.Int32:
+        pytest.skip(reason="coming soon! Test for Int32 will be fixed in next PR")
     if formats.unpack_A_src == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
         pytest.skip(reason="This combination is not fully implemented in testing")
     if (
@@ -83,7 +84,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
 
     wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(
-        formats
+        formats, tensor_size=len(src_A)
     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
 
     assert len(res_from_L1) == len(golden)

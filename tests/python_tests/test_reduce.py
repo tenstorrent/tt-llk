@@ -53,8 +53,6 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
     else:
         pytest.skip("To be implemented")
 
-    print(result)
-
     return result.view(1024)
 
 
@@ -113,7 +111,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
     wait_for_tensix_operations_finished()
 
     res_from_L1 = collect_results(
-        formats
+        formats, tensor_size=len(src_A)
     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
     assert len(res_from_L1) == len(golden_tensor)
 
@@ -127,7 +125,6 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
     )
     res_tensor = untilize(res_tensor, formats.pack_dst)
 
-    print("RES IN L1")
     print(res_tensor.view(32, 32))
 
     if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:

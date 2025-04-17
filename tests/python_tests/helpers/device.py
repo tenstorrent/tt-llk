@@ -4,7 +4,7 @@
 from ttexalens.tt_exalens_lib import (
     write_to_device,
     write_words_to_device,
-    read_words_from_device,
+    read_from_device,
     read_word_from_device,
     load_elf,
     run_elf,
@@ -15,17 +15,20 @@ import inspect
 import time
 from helpers.param_config import *
 
+MAX_READ_BYTE_SIZE_16BIT = 2048
+
 
 def collect_results(
     formats: FormatConfig,
+    tensor_size: int,
     address: int = 0x1C000,
     core_loc: str = "0,0",
     sfpu: bool = False,
 ):
-    read_words_cnt = calculate_read_words_count(formats.pack_dst, sfpu)
-    read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
-    read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
-    res_from_L1 = get_result_from_device(formats, read_data_bytes, sfpu)
+
+    read_bytes_cnt = calculate_read_byte_count(formats, tensor_size, sfpu)
+    read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
+    res_from_L1 = get_result_from_device(formats, read_data, sfpu)
     return res_from_L1
 
 
@@ -109,7 +112,7 @@ def get_result_from_device(
     unpackers = {
         DataFormat.Float16: unpack_fp16,
         DataFormat.Float16_b: unpack_bfp16,
-        DataFormat.Float32: unpack_float32,
+        DataFormat.Float32: unpack_fp32,
         DataFormat.Int32: unpack_int32,
     }
 
