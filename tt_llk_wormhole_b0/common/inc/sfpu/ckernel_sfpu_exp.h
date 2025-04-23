@@ -98,53 +98,53 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
         //  ROUND  : unused
         //  SIMPLE : SWAP the larger value of y and -88.5 into the LREG
         //  STORE  : store the sanitized value back to dest
-        TTI_SFPLOADMACRO(
-            4,
-            0,
-            3,
-            0);     // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  0 is targeting the even columns for rows   3: 0
-        TTI_SFPNOP; // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
-        TTI_SFPLOADMACRO(
-            5,
-            0,
-            3,
-            2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset  2 is targeting the odd  columns for rows   3: 0
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            6,
-            0,
-            3,
-            4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset  4 is targeting the even columns for rows   7: 4
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            7,
-            0,
-            3,
-            6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset  6 is targeting the odd  columns for rows   7: 4
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            4,
-            0,
-            3,
-            8); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  8 is targeting the even columns for rows  11: 8
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            5,
-            0,
-            3,
-            10); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset 10 is targeting the even columns for rows  11: 8
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            6,
-            0,
-            3,
-            12); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset 12 is targeting the odd  columns for rows  15:12
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            7,
-            0,
-            3,
-            14); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset 14 is targeting the even columns for rows  15:12
+        // TTI_SFPLOADMACRO(
+        //     4,
+        //     0,
+        //     3,
+        //     0);     // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  0 is targeting the even columns for rows   3: 0
+        // TTI_SFPNOP; // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
+        // TTI_SFPLOADMACRO(
+        //     5,
+        //     0,
+        //     3,
+        //     2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset  2 is targeting the odd  columns for rows   3: 0
+        // TTI_SFPNOP;
+        // TTI_SFPLOADMACRO(
+        //     6,
+        //     0,
+        //     3,
+        //     4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset  4 is targeting the even columns for rows   7: 4
+        // TTI_SFPNOP;
+        // TTI_SFPLOADMACRO(
+        //     7,
+        //     0,
+        //     3,
+        //     6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset  6 is targeting the odd  columns for rows   7: 4
+        // TTI_SFPNOP;
+        // TTI_SFPLOADMACRO(
+        //     4,
+        //     0,
+        //     3,
+        //     8); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  8 is targeting the even columns for rows  11: 8
+        // TTI_SFPNOP;
+        // TTI_SFPLOADMACRO(
+        //     5,
+        //     0,
+        //     3,
+        //     10); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset 10 is targeting the even columns for rows  11: 8
+        // TTI_SFPNOP;
+        // TTI_SFPLOADMACRO(
+        //     6,
+        //     0,
+        //     3,
+        //     12); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset 12 is targeting the odd  columns for rows  15:12
+        // TTI_SFPNOP;
+        // TTI_SFPLOADMACRO(
+        //     7,
+        //     0,
+        //     3,
+        //     14); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset 14 is targeting the even columns for rows  15:12
         // NOP not needed in this spot because the next LoadMacro is a computational macro which doesn't immediately use the SIMPLE unit
 
         // Macro Sequence Register 0 configured to read back in the sanitized values and calculate the approximate exponential value
@@ -260,7 +260,7 @@ inline void _init_exponential_()
         TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14] =            -88.5               = 0xc2b10000
 
         TTI_SFPLOADI(0, 0xA, 0xaa3b);
-        TTI_SFPLOADI(0, 0x8, 0x43B8);
+        TTI_SFPLOADI(0, 0x8, 0xC3B8);
         TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
 
         TTI_SFPLOADI(0, 0xA, 0xe9a3);
