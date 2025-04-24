@@ -34,6 +34,10 @@ generate_format_selection = create_formats_for_testing(
     ]
 )
 
+input_output_formats = [InputOutputFormat(DataFormat.Float32, DataFormat.Float32), InputOutputFormat(DataFormat.Float32, DataFormat.Float16), InputOutputFormat(DataFormat.Float32, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float32, DataFormat.Bfp8_b),
+                        InputOutputFormat(DataFormat.Float16, DataFormat.Float32), InputOutputFormat(DataFormat.Float16, DataFormat.Float16), InputOutputFormat(DataFormat.Float16, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b)
+                        ]
+input_output_formats = [InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b)]
 all_format_combos = generate_format_combinations(
     formats=[
         DataFormat.Float32,
@@ -45,9 +49,9 @@ all_format_combos = generate_format_combinations(
     all_same=True,
     same_src_reg_format=True,  # setting src_A and src_B register to have same format
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
-dest_acc = [DestAccumulation.No, DestAccumulation.Yes]
+dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
 testname = ["eltwise_unary_datacopy_test"]
-all_params = generate_params(testname, all_format_combos, dest_acc)
+all_params = generate_params(testname, input_output_formats, dest_acc)
 param_ids = generate_param_ids(all_params)
 
 
@@ -55,22 +59,11 @@ param_ids = generate_param_ids(all_params)
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
 def test_unary_datacopy(testname, formats, dest_acc):
-    if formats.unpack_A_src == DataFormat.Int32:
-        pytest.skip(reason="coming soon! Test for Int32 will be fixed in next PR")
-    if formats.unpack_A_src == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-        pytest.skip(reason="This combination is not fully implemented in testing")
-    if (
-        formats.unpack_A_src in [DataFormat.Float32, DataFormat.Int32]
-        and dest_acc != DestAccumulation.Yes
-    ):
-        pytest.skip(
-            reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
-        )
 
-    src_A, src_B = generate_stimuli(formats.unpack_A_src, formats.unpack_B_src)
+    src_A, src_B = generate_stimuli(formats.input, formats.input)
     srcB = torch.full((1024,), 0)
-    golden = generate_golden(src_A, formats.pack_dst)
-    write_stimuli_to_l1(src_A, src_B, formats.unpack_A_src, formats.unpack_B_src)
+    golden = generate_golden(src_A, formats.output)
+    write_stimuli_to_l1(src_A, src_B, formats.input, formats.input)
 
     test_config = {
         "formats": formats,
@@ -89,7 +82,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
 
     assert len(res_from_L1) == len(golden)
 
-    if formats.pack_dst in format_dict:
+    if formats.output in format_dict:
         atol = 0.05
         rtol = 0.1
     else:
@@ -99,8 +92,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
     golden_tensor = torch.tensor(
         golden,
         dtype=(
-            format_dict[formats.pack_dst]
-            if formats.pack_dst
+            format_dict[formats.output]
+            if formats.output
             in [
                 DataFormat.Float16,
                 DataFormat.Float16_b,
@@ -113,8 +106,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[formats.pack_dst]
-            if formats.pack_dst
+            format_dict[formats.output]
+            if formats.output
             in [
                 DataFormat.Float16,
                 DataFormat.Float16_b,

@@ -10,13 +10,15 @@ from .format_arg_mapping import (
     pack_src_dict,
     pack_dst_dict,
     math_dict,
+    input_dict,
+    output_dict,
     MathFidelity,
     DestAccumulation,
     ApproximationMode,
     MathOperation,
     ReduceDimension,
 )
-
+from .format_config import DataFormat, InputOutputFormat
 
 def generate_make_command(test_config):
     make_cmd = f"make --silent --always-make "
@@ -25,9 +27,11 @@ def generate_make_command(test_config):
     dest_acc = test_config.get(
         "dest_acc", DestAccumulation.No
     )  # default is not 32 bit dest_acc
-
-    make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.unpack_A_src]} unpack_A_dst={unpack_A_dst_dict[formats.unpack_A_dst]} unpack_B_src={unpack_B_src_dict[formats.unpack_B_src]} unpack_B_dst={unpack_B_dst_dict[formats.unpack_B_dst]} "
-    make_cmd += f"fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "
+    if isinstance(formats, InputOutputFormat):
+        make_cmd += f"input={input_dict[formats.input]} output={output_dict[formats.output]} "
+    else:
+        make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.unpack_A_src]} unpack_A_dst={unpack_A_dst_dict[formats.unpack_A_dst]} unpack_B_src={unpack_B_src_dict[formats.unpack_B_src]} unpack_B_dst={unpack_B_dst_dict[formats.unpack_B_dst]} "
+        make_cmd += f"fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "
 
     make_cmd += f"testname={testname} dest_acc={dest_acc.value} "
     mathop = test_config.get("mathop", "no_mathop")

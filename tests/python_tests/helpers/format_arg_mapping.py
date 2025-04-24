@@ -69,6 +69,22 @@ pack_dst_dict = {
     DataFormat.Int32: "PACK_DST_INT32",
 }
 
+input_dict = {
+    DataFormat.Float32: "IN_FLOAT32",
+    DataFormat.Float16: "IN_FLOAT16",
+    DataFormat.Float16_b: "IN_FLOAT16_B",
+    DataFormat.Bfp8_b: "IN_BFP8_B",
+    DataFormat.Int32: "IN_INT32",
+}
+
+output_dict = {
+    DataFormat.Float32: "OUT_FLOAT32",
+    DataFormat.Float16: "OUT_FLOAT16",
+    DataFormat.Float16_b: "OUT_FLOAT16_B",
+    DataFormat.Bfp8_b: "OUT_BFP8_B",
+    DataFormat.Int32: "OUT_INT32",
+}
+
 
 class MathOperation(Enum):
     """

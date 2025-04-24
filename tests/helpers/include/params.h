@@ -165,6 +165,42 @@ MATH_CASE(Bfp8_b)
 
 #undef MATH_CASE
 
+#define INPUT_CASE(data_format) constexpr auto IN_FORMAT = get_data_format(DataFormat::data_format);
+#if defined(IN_FLOAT16_B)
+INPUT_CASE(Float16_b)
+#endif
+#if defined(IN_FLOAT16)  
+INPUT_CASE(Float16)
+#endif
+#if defined(IN_FLOAT32)
+INPUT_CASE(Float32)
+#endif
+#if defined(IN_INT32)
+INPUT_CASE(Int32)
+#endif
+#if defined(IN_BFP8_B)
+INPUT_CASE(Bfp8_b)
+#endif
+#undef INPUT_CASE
+
+#define OUTPUT_CASE(data_format) constexpr auto OUT_FORMAT = get_data_format(DataFormat::data_format);
+#if defined(OUT_FLOAT16_B)
+OUTPUT_CASE(Float16_b)
+#endif
+#if defined(OUT_FLOAT16)
+OUTPUT_CASE(Float16)
+#endif
+#if defined(OUT_FLOAT32)
+OUTPUT_CASE(Float32)    
+#endif
+#if defined(OUT_INT32)
+OUTPUT_CASE(Int32)
+#endif
+#if defined(OUT_BFP8_B)
+OUTPUT_CASE(Bfp8_b)
+#endif
+#undef OUTPUT_CASE
+
 #ifdef ELTWISE_BINARY_ADD
 constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWADD;
 #endif
