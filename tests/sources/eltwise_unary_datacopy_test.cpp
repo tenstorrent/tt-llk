@@ -14,8 +14,17 @@
 uint32_t unp_cfg_context        = 0;
 uint32_t pack_sync_tile_dst_ptr = 0;
 
+#ifdef DEST_ACC
+const bool is_fp32_dest_acc_en = true;
+#else
+const bool is_fp32_dest_acc_en = false;
+#endif
 
-
+#if defined(UNPACK_A_SRC_INT32) || defined(UNPACK_A_SRC_FLOAT32)
+const bool unpack_to_dest = true;
+#else
+const bool unpack_to_dest = false;
+#endif
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -28,7 +37,7 @@ void run_kernel()
     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
 
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_hw_configure_<dest_acc, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
 }
 
@@ -52,16 +61,16 @@ void run_kernel()
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, dest_acc, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, dest_acc, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #endif
-    _llk_math_pack_sync_init_<DstSync::SyncFull, dest_acc>();
+    _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, dest_acc, unpack_to_dest>(
-        0, MATH_FORMAT, MATH_FORMAT);
-    _llk_math_dest_section_done_<DstSync::SyncFull, dest_acc>();
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
+        0, UNPACK_A_OUT, UNPACK_A_OUT);
+    _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -79,22 +88,22 @@ void run_kernel()
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<false, dest_acc, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
 #else
-    _llk_pack_hw_configure_<false, dest_acc>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, 16 * 16 * 4);
 #endif
 
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, dest_acc>();
+    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
 #else
     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncFull, false, dest_acc>(0, L1_ADDRESS(buffer_Dest));
-    _llk_pack_dest_section_done_<DstSync::SyncFull, dest_acc>();
+    _llk_pack_<DstSync::SyncFull, false, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Dest));
+    _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 }
 
 #endif

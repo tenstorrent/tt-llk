@@ -13,7 +13,7 @@
 #include "llk_defs.h"
 #include "llk_sfpu_types.h"
 #include "tensix_types.h"
-#include "data_format_inference.h"
+
 
 inline uint32_t L1_ADDRESS(const volatile void* buffer)
 {
@@ -27,18 +27,6 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
     return static_cast<std::underlying_type_t<DataFormat>>(format);
 }
 } // namespace
-
-#ifdef DEST_ACC
-const bool is_fp32_dest_acc_en = true;
-#else
-const bool is_fp32_dest_acc_en = false;
-#endif
-
-#if defined(UNPACK_A_SRC_INT32) || defined(UNPACK_A_SRC_FLOAT32) || defined(IN_FLOAT32) || defined(IN_INT32)
-const bool unpack_to_dest = true;
-#else
-const bool unpack_to_dest = false;
-#endif
 
 
 #define UNPACK_A_SRC_CASE(data_format) constexpr auto UNPACK_A_IN = get_data_format(DataFormat::data_format);
@@ -178,19 +166,6 @@ MATH_CASE(Bfp8_b)
 #endif
 
 #undef MATH_CASE
-
-
-#if !defined(MATH_BFP8_B) && !defined(MATH_INT32) && !defined(MATH_FLOAT32) && !defined(MATH_FLOAT16) && !defined(MATH_FLOAT16_B)
-constexpr bool dest_acc = is_fp32_dest_acc_en || format_combo_is_outlier(UNPACK_A_IN, PACK_OUT, is_fp32_dest_acc_en);
-constexpr Formats pipeline_formats = get_data_formats(UNPACK_A_IN, PACK_OUT, is_fp32_dest_acc_en);
-constexpr auto UNPACK_A_OUT = pipeline_formats.unpack_dst;
-constexpr auto UNPACK_B_IN = pipeline_formats.unpack_src;
-constexpr auto UNPACK_B_OUT = pipeline_formats.unpack_dst;
-constexpr auto PACK_IN = pipeline_formats.pack_src; 
-constexpr auto MATH_FORMAT = pipeline_formats.unpack_dst;
-#else
-constexpr bool dest_acc = is_fp32_dest_acc_en;
-#endif
 
 
 #ifdef ELTWISE_BINARY_ADD
