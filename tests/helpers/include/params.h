@@ -13,6 +13,7 @@
 #include "llk_defs.h"
 #include "llk_sfpu_types.h"
 #include "tensix_types.h"
+#include "data_format_inference.h"
 
 inline uint32_t L1_ADDRESS(const volatile void* buffer)
 {
@@ -26,6 +27,19 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
     return static_cast<std::underlying_type_t<DataFormat>>(format);
 }
 } // namespace
+
+#ifdef DEST_ACC
+const bool is_fp32_dest_acc_en = true;
+#else
+const bool is_fp32_dest_acc_en = false;
+#endif
+
+#if defined(UNPACK_A_SRC_INT32) || defined(UNPACK_A_SRC_FLOAT32) || defined(IN_FLOAT32) || defined(IN_INT32)
+const bool unpack_to_dest = true;
+#else
+const bool unpack_to_dest = false;
+#endif
+
 
 #define UNPACK_A_SRC_CASE(data_format) constexpr auto UNPACK_A_IN = get_data_format(DataFormat::data_format);
 
@@ -165,41 +179,19 @@ MATH_CASE(Bfp8_b)
 
 #undef MATH_CASE
 
-#define INPUT_CASE(data_format) constexpr auto IN_FORMAT = get_data_format(DataFormat::data_format);
-#if defined(IN_FLOAT16_B)
-INPUT_CASE(Float16_b)
-#endif
-#if defined(IN_FLOAT16)  
-INPUT_CASE(Float16)
-#endif
-#if defined(IN_FLOAT32)
-INPUT_CASE(Float32)
-#endif
-#if defined(IN_INT32)
-INPUT_CASE(Int32)
-#endif
-#if defined(IN_BFP8_B)
-INPUT_CASE(Bfp8_b)
-#endif
-#undef INPUT_CASE
 
-#define OUTPUT_CASE(data_format) constexpr auto OUT_FORMAT = get_data_format(DataFormat::data_format);
-#if defined(OUT_FLOAT16_B)
-OUTPUT_CASE(Float16_b)
+#if !defined(MATH_BFP8_B) && !defined(MATH_INT32) && !defined(MATH_FLOAT32) && !defined(MATH_FLOAT16) && !defined(MATH_FLOAT16_B)
+constexpr bool dest_acc = is_fp32_dest_acc_en || format_combo_is_outlier(UNPACK_A_IN, PACK_OUT, is_fp32_dest_acc_en);
+constexpr Formats pipeline_formats = get_data_formats(UNPACK_A_IN, PACK_OUT, is_fp32_dest_acc_en);
+constexpr auto UNPACK_A_OUT = pipeline_formats.unpack_dst;
+constexpr auto UNPACK_B_IN = pipeline_formats.unpack_src;
+constexpr auto UNPACK_B_OUT = pipeline_formats.unpack_dst;
+constexpr auto PACK_IN = pipeline_formats.pack_src; 
+constexpr auto MATH_FORMAT = pipeline_formats.unpack_dst;
+#else
+constexpr bool dest_acc = is_fp32_dest_acc_en;
 #endif
-#if defined(OUT_FLOAT16)
-OUTPUT_CASE(Float16)
-#endif
-#if defined(OUT_FLOAT32)
-OUTPUT_CASE(Float32)    
-#endif
-#if defined(OUT_INT32)
-OUTPUT_CASE(Int32)
-#endif
-#if defined(OUT_BFP8_B)
-OUTPUT_CASE(Bfp8_b)
-#endif
-#undef OUTPUT_CASE
+
 
 #ifdef ELTWISE_BINARY_ADD
 constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWADD;
@@ -227,6 +219,7 @@ constexpr auto SFPU_OPERATION = SfpuType::log;
 #ifdef SFPU_OP_SQUARE
 constexpr auto SFPU_OPERATION = SfpuType::square;
 #endif
+
 
 inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
 {

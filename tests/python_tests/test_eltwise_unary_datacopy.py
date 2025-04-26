@@ -16,28 +16,21 @@ full_sweep = False
 generate_format_selection = create_formats_for_testing(
     [
         (
-            DataFormat.Float16,  # index 0 is for unpack_A_src
+            DataFormat.Float16_b,  # index 0 is for unpack_A_src
             DataFormat.Float16_b,  # index 1 is for unpack_A_dst
-            DataFormat.Bfp8_b,  # index 2 is for pack_src (if src registers have same formats)
-            DataFormat.Int32,  # index 3 is for pack_dst
-            DataFormat.Float32,  # index 4 is for math format
-        ),
-        (
-            DataFormat.Float32,  # index 0 is for unpack_A_src
-            DataFormat.Float32,  # index 1 is for unpack_A_dst
-            DataFormat.Bfp8_b,  # index 2 is for unpack_B_src (inputs to src registers have different formats)
-            DataFormat.Int32,  # index 3 is for unpack_B_dst (inputs to src registers have different formats)
-            DataFormat.Float32,  # index 4 is for pack_src (if src registers have same formats)
-            DataFormat.Int32,  # index 5 is for pack_dst
-            DataFormat.Float32,  # index 6 is for math format
+            DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+            DataFormat.Bfp8_b,  # index 3 is for pack_dst
+            DataFormat.Float16_b,  # index 4 is for math format
         ),
     ]
 )
 
 input_output_formats = [InputOutputFormat(DataFormat.Float32, DataFormat.Float32), InputOutputFormat(DataFormat.Float32, DataFormat.Float16), InputOutputFormat(DataFormat.Float32, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float32, DataFormat.Bfp8_b),
-                        InputOutputFormat(DataFormat.Float16, DataFormat.Float32), InputOutputFormat(DataFormat.Float16, DataFormat.Float16), InputOutputFormat(DataFormat.Float16, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b)
+                        InputOutputFormat(DataFormat.Float16, DataFormat.Float32), InputOutputFormat(DataFormat.Float16, DataFormat.Float16), InputOutputFormat(DataFormat.Float16, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b),
+                        InputOutputFormat(DataFormat.Float16_b, DataFormat.Float32), InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16), InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp8_b),
+                        InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float32), InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16), InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16_b), InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Bfp8_b),
                         ]
-input_output_formats = [InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b)]
+# input_output_formats = [InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b)]
 all_format_combos = generate_format_combinations(
     formats=[
         DataFormat.Float32,
@@ -60,10 +53,10 @@ param_ids = generate_param_ids(all_params)
 )
 def test_unary_datacopy(testname, formats, dest_acc):
 
-    src_A, src_B = generate_stimuli(formats.input, formats.input)
+    src_A, src_B = generate_stimuli(formats.get_input_format(), formats.get_input_format())
     srcB = torch.full((1024,), 0)
-    golden = generate_golden(src_A, formats.output)
-    write_stimuli_to_l1(src_A, src_B, formats.input, formats.input)
+    golden = generate_golden(src_A, formats.get_output_format())
+    write_stimuli_to_l1(src_A, src_B, formats.get_input_format(), formats.get_input_format())
 
     test_config = {
         "formats": formats,
@@ -82,7 +75,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
 
     assert len(res_from_L1) == len(golden)
 
-    if formats.output in format_dict:
+    if formats.get_output_format() in format_dict:
         atol = 0.05
         rtol = 0.1
     else:
@@ -92,8 +85,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
     golden_tensor = torch.tensor(
         golden,
         dtype=(
-            format_dict[formats.output]
-            if formats.output
+            format_dict[formats.get_output_format()]
+            if formats.get_output_format()
             in [
                 DataFormat.Float16,
                 DataFormat.Float16_b,
@@ -106,8 +99,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[formats.output]
-            if formats.output
+            format_dict[formats.get_output_format()]
+            if formats.get_output_format()
             in [
                 DataFormat.Float16,
                 DataFormat.Float16_b,

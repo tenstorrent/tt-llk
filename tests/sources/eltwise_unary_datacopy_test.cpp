@@ -14,52 +14,8 @@
 uint32_t unp_cfg_context        = 0;
 uint32_t pack_sync_tile_dst_ptr = 0;
 
-#ifdef DEST_ACC
-const bool is_fp32_dest_acc_en = true;
-#else
-const bool is_fp32_dest_acc_en = false;
-#endif
 
-#if defined(UNPACK_A_SRC_INT32) || defined(UNPACK_A_SRC_FLOAT32) || defined(IN_FLOAT32) || defined(IN_INT32)
-const bool unpack_to_dest = true;
-#else
-const bool unpack_to_dest = false;
-#endif
 
-struct Formats {
-    const uint32_t unpack_src; 
-    const uint32_t unpack_dst;
-    const uint32_t pack_src;
-    const uint32_t pack_dst;
-};
-
-constexpr bool is_exponentB(uint32_t format){
-    return (format == static_cast<uint32_t>(DataFormat::Float16_b) || format == static_cast<uint32_t>(DataFormat::Bfp8_b) || format == static_cast<uint32_t>(DataFormat::Tf32));
-}
-
-constexpr bool format_combo_is_outlier(uint32_t input, uint32_t output){
-    return (is_exponentB(input) && output  == (uint32_t)DataFormat::Float16 && !is_fp32_dest_acc_en);
-}
-
-constexpr Formats get_data_formats(uint32_t input, uint32_t output)
-{
-    uint32_t unpack_in = input;
-    uint32_t unpack_out = input;
-    uint32_t pack_out   = output;
-    uint32_t pack_in;
-
-    if (input == (uint32_t)DataFormat::Float16_b && output == (uint32_t)DataFormat::Bfp8_b && !is_fp32_dest_acc_en) {
-        pack_in = static_cast<uint32_t>(DataFormat::Bfp8);
-    } else if (is_fp32_dest_acc_en) {
-        pack_in = output;
-    } else if (format_combo_is_outlier(input, output)) {
-        pack_in = output;
-    } else {
-        pack_in = input;
-    }
-    
-    return {unpack_in, unpack_out, pack_in, pack_out};
-}
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -70,14 +26,10 @@ constexpr Formats get_data_formats(uint32_t input, uint32_t output)
 void run_kernel()
 {
     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
-    constexpr bool dest_acc = is_fp32_dest_acc_en || format_combo_is_outlier(IN_FORMAT, OUT_FORMAT);
-    constexpr Formats pipeline_formats = get_data_formats(IN_FORMAT, OUT_FORMAT);
-    constexpr uint32_t unpack_a_in = pipeline_formats.unpack_src;
-    constexpr uint32_t unpack_a_out = pipeline_formats.unpack_dst;  
 
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, unpack_a_in, unpack_a_out);
-    _llk_unpack_A_hw_configure_<dest_acc, StochRndType::None>(unpack_a_in, unpack_a_out, FACE_R_DIM, 0, 4);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, unpack_a_in, unpack_a_out);
+    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_hw_configure_<dest_acc, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
 }
 
 #endif
@@ -98,21 +50,17 @@ using namespace ckernel;
 
 void run_kernel()
 {
-    constexpr bool dest_acc = is_fp32_dest_acc_en || format_combo_is_outlier(IN_FORMAT, OUT_FORMAT);
-    constexpr Formats pipeline_formats = get_data_formats(IN_FORMAT, OUT_FORMAT);
-    constexpr uint32_t unpack_a_in = pipeline_formats.unpack_src;
-    constexpr uint32_t unpack_a_out = pipeline_formats.unpack_dst;  
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, dest_acc, is_int_fpu_en>(0, 0, 4, unpack_a_out);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, dest_acc, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, dest_acc, is_int_fpu_en>(0, 0, 4, unpack_a_out);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, dest_acc, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncFull, dest_acc>();
-    _llk_math_hw_configure_<false, false>(unpack_a_out, unpack_a_out);
+    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, dest_acc, unpack_to_dest>(
-        0, unpack_a_out, unpack_a_out);
+        0, MATH_FORMAT, MATH_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncFull, dest_acc>();
 }
 
@@ -126,21 +74,17 @@ void run_kernel()
 
 void run_kernel()
 {
-    constexpr bool dest_acc = is_fp32_dest_acc_en || format_combo_is_outlier(IN_FORMAT, OUT_FORMAT);
-    constexpr Formats pipeline_formats = get_data_formats(IN_FORMAT, OUT_FORMAT);
-    constexpr uint32_t pack_in = pipeline_formats.pack_src;
-    constexpr uint32_t pack_out = pipeline_formats.pack_dst;
     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<false, dest_acc, false>(pack_in, pack_out, 16 * 16 * 4);
+    _llk_pack_hw_configure_<false, dest_acc, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
 #else
-    _llk_pack_hw_configure_<false, dest_acc>(pack_in, pack_out, 16 * 16 * 4);
+    _llk_pack_hw_configure_<false, dest_acc>(PACK_IN, PACK_OUT, 16 * 16 * 4);
 #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(pack_out);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, dest_acc>();

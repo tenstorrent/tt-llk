@@ -28,7 +28,7 @@ def generate_make_command(test_config):
         "dest_acc", DestAccumulation.No
     )  # default is not 32 bit dest_acc
     if isinstance(formats, InputOutputFormat):
-        make_cmd += f"input={input_dict[formats.input]} output={output_dict[formats.output]} "
+        make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.get_input_format()]} pack_dst={pack_dst_dict[formats.get_output_format()]} "
     else:
         make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.unpack_A_src]} unpack_A_dst={unpack_A_dst_dict[formats.unpack_A_dst]} unpack_B_src={unpack_B_src_dict[formats.unpack_B_src]} unpack_B_dst={unpack_B_dst_dict[formats.unpack_B_dst]} "
         make_cmd += f"fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "

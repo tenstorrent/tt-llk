@@ -114,6 +114,12 @@ class FormatConfig:
                 )
             self.unpack_B_src = unpack_B_src
             self.unpack_B_dst = unpack_B_dst
+    
+    def get_output_format(self) -> DataFormat:
+        return self.pack_dst
+    
+    def get_input_format(self) -> DataFormat:
+        return self.unpack_A_src 
 
 @dataclass
 class InputOutputFormat(FormatConfig):
@@ -128,6 +134,12 @@ class InputOutputFormat(FormatConfig):
     def __init__(self, input_format: DataFormat, output_format: DataFormat):
         self.input = input_format
         self.output = output_format
+    
+    def get_output_format(self) -> DataFormat:
+        return self.output
+    
+    def get_input_format(self) -> DataFormat:
+        return self.input 
 
 def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
     """
