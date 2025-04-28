@@ -28,13 +28,18 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
 
 
 all_format_combos = generate_format_combinations(
-    [DataFormat.Float16_b], all_same=True
+    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
 )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
 all_params = generate_params(
     ["matmul_test"],
     all_format_combos,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    math_fidelity=[MathFidelity.HiFi3, MathFidelity.HiFi4],
+    math_fidelity=[
+        MathFidelity.LoFi,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
+    ],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -45,6 +50,9 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_matmul(testname, formats, dest_acc, math_fidelity):
+
+    if formats.unpack_A_src == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
+        pytest.skip("Skipping test for Float16 and DestAccumulation.Yes")
 
     src_A, src_B = generate_stimuli()
 
