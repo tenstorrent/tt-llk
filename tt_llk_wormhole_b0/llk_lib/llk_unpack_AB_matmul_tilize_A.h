@@ -69,29 +69,29 @@ inline void _llk_unpack_AB_matmul_tilize_A_mop_config() {
     tmp.program(instrn_buffer);
 
     /* What is actually executed per tile is as follows:
-    
+
     F0:
     TTI_UNPACR(SrcB, 0b01000001, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); X 15
-    
+
     TTI_UNPACR(SrcB, 0b01000100, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);
-    
+
     F1:
     TTI_UNPACR(SrcB, 0b01000001, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); X 15
-    
+
     TTI_UNPACR(SrcB, 0b01000001, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, 0b0010);
 
     F2:
     TTI_UNPACR(SrcB, 0b01000001, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); X 15
-    
+
     TTI_UNPACR(SrcB, 0b01000100, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);
     TTI_INCADCZW(p_setadc::UNP_B, 0, 0, 1, 0);
-    
+
     F3:
     TTI_UNPACR(SrcB, 0b01000001, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); X 15
-    
+
     TTI_UNPACR(SrcB, 0b01000000, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, 0b1010);
     TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);
@@ -131,9 +131,9 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_tilize_A_init(c
 
     TTI_SETADCXX(p_setadc::UNP_A, unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1, 0x0);
     TTI_SETADCXX(p_setadc::UNP_B, 1 * FACE_C_DIM - 1, 0x0);
-    
+
     cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_XY_REG_1_Ystride_RMW>(2 * FACE_C_DIM);
-    
+
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     _llk_unpack_AB_matmul_tilize_A_mop_config();
@@ -174,21 +174,30 @@ inline void _llk_unpack_AB_matmul_tilize_A(const std::uint32_t base_address_a, c
 
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-    
+
     for (uint t = 0; t < t_dim; t++)
     {
         if(reuse_a)
-        {           
+        {
+            TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b0010);
+            TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+            TTI_INCADCZW(p_setadc::UNP_A, 0, 0, 1, 0);
+
             TTI_MOP(0, 1, 2);
-          
+
+            if (reuse_dim > 1)
+            {
+                TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+                TTI_INCADCZW(p_setadc::UNP_A, 0, 0, 1, 0);
+            }
+
             if ((t + 1) < t_dim)
             {
                 TTI_MOP(0, 1, 2);
                 t++;
             }
-            
-            TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b0010);
-            for (uint i = 0; i < reuse_dim; i++)
+
+            for (uint i = 2; i < reuse_dim; i++)
             {
                 TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
                 TTI_INCADCZW(p_setadc::UNP_A, 0, 0, 1, 0);
@@ -198,7 +207,10 @@ inline void _llk_unpack_AB_matmul_tilize_A(const std::uint32_t base_address_a, c
         {
             TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
             TTI_INCADCZW(p_setadc::UNP_A, 0, 0, 1, 0);
-            
+
+            TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0010);
+            TTI_MOP(0, 1, 2);
+
             if ((t + 1) < t_dim)
             {
                 TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
@@ -206,8 +218,10 @@ inline void _llk_unpack_AB_matmul_tilize_A(const std::uint32_t base_address_a, c
                 t++;
             }
 
-            TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0010);
-            TTI_MOP(0, (2 * reuse_dim) - 1, 0xAAAA);
+            if (reuse_dim > 1)
+            {
+                TTI_MOP(0, (2 * reuse_dim) - 3, 0xAAAA);
+            }
         }
     }
 
