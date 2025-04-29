@@ -16,8 +16,8 @@
 #define HF 0
 #endif
 
-#ifndef THROTTLE_MM
-#define THROTTLE_MM 0
+#ifndef MM_THROTTLE
+#define MM_THROTTLE 0
 #endif
 
 using namespace ckernel;
@@ -468,6 +468,18 @@ inline void matmul_configure_mop(
     tmp.program(instrn_buffer);
 }
 
+/*
+ * Programming of the MOP for the case we limit matmul compute throughput
+ * Done by inserting NOP instructions between MVMUL instructions of matmul kernel
+ *
+ * Valid range of THROTTLE_LEVEL is {1,2,3,4,5}
+ * Each value corresponds to level of throttling as:
+ * Level 1: throttle to 73% of max
+ * Level 2: throttle to 67% of max
+ * Level 3: throttle to 50% of max
+ * Level 4: throttle to 40% of max
+ * Level 5: throttle to 33% of max
+ */
 template <int NUM_FIDELITY_PHASES, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL>
 inline void matmul_configure_mop_throttled(
     bool transpose,
@@ -733,7 +745,7 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t rt_dim         = 1,
     const std::uint32_t kt_dim         = 1)
 {
-    matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout, THROTTLE_MM>(
+    matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout, MM_THROTTLE>(
         transpose, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
@@ -754,9 +766,9 @@ inline void _llk_math_matmul_init_(
     }
 
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    if constexpr (THROTTLE_MM > 0)
+    if constexpr (MM_THROTTLE > 0)
     {
-        matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, FaceLayout, THROTTLE_MM>(
+        matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, FaceLayout, MM_THROTTLE>(
             transpose > 0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     }
     else
