@@ -46,23 +46,23 @@ param_ids = generate_param_ids(all_params)
 )
 def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  #
     if (
-        formats.get_input_format() in [DataFormat.Float32, DataFormat.Int32]
+        formats.input_format in [DataFormat.Float32, DataFormat.Int32]
         and dest_acc != DestAccumulation.Yes
     ):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-    if formats.get_input_format() == DataFormat.Float16 and (
+    if formats.input_format == DataFormat.Float16 and (
         (dest_acc == DestAccumulation.No and get_chip_architecture() == "blackhole")
         or (dest_acc == DestAccumulation.Yes and get_chip_architecture() == "wormhole")
     ):
         pytest.skip(reason="This combination is not fully implemented in testing")
 
     src_A, src_B = generate_stimuli(
-        formats.get_input_format(), formats.get_input_format(), sfpu=True
+        formats.input_format, formats.input_format, sfpu=True
     )
-    golden = generate_golden(mathop, src_A, formats.get_output_format())
-    write_stimuli_to_l1(src_A, src_B, formats.get_input_format(), formats.get_input_format())
+    golden = generate_golden(mathop, src_A, formats.output_format)
+    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
     test_config = {
         "formats": formats,
@@ -88,28 +88,28 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  
     golden_tensor = torch.tensor(
         golden,
         dtype=(
-            format_dict[formats.get_output_format()]
-            if formats.get_output_format() in [DataFormat.Float16, DataFormat.Float16_b]
+            format_dict[formats.output_format]
+            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[formats.get_output_format()]
-            if formats.get_output_format() in [DataFormat.Float16, DataFormat.Float16_b]
+            format_dict[formats.output_format]
+            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
 
-    if formats.get_output_format() in [
+    if formats.output_format in [
         DataFormat.Float16_b,
         DataFormat.Float16,
         DataFormat.Float32,
     ]:
         atol = 0.05
         rtol = 0.1
-    elif formats.get_output_format() == DataFormat.Bfp8_b:
+    elif formats.output_format == DataFormat.Bfp8_b:
         atol = 0.05
         rtol = 0.1
 

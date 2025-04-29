@@ -10,15 +10,14 @@ from .format_arg_mapping import (
     pack_src_dict,
     pack_dst_dict,
     math_dict,
-    input_dict,
-    output_dict,
     MathFidelity,
     DestAccumulation,
     ApproximationMode,
     MathOperation,
     ReduceDimension,
 )
-from .format_config import DataFormat, InputOutputFormat
+from .format_config import InputOutputFormat
+
 
 def generate_make_command(test_config):
     make_cmd = f"make --silent --always-make "
@@ -28,7 +27,7 @@ def generate_make_command(test_config):
         "dest_acc", DestAccumulation.No
     )  # default is not 32 bit dest_acc
     if isinstance(formats, InputOutputFormat):
-        make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.get_input_format()]} pack_dst={pack_dst_dict[formats.get_output_format()]} "
+        make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.input_format]} pack_dst={pack_dst_dict[formats.output_format]} "
     else:
         make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.unpack_A_src]} unpack_A_dst={unpack_A_dst_dict[formats.unpack_A_dst]} unpack_B_src={unpack_B_src_dict[formats.unpack_B_src]} unpack_B_dst={unpack_B_dst_dict[formats.unpack_B_dst]} "
         make_cmd += f"fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "

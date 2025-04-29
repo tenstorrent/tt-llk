@@ -78,7 +78,7 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.skip(reason="Not fully implemented")
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
 
-    src_A, src_B = generate_stimuli(formats.get_input_format(), formats.get_input_format())
+    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     if pool_type in [
         ReducePool.Max,
@@ -92,8 +92,8 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
         else:
             src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
 
-    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.get_output_format())
-    write_stimuli_to_l1(src_A, src_B, formats.get_input_format(), formats.get_input_format())
+    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
+    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
     test_config = {
         "formats": formats,
@@ -118,19 +118,19 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[formats.get_output_format()]
-            if formats.get_output_format() in [DataFormat.Float16, DataFormat.Float16_b]
+            format_dict[formats.output_format]
+            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
-    res_tensor = untilize(res_tensor, formats.get_output_format())
+    res_tensor = untilize(res_tensor, formats.output_format)
 
     print(res_tensor.view(32, 32))
 
-    if formats.get_output_format() in [DataFormat.Float16_b, DataFormat.Float16]:
+    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
         rtol = 0.05
-    elif formats.get_output_format() == DataFormat.Bfp8_b:
+    elif formats.output_format == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

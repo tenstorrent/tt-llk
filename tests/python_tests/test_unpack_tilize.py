@@ -22,12 +22,12 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_tilize(testname, formats):
 
-    src_A, src_B = generate_stimuli(formats.get_input_format(), formats.get_input_format())
+    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
     src_B = torch.full((1024,), 0)
 
-    golden_tensor = generate_golden(src_A, formats.get_output_format())
+    golden_tensor = generate_golden(src_A, formats.output_format)
 
-    write_stimuli_to_l1(src_A, src_B, formats.get_input_format(), formats.get_input_format())
+    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
     test_config = {
         "formats": formats,
@@ -48,16 +48,16 @@ def test_unpack_tilize(testname, formats):
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[formats.get_output_format()]
-            if formats.get_output_format() in [DataFormat.Float16, DataFormat.Float16_b]
+            format_dict[formats.output_format]
+            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
 
-    if formats.get_output_format() in [DataFormat.Float16_b, DataFormat.Float16]:
+    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
         rtol = 0.05
-    elif formats.get_output_format() == DataFormat.Bfp8_b:
+    elif formats.output_format == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

@@ -14,7 +14,6 @@
 #include "llk_sfpu_types.h"
 #include "tensix_types.h"
 
-
 inline uint32_t L1_ADDRESS(const volatile void* buffer)
 {
     return (reinterpret_cast<uint32_t>(buffer) / 16) - 1;
@@ -27,7 +26,6 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
     return static_cast<std::underlying_type_t<DataFormat>>(format);
 }
 } // namespace
-
 
 #define UNPACK_A_SRC_CASE(data_format) constexpr auto UNPACK_A_IN = get_data_format(DataFormat::data_format);
 
@@ -167,7 +165,6 @@ MATH_CASE(Bfp8_b)
 
 #undef MATH_CASE
 
-
 #ifdef ELTWISE_BINARY_ADD
 constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWADD;
 #endif
@@ -194,7 +191,6 @@ constexpr auto SFPU_OPERATION = SfpuType::log;
 #ifdef SFPU_OP_SQUARE
 constexpr auto SFPU_OPERATION = SfpuType::square;
 #endif
-
 
 inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
 {

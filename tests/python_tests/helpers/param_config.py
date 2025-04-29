@@ -226,7 +226,7 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
         if isinstance(format_config, InputOutputFormat):
             result = [
                 f"unpack_src={format_config.input.name}",
-                f"pack_dst={format_config.get_output_format().name}",
+                f"pack_dst={format_config.output.name}",
             ]
         else:
             result = [

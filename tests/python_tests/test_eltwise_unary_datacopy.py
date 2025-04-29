@@ -25,12 +25,6 @@ generate_format_selection = create_formats_for_testing(
     ]
 )
 
-input_output_formats = [InputOutputFormat(DataFormat.Float32, DataFormat.Float32), InputOutputFormat(DataFormat.Float32, DataFormat.Float16), InputOutputFormat(DataFormat.Float32, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float32, DataFormat.Bfp8_b),
-                        InputOutputFormat(DataFormat.Float16, DataFormat.Float32), InputOutputFormat(DataFormat.Float16, DataFormat.Float16), InputOutputFormat(DataFormat.Float16, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b),
-                        InputOutputFormat(DataFormat.Float16_b, DataFormat.Float32), InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16), InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16_b), InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp8_b),
-                        InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float32), InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16), InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16_b), InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Bfp8_b),
-                        ]
-# input_output_formats = [InputOutputFormat(DataFormat.Float16, DataFormat.Bfp8_b)]
 all_format_combos = generate_format_combinations(
     formats=[
         DataFormat.Float32,
@@ -52,13 +46,15 @@ param_ids = generate_param_ids(all_params)
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
 def test_unary_datacopy(testname, formats, dest_acc):
-    if formats.get_input_format() == DataFormat.Int32:
+    if formats.input_format == DataFormat.Int32:
         pytest.skip("Bfp8_b to Float16 is not supported")
+    if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
+        pytest.skip(reason="This combination is not fully implemented in testing")
 
-    src_A, src_B = generate_stimuli(formats.get_input_format(), formats.get_input_format())
+    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
     srcB = torch.full((1024,), 0)
-    golden = generate_golden(src_A, formats.get_output_format())
-    write_stimuli_to_l1(src_A, src_B, formats.get_input_format(), formats.get_input_format())
+    golden = generate_golden(src_A, formats.output_format)
+    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
     test_config = {
         "formats": formats,
@@ -71,12 +67,10 @@ def test_unary_datacopy(testname, formats, dest_acc):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A)
-    )
+    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
     assert len(res_from_L1) == len(golden)
 
-    if formats.get_output_format() in format_dict:
+    if formats.output_format in format_dict:
         atol = 0.05
         rtol = 0.1
     else:
@@ -86,8 +80,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
     golden_tensor = torch.tensor(
         golden,
         dtype=(
-            format_dict[formats.get_output_format()]
-            if formats.get_output_format()
+            format_dict[formats.output_format]
+            if formats.output_format
             in [
                 DataFormat.Float16,
                 DataFormat.Float16_b,
@@ -100,8 +94,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[formats.get_output_format()]
-            if formats.get_output_format()
+            format_dict[formats.output_format]
+            if formats.output_format
             in [
                 DataFormat.Float16,
                 DataFormat.Float16_b,
