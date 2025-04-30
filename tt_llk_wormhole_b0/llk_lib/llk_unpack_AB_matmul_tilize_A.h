@@ -115,7 +115,7 @@ inline void _llk_unpack_AB_matmul_tilize_A_hw_configure(const std::uint32_t unpA
 }
 
 __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_tilize_A_init(const std::uint32_t ct_dim, const std::uint32_t rt_dim, const std::uint32_t kt_dim, const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim, const std::uint32_t unpA_num_faces, const std::uint32_t unpB_num_faces, const std::uint32_t reuse_a_hint = 0) {
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
+    /*volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
     unpack_tile_descriptor_u tile_descriptor;
     for (uint i = 0; i < TILE_DESC_SIZE; i++)
     {
@@ -127,7 +127,9 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_tilize_A_init(c
     for (uint i = 0; i < TILE_DESC_SIZE; i++)
     {
         cfg[THCON_SEC1_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
-    }
+    }*/
+    cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 16, 0xFFFF0000>(FACE_C_DIM);
+    cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1, 0, 0xFFFFFFFF>((FACE_R_DIM << 16) | (kt_dim * 2));
 
     TTI_SETADCXX(p_setadc::UNP_A, unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1, 0x0);
     TTI_SETADCXX(p_setadc::UNP_B, 1 * FACE_C_DIM - 1, 0x0);
