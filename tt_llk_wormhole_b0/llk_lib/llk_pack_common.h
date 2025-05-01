@@ -285,7 +285,7 @@ inline void _llk_pack_reduce_mask_config_()
         else
         {
             // TILE_ROW_SET_MAPPING_1 configuration sets only first row to use PCK_EDGE_OFFSET_SEC1 mask
-            row_set_mapping_1 = 0x00000001; // each packer packs 1x16 row
+            row_set_mapping_1 = 0x55555555; // each packer packs 1x16 row
         }
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
