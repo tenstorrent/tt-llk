@@ -49,6 +49,12 @@ inline void _llk_pack_configure_addrmod_()
         .y_dst = {.incr = 0, .clr = 0, .cr = 0},
     }
         .set(ADDR_MOD_2);
+
+        addr_mod_pack_t {
+        .y_src = {.incr = 0, .clr = 1, .cr = 0},
+        .y_dst = {.incr = 1, .clr = 0, .cr = 0},
+    }
+        .set(ADDR_MOD_3);
 }
 
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
@@ -262,5 +268,55 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
         TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1); // close tile
     }
 }
+
+template <DstSync Dst, bool untilize = false, bool is_fp32_dest_acc_en = false>
+inline void _llk_pack_compact_(const std::uint32_t tile_index, const std::uint32_t address) {
+
+    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+    constexpr uint32_t DEST_NUM_TILES = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+
+    if constexpr (Dst == DstSync::SyncTile16) {
+        // W-counter points to the next tile in dest
+        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
+        pack_sync_tile_dst_ptr += 1;
+        pack_sync_tile_dst_ptr = pack_sync_tile_dst_ptr & (DEST_NUM_TILES - 1);
+    } else if constexpr (Dst == DstSync::SyncTile2) {
+        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
+        pack_sync_tile_dst_ptr = 0;
+    } else {
+        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+    }
+
+    program_packer_destination(address);
+    TT_SETADCXX(p_setadc::PAC, 15, 0x0); // pack a single row
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    TT_SETADCXX(p_setadc::PAC, 127, 0x0); // pack a single row
+    TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+    if constexpr (untilize) {
+        TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1); // close tile
+    }
+}
+
 
 #include "llk_pack_untilize.h"
