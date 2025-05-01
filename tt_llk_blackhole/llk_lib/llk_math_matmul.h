@@ -574,11 +574,14 @@ inline void matmul_configure_mop_throttled(
             }
         });
 
-    constexpr uint outer_loops = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? NUM_FIDELITY_PHASES : 1);
-    const uint inner_loops     = (!is_in1_16x32) ? 2 : 1;
+    constexpr uint outer_loops            = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? NUM_FIDELITY_PHASES : 1);
+    const uint inner_loops                = (!is_in1_16x32) ? 2 : 1;
     constexpr uint8_t addr_mod_inner_loop = (THROTTLE_LEVEL > 3) ? ADDR_MOD_2 : ADDR_MOD_4;
     ckernel_template tmp(
-        outer_loops, inner_loops, TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0), TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, addr_mod_inner_loop, 0));
+        outer_loops,
+        inner_loops,
+        TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0),
+        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, addr_mod_inner_loop, 0));
     if (is_in1_16x32)
     {
         // FIXME
@@ -614,8 +617,8 @@ inline void matmul_configure_mop_throttled(
             {
                 if constexpr (THROTTLE_LEVEL > 3)
                 {
-                    tmp.set_last_inner_loop_instr(
-                        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
+                    tmp.set_last_inner_loop_instr(TT_OP_MVMUL(
+                        p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
                     tmp.set_last_outer_loop_instr(
                         TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
                 }
@@ -639,8 +642,8 @@ inline void matmul_configure_mop_throttled(
             {
                 if constexpr (THROTTLE_LEVEL > 3)
                 {
-                    tmp.set_last_inner_loop_instr(
-                        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
+                    tmp.set_last_inner_loop_instr(TT_OP_MVMUL(
+                        p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
                 }
                 if (reuse_a)
                 {
@@ -695,11 +698,11 @@ template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayo
 inline void _llk_math_matmul_(
     uint dst_index, const bool transpose = false, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1, const std::uint32_t kt_dim = 1)
 {
-    const bool reuse_a          = ct_dim >= rt_dim;
-    const std::uint32_t t_dim   = reuse_a ? rt_dim : ct_dim;
-    const std::uint32_t rut_dim = reuse_a ? ct_dim : rt_dim; // reuse-dim
+    const bool reuse_a                = ct_dim >= rt_dim;
+    const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
+    const std::uint32_t rut_dim       = reuse_a ? ct_dim : rt_dim; // reuse-dim
     constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr bool high_fidelity = NUM_FIDELITY_PHASES > 0;
+    constexpr bool high_fidelity      = NUM_FIDELITY_PHASES > 0;
 
     for (uint t = 0; t < t_dim; t++)
     {
