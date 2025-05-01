@@ -235,7 +235,7 @@ inline void _llk_pack_reconfig_l1_acc_(const std::uint32_t enable)
     reconfigure_packer_l1_acc(enable);
 }
 
-template <bool untilize = false, ReduceDim dim>
+template <bool untilize = false, ReduceDim dim, bool compact = false>
 inline void _llk_pack_reduce_mask_config_()
 {
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
@@ -284,8 +284,17 @@ inline void _llk_pack_reduce_mask_config_()
         }
         else
         {
-            // TILE_ROW_SET_MAPPING_1 configuration sets only first row to use PCK_EDGE_OFFSET_SEC1 mask
-            row_set_mapping_1 = 0x55555555; // each packer packs 1x16 row
+            if (compact)
+            {
+                // TILE_ROW_SET_MAPPING_1 sets all rows to use PCK_EDGE_OFFSET_SEC1 mask
+                row_set_mapping_1 = 0x55555555; // each packer packs 1x16 row
+            }
+            else
+            {
+                // TILE_ROW_SET_MAPPING_1 configuration sets only first row to use PCK_EDGE_OFFSET_SEC1 mask
+                row_set_mapping_1 = 0x00000001; // each packer packs 1x16 row
+
+            }
         }
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
