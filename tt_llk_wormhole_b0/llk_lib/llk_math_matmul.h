@@ -16,10 +16,6 @@
 #define HF 0
 #endif
 
-#ifndef MM_THROTTLE
-#define MM_THROTTLE 0
-#endif
-
 using namespace ckernel;
 
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL>
@@ -511,7 +507,7 @@ inline void matmul_configure_mop_throttled(
     const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
     const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
 
-    constexpr std::uint32_t replay_buff_len_throttle = (THROTTLE_LEVEL == 1) ? 10 : (3 + THROTTLE_LEVEL * 4);
+    constexpr std::uint32_t replay_buff_len_throttle = (THROTTLE_LEVEL > 3) ? (1 + THROTTLE_LEVEL * 2) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
     const std::uint32_t replay_buf_len =
         (is_in0_16x32 && is_in1_32x16) ? 4
                                        : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
@@ -598,16 +594,6 @@ inline void matmul_configure_mop_throttled(
             TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A1 // srca=srca, srcb+=8,  dest+=8  // A1 -> A2 if transposed
             TTI_NOP;
             TTI_NOP;
-            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A1 // srca=0,    srcb=32,  dest+=8  // A1 -> A2 if transposed
-            TTI_NOP;
-            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A0 // srca=srca, srcb+=8,  dest+=8
-            TTI_NOP;
-            TTI_NOP;
-            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B2A0 // srca+=16/32, srcb=0, dest+=8 // srca+=32 if transposed
-            TTI_NOP;
-            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0); // B2A1 // srca=srca, srcb+=8,  dest+=8,  bias=1 // A1 -> A2 if transposed
-            TTI_NOP;
-            TTI_NOP;
         }
         else if constexpr (THROTTLE_LEVEL == 5)
         {
@@ -622,25 +608,13 @@ inline void matmul_configure_mop_throttled(
             TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A1 // srca=srca, srcb+=8,  dest+=8  // A1 -> A2 if transposed
             TTI_NOP;
             TTI_NOP;
-            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A1 // srca=0,    srcb=32,  dest+=8  // A1 -> A2 if transposed
-            TTI_NOP;
-            TTI_NOP;
-            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A0 // srca=srca, srcb+=8,  dest+=8
-            TTI_NOP;
-            TTI_NOP;
-            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B2A0 // srca+=16/32, srcb=0, dest+=8 // srca+=32 if transposed
-            TTI_NOP;
-            TTI_NOP;
-            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0); // B2A1 // srca=srca, srcb+=8,  dest+=8,  bias=1 // A1 -> A2 if transposed
-            TTI_NOP;
-            TTI_NOP;
         }
     }
-
-    constexpr uint outer_loops = high_fidelity ? NUM_FIDELITY_PHASES : 1;
+    constexpr uint outer_loops = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? NUM_FIDELITY_PHASES : 1);
     const uint inner_loops     = (!is_in1_16x32) ? 2 : 1;
+    constexpr uint8_t addr_mod_inner_loop = (THROTTLE_LEVEL > 3) ? ADDR_MOD_2 : ADDR_MOD_0;
     ckernel_template tmp(
-        outer_loops, inner_loops, TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0), TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0));
+        outer_loops, inner_loops, TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0), TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, addr_mod_inner_loop, 0));
     if (is_in1_16x32)
     {
         // FIXME
@@ -674,28 +648,43 @@ inline void matmul_configure_mop_throttled(
         {
             if constexpr (high_fidelity)
             {
-                tmp.set_last_inner_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
-                if (t_dim > 1)
+                if constexpr (THROTTLE_LEVEL > 3)
                 {
-                    tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6)
+                    tmp.set_last_inner_loop_instr(
+                        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
+                    tmp.set_last_outer_loop_instr(
+                        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
                 }
                 else
                 {
-                    if (reuse_a)
+                    tmp.set_last_inner_loop_instr(
+                        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
+                    if (t_dim > 1)
                     {
-                        tmp.set_last_outer_loop_instr(
-                            TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6), clear src A
+                        tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6)
                     }
                     else
                     {
-                        tmp.set_last_outer_loop_instr(
-                            TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6), clear src B
+                        if (reuse_a)
+                        {
+                            tmp.set_last_outer_loop_instr(
+                                TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6), clear src A
+                        }
+                        else
+                        {
+                            tmp.set_last_outer_loop_instr(
+                                TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6), clear src B
+                        }
                     }
                 }
             }
             else
             {
+                if constexpr (THROTTLE_LEVEL > 3)
+                {
+                    tmp.set_last_inner_loop_instr(
+                        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
+                }
                 if (reuse_a)
                 {
                     if (t_dim > 1)
@@ -733,7 +722,7 @@ inline void matmul_configure_mop_throttled(
     tmp.program(instrn_buffer);
 }
 
-template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
+template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_init_(
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
@@ -745,7 +734,7 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t rt_dim         = 1,
     const std::uint32_t kt_dim         = 1)
 {
-    matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout, MM_THROTTLE>(
+    matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout, THROTTLE_LEVEL>(
         transpose, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
@@ -766,9 +755,9 @@ inline void _llk_math_matmul_init_(
     }
 
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    if constexpr (MM_THROTTLE > 0)
+    if constexpr (THROTTLE_LEVEL > 0)
     {
-        matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, FaceLayout, MM_THROTTLE>(
+        matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, FaceLayout, THROTTLE_LEVEL>(
             transpose > 0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     }
     else
@@ -779,13 +768,15 @@ inline void _llk_math_matmul_init_(
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
+template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_(
     uint dst_index, const bool transpose = false, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1, const std::uint32_t kt_dim = 1)
 {
     const bool reuse_a          = ct_dim >= rt_dim;
     const std::uint32_t t_dim   = reuse_a ? rt_dim : ct_dim;
     const std::uint32_t rut_dim = reuse_a ? ct_dim : rt_dim; // reuse-dim
+    constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
+    constexpr bool high_fidelity = NUM_FIDELITY_PHASES > 0;
 
     for (uint t = 0; t < t_dim; t++)
     {
@@ -795,7 +786,25 @@ inline void _llk_math_matmul_(
 
             if (t_dim == 1)
             {
-                ckernel_template::run(instrn_buffer);
+                if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
+                {
+                    for (uint phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
+                    {
+                        ckernel_template::run(instrn_buffer);
+                    }
+                    if (reuse_a)
+                    {
+                        TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                    }
+                    else
+                    {
+                        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                    }
+                }
+                else
+                {
+                    ckernel_template::run(instrn_buffer);
+                }
 
                 // Done with reuse. Clear srcA or srcB valid
                 if (rut == (rut_dim - 1))
@@ -812,7 +821,18 @@ inline void _llk_math_matmul_(
             }
             else
             {
-                ckernel_template::run(instrn_buffer);
+                if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
+                {
+                    for (uint phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
+                    {
+                        ckernel_template::run(instrn_buffer);
+                    }
+                    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                }
+                else
+                {
+                    ckernel_template::run(instrn_buffer);
+                }
 
                 if ((t + 1) < t_dim)
                 {
@@ -846,7 +866,18 @@ inline void _llk_math_matmul_(
 
                     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(
                         dst_index + (reuse_a ? ct_dim * (t + 1) + rut : t + 1 + rut * ct_dim));
-                    ckernel_template::run(instrn_buffer);
+                    if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
+                    {
+                        for (uint phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
+                        {
+                            ckernel_template::run(instrn_buffer);
+                        }
+                        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                    }
+                    else
+                    {
+                        ckernel_template::run(instrn_buffer);
+                    }
                 }
 
                 if (reuse_a)
