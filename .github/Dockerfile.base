@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     linux-tools-generic \
     ninja-build \
+    make \
     wget \
     cmake \
     ccache \
