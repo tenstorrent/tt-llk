@@ -67,7 +67,6 @@ This repo is a part of Tenstorrent’s bounty program. If you are interested in 
 ### Note ###
 
 Old LLK repositories:
-
 - <https://github.com/tenstorrent/tt-llk-gs>
 - <https://github.com/tenstorrent/tt-llk-wh-b0>
 - <https://github.com/tenstorrent/tt-llk-bh>
