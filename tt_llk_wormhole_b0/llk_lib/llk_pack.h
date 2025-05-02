@@ -70,15 +70,41 @@ inline void _llk_pack_mop_config_(
     const uint PACKCNT              = (partial_face && IS_BFP_FORMAT(pack_dst_format)) ? 1 : num_faces;
     constexpr uint MEGAROW          = 1;
     constexpr uint ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
-    constexpr uint MOP_INNER_LOOP   = 1;
     if constexpr (compact)
     {
-        // constexpr uint MOP_OUTER_LOOP = 1;
-    
-        // ckernel::ckernel_template tmp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_PACR(ADDR_MOD_1, ZERO_OUTPUT_FLAG, PACK_SEL(PACKCNT), 0, MEGAROW, 0, 1));
+        // There are 8 tiles in DEST, so we'll pack 8 full-tile rows
+        constexpr uint MOP_INNER_LOOP = 8;
+        constexpr uint MOP_OUTER_LOOP = 1;
+        
+        ckernel::ckernel_template tmp(
+            MOP_OUTER_LOOP, 
+            MOP_INNER_LOOP, 
+            /* 
+            Each PACR interface packs first row of a face in a tile:
+            PACR0 - TileX_Face0_Row0 
+            PACR1 - TileX_Face1_Row0 
+            PACR2 - TileX_Face2_Row0 
+            PACR3 - TileX_Face3_Row0 
+            ADDR_MOD_3 increments Y_Ch1 by 1, to point to the next row in L1, 
+            and clears Y_Ch0 to always use the first row of each face in DEST
+            Edge masking makes sure that PACR2/3 pack out only zeroes, although this is redundant
+            */
+            TT_OP_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0),
+            /* Then we move W_Ch0 pointer to the next tile */
+            TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 1, 0));
+            /* Before the inner loop we tell the PACRs to pack 16 datums (one row of the face) */
+            tmp.set_start_op(TT_OP_SETADCXX(p_setadc::PAC, 15, 0x0));
+            tmp.set_end_ops(
+                /* At the end of the inner loop we tell the PACRs to pack 128 datums, which is half of the face */
+                TT_OP_SETADCXX(p_setadc::PAC, 127, 0x0),
+                /* In the end, we finish the tile packing 128 zeroes in bottom four halves of the faces */
+                TT_OP_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 1)
+            );
+            tmp.program(instrn_buffer);
     }
     else
     {
+        constexpr uint MOP_INNER_LOOP = 1;
         if constexpr (!untilize)
         {
             constexpr uint MOP_OUTER_LOOP = 1;
@@ -296,34 +322,7 @@ inline void _llk_pack_compact_(const std::uint32_t tile_index, const std::uint32
     }
 
     program_packer_destination(address);
-    TT_SETADCXX(p_setadc::PAC, 15, 0x0); // pack a single row
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    TTI_INCADCZW(p_setadc::PAC, 0, 0, 1, 0); // point to the next tile
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    TT_SETADCXX(p_setadc::PAC, 127, 0x0); // fill out the bottom halves of the faces with zeroes
-    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    // TTI_PACR(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
-    if constexpr (untilize) {
-        TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1); // close tile
-    }
+    mop_run(1, 1);
 }
 
 
