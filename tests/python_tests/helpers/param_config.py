@@ -118,18 +118,18 @@ def generate_params(
         ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.No, None, None, None, None, None)
     ]
     """
-    for combo in format_combos: 
+    for combo in format_combos:
         if not isinstance(combo, InputOutputFormat):
-            continue 
-            
-        if dest_acc is None: 
-            continue 
-            
-        for acc in dest_acc: 
-            if acc == DestAccumulation.No and is_dest_acc_needed(combo): 
-                key = (combo.input, combo.output) 
-                if key not in checked_formats_and_dest_acc: 
-                    add_to_format_log(combo.input_format, combo.output_format) 
+            continue
+
+        if dest_acc is None:
+            continue
+
+        for acc in dest_acc:
+            if acc == DestAccumulation.No and is_dest_acc_needed(combo):
+                key = (combo.input, combo.output)
+                if key not in checked_formats_and_dest_acc:
+                    add_to_format_log(combo.input_format, combo.output_format)
                     checked_formats_and_dest_acc[key] = True
 
     # Build a list of parameter names (`included_params`) that are non-None.
@@ -320,25 +320,25 @@ def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]
     DataFormat.Float16
     """
     return [
-    (
-        FormatConfig(
-            unpack_A_src=tuple[0],
-            unpack_A_dst=tuple[1],
-            pack_src=tuple[2],
-            pack_dst=tuple[3],
-            math=tuple[4],
+        (
+            FormatConfig(
+                unpack_A_src=tuple[0],
+                unpack_A_dst=tuple[1],
+                pack_src=tuple[2],
+                pack_dst=tuple[3],
+                math=tuple[4],
+            )
+            if len(tuple) == 5
+            else FormatConfig(
+                unpack_A_src=tuple[0],
+                unpack_A_dst=tuple[1],
+                unpack_B_src=tuple[2],
+                unpack_B_dst=tuple[3],
+                pack_src=tuple[4],
+                pack_dst=tuple[5],
+                math=tuple[6],
+                same_src_format=False,
+            )
         )
-        if len(tuple) == 5
-        else FormatConfig(
-            unpack_A_src=tuple[0],
-            unpack_A_dst=tuple[1],
-            unpack_B_src=tuple[2],
-            unpack_B_dst=tuple[3],
-            pack_src=tuple[4],
-            pack_dst=tuple[5],
-            math=tuple[6],
-            same_src_format=False,
-        )
-    )
-    for tuple in formats
-]
+        for tuple in formats
+    ]

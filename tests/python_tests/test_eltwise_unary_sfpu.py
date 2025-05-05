@@ -68,10 +68,9 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
-        
-    if (
-        formats.input_format == DataFormat.Float16
-        and (dest_acc == DestAccumulation.No and arch == "blackhole")
+
+    if formats.input_format == DataFormat.Float16 and (
+        dest_acc == DestAccumulation.No and arch == "blackhole"
     ):
         pytest.skip(reason="This combination is not fully implemented in testing")
 
