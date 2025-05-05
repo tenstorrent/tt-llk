@@ -5,7 +5,7 @@ on:
     types: [labeled, synchronize]
 
 jobs:
-  test-tt-metal:
+  test-tt-metal-wormhole:
     name: "🧪 Running tests (Wormhole)"
     if: contains(github.event.pull_request.labels.*.name, 'run-integration-tests')
     uses: ./.github/workflows/tt-metal-integration-tests.yml
@@ -13,3 +13,12 @@ jobs:
     with:
       branch_name: ${{ github.head_ref }}
       runs_on: tt-beta-ubuntu-2204-n150-large-stable
+
+  test-tt-metal-blackhole:
+    name: "🧪 Running tests (Blackhole)"
+    if: contains(github.event.pull_request.labels.*.name, 'run-integration-tests')
+    uses: ./.github/workflows/tt-metal-integration-tests.yml
+    secrets: inherit
+    with:
+      branch_name: ${{ github.head_ref }}
+      runs_on: p150
