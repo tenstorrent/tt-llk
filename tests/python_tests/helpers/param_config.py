@@ -258,15 +258,14 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
                 f"pack_dst={format_config.pack_dst.name}",
             ]
         if params[0]:
-            if isinstance(format_config, InputOutputFormat):
-                if params[0] == DestAccumulation.No and is_dest_acc_needed(
-                    format_config
-                ):
-                    result.append(f"dest_acc= Turned On")
-                else:
-                    result.append(f"dest_acc={params[0].name}")
-            else:
-                result.append(f"dest_acc={params[0].name}")
+            dest_acc_value = (
+                "Turned On"
+                if isinstance(format_config, InputOutputFormat)
+                and params[0] == DestAccumulation.No
+                and is_dest_acc_needed(format_config)
+                else params[0].name
+            )
+            result.append(f"dest_acc={dest_acc_value}")
         if params[1]:
             result.append(f"approx_mode={params[1].value}")
         if params[2]:
