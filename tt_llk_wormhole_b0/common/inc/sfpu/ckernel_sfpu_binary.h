@@ -144,7 +144,7 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
             }
             v_else
             {
-                result = in0 * sfpi::setsgn(_sfpu_reciprocal_<4>(in1), in1);
+                result = in0 * sfpi::setsgn(_sfpu_reciprocal_<3>(in1), in1);
             }
             v_endif;
         }
