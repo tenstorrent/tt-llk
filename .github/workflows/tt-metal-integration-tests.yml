@@ -13,13 +13,10 @@ on:
 jobs:
   test-tt-metal:
     name: 🔧 LLK unit tests
-    env:
-      DOCKER_IMAGE: ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-ci-build-amd64
-      IMAGE_HASH: latest
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 40
     container:
-      image: ${DOCKER_IMAGE}:${IMAGE_HASH}
+      image: ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-ci-build-amd64:latest
       options: --user root --device /dev/tenstorrent
       volumes:
         - /dev/hugepages:/dev/hugepages
