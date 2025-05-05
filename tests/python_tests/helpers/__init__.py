@@ -6,7 +6,7 @@ from .format_config import (
     FormatConfig,
     DataFormat,
     create_formats_for_testing,
-    check_dest_acc_needed,
+    is_dest_acc_needed,
 )
 from .stimuli_generator import flatten_list, generate_stimuli
 from .format_arg_mapping import (

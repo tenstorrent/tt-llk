@@ -7,7 +7,7 @@ from .format_config import (
     FormatConfig,
     DataFormat,
     InputOutputFormat,
-    check_dest_acc_needed,
+    is_dest_acc_needed,
 )
 from conftest import add_to_format_log
 
@@ -118,23 +118,19 @@ def generate_params(
         ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.No, None, None, None, None, None)
     ]
     """
-    for format_combo in format_combos:
-        if isinstance(format_combo, InputOutputFormat):
-            if dest_acc is not None:
-                for dest_acc_en in dest_acc:
-                    if dest_acc_en == DestAccumulation.No and check_dest_acc_needed(
-                        format_combo
-                    ):
-                        if (
-                            format_combo.input,
-                            format_combo.output,
-                        ) not in checked_formats_and_dest_acc:
-                            add_to_format_log(
-                                format_combo.input_format, format_combo.output_format
-                            )
-                            checked_formats_and_dest_acc[
-                                (format_combo.input, format_combo.output)
-                            ] = True
+    for combo in format_combos: 
+        if not isinstance(combo, InputOutputFormat):
+            continue 
+            
+        if dest_acc is None: 
+            continue 
+            
+        for acc in dest_acc: 
+            if acc == DestAccumulation.No and is_dest_acc_needed(combo): 
+                key = (combo.input, combo.output) 
+                if key not in checked_formats_and_dest_acc: 
+                    add_to_format_log(combo.input_format, combo.output_format) 
+                    checked_formats_and_dest_acc[key] = True
 
     # Build a list of parameter names (`included_params`) that are non-None.
     # This allows later code in generate_param_ids(...) to conditionally include
@@ -263,12 +259,14 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
             ]
         if params[0]:
             if isinstance(format_config, InputOutputFormat):
-                if params[0] == DestAccumulation.No and check_dest_acc_needed(
+                if params[0] == DestAccumulation.No and is_dest_acc_needed(
                     format_config
                 ):
-                    result.append(f"dest_acc={DestAccumulation.Yes.name}")
+                    result.append(f"dest_acc= Turned On")
                 else:
                     result.append(f"dest_acc={params[0].name}")
+            else:
+                result.append(f"dest_acc={params[0].name}")
         if params[1]:
             result.append(f"approx_mode={params[1].value}")
         if params[2]:
@@ -322,29 +320,26 @@ def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]
     >>> print(format_configs[0].unpack_B_src)
     DataFormat.Float16
     """
-    format_configs = []
-    for format_tuple in formats:
-        if len(format_tuple) == 5:
-            format_configs.append(
-                FormatConfig(
-                    unpack_A_src=format_tuple[0],
-                    unpack_A_dst=format_tuple[1],
-                    pack_src=format_tuple[2],
-                    pack_dst=format_tuple[3],
-                    math=format_tuple[4],
-                )
-            )
-        else:
-            format_configs.append(
-                FormatConfig(
-                    unpack_A_src=format_tuple[0],
-                    unpack_A_dst=format_tuple[1],
-                    unpack_B_src=format_tuple[2],
-                    unpack_B_dst=format_tuple[3],
-                    pack_src=format_tuple[4],
-                    pack_dst=format_tuple[5],
-                    math=format_tuple[6],
-                    same_src_format=False,
-                )
-            )
-    return format_configs
+    return [
+    (
+        FormatConfig(
+            unpack_A_src=tuple[0],
+            unpack_A_dst=tuple[1],
+            pack_src=tuple[2],
+            pack_dst=tuple[3],
+            math=tuple[4],
+        )
+        if len(tuple) == 5
+        else FormatConfig(
+            unpack_A_src=tuple[0],
+            unpack_A_dst=tuple[1],
+            unpack_B_src=tuple[2],
+            unpack_B_dst=tuple[3],
+            pack_src=tuple[4],
+            pack_dst=tuple[5],
+            math=tuple[6],
+            same_src_format=False,
+        )
+    )
+    for tuple in formats
+]

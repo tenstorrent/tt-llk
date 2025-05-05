@@ -60,6 +60,7 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+    arch = get_chip_architecture()
     if (
         formats.input_format in [DataFormat.Float32, DataFormat.Int32]
         and dest_acc != DestAccumulation.Yes
@@ -67,12 +68,10 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         pytest.skip(
             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
         )
+        
     if (
         formats.input_format == DataFormat.Float16
-        and (
-            (dest_acc == DestAccumulation.No and get_chip_architecture() == "blackhole")
-        )
-        or (dest_acc == DestAccumulation.Yes and get_chip_architecture() == "wormhole")
+        and (dest_acc == DestAccumulation.No and arch == "blackhole")
     ):
         pytest.skip(reason="This combination is not fully implemented in testing")
 
