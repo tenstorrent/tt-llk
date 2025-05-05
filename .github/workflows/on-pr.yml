@@ -27,7 +27,7 @@ jobs:
     secrets: inherit
 
   setup-and-test-wormhole:
-    name: "🧪 Perform checks (Wormhole)"
+    name: "🌀 Perform checks (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
     with:
@@ -35,7 +35,7 @@ jobs:
       runs_on: tt-beta-ubuntu-2204-n150-large-stable
 
   setup-and-test-blackhole:
-    name: "🧪 Perform checks (Blackhole)"
+    name: "🕳️ Perform checks (Blackhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
     with:
