@@ -7,7 +7,7 @@ on:
 jobs:
   test-tt-metal-wormhole:
     name: "🧪 Running tests (Wormhole)"
-    if: contains(github.event.pull_request.labels.*.name, 'run-integration-tests')
+    if: contains(github.event.pull_request.labels.*.name, 'wormhole-integration-tests')
     uses: ./.github/workflows/tt-metal-integration-tests.yml
     secrets: inherit
     with:
@@ -16,7 +16,7 @@ jobs:
 
   test-tt-metal-blackhole:
     name: "🧪 Running tests (Blackhole)"
-    if: contains(github.event.pull_request.labels.*.name, 'run-integration-tests')
+    if: contains(github.event.pull_request.labels.*.name, 'blackhole-integration-tests')
     uses: ./.github/workflows/tt-metal-integration-tests.yml
     secrets: inherit
     with:
