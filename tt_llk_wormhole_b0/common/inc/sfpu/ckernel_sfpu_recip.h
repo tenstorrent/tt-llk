@@ -17,9 +17,9 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // Force sign to 1 (make number negative)
     sfpi::vFloat val = sfpi::setsgn(in, 1);
 
-    val = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
-    sfpi::vFloat a = sfpi::vConstFloatPrgm0;
-    sfpi::vFloat b = sfpi::vConstFloatPrgm1;
+    val                 = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
+    sfpi::vFloat a      = sfpi::vConstFloatPrgm0;
+    sfpi::vFloat b      = sfpi::vConstFloatPrgm1;
     sfpi::vFloat result = a + b * val;
 
     for (int s_iter = 0; s_iter < max_iter; s_iter++)
@@ -28,7 +28,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     }
 
     sfpi::vInt orig_exp = exexp(in);
-    sfpi::vInt new_exp = exexp(result);
+    sfpi::vInt new_exp  = exexp(result);
     new_exp -= orig_exp;
     new_exp += 126;
 
@@ -56,7 +56,7 @@ inline void _calculate_reciprocal_(const int iterations)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];
         sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(in);
-        out = setsgn(out, sfpi::reinterpret<sfpi::vInt>(in));
+        out              = setsgn(out, sfpi::reinterpret<sfpi::vInt>(in));
 
         if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
         {
