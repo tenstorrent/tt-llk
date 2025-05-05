@@ -88,23 +88,16 @@ def pytest_runtest_protocol(item, nextitem):
     return None
 
 
+_format_log = []
 def add_to_format_log(input_fmt, output_fmt):
-    import builtins
-
-    if not hasattr(builtins, "_format_log"):
-        builtins._format_log = []
-    builtins._format_log.append((input_fmt, output_fmt))
-
+    global _format_log
+    _format_log.append((input_fmt, output_fmt))
 
 def pytest_sessionfinish(session, exitstatus):
     BOLD = "\033[1m"
     YELLOW = "\033[93m"
     RESET = "\033[0m"
-
-    import builtins
-
-    log = getattr(builtins, "_format_log", [])
-    if log:
+    if _format_log:
         print(f"\n\n{BOLD}{YELLOW} Cases Where Dest Accumulation Turned On:{RESET}")
-        for input_fmt, output_fmt in log:
+        for input_fmt, output_fmt in _format_log:
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
