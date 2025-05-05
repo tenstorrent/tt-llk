@@ -295,11 +295,7 @@ def input_output_formats(formats: List[DataFormat]) -> List[InputOutputFormat]:
     Returns:
     List[InputOutputFormat]: A list of InputOutputFormat instances representing the generated format combinations.
     """
-    input_output_list = []
-    for input in formats:
-        for output in formats:
-            input_output_list.append(InputOutputFormat(input, output))
-    return input_output_list
+    return [InputOutputFormat(input, output) for input in formats for output in formats]
 
 
 def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
