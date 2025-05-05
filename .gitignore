@@ -14,3 +14,4 @@ compile_commands.json
 *.log
 *.csv
 *.whl
+.DS_Store
