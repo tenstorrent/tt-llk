@@ -15,6 +15,9 @@
 
 using namespace ckernel;
 
+constexpr int DEST_32B_LO_OFF = 0;
+constexpr int DEST_32B_LO_ON  = 1;
+
 // local function declarations
 inline void transpose_dest_configure_addrmod();
 template <int dest_32b_lo>
@@ -36,14 +39,14 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-        transpose_dest_configure_mop<1>();
+        transpose_dest_configure_mop<DEST_32B_LO_ON>();
         ckernel_template::run(instrn_buffer);
 
         TTI_REPLAY(20, 5, 0, 0);
         TTI_REPLAY(26, 4, 0, 0);
 
         math::clear_dst_reg_addr();
-        transpose_dest_configure_mop<0>(); // TODO use length 32 replay buffer
+        transpose_dest_configure_mop<DEST_32B_LO_OFF>();
     }
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
@@ -73,7 +76,7 @@ inline void transpose_dest_configure_addrmod()
         .set(ADDR_MOD_2);
 }
 
-template <int dest_32b_lo = 0>
+template <int dest_32b_lo>
 inline void transpose_dest_configure_mop()
 {
     TTI_REPLAY(16, 16, 0, 1);
@@ -123,5 +126,5 @@ inline void _llk_math_transpose_dest_init_()
 {
     transpose_dest_configure_addrmod();
 
-    transpose_dest_configure_mop<0>();
+    transpose_dest_configure_mop<DEST_32B_LO_OFF>();
 }
