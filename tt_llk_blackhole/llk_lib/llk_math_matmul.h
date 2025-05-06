@@ -577,48 +577,23 @@ inline void matmul_configure_mop_throttled(
 
     if (!is_in1_32x16 && !is_in1_16x32 && !is_in0_32x16 && !is_in0_16x32)
     {
-        if constexpr (high_fidelity)
+        if constexpr (high_fidelity && THROTTLE_LEVEL > 3)
         {
-            if constexpr (THROTTLE_LEVEL > 3)
-            {
-                tmp.set_last_inner_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
-                tmp.set_last_outer_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
-            }
-            else
-            {
-                tmp.set_last_inner_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
-                if (reuse_a)
-                {
-                    tmp.set_last_outer_loop_instr(
-                        TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_6, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6), clear src A
-                }
-                else
-                {
-                    tmp.set_last_outer_loop_instr(
-                        TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_6, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6), clear src B
-                }
-            }
+            tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0));
+            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0));
+        }
+        else if constexpr (high_fidelity)
+        {
+            tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0));
+            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(reuse_a ? p_setrwc::CLR_A : p_setrwc::CLR_B, 0, ADDR_MOD_6, 0));
         }
         else
         {
             if constexpr (THROTTLE_LEVEL > 3)
             {
-                tmp.set_last_inner_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
+                tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0));
             }
-            if (reuse_a)
-            {
-                tmp.set_last_outer_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_5, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5), clear src A
-            }
-            else
-            {
-                tmp.set_last_outer_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_5, 0)); // B3A3 or B2A1 // reset srca/srcb/dest, increment phase (addr_mod_5), clear src B
-            }
+            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(reuse_a ? p_setrwc::CLR_A : p_setrwc::CLR_B, 0, ADDR_MOD_5, 0));
         }
     }
 

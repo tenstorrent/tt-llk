@@ -464,88 +464,128 @@ inline void matmul_configure_mop(
     tmp.program(instrn_buffer);
 }
 
-template <int Level>
-void run_throttled_sequence();
-
-template <>
-void run_throttled_sequence<1>()
+template <int THROTTLE_LEVEL, bool HIGH_FIDELITY>
+void run_throttled_sequence(const std::uint32_t t_dim, const bool reuse_a)
 {
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
-}
-
-template <>
-void run_throttled_sequence<2>()
-{
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
-}
-
-template <>
-void run_throttled_sequence<3>()
-{
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
-    TTI_NOP;
-}
-
-template <>
-void run_throttled_sequence<4>()
-{
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_NOP;
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_NOP;
-    TTI_NOP;
-}
-
-template <>
-void run_throttled_sequence<5>()
-{
-    TTI_NOP;
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_NOP;
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
-    TTI_NOP;
-    TTI_NOP;
-    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
-    TTI_NOP;
-    TTI_NOP;
+    if constexpr (THROTTLE_LEVEL == 1)
+    {
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
+    }
+    else if constexpr (THROTTLE_LEVEL == 2)
+    {
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
+    }
+    else if constexpr (THROTTLE_LEVEL == 3)
+    {
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
+        TTI_NOP;
+    }
+    else if constexpr (THROTTLE_LEVEL == 4)
+    {
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
+        TTI_NOP;
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_NOP;
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_NOP;
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
+        TTI_NOP;
+        TTI_NOP;
+        if constexpr (HIGH_FIDELITY)
+        {
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        }
+        else
+        {
+            if (t_dim > 1)
+            {
+                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+            }
+            else if (reuse_a)
+            {
+                TTI_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_1, 0);
+            }
+            else
+            {
+                TTI_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_1, 0);
+            }
+        }
+    }
+    else if constexpr (THROTTLE_LEVEL == 5)
+    {
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
+        TTI_NOP;
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_NOP;
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        TTI_NOP;
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+        TTI_NOP;
+        TTI_NOP;
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
+        TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_3, 0);
+        TTI_NOP;
+        if constexpr (HIGH_FIDELITY)
+        {
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+        }
+        else
+        {
+            if (t_dim > 1)
+            {
+                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0);
+            }
+            else if (reuse_a)
+            {
+                TTI_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_1, 0);
+            }
+            else
+            {
+                TTI_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_1, 0);
+            }
+        }
+    }
 }
 
 /*
@@ -591,7 +631,7 @@ inline void matmul_configure_mop_throttled(
     const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
     const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
 
-    constexpr std::uint32_t replay_buff_len_throttle = (THROTTLE_LEVEL > 3) ? (1 + THROTTLE_LEVEL * 2) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
+    constexpr std::uint32_t replay_buff_len_throttle = (THROTTLE_LEVEL > 3) ? (16) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
     const std::uint32_t replay_buf_len =
         (is_in0_16x32 && is_in1_32x16) ? 4
                                        : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
@@ -599,82 +639,47 @@ inline void matmul_configure_mop_throttled(
     TT_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 1);
     if (!is_in1_32x16 && !is_in1_16x32 && !is_in0_32x16 && !is_in0_16x32)
     {
-        run_throttled_sequence<THROTTLE_LEVEL>();
+        run_throttled_sequence<THROTTLE_LEVEL, high_fidelity>(t_dim, reuse_a);
     }
 
-    constexpr uint outer_loops            = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? NUM_FIDELITY_PHASES : 1);
-    const uint inner_loops                = (!is_in1_16x32) ? 2 : 1;
-    constexpr uint8_t addr_mod_inner_loop = (THROTTLE_LEVEL > 3) ? ADDR_MOD_2 : ADDR_MOD_0;
-    ckernel_template tmp(
-        outer_loops,
-        inner_loops,
-        TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0),
-        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, addr_mod_inner_loop, 0));
+    constexpr uint outer_loops        = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? NUM_FIDELITY_PHASES : 1);
+    const uint inner_loops            = (!is_in1_16x32) ? 2 : 1;
+    constexpr uint loop_instruction_0 = (THROTTLE_LEVEL == 5)   ? TT_OP_REPLAY(ckernel::math::replay_buf_offset + 1, 8, 0, 0)
+                                        : (THROTTLE_LEVEL == 4) ? TT_OP_REPLAY(ckernel::math::replay_buf_offset + 2, 6, 0, 0)
+                                                                : TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buff_len_throttle, 0, 0);
+    constexpr uint loop_instruction_1 = (THROTTLE_LEVEL == 5)   ? TT_OP_REPLAY(ckernel::math::replay_buf_offset + 9, 4, 0, 0)
+                                        : (THROTTLE_LEVEL == 4) ? TT_OP_REPLAY(ckernel::math::replay_buf_offset + 8, 4, 0, 0)
+                                                                : TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+    ckernel_template tmp(outer_loops, inner_loops, loop_instruction_0, loop_instruction_1);
 
-    if constexpr (high_fidelity)
+    if constexpr (THROTTLE_LEVEL == 5)
     {
-        if constexpr (THROTTLE_LEVEL > 3)
-        {
-            tmp.set_last_inner_loop_instr(
-                TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
-            tmp.set_last_outer_loop_instr(
-                TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
-        }
-        else
-        {
-            tmp.set_last_inner_loop_instr(
-                TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
-            if (t_dim > 1)
-            {
-                tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6)
-            }
-            else
-            {
-                if (reuse_a)
-                {
-                    tmp.set_last_outer_loop_instr(
-                        TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6), clear src A
-                }
-                else
-                {
-                    tmp.set_last_outer_loop_instr(
-                        TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_2, 0)); // B3A3 or B3A2 // reset srca/srcb/dest/phase (addr_mod_6), clear src B
-                }
-            }
-        }
+        tmp.set_last_inner_loop_instr(TT_OP_REPLAY(ckernel::math::replay_buf_offset, 4, 0, 0));
+        tmp.set_last_outer_loop_instr(TT_OP_REPLAY(ckernel::math::replay_buf_offset + 13, 3, 0, 0));
+    }
+    else if constexpr (THROTTLE_LEVEL == 4)
+    {
+        tmp.set_last_inner_loop_instr(TT_OP_REPLAY(ckernel::math::replay_buf_offset, 4, 0, 0));
+        tmp.set_last_outer_loop_instr(TT_OP_REPLAY(ckernel::math::replay_buf_offset + 12, 4, 0, 0));
     }
     else
     {
-        if constexpr (THROTTLE_LEVEL > 3)
+        if constexpr (high_fidelity)
         {
-            tmp.set_last_inner_loop_instr(
-                TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0)); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
+            tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0));
         }
-        if (reuse_a)
+
+        if (t_dim > 1)
         {
-            if (t_dim > 1)
-            {
-                tmp.set_last_outer_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5)
-            }
-            else
-            {
-                tmp.set_last_outer_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_1, 0)); // B3A3 or B3A2 // reset srca/srcb/dest, increment phase (addr_mod_5), clear src A
-            }
+            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, high_fidelity ? ADDR_MOD_2 : ADDR_MOD_1, 0));
+        }
+        else if (reuse_a)
+        {
+            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_A, 0, high_fidelity ? ADDR_MOD_2 : ADDR_MOD_1, 0));
         }
         else
         {
-            if (t_dim > 1)
-            {
-                tmp.set_last_outer_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0)); // B3A3 or B2A1 // reset srca/srcb/dest, increment phase (addr_mod_5)
-            }
-            else
-            {
-                tmp.set_last_outer_loop_instr(
-                    TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_1, 0)); // B3A3 or B2A1 // reset srca/srcb/dest, increment phase (addr_mod_5), clear src B
-            }
+            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_B, 0, high_fidelity ? ADDR_MOD_2 : ADDR_MOD_1, 0));
         }
     }
 
