@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           cd tests/python_tests/
-          pytest --override-ini="addopts=--quiet" --timeout=60 .
+          pytest --override-ini="addopts=-v" --timeout=60 .
 
       # Step 4: Upload test log as an artifact
       - name: Upload logs if tests fail
