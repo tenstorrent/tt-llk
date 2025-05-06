@@ -43,14 +43,30 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
     return res.tolist()
 
 
-full_sweep = False
-all_format_combos = generate_format_combinations(
-    [DataFormat.Float16_b, DataFormat.Float16],
-    all_same=True,  # , DataFormat.Bfp8_b], all_same=True
-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+# SUPPORTED FORMATS FOR TEST
+supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
+
+#   INPUT-OUTPUT FORMAT SWEEP
+#   input_output_formats(supported_formats)
+
+#   FULL FORMAT SWEEP
+#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+
+#   SPECIFIC FORMAT COMBINATION
+#   generate_combination(
+#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+#         DataFormat.Float16_b,  # index 4 is for math format)])
+
+#   SPECIFIC INPUT-OUTPUT COMBINATION
+#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+
+test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["multiple_tiles_eltwise_test"],
-    all_format_combos,
+    test_formats,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     math_fidelity=[
@@ -70,23 +86,16 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
-    if (
-        mathop in [MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul]
-        and formats.unpack_A_src == DataFormat.Float16
-        and dest_acc == DestAccumulation.Yes
-    ):
-        pytest.skip(reason="This combination is not fully implemented in testing")
-
     pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt.value
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt.value)]
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
 
     src_A, src_B = generate_stimuli(
-        formats.unpack_A_src, formats.unpack_B_src, tile_cnt=tile_cnt
+        formats.input_format, formats.input_format, tile_cnt=tile_cnt
     )  # , const_face=True, const_value_A=3, const_value_B=2)
-    golden = generate_golden(mathop, src_A, src_B, formats.pack_dst, math_fidelity)
+    golden = generate_golden(mathop, src_A, src_B, formats.output_format, math_fidelity)
     write_stimuli_to_l1(
-        src_A, src_B, formats.unpack_A_src, formats.unpack_B_src, "0,0", tile_cnt
+        src_A, src_B, formats.input_format, formats.input_format, "0,0", tile_cnt
     )
 
     if mathop != MathOperation.Elwmul:
@@ -124,24 +133,24 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     golden_tensor = torch.tensor(
         golden,
         dtype=(
-            format_dict[formats.pack_dst]
-            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+            format_dict[formats.output_format]
+            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
     res_tensor = torch.tensor(
         res_from_L1,
         dtype=(
-            format_dict[formats.pack_dst]
-            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+            format_dict[formats.output_format]
+            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
             else torch.bfloat16
         ),
     )
 
-    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
+    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.05
         rtol = 0.1
-    elif formats.pack_dst == DataFormat.Bfp8_b:
+    elif formats.output_format == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
 

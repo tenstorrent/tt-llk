@@ -115,6 +115,38 @@ class FormatConfig:
             self.unpack_B_src = unpack_B_src
             self.unpack_B_dst = unpack_B_dst
 
+    @property
+    def output_format(self) -> DataFormat:
+        return self.pack_dst
+
+    @property
+    def input_format(self) -> DataFormat:
+        return self.unpack_A_src
+
+
+@dataclass
+class InputOutputFormat(FormatConfig):
+    """
+    A data class that holds configuration details for formats passed to LLKs.
+    This class is used to hold input and output DataFormat that the client wants to test.
+    They are used for format inference model to infer the rest of the formats for the LLk pipeline, instead of the user.
+    """
+
+    input: DataFormat
+    output: DataFormat
+
+    def __init__(self, input_format: DataFormat, output_format: DataFormat):
+        self.input = input_format
+        self.output = output_format
+
+    @property
+    def output_format(self) -> DataFormat:
+        return self.output
+
+    @property
+    def input_format(self) -> DataFormat:
+        return self.input
+
 
 def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
     """
@@ -162,3 +194,17 @@ def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatC
                 )
             )
     return format_configs
+
+
+def is_dest_acc_needed(format: InputOutputFormat) -> bool:
+    """
+    This function is called when a format configuration for input and output is called without dest accumulation.
+    If the input-output combination is an outlier that is not supported when dest accumulation is on
+    then the data format inference model will turn dest accumulation off for this combination to work.
+
+    We must notify the user that this has happened and cheange the test output to reflect this.
+    """
+    return (
+        format.input_format in [DataFormat.Bfp8_b, DataFormat.Float16_b]
+        and format.output_format == DataFormat.Float16
+    )

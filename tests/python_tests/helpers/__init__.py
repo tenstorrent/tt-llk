@@ -1,7 +1,13 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-from .format_config import FormatConfig, DataFormat, create_formats_for_testing
+from .format_config import (
+    InputOutputFormat,
+    FormatConfig,
+    DataFormat,
+    create_formats_for_testing,
+    is_dest_acc_needed,
+)
 from .stimuli_generator import flatten_list, generate_stimuli
 from .format_arg_mapping import (
     format_dict,
@@ -37,10 +43,11 @@ from .device import (
     wait_for_tensix_operations_finished,
 )
 from .param_config import (
-    generate_format_combinations,
+    format_combination_sweep,
     generate_param_ids,
     clean_params,
     generate_params,
+    input_output_formats,
 )
 
 from .hardware_controller import HardwareController
