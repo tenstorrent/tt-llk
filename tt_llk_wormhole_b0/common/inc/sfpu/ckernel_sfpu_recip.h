@@ -74,6 +74,11 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
+    // The following constants are used to calculate an initial estimate for 1/D using a linear approximation.
+    // The linear approximation with minimum worst-case absolute error on the interval [0.5, 1] is:
+    //   X_0 = 48/17 - 32/17 D
+    // See https://en.wikipedia.org/wiki/Division_algorithm#Initial_estimate for the full derivation.
+
     sfpi::vConstFloatPrgm0 = 48.0f / 17.0f;
     sfpi::vConstFloatPrgm1 = 32.0f / 17.0f;
 }
