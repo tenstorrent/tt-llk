@@ -24,7 +24,6 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
     operand1_matrix = operand1.view(32, 32).to(format_dict[data_format])
     operand2_matrix = operand2.view(32, 32).to(format_dict[data_format])
 
-    result_matrix = torch.zeros(32, 32, dtype=operand1_matrix.dtype)
     result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
 
     return result_matrix.flatten()
