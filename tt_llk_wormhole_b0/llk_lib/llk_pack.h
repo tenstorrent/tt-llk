@@ -57,7 +57,7 @@ inline void _llk_pack_configure_addrmod_()
         .set(ADDR_MOD_3);
 }
 
-template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true, bool compact = false>
+template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true, bool compact = false, std::uint32_t block_ct_dim = 1>
 inline void _llk_pack_mop_config_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -73,7 +73,7 @@ inline void _llk_pack_mop_config_(
     if constexpr (compact)
     {
         // There are 8 tiles in DEST, so we'll pack 8 full-tile rows
-        constexpr uint MOP_INNER_LOOP = 8;
+        constexpr uint MOP_INNER_LOOP = block_ct_dim;
         constexpr uint MOP_OUTER_LOOP = 1;
         
         ckernel::ckernel_template tmp(
@@ -95,8 +95,8 @@ inline void _llk_pack_mop_config_(
             /* Before the inner loop we tell the PACRs to pack 16 datums (one row of the face) */
             tmp.set_start_op(TT_OP_SETADCXX(p_setadc::PAC, 15, 0x0));
             tmp.set_end_ops(
-                /* At the end of the inner loop we tell the PACRs to pack 128 datums, which is half of the face */
-                TT_OP_SETADCXX(p_setadc::PAC, 127, 0x0),
+                /* At the end of the inner loop we tell the PACRs to pack zeroes to the rest of each face */
+                TT_OP_SETADCXX(p_setadc::PAC, (16 - block_ct_dim) * 16 - 1, 0x0),
                 /* In the end, we finish the tile packing 128 zeroes in bottom four halves of the faces */
                 TT_OP_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 1)
             );
@@ -257,17 +257,17 @@ inline void _llk_pack_reduce_hw_configure_(
     }
 }
 
-template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true, bool compact = false>
+template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true, bool compact = false, uint32_t block_ct_dim = 1>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const std::uint32_t face_r_dim   = FACE_R_DIM,
+    const std::uint32_t num_faces    = 4,
+    const bool partial_face          = false,
+    const bool narrow_tile           = false)
 {
     _llk_pack_configure_addrmod_<untilize>();
 
-    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, compact>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, compact, block_ct_dim>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
 template <DstSync Dst, bool untilize = false, bool is_fp32_dest_acc_en = false>
@@ -302,28 +302,5 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
         TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1); // close tile
     }
 }
-
-template <DstSync Dst, bool untilize = false, bool is_fp32_dest_acc_en = false>
-inline void _llk_pack_compact_(const std::uint32_t tile_index, const std::uint32_t address) {
-
-    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
-    constexpr uint32_t DEST_NUM_TILES = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
-
-    if constexpr (Dst == DstSync::SyncTile16) {
-        // W-counter points to the next tile in dest
-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
-        pack_sync_tile_dst_ptr += 1;
-        pack_sync_tile_dst_ptr = pack_sync_tile_dst_ptr & (DEST_NUM_TILES - 1);
-    } else if constexpr (Dst == DstSync::SyncTile2) {
-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
-        pack_sync_tile_dst_ptr = 0;
-    } else {
-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
-    }
-
-    program_packer_destination(address);
-    mop_run(1, 1);
-}
-
 
 #include "llk_pack_untilize.h"
