@@ -30,25 +30,20 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-#pragma GCC unroll 4
-        for (int i = 0; i < 4; ++i)
-        {
-            TTI_REPLAY(16, 4, 0, 0);
+#pragma GCC unroll 2
+        for (int offset = 16; offset < 32; offset += 8) {
+            TTI_REPLAY(offset + 4, 4, 0, 0);
             TTI_TRNSPSRCB;
-            TTI_REPLAY(20, 4, 0, 0);
-        }
-
-        math::clear_dst_reg_addr();
-
-#pragma GCC unroll 4
-        for (int i = 0; i < 4; ++i)
-        {
-            TTI_REPLAY(24, 4, 0, 0);
+            TTI_REPLAY(offset + 0, 8, 0, 0);
             TTI_TRNSPSRCB;
-            TTI_REPLAY(28, 4, 0, 0);
-        }
+            TTI_REPLAY(offset + 0, 8, 0, 0);
+            TTI_TRNSPSRCB;
+            TTI_REPLAY(offset + 0, 8, 0, 0);
+            TTI_TRNSPSRCB;
+            TTI_REPLAY(offset + 0, 4, 0, 0);
 
-        math::clear_dst_reg_addr();
+            math::clear_dst_reg_addr();
+        }
     }
 
     ckernel_template::run(instrn_buffer);
@@ -92,14 +87,14 @@ inline void transpose_dest_configure_mop()
 #pragma GCC unroll 2
         for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
         {
-            TTI_MOVD2B(dest_32b_lo, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  0);
-            TTI_MOVD2B(dest_32b_lo, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  4);
-            TTI_MOVD2B(dest_32b_lo, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  8);
-            TTI_MOVD2B(dest_32b_lo, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
             TTI_MOVB2D(dest_32b_lo, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS,  0);
             TTI_MOVB2D(dest_32b_lo, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS,  4);
             TTI_MOVB2D(dest_32b_lo, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS,  8);
             TTI_MOVB2D(dest_32b_lo, 28, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+            TTI_MOVD2B(dest_32b_lo, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  0);
+            TTI_MOVD2B(dest_32b_lo, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  4);
+            TTI_MOVD2B(dest_32b_lo, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  8);
+            TTI_MOVD2B(dest_32b_lo, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
         }
 
         uint A = TT_OP_SFPLOAD(p_sfpu::LREG0,  InstrModLoadStore::INT32, ADDR_MOD_1, 16);
@@ -107,6 +102,7 @@ inline void transpose_dest_configure_mop()
         uint C = TT_OP_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::INT32, ADDR_MOD_1, 16);
         uint D = TT_OP_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_2, 32);
 
+        // Runs {A,B,C,D} 8 times, swapping the 2nd and 3rd tiles.
         ckernel_template tmp(8, 1, B, C);
         tmp.set_start_op(A);
         tmp.set_end_op(D);
