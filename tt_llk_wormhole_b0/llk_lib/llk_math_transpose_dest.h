@@ -49,12 +49,9 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
         }
 
         math::clear_dst_reg_addr();
-        ckernel_template::run(instrn_buffer);
     }
-    else
-    {
-        ckernel_template::run(instrn_buffer);
-    }
+
+    ckernel_template::run(instrn_buffer);
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
 }
