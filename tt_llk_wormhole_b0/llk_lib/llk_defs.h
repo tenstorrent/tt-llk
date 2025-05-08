@@ -43,12 +43,6 @@ enum DataCopyType
     B2D,
 };
 
-enum Dest32bLo
-{
-   Off = 0,
-   On = 1,
-};
-
 enum EltwiseBinaryType
 {
     ELWMUL,
