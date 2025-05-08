@@ -24,7 +24,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
 
-    ckernel_template::run(instrn_buffer);
+    ckernel_unpack_template::run(instrn_buffer, 2, 2);
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
 
@@ -53,48 +53,49 @@ inline void transpose_dest_configure_addrmod()
         .dest = {.incr = -16},
     }
         .set(ADDR_MOD_2);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 32},
+    }
+        .set(ADDR_MOD_3);
 }
 
 inline void transpose_dest_configure_mop()
 {
-    TTI_REPLAY(16, 16, 0, 1);
+    TTI_REPLAY(16, 15, 0, 1);
 
-    // A
-    TTI_MOVD2A(0, 0, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 0x3ff & -16);
-    TTI_MOVD2A(0, 4, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 0x3ff & -12);
-    TTI_MOVD2A(0, 8, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 0x3ff & -8);
-    TTI_MOVD2A(0, 12, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 0x3ff & -4);
+    // ABCD
+    TTI_MOVB2A( 0, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 16);
+    TTI_MOVB2A( 4, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 20);
+    TTI_MOVB2A( 8, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 24);
+    TTI_MOVB2A(12, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, 28); // dst += 16
 
-    // B
-    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET + 0, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
-    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET + 4, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
-    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET + 8, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
-    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET + 12, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-
-    // C
+    // EFGHIJKLM
+    TTI_MOVD2B(0, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  0);
+    TTI_MOVD2B(0, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  4);
+    TTI_MOVD2B(0, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS,  8);
+    TTI_MOVD2B(0, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
     TTI_TRNSPSRCB;
+    TTI_MOVB2D(0, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS,  0);
+    TTI_MOVB2D(0, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS,  4);
+    TTI_MOVB2D(0, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS,  8);
+    TTI_MOVB2D(0, 28, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12); // dst += 16
 
-    // D
-    TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 32, ADDR_MOD_2, p_movd2b::MOV_1_ROW, 0); // throwaway to decrement dst
+    // NO
+    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0x3ff & (0-32)); // dst -= 16
+    TTI_MOVA2D(0, 8, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0x3ff & (8-16)); // dst -= 16
 
-    // E
-    TTI_MOVB2D(0, p_movd2b::SRC_ROW16_OFFSET + 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, p_movd2b::SRC_ROW16_OFFSET + 4, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
-    TTI_MOVB2D(0, p_movd2b::SRC_ROW16_OFFSET + 8, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
-    TTI_MOVB2D(0, p_movd2b::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+    uint EFGHIJKLM   = TT_OP_REPLAY(20, 9, 0, 0);
+    uint EFGHI       = TT_OP_REPLAY(20, 5, 0, 0);
+    uint ABCDEFG     = TT_OP_REPLAY(16, 7, 0, 0);
+    uint P           = TT_OP_MOVD2B(0, 28, ADDR_MOD_2, p_movd2b::MOV_4_ROWS, 12); // dst -= 16
+    uint IJKL        = TT_OP_REPLAY(24, 4, 0, 0);
+    uint Q           = TT_OP_MOVB2D(0, 28, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 12); // dst += 32
+    uint EFGHIJKLMNO = TT_OP_REPLAY(20, 11, 0, 0);
 
-    // F
-    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 8, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 8);
-
-    uint AF = TT_OP_REPLAY(16, 16, 0, 0);
-    uint BC = TT_OP_REPLAY(20, 5, 0, 0);
-    uint E  = TT_OP_REPLAY(26, 4, 0, 0);
-
-    ckernel_template tmp(1, 2, E, BC);
-    tmp.set_start_op(BC);
-    tmp.set_last_outer_loop_instr(AF);
-    tmp.set_end_ops(BC, E);
+    ckernel_unpack_template tmp(true, true, EFGHIJKLM, EFGHI, ABCDEFG, P, /* skip A */ Q, /* B */ IJKL, /* skip B */ EFGHIJKLMNO);
     tmp.program(instrn_buffer);
 }
 
