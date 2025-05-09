@@ -11,34 +11,23 @@ on:
         description: "The runner to use for the job"
         required: true
         type: string
-      matrix_size:
-        description: "The size of the test group matrix"
+      test_group:
+        description: "Array of test groups. Pass the array as a JSON string (e.g., '[1, 2, 3, 4, 5]')"
         required: true
-        type: number
+        type: string
 
 jobs:
-  generate-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - id: set-matrix
-        run: |
-          MATRIX_JSON=$(seq 1 ${{ inputs.matrix_size }} | jq -R . | jq -s '[.[] | {test_group: .}]')
-          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
-
   setup-and-test:
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 80
-    needs: generate-matrix
     strategy:
       fail-fast: false
       matrix:
-        test_group: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+        test_group: ${{ fromJSON(inputs.test_group) }}
     container:
       image: ${{ inputs.docker_image }}
       options: "--rm --device /dev/tenstorrent"
-    name: "🦄 Run tests (group ${{ matrix.test_group }}/${{ inputs.matrix_size }})"
+    name: "🦄 Run tests (group ${{ matrix.test_group }}${{ fromJSON(inputs.test_group).length }})"
     steps:
       # Step 1: Checkout the repository
       - name: Checkout code
@@ -57,8 +46,8 @@ jobs:
         shell: bash
         run: |
           cd tests/python_tests/
-          pytest --splits ${{ inputs.matrix_size }} --group ${{ matrix.test_group }} \
-          --override-ini="addopts=-v" --timeout=60 .
+          pytest --splits ${{ fromJSON(inputs.test_group).length }} --group ${{ matrix.test_group }} \
+                 --override-ini="addopts=-v" --timeout=60 .
 
       # Step 4: Upload test log as an artifact
       - name: Upload logs if tests fail
