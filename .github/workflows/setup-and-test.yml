@@ -44,9 +44,11 @@ jobs:
       # Step 3: Run the tests
       - name: Run tests
         shell: bash
+        env:
+          SPLITS: ${{ fromJSON(inputs.test_group).length }}
         run: |
           cd tests/python_tests/
-          pytest --splits ${{ fromJSON(inputs.test_group).length }} --group ${{ matrix.test_group }} \
+          pytest --splits $SPLITS --group ${{ matrix.test_group }} \
                  --override-ini="addopts=-v" --timeout=60 .
 
       # Step 4: Upload test log as an artifact
