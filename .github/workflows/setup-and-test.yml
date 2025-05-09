@@ -17,13 +17,24 @@ on:
         type: number
 
 jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          MATRIX_JSON=$(seq 1 ${{ inputs.matrix_size }} | jq -R . | jq -s '[.[] | {test_group: .}]')
+          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+
   setup-and-test:
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 80
+    needs: generate-matrix
     strategy:
       fail-fast: false
       matrix:
-        test_group: ${{ fromJSON('[' + range(1, inputs.matrix_size + 1) | join(",") + ']') }}
+        test_group: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     container:
       image: ${{ inputs.docker_image }}
       options: "--rm --device /dev/tenstorrent"
