@@ -55,23 +55,33 @@ jobs:
     name: "🌀 Perform checks (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: [build-images, detect-changes]
+    strategy:
+      fail-fast: false
+      matrix:
+        test_group: [1, 2, 3, 4, 5]
     if: ${{ needs.detect-changes.outputs.wormhole == 'true' ||
             needs.detect-changes.outputs.tests == 'true' ||
             needs.detect-changes.outputs.github == 'true' }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-beta-ubuntu-2204-n150-large-stable
+      test_group: ${{ matrix.test_group }}
 
   setup-and-test-blackhole:
     name: "🕳️ Perform checks (Blackhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: [build-images, detect-changes]
+    strategy:
+      fail-fast: false
+      matrix:
+        test_group: [1, 2, 3, 4, 5]
     if: ${{ needs.detect-changes.outputs.blackhole == 'true' ||
             needs.detect-changes.outputs.tests == 'true' ||
             needs.detect-changes.outputs.github == 'true' }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: p150
+      test_group: ${{ matrix.test_group }}
 
   check-all-green:
     name: "✅ Check all green"
