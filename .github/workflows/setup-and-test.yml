@@ -11,6 +11,11 @@ on:
         description: "The runner to use for the job"
         required: true
         type: string
+      matrix_size:
+        description: "The size of the test group matrix"
+        required: true
+        type: number
+
 jobs:
   setup-and-test:
     runs-on: ${{ inputs.runs_on }}
@@ -18,11 +23,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test_group: [1, 2, 3, 4, 5]
+        test_group: ${{ fromJSON('[' + range(1, inputs.matrix_size + 1) | join(",") + ']') }}
     container:
       image: ${{ inputs.docker_image }}
       options: "--rm --device /dev/tenstorrent"
-    name: "🦄 Run tests (group ${{ matrix.test_group }}/5)"
+    name: "🦄 Run tests (group ${{ matrix.test_group }}/${{ inputs.matrix_size }})"
     steps:
       # Step 1: Checkout the repository
       - name: Checkout code
@@ -41,7 +46,8 @@ jobs:
         shell: bash
         run: |
           cd tests/python_tests/
-          pytest --splits 5 --group ${{ matrix.test_group }} --override-ini="addopts=-v" --timeout=60 .
+          pytest --splits ${{ inputs.matrix_size }} --group ${{ matrix.test_group }} \
+          --override-ini="addopts=-v" --timeout=60 .
 
       # Step 4: Upload test log as an artifact
       - name: Upload logs if tests fail
