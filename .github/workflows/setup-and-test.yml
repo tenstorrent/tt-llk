@@ -11,15 +11,15 @@ on:
         description: "The runner to use for the job"
         required: true
         type: string
-      test_group:
-        description: "Test group to run"
-        required: true
-        type: string
 jobs:
   setup-and-test:
     name: "🦄 Run tests"
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        test_group: [1, 2, 3, 4, 5]
     container:
       image: ${{ inputs.docker_image }}
       options: "--rm --device /dev/tenstorrent"
@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           cd tests/python_tests/
-          pytest --splits 5 --group ${{ inputs.test_group }} --override-ini="addopts=-v" --timeout=60 .
+          pytest --splits 5 --group ${{ matrix.test_group }} --override-ini="addopts=-v" --timeout=60 .
 
       # Step 4: Upload test log as an artifact
       - name: Upload logs if tests fail
@@ -50,4 +50,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-log
-          path: tests/python_tests/pytest_errors_${{ inputs.test_group }}.log
+          path: tests/python_tests/pytest_errors_${{ matrix.test_group }}.log
