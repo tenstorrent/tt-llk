@@ -13,7 +13,6 @@ on:
         type: string
 jobs:
   setup-and-test:
-    name: "🦄 Run tests"
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: 80
     strategy:
@@ -23,7 +22,7 @@ jobs:
     container:
       image: ${{ inputs.docker_image }}
       options: "--rm --device /dev/tenstorrent"
-
+    name: "🦄 Run tests (group ${{ matrix.test_group }}/5)"
     steps:
       # Step 1: Checkout the repository
       - name: Checkout code
