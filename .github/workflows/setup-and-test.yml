@@ -45,8 +45,11 @@ jobs:
       - name: Run tests
         shell: bash
         env:
-          SPLITS: ${{ fromJSON(inputs.test_group).length }}
+          TEST_GROUPS: ${{ inputs.test_group }}
         run: |
+          # Parse the JSON string into an array and get its length
+          SPLITS=$(echo "$TEST_GROUPS" | jq '. | length')
+          echo "Running tests with $SPLITS splits..."
           cd tests/python_tests/
           pytest --splits $SPLITS --group ${{ matrix.test_group }} \
                  --override-ini="addopts=-v" --timeout=60 .
