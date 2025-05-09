@@ -26,9 +26,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     ckernel_unpack_template::run(instrn_buffer, 2, 2);
 
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
-
-    math::clear_dst_reg_addr();
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
 }
 
 inline void transpose_dest_configure_addrmod()
