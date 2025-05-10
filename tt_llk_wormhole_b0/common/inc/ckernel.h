@@ -617,8 +617,10 @@ inline void init_prng_seed(const uint seed)
     volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
 
+    // PRNG needs some 500 cycles to initialize (source: HW design team)
     // TODO: ckernel::wait does not work properly. Use ckernel::wait when fixed.
-    for (int i = 0; i < 600; i++)
+    // 200 SFPNOPs take around 610 cycles
+    for (int i = 0; i < 200; i++)
     {
         TTI_SFPNOP;
     }
