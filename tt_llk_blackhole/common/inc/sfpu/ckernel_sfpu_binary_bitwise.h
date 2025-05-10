@@ -20,7 +20,7 @@ enum class BinaryBitwiseOp : uint8_t
     XOR = 2,
 };
 
-template <bool APPROXIMATION_MODE, BinaryBitwiseOp BITWISE_OP, uint DTYPE = INT32 int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, BinaryBitwiseOp BITWISE_OP, uint DTYPE = 12 int ITERATIONS = 8>
 inline void _calculate_sfpu_binary_bitwise_(const uint dst_offset)
 {
     // SFPU microcode
