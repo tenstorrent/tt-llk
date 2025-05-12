@@ -141,11 +141,9 @@ $(HW_INC_STAMP_FILE):
 	@case "$(CHIP_ARCH)" in \
 		wormhole) \
 			SPECIFIC_URL="$(BASE_URL_WORMHOLE_SPECIFIC)"; \
-			CONVERTERL_URL="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/ckernel_sfpu_converter.h"; \
 			;; \
 		blackhole) \
 			SPECIFIC_URL=""; \
-			CONVERTERL_URL="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_sfpu/ckernel_sfpu_converter.h"; \
 			;; \
 		*) \
 			echo "Unsupported CHIP_ARCH detected: $(CHIP_ARCH)"; \
@@ -156,10 +154,8 @@ $(HW_INC_STAMP_FILE):
 		curl -sfL $(BASE_URL)/$$header -o $(HEADER_DIR)/$$header || \
 		curl -sfL $$SPECIFIC_URL/$$header -o $(HEADER_DIR)/$$header || \
 		{ echo "Failed to download $$header"; exit 1; }; \
-	done; \
-	curl -sfL $$CONVERTERL_URL -o $(HEADER_DIR)/ckernel_sfpu_converter.h || \
-	{ echo "Failed to download ckernel_sfpu_converter.h"; exit 1; }; \
-	touch $(HW_INC_STAMP_FILE)
+	done;
+	@touch $(HW_INC_STAMP_FILE)
 
 clean:
 	$(RMDIR) $(BUILD_DIR)
