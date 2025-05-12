@@ -4,19 +4,23 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace ckernel::sfpu
 {
 
-union Converter
+class Converter
 {
-    float f;
-    uint32_t u;
-
-    static float to_float(uint32_t _v)
+public:
+    static float to_float(std::uint32_t value)
     {
-        Converter c {};
-        c.u = _v;
-        return c.f;
+        union
+        {
+            std::uint32_t u;
+            float f;
+        } converter {value};
+
+        return converter.f;
     }
 };
 
