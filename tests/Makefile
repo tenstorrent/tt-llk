@@ -96,7 +96,7 @@ $(BUILD_DIR)/%.dis :  $(OUTPUT_ELFS)/%.elf
 	$(OBJDUMP) -xsD $< > $@
 	$(OBJDUMP) -t $< | sort >> $@
 
-$(BUILD_DIR): $(HW_INC_STAMP_FILE)
+$(BUILD_DIR):
 	mkdir -p $@
 
 $(OUTPUT_ELFS): $(BUILD_DIR)
