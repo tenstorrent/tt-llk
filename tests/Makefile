@@ -69,6 +69,8 @@ endif
 # Define hardware specific headers
 # These headers are shared between tt-llk and tt-metal and reside in the tt-metal repository
 BASE_URL = https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/$(CHIP_ARCH)
+BASE_URL_WORMHOLE_SPECIFIC = https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/$(CHIP_ARCH)/wormhole_b0_defines
+
 HEADER_DIR = hw_specific/inc
 HW_INC_STAMP_FILE = $(HEADER_DIR)/.headers_downloaded
 
@@ -136,12 +138,28 @@ $(BUILD_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cpp | $(BUILD_DIR)
 
 $(HW_INC_STAMP_FILE):
 	@mkdir -p $(HEADER_DIR)
-	@for header in $(HEADERS); do \
-		curl -sfL $(BASE_URL)/$$header -o $(HEADER_DIR)/$$header || { echo "Failed to download $$header"; exit 1; }; \
-	done
-	@curl -sfL https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/ckernels/$(CHIP_ARCH)/metal/llk_api/llk_sfpu/ckernel_sfpu_converter.h -o \
-	$(HEADER_DIR)/ckernel_sfpu_converter.h || { echo "Failed to download ckernel_sfpu_converter.h"; exit 1; }
-	@touch $(HW_INC_STAMP_FILE)
+	@case "$(CHIP_ARCH)" in \
+		wormhole) \
+			SPECIFIC_URL="$(BASE_URL_WORMHOLE_SPECIFIC)"; \
+			CONVERTERL_URL="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/ckernel_sfpu_converter.h"; \
+			;; \
+		blackhole) \
+			SPECIFIC_URL=""; \
+			CONVERTERL_URL="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_sfpu/ckernel_sfpu_converter.h"; \
+			;; \
+		*) \
+			echo "Unsupported CHIP_ARCH detected: $(CHIP_ARCH)"; \
+			exit 1; \
+			;; \
+	esac; \
+	for header in $(HEADERS); do \
+		curl -sfL $(BASE_URL)/$$header -o $(HEADER_DIR)/$$header || \
+		curl -sfL $$SPECIFIC_URL/$$header -o $(HEADER_DIR)/$$header || \
+		{ echo "Failed to download $$header"; exit 1; }; \
+	done; \
+	curl -sfL $$CONVERTERL_URL -o $(HEADER_DIR)/ckernel_sfpu_converter.h || \
+	{ echo "Failed to download ckernel_sfpu_converter.h"; exit 1; }; \
+	touch $(HW_INC_STAMP_FILE)
 
 clean:
 	$(RMDIR) $(BUILD_DIR)
