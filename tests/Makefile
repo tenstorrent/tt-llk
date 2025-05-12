@@ -35,7 +35,7 @@ OPTIONS_ALL += $(filter -mcpu=%, $(ARCH_OPTS))
 OPTIONS_COMPILE += $(filter -DARCH_%, $(ARCH_OPTS))
 
 OPTIONS_LINK=-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
-INCLUDES = -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc -I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I../$(ARCH_LLK_ROOT)/hw_specific/inc
+INCLUDES = -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc -I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR)
 INCLUDES += -Ifirmware/riscv/common -Ifirmware/riscv/$(CHIP_ARCH)/ -Isfpi/include -Ihelpers/include
 
 FORMAT_ARG += $(foreach var, unpack_A_src unpack_A_dst unpack_B_src unpack_B_dst fpu pack_src pack_dst, $(if $($(var)),-D$($(var))))
@@ -66,6 +66,18 @@ ifeq ($(dest_acc), DEST_ACC)
 	OPTIONS_COMPILE+=-DDEST_ACC
 endif
 
+# Define hardware specific headers
+# These headers are shared between tt-llk and tt-metal and reside in the tt-metal repository
+BASE_URL = https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/$(CHIP_ARCH)
+HEADER_DIR = hw_specific/inc
+HW_INC_STAMP_FILE = $(HEADER_DIR)/.headers_downloaded
+
+HEADERS = \
+    cfg_defines.h \
+    dev_mem_map.h \
+    tensix.h \
+    tensix_types.h
+
 # Define project paths
 HELPERS=helpers
 RISCV_SOURCES=$(HELPERS)/src
@@ -82,7 +94,7 @@ $(BUILD_DIR)/%.dis :  $(OUTPUT_ELFS)/%.elf
 	$(OBJDUMP) -xsD $< > $@
 	$(OBJDUMP) -t $< | sort >> $@
 
-$(BUILD_DIR):
+$(BUILD_DIR): $(HW_INC_STAMP_FILE)
 	mkdir -p $@
 
 $(OUTPUT_ELFS): $(BUILD_DIR)
@@ -122,8 +134,19 @@ $(BUILD_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S | $(BUILD_DIR)
 $(BUILD_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cpp | $(BUILD_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -c -o $@ $<
 
+$(HW_INC_STAMP_FILE):
+	@mkdir -p $(HEADER_DIR)
+	@for header in $(HEADERS); do \
+		curl -sfL $(BASE_URL)/$$header -o $(HEADER_DIR)/$$header || { echo "Failed to download $$header"; exit 1; }; \
+	done
+	@curl -sfL https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/ckernels/$(CHIP_ARCH)/metal/llk_api/llk_sfpu/ckernel_sfpu_converter.h -o \
+	$(HEADER_DIR)/ckernel_sfpu_converter.h || { echo "Failed to download ckernel_sfpu_converter.h"; exit 1; }
+	@touch $(HW_INC_STAMP_FILE)
+
 clean:
 	$(RMDIR) $(BUILD_DIR)
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache
+	$(RMDIR)  hw_specific
+	$(RMDIR) $(HW_INC_STAMP_FILE)
 	$(MAKE) -C python_tests clean
