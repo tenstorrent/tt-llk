@@ -15,6 +15,10 @@ on:
         description: "Array of test groups. Pass the array as a JSON string (e.g., '[1, 2, 3, 4, 5]')"
         required: true
         type: string
+      volume:
+        description: "Volumes to mount"
+        required: false
+        type: string
 
 jobs:
   setup-and-test:
@@ -26,7 +30,9 @@ jobs:
         test_group: ${{ fromJSON(inputs.test_group) }}
     container:
       image: ${{ inputs.runs_on != 'P150' && 'harbor.ci.tenstorrent.net/' || '' }}${{ inputs.docker_image }}
-      options: "--rm --device /dev/tenstorrent"
+      options: |
+        --rm --device /dev/tenstorrent
+        ${{ inputs.volume && '--volume ' + inputs.volumes || '' }}
     name: "🦄 Run tests (group ${{ matrix.test_group }}${{ fromJSON(inputs.test_group).length }})"
     steps:
       # Step 1: Checkout the repository

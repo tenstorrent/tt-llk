@@ -74,6 +74,7 @@ jobs:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-beta-ubuntu-2204-n300-large-stable
       test_group: "[1, 2, 3, 4, 5]"
+      volume: "/dev/hugepages"
 
   setup-and-test-blackhole:
     name: "🕳️ Perform checks (Blackhole)"
