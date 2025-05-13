@@ -51,8 +51,8 @@ jobs:
     needs: pre-commit
     secrets: inherit
 
-  setup-and-test-wormhole:
-    name: "🌀 Perform checks (Wormhole)"
+  setup-and-test-wormhole-n150:
+    name: "🌀 Perform checks (Wormhole N150)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: [build-images, detect-changes]
     if: ${{ needs.detect-changes.outputs.wormhole == 'true' ||
@@ -61,6 +61,18 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-beta-ubuntu-2204-n150-large-stable
+      test_group: "[1, 2, 3, 4, 5]"
+
+  setup-and-test-wormhole-n300:
+    name: "🌀 Perform checks (Wormhole N300)"
+    uses: ./.github/workflows/setup-and-test.yml
+    needs: [build-images, detect-changes]
+    if: ${{ needs.detect-changes.outputs.wormhole == 'true' ||
+            needs.detect-changes.outputs.tests == 'true' ||
+            needs.detect-changes.outputs.github == 'true' }}
+    with:
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: tt-beta-ubuntu-2204-n300-large-stable
       test_group: "[1, 2, 3, 4, 5]"
 
   setup-and-test-blackhole:
