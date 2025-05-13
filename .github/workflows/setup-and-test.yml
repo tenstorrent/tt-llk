@@ -32,7 +32,7 @@ jobs:
       image: ${{ inputs.runs_on != 'P150' && 'harbor.ci.tenstorrent.net/' || '' }}${{ inputs.docker_image }}
       options: |
         --rm --device /dev/tenstorrent
-        ${{ inputs.volume && '--volume ' + inputs.volumes || '' }}
+        ${{ inputs.volumes && format('--volume {}', inputs.volumes) || '' }}
     name: "🦄 Run tests (group ${{ matrix.test_group }}${{ fromJSON(inputs.test_group).length }})"
     steps:
       # Step 1: Checkout the repository
