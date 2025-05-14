@@ -185,7 +185,7 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
             sfpi::vFloat val = sfpi::dst_reg[0];
             if constexpr (SCALE_EN)
             {
-                val = val * sfpi::s2vFloat16a(exp_base_scale_factor);
+                val = val * sfpi::s2vFloat16b(exp_base_scale_factor);
             }
             if constexpr (APPROXIMATION_MODE)
             {
