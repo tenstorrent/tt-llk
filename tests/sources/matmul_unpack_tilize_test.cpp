@@ -44,7 +44,7 @@ void run_kernel()
 
     // processing data from L1
     _llk_unpack_reconfig_data_format_srca_impl_<false, is_fp32_dest_acc_en>(
-        UNPACK_A_IN, UNPACK_A_OUT, tile_size); // have to reconfigure unpacker for data formats if they change
+        UNPACK_A_IN, UNPACK_A_OUT, tile_size); // have to reconfigure unpack kernel data formats if they change in this run
     _llk_unpack_reconfig_data_format_srcb_impl_<false, is_fp32_dest_acc_en>(UNPACK_B_IN, UNPACK_B_OUT, tile_size);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
@@ -91,7 +91,7 @@ void run_kernel()
         operand_B_dst_index, MATH_FORMAT, MATH_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
-    _llk_math_reconfig_data_format_srca_<false, is_fp32_dest_acc_en>(MATH_FORMAT); // have to reconfigure unpacker for data formats if they change
+    _llk_math_reconfig_data_format_srca_<false, is_fp32_dest_acc_en>(MATH_FORMAT); // have to reconfigure math kernel data formats if they change in this run
     _llk_math_reconfig_data_format_srcb_<false, is_fp32_dest_acc_en>(MATH_FORMAT);
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
