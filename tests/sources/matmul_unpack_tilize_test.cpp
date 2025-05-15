@@ -38,15 +38,16 @@ void run_kernel()
     _llk_unpack_tilize_init_(UNPACK_B_IN, UNPACK_B_OUT, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_B), 0, UNPACK_B_IN, 1, FACE_R_DIM, 4, false);
 
-
     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(
         semaphore::PACK_DONE); // Unpacker waits on signal when packer will increment semaphore to 1 (waits while semaphore == 0), utilizing SEMWAIT.
     t6_semaphore_get<>(semaphore::PACK_DONE); // It will acquire the semaphore t6_semaphore_get (decrementing the semaphore back to 0) signalling it has begun
-                                              // processing data from L1
 
+    // processing data from L1
+    _llk_unpack_reconfig_data_format_srca_impl_<false, is_fp32_dest_acc_en>(
+        UNPACK_A_IN, UNPACK_A_OUT, tile_size); // have to reconfigure unpacker for data formats if they change
+    _llk_unpack_reconfig_data_format_srcb_impl_<false, is_fp32_dest_acc_en>(UNPACK_B_IN, UNPACK_B_OUT, tile_size);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
-
 }
 
 #endif
@@ -54,8 +55,8 @@ void run_kernel()
 #ifdef LLK_TRISC_MATH
 
 #include "llk_math_common.h"
-#include "llk_math_matmul.h"
 #include "llk_math_eltwise_unary_datacopy.h"
+#include "llk_math_matmul.h"
 #include "params.h"
 
 using namespace ckernel;
@@ -90,6 +91,8 @@ void run_kernel()
         operand_B_dst_index, MATH_FORMAT, MATH_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
+    _llk_math_reconfig_data_format_srca_<false, is_fp32_dest_acc_en>(MATH_FORMAT); // have to reconfigure unpacker for data formats if they change
+    _llk_math_reconfig_data_format_srcb_<false, is_fp32_dest_acc_en>(MATH_FORMAT);
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
@@ -138,7 +141,13 @@ void run_kernel()
     t6_semaphore_post<>(semaphore::PACK_DONE); // The packer signals to the unpacker that it has finished writing to L1 by posting (incrementing) the semaphore.
                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
 
-    _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(PACK_IN,PACK_OUT,tile_size,FACE_R_DIM,TILE_C_DIM,4);  // need to reconfigure data formats for next pack, also calls set_packer_strides to readjust strides after pack tilizing
+    _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(
+        PACK_IN,
+        PACK_OUT,
+        tile_size,
+        FACE_R_DIM,
+        TILE_C_DIM,
+        4); // need to reconfigure data formats for next pack, also calls set_packer_strides to readjust strides after pack tilizing
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
