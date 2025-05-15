@@ -6,8 +6,18 @@ import torch
 
 from helpers.format_config import DataFormat
 from helpers.format_arg_mapping import format_dict, MathFidelity, DestAccumulation
-from helpers.param_config import clean_params, format_combination_sweep, generate_combination, generate_param_ids, generate_params, input_output_formats
-from helpers.device import collect_results, run_elf_files, wait_for_tensix_operations_finished, write_stimuli_to_l1
+from helpers.param_config import (
+    clean_params,
+    format_combination_sweep,
+    generate_param_ids,
+    generate_params,
+)
+from helpers.device import (
+    collect_results,
+    run_elf_files,
+    wait_for_tensix_operations_finished,
+    write_stimuli_to_l1,
+)
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.utils import compare_pcc, run_shell_command
@@ -54,7 +64,9 @@ supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
-test_formats = format_combination_sweep(formats=supported_formats, all_same=True, same_src_reg_format=True)
+test_formats = format_combination_sweep(
+    formats=supported_formats, all_same=True, same_src_reg_format=True
+)
 all_params = generate_params(
     ["matmul_unpack_tilize_test"],
     test_formats,
@@ -78,7 +90,9 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
-    golden_tensor = tilize(generate_golden(src_A, src_B, formats.output_format, math_fidelity))
+    golden_tensor = tilize(
+        generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+    )
     golden_tensor = golden_tensor.to(format_dict[formats.output_format])
 
     write_stimuli_to_l1(
@@ -101,7 +115,9 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A), address=buffer_dest_address)
+    res_from_L1 = collect_results(
+        formats, tensor_size=len(src_A), address=buffer_dest_address
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(
@@ -120,9 +136,8 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
         atol = 0.1
         rtol = 0.2
 
-    print("\nGolden Tensor:\n", golden_tensor.view(64,16))
-    print("\nResult Tensor:\n", res_tensor.view(64,16))
-
+    print("\nGolden Tensor:\n", golden_tensor.view(64, 16))
+    print("\nResult Tensor:\n", res_tensor.view(64, 16))
 
     for i in range(len(golden_tensor)):
         assert torch.isclose(
