@@ -1,5 +1,7 @@
 name: 🛠️ PR Pipeline
 on:
+  push:
+    branches: ["main"]
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -31,6 +33,11 @@ jobs:
       tests: ${{ steps.filter.outputs.tests }}
       github: ${{ steps.filter.outputs.github }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history so 'origin/main' is available
+
       - name: Detect which directories changed
         uses: dorny/paths-filter@v3
         id: filter
@@ -61,6 +68,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-beta-ubuntu-2204-n150-large-stable
+      test_group: "[1, 2, 3, 4, 5]"
 
   setup-and-test-blackhole:
     name: "🕳️ Perform checks (Blackhole)"
@@ -71,7 +79,8 @@ jobs:
             needs.detect-changes.outputs.github == 'true' }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
-      runs_on: p150
+      runs_on: tt-beta-ubuntu-2204-p150a-large-stable
+      test_group: "[1, 2, 3, 4, 5]"
 
   check-all-green:
     name: "✅ Check all green"
