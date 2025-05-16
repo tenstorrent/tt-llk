@@ -76,6 +76,7 @@ jobs:
 
   ttnn-tests:
     runs-on: tt-beta-ubuntu-2204-large
+    secrets: inherit
     steps:
       - name: Install GitHub CLI
         run: |
