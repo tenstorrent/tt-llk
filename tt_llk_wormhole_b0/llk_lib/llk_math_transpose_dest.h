@@ -118,8 +118,8 @@ inline void transpose_dest_configure_mop()
         // Set Sequence[1].
         TTI_SFPCONFIG(0, 5, 0);
 
-        // Reset "misc" macro config with UsesLoadMod0ForStore=1 for all macros.
-        TTI_SFPCONFIG(0x0f0, 8, 1);
+        // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for macros 0 and 1.
+        TTI_SFPCONFIG(0x330, 8, 1);
 
         // A 32b face transpose consists of: (movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, movb2d_lo).
         uint movd2b_hi        = TT_OP_REPLAY(16, 4, 0, 0);
