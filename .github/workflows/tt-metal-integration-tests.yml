@@ -75,8 +75,12 @@ jobs:
           TT_METAL_SLOW_DISPATCH_MODE=1 ./build_Release/test/tt_metal/unit_tests_llk
 
   ttnn-tests:
-    runs-on: tt-beta-ubuntu-2204-large
+    runs-on: {{inputs.runs_on}}
     steps:
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
       - name: Trigger TTNN tests in another repository
         run: |
           gh workflow run ttnn-post-commit-wrapper.yaml \
