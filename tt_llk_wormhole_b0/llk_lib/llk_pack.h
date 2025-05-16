@@ -13,6 +13,8 @@
 #include "llk_defs.h"
 #include "llk_pack_common.h"
 
+#include "debug/dprint.h"
+
 using namespace ckernel;
 using namespace ckernel::packer;
 
@@ -51,7 +53,7 @@ inline void _llk_pack_configure_addrmod_()
         .set(ADDR_MOD_2);
 
         addr_mod_pack_t {
-        .y_src = {.incr = 0, .clr = 1, .cr = 0},
+        .y_src = {.incr = 0, .clr = 0, .cr = 0},
         .y_dst = {.incr = 1, .clr = 0, .cr = 0},
     }
         .set(ADDR_MOD_3);
@@ -72,6 +74,7 @@ inline void _llk_pack_mop_config_(
     constexpr uint ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
     if constexpr (compact)
     {
+        // Not used anymore
         // There are 8 tiles in DEST, so we'll pack 8 full-tile rows
         constexpr uint MOP_INNER_LOOP = block_ct_dim;
         constexpr uint MOP_OUTER_LOOP = 1;
@@ -270,37 +273,26 @@ inline void _llk_pack_init_(
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, compact, block_ct_dim>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
+inline void _llk_pack_init_compact_(const std::uint32_t tile_index, const std::uint32_t address) {
+    program_packer_destination(address);
+    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+    TTI_SETADCXX(p_setadc::PAC, 15, 0x0);
+}
+
 template <DstSync Dst, bool untilize = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
-    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
-    constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+    TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 0);
+}
 
-    if constexpr (Dst == DstSync::SyncTile16)
-    {
-        // W-counter points to the next tile in dest
-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
-        pack_sync_tile_dst_ptr += 1;
-        pack_sync_tile_dst_ptr = pack_sync_tile_dst_ptr & (DEST_NUM_TILES - 1);
-    }
-    else if constexpr (Dst == DstSync::SyncTile2)
-    {
-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
-        pack_sync_tile_dst_ptr = 0;
-    }
-    else
-    {
-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+template <uint32_t block_ct_dim = 1>
+inline void _llk_pack_last_()
+{
+    if (block_ct_dim != 16) {
+        TTI_SETADCXX(p_setadc::PAC, (16 - block_ct_dim) * 16 - 1, 0x0);
+        TTI_PACR(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_ENABLED, PACK_SEL(4), 0, 0 /*MEGAROW*/, 0, 1);
     }
 
-    program_packer_destination(address);
-
-    mop_run(1, 1);
-
-    if constexpr (untilize)
-    {
-        TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1); // close tile
-    }
 }
 
 #include "llk_pack_untilize.h"
