@@ -83,7 +83,7 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
 }
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX = true, bool SKIP_POSITIVE_CHECK = false>
-void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0)
+void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0x3F80)
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
