@@ -31,12 +31,8 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-        // 4x 32b face transpositions
-        ckernel_unpack_template::run(instrn_buffer, 4, 0);
-        math::clear_dst_reg_addr();
-
-        // 8x middle-face row swaps.
-        ckernel_unpack_template::run(instrn_buffer, 8, 0xff);
+        // 4x 32b face transpositions followed by 8x middle-face row swaps.
+        ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
     }
     else
     {
@@ -135,11 +131,13 @@ inline void transpose_dest_configure_mop()
         uint movb2d_lo        = TT_OP_REPLAY(28, 4, 0, 0);
         uint transpose        = TT_OP_TRNSPSRCB;
 
-        // Macro 0: SFPLOAD LReg[1], 16 (addr_mod_1); SFPMOV LReg[16],LReg[1]; SFPSTORE LReg[0]
-        uint macro0 = TT_OP_SFPLOADMACRO((0 << 2) | 1, 4, ADDR_MOD_1, 16);
+        // Macro 0: SFPLOAD LReg[1], 16 (addr_mod_1); SFPMOV LReg[16],LReg[1]; SFPSTORE LReg[0].
+        // Note: 0x3ff mask is used to ensure negative offset value is 10 bits.
+        uint macro0 = TT_OP_SFPLOADMACRO((0 << 2) | 1, 4, ADDR_MOD_1, 0x3ff & -48);
 
-        // Macro 1: SFPLOAD LReg[0], 32 (addr_mod_2); delay; SFPSTORE LReg[16]
-        uint macro1 = TT_OP_SFPLOADMACRO((1 << 2) | 0, 4, ADDR_MOD_2, 32);
+        // Macro 1: SFPLOAD LReg[0], 32 (addr_mod_2); delay; SFPSTORE LReg[16].
+        // Note: 0x3ff mask is used to ensure negative offset value is 10 bits.
+        uint macro1 = TT_OP_SFPLOADMACRO((1 << 2) | 0, 4, ADDR_MOD_2, 0x3ff & -32);
 
         // MOP config:
         // - zmask 0-bits: 32b 16x16 face transpose.
