@@ -31,21 +31,12 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-#pragma GCC unroll 2
-        for (int offset = 16; offset < 32; offset += 8) {
-            TTI_REPLAY(offset + 4, 4, 0, 0);
-            TTI_TRNSPSRCB;
-            TTI_REPLAY(offset + 0, 8, 0, 0);
-            TTI_TRNSPSRCB;
-            TTI_REPLAY(offset + 0, 8, 0, 0);
-            TTI_TRNSPSRCB;
-            TTI_REPLAY(offset + 0, 8, 0, 0);
-            TTI_TRNSPSRCB;
-            TTI_REPLAY(offset + 0, 4, 0, 0);
+        // 4x 32b face transpositions
+        ckernel_unpack_template::run(instrn_buffer, 4, 0);
+        math::clear_dst_reg_addr();
 
-            math::clear_dst_reg_addr();
-        }
-        ckernel_template::run(instrn_buffer);
+        // 8x middle-face row swaps.
+        ckernel_unpack_template::run(instrn_buffer, 8, 0xff);
     }
     else
     {
@@ -98,25 +89,62 @@ inline void transpose_dest_configure_mop()
 #pragma GCC unroll 2
         for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
         {
-            TTI_MOVB2D(dest_32b_lo, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-            TTI_MOVB2D(dest_32b_lo, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
-            TTI_MOVB2D(dest_32b_lo, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
-            TTI_MOVB2D(dest_32b_lo, 28, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
             TTI_MOVD2B(dest_32b_lo, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
             TTI_MOVD2B(dest_32b_lo, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
             TTI_MOVD2B(dest_32b_lo, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
             TTI_MOVD2B(dest_32b_lo, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+            TTI_MOVB2D(dest_32b_lo, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_lo, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
+            TTI_MOVB2D(dest_32b_lo, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+            TTI_MOVB2D(dest_32b_lo, 28, dest_32b_lo == 1 ? ADDR_MOD_0 : ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
         }
 
-        uint A = TT_OP_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_1, 16);
-        uint B = TT_OP_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::INT32, ADDR_MOD_1, 32);
-        uint C = TT_OP_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::INT32, ADDR_MOD_1, 16);
-        uint D = TT_OP_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_2, 32);
+        // Macro 0: SFPLOAD VD; SFPMOV LReg[16],VD; SFPSTORE LReg[0].
+        // Intended for use with VD=LReg[1].
 
-        // Runs {A,B,C,D} 8 times, swapping the 2nd and 3rd tiles.
-        ckernel_template tmp(8, 1, B, C);
-        tmp.set_start_op(A);
-        tmp.set_end_op(D);
+        // SFPMOV template: the macro will overwrite VC and VD anyway so we leave them set to zero.
+        uint mov = TT_OP_SFPMOV(0, 0, 0, 0);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, mov >> 16);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, mov & 0xffff);
+        // Set InstructionTemplate[0].
+        TTI_SFPCONFIG(0, 0, 0);
+
+        // StoreSubUnit: schedule SFPSTORE with VD=0 after 1 cycle.
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x80 | (1 << 3) | 3) << 8);
+        // SimpleSubUnit: schedule SFPMOV LReg[16],VD after 0 cycles.
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (0x40 | 4) << 0);
+        // Set Sequence[0].
+        TTI_SFPCONFIG(0, 4, 0);
+
+        // Macro 1: SFPLOAD VD; delay; SFPSTORE LReg[16].
+        // Intended for use with VD=LReg[0].
+
+        // StoreSubUnit: schedule SFPSTORE with VD=LReg[16] after 1 cycle.
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x40 | (1 << 3) | 3) << 8);
+        // Other sub-units: nothing scheduled.
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, 0);
+        // Set Sequence[1].
+        TTI_SFPCONFIG(0, 5, 0);
+
+        // Reset "misc" macro config with UsesLoadMod0ForStore=1 for all macros.
+        TTI_SFPCONFIG(0x0f0, 8, 1);
+
+        // A 32b face transpose consists of: (movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, movb2d_lo).
+        uint movd2b_hi        = TT_OP_REPLAY(16, 4, 0, 0);
+        uint movb2d_hi_d2b_lo = TT_OP_REPLAY(20, 8, 0, 0);
+        uint movb2d_lo        = TT_OP_REPLAY(28, 4, 0, 0);
+        uint transpose        = TT_OP_TRNSPSRCB;
+
+        // Macro 0: SFPLOAD LReg[1], 16 (addr_mod_1); SFPMOV LReg[16],LReg[1]; SFPSTORE LReg[0]
+        uint macro0 = TT_OP_SFPLOADMACRO((0 << 2) | 1, 4, ADDR_MOD_1, 16);
+
+        // Macro 1: SFPLOAD LReg[0], 32 (addr_mod_2); delay; SFPSTORE LReg[16]
+        uint macro1 = TT_OP_SFPLOADMACRO((1 << 2) | 0, 4, ADDR_MOD_2, 32);
+
+        // MOP config:
+        // - zmask 0-bits: 32b 16x16 face transpose.
+        // - zmask 1-bits: 32b 32x1 middle face row swap via SFPU.
+        ckernel_unpack_template tmp(true, true, movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, /* skip A */ macro0, /* B */ movb2d_lo, /* skip B */ macro1);
         tmp.program(instrn_buffer);
     }
     else
