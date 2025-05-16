@@ -98,12 +98,8 @@ inline void transpose_dest_configure_mop()
         // Macro 0: SFPLOAD VD; SFPMOV LReg[16],VD; SFPSTORE LReg[0].
         // Intended for use with VD=LReg[1].
 
-        // SFPMOV template: the macro will overwrite VC and VD anyway so we leave them set to zero.
-        uint mov = TT_OP_SFPMOV(0, 0, 0, 0);
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, mov >> 16);
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, mov & 0xffff);
-        // Set InstructionTemplate[0].
-        TTI_SFPCONFIG(0, 0, 0);
+        // Set InstructionTemplate[0] to SFPMOV.
+        TTI_SFPMOV(0, 0, 12, 0);
 
         // StoreSubUnit: schedule SFPSTORE with VD=0 after 1 cycle.
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x80 | (1 << 3) | 3) << 8);
