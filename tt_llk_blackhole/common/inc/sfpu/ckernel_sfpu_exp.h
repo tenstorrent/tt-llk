@@ -238,6 +238,7 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
                         sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
                     }
                     v_endif;
+                }
             }
             else
             {
