@@ -85,8 +85,7 @@ jobs:
         run: |
           gh workflow run ttnn-post-commit-wrapper.yaml \
             --repo tenstorrent/tt-metal \
-            --ref main \
-            --field trigger_id=${{ github.run_id }}
+            --ref main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
