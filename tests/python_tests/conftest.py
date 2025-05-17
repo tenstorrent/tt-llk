@@ -109,7 +109,7 @@ def download_headers():
                         wait_time = delay
                         print(f"Rate limited. Waiting {wait_time} seconds (exponential backoff)...")
                         delay *= 2
-                        time.sleep(wait)
+                        time.sleep(wait_time)
                 else:
                     print(f"HTTP error {response.status_code} for {url}")
                     return False  # don't retry for non-200 responses
@@ -117,7 +117,8 @@ def download_headers():
             except (ConnectionError, Timeout) as e:
                 print(f"Attempt {attempt} failed due to network issue: {e}")
                 if attempt < RETRIES:
-                    time.sleep(RETRY_DELAY)
+                    time.sleep(delay)
+                    delay *= 2
             except RequestException as e:
                 print(f"Non-retriable error on attempt {attempt}: {e}")
                 return False  # Other errors: don't retry
