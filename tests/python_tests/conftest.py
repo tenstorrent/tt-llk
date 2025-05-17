@@ -84,11 +84,11 @@ def download_headers():
     # Download headers
     RETRIES = 3
     RETRY_DELAY = 2  # seconds
-    
+
     for header in HEADERS:
         header_url = f"{BASE_URL}/{header}"
         specific_header_url = f"{specific_url}/{header}" if specific_url else None
-    
+
         def download_with_retries(url, header):
             for attempt in range(1, RETRIES + 1):
                 try:
@@ -103,11 +103,13 @@ def download_headers():
                     if attempt < RETRIES:
                         time.sleep(RETRY_DELAY)
             return False
-    
+
         # Try primary URL first
         if not download_with_retries(header_url, header):
             # Fallback to specific URL if provided
-            if specific_header_url and not download_with_retries(specific_header_url, header):
+            if specific_header_url and not download_with_retries(
+                specific_header_url, header
+            ):
                 print(f"Failed to download {header} after retries from both URLs")
                 sys.exit(1)
             elif not specific_header_url:
