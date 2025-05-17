@@ -104,10 +104,14 @@ def download_headers():
                     retry_after = response.headers.get("Retry-After")
                     if retry_after:
                         wait_time = int(retry_after)
-                        print(f"Rate limited. Waiting {wait_time} seconds (from Retry-After header)...")
+                        print(
+                            f"Rate limited. Waiting {wait_time} seconds (from Retry-After header)..."
+                        )
                     else:
                         wait_time = delay
-                        print(f"Rate limited. Waiting {wait_time} seconds (exponential backoff)...")
+                        print(
+                            f"Rate limited. Waiting {wait_time} seconds (exponential backoff)..."
+                        )
                         delay *= 2
                         time.sleep(wait_time)
                 else:
