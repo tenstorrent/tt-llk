@@ -89,6 +89,7 @@ def download_headers():
     RETRY_DELAY = 2  # seconds
 
     def download_with_retries(url, header):
+        delay = RETRY_DELAY
         for attempt in range(1, RETRIES + 1):
             try:
                 print(f"Attempt {attempt}: Downloading {header} from {url}...")
@@ -99,6 +100,16 @@ def download_headers():
                     with open(os.path.join(HEADER_DIR, header), "wb") as f:
                         f.write(response.content)
                     return True
+                elif response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    if retry_after:
+                        wait_time = int(retry_after)
+                        print(f"Rate limited. Waiting {wait_time} seconds (from Retry-After header)...")
+                    else:
+                        wait_time = delay
+                        print(f"Rate limited. Waiting {wait_time} seconds (exponential backoff)...")
+                        delay *= 2
+                        time.sleep(wait)
                 else:
                     print(f"HTTP error {response.status_code} for {url}")
                     return False  # don't retry for non-200 responses
