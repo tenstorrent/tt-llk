@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-from requests.exceptions import ConnectionError, Timeout, HTTPError, RequestException
+from requests.exceptions import ConnectionError, Timeout, RequestException
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.log_utils import _format_log
@@ -119,7 +119,9 @@ def download_headers():
         # Try primary URL
         if not download_with_retries(header_url, header):
             # Fallback to specific URL
-            if specific_header_url and not download_with_retries(specific_header_url, header):
+            if specific_header_url and not download_with_retries(
+                specific_header_url, header
+            ):
                 print(f"Failed to download {header} after trying both URLs")
                 sys.exit(1)
             elif not specific_header_url:
