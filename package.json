@@ -1,0 +1,12 @@
+{
+    "name": "github-issue-sorter",
+    "version": "1.0.0",
+    "description": "Script to sort and report GitHub issues by priority and age.",
+    "main": "scripts/sort-issues.js",
+    "scripts": {
+        "generate-report": "node scripts/sort-issues.js"
+    },
+    "dependencies": {
+        "@octokit/rest": "^20.0.0"
+    }
+}
