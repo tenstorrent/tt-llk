@@ -6,6 +6,7 @@
     "scripts": {
         "generate-report": "node scripts/sort-issues.js"
     },
+    "type": "module",
     "dependencies": {
         "@octokit/rest": "^20.0.0"
     }
