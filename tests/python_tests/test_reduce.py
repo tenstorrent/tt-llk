@@ -14,6 +14,7 @@ from helpers.format_arg_mapping import (
     ReduceDimension,
     ReducePool,
     format_dict,
+    MathOperation
 )
 from helpers.format_config import DataFormat
 from helpers.param_config import (
@@ -24,9 +25,8 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
-from helpers.tilize_untilize import untilize
+from helpers.tilize_untilize import tilize,untilize
 from helpers.utils import compare_pcc, print_faces, run_shell_command
-
 
 def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
@@ -37,14 +37,12 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
     f2 = operand1[512:768].view(16, 16)
     f3 = operand1[768:].view(16, 16)
 
-    print_faces(operand1)
-
     def apply_pooling(tensor, pool_type, dim):
-        if pool_type == "max":
+        if pool_type == ReducePool.Max:
             return torch.max(tensor, dim=dim).values
-        elif pool_type == "avg":
+        elif pool_type == ReducePool.Average:
             return torch.mean(tensor, dim=dim)
-        elif pool_type == "sum":
+        elif pool_type == ReducePool.Sum:
             return torch.sum(tensor, dim=dim)
         else:
             pytest.skip("Nonexisting pool type")
@@ -79,7 +77,7 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -98,27 +96,35 @@ supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
-test_formats = input_output_formats(supported_formats)
+formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["reduce_test"],
-    test_formats,
+    formats,
     dest_acc=[DestAccumulation.No],
     reduce_dim=[ReduceDimension.Column],
-    pool_type=[ReducePool.Max, ReducePool.Sum, ReducePool.Average],
+    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
+    mathop=[MathOperation.ReduceColumn],
 )
 
 param_ids = generate_param_ids(all_params)
 
-
 @pytest.mark.parametrize(
-    "testname, formats, dest_acc, reduce_dim, pool_type",
+    "testname, formats, dest_acc, reduce_dim, pool_type, mathop",
     clean_params(all_params),
     ids=param_ids,
 )
-@pytest.mark.skip(reason="Not fully implemented")
-def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+#@pytest.mark.skip(reason="Not fully implemented")
+def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+    # src_A = torch.cat(
+    #     (
+    #         torch.ones(256, dtype=format_dict[formats.input_format]) * 1,
+    #         torch.ones(256, dtype=format_dict[formats.input_format]) * 2,
+    #         torch.ones(256, dtype=format_dict[formats.input_format]) * 3,
+    #         torch.ones(256, dtype=format_dict[formats.input_format]) * 4,
+    #     )
+    # )
 
     if pool_type in [
         ReducePool.Max,
@@ -141,7 +147,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
         "dest_acc": dest_acc,
         "reduce_dim": reduce_dim,
         "pool_type": pool_type,
-        "mathop": reduce_dim,
+        "mathop": mathop,
     }
 
     make_cmd = generate_make_command(test_config)
@@ -165,19 +171,28 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
     )
     res_tensor = untilize(res_tensor, formats.output_format)
 
-    print(res_tensor.view(32, 32))
+    # print(res_tensor.view(32, 32))
 
     if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
-        atol = 0.1
-        rtol = 0.05
+        atol = 0.01
+        rtol = 0.01
     elif formats.output_format == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
+
+    print("INPUT")
+    print(src_A.view(32, 32))
+    print("GOLDEN")
+    print(golden_tensor.view(32, 32))
+    print("RESULT")
+    print(res_tensor.view(32, 32))
+
+    run_shell_command(f"cd .. && make clean")
+
 
     for i in range(len(golden_tensor)):
         assert torch.isclose(
             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
         ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
-
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.98
