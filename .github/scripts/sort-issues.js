@@ -172,12 +172,14 @@ a:hover { text-decoration: underline; }
     </tbody>
   </table>
   <div style="margin-top: 20px; font-size: 1.1em;">
+    <br><br>
     <strong>Bounties Summary:</strong><br>
     Open Bounties: ${bountyCounts.open} <br>
     Closed Bounties: ${bountyCounts.closed}
   </div>
 </div>
 <div class="chart-container">
+  <h2>Open Issues Distribution</h2>
   <canvas id="priorityChart"></canvas>
 </div>
 </div>
