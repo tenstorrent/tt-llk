@@ -66,7 +66,7 @@ const fetchIssues = async ({owner, repo, filterLabel = null, tag, state = 'open'
         .map((issue) => ({...issue, _sourceRepo: tag}));
 };
 
-const calculateAverageClosingTimes = (issues) => {
+const calculateClosedIssuesStats = (issues) => {
     const closingTimes = {P0: [], P1: [], P2: [], None: []};
 
     issues.forEach((issue) => {
@@ -80,14 +80,27 @@ const calculateAverageClosingTimes = (issues) => {
         }
     });
 
-    const averages = {};
+    const stats = {};
     for (const priority in closingTimes)
     {
-        const times        = closingTimes[priority];
-        averages[priority] = times.length > 0 ? (times.reduce((sum, time) => sum + time, 0) / times.length).toFixed(1) : 'N/A';
+        const times     = closingTimes[priority];
+        const count     = times.length;
+        const avg       = count > 0 ? (times.reduce((sum, time) => sum + time, 0) / count).toFixed(1) : 'N/A';
+        stats[priority] = {count, avg};
     }
 
-    return averages;
+    return stats;
+};
+
+const formattedDate = new Intl.DateTimeFormat('en-GB', {day: '2-digit', month: 'long', year: 'numeric'}).format(new Date());
+
+const countBounties = (openIssues, closedIssues) => {
+    const hasBountyLabel = (issue) => issue.labels.some((label) => typeof label.name === 'string' && label.name.toLowerCase() === 'bounty');
+
+    const openBounties   = openIssues.filter(hasBountyLabel).length;
+    const closedBounties = closedIssues.filter(hasBountyLabel).length;
+
+    return {open: openBounties, closed: closedBounties, total: openBounties + closedBounties};
 };
 
 const generateIssueRow = (issue) => {
@@ -114,7 +127,7 @@ const generateIssueRow = (issue) => {
 `;
 };
 
-const generateHTMLReport = (rows, priorityCounts, averageClosingTimes) => `
+const generateHTMLReport = (rows, priorityCounts, closedIssuesStats, bountyCounts) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -139,24 +152,30 @@ a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
-<h1>LLK Open Issues Report</h1>
+<h1>LLK Open Issues Report — ${formattedDate}</h1>
 <div class="report-container">
 <div class="stats-container">
-  <h2>Average Closing Time</h2>
+  <h2>Closed Issues Statistics</h2>
   <table>
     <thead>
       <tr>
         <th>Priority</th>
-        <th>Average Closing Time (in Days)</th>
+        <th>Closed Count</th>
+        <th>Avg. Closing Time (Days)</th>
       </tr>
     </thead>
     <tbody>
-      <tr><td>P0</td><td>${averageClosingTimes.P0}</td></tr>
-      <tr><td>P1</td><td>${averageClosingTimes.P1}</td></tr>
-      <tr><td>P2</td><td>${averageClosingTimes.P2}</td></tr>
-      <tr><td>None</td><td>${averageClosingTimes.None}</td></tr>
+      <tr><td>P0</td><td>${closedIssuesStats.P0.count}</td><td>${closedIssuesStats.P0.avg}</td></tr>
+      <tr><td>P1</td><td>${closedIssuesStats.P1.count}</td><td>${closedIssuesStats.P1.avg}</td></tr>
+      <tr><td>P2</td><td>${closedIssuesStats.P2.count}</td><td>${closedIssuesStats.P2.avg}</td></tr>
+      <tr><td>None</td><td>${closedIssuesStats.None.count}</td><td>${closedIssuesStats.None.avg}</td></tr>
     </tbody>
   </table>
+  <div style="margin-top: 20px; font-size: 1.1em;">
+    <strong>Bounties Summary:</strong><br>
+    Open Bounties: ${bountyCounts.open} <br>
+    Closed Bounties: ${bountyCounts.closed}
+  </div>
 </div>
 <div class="chart-container">
   <canvas id="priorityChart"></canvas>
@@ -172,7 +191,7 @@ a:hover { text-decoration: underline; }
     <th>Created At</th>
     <th>Days Open</th>
     <th>Labels</th>
-    <th>Reporter</th> <!-- New Reporter column -->
+    <th>Reporter</th>
     <th>Assignees</th>
   </tr>
 </thead>
@@ -261,12 +280,13 @@ new Chart(ctx, {
         const priorityCounts = countIssuesByPriority(combinedIssues);
 
         // Calculate average closing times
-        const closedIssues        = [...localClosedIssues, ...ttMetalClosedIssues];
-        const averageClosingTimes = calculateAverageClosingTimes(closedIssues);
+        const closedIssues      = [...localClosedIssues, ...ttMetalClosedIssues];
+        const closedIssuesStats = calculateClosedIssuesStats(closedIssues);
+        const bountyCounts      = countBounties(combinedIssues, closedIssues);
 
         // Generate HTML report
         const rows = sortedIssues.map(generateIssueRow).join('');
-        const html = generateHTMLReport(rows, priorityCounts, averageClosingTimes);
+        const html = generateHTMLReport(rows, priorityCounts, closedIssuesStats, bountyCounts);
 
         // Write to file
         writeFileSync('sorted-issues.html', html);
