@@ -13,6 +13,8 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 
+#include "lltt.h"
+
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
