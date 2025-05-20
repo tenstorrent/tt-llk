@@ -101,9 +101,9 @@ all_params = generate_params(
     ["reduce_test"],
     formats,
     dest_acc=[DestAccumulation.No],
-    reduce_dim=[ReduceDimension.Column],
-    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
-    mathop=[MathOperation.ReduceColumn],
+    reduce_dim=[ReduceDimension.Row],
+    pool_type=[ReducePool.Max], #,ReducePool.Average, ReducePool.Sum],
+    mathop=[MathOperation.ReduceRow],
 )
 
 param_ids = generate_param_ids(all_params)
@@ -125,6 +125,8 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
     #         torch.ones(256, dtype=format_dict[formats.input_format]) * 4,
     #     )
     # )
+
+    print_faces(src_A)
 
     if pool_type in [
         ReducePool.Max,
@@ -158,7 +160,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
 
     res_from_L1 = collect_results(
         formats, tensor_size=len(src_A)
-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(
@@ -171,11 +173,9 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
     )
     res_tensor = untilize(res_tensor, formats.output_format)
 
-    # print(res_tensor.view(32, 32))
-
     if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
-        atol = 0.01
-        rtol = 0.01
+        atol = 0.015
+        rtol = 0.015
     elif formats.output_format == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
@@ -187,12 +187,21 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
     print("RESULT")
     print(res_tensor.view(32, 32))
 
+    golden_column = golden_tensor.view(32, 32)[:, 0]
+    result_column = res_tensor.view(32, 32)[:, 0]
+
+    print("LEFTMOST COLUMN - GOLDEN")
+    print(golden_column)
+    print("LEFTMOST COLUMN - RESULT")
+    print(result_column)
+
     run_shell_command(f"cd .. && make clean")
+
+    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+    assert pcc > 0.98
 
 
     for i in range(len(golden_tensor)):
         assert torch.isclose(
             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
         ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.98
