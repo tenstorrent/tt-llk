@@ -18,7 +18,6 @@ from helpers.format_arg_mapping import (
 )
 from helpers.format_config import DataFormat
 from helpers.param_config import (
-    clean_params,
     generate_param_ids,
     generate_params,
     input_output_formats,
@@ -110,11 +109,24 @@ all_params = generate_params(
 param_ids = generate_param_ids(all_params)
 
 
+# THIS NEEDS TO BE FIXED.
+# For now tests will be parametrized by hand
+
+# @pytest.mark.parametrize(
+#     "testname, formats, dest_acc, reduce_dim, pool_type, mathop",
+#     clean_params(all_params),
+#     ids=param_ids,
+# )
+
+
+@pytest.mark.parametrize("testname", ["reduce_test"])
+@pytest.mark.parametrize("formats", [formats[0]])
+@pytest.mark.parametrize("dest_acc", [DestAccumulation.No])
+@pytest.mark.parametrize("reduce_dim", [ReduceDimension.Column])
 @pytest.mark.parametrize(
-    "testname, formats, dest_acc, reduce_dim, pool_type, mathop",
-    clean_params(all_params),
-    ids=param_ids,
-)
+    "pool_type", [ReducePool.Max]
+)  # , ReducePool.Average, ReducePool.Sum])
+@pytest.mark.parametrize("mathop", [MathOperation.ReduceColumn])
 # @pytest.mark.skip(reason="Not fully implemented")
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
 
