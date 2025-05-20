@@ -94,7 +94,6 @@ inline void _llk_pack_untilize_mop_config_(
             load_replay_buf(
                 ckernel::packer::replay_buf_offset,
                 replay_buf_len,
-                false,
                 []
                 {
                     // update l1 address
@@ -106,7 +105,7 @@ inline void _llk_pack_untilize_mop_config_(
 
             tmp.set_end_ops(
                 TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0),                             // inc ch0_y counters
-                TT_OP_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 0) // update row address
+                lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len) // update row address
             );
         }
         else
