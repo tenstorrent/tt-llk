@@ -8,6 +8,7 @@
 #include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
+
 namespace ckernel
 {
 namespace sfpu
@@ -189,7 +190,8 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
             }
             if constexpr (APPROXIMATION_MODE)
             {
-                if constexpr (!SKIP_POSITIVE_CHECK) {
+                if constexpr (!SKIP_POSITIVE_CHECK)
+                {
                     v_if (val >= 89)
                     {
                         sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
@@ -215,7 +217,9 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
                         sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
                     }
                     v_endif;
-                } else {
+                }
+                else
+                {
                     v_if (val < -42)
                     {
                         sfpi::dst_reg[0] = 0.0f;
@@ -237,7 +241,6 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
                     }
                     v_endif;
                 }
-
             }
             else
             {
@@ -257,15 +260,9 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
     }
 }
 
-constexpr auto bits = [](float x) constexpr {
-    return __builtin_bit_cast(std::uint32_t, x);
-};
-constexpr auto lo16 = [](float x) constexpr {
-    return static_cast<std::uint16_t>(bits(x) & 0xFFFFu);
-};
-constexpr auto hi16 = [](float x) constexpr {
-    return static_cast<std::uint16_t>(bits(x) >> 16);
-};
+constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
+constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
+constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
 
 template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000>
 inline void _init_exponential_()
@@ -289,7 +286,7 @@ inline void _init_exponential_()
         //          LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
 
         constexpr float LN2_RECIP = 1.4426950408889634f;
-        constexpr float A = 256.0f * LN2_RECIP;
+        constexpr float A         = 256.0f * LN2_RECIP;
         constexpr float B_minus_C = 32500.818359375f;
         constexpr float THRESHOLD = -88.5f;
 
@@ -297,9 +294,8 @@ inline void _init_exponential_()
 
         // constexpr float scale_fp32 = :std:bit_cast<float>(scale);
 
-        constexpr float A_scaled = A * scale_fp32;
+        constexpr float A_scaled         = A * scale_fp32;
         constexpr float THRESHOLD_scaled = THRESHOLD / scale_fp32;
-
 
         TTI_SFPLOADI(0, 0xA, lo16(THRESHOLD_scaled));
         TTI_SFPLOADI(0, 0x8, hi16(THRESHOLD_scaled));
