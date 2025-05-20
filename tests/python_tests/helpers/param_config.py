@@ -5,9 +5,7 @@ from typing import List, Optional, Tuple
 
 from helpers.log_utils import add_to_format_log
 
-from .format_arg_mapping import (
-    DestAccumulation,
-)
+from .format_arg_mapping import DestAccumulation
 from .format_config import (
     DataFormat,
     FormatConfig,
@@ -145,11 +143,11 @@ def generate_params(
             for param, value in [
                 ("dest_acc", dest_acc),
                 ("approx_mode", approx_mode),
+                ("mathop", mathop),
                 ("math_fidelity", math_fidelity),
                 ("tile_cnt", tile_cnt),
                 ("reduce_dim", reduce_dim),
                 ("pool_type", pool_type),
-                ("mathop", mathop),
             ]
             if value is not None
         ]
@@ -161,21 +159,21 @@ def generate_params(
             format_config,
             acc_mode,
             approx,
+            math,
             fidelity,
             num_tiles,
             dim,
             pool,
-            math,
         )
         for testname in testnames
         for format_config in format_combos
         for acc_mode in (dest_acc if dest_acc is not None else [None])
         for approx in (approx_mode if approx_mode is not None else [None])
+        for math in (mathop if mathop is not None else [None])
         for fidelity in (math_fidelity if math_fidelity is not None else [None])
         for num_tiles in (tile_cnt if tile_cnt is not None else [None])
         for dim in (reduce_dim if reduce_dim is not None else [None])
         for pool in (pool_type if pool_type is not None else [None])
-        for math in (mathop if mathop is not None else [None])
     ]
 
 
@@ -273,15 +271,15 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
         if params[1]:
             result.append(f"approx_mode={params[1].value}")
         if params[2]:
-            result.append(f"math_fidelity={params[2].name}")
+            result.append(f"mathop={params[2].name}")
         if params[3]:
-            result.append(f"tile_cnt={params[3].value}")
+            result.append(f"math_fidelity={params[3].name}")
         if params[4]:
-            result.append(f"reduce_dim={params[4].name}")
+            result.append(f"tile_cnt={params[4].value}")
         if params[5]:
-            result.append(f"pool_type={params[5].name}")
+            result.append(f"reduce_dim={params[5].name}")
         if params[6]:
-            result.append(f"mathop={params[6].name}")
+            result.append(f"pool_type={params[6].name}")
 
         # Join the result list into a single string with appropriate spacing
         return " | ".join(result)

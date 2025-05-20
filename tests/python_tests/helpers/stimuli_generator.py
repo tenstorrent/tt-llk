@@ -18,8 +18,7 @@ def generate_random_face(
         if const_face:
             srcA_face = torch.ones(256, dtype=format_dict[stimuli_format]) * const_value
         else:  # random for both faces
-            # srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) * 10
-            srcA_face = torch.arange(256, dtype=format_dict[stimuli_format])
+            srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) * 10
 
     elif stimuli_format == DataFormat.Bfp8_b:
         size = 256
