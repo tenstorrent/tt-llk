@@ -13,6 +13,8 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 
+#include <sfpi.h>
+
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
@@ -36,11 +38,11 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     if (reuse_a)
     {
 #if SKIP_UNP == 1
-        TTI_REPLAY(0, 1, 0, 1);
+        __builtin_rvtt_sfprecord(0, 1, 0);
         TTI_NOP;
 #else
         static_assert(kernel_broadcast_b <= 1, "kernel_broadcast>1 on matmul input 1 is not supported with reuse enabled!");
-        TT_REPLAY(0, replay_buf_prog_len, 0, 1);
+        __builtin_rvtt_sfprecord(0, replay_buf_prog_len, false);
         if (unpA_partial_face)
         {
             TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
@@ -94,11 +96,11 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     else
     {
 #if SKIP_UNP == 1
-        TTI_REPLAY(0, 1, 0, 1);
+        __builtin_rvtt_sfprecord(0, 1, 0);
         TTI_NOP;
 #else
         static_assert(kernel_broadcast_a <= 1, "kernel_broadcast>1 on matmul input 0 is not supported with reuse enabled!");
-        TT_REPLAY(0, replay_buf_prog_len, 0, 1);
+        __builtin_rvtt_sfprecord(0, replay_buf_prog_len, false);
         if (unpB_partial_face)
         {
             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);

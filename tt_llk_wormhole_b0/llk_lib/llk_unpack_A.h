@@ -13,6 +13,8 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 
+#include <sfpi.h>
+
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
@@ -46,7 +48,7 @@ inline void _llk_unpack_A_mop_config_(
     static constexpr uint srcb_set_z_2           = TT_OP_NOP;
     static constexpr uint srcb_clear_z           = TT_OP_NOP;
     constexpr uint replay_buf_len                = 1;
-    TTI_REPLAY(0, 1, 0, 1);
+    __builtin_rvtt_sfprecord(0, 1, 0);
     TTI_NOP;
 #else
     static constexpr uint unpack_srca =
@@ -64,7 +66,7 @@ inline void _llk_unpack_A_mop_config_(
     static constexpr uint srca_set_z_1           = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);  // set srcA ch0_z = 1
     static constexpr uint srcb_set_z_2           = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2, 0b0001);  // set srcB ch0_z = 2
     static constexpr uint srcb_clear_z           = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);  // set srcB ch0_z = 0
-    TTI_REPLAY(0, 4, 0, 1);
+    __builtin_rvtt_sfprecord(0, 4, 0);
     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
     TTI_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -118,7 +120,7 @@ inline void _llk_unpack_A_mop_config_(
         {
 #if SKIP_UNP == 0
             constexpr uint replay_buf_len = 3;
-            TTI_REPLAY(4, replay_buf_len, 0, 1);
+            __builtin_rvtt_sfprecord(4, replay_buf_len, 0);
             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
             if (num_faces > 2)

@@ -148,7 +148,8 @@ inline void _calculate_cumsum_(const bool first)
 template <bool APPROXIMATION_MODE /*unused*/>
 inline void _cumsum_init_()
 {
-    TTI_REPLAY(0, 16, 0, 1);
+    __builtin_rvtt_sfprecord(0, 16, 0);
+    // FIXME: These should all be TT_SFP...
     TTI_SFPADD(10, 7, 0, 0, 0);
     TTI_SFPNOP;
     TTI_SFPADD(10, 0, 1, 1, 0);

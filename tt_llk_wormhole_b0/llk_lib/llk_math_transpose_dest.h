@@ -80,7 +80,7 @@ inline void transpose_dest_configure_mop()
 {
     if (is_32bit)
     {
-        TTI_REPLAY(16, 16, 0, 1);
+    __builtin_rvtt_sfprecord(16, 16, 0);
 
 #pragma GCC unroll 2
         for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)

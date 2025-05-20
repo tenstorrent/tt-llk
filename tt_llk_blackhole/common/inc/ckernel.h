@@ -683,17 +683,15 @@ inline void enable_gathering()
             : "t1");
 }
 
-// Pass a lambda function (or a regular function pointer) that takes void,
-// returns void, and issues the instructions you want to load into the
-// replay buffer. start, len, and exec_while_loading have the same meaning
-// as they do for the REPLAY instruction, as descired in assembly.yaml.
-template <uint start, uint len, bool exec_while_loading = false, typename F>
-inline void load_replay_buf(F fn)
+// Same as above, but used if start/len/exec_while_loading are not known
+// at compiletime.
+template <typename F>
+inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
 {
     // disable_gathering();
 
     // Issue instruction to load replay buffer
-    TTI_REPLAY(start, len, exec_while_loading, 1);
+    __builtin_rvtt_sfprecord(start, len, exec_while_loading);
 
     // Send in the user's desired instructions
     fn();
@@ -703,22 +701,14 @@ inline void load_replay_buf(F fn)
     // enable_gathering();
 }
 
-// Same as above, but used if start/len/exec_while_loading are not known
-// at compiletime.
-template <typename F>
-inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
+// Pass a lambda function (or a regular function pointer) that takes void,
+// returns void, and issues the instructions you want to load into the
+// replay buffer. start, len, and exec_while_loading have the same meaning
+// as they do for the REPLAY instruction, as descired in assembly.yaml.
+template <uint start, uint len, bool exec_while_loading = false, typename F>
+inline void load_replay_buf(F fn)
 {
-    // disable_gathering();
-
-    // Issue instruction to load replay buffer
-    TT_REPLAY(start, len, exec_while_loading, 1);
-
-    // Send in the user's desired instructions
-    fn();
-
-    // Workaround for tt-metal#16439, making sure gathering is disabled
-    // WE DON'T UNDERSTAND WHY ENABLING GATHERING DOESN'T WORK
-    // enable_gathering();
+    load_replay_buf(start, len, exec_while_loading, fn);
 }
 
 enum class CSR : uint16_t
