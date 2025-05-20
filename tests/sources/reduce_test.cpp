@@ -16,10 +16,10 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef REDUCE_ROW_OPERATION
 const std::uint32_t within_face_16x16_transpose = 1;
-const bool row_pool = true;
+const bool row_pool                             = true;
 #else
 const std::uint32_t within_face_16x16_transpose = 0;
-const bool row_pool = false;
+const bool row_pool                             = false;
 #endif
 
 #ifdef LLK_TRISC_UNPACK
@@ -35,7 +35,7 @@ void run_kernel()
 
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
         UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, within_face_16x16_transpose);
-    _llk_unpack_AB_init_<>(FACE_C_DIM, 4, false, 0, 0);
+    _llk_unpack_AB_init_<>(FACE_C_DIM, 4, false, within_face_16x16_transpose, 0);
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B), within_face_16x16_transpose);
 }
 
@@ -86,7 +86,7 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, false>();
+    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, is_fp32_dest_acc_en>();
 #endif
 
     _llk_packer_wait_for_math_done_();

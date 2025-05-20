@@ -14,7 +14,7 @@ from helpers.format_arg_mapping import (
     ReduceDimension,
     ReducePool,
     format_dict,
-    MathOperation
+    MathOperation,
 )
 from helpers.format_config import DataFormat
 from helpers.param_config import (
@@ -25,8 +25,9 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
-from helpers.tilize_untilize import tilize,untilize
+from helpers.tilize_untilize import untilize
 from helpers.utils import compare_pcc, print_faces, run_shell_command
+
 
 def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
@@ -102,18 +103,19 @@ all_params = generate_params(
     formats,
     dest_acc=[DestAccumulation.No],
     reduce_dim=[ReduceDimension.Row],
-    pool_type=[ReducePool.Max], #,ReducePool.Average, ReducePool.Sum],
+    pool_type=[ReducePool.Max],  # ,ReducePool.Average, ReducePool.Sum],
     mathop=[MathOperation.ReduceRow],
 )
 
 param_ids = generate_param_ids(all_params)
+
 
 @pytest.mark.parametrize(
     "testname, formats, dest_acc, reduce_dim, pool_type, mathop",
     clean_params(all_params),
     ids=param_ids,
 )
-#@pytest.mark.skip(reason="Not fully implemented")
+# @pytest.mark.skip(reason="Not fully implemented")
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
@@ -125,6 +127,8 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
     #         torch.ones(256, dtype=format_dict[formats.input_format]) * 4,
     #     )
     # )
+
+    src_A = torch.arange(0, 128, step=1 / 8, dtype=format_dict[formats.input_format])
 
     print_faces(src_A)
 
@@ -158,9 +162,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
     run_elf_files(testname)
     wait_for_tensix_operations_finished()
 
-    res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A)
-    )
+    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(
@@ -198,8 +200,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
     run_shell_command(f"cd .. && make clean")
 
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.98
-
+    assert pcc > 0.99
 
     for i in range(len(golden_tensor)):
         assert torch.isclose(
