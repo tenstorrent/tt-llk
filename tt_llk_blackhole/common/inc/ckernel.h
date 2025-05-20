@@ -10,6 +10,13 @@
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
 
+// This header is include on non-trisc builds, for reasons
+// unknown. lltt is only available on trisc
+#if defined(COMPILE_FOR_TRISC)
+#include "lltt.h"
+#include <utility>
+#endif
+
 // Compiler hint that a branch is unlikely to be taken
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 #define UNROLL_LOOP(factor) GCC unroll factor
@@ -645,20 +652,11 @@ template <bool add_nops = true>
 inline void disable_gathering()
 {
     // Disable gathering: set bit 18
-    asm(R"ASM(
-        .option push
-        li   t1, 0x2
-        csrrs zero, 0x7c0, t1
-        li   t1, 0x1
-        slli t1, t1, 18
-        fence
-        csrrs zero, 0x7c0, t1
-        li   t1, 0x2
-        csrrc zero, 0x7c0, t1
-        fence
-        .option pop
-         )ASM" ::
-            : "t1");
+    asm volatile("csrrs zero, 0x7c0, %0" : : "r"(1 << 1));
+    asm volatile("fence");
+    asm volatile("csrrs zero, 0x7c0, %0" : : "r"(1 << 18));
+    asm volatile("csrrc zero, 0x7c0, %0" : : "r"(1 << 1));
+    asm volatile("fence");
 
     // Gathering is done early in the pipeline, so we need to make sure
     // the above csrrw gets processed before the load-replay instructions
@@ -673,53 +671,51 @@ inline void disable_gathering()
 inline void enable_gathering()
 {
     // Enable gathering: clear bit 18
-    asm(R"ASM(
-        .option push
-        li   t1, 0x1
-        slli t1, t1, 18
-        csrrc zero, 0x7c0, t1
-        .option pop
-         )ASM" ::
-            : "t1");
+    asm volatile("csrrc zero, 0x7c0, %0" : : "r"(1 << 18));
 }
 
-// Pass a lambda function (or a regular function pointer) that takes void,
-// returns void, and issues the instructions you want to load into the
-// replay buffer. start, len, and exec_while_loading have the same meaning
-// as they do for the REPLAY instruction, as descired in assembly.yaml.
-template <uint start, uint len, bool exec_while_loading = false, typename F>
-inline void load_replay_buf(F fn)
+#if defined(COMPILE_FOR_TRISC)
+// Place instructions into the replay buffer. EXEC is true to execute
+// when loading (default is false). START is where to place in the
+// replay buffer, and LEN is the number of instructions to record
+// (should match the expansion of FN). FN is a callable, to which ARGS
+// are forwarded.
+template <bool Exec = false, typename Callable, typename... Args>
+[[gnu::always_inline, gnu::flatten]] inline auto load_replay_buf(uint start, uint len, Callable callable, Args&&... args)
 {
-    // disable_gathering();
-
-    // Issue instruction to load replay buffer
-    TTI_REPLAY(start, len, exec_while_loading, 1);
-
-    // Send in the user's desired instructions
-    fn();
-
     // Workaround for tt-metal#16439, making sure gathering is disabled
     // WE DON'T UNDERSTAND WHY ENABLING GATHERING DOESN'T WORK
-    // enable_gathering();
-}
-
-// Same as above, but used if start/len/exec_while_loading are not known
-// at compiletime.
-template <typename F>
-inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
-{
-    // disable_gathering();
+    struct protect {
+        protect() {
+            // disable_gathering();
+        }
+        ~protect() {
+            // enable_gathering();
+        }
+    };
+    protect _;
 
     // Issue instruction to load replay buffer
-    TT_REPLAY(start, len, exec_while_loading, 1);
+    lltt::record<Exec>(start, len);
 
     // Send in the user's desired instructions
-    fn();
-
-    // Workaround for tt-metal#16439, making sure gathering is disabled
-    // WE DON'T UNDERSTAND WHY ENABLING GATHERING DOESN'T WORK
-    // enable_gathering();
+    return callable(std::forward<Args>(args)...);
 }
+
+// deprecated, delete once use case is altered to use the above
+// use case is in
+// tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_unpack_tilize_api.h
+// llk_unpack_tilizeA_B_mop_config(const bool narrow_tile
+template<typename Callable>
+[[gnu::always_inline, gnu::flatten]] inline auto load_replay_buf(uint start, uint len, bool exec, Callable callable)
+{
+    // Issue instruction to load replay buffer
+    __builtin_rvtt_ttreplay(start, len, exec, true);
+
+    // Send in the user's desired instructions
+    return callable();
+}
+#endif
 
 enum class CSR : uint16_t
 {

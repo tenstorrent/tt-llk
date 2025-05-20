@@ -64,7 +64,7 @@ inline void transpose_dest_configure_addrmod()
 
 inline void transpose_dest_configure_mop()
 {
-    load_replay_buf<16, 15, false>(
+    load_replay_buf(16, 15,
         []
         {
             // ABCD
@@ -97,13 +97,13 @@ inline void transpose_dest_configure_mop()
     // Face 3: 4x MOVD2B, TRNSPSRCB, 4x MOVB2D, dst += 16 (EFGHIJKLM..)
     // Face 1: 2x MOVA2D (2x dst -= 16) (..NO)
 
-    uint EFGHIJKLM   = TT_OP_REPLAY(20, 9, 0, 0);
-    uint EFGHI       = TT_OP_REPLAY(20, 5, 0, 0);
-    uint ABCDEFG     = TT_OP_REPLAY(16, 7, 0, 0);
+    uint EFGHIJKLM   = lltt::replay_insn(20, 9);
+    uint EFGHI       = lltt::replay_insn(20, 5);
+    uint ABCDEFG     = lltt::replay_insn(16, 7);
     uint P           = TT_OP_MOVD2B(0, 28, ADDR_MOD_2, p_movd2b::MOV_4_ROWS, 12); // dst -= 16
-    uint IJKL        = TT_OP_REPLAY(24, 4, 0, 0);
+    uint IJKL        = lltt::replay_insn(24, 4);
     uint Q           = TT_OP_MOVB2D(0, 28, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 12); // dst += 32
-    uint EFGHIJKLMNO = TT_OP_REPLAY(20, 11, 0, 0);
+    uint EFGHIJKLMNO = lltt::replay_insn(20, 11);
 
     // The following MOP config simply runs the above 7 instructions in order (when executed with zmask 0b10):
     ckernel_unpack_template tmp(true, true, EFGHIJKLM, EFGHI, ABCDEFG, P, /* skip A */ Q, /* B */ IJKL, /* skip B */ EFGHIJKLMNO);
