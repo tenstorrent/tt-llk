@@ -122,5 +122,18 @@ inline void _calculate_cosine_(const int iterations)
     }
 }
 
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_sinh_()
+{
+    // SFPU microcode
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::vFloat v      = sfpi::dst_reg[0];
+        sfpi::vFloat result = (_sfpu_exp_(v) - _sfpu_exp_(-v)) * 0.5f;
+        sfpi::dst_reg[0]    = result;
+        sfpi::dst_reg++;
+    }
+}
+
 } // namespace sfpu
 } // namespace ckernel
