@@ -45,7 +45,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16]
+supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -70,7 +70,7 @@ test_formats = format_combination_sweep(
 all_params = generate_params(
     ["matmul_unpack_tilize_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
@@ -94,16 +94,16 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
         num = 2
         if i % 2 == 0:
             num = 1
-        tens = [num]*16
+        tens = [num] * 16
         src_A.extend(tens)
     for i in range(32):
         num = 4
         if i % 2 == 0:
             num = 3
-        tens = [num]*16
+        tens = [num] * 16
         src_A.extend(tens)
     src_B = torch.eye(32).flatten()
-    src_A = torch.tensor(src_A, dtype = format_dict[formats.input_format]).flatten()
+    src_A = torch.tensor(src_A, dtype=format_dict[formats.input_format]).flatten()
     golden_tensor = tilize(
         generate_golden(src_A, src_B, formats.output_format, math_fidelity)
     )

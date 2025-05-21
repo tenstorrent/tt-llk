@@ -42,32 +42,11 @@ void run_kernel()
         semaphore::PACK_DONE); // Unpacker waits on signal when packer will increment semaphore to 1 (waits while semaphore == 0), utilizing SEMWAIT.
     t6_semaphore_get<>(semaphore::PACK_DONE); // It will acquire the semaphore t6_semaphore_get (decrementing the semaphore back to 0) signalling it has begun
 
-    // processing data from L1
-    // _llk_unpack_reconfig_data_format_srca_impl_<false, is_fp32_dest_acc_en>(
-    //     UNPACK_A_IN, UNPACK_A_OUT, tile_size); // have to reconfigure unpack kernel data formats if they change in this run
-    // _llk_unpack_reconfig_data_format_srcb_impl_<false, is_fp32_dest_acc_en>(UNPACK_B_IN, UNPACK_B_OUT, tile_size);
-    TT_SETADCXX(p_setadc::UNP_A, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
-    TT_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
-    unpack_config_u config = {0};
-
-    config.f.out_data_format = UNPACK_A_OUT;
-    config.f.throttle_mode = 2;
-    TT_SETDMAREG(0, LOWER_HALFWORD(config.val[0]), 0, LO_16(p_gpr_unpack::TMP0));
-    TT_SETDMAREG(0, UPPER_HALFWORD(config.val[0]), 0, HI_16(p_gpr_unpack::TMP0));
-    TTI_REG2FLOP(
-        1,
-        0,
-        0,
-        0,
-        THCON_SEC0_REG2_Out_data_format_ADDR32 + 0 - THCON_CFGREG_BASE_ADDR32,
-        p_gpr_unpack::TMP0);  // Load unpack config[0]
-    TTI_REG2FLOP(
-        1,
-        0,
-        0,
-        0,
-        THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32,
-        p_gpr_unpack::FACE_DIM_16x16);  // GPR preloaded with  16 | (16 << 16)}
+    // Start of second unpack kernel to perform unpack matmul on now tilized input data
+    _llk_unpack_reconfig_data_format_srca_impl_<false, is_fp32_dest_acc_en>(
+        UNPACK_A_IN, UNPACK_A_OUT, tile_size); // have to reconfigure unpack kernel data formats if they change in this run
+    _llk_unpack_reconfig_data_format_srcb_impl_<false, is_fp32_dest_acc_en>(UNPACK_B_IN, UNPACK_B_OUT, tile_size);
+    _llk_unpack_tilize_uninit_(UNPACK_A_OUT);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
 }
@@ -113,8 +92,9 @@ void run_kernel()
         operand_B_dst_index, MATH_FORMAT, MATH_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
-    // _llk_math_reconfig_data_format_srca_<false, is_fp32_dest_acc_en>(MATH_FORMAT); // have to reconfigure math kernel data formats if they change in this run
-    // _llk_math_reconfig_data_format_srcb_<false, is_fp32_dest_acc_en>(MATH_FORMAT);
+    // Start of second math kernel to perform matmul on now tilized input data
+    _llk_math_reconfig_data_format_srca_<false, is_fp32_dest_acc_en>(MATH_FORMAT); // have to reconfigure math kernel data formats if they change in this run
+    _llk_math_reconfig_data_format_srcb_<false, is_fp32_dest_acc_en>(MATH_FORMAT);
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
@@ -131,7 +111,6 @@ void run_kernel()
 
 void run_kernel()
 {
-    // asm volatile ("ebreak");
     volatile uint32_t* const buffer_Dest    = reinterpret_cast<volatile uint32_t*>(0x1e000);
     const std::uint32_t ct_dim              = 1;
     const std::uint32_t operand_A_dst_index = 1;
@@ -163,6 +142,7 @@ void run_kernel()
     t6_semaphore_post<>(semaphore::PACK_DONE); // The packer signals to the unpacker that it has finished writing to L1 by posting (incrementing) the semaphore.
                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
 
+    // Start of second pack kernel to perform final pack after executing matmul on tilized data
     _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(
         PACK_IN,
         PACK_OUT,
