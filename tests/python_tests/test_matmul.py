@@ -22,10 +22,10 @@ from helpers.param_config import (
     generate_params,
     input_output_formats,
 )
-from helpers.stimuli_generator import flatten_list, generate_stimuli
+from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import tilize
-from helpers.utils import compare_pcc, format_kernel_list, run_shell_command
+from helpers.utils import compare_pcc, run_shell_command, format_kernel_list
 
 
 def generate_golden(operand1, operand2, data_format, math_fidelity):
@@ -43,6 +43,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
     operand1_matrix = operand1.view(32, 32).to(format_dict[data_format])
     operand2_matrix = operand2.view(32, 32).to(format_dict[data_format])
 
+    result_matrix = torch.zeros(32, 32, dtype=operand1_matrix.dtype)
     result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
 
     return result_matrix.view(1024).to(format_dict[data_format])
@@ -96,38 +97,28 @@ def test_matmul(testname, formats, dest_acc, math_fidelity, tile_cnt):
 
     src_A, src_B = generate_stimuli(
         formats.input_format, formats.input_format, tile_cnt=tile_cnt
-    )  # , const_face=True, const_value_A=3, const_value_B=2)
-    golden = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+    )
     write_stimuli_to_l1(
-        tilize(src_A),
-        tilize(src_B),
+        tilize(src_A, format_dict[formats.input_format]),
+        tilize(src_B, format_dict[formats.input_format]),
         formats.input_format,
         formats.input_format,
         "0,0",
         tile_cnt,
     )
 
-    # src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
-
-    # golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
-    # golden_tensor = tilize(golden_tensor, format_dict[formats.input_format])
-    # golden_tensor = golden_tensor.to(format_dict[formats.output_format])
-
-    # write_stimuli_to_l1(
-    #     tilize(src_A, format_dict[formats.input_format]),
-    #     tilize(src_B, format_dict[formats.input_format]),
-    #     formats.input_format,
-    #     formats.input_format,
-    # )
+    golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+    golden_tensor = tilize(golden_tensor, format_dict[formats.input_format])
+    golden_tensor = golden_tensor.to(format_dict[formats.output_format])
 
     test_config = {
         "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
+        "kern_cnt": tile_cnt,
         "pack_addr_cnt": len(pack_addresses),
         "pack_addrs": pack_addresses_formatted,
-        "kern_cnt": tile_cnt,
     }
 
     make_cmd = generate_make_command(test_config)
@@ -136,28 +127,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity, tile_cnt):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-
-    # check resluts from multiple tiles
-    res_from_L1 = []
-
-    for address in pack_addresses:
-        res_from_L1.append(
-            collect_results(
-                formats, tensor_size=len(src_A) // len(pack_addresses), address=address
-            )
-        )
-
-    res_from_L1 = flatten_list(res_from_L1)
-
-    golden_tensor = torch.tensor(
-        golden,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
-    )
-    golden_tensor = tilize(golden_tensor, format_dict[formats.input_format])
+    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
 
     res_tensor = torch.tensor(
         res_from_L1,
