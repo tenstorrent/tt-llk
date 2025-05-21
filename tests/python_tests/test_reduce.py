@@ -122,11 +122,11 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname", ["reduce_test"])
 @pytest.mark.parametrize("formats", [formats[0]])
 @pytest.mark.parametrize("dest_acc", [DestAccumulation.No])
-@pytest.mark.parametrize("reduce_dim", [ReduceDimension.Column])
+@pytest.mark.parametrize("reduce_dim", [ReduceDimension.Scalar])
 @pytest.mark.parametrize(
-    "pool_type", [ReducePool.Max]
-)  # , ReducePool.Average, ReducePool.Sum])
-@pytest.mark.parametrize("mathop", [MathOperation.ReduceColumn])
+    "pool_type", [ReducePool.Max, ReducePool.Average, ReducePool.Sum]
+)
+@pytest.mark.parametrize("mathop", [MathOperation.ReduceScalar])
 # @pytest.mark.skip(reason="Not fully implemented")
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
 
@@ -140,7 +140,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
     #     )
     # )
 
-    src_A = torch.arange(0, 128, step=1 / 8, dtype=format_dict[formats.input_format])
+    # src_A = torch.arange(0, 256, step=1 / 4, dtype=format_dict[formats.input_format])
 
     print_faces(src_A)
 

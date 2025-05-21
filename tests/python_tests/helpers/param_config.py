@@ -281,17 +281,10 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
         if params[6]:
             result.append(f"pool_type={params[6].name}")
 
-        # print("\n"*5)
-        # print(result)
-        # print(" | ".join(result))
-
         # Join the result list into a single string with appropriate spacing
         return " | ".join(result)
 
     # Generate and return formatted strings for all parameter combinations
-    print("\n" * 5)
-    print([format_combination(comb) for comb in all_params if comb[0] is not None])
-
     return [format_combination(comb) for comb in all_params if comb[0] is not None]
 
 
