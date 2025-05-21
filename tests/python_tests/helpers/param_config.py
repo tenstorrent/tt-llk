@@ -289,7 +289,7 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
 
 
 def input_output_formats(
-    formats: List[DataFormat], same: Optional[bool] = False
+    formats: List[DataFormat], same: bool = False
 ) -> List[InputOutputFormat]:
     """
     Generates a list of InputOutputFormat instances based on the given formats.
