@@ -50,14 +50,15 @@ else
 endif
 
 OPTIONS_COMPILE+= -DMATH_FIDELITY=$(math_fidelity)
-
+OPTIONS_UNPACK:=-DKERN_CNT=$(kern_cnt)
+OPTIONS_MATH:=-DKERN_CNT=$(kern_cnt)
+OPTIONS_PACK:=-DKERN_CNT=$(kern_cnt)
+OPTIONS_PACK+=-DPACK_ADDR_CNT=$(pack_addr_cnt)
+OPTIONS_PACK+=-DPACK_ADDRS=$(pack_addrs)
 # If test needs to run muliple consecutive operations it needs some additional
 # files to be linked to it
 ifeq ($(testname), multiple_tiles_eltwise_test)
 	MULTIPLE_OPS:=-DMULTIPLE_OPS
-	OPTIONS_UNPACK:=-DKERN_CNT=$(kern_cnt)
-	OPTIONS_MATH:=-DKERN_CNT=$(kern_cnt)
-	OPTIONS_PACK:=-DKERN_CNT=$(kern_cnt)
 	OPTIONS_PACK+=-DPACK_ADDR_CNT=$(pack_addr_cnt)
 	OPTIONS_PACK+=-DPACK_ADDRS=$(pack_addrs)
 endif
