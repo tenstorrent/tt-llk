@@ -19,7 +19,6 @@ from helpers.format_arg_mapping import (
 from helpers.format_config import DataFormat
 from helpers.param_config import (
     clean_params,
-    format_combination_sweep,
     generate_param_ids,
     generate_params,
     input_output_formats,
