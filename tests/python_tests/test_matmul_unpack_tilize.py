@@ -8,9 +8,9 @@ from helpers.format_config import DataFormat
 from helpers.format_arg_mapping import format_dict, MathFidelity, DestAccumulation
 from helpers.param_config import (
     clean_params,
-    format_combination_sweep,
     generate_param_ids,
     generate_params,
+    input_output_formats,
 )
 from helpers.device import (
     collect_results,
@@ -64,9 +64,7 @@ supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
-test_formats = format_combination_sweep(
-    formats=supported_formats, all_same=True, same_src_reg_format=True
-)
+test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["matmul_unpack_tilize_test"],
     test_formats,
@@ -89,21 +87,7 @@ param_ids = generate_param_ids(all_params)
 def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
-    src_A = []
-    for i in range(32):
-        num = 2
-        if i % 2 == 0:
-            num = 1
-        tens = [num] * 16
-        src_A.extend(tens)
-    for i in range(32):
-        num = 4
-        if i % 2 == 0:
-            num = 3
-        tens = [num] * 16
-        src_A.extend(tens)
-    src_B = torch.eye(32).flatten()
-    src_A = torch.tensor(src_A, dtype=format_dict[formats.input_format]).flatten()
+
     golden_tensor = tilize(
         generate_golden(src_A, src_B, formats.output_format, math_fidelity)
     )

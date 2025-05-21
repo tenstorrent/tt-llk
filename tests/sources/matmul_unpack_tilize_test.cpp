@@ -64,7 +64,6 @@ using namespace ckernel;
 
 void run_kernel()
 {
-    // asm volatile ("ebreak");
     const bool is_int_fpu_en                = false;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
