@@ -13,7 +13,7 @@ namespace sfpu
 
 namespace
 {
-static const float FRAC_1_PI = 0.31830987f;
+constexpr double FRAC_1_PI = 0.3183098861837907;
 
 template <bool APPROXIMATION_MODE>
 static sfpi::vFloat sfpu_sinpi(sfpi::vFloat x);
@@ -67,11 +67,6 @@ inline void _calculate_cosine_()
         v -= int32_to_float(whole_v, 0);
         v = sfpu_sinpi<APPROXIMATION_MODE>(v);
 
-        v_if (whole_v & 1)
-        {
-            v = -v;
-        }
-        v_endif;
         sfpi::dst_reg[0] = v;
         sfpi::dst_reg++;
     }

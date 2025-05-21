@@ -13,7 +13,7 @@ namespace sfpu
 
 namespace
 {
-static const float FRAC_1_PI = 0.31830987f;
+constexpr double FRAC_1_PI = 0.3183098861837907;
 
 template <bool APPROXIMATION_MODE>
 static sfpi::vFloat sfpu_sinpi(sfpi::vFloat x);
