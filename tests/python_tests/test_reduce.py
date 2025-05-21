@@ -21,11 +21,19 @@ from helpers.param_config import (
     generate_param_ids,
     generate_params,
     input_output_formats,
+    clean_params,
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import untilize
-from helpers.utils import compare_pcc, print_faces, run_shell_command
+from helpers.utils import compare_pcc, run_shell_command
+
+# Helper dictionary to map reduce dimensions to math operations
+mathop_mapping = {
+    ReduceDimension.Row: MathOperation.ReduceRow,
+    ReduceDimension.Column: MathOperation.ReduceColumn,
+    ReduceDimension.Scalar: MathOperation.ReduceScalar,
+}
 
 
 def generate_golden(operand1, reduce_dim, pool_type, data_format):
@@ -101,9 +109,8 @@ all_params = generate_params(
     ["reduce_test"],
     formats,
     dest_acc=[DestAccumulation.No],
-    reduce_dim=[ReduceDimension.Row],
-    pool_type=[ReducePool.Max],  # ,ReducePool.Average, ReducePool.Sum],
-    mathop=[MathOperation.ReduceRow],
+    reduce_dim=[ReduceDimension.Column, ReduceDimension.Scalar],
+    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
 
 param_ids = generate_param_ids(all_params)
@@ -112,23 +119,24 @@ param_ids = generate_param_ids(all_params)
 # THIS NEEDS TO BE FIXED.
 # For now tests will be parametrized by hand
 
-# @pytest.mark.parametrize(
-#     "testname, formats, dest_acc, reduce_dim, pool_type, mathop",
-#     clean_params(all_params),
-#     ids=param_ids,
-# )
 
-
-@pytest.mark.parametrize("testname", ["reduce_test"])
-@pytest.mark.parametrize("formats", [formats[0]])
-@pytest.mark.parametrize("dest_acc", [DestAccumulation.No])
-@pytest.mark.parametrize("reduce_dim", [ReduceDimension.Scalar])
 @pytest.mark.parametrize(
-    "pool_type", [ReducePool.Max, ReducePool.Average, ReducePool.Sum]
+    "testname, formats, dest_acc, reduce_dim, pool_type",
+    clean_params(all_params),
+    ids=param_ids,
 )
-@pytest.mark.parametrize("mathop", [MathOperation.ReduceScalar])
+
+
+# @pytest.mark.parametrize("testname", ["reduce_test"])
+# @pytest.mark.parametrize("formats", [formats[0]])
+# @pytest.mark.parametrize("dest_acc", [DestAccumulation.No])
+# @pytest.mark.parametrize("reduce_dim", [ReduceDimension.Scalar])
+# @pytest.mark.parametrize(
+#     "pool_type", [ReducePool.Max, ReducePool.Average, ReducePool.Sum]
+# )
+# @pytest.mark.parametrize("mathop", [MathOperation.ReduceScalar])
 # @pytest.mark.skip(reason="Not fully implemented")
-def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
+def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
     # src_A = torch.cat(
@@ -142,7 +150,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
 
     # src_A = torch.arange(0, 256, step=1 / 4, dtype=format_dict[formats.input_format])
 
-    print_faces(src_A)
+    src_A = torch.rand(1024, dtype=torch.bfloat16) + 1.5
 
     if pool_type in [
         ReducePool.Max,
@@ -158,6 +166,8 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
 
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+
+    mathop = mathop_mapping[reduce_dim]
 
     test_config = {
         "formats": formats,
@@ -193,21 +203,6 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type, mathop):
     elif formats.output_format == DataFormat.Bfp8_b:
         atol = 0.1
         rtol = 0.2
-
-    print("INPUT")
-    print(src_A.view(32, 32))
-    print("GOLDEN")
-    print(golden_tensor.view(32, 32))
-    print("RESULT")
-    print(res_tensor.view(32, 32))
-
-    golden_column = golden_tensor.view(32, 32)[:, 0]
-    result_column = res_tensor.view(32, 32)[:, 0]
-
-    print("LEFTMOST COLUMN - GOLDEN")
-    print(golden_column)
-    print("LEFTMOST COLUMN - RESULT")
-    print(result_column)
 
     run_shell_command(f"cd .. && make clean")
 
