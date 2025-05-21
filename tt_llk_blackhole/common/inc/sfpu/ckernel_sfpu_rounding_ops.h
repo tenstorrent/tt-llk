@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <climits>
 
 #include "ckernel.h"
@@ -79,17 +80,17 @@ inline constexpr std::array<float, 84> PRECOMPUTED_POW10_TABLE = {
 };
 
 template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
-inline void calculate_floor()
+inline void _calculate_floor_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
-        vFloat v      = dst_reg[0];
-        vFloat result = v;
-        vInt tmp;
+        sfpi::vFloat v      = sfpi::dst_reg[0];
+        sfpi::vFloat result = v;
+        sfpi::vInt tmp;
 
         if constexpr (USE_FP32)
         {
-            tmp = float_to_int32(result);
+            tmp = _float_to_int32_(result);
         }
         else
         {
@@ -113,49 +114,46 @@ inline void calculate_floor()
             v_endif;
         }
 
-        dst_reg[0] = result;
-        dst_reg++;
+        sfpi::dst_reg[0] = result;
+        sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
 inline void _calculate_ceil_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat result = sfpi::dst_reg[0];
         sfpi::vFloat v      = result;
-        sfpi::vInt tmp      = float_to_int16(result, 0);
-        result              = int32_to_float(tmp, 0);
-        v_if (result < v)
-        {
-            result = result + 1;
-        }
-        v_endif;
-        v_if (v <= SHRT_MIN || v >= SHRT_MAX)
-        {
-            result = v;
-        }
-        v_endif;
-        sfpi::dst_reg[0] = result;
-        sfpi::dst_reg++;
-    }
-}
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
-inline void _calculate_ceil_float32_()
-{
-    for (int d = 0; d < ITERATIONS; d++)
-    {
-        sfpi::vFloat result = sfpi::dst_reg[0];
-        sfpi::vFloat v      = result;
-        sfpi::vInt tmp      = _float_to_int32_(result);
-        result              = int32_to_float(tmp, 0);
+        sfpi::vInt tmp;
+        if constexpr (USE_FP32)
+        {
+            tmp = _float_to_int32_(result);
+        }
+        else
+        {
+            tmp = float_to_int16(result, 0);
+        }
+
+        result = int32_to_float(tmp, 0);
+
         v_if (result < v)
         {
             result = result + 1;
         }
         v_endif;
+
+        if constexpr (!USE_FP32)
+        {
+            v_if (v <= SHRT_MIN || v >= SHRT_MAX)
+            {
+                result = v;
+            }
+            v_endif;
+        }
+
         sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
     }

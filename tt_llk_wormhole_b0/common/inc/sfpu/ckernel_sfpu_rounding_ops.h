@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <climits>
 
 #include "ckernel.h"
@@ -78,87 +79,81 @@ inline constexpr std::array<float, 84> PRECOMPUTED_POW10_TABLE = {
     1e23F,  1e24F,  1e25F,  1e26F,  1e27F,  1e28F,  1e29F,  1e30F,  1e31F,  1e32F,  1e33F,  1e34F,  1e35F,  1e36F,  1e37F,  1e38F,
 };
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
 inline void _calculate_floor_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat result = sfpi::dst_reg[0];
-        sfpi::vFloat v      = result;
-        sfpi::vInt tmp      = float_to_int16(result, 0);
-        result              = int32_to_float(tmp, 0);
+        sfpi::vFloat v      = sfpi::dst_reg[0];
+        sfpi::vFloat result = v;
+        sfpi::vInt tmp;
+
+        if constexpr (USE_FP32)
+        {
+            tmp = _float_to_int32_(result);
+        }
+        else
+        {
+            tmp = float_to_int16(result, 0);
+        }
+
+        result = int32_to_float(tmp, 0);
+
         v_if (result > v)
         {
             result = result - 1;
         }
         v_endif;
-        v_if (v <= SHRT_MIN || v >= SHRT_MAX)
+
+        if constexpr (!USE_FP32)
         {
-            result = v;
+            v_if (v <= SHRT_MIN || v >= SHRT_MAX)
+            {
+                result = v;
+            }
+            v_endif;
         }
-        v_endif;
+
         sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
-inline void _calculate_floor_float32_()
-{
-    for (int d = 0; d < ITERATIONS; d++)
-    {
-        sfpi::vFloat result = sfpi::dst_reg[0];
-        sfpi::vFloat v      = result;
-        sfpi::vInt tmp      = _float_to_int32_(result);
-        result              = int32_to_float(tmp, 0);
-        v_if (result > v)
-        {
-            result = result - 1;
-        }
-        v_endif;
-        sfpi::dst_reg[0] = result;
-        sfpi::dst_reg++;
-    }
-}
-
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
 inline void _calculate_ceil_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat result = sfpi::dst_reg[0];
         sfpi::vFloat v      = result;
-        sfpi::vInt tmp      = float_to_int16(result, 0);
-        result              = int32_to_float(tmp, 0);
-        v_if (result < v)
-        {
-            result = result + 1;
-        }
-        v_endif;
-        v_if (v <= SHRT_MIN || v >= SHRT_MAX)
-        {
-            result = v;
-        }
-        v_endif;
-        sfpi::dst_reg[0] = result;
-        sfpi::dst_reg++;
-    }
-}
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
-inline void _calculate_ceil_float32_()
-{
-    for (int d = 0; d < ITERATIONS; d++)
-    {
-        sfpi::vFloat result = sfpi::dst_reg[0];
-        sfpi::vFloat v      = result;
-        sfpi::vInt tmp      = _float_to_int32_(result);
-        result              = int32_to_float(tmp, 0);
+        sfpi::vInt tmp;
+        if constexpr (USE_FP32)
+        {
+            tmp = _float_to_int32_(result);
+        }
+        else
+        {
+            tmp = float_to_int16(result, 0);
+        }
+
+        result = int32_to_float(tmp, 0);
+
         v_if (result < v)
         {
             result = result + 1;
         }
         v_endif;
+
+        if constexpr (!USE_FP32)
+        {
+            v_if (v <= SHRT_MIN || v >= SHRT_MAX)
+            {
+                result = v;
+            }
+            v_endif;
+        }
+
         sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
     }
