@@ -217,4 +217,20 @@ constexpr static std::uint32_t SCALE_DATUM_SIZE(uint format, uint datum_count)
 #define LOWER_HALFWORD(x) ((x) & 0xFFFF)
 #define UPPER_HALFWORD(x) ((x) >> 16)
 
+enum SfpuOpType
+{
+    equal_zero,
+    not_equal_zero,
+    less_than_zero,
+    greater_than_equal_zero,
+    less_than_equal_zero,
+    greater_than_zero,
+    unary_ne,
+    unary_eq,
+    unary_gt,
+    unary_lt,
+    unary_ge,
+    unary_le,
+};
+
 } // namespace ckernel
