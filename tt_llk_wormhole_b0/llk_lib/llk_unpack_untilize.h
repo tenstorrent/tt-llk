@@ -25,7 +25,7 @@ using namespace ckernel::unpacker;
 inline void _llk_unpack_untilize_mop_config_()
 {
     constexpr uint replay_buf_len = (SKIP_UNP == 1) ? 1 : 5;
-    __builtin_rvtt_sfprecord(0, replay_buf_len, 0);
+    sfpi::tt_record(0, replay_buf_len);
 #if SKIP_UNP == 1
     TTI_NOP;
     static constexpr uint load_offset_addr_cntx0 = TT_OP_NOP;

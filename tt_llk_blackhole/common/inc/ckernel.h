@@ -685,13 +685,13 @@ inline void enable_gathering()
 
 // Same as above, but used if start/len/exec_while_loading are not known
 // at compiletime.
-template <typename F>
-inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
+template <bool Exec = false, typename F>
+inline void load_replay_buf(uint start, uint len, F fn)
 {
     // disable_gathering();
 
     // Issue instruction to load replay buffer
-    __builtin_rvtt_sfprecord(start, len, exec_while_loading);
+    sfpi::tt_record<Exec>(start, len);
 
     // Send in the user's desired instructions
     fn();
@@ -705,10 +705,10 @@ inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
 // returns void, and issues the instructions you want to load into the
 // replay buffer. start, len, and exec_while_loading have the same meaning
 // as they do for the REPLAY instruction, as descired in assembly.yaml.
-template <uint start, uint len, bool exec_while_loading = false, typename F>
+template <uint start, uint len, bool Exec = false, typename F>
 inline void load_replay_buf(F fn)
 {
-    load_replay_buf(start, len, exec_while_loading, fn);
+    load_replay_buf<Exec>(start, len, fn);
 }
 
 enum class CSR : uint16_t

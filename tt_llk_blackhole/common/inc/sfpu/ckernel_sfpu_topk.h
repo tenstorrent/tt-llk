@@ -138,10 +138,9 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
 
     if (init_replay)
     {
-        load_replay_buf(
+        load_replay_buf<true>(
             replay_start,
             5,
-            1,
             []
             {
                 // Step 4

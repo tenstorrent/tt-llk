@@ -42,7 +42,6 @@ inline void _llk_unpack_AB_matmul_mop_config_(
         load_replay_buf(
             0,
             replay_buf_prog_len,
-            false,
             // Lambda function to set up replay buffer
             [unpA_partial_face]
             {
@@ -117,7 +116,6 @@ inline void _llk_unpack_AB_matmul_mop_config_(
         load_replay_buf(
             0,
             replay_buf_prog_len,
-            false,
             // Lambda function to set up replay buffer
             [unpB_partial_face]
             {

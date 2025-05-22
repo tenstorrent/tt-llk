@@ -94,7 +94,6 @@ inline void _llk_pack_untilize_mop_config_(
             load_replay_buf(
                 ckernel::packer::replay_buf_offset,
                 replay_buf_len,
-                false,
                 []
                 {
                     // update l1 address

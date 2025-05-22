@@ -152,7 +152,6 @@ inline void _llk_pack_mop_config_(
         load_replay_buf(
             0,
             replay_buf_len,
-            false,
             // Lambda function to set up replay buffer
             []
             {

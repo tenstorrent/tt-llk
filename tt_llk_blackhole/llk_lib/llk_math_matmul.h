@@ -314,7 +314,6 @@ inline void matmul_configure_mop(
     load_replay_buf(
         ckernel::math::replay_buf_offset,
         replay_buf_len,
-        false,
         // Lambda function to load reply buffer
         [high_fidelity, reuse_a, partial_face, is_in1_32x16, is_in0_16x32, is_in0_32x16, is_in1_16x32, t_dim]
         {
@@ -556,7 +555,6 @@ inline void matmul_configure_mop_throttled(
     load_replay_buf(
         ckernel::math::replay_buf_offset,
         replay_buf_len,
-        false,
         // Lambda function to load reply buffer
         [is_in1_32x16, is_in1_16x32, is_in0_32x16, is_in0_16x32]
         {
