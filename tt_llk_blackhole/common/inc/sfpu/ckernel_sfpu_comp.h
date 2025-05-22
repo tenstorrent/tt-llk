@@ -97,5 +97,394 @@ inline void _calculate_comp_(const int iterations, uint exponent_size_8)
     }
 }
 
+template <bool APPROXIMATION_MODE, SfpuOpType COMP_MODE, int ITERATIONS = 8>
+inline void _calculate_zero_comp_unary_(uint exponent_size_8)
+{
+    const sfpi::vFloat zero = 0.0f;
+    const sfpi::vFloat one  = 1.0f;
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::vFloat v = sfpi::dst_reg[0];
+
+        // a[i] == 0
+        if constexpr (COMP_MODE == SfpuOpType::equal_zero)
+        {
+            v_if (_sfpu_is_fp16_zero_(v, exponent_size_8))
+            {
+                v = one;
+            }
+            v_else
+            {
+                v = zero;
+            }
+            v_endif;
+        }
+
+        // a[i] != 0
+        if constexpr (COMP_MODE == SfpuOpType::not_equal_zero)
+        {
+            v_if (_sfpu_is_fp16_zero_(v, exponent_size_8))
+            {
+                v = zero;
+            }
+            v_else
+            {
+                v = one;
+            }
+            v_endif;
+        }
+
+        // a[i] < 0
+        if constexpr (COMP_MODE == SfpuOpType::less_than_zero)
+        {
+            v_if (v >= 0.0f)
+            {
+                v = zero;
+            }
+            v_else
+            {
+                v = one;
+            }
+            v_endif;
+        }
+
+        // a[i] >= 0
+        if constexpr (COMP_MODE == SfpuOpType::greater_than_equal_zero)
+        {
+            v_if (v >= 0.0f)
+            {
+                v = one;
+            }
+            v_else
+            {
+                v = zero;
+            }
+            v_endif;
+        }
+
+        // a[i] > 0
+        if constexpr (COMP_MODE == SfpuOpType::greater_than_zero)
+        {
+            v_if (v > 0.0f)
+            {
+                v = one;
+            }
+            v_else
+            {
+                v = zero;
+            }
+            v_endif;
+        }
+
+        // a[i] <= 0
+        if constexpr (COMP_MODE == SfpuOpType::less_than_equal_zero)
+        {
+            v_if (v > 0.0f)
+            {
+                v = zero;
+            }
+            v_else
+            {
+                v = one;
+            }
+            v_endif;
+        }
+
+        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE, SfpuOpType COMP_MODE, int ITERATIONS = 8>
+inline void _calculate_comp_int_()
+{
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::vInt v    = sfpi::dst_reg[0];
+        sfpi::vInt zero = 0;
+
+        // a[i] == 0
+        if constexpr (COMP_MODE == SfpuOpType::equal_zero)
+        {
+            v_if (v == zero)
+            {
+                v = 1;
+            }
+            v_else
+            {
+                v = zero;
+            }
+            v_endif;
+        }
+
+        // a[i] != 0
+        if constexpr (COMP_MODE == SfpuOpType::not_equal_zero)
+        {
+            v_if (v == zero)
+            {
+                v = zero;
+            }
+            v_else
+            {
+                v = 1;
+            }
+            v_endif;
+        }
+
+        // a[i] < 0
+        if constexpr (COMP_MODE == SfpuOpType::less_than_zero)
+        {
+            v_if (v < zero)
+            {
+                v = 1;
+            }
+            v_else
+            {
+                v = zero;
+            }
+            v_endif;
+        }
+
+        // a[i] > 0
+        if constexpr (COMP_MODE == SfpuOpType::greater_than_zero)
+        {
+            v_if (v > zero)
+            {
+                v = 1;
+            }
+            v_else
+            {
+                v = zero;
+            }
+            v_endif;
+        }
+
+        // a[i] <= 0
+        if constexpr (COMP_MODE == SfpuOpType::less_than_equal_zero)
+        {
+            v_if (v <= zero)
+            {
+                v = 1;
+            }
+            v_else
+            {
+                v = zero;
+            }
+            v_endif;
+        }
+
+        // a[i] >= 0
+        if constexpr (COMP_MODE == SfpuOpType::greater_than_equal_zero)
+        {
+            v_if (v >= zero)
+            {
+                v = 1;
+            }
+            v_else
+            {
+                v = zero;
+            }
+            v_endif;
+        }
+
+        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE, SfpuOpType COMP_MODE, int ITERATIONS = 8>
+inline void _calculate_comp_unary_int_(int scalar)
+{
+#pragma GCC unroll 8
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::vInt v    = sfpi::dst_reg[0];
+        sfpi::vInt val  = 0;
+        sfpi::vInt s    = scalar;
+        sfpi::vInt zero = 0;
+
+        // a[i] != scalar
+        if constexpr (COMP_MODE == SfpuOpType::unary_ne)
+        {
+            v_if (v != scalar)
+            {
+                val = 1;
+            }
+            v_endif;
+        }
+        // a[i] == scalar
+        else if constexpr (COMP_MODE == SfpuOpType::unary_eq)
+        {
+            v_if (v == scalar)
+            {
+                val = 1;
+            }
+            v_endif;
+        }
+        // a[i] > scalar
+        else if constexpr (COMP_MODE == SfpuOpType::unary_gt)
+        {
+            v_if (v >= zero && s < zero)
+            {
+                val = 1;
+            }
+            v_elseif (v < zero && s >= zero)
+            {
+                val = 0;
+            }
+            v_elseif (v > s)
+            {
+                val = 1;
+            }
+            v_endif;
+        }
+        // a[i] < scalar
+        else if constexpr (COMP_MODE == SfpuOpType::unary_lt)
+        {
+            v_if (v >= zero && s < zero)
+            {
+                val = 0;
+            }
+            v_elseif (v < zero && s >= zero)
+            {
+                val = 1;
+            }
+            v_elseif (v < s)
+            {
+                val = 1;
+            }
+            v_endif;
+        }
+        // a[i] >= scalar
+        else if constexpr (COMP_MODE == SfpuOpType::unary_ge)
+        {
+            v_if (v >= zero && s <= zero)
+            {
+                val = 1;
+            }
+            v_elseif (v < zero && s >= zero)
+            {
+                val = 0;
+            }
+            v_elseif (v >= s)
+            {
+                val = 1;
+            }
+            v_endif;
+        }
+        // a[i] <= scalar
+        else if constexpr (COMP_MODE == SfpuOpType::unary_le)
+        {
+            v_if (v < zero && s >= zero)
+            {
+                val = 1;
+            }
+            v_elseif (v > zero && s < zero)
+            {
+                val = 0;
+            }
+            v_elseif (v <= s)
+            {
+                val = 1;
+            }
+            v_else
+            {
+                val = 0;
+            }
+            v_endif;
+        }
+        sfpi::dst_reg[0] = val;
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE, SfpuOpType COMP_MODE, int ITERATIONS = 8>
+inline void _calculate_comp_unary_(uint value)
+{
+    sfpi::vFloat s = value;
+
+#pragma GCC unroll 8
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::vFloat v = sfpi::dst_reg[0];
+
+        if constexpr (COMP_MODE == SfpuOpType::unary_eq)
+        {
+            v_if (v == s)
+            {
+                v = 1.0f;
+            }
+            v_else
+            {
+                v = 0.0f;
+            }
+            v_endif;
+        }
+        else if constexpr (COMP_MODE == SfpuOpType::unary_ne)
+        {
+            v_if (v == s)
+            {
+                v = 0.0f;
+            }
+            v_else
+            {
+                v = 1.0f;
+            }
+            v_endif;
+        }
+        else if constexpr (COMP_MODE == SfpuOpType::unary_gt)
+        {
+            v_if (v > s)
+            {
+                v = 1.0f;
+            }
+            v_else
+            {
+                v = 0.0f;
+            }
+            v_endif;
+        }
+        else if constexpr (COMP_MODE == SfpuOpType::unary_lt)
+        {
+            v_if (v < s)
+            {
+                v = 1.0f;
+            }
+            v_else
+            {
+                v = 0.0f;
+            }
+            v_endif;
+        }
+        else if constexpr (COMP_MODE == SfpuOpType::unary_ge)
+        {
+            v_if (v >= s)
+            {
+                v = 1.0f;
+            }
+            v_else
+            {
+                v = 0.0f;
+            }
+            v_endif;
+        }
+        else if constexpr (COMP_MODE == SfpuOpType::unary_le)
+        {
+            v_if (v <= s)
+            {
+                v = 1.0f;
+            }
+            v_else
+            {
+                v = 0.0f;
+            }
+            v_endif;
+        }
+
+        sfpi::dst_reg[0] = v;
+        sfpi::dst_reg++;
+    }
+}
+
 } // namespace sfpu
 } // namespace ckernel
