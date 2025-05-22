@@ -134,9 +134,6 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
         atol = 0.1
         rtol = 0.2
 
-    print("\nGolden Tensor:\n", golden_tensor.view(64, 16))
-    print("\nResult Tensor:\n", res_tensor.view(64, 16))
-
     for i in range(len(golden_tensor)):
         assert torch.isclose(
             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
