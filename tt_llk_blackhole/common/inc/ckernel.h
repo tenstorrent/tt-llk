@@ -6,6 +6,7 @@
 
 #include "ckernel_instr_params.h"
 #include "risc_attribs.h"
+#include "sfpi.h"
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
