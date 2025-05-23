@@ -216,6 +216,7 @@ inline void _calculate_sinh_()
         sfpi::dst_reg[0]    = result;
         sfpi::dst_reg++;
     }
+}
 
 } // namespace sfpu
 } // namespace ckernel
