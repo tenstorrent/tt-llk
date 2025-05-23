@@ -437,3 +437,98 @@ inline void _llk_unpack_tilizeA_B_(
         switch_config_context(unp_cfg_context);
     }
 }
+
+/*************************************************************************
+ * LLK UNPACK FAST TILIZE SRC A
+ *************************************************************************/
+
+template <bool is_fp32_dest_acc_en = false>
+inline void _llk_unpack_fast_tilize_hw_configure_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
+{
+    configure_unpack_AB<false, is_fp32_dest_acc_en>(unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format);
+}
+
+inline void _llk_unpack_fast_tilize_mop_config_()
+{
+    TT_REPLAY(0, 32, 0, 1);
+
+    for (std::uint32_t j = 0; j < 31; j++)
+    {
+        TTI_UNPACR(SrcA, 0b01'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    }
+    TTI_UNPACR(SrcA, 0b01'00'01'00, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+    ckernel_unpack_template tmp = ckernel_unpack_template(
+        true,
+        false,
+        TT_OP_REPLAY(0, 32, 0, 0),
+        0,
+        0,
+        0,
+        0,
+        TT_OP_SETADCZW(0b001, 0, 0, 0, 0, 0b1111),
+        0);
+
+    tmp.program(instrn_buffer);
+}
+
+inline void _llk_unpack_fast_tilize_init_(const std::uint32_t full_dim)
+{
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
+    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32);
+    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
+    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32, 0, 0xFFFFFFFF>((TILE_C_DIM << 16) | (TILE_C_DIM));
+    cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xFFFFFFFF>((TILE_R_DIM << 16) | (full_dim));
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(2 * TILE_C_DIM); // TODO hardcoded for Float16
+
+    TTI_SETADCXX(p_setadc::UNP_A, 2 * FACE_C_DIM - 1, 0x0);
+
+    _llk_unpack_fast_tilize_mop_config_();
+}
+
+inline void _llk_unpack_fast_tilize_uninit_()
+{
+    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, 0, UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32);
+    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
+    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, 0, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+}
+
+inline void _llk_unpack_fast_tilize_block_(const std::uint32_t base_address, const std::uint32_t tile_index, const std::uint32_t block_dim)
+{
+    volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
+    TTI_SETADCXY(0b011, 0, 0, 0, 0, 0b1010);
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
+    
+    wait_for_next_context(2);
+
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = base_address + ((tile_index * 2 * TILE_C_DIM) >> 4); // TODO hardcoded for Float16
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = base_address + ((tile_index * 2 * TILE_C_DIM) >> 4); // TODO hardcoded for Float16
+    }
+
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+    // for (std::uint32_t i = 0; i < block_dim; i++)
+    // {
+    //     for (std::uint32_t j = 0; j < 31; j++)
+    //     {
+    //         TTI_UNPACR(SrcA, 0b01'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    //     }
+    //     TTI_UNPACR(SrcA, 0b01'00'01'00, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    //     TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
+    // }
+
+    TTI_MOP(0, block_dim - 1, 0);
+
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+}
