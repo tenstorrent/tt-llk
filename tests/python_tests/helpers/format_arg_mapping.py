@@ -1,10 +1,11 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import torch
 from enum import Enum
-from .format_config import DataFormat
 
+import torch
+
+from .format_config import DataFormat
 
 format_dict = {
     DataFormat.Float32: torch.float32,
@@ -82,9 +83,13 @@ class MathOperation(Enum):
     Elwadd = "ELTWISE_BINARY_ADD"
     Elwsub = "ELTWISE_BINARY_SUB"
     Elwmul = "ELTWISE_BINARY_MUL"
+    Abs = "SFPU_OP_ABS"
     Sqrt = "SFPU_OP_SQRT"
     Square = "SFPU_OP_SQUARE"
     Log = "SFPU_OP_LOG"
+    Sin = "SFPU_OP_SINE"
+    Cos = "SFPU_OP_COSINE"
+    Reciprocal = "SFPU_OP_RECIPROCAL"
     ReduceColumn = "REDUCE_COL_OPERATION"
     ReduceRow = "REDUCE_ROW_OPERATION"
     ReduceScalar = "REDUCE_SCALAR_OPERATION"
