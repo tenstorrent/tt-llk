@@ -141,7 +141,7 @@ public:
 
 #define ZONE_SCOPED(name)                    \
     DO_PRAGMA(message(ZONE_FULL_NAME(name))) \
-    llk_profiler::zone_scoped<ZONE_ID(name)>();
+    const auto _zone_scoped_ = llk_profiler::zone_scoped<ZONE_ID(name)>();
 
 #define TIMESTAMP(name)                      \
     DO_PRAGMA(message(ZONE_FULL_NAME(name))) \
