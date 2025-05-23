@@ -45,10 +45,10 @@ constexpr uint32_t ENTRY_META_MASK = ~((1 << ENTRY_META_SHAMT) - 1);
 
 constexpr uint32_t ENTRY_EXISTS_BIT = 0b1000 << ENTRY_TYPE_SHAMT;
 
-constexpr uint32_t TIMESTAMP_ENTRY      = 0b1000 << ENTRY_TYPE_SHAMT;
-constexpr uint32_t TIMESTAMP_DATA_ENTRY = 0b1001 << ENTRY_TYPE_SHAMT;
-constexpr uint32_t ZONE_START_ENTRY     = 0b1010 << ENTRY_TYPE_SHAMT;
-constexpr uint32_t ZONE_END_ENTRY       = 0b1011 << ENTRY_TYPE_SHAMT;
+constexpr uint32_t TIMESTAMP_ENTRY      = 0b1000;
+constexpr uint32_t TIMESTAMP_DATA_ENTRY = 0b1001;
+constexpr uint32_t ZONE_START_ENTRY     = 0b1010;
+constexpr uint32_t ZONE_END_ENTRY       = 0b1011;
 
 // Initialize id of the core executing the kernel
 #if defined(LLK_TRISC_UNPACK)
