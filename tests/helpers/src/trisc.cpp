@@ -15,6 +15,7 @@
 #include "params.h"
 
 #ifdef LLK_PROFILER
+#include "profiler.h"
 
 namespace llk_profiler
 {
@@ -47,6 +48,11 @@ int main()
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
     ckernel::reset_cfg_state_id();
     ckernel::reset_dest_offset_id();
+
+#if defined(LLK_PROFILER)
+    llk_profiler::reset();
+#endif
+
     run_kernel();
     ckernel::tensix_sync();
     *mailbox = ckernel::KERNEL_COMPLETE; // 0x1
