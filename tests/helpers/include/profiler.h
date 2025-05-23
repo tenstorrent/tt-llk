@@ -66,14 +66,15 @@ constexpr uint32_t trisc_id = 2;
 constexpr uint32_t BUFFER_SIZE  = 0x400;
 constexpr uint32_t BUFFER_START = 0x16E000 - 3 * (BUFFER_SIZE * sizeof(uint32_t));
 
-using buffer_ptr_t            = volatile tt_l1_ptr uint32_t (*)[BUFFER_SIZE];
-constexpr buffer_ptr_t buffer = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
+using buffer_ptr_t = volatile tt_l1_ptr uint32_t (*)[BUFFER_SIZE];
 
+extern buffer_ptr_t buffer;
 extern uint32_t write_idx;
 extern uint32_t open_zone_cnt;
 
 __attribute__((always_inline)) void reset()
 {
+    buffer        = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
     write_idx     = 0;
     open_zone_cnt = 0;
 
@@ -148,8 +149,8 @@ public:
     DO_PRAGMA(message(ZONE_FULL_NAME(name))) \
     llk_profiler::write_event(llk_profiler::TIMESTAMP_ENTRY, ZONE_ID(name));
 
-#define TIMESTAMP_DATA(name, data)                                  \
-    DO_PRAGMA(message(ZONE_FULL_NAME(name)))                        \
+#define TIMESTAMP_DATA(name, data)                                                \
+    DO_PRAGMA(message(ZONE_FULL_NAME(name)))                                      \
     llk_profiler::write_event(llk_profiler::TIMESTAMP_DATA_ENTRY, ZONE_ID(name)); \
     llk_profiler::write_data(data);
 

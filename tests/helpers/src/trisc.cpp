@@ -13,17 +13,18 @@
 // Necessary for ckernel variables
 #include "ckernel_helper.h"
 #include "params.h"
+#include "profiler.h"
 
 #ifdef LLK_PROFILER
-#include "profiler.h"
 
 namespace llk_profiler
 {
 
+buffer_ptr_t buffer    = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
 uint32_t write_idx     = 0;
 uint32_t open_zone_cnt = 0;
 
-}
+} // namespace llk_profiler
 
 #endif
 
