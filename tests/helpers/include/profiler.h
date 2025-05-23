@@ -72,7 +72,7 @@ constexpr buffer_ptr_t buffer = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
 extern uint32_t write_idx;
 extern uint32_t open_zone_cnt;
 
-__attribute__((noinline)) void reset()
+__attribute__((always_inline)) void reset()
 {
     write_idx     = 0;
     open_zone_cnt = 0;
