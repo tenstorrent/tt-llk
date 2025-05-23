@@ -57,6 +57,8 @@ constexpr uint32_t trisc_id = 0;
 constexpr uint32_t trisc_id = 1;
 #elif defined(LLK_TRISC_PACK)
 constexpr uint32_t trisc_id = 2;
+#else
+#error "Profiler can only be used on TRISC cores"
 #endif
 
 constexpr uint32_t BUFFER_SIZE  = 0x400;
