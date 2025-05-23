@@ -135,6 +135,8 @@ public:
     }
 };
 
+} // namespace llk_profiler
+
 #define ZONE_SCOPED(name)                    \
     DO_PRAGMA(message(ZONE_FULL_NAME(name))) \
     llk_profiler::zone_scoped<ZONE_ID(name)>();
@@ -147,5 +149,3 @@ public:
     DO_PRAGMA(message(ZONE_FULL_NAME(name)))                        \
     llk_profiler::write_event(TIMESTAMP_DATA_ENTRY, ZONE_ID(name)); \
     llk_profiler::write_data(data);
-
-} // namespace llk_profiler
