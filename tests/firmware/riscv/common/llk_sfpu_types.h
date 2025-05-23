@@ -91,4 +91,6 @@ enum class SfpuType
     fill,
     prelu,
     reshuffle_rows,
+    cosh,
+    sinh,
 };
