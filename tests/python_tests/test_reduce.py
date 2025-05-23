@@ -12,17 +12,17 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import (
     DestAccumulation,
+    MathOperation,
     ReduceDimension,
     ReducePool,
     format_dict,
-    MathOperation,
 )
 from helpers.format_config import DataFormat
 from helpers.param_config import (
+    clean_params,
     generate_param_ids,
     generate_params,
     input_output_formats,
-    clean_params,
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
