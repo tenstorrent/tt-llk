@@ -86,7 +86,7 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -110,8 +110,7 @@ all_params = generate_params(
     ["reduce_test"],
     formats,
     dest_acc=[DestAccumulation.No],
-    # reduce_dim=[ReduceDimension.Column, ReduceDimension.Scalar],
-    reduce_dim=[ReduceDimension.Column, ReduceDimension.Scalar],
+    reduce_dim=[ReduceDimension.Column, ReduceDimension.Scalar, ReduceDimension.Row],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
 
@@ -123,9 +122,10 @@ param_ids = generate_param_ids(all_params)
     clean_params(all_params),
     ids=param_ids,
 )
-
-# @pytest.mark.skip(reason="Not fully implemented")
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+
+    if reduce_dim == ReduceDimension.Row:
+        pytest.skip("ReduceDimension.Row not fully implemented")
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
