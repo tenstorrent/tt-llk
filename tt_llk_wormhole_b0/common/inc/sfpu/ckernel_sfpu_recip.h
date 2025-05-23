@@ -20,10 +20,10 @@ template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
     sfpi::vFloat negative_x = -in;
-    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(in));
-    sfpi::vFloat t = sfpi::vConstFloatPrgm2 + negative_x * y;
-    y = y * sfpi::vConstFloatPrgm1;
-    y = y * t;
+    sfpi::vFloat y          = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(in));
+    sfpi::vFloat t          = sfpi::vConstFloatPrgm2 + negative_x * y;
+    y                       = y * sfpi::vConstFloatPrgm1;
+    y                       = y * t;
 
     if constexpr (!APPROXIMATE)
     {
@@ -60,7 +60,7 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
-    sfpi::vConstIntPrgm0 = 0x7eb504f3;
+    sfpi::vConstIntPrgm0   = 0x7eb504f3;
     sfpi::vConstFloatPrgm1 = 1.94090888923f;
     sfpi::vConstFloatPrgm2 = 1.43566017178f;
 }

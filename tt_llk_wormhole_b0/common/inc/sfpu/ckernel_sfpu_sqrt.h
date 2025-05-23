@@ -20,15 +20,16 @@ namespace sfpu
 template <bool APPROXIMATE = false, bool RECIPROCAL = false>
 sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
 {
-    sfpi::vInt i = sfpi::reinterpret<sfpi::vInt>(sfpi::reinterpret<sfpi::vUInt>(x) >> 1);
+    sfpi::vInt i   = sfpi::reinterpret<sfpi::vInt>(sfpi::reinterpret<sfpi::vUInt>(x) >> 1);
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - i);
 
     if constexpr (APPROXIMATE)
     {
         // Algorithm SQRT_10-bits, with modifications for reciprocal.
-        sfpi::vFloat c = x * y;
+        sfpi::vFloat c          = x * y;
         sfpi::vFloat negative_y = -y;
-        if constexpr (RECIPROCAL) {
+        if constexpr (RECIPROCAL)
+        {
             y = y * (sfpi::vConstFloatPrgm1 + negative_y * c);
         }
         else
@@ -40,18 +41,19 @@ sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
     {
         // Algorithm SQRT_23-bits, with modifications for reciprocal.
         sfpi::vFloat negative_x = -x;
-        sfpi::vFloat c = negative_x * y * y;
-        y = y * (sfpi::vConstFloatPrgm1 + c * (sfpi::vConstFloatPrgm2 + c));
-        sfpi::vFloat half_y = sfpi::addexp(y, -1);
+        sfpi::vFloat c          = negative_x * y * y;
+        y                       = y * (sfpi::vConstFloatPrgm1 + c * (sfpi::vConstFloatPrgm2 + c));
+        sfpi::vFloat half_y     = sfpi::addexp(y, -1);
 
-        if constexpr (RECIPROCAL) {
+        if constexpr (RECIPROCAL)
+        {
             y = y + (sfpi::vConst1 + negative_x * y * y) * half_y;
         }
         else
         {
             half_y = -half_y;
-            y = x * y;
-            y = y + (y * y + negative_x) * half_y;
+            y      = x * y;
+            y      = y + (y * y + negative_x) * half_y;
         }
     }
 
@@ -74,12 +76,12 @@ inline void _init_sqrt_()
 {
     if (APPROXIMATION_MODE)
     {
-        sfpi::vConstIntPrgm0 = 0x5f0b3892;
+        sfpi::vConstIntPrgm0   = 0x5f0b3892;
         sfpi::vConstFloatPrgm1 = 1.89099014875f;
     }
     else
     {
-        sfpi::vConstIntPrgm0 = 0x5f1110a0;
+        sfpi::vConstIntPrgm0   = 0x5f1110a0;
         sfpi::vConstFloatPrgm1 = 2.2825186f;
         sfpi::vConstFloatPrgm2 = 2.2533049f;
     }
