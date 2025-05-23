@@ -231,3 +231,69 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
+
+/*************************************************************************
+ * LLK FAST ELTWISE UNARY DATACOPY
+ *************************************************************************/
+
+inline void _llk_math_fast_eltwise_unary_datacopy_addrmod_config_()
+{
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_2);
+}
+
+inline void _llk_math_fast_eltwise_unary_datacopy_mop_config_()
+{
+    TT_REPLAY(16, 9, 0, 1);
+
+    for (uint j = 0; j < 8; j++)
+    {
+        TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    }
+    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A);
+
+    ckernel_unpack_template tmp = ckernel_unpack_template(
+        false,
+        false,
+        TT_OP_REPLAY(16, 9, 0, 0),
+        0,
+        0,
+        0,
+        0,
+        0,
+        0);
+
+    tmp.program(instrn_buffer);
+}
+
+inline void _llk_math_fast_eltwise_unary_datacopy_init_()
+{
+    _llk_math_fast_eltwise_unary_datacopy_addrmod_config_();
+
+    _llk_math_fast_eltwise_unary_datacopy_mop_config_();
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+inline void _llk_math_fast_eltwise_unary_datacopy_block_(const std::uint32_t dst_index, const std::uint32_t block_dim)
+{
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+
+    // for (uint i = 0; i < block_dim; i++)
+    // {
+    //     for (uint j = 0; j < 8; j++)
+    //     {
+    //         TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    //     }
+    //     TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A);
+    // }
+
+    TTI_MOP(0, block_dim - 1, 0);
+
+    math::clear_dst_reg_addr();
+}
