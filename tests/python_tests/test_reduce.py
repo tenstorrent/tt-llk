@@ -109,6 +109,7 @@ all_params = generate_params(
     ["reduce_test"],
     formats,
     dest_acc=[DestAccumulation.No],
+    # reduce_dim=[ReduceDimension.Column, ReduceDimension.Scalar],
     reduce_dim=[ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
@@ -126,18 +127,6 @@ param_ids = generate_param_ids(all_params)
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
-    # src_A = torch.cat(
-    #     (
-    #         torch.ones(256, dtype=format_dict[formats.input_format]) * 1,
-    #         torch.ones(256, dtype=format_dict[formats.input_format]) * 2,
-    #         torch.ones(256, dtype=format_dict[formats.input_format]) * 3,
-    #         torch.ones(256, dtype=format_dict[formats.input_format]) * 4,
-    #     )
-    # )
-
-    # src_A = torch.arange(0, 256, step=1 / 4, dtype=format_dict[formats.input_format])
-
-    src_A = torch.rand(1024, dtype=torch.bfloat16) + 1.5
 
     if pool_type in [
         ReducePool.Max,
