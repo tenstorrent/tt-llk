@@ -361,9 +361,7 @@ inline void _init_exponential_()
     }
     else
     {
-        sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
-        sfpi::vConstFloatPrgm1 = 2.0f;
-        sfpi::vConstFloatPrgm2 = 0.863281f;
+        _init_reciprocal_<false>();
     }
 }
 
