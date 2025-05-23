@@ -80,7 +80,7 @@ inline void transpose_dest_configure_mop()
 {
     if (is_32bit)
     {
-    sfpi::tt_record(16, 16);
+    ttll::record(16, 16);
 
 #pragma GCC unroll 2
         for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)

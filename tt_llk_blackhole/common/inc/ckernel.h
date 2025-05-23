@@ -6,7 +6,7 @@
 
 #include "ckernel_instr_params.h"
 #include "risc_attribs.h"
-#include "sfpi.h"
+#include "ttll.h"
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
@@ -692,7 +692,7 @@ inline void load_replay_buf(uint start, uint len, F fn)
     // disable_gathering();
 
     // Issue instruction to load replay buffer
-    sfpi::tt_record<Exec>(start, len);
+    ttll::record<Exec>(start, len);
 
     // Send in the user's desired instructions
     fn();

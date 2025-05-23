@@ -13,7 +13,7 @@
 #include "llk_defs.h"
 #include "llk_pack_common.h"
 
-#include <sfpi.h>
+#include "ttll.h"
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -103,7 +103,7 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
         if (block_ct_dim != full_ct_dim)
         {
             const std::uint32_t replay_buf_len = 10;
-            sfpi::tt_record(ckernel::packer::replay_buf_offset, replay_buf_len);
+            ttll::record(ckernel::packer::replay_buf_offset, replay_buf_len);
             TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1); // close block
             // update l1 address
             TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
