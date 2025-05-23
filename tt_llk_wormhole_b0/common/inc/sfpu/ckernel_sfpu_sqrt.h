@@ -59,10 +59,10 @@ sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool RECIPROCAL>
-inline void _calculate_sqrt_()
+inline void _calculate_sqrt_(int iterations)
 {
 #pragma GCC unroll 8
-    for (int d = 0; d < ITERATIONS; d++)
+    for (int d = 0; d < iterations; d++)
     {
         sfpi::dst_reg[0] = _sfpu_sqrt_<APPROXIMATION_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
         sfpi::dst_reg++;
