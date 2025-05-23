@@ -66,17 +66,17 @@ constexpr uint32_t trisc_id = 2;
 constexpr uint32_t BUFFER_SIZE  = 0x400;
 constexpr uint32_t BUFFER_START = 0x16E000 - 3 * (BUFFER_SIZE * sizeof(uint32_t));
 
-using buffer_ptr_t           = volatile tt_l1_ptr uint32_t (*)[BUFFER_SIZE];
-volatile buffer_ptr_t buffer = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
-uint32_t write_idx           = 0;
-uint32_t open_zone_cnt       = 0;
+using buffer_ptr_t            = volatile tt_l1_ptr uint32_t (*)[BUFFER_SIZE];
+constexpr buffer_ptr_t buffer = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
 
-__attribute__((noinline)) void init()
+extern uint32_t write_idx;
+extern uint32_t open_zone_cnt;
+
+__attribute__((noinline)) void reset()
 {
+    write_idx     = 0;
     open_zone_cnt = 0;
 
-    // Each core calls this function to initialize the profiler
-    write_idx = 0;
     for (uint32_t i = 0; i < BUFFER_SIZE; i++)
     {
         buffer[trisc_id][i] = 0;

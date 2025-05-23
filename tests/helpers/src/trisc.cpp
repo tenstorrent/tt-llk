@@ -14,6 +14,18 @@
 #include "ckernel_helper.h"
 #include "params.h"
 
+#ifdef LLK_PROFILER
+
+namespace llk_profiler
+{
+
+uint32_t write_idx     = 0;
+uint32_t open_zone_cnt = 0;
+
+}
+
+#endif
+
 int main()
 {
     volatile std::uint64_t* TIMESTAMP_ADDRESS = reinterpret_cast<volatile std::uint64_t*>(0x19000);
