@@ -13,6 +13,7 @@
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
+uint32_t tile_size                = 128;
 
 volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
 volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
@@ -22,8 +23,7 @@ volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "llk_unpack_A.h"
-#include "llk_unpack_AB.h"
+#include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_common.h"
 #include "llk_unpack_tilize.h"
 #include "params.h"
@@ -38,27 +38,17 @@ void run_kernel()
     _llk_unpack_tilize_init_(UNPACK_B_IN, UNPACK_B_OUT, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_B), 0, UNPACK_B_IN, 1, FACE_R_DIM, 4, false);
 
-    /*
-    In this test we fuse two LLK pipeline runs, one is to unpack untilized buffers/operands from L1 (39-45) and pack them in tilized format(130-145).
-    The next run unpacks these two tilized operands, performs a math compute and pack them out in utilized format.
-    Since we have set all three TRISCs to run at the same time, fusing these two runs will cause a race condition where unpacker will immediately read from
-    L1 before the packer has completed writing to L1. To prevent the unpacker from prematurely reading from L1 before packer has completed write
-    the unpacker needs to wait for packer to finish writing to L1 before it starts reading from L1 for the second iteration of LLK pipeline.
-
-    Synchronization is accomplished between the packer and unpacker operations using the PACK_DONE semaphore.
-    The packer first writes data to L1 and signals the unpacker by incrementing the semaphore (PACK_DONE = 1).
-    The unpacker waits for the semaphore to be set to 1 before reading the data from L1.
-    This ensures that the unpacker does not read premature or incorrect data, preventing data race conditions.
-    Once the unpacker starts reading, it decrements the semaphore (PACK_DONE = 0) signalling it has started processing data.
-    */
-
     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(
         semaphore::PACK_DONE); // Unpacker waits on signal when packer will increment semaphore to 1 (waits while semaphore == 0), utilizing SEMWAIT.
     t6_semaphore_get<>(semaphore::PACK_DONE); // It will acquire the semaphore t6_semaphore_get (decrementing the semaphore back to 0) signalling it has begun
-                                              // processing data from L1
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, 0, 4);
-    _llk_unpack_AB_init_<>();
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
+
+    // Start of second unpack kernel to perform unpack matmul on now tilized input data
+    _llk_unpack_reconfig_data_format_srca_impl_<false, is_fp32_dest_acc_en>(
+        UNPACK_A_IN, UNPACK_A_OUT, tile_size); // have to reconfigure unpack kernel data formats if they change in this run
+    _llk_unpack_reconfig_data_format_srcb_impl_<false, is_fp32_dest_acc_en>(UNPACK_B_IN, UNPACK_B_OUT, tile_size);
+    _llk_unpack_tilize_uninit_(UNPACK_A_OUT);
+    _llk_unpack_AB_matmul_init_<>();
+    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
 }
 
 #endif
@@ -66,8 +56,8 @@ void run_kernel()
 #ifdef LLK_TRISC_MATH
 
 #include "llk_math_common.h"
-#include "llk_math_eltwise_binary.h"
 #include "llk_math_eltwise_unary_datacopy.h"
+#include "llk_math_matmul.h"
 #include "params.h"
 
 using namespace ckernel;
@@ -101,10 +91,12 @@ void run_kernel()
         operand_B_dst_index, MATH_FORMAT, MATH_FORMAT);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
+    // Start of second math kernel to perform matmul on now tilized input data
+    _llk_math_reconfig_data_format_srca_<false, is_fp32_dest_acc_en>(MATH_FORMAT); // have to reconfigure math kernel data formats if they change in this run
+    _llk_math_reconfig_data_format_srcb_<false, is_fp32_dest_acc_en>(MATH_FORMAT);
+    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(
-        4, res_dst_index, false);
+    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -149,13 +141,18 @@ void run_kernel()
     t6_semaphore_post<>(semaphore::PACK_DONE); // The packer signals to the unpacker that it has finished writing to L1 by posting (incrementing) the semaphore.
                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
 
+    // Start of second pack kernel to perform final pack after executing matmul on tilized data
+    _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(
+        PACK_IN,
+        PACK_OUT,
+        tile_size); // need to reconfigure data formats for next pack, also calls set_packer_strides to readjust strides after pack tilizing
+
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en, !TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, !TILIZE>(PACK_OUT);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, UNTILIZE, is_fp32_dest_acc_en>(res_dst_index, L1_ADDRESS(buffer_Dest));
+    _llk_pack_<DstSync::SyncHalf, false, is_fp32_dest_acc_en>(res_dst_index, L1_ADDRESS(buffer_Dest));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
