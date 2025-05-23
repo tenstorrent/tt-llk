@@ -55,13 +55,15 @@ def set_chip_architecture():
 
 @pytest.fixture(scope="session", autouse=True)
 def download_headers():
+    CHIP_ARCH = set_chip_architecture()
+    os.environ["CHIP_ARCH"] = CHIP_ARCH.value
+
     HEADER_DIR = "../hw_specific/inc"
     STAMP_FILE = os.path.join(HEADER_DIR, ".headers_downloaded")
     if os.path.exists(STAMP_FILE):
         print("Headers already downloaded. Skipping download.")
         return
 
-    CHIP_ARCH = set_chip_architecture()
     BASE_URL = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}"
     BASE_URL_WORMHOLE_SPECIFIC = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}/wormhole_b0_defines"
     HEADERS = [
