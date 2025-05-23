@@ -8,25 +8,85 @@
 #include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
+#include "ckernel_sfpu_floor.h"
 
 namespace ckernel
 {
 namespace sfpu
 {
 
-sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
+enum ExpVariant {
+    EXP_ACCURATE_BASE,
+    EXP_ACCURATE_HYBRID0,
+    EXP_APPROX,
+    EXP_APPROX_21F
+};
+
+static constexpr ExpVariant SELECTED_EXP = EXP_ACCURATE_BASE;
+
+
+sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val) {
+
+    sfpi::vInt z = sfpu::float_to_int32(val * sfpi::vFloat(0x00b8aa3b) + sfpi::vFloat(0x3f800000));
+    sfpi::vInt zii = z & 0x7f800000; 
+    sfpi::vInt zif = z & sfpi::vInt(0x007fffff); // extra mantissa
+
+    sfpi::vFloat d1 = sfpi::vFloat(0.40196114e-7); 
+    sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(0xf94ee7) + zif);
+    sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(0x560) + zif);
+    d2 = d1 * d2;
+    zif = sfpu::float_to_int32(d2 * d3);
+    
+    zii |= zif; // restore exponent
+    
+    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
+    
+    return y;    
+}
+
+sfpi_inline sfpi::vFloat _sfpu_exp_21f_alt_(sfpi::vFloat val) {
+
+    // sfpi::vFloat val_debiased = val * sfpi::vConstFloatPrgm2;
+    // val_debiased = addexp(val_debiased, 127);
+    // sfpi::vInt z = sfpu::float_to_int32(val_debiased);
+    // return val;
+
+    sfpi::vFloat val_debiased = val * sfpi::vConstFloatPrgm2 + sfpi::vFloat(0x3f800000);
+    // val_debiased = addexp(val_debiased, 127);
+    sfpi::vInt z = sfpu::float_to_int32(val_debiased);
+
+    sfpi::vInt zii = z & 0x7f800000; 
+    sfpi::vInt zif = z & sfpi::vInt(0x007fffff); // extra mantissa
+
+    sfpi::vFloat d1 = sfpi::s2vFloat16b(0.4027970135211944580078125e-7);
+
+    sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(0xf94ee7) + zif);
+    sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(0x560) + zif);
+    d2 = d1 * d2;
+    zif = sfpu::float_to_int32(d2 * d3);
+    
+    zii |= zif; // restore exponent
+    
+    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
+    
+    return y;    
+}
+
+sfpi_inline sfpi::vFloat _sfpu_exp_hybrid_(sfpi::vFloat val) 
 {
     // If exponent is > -1 extract it and replace with -1
     sfpi::vInt exp = exexp(val);
     v_if (exp >= 0)
     {
         val = setexp(val, 126);
+        // 0.11734225322703849x**0 + 0.5354115710005054x**1 + 1.0632346147581102x**2 + 
+        sfpi::vFloat tmp = val * sfpi::s2vFloat16b(1.0632346147581102) + sfpi::s2vFloat16b(0.5354115710005054);
+        val = val * tmp + sfpi::s2vFloat16b(1.11734225322703849);
+    } v_else {
+        sfpi::vFloat tmp = val * sfpi::vConst0p8373 + sfpi::vConstFloatPrgm2;
+        val              = val * tmp + sfpi::vConst1;
     }
     v_endif;
-
-    // Run series in Horner form
-    sfpi::vFloat tmp = val * sfpi::vConst0p8373 + sfpi::s2vFloat16b(0.863281);
-    val              = val * tmp + sfpi::vConst1;
 
     v_if (exp >= 0)
     {
@@ -43,6 +103,50 @@ sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
 
     return val;
 }
+
+
+
+sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
+{
+    // If exponent is > -1 extract it and replace with -1
+    sfpi::vInt exp = exexp(val);
+    v_if (exp >= 0)
+    {
+        val = setexp(val, 126);
+
+    }
+    v_endif;
+
+    sfpi::vFloat tmp = val * sfpi::vConst0p8373 + sfpi::vConstFloatPrgm2;
+    val              = val * tmp + sfpi::vConst1;
+    
+
+    // sfpi::vFloat tmp = val * sfpi::s2vFloat16b(1.1173422532270378) + sfpi::s2vFloat16b(0.5354115710005016);
+    // val = val * tmp + sfpi::s2vFloat16b(1.0632346147581162);
+
+    // sfpi::vFloat v0p5 = sfpi::s2vFloat16b(0.5);
+    // sfpi::vFloat v0p0833 = sfpi::s2vFloat16b(0.083333333);
+    // sfpi::vFloat nom = (sfpi::vConst1 + v0p5 * val + v0p0833 * val * val);
+    // sfpi::vFloat denom = _sfpu_reciprocal_(sfpi::vConst1 - v0p5 * val + v0p0833 * val * val);    
+    // val = nom * denom;
+
+    v_if (exp >= 0)
+    {
+        val = val * val;
+        for (int s_iter = 0; s_iter < 7; s_iter++)
+        {
+            exp = exp - 1;
+            // Narrow predication on each loop
+            v_and(exp >= 0);
+            val = val * val;
+        }
+    }
+    v_endif;
+
+    return val;
+}
+
+
 
 template <bool APPROXIMATION_MODE>
 sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
@@ -78,6 +182,7 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
             out = _sfpu_reciprocal_(out);
         }
         v_endif;
+
     }
 
     return out;
@@ -180,6 +285,7 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
     }
     else
     {
+
         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
         for (int d = 0; d < iterations; d++)
         {
@@ -188,7 +294,14 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
             {
                 val = val * sfpi::s2vFloat16b(exp_base_scale_factor);
             }
-            if constexpr (APPROXIMATION_MODE)
+
+            if constexpr (SELECTED_EXP == ExpVariant::EXP_APPROX_21F) 
+            {
+                sfpi::vFloat result = _sfpu_exp_21f_alt_(val);
+                sfpi::dst_reg[0] = result;
+
+            } 
+            else if constexpr (SELECTED_EXP == ExpVariant::EXP_APPROX)
             {
                 if constexpr (!SKIP_POSITIVE_CHECK)
                 {
@@ -213,7 +326,6 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
 
                         // Remove Exponent of 7 and bias the Mantissa to 127.
                         sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
-
                         // SHL to move integer bits to exponent
                         val_short <<= 10 - p_exp::FRAC_BITS;
                         sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
@@ -255,7 +367,7 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
                 }
                 v_endif;
 
-                sfpi::dst_reg[0] = result;
+                sfpi::dst_reg[0] = result;   
             }
 
             sfpi::dst_reg++;
@@ -397,13 +509,17 @@ inline void _init_exponential_()
         // Reset LoadMacroConfig[Lane].Misc for all lanes, in case it has been previously set by another use of macros.
         TTI_SFPCONFIG(0, 8, 1);
     }
-    else if constexpr (APPROXIMATION_MODE)
+    else if constexpr (SELECTED_EXP == EXP_APPROX)
     {
         sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
         sfpi::vConstFloatPrgm1 = sfpi::s2vFloat16b(p_exp::C23_73);
         sfpi::vConstFloatPrgm2 = sfpi::s2vFloat16b(p_exp::ADJ_EXP);
+    } else if constexpr (SELECTED_EXP == EXP_APPROX_21F) {
+        sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+        sfpi::vConstFloatPrgm1 = 2.0f;
+        sfpi::vConstFloatPrgm2 = 0x00b8aa3b;
     }
-    else
+    else if constexpr (SELECTED_EXP == ExpVariant::EXP_ACCURATE_BASE || SELECTED_EXP == ExpVariant::EXP_ACCURATE_HYBRID0) 
     {
         sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
         sfpi::vConstFloatPrgm1 = 2.0f;
