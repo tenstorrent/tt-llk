@@ -143,11 +143,20 @@ def test_matmul(testname, formats, dest_acc, approx_mode, mathop, math_fidelity)
         MathOperation.Cos,
     ]:
         pytest.skip(reason="This combination is not fully implemented in testing")
-    # if get_chip_architecture() == ChipArchitecture.BLACKHOLE:
-    #     if formats.input_format == DataFormat.Float16 and DestAccumulation.Yes and MathFidelity.LoFi and mathop in [MathOperation.Sin, MathOperation.Cos, MathOperation.Square]:
-    #         pytest.skip(reason="This combination is not fully implemented in testing")
-    #     if formats.input_format == DataFormat.Float16_b and MathFidelity.LoFi and mathop == MathOperation.Square:
-    #         pytest.skip(reason="This combination is not fully implemented in testing")
+    if get_chip_architecture() == ChipArchitecture.BLACKHOLE:
+        if (
+            formats.input_format == DataFormat.Float16
+            and DestAccumulation.Yes
+            and MathFidelity.LoFi
+            and mathop in [MathOperation.Sin, MathOperation.Cos, MathOperation.Square]
+        ):
+            pytest.skip(reason="This combination is not fully implemented in testing")
+        if (
+            formats.input_format == DataFormat.Float16_b
+            and MathFidelity.LoFi
+            and mathop == MathOperation.Square
+        ):
+            pytest.skip(reason="This combination is not fully implemented in testing")
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
