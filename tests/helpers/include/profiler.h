@@ -34,6 +34,8 @@ constexpr uint32_t hashString16(const char (&s)[N])
 
 #define ZONE_ID(name) hashString16(ZONE_FULL_NAME(name))
 
+#if defined(LLK_PROFILER)
+
 namespace llk_profiler
 {
 
@@ -149,3 +151,13 @@ public:
     DO_PRAGMA(message(ZONE_FULL_NAME(name)))                        \
     llk_profiler::write_event(TIMESTAMP_DATA_ENTRY, ZONE_ID(name)); \
     llk_profiler::write_data(data);
+
+#else
+
+#define ZONE_SCOPED(name)
+
+#define TIMESTAMP(name)
+
+#define TIMESTAMP_DATA(name, data)
+
+#endif
