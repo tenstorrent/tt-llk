@@ -111,22 +111,27 @@ __attribute__((always_inline)) inline void write_data(uint64_t data)
 template <uint32_t id16>
 class zone_scoped
 {
+private:
+    bool is_opened = false;
+
 public:
     inline __attribute__((always_inline)) zone_scoped()
     {
-        if (is_buffer_full())
+        if (!is_buffer_full())
         {
-            return;
+            is_opened = true;
+            write_event(ZONE_START_ENTRY, id16);
+            open_zone_cnt++;
         }
-
-        write_event(ZONE_START_ENTRY, id16);
-        open_zone_cnt++;
     }
 
     ~zone_scoped()
     {
-        write_event(ZONE_END_ENTRY, id16);
-        open_zone_cnt--;
+        if (is_opened)
+        {
+            write_event(ZONE_END_ENTRY, id16);
+            open_zone_cnt--;
+        }
     }
 };
 
