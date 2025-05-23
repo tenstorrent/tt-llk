@@ -145,11 +145,11 @@ public:
 
 #define TIMESTAMP(name)                      \
     DO_PRAGMA(message(ZONE_FULL_NAME(name))) \
-    llk_profiler::write_event(TIMESTAMP_ENTRY, ZONE_ID(name));
+    llk_profiler::write_event(llk_profiler::TIMESTAMP_ENTRY, ZONE_ID(name));
 
 #define TIMESTAMP_DATA(name, data)                                  \
     DO_PRAGMA(message(ZONE_FULL_NAME(name)))                        \
-    llk_profiler::write_event(TIMESTAMP_DATA_ENTRY, ZONE_ID(name)); \
+    llk_profiler::write_event(llk_profiler::TIMESTAMP_DATA_ENTRY, ZONE_ID(name)); \
     llk_profiler::write_data(data);
 
 #else
