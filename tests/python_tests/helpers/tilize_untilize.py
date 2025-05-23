@@ -7,7 +7,6 @@ from .format_config import DataFormat
 
 
 def tilize(original_tensor, stimuli_format=DataFormat.Float16_b):
-    print("\nSHAPE: ", original_tensor.shape)
     if original_tensor.size(0) != 1024:
         raise ValueError(
             "Input tensor must have 1024 elements. The tensor you passed has {} elements.".format(

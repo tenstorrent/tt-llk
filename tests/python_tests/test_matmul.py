@@ -22,7 +22,7 @@ from helpers.param_config import (
     generate_params,
     input_output_formats,
 )
-from helpers.stimuli_generator import generate_stimuli
+from helpers.stimuli_generator import flatten_list
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import tilize
 from helpers.utils import compare_pcc, run_shell_command, format_kernel_list
@@ -43,7 +43,6 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
     operand1_matrix = operand1.view(32, 32).to(format_dict[data_format])
     operand2_matrix = operand2.view(32, 32).to(format_dict[data_format])
 
-    result_matrix = torch.zeros(32, 32, dtype=operand1_matrix.dtype)
     result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
 
     return result_matrix.view(1024).to(format_dict[data_format])
@@ -80,7 +79,7 @@ all_params = generate_params(
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    tile_cnt=[TileCount.One],
+    tile_cnt=[TileCount.Two],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -95,21 +94,65 @@ def test_matmul(testname, formats, dest_acc, math_fidelity, tile_cnt):
     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt.value)]
     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
 
-    src_A, src_B = generate_stimuli(
-        formats.input_format, formats.input_format, tile_cnt=tile_cnt
+    # src_A, src_B = generate_stimuli(
+    #     formats.input_format, formats.input_format, tile_cnt=tile_cnt
+    # )
+    # print(src_A, "\n")
+    # a1, a2 = torch.split(src_A, 1024)
+    # b1, b2 = torch.split(src_B, 1024)
+
+    b1, b2 = torch.eye(32).flatten(), torch.eye(32).flatten()
+    print("b1 \n", b1.view(32, 32))
+    print("b2 \n", b2.view(32, 32))
+    a1, a2 = [], []
+    for i in range(32):
+        if i % 2 == 0:
+            num = 0.5
+        else:
+            num = 1
+        tens = [num] * 16
+        a1.extend(tens)
+        a2.extend(tens)
+
+    for i in range(32):
+        if i % 2 == 0:
+            num = 1.5
+        else:
+            num = 2
+        tens = [num] * 16
+        a1.extend(tens)
+        a2.extend(tens)
+
+    a1, a2 = torch.tensor(a1, dtype=format_dict[formats.input_format]), torch.tensor(
+        a2, dtype=format_dict[formats.input_format]
     )
+    golden1 = generate_golden(a1, b1, formats.output_format, math_fidelity)
+    golden2 = generate_golden(a2, b2, formats.output_format, math_fidelity)
+    golden_tensor = torch.add(golden1, golden2)
+
+    a1, a2 = tilize(a1, format_dict[formats.input_format]), tilize(
+        a2, format_dict[formats.input_format]
+    )
+    src_A = torch.cat((a1, a2), dim=0)
+    src_B = torch.cat((b1, b2), dim=0)
+    print("src_B \n", src_B.view(128, 16))
+    # b1, b2 = tilize(b1, format_dict[formats.input_format]), tilize(b2, format_dict[formats.input_format])
+    src_B = torch.cat((b1, b2), dim=0)
+
+    # print("src_B \n", src_B.view(128,16))
     write_stimuli_to_l1(
-        tilize(src_A, format_dict[formats.input_format]),
-        tilize(src_B, format_dict[formats.input_format]),
+        src_A,
+        src_B,
         formats.input_format,
         formats.input_format,
         "0,0",
         tile_cnt,
     )
 
-    golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+    # golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
     golden_tensor = tilize(golden_tensor, format_dict[formats.input_format])
     golden_tensor = golden_tensor.to(format_dict[formats.output_format])
+    print("GOLDEN \n", golden_tensor.view(64, 16))
 
     test_config = {
         "formats": formats,
@@ -127,7 +170,18 @@ def test_matmul(testname, formats, dest_acc, math_fidelity, tile_cnt):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+    res_from_L1 = []
+
+    print("\n size of result from L1 = ", len(src_A) // len(pack_addresses))
+
+    res_from_L1.append(
+        collect_results(
+            formats,
+            tensor_size=len(src_A) // len(pack_addresses),
+            address=pack_start_address,
+        )
+    )
+    res_from_L1 = flatten_list(res_from_L1)
 
     res_tensor = torch.tensor(
         res_from_L1,
@@ -137,7 +191,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity, tile_cnt):
             else torch.bfloat16
         ),
     )
-
+    print("RESULT \n", res_tensor.view(64, 16))
     if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.1
         rtol = 0.05

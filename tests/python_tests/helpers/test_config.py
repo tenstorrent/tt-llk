@@ -34,7 +34,10 @@ def generate_make_command(test_config):
         make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.unpack_A_src]} unpack_A_dst={unpack_A_dst_dict[formats.unpack_A_dst]} unpack_B_src={unpack_B_src_dict[formats.unpack_B_src]} unpack_B_dst={unpack_B_dst_dict[formats.unpack_B_dst]} "
         make_cmd += f"fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "
 
-    make_cmd += f"testname={testname} dest_acc={dest_acc.value} kern_cnt={kern_cnt} pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs} "
+    tile_size = str(hex(1024 // formats.input_format.size))
+    # if formats.input_format == DataFormat.Bfp8_b:
+    #     tile_size = str(hex(1088))
+    make_cmd += f"testname={testname} dest_acc={dest_acc.value} kern_cnt={kern_cnt} pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs} tile_size_cnt={tile_size} "
     mathop = test_config.get("mathop", "no_mathop")
     approx_mode = test_config.get("approx_mode", ApproximationMode.No)
     math_fidelity = test_config.get("math_fidelity", MathFidelity.LoFi)

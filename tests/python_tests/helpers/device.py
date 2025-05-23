@@ -72,8 +72,8 @@ def write_stimuli_to_l1(
     tile_cnt=TileCount.One,
 ):
 
-    BUFFER_SIZE = 4096
     TILE_SIZE = 1024
+    BUFFER_SIZE = TILE_SIZE * stimuli_A_format.size
 
     buffer_A_address = 0x1A000
     buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt.value

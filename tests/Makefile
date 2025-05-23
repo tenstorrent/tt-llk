@@ -62,8 +62,9 @@ ifeq ($(testname), multiple_tiles_eltwise_test)
 	OPTIONS_PACK+=-DPACK_ADDR_CNT=$(pack_addr_cnt)
 	OPTIONS_PACK+=-DPACK_ADDRS=$(pack_addrs)
 endif
-
-OPTIONS_COMPILE+=$(FORMAT_ARG) $(MATHOP_ARG) -DTILE_SIZE_CNT=0x1000
+# -DTILE_SIZE_CNT=$(tile_size_cnt)
+# -DTILE_SIZE_CNT=0x1000
+OPTIONS_COMPILE+=$(FORMAT_ARG) $(MATHOP_ARG) -DTILE_SIZE_CNT=$(tile_size_cnt)
 OPTIONS_COMPILE+=$(INCLUDES)
 
 ifeq ($(dest_acc), DEST_ACC)
