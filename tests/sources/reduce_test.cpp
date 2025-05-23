@@ -45,7 +45,7 @@ void run_kernel()
 
 #include "llk_math_common.h"
 #include "llk_math_reduce.h"
-#include "params.h"  
+#include "params.h"
 
 void run_kernel()
 {
