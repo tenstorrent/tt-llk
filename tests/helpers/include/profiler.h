@@ -77,6 +77,7 @@ __attribute__((always_inline)) void reset()
     write_idx     = 0;
     open_zone_cnt = 0;
 
+#pragma GCC unroll 0
     for (uint32_t i = 0; i < BUFFER_SIZE; i++)
     {
         buffer[trisc_id][i] = 0;
