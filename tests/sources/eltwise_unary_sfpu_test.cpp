@@ -52,6 +52,9 @@ void call_sfpu_operation(SfpuType operation)
         case SfpuType::abs:
             ckernel::sfpu::_calculate_abs_<APPROX_MODE, 10>(10);
             break;
+        case SfpuType::cosh:
+            ckernel::sfpu::_calculate_cosh_<APPROX_MODE, 10>();
+            break;
         case SfpuType::cosine:
             ckernel::sfpu::_calculate_cosine_<APPROX_MODE, 10>();
             break;
@@ -63,6 +66,9 @@ void call_sfpu_operation(SfpuType operation)
             ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
             ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, 10, is_fp32_dest_acc_en>(10);
             break;
+        case SfpuType::sinh:
+            ckernel::sfpu::_calculate_sinh_<APPROX_MODE, 10>();
+            break;
         case SfpuType::sine:
             ckernel::sfpu::_calculate_sine_<APPROX_MODE, 10>();
             break;
@@ -72,6 +78,10 @@ void call_sfpu_operation(SfpuType operation)
             break;
         case SfpuType::square:
             ckernel::sfpu::_calculate_square_<APPROX_MODE, 10>(10);
+            break;
+        case SfpuType::tanh:
+            ckernel::sfpu::_init_tanh_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_tanh_<APPROX_MODE, 10>(10);
             break;
         default:
             return;

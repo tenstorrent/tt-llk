@@ -224,6 +224,15 @@ constexpr auto SFPU_OPERATION = SfpuType::sine;
 #ifdef SFPU_OP_COSINE
 constexpr auto SFPU_OPERATION = SfpuType::cosine;
 #endif
+#ifdef SFPU_OP_SINH
+constexpr auto SFPU_OPERATION = SfpuType::sinh;
+#endif
+#ifdef SFPU_OP_COSH
+constexpr auto SFPU_OPERATION = SfpuType::cosh;
+#endif
+#ifdef SFPU_OP_TANH
+constexpr auto SFPU_OPERATION = SfpuType::tanh;
+#endif
 #ifdef SFPU_OP_ABS
 constexpr auto SFPU_OPERATION = SfpuType::abs;
 #endif
