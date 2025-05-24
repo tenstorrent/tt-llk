@@ -294,6 +294,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 12, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 12);
         // gate math instructions until src A has been updated by MOV instructions
         TTI_GATESRCRST(0b1, 0b1);
+        // XXX : Check difference in zeroacc with wormhole. Why different.
         // zero out scratch in dest
         TTI_ZEROACC(p_zeroacc::CLR_SPECIFIC, 0, 0, ADDR_MOD_0, 4);
 
