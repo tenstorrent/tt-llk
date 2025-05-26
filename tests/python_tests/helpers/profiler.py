@@ -1,9 +1,14 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 #
 # SPDX-License-Identifier: Apache-2.0
+
 from dataclasses import dataclass
+import re
+import subprocess
 
 from ttexalens.tt_exalens_lib import read_words_from_device
+
+from helpers.test_config import generate_make_command
 
 
 @dataclass()
@@ -19,6 +24,64 @@ class ProfilerZoneScoped:
     start: int
     end: int
     duration: int
+
+
+def _hash_profiler_message(message: str, basis: int = 2166136261) -> int:
+    hash32 = basis
+    for char in message:
+        hash32 ^= ord(char)
+        hash32 = (hash32 * 16777619) & 0xFFFFFFFF  # simulate 32-bit unsigned overflow
+    return (hash32 ^ (hash32 >> 16)) & 0xFFFF  # fold to 16 bits
+
+
+def _process_profiler_message(line: str):
+    # ex. '#pragma message: LLK_PROFILER:sources/example.cpp:1337:MARKER'
+    expr = re.search(
+        r"'#pragma message: (?P<full_marker>LLK_PROFILER:(?P<file>[^:]+):(?P<line>\d+):(?P<marker>[^']+))'",
+        line,
+    )
+
+    if expr is None:
+        return None
+
+    full_marker = expr.group("full_marker")
+
+    return {
+        "marker": expr.group("marker"),
+        "file": expr.group("file"),
+        "line": int(expr.group("line")),
+        "id": _hash_profiler_message(full_marker),
+    }
+
+
+def build_perf_test(test_config):
+    make_cmd = generate_make_command(
+        test_config
+    )  # sstanisic TODO: add LLK_PROFILER=1 to the make command
+    command = f"cd .. && {make_cmd}"
+
+    result = subprocess.run(
+        command,
+        shell=True,
+        text=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(f"Build failed: {command}\n{result.stderr}")
+
+    lines = result.stderr.splitlines()
+
+    hash_to_message = {}
+    for line in lines:
+        # try to parse the line as a profiler message
+        message = _process_profiler_message(line)
+
+        if message:
+            hash_to_message[message["id"]] = message
+
+    return hash_to_message
 
 
 class ProfilerData:
@@ -44,8 +107,8 @@ class ProfilerData:
     ZONE_START_ENTRY = 0b1010
     ZONE_END_ENTRY = 0b1011
 
-    def get_data(self):
-        return self._parse_buffers(self._load_buffers())
+    def get_data(self, profiler_meta):
+        return self._parse_buffers(self._load_buffers(), profiler_meta)
 
     def _load_buffers(self, core_loc="0,0", num_words=BUFFER_SIZE):
         return {
@@ -55,10 +118,13 @@ class ProfilerData:
             for thread in ProfilerData.THREAD_BUFFER.keys()
         }
 
-    def _parse_buffers(self, buffers):
-        return {thread: self._parse_thread(words) for thread, words in buffers.items()}
+    def _parse_buffers(self, buffers, profiler_meta):
+        return {
+            thread: self._parse_thread(words, profiler_meta)
+            for thread, words in buffers.items()
+        }
 
-    def _parse_thread(self, words):
+    def _parse_thread(self, words, profiler_meta):
         thread = []
         zone_stack = []
         word_stream = iter(words)
@@ -69,6 +135,11 @@ class ProfilerData:
             type = (word & self.ENTRY_TYPE_MASK) >> self.ENTRY_TYPE_SHAMT
 
             marker_id = (word & self.ENTRY_ID_MASK) >> self.ENTRY_ID_SHAMT
+            marker = profiler_meta.get(marker_id, None)
+
+            assert (
+                marker is not None
+            ), f"Marker with ID {marker_id} not found in profiler metadata"
 
             timestamp_high = word & self.ENTRY_TIME_HIGH_MASK
             timestamp_low = next(word_stream)
@@ -76,13 +147,13 @@ class ProfilerData:
 
             match type:
                 case self.TIMESTAMP_ENTRY:
-                    thread.append(ProfilerTimestamp(marker_id, timestamp))
+                    thread.append(ProfilerTimestamp(marker, timestamp))
 
                 case self.TIMESTAMP_DATA_ENTRY:
                     data_high = next(word_stream)
                     data_low = next(word_stream)
                     data = (data_high << 32) | data_low
-                    thread.append(ProfilerTimestamp(marker_id, timestamp, data))
+                    thread.append(ProfilerTimestamp(marker, timestamp, data))
 
                 case self.ZONE_START_ENTRY:
                     zone_stack.append(timestamp)
@@ -91,6 +162,6 @@ class ProfilerData:
                     end = timestamp
                     start = zone_stack.pop()
                     duration = end - start
-                    thread.append(ProfilerZoneScoped(marker_id, start, end, duration))
+                    thread.append(ProfilerZoneScoped(marker, start, end, duration))
 
         return thread
