@@ -29,10 +29,10 @@ constexpr uint32_t hashString16(const char (&s)[N])
 }
 
 // clang-format off
-#define ZONE_FULL_NAME(name) "KERNEL_PROFILER" ":" __FILE__ ":" $Line ":" name
+#define MARKER_FULL(marker) "LLK_PROFILER" ":" __FILE__ ":" $Line ":" marker
 // clang-format on
 
-#define ZONE_ID(name) hashString16(ZONE_FULL_NAME(name))
+#define MARKER_ID(marker) hashString16(MARKER_FULL(marker))
 
 #if defined(LLK_PROFILER)
 
@@ -72,7 +72,7 @@ extern buffer_ptr_t buffer;
 extern uint32_t write_idx;
 extern uint32_t open_zone_cnt;
 
-__attribute__((always_inline)) void reset()
+__attribute__((always_inline)) inline void reset()
 {
     buffer        = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
     write_idx     = 0;
@@ -141,25 +141,25 @@ public:
 
 } // namespace llk_profiler
 
-#define ZONE_SCOPED(name)                    \
-    DO_PRAGMA(message(ZONE_FULL_NAME(name))) \
-    const auto _zone_scoped_ = llk_profiler::zone_scoped<ZONE_ID(name)>();
+#define ZONE_SCOPED(marker)                 \
+    DO_PRAGMA(message(MARKER_FULL(marker))) \
+    const auto _zone_scoped_ = llk_profiler::zone_scoped<MARKER_ID(marker)>();
 
-#define TIMESTAMP(name)                      \
-    DO_PRAGMA(message(ZONE_FULL_NAME(name))) \
-    llk_profiler::write_event(llk_profiler::TIMESTAMP_ENTRY, ZONE_ID(name));
+#define TIMESTAMP(marker)                   \
+    DO_PRAGMA(message(MARKER_FULL(marker))) \
+    llk_profiler::write_event(llk_profiler::TIMESTAMP_ENTRY, MARKER_ID(marker));
 
-#define TIMESTAMP_DATA(name, data)                                                \
-    DO_PRAGMA(message(ZONE_FULL_NAME(name)))                                      \
-    llk_profiler::write_event(llk_profiler::TIMESTAMP_DATA_ENTRY, ZONE_ID(name)); \
+#define TIMESTAMP_DATA(marker, data)                                                  \
+    DO_PRAGMA(message(MARKER_FULL(marker)))                                           \
+    llk_profiler::write_event(llk_profiler::TIMESTAMP_DATA_ENTRY, MARKER_ID(marker)); \
     llk_profiler::write_data(data);
 
 #else
 
-#define ZONE_SCOPED(name)
+#define ZONE_SCOPED(marker)
 
-#define TIMESTAMP(name)
+#define TIMESTAMP(marker)
 
-#define TIMESTAMP_DATA(name, data)
+#define TIMESTAMP_DATA(marker, data)
 
 #endif
