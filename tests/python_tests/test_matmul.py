@@ -14,6 +14,7 @@ from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_di
 from helpers.format_config import DataFormat
 from helpers.param_config import (
     clean_params,
+    generate_combination,
     generate_param_ids,
     generate_params,
     input_output_formats,
@@ -45,7 +46,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]
+supported_formats = [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b, DataFormat.Float32]
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
 
@@ -62,7 +63,6 @@ supported_formats = [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b
 
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
-
 
 test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
@@ -107,6 +107,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         "testname": testname,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
+        "unpack_to_dest": False,
     }
 
     make_cmd = generate_make_command(test_config)
