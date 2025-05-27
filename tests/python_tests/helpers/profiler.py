@@ -107,10 +107,12 @@ class ProfilerData:
     ZONE_START_ENTRY = 0b1010
     ZONE_END_ENTRY = 0b1011
 
-    def get_data(self, profiler_meta):
-        return self._parse_buffers(self._load_buffers(), profiler_meta)
+    @staticmethod
+    def get(profiler_meta):
+        return ProfilerData._parse_buffers(ProfilerData._load_buffers(), profiler_meta)
 
-    def _load_buffers(self, core_loc="0,0", num_words=BUFFER_SIZE):
+    @staticmethod
+    def _load_buffers(core_loc="0,0", num_words=BUFFER_SIZE):
         return {
             thread: read_words_from_device(
                 core_loc, ProfilerData.THREAD_BUFFER[thread], word_count=num_words
@@ -118,47 +120,53 @@ class ProfilerData:
             for thread in ProfilerData.THREAD_BUFFER.keys()
         }
 
-    def _parse_buffers(self, buffers, profiler_meta):
+    @staticmethod
+    def _parse_buffers(buffers, profiler_meta):
         return {
-            thread: self._parse_thread(words, profiler_meta)
+            thread: ProfilerData._parse_thread(words, profiler_meta)
             for thread, words in buffers.items()
         }
 
-    def _parse_thread(self, words, profiler_meta):
+    @staticmethod
+    def _parse_thread(words, profiler_meta):
         thread = []
         zone_stack = []
         word_stream = iter(words)
         for word in word_stream:
-            if not (word & self.ENTRY_EXISTS_BIT):
+            if not (word & ProfilerData.ENTRY_EXISTS_BIT):
                 break
 
-            type = (word & self.ENTRY_TYPE_MASK) >> self.ENTRY_TYPE_SHAMT
+            type = (
+                word & ProfilerData.ENTRY_TYPE_MASK
+            ) >> ProfilerData.ENTRY_TYPE_SHAMT
 
-            marker_id = (word & self.ENTRY_ID_MASK) >> self.ENTRY_ID_SHAMT
+            marker_id = (
+                word & ProfilerData.ENTRY_ID_MASK
+            ) >> ProfilerData.ENTRY_ID_SHAMT
             marker = profiler_meta.get(marker_id, None)
 
             assert (
                 marker is not None
             ), f"Marker with ID {marker_id} not found in profiler metadata"
 
-            timestamp_high = word & self.ENTRY_TIME_HIGH_MASK
+            timestamp_high = word & ProfilerData.ENTRY_TIME_HIGH_MASK
             timestamp_low = next(word_stream)
             timestamp = (timestamp_high << 32) | timestamp_low
 
             match type:
-                case self.TIMESTAMP_ENTRY:
+                case ProfilerData.TIMESTAMP_ENTRY:
                     thread.append(ProfilerTimestamp(marker, timestamp))
 
-                case self.TIMESTAMP_DATA_ENTRY:
+                case ProfilerData.TIMESTAMP_DATA_ENTRY:
                     data_high = next(word_stream)
                     data_low = next(word_stream)
                     data = (data_high << 32) | data_low
                     thread.append(ProfilerTimestamp(marker, timestamp, data))
 
-                case self.ZONE_START_ENTRY:
+                case ProfilerData.ZONE_START_ENTRY:
                     zone_stack.append(timestamp)
 
-                case self.ZONE_END_ENTRY:
+                case ProfilerData.ZONE_END_ENTRY:
                     end = timestamp
                     start = zone_stack.pop()
                     duration = end - start
