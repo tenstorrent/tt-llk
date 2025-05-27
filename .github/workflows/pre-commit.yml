@@ -33,7 +33,7 @@ jobs:
     name: Post comment on PR
     runs-on: ubuntu-latest
     # Only post comment when PR is opened and not from a fork
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action == 'opened'
+    if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Post comment on PR
         uses: marocchino/sticky-pull-request-comment@v2
@@ -45,5 +45,5 @@ jobs:
             You can run tt-metal integration tests by adding the `blackhole-integration-tests` and/or
             `wormhole-integration-tests` labels to this pull request.
 
-            📖 For more information, please refer to our \
-              [CONTRIBUTING](https://github.com/tenstorrent/tt-llk/blob/main/CONTRIBUTING.md) guide.
+            📖 For more information, please refer to our [CONTRIBUTING]
+            (https://github.com/tenstorrent/tt-llk/blob/main/CONTRIBUTING.md) guide.
