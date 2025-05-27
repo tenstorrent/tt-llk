@@ -45,5 +45,5 @@ jobs:
             You can run tt-metal integration tests by adding the `blackhole-integration-tests` and/or
             `wormhole-integration-tests` labels to this pull request.
 
-            📖 For more information, please refer to our guide on how to contribute to tt-llk:
+            📖 For more information, please refer to our guide on how to contribute to tt-llk see
             [CONTRIBUTING](https://github.com/tenstorrent/tt-llk/blob/main/CONTRIBUTING.md) guide.
