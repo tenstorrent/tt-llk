@@ -36,32 +36,17 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
         if constexpr (transpose_of_faces)
         {
             // 4x 32b face transpositions followed by 8x middle-face row swaps.
-            //ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
+            ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
         }
         else
         {
             // 4x 32b face transpositions.
-            //ckernel_unpack_template::run(instrn_buffer, 4, 0);
-          for (int i = 0; i < 4; ++i)
-          {
-              for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
-              {
-                  TTI_MOVD2B(dest_32b_lo, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
-                  TTI_MOVD2B(dest_32b_lo, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
-                  TTI_MOVD2B(dest_32b_lo, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
-                  TTI_MOVD2B(dest_32b_lo, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-                  TTI_TRNSPSRCB;
-                  TTI_MOVB2D(dest_32b_lo, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-                  TTI_MOVB2D(dest_32b_lo, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
-                  TTI_MOVB2D(dest_32b_lo, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
-                  TTI_MOVB2D(dest_32b_lo, 28, dest_32b_lo == 1 ? ADDR_MOD_0 : ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
-              }
-          }
+            ckernel_unpack_template::run(instrn_buffer, 4, 0);
         }
     }
     else
     {
-        //ckernel_unpack_template::run(instrn_buffer, 2, 2);
+        ckernel_unpack_template::run(instrn_buffer, 2, 2);
     }
 
     // clear SrcA, SrcB valids; reset SrcA, SrcB, Dst counters to zero
