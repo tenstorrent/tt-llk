@@ -13,6 +13,16 @@
 #include "cmath_common.h"
 #include "llk_math_common.h"
 
+inline void dbg_thread()
+{
+    tensix_sync();
+    volatile uint32_t temp = mailbox_read(ThreadId::UnpackThreadId);
+    // Wait for previous packs to finish
+    while (semaphore_read(semaphore::MATH_PACK) > 0)
+    {
+    };
+}
+
 using namespace ckernel;
 
 // local function declarations
@@ -34,6 +44,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         if constexpr (type == PoolType::MAX)
         {
             TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_A);
         }
         else if constexpr (HIGH_FIDELITY)
         {
@@ -43,6 +54,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         else
         {
             TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_A);
         }
 
         if constexpr (type == PoolType::MAX)
@@ -124,6 +136,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             if constexpr (type == PoolType::MAX)
             {
                 TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_A);
             }
             else if constexpr (HIGH_FIDELITY)
             {
@@ -133,6 +146,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             else
             {
                 TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_A);
             }
 
             if constexpr (type == PoolType::MAX)

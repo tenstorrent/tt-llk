@@ -49,7 +49,7 @@ void run_kernel()
 
 void run_kernel()
 {
-    const std::uint32_t math_fid = 4;
+    const std::uint32_t math_fid = 0;
     const bool is_int_fpu_en     = false;
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fid>(within_face_16x16_transpose);
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
