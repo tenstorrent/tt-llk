@@ -290,7 +290,8 @@ inline void _llk_unpack_tilizeA_B_init_(
 
 template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false>
 inline void _llk_unpack_tilizeA_B_(
-    std::uint32_t unpA_src_format std::uint32_t face_r_dim,
+    std::uint32_t unpA_src_format,
+    std::uint32_t face_r_dim,
     std::uint32_t narrow_tile,
     std::uint32_t base_address_a,
     std::uint32_t address_b,
