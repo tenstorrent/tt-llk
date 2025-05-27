@@ -108,6 +108,26 @@ class ProfilerData:
     ZONE_END_ENTRY = 0b1011
 
     @staticmethod
+    def dump_csv(profiler_data, filename="profiler_data.csv"):
+        output_file = f"../build/{filename}"
+        with open(output_file, "w") as f:
+            f.write("thread,type,marker,timestamp,data,marker_id,file,line\n")
+            for thread, entries in profiler_data.items():
+                for entry in entries:
+                    full = entry.full_marker
+                    if isinstance(entry, ProfilerTimestamp):
+                        f.write(
+                            f"{thread},TIMESTAMP,{full['marker']},{entry.timestamp},{entry.data},{full['id']},{full['file']},{full['line']}\n"
+                        )
+                    elif isinstance(entry, ProfilerZoneScoped):
+                        f.write(
+                            f"{thread},ZONE_START,{full['marker']},{entry.start},,{full['id']},{full['file']},{full['line']}\n"
+                        )
+                        f.write(
+                            f"{thread},ZONE_END,{full['marker']},{entry.end},,{full['id']},{full['file']},{full['line']}\n"
+                        )
+
+    @staticmethod
     def get(profiler_meta):
         return ProfilerData._parse_buffers(ProfilerData._load_buffers(), profiler_meta)
 
