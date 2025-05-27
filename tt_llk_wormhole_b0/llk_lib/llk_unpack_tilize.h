@@ -492,6 +492,8 @@ inline void _llk_unpack_fast_tilize_uninit_()
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, 0, UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32);
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, 0, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+    TTI_SETADCXY(0b011, 0, 0, 0, 0, 0b1111);
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 }
 
 inline void _llk_unpack_fast_tilize_block_(const std::uint32_t base_address, const std::uint32_t tile_index, const std::uint32_t block_dim)

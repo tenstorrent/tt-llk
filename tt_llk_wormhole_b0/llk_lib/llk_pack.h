@@ -292,7 +292,7 @@ inline void _llk_pack_fast_tilize_addrmod_config_()
 
 inline void _llk_pack_fast_tilize_mop_config_()
 {
-    TT_REPLAY(0, 16, 0, 1);
+    TTI_REPLAY(0, 16, 0, 1);
 
     for (uint j = 0; j < 15; j++)
     {
@@ -304,11 +304,11 @@ inline void _llk_pack_fast_tilize_mop_config_()
         false,
         false,
         TT_OP_REPLAY(0, 16, 0, 0),
+        TT_OP_NOP,
         0,
         0,
         0,
-        0,
-        0,
+        TT_OP_NOP,
         0);
 
     tmp.program(instrn_buffer);
@@ -320,6 +320,9 @@ inline void _llk_pack_fast_tilize_init_()
 
     _llk_pack_fast_tilize_mop_config_();
 
+    TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+
+    TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
     TT_SETDMAREG(0, 0x000 + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
     TT_SETDMAREG(0, 0x000 + 0x01, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
     TT_SETDMAREG(0, 0x000 + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
@@ -328,11 +331,14 @@ inline void _llk_pack_fast_tilize_init_()
     TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x01, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
     TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
     TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x21, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+    select_packer_dest_registers<DST_SYNC_MODE>();
 }
 
 inline void _llk_pack_fast_tilize_uninit_()
 {
     _llk_init_packer_dest_offset_registers_<DST_SYNC_MODE, DstTileFaceLayout::RowMajor>();
+    TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
+    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
 }
 
 inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t block_dim)
