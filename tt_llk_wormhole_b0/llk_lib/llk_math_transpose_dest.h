@@ -25,7 +25,9 @@ inline void transpose_dest_configure_mop();
 template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math_unpack_to_dest_math_ready();
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32, UnpackToDestEn>(dst_index);
+    math::math_unpack_to_dest_tile_ready();
 
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
 
@@ -34,22 +36,37 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
         if constexpr (transpose_of_faces)
         {
             // 4x 32b face transpositions followed by 8x middle-face row swaps.
-            ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
+            //ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
         }
         else
         {
             // 4x 32b face transpositions.
-            ckernel_unpack_template::run(instrn_buffer, 4, 0);
+            //ckernel_unpack_template::run(instrn_buffer, 4, 0);
+          for (int i = 0; i < 4; ++i)
+          {
+              for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
+              {
+                  TTI_MOVD2B(dest_32b_lo, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+                  TTI_MOVD2B(dest_32b_lo, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+                  TTI_MOVD2B(dest_32b_lo, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+                  TTI_MOVD2B(dest_32b_lo, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+                  TTI_TRNSPSRCB;
+                  TTI_MOVB2D(dest_32b_lo, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+                  TTI_MOVB2D(dest_32b_lo, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
+                  TTI_MOVB2D(dest_32b_lo, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
+                  TTI_MOVB2D(dest_32b_lo, 28, dest_32b_lo == 1 ? ADDR_MOD_0 : ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
+              }
+          }
         }
     }
     else
     {
-        ckernel_unpack_template::run(instrn_buffer, 2, 2);
+        //ckernel_unpack_template::run(instrn_buffer, 2, 2);
     }
 
     // clear SrcA, SrcB valids; reset SrcA, SrcB, Dst counters to zero
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
-    TTI_CLEARDVALID(0, 1);
+    //TTI_CLEARDVALID(0, 1);
 }
 
 template <bool is_32bit>
@@ -202,4 +219,7 @@ inline void _llk_math_transpose_dest_init_()
 {
     transpose_dest_configure_addrmod<is_32bit>();
     transpose_dest_configure_mop<transpose_of_faces, is_32bit>();
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+    math::reset_counters(p_setrwc::SET_ABD_F);
 }

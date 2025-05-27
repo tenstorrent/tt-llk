@@ -77,9 +77,9 @@ inline void _llk_unpack_A_mop_config_(
 
     if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format))
     {
-        if (transpose_of_faces && num_faces > 2)
+        if (transpose_of_faces && num_faces == 4)
         {
-            const uint32_t outerloop = num_faces < 4 ? 1 : 2;
+            const uint32_t outerloop = 2;
             const uint32_t innerloop = 2;
             ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest_transpose_of_faces);
             tmp.set_end_op(TT_OP_SETADCZW(p_setadc::UNP_A, 0, 2, 0, 1, 0b0101));
