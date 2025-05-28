@@ -1,4 +1,4 @@
-name: Sort Open Issues
+name: List Open Issues and PRs
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  sort_issues:
+  generate_reports:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -23,14 +23,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run sorting script
+      - name: Run information collection scripts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: node .github/scripts/sort-issues.js
+        run: |
+          node .github/scripts/sort-issues.js
+          node .github/scripts/list-pending-prs.js
 
-      - name: Upload HTML report as artifact
+      - name: Upload HTML reports as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sorted-issues-report
-          path: sorted-issues.html
+          name: github-reports
+          path: |
+            sorted-issues.html
+            pending-prs.html
+          retention-days: 30
