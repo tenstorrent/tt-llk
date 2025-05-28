@@ -292,26 +292,24 @@ inline void _llk_pack_fast_tilize_addrmod_config_()
 
 inline void _llk_pack_fast_tilize_mop_config_()
 {
-    TTI_REPLAY(0, 16, 0, 1);
+    TTI_REPLAY(0, 2, 0, 1);
 
-    for (uint j = 0; j < 15; j++)
-    {
-        TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
-    }
-    TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1);
+    TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
         false,
-        false,
-        TT_OP_REPLAY(0, 16, 0, 0),
+        true,
+        TT_OP_REPLAY(0, 1, 0, 0),
+        TT_OP_REPLAY(0, 1, 0, 0),
+        TT_OP_REPLAY(0, 1, 0, 0),
+        TT_OP_REPLAY(0, 2, 0, 0),
+        TT_OP_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1),
         TT_OP_NOP,
-        0,
-        0,
-        0,
-        TT_OP_NOP,
-        0);
+        TT_OP_NOP);
 
     tmp.program(instrn_buffer);
+    TTI_MOP_CFG(0x8888);
 }
 
 inline void _llk_pack_fast_tilize_init_()
@@ -320,25 +318,44 @@ inline void _llk_pack_fast_tilize_init_()
 
     _llk_pack_fast_tilize_mop_config_();
 
-    TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+    TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
-    TT_SETDMAREG(0, 0x000 + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
-    TT_SETDMAREG(0, 0x000 + 0x01, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
-    TT_SETDMAREG(0, 0x000 + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
-    TT_SETDMAREG(0, 0x000 + 0x21, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
-    TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
-    TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x01, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
-    TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
-    TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x21, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+    TTI_SETDMAREG(0, 0x000 + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
+    TTI_SETDMAREG(0, 0x000 + 0x01, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
+    TTI_SETDMAREG(0, 0x000 + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+    TTI_SETDMAREG(0, 0x000 + 0x21, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x01, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x21, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
     select_packer_dest_registers<DST_SYNC_MODE>();
 }
 
-inline void _llk_pack_fast_tilize_uninit_()
+inline void _llk_pack_fast_tilize_uninit_(
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim = FACE_R_DIM,
+    const std::uint32_t num_faces  = 4,
+    const bool partial_face        = false,
+    const bool narrow_tile         = false)
 {
-    _llk_init_packer_dest_offset_registers_<DST_SYNC_MODE, DstTileFaceLayout::RowMajor>();
-    TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
+    TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+    
+    TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
+    TTI_SETDMAREG(0, 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
+    TTI_SETDMAREG(0, 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
+    TTI_SETDMAREG(0, 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+    TTI_SETDMAREG(0, 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+    select_packer_dest_registers<DST_SYNC_MODE>();
+
     TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
+
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(
+        pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
 inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t block_dim)
@@ -358,5 +375,5 @@ inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const s
     //     TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1);
     // }
 
-    TTI_MOP(0, block_dim - 1, 0);
+    TTI_MOP(0, (block_dim << 2) - 1, 0x8888);
 }
