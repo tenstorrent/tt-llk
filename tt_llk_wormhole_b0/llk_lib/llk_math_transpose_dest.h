@@ -25,9 +25,7 @@ inline void transpose_dest_configure_mop();
 template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
-    math_unpack_to_dest_math_ready();
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32, UnpackToDestEn>(dst_index);
-    math::math_unpack_to_dest_tile_ready();
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
 
@@ -51,7 +49,8 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     // clear SrcA, SrcB valids; reset SrcA, SrcB, Dst counters to zero
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
-    //TTI_CLEARDVALID(0, 1);
+    // completely reset SrcA/SrcB sync mechanism: see https://github.com/tenstorrent/tt-metal/issues/22383
+    TTI_CLEARDVALID(0, 1);
 }
 
 template <bool is_32bit>
