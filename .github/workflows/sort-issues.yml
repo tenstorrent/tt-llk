@@ -1,4 +1,4 @@
-name: List Open Issues and PRs
+name: 📋 List Open Issues and Pull Requests
 
 on:
   workflow_dispatch:
