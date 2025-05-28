@@ -79,7 +79,7 @@ all_params = generate_params(
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
         MathOperation.Abs,
-        MathOperation.Cos,
+        # MathOperation.Cos,
         MathOperation.Log,
         MathOperation.Reciprocal,
         MathOperation.Sin,

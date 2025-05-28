@@ -182,6 +182,11 @@ inline void _calculate_cosine_()
         v -= int32_to_float(whole_v, 0);
         v = sfpu_sinpi<APPROXIMATION_MODE>(v);
 
+        v_if (whole_v & 1)
+        {
+            v = -v;
+        }
+        v_endif;
         sfpi::dst_reg[0] = v;
         sfpi::dst_reg++;
     }
