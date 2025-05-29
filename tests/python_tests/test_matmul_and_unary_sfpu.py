@@ -34,31 +34,28 @@ from helpers.utils import compare_pcc, run_shell_command
 
 
 def generate_matmul_golden(operand1, operand2, data_format, math_fidelity):
+    data_type = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
 
-    if data_format == DataFormat.Float16_b:
-        if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
-            for element in operand2:
-                element = element.to(torch.int32)
-                element &= 0xFFFE
-        if math_fidelity == MathFidelity.LoFi:  # LoFi
-            for element in operand1:
-                element = element.to(torch.int32)
-                element &= 0xFFF8
+    if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
+        for element in operand2:
+            element = element.to(torch.int32)
+            element &= 0xFFFE
+    if math_fidelity == MathFidelity.LoFi:  # LoFi
+        for element in operand1:
+            element = element.to(torch.int32)
+            element &= 0xFFF8
 
-    operand1_matrix = operand1.view(32, 32).to(format_dict[data_format])
-    operand2_matrix = operand2.view(32, 32).to(format_dict[data_format])
+    operand1_matrix = operand1.view(32, 32).to(data_type)
+    operand2_matrix = operand2.view(32, 32).to(data_type)
 
     result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
 
-    return result_matrix.view(1024).to(format_dict[data_format])
+    return result_matrix.view(1024).to(data_type)
 
 
 def generate_sfpu_golden(operation, operand1, data_format):
-    tensor1_float = (
-        operand1.clone()
-        .detach()
-        .to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
-    )
+    data_type = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+    tensor1_float = operand1.clone().detach().to(data_type)
     ops = {
         MathOperation.Abs: lambda x: abs(x),
         MathOperation.Cos: lambda x: math.cos(x),
@@ -131,44 +128,40 @@ param_ids = generate_param_ids(all_params)
     clean_params(all_params),
     ids=param_ids,
 )
-def test_matmul(testname, formats, dest_acc, approx_mode, mathop, math_fidelity):
-    if formats.input_format == DataFormat.Float16 and (
-        dest_acc == DestAccumulation.No
-        and get_chip_architecture() == ChipArchitecture.BLACKHOLE
-    ):
-        pytest.skip(reason="This combination is not fully implemented in testing")
-    if formats.input_format == DataFormat.Float16_b and mathop in [
-        MathOperation.Sin,
-        MathOperation.Cos,
-    ]:
-        pytest.skip(reason="This combination is not fully implemented in testing")
+def test_matmul_and_unary_sfpu(
+    testname, formats, dest_acc, approx_mode, mathop, math_fidelity
+):
+    if formats.input_format == DataFormat.Float16:
+        if (
+            dest_acc == DestAccumulation.No
+            and get_chip_architecture() == ChipArchitecture.BLACKHOLE
+        ) or (
+            dest_acc == DestAccumulation.Yes
+            and math_fidelity == MathFidelity.LoFi
+            and mathop in [MathOperation.Sin, MathOperation.Cos, MathOperation.Square]
+        ):
+            pytest.skip(reason="This combination is not fully implemented in testing")
+    elif formats.input_format == DataFormat.Float16_b:
+        if (mathop in [MathOperation.Sin, MathOperation.Cos]) or (
+            math_fidelity == MathFidelity.LoFi and mathop == MathOperation.Square
+        ):
+            pytest.skip(reason="This combination is not fully implemented in testing")
 
-    if (
-        formats.input_format == DataFormat.Float16
-        and DestAccumulation.Yes
-        and MathFidelity.LoFi
-        and mathop in [MathOperation.Sin, MathOperation.Cos, MathOperation.Square]
-    ):
-        pytest.skip(reason="This combination is not fully implemented in testing")
-    if (
-        formats.input_format == DataFormat.Float16_b
-        and MathFidelity.LoFi
-        and mathop == MathOperation.Square
-    ):
-        pytest.skip(reason="This combination is not fully implemented in testing")
-
+    torch_format = format_dict.get(
+        formats.output_format, format_dict[DataFormat.Float16_b]
+    )
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     golden_tensor = generate_matmul_golden(
         src_A, src_B, formats.output_format, math_fidelity
     )
-    golden_tensor = tilize(golden_tensor, format_dict[formats.input_format])
+    golden_tensor = tilize(golden_tensor, torch_format)
     golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
-    golden_tensor = golden_tensor.to(format_dict[formats.output_format])
+    golden_tensor = golden_tensor.to(torch_format)
 
     write_stimuli_to_l1(
-        tilize(src_A, format_dict[formats.input_format]),
-        tilize(src_B, format_dict[formats.input_format]),
+        tilize(src_A, torch_format),
+        tilize(src_B, torch_format),
         formats.input_format,
         formats.input_format,
     )
@@ -195,11 +188,7 @@ def test_matmul(testname, formats, dest_acc, approx_mode, mathop, math_fidelity)
 
     res_tensor = torch.tensor(
         res_from_L1[:256],
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
+        dtype=(torch_format),
     )
 
     atol = 0.1
