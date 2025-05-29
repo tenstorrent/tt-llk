@@ -27,6 +27,7 @@ torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=100
 
 
 def generate_golden(operand1, operand2, data_format, math_fidelity):
+    data_type = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
 
     if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
         for element in operand2:
@@ -37,12 +38,8 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
             element = element.to(torch.int32)
             element &= 0xFFF8
 
-    operand1_matrix = operand1.view(32, 32).to(
-        format_dict.get(data_format, format_dict[DataFormat.Float16_b])
-    )
-    operand2_matrix = operand2.view(32, 32).to(
-        format_dict.get(data_format, format_dict[DataFormat.Float16_b])
-    )
+    operand1_matrix = operand1.view(32, 32).to(data_type)
+    operand2_matrix = operand2.view(32, 32).to(data_type)
 
     result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
 
@@ -90,23 +87,18 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
+    data_type = format_dict.get(
+        formats.output_format, format_dict[DataFormat.Float16_b]
+    )
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
-    golden_tensor = golden_tensor.to(
-        format_dict.get(formats.output_format, format_dict[DataFormat.Float16_b])
-    )
+    golden_tensor = golden_tensor.to(data_type)
 
     write_stimuli_to_l1(
-        tilize(
-            src_A,
-            format_dict.get(formats.output_format, format_dict[DataFormat.Float16_b]),
-        ),
-        tilize(
-            src_B,
-            format_dict.get(formats.output_format, format_dict[DataFormat.Float16_b]),
-        ),
+        tilize(src_A, data_type),
+        tilize(src_B, data_type),
         formats.input_format,
         formats.input_format,
     )
@@ -127,12 +119,7 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
     res_from_L1 = collect_results(formats, tensor_size=len(src_A))
     assert len(res_from_L1) == len(golden_tensor)
 
-    res_tensor = torch.tensor(
-        res_from_L1,
-        dtype=(
-            format_dict.get(formats.output_format, format_dict[DataFormat.Float16_b])
-        ),
-    )
+    res_tensor = torch.tensor(res_from_L1, dtype=(data_type))
 
     atol = 0.1
     rtol = 0.05
