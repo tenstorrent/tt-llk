@@ -158,10 +158,10 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
     }
     else
     {
-        lltt::replay(replay_start, 5);
+        TT_REPLAY(replay_start, 5, 0, 0);
     }
 
-    lltt::replay(replay_start, 5);
+    TT_REPLAY(replay_start, 5, 0, 0);
 
     if (dir == (bool)SortDir::ArgMin)
     {
