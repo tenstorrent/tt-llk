@@ -67,14 +67,14 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
         result[0][16:32] = right_half_max.view(1, 16)
 
     elif reduce_dim == ReduceDimension.Row:
-        top_half = torch.cat((f0, f1), 1)
-        bottom_half = torch.cat((f2, f3), 1)
+        left_half = torch.cat((f0, f2), 1)
+        right_half = torch.cat((f1, f3), 1)
 
-        top_half_max = apply_pooling(top_half, pool_type, dim=1)
-        bottom_half_max = apply_pooling(bottom_half, pool_type, dim=1)
+        left_half_max = apply_pooling(left_half, pool_type, dim=1)
+        right_half_max = apply_pooling(right_half, pool_type, dim=1)
 
-        result[:16, 0] = top_half_max.view(16)
-        result[16:32, 0] = bottom_half_max.view(16)
+        result[0:16, 0] = left_half_max.view(16)
+        result[16:32, 0] = right_half_max.view(16)
     elif reduce_dim == ReduceDimension.Scalar:
 
         result[0][0] = apply_pooling(operand1.view(1024), pool_type, dim=0)
@@ -86,7 +86,7 @@ def generate_golden(operand1, reduce_dim, pool_type, data_format):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -109,9 +109,9 @@ formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["reduce_test"],
     formats,
-    dest_acc=[DestAccumulation.No],
-    reduce_dim=[ReduceDimension.Row],
-    pool_type=[ReducePool.Max, ReducePool.Average],  # , ReducePool.Sum],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
+    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
 
 param_ids = generate_param_ids(all_params)
@@ -124,14 +124,7 @@ param_ids = generate_param_ids(all_params)
 )
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
 
-    # if reduce_dim == ReduceDimension.Row:
-    #     pytest.skip("ReduceDimension.Row not fully implemented")
-
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
-
-    # src_A = torch.arange(0,256,0.25, dtype=torch.bfloat16)
-
-    # print_faces(src_A)
 
     if pool_type in [
         ReducePool.Max,
@@ -177,10 +170,6 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
         ),
     )
     res_tensor = untilize(res_tensor, formats.output_format)
-
-    # print(golden_tensor.view(32,32))
-    # print("\n")
-    # print(res_tensor.view(32,32))
 
     if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
         atol = 0.015
