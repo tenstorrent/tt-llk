@@ -70,7 +70,6 @@ def generate_sfpu_golden(operation, operand1, data_format):
     }
     if operation not in ops:
         raise ValueError("Unsupported operation!")
-    # return [ops[operation](num) for num in tensor1_float.tolist()][:256]
     golden = [ops[operation](num) for num in tensor1_float.tolist()][:256]
     return torch.tensor(
         golden,
