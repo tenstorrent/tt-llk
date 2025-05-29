@@ -10,12 +10,6 @@
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
 
-// This header is include on non-trisc builds, for reasons
-// unknown. lltt is only available on trisc
-#if defined(COMPILE_FOR_TRISC)
-#include <utility>
-#endif
-
 // Compiler hint that a branch is unlikely to be taken
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 #define UNROLL_LOOP(factor) GCC unroll factor
@@ -689,14 +683,13 @@ inline void enable_gathering()
             : "t1");
 }
 
-#if defined(COMPILE_FOR_TRISC)
 // Place instructions into the replay buffer. EXEC is true to execute
 // when loading (default is false). START is where to place in the
 // replay buffer, and LEN is the number of instructions to record
 // (should match the expansion of CALLABLE). CALLABLE is a callable,
 // to which ARGS are forwarded.
 template <bool Exec = false, typename Callable, typename... Args>
-[[gnu::always_inline, gnu::flatten]] inline auto load_replay_buf(uint start, uint len, Callable callable, Args&&... args)
+[[gnu::always_inline, gnu::flatten]] inline auto load_replay_buf(uint start, uint len, Callable callable)
 {
     // Workaround for tt-metal#16439, making sure gathering is disabled
     // WE DON'T UNDERSTAND WHY ENABLING GATHERING DOESN'T WORK
@@ -713,7 +706,7 @@ template <bool Exec = false, typename Callable, typename... Args>
     TTI_REPLAY(start, len, Exec, 1);
 
     // Send in the user's desired instructions
-    return callable(std::forward<Args>(args)...);
+    return callable();
 }
 
 // Deprecated entry points, will be deleted.
@@ -738,7 +731,6 @@ inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
     // WE DON'T UNDERSTAND WHY ENABLING GATHERING DOESN'T WORK
     // enable_gathering();
 }
-#endif
 
 enum class CSR : uint16_t
 {
