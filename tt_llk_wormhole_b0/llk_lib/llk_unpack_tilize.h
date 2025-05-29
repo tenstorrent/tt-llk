@@ -450,25 +450,30 @@ inline void _llk_unpack_fast_tilize_hw_configure_(const std::uint32_t unpack_src
 
 inline void _llk_unpack_fast_tilize_mop_config_()
 {
-    TT_REPLAY(0, 3, 0, 1);
+    TT_REPLAY(0, 9, 0, 1);
 
-    TTI_UNPACR(SrcA, 0b01'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, 0b01'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, 0b01'00'01'00, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
         true,
         true,
-        TT_OP_REPLAY(0, 2, 0, 0),
-        TT_OP_REPLAY(0, 2, 0, 0),
-        TT_OP_REPLAY(0, 2, 0, 0),
-        TT_OP_REPLAY(0, 2, 0, 0),
-        TT_OP_REPLAY(1, 2, 0, 0),
-        TT_OP_REPLAY(0, 2, 0, 0),
-        TT_OP_SETADCZW(0b001, 0, 0, 0, 0, 0b1111));
+        TT_OP_REPLAY(0, 5, 0, 0),
+        TT_OP_REPLAY(0, 5, 0, 0),
+        TT_OP_REPLAY(0, 5, 0, 0),
+        TT_OP_UNPACR(SrcA, 0b10'00'10'00, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
+        TT_OP_REPLAY(0, 8, 0, 0),
+        TT_OP_SETADCZW(0b001, 0, 0, 0, 0, 0b1111),
+        TT_OP_REPLAY(1, 8, 0, 0));
 
     tmp.program(instrn_buffer);
-    TTI_MOP_CFG(0x8888);
 }
 
 inline void _llk_unpack_fast_tilize_init_(const std::uint32_t full_dim)
@@ -487,7 +492,7 @@ inline void _llk_unpack_fast_tilize_init_(const std::uint32_t full_dim)
     TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(2 * TILE_C_DIM); // TODO hardcoded for Float16
 
-    TTI_SETADCXX(p_setadc::UNP_A, 2 * FACE_C_DIM - 1, 0x0);
+    TTI_SETADCXX(p_setadc::UNP_A, 4 * FACE_C_DIM - 1, 0x0);
 
     _llk_unpack_fast_tilize_mop_config_();
 }
@@ -522,17 +527,22 @@ inline void _llk_unpack_fast_tilize_block_(const std::uint32_t base_address, con
 
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    // for (std::uint32_t i = 0; i < block_dim; i++)
+    // for (std::uint32_t i = 0; i < block_dim / 2; i++)
     // {
-    //     for (std::uint32_t j = 0; j < 31; j++)
+    //     for (std::uint32_t j = 0; j < 15; j++)
     //     {
-    //         TTI_UNPACR(SrcA, 0b01'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    //         TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     //     }
-    //     TTI_UNPACR(SrcA, 0b01'00'01'00, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    //         TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    //     for (std::uint32_t j = 0; j < 15; j++)
+    //     {
+    //         TTI_UNPACR(SrcA, 0b10'00'00'01, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    //     }
+    //         TTI_UNPACR(SrcA, 0b10'00'10'00, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     //     TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
     // }
 
-    TTI_MOP(0, (block_dim << 2) - 1, 0x8888);
+    TTI_MOP(0, block_dim - 1, 0x5555); // block_dim must be even
 
     t6_semaphore_get(semaphore::UNPACK_SYNC);
 
