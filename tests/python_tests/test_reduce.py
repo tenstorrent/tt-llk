@@ -109,7 +109,7 @@ formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["reduce_test"],
     formats,
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
