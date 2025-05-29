@@ -15,12 +15,6 @@ constexpr bool is_wormhole  = false;
 #error "You must define either ARCH_WORMHOLE or ARCH_BLACKHOLE"
 #endif
 
-#if defined(UNPACKING_TO_DEST)
-constexpr bool unpack_in_dest = true;
-#else
-constexpr bool unpack_in_dest = false;
-#endif
-
 struct FormatConfig
 {
     const uint32_t unpack_src;
@@ -48,7 +42,7 @@ constexpr FormatConfig get_data_formats(uint32_t input, uint32_t output, bool is
     uint32_t pack_out   = output;
     uint32_t pack_in    = 0;
 
-    if (input == (uint32_t)DataFormat::Float32 && !unpack_in_dest)
+    if (input == (uint32_t)DataFormat::Float32 && !UNPACKING_TO_DEST)
     {
         unpack_out = static_cast<uint32_t>(DataFormat::Tf32);
         if (is_fp32_dest_acc_en || is_exponentB(output))

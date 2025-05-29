@@ -35,12 +35,7 @@ constexpr bool dest_acc_en_input =
     false;
 #endif
 
-constexpr bool unpack_to_dest =
-#if defined(UNPACK_A_SRC_INT32) || defined(UNPACK_A_SRC_FLOAT32)
-    true;
-#else
-    false;
-#endif
+constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 
 #define UNPACK_A_SRC_CASE(data_format) constexpr auto UNPACK_A_IN = get_data_format(DataFormat::data_format);
 
