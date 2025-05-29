@@ -107,7 +107,6 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         "testname": testname,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
-        "unpack_to_dest": False,
     }
 
     make_cmd = generate_make_command(test_config)

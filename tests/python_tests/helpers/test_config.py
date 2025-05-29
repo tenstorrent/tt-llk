@@ -24,11 +24,7 @@ def generate_make_command(test_config):
     formats = test_config.get("formats")
     testname = test_config.get("testname")
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
-    unpack_to_dest = (
-        "NOT_UNPACKING_TO_DEST"
-        if not test_config.get("unpack_to_dest", False)
-        else "UNPACKING_TO_DEST"
-    )
+    unpack_to_dest = "0" if not test_config.get("unpack_to_dest", False) else "1"
 
     if isinstance(formats, InputOutputFormat):
         make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.input_format]} pack_dst={pack_dst_dict[formats.output_format]} "
