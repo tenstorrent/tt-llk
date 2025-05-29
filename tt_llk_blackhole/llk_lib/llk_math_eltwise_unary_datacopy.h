@@ -243,7 +243,7 @@ template <
     DataCopyType type,
     BroadcastType src_b_bcast_type = BroadcastType::NONE,
     bool tilize                    = false,
-    bool is_fp32_dest_acc_en       = false,
+    bool is_fp32_dest_acc_en,
     bool is_int_fpu_en             = false>
 // within_face_16x16_transpose is used by unpacker, math does not transpose
 inline void _llk_math_eltwise_unary_datacopy_init_(

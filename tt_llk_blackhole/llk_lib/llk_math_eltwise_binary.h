@@ -36,7 +36,7 @@ template <
     DstSync Dst,
     int NUM_FIDELITY_PHASES                      = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
-    bool is_fp32_dest_acc_en                     = false>
+    bool is_fp32_dest_acc_en>
 inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
 {
     constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
