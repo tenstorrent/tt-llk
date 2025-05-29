@@ -683,32 +683,42 @@ inline void enable_gathering()
             : "t1");
 }
 
-// Pass a lambda function (or a regular function pointer) that takes void,
-// returns void, and issues the instructions you want to load into the
-// replay buffer. start, len, and exec_while_loading have the same meaning
-// as they do for the REPLAY instruction, as descired in assembly.yaml.
-template <uint start, uint len, bool exec_while_loading = false, typename F>
-inline void load_replay_buf(F fn)
+// Place instructions into the replay buffer. EXEC is true to execute when
+// loading (default is false). START is where to place in the replay buffer,
+// and LEN is the number of instructions to record (should match the expansion
+// of CALLABLE). CALLABLE is a callable with no arguments.
+template <bool Exec = false, typename Callable, typename... Args>
+[[gnu::always_inline, gnu::flatten]] inline auto load_replay_buf(uint start, uint len, Callable callable)
 {
     // ENABLE_GATHERING is controlled by JIT build.
     // Not enabled by default due to tt-metal#16439.
+    struct protect {
+        protect() {
 #if defined(ENABLE_GATHERING)
-    disable_gathering();
+            disable_gathering();
 #endif
+        }
+        ~protect() {
+#if defined(ENABLE_GATHERING)
+            enable_gathering();
+#endif
+        }
+    } _;
 
     // Issue instruction to load replay buffer
-    TTI_REPLAY(start, len, exec_while_loading, 1);
+    TTI_REPLAY(start, len, Exec, 1);
 
     // Send in the user's desired instructions
-    fn();
-
-#if defined(ENABLE_GATHERING)
-    enable_gathering();
-#endif
+    return callable();
 }
 
-// Same as above, but used if start/len/exec_while_loading are not known
-// at compiletime.
+// Deprecated entry points, will be deleted.
+template <uint start, uint len, bool exec_while_loading = false, typename F>
+inline void load_replay_buf(F fn)
+{
+    load_replay_buf<exec_while_loading>(start, len, fn);
+}
+
 template <typename F>
 inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
 {
