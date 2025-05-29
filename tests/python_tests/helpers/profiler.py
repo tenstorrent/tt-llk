@@ -15,7 +15,7 @@ from helpers.test_config import generate_make_command
 class ProfilerTimestamp:
     full_marker: any
     timestamp: int
-    data: int
+    data: int | None
 
 
 @dataclass()
@@ -175,7 +175,7 @@ class ProfilerData:
 
             match type:
                 case ProfilerData.TIMESTAMP_ENTRY:
-                    thread.append(ProfilerTimestamp(marker, timestamp))
+                    thread.append(ProfilerTimestamp(marker, timestamp, None))
 
                 case ProfilerData.TIMESTAMP_DATA_ENTRY:
                     data_high = next(word_stream)
