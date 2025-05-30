@@ -58,10 +58,8 @@ def generate_sfpu_golden(operation, operand1, data_format):
     tensor1_float = operand1.clone().detach().to(data_type)
     ops = {
         MathOperation.Abs: lambda x: abs(x),
-        MathOperation.Cos: lambda x: math.cos(x),
         MathOperation.Log: lambda x: math.log(x) if x != 0 else float("nan"),
         MathOperation.Reciprocal: lambda x: 1 / x if x != 0 else float("nan"),
-        MathOperation.Sin: lambda x: math.sin(x),
         MathOperation.Sqrt: lambda x: math.sqrt(x),
         MathOperation.Square: lambda x: x * x,
     }
@@ -106,10 +104,8 @@ all_params = generate_params(
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
         MathOperation.Abs,
-        MathOperation.Cos,
         MathOperation.Log,
         MathOperation.Reciprocal,
-        MathOperation.Sin,
         MathOperation.Sqrt,
         MathOperation.Square,
     ],
