@@ -56,21 +56,14 @@ jobs:
           elif [[ "${{ inputs.runs_on }}" =~ p150 ]]; then
             CHIP_ARCH=blackhole
           fi
-          echo "CHIP_ARCH is $CHIP_ARCH"
-          echo "$CHIP_ARCH" > chip_arch.txt
+          echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
           SPLITS=$(echo "$TEST_GROUPS" | jq '. | length')
           cd tests/python_tests/
           pytest --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
 
-      # Step 4: Set CHIP_ARCH environment variable
-      - name: Set CHIP_ARCH env
-        if: always()
-        id: chiparch
-        run: echo "CHIP_ARCH=$(cat tests/python_tests/chip_arch.txt)" >> $GITHUB_ENV
-
-      # Step 5: Upload the JUnit XML report
+      # Step 4: Upload the JUnit XML report
       - name: Upload JUnit XML report
         uses: actions/upload-artifact@v4
         if: always()
@@ -78,7 +71,7 @@ jobs:
           name: junit-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
           path: tests/python_tests/pytest-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.xml
 
-      # Step 6: Publish the test results
+      # Step 5: Publish the test results
       - name: Publish Test Results
         uses: mikepenz/action-junit-report@v5
         if: always()
