@@ -253,10 +253,16 @@ inline void _llk_math_fast_eltwise_unary_datacopy_addrmod_config_()
 
 inline void _llk_math_fast_eltwise_unary_datacopy_mop_config_()
 {
-    TTI_REPLAY(16, 6, 0, 1);
+    TTI_REPLAY(16, 12, 0, 1);
 
     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
@@ -265,10 +271,10 @@ inline void _llk_math_fast_eltwise_unary_datacopy_mop_config_()
     ckernel_unpack_template tmp = ckernel_unpack_template(
         false,
         true,
-        TT_OP_REPLAY(16, 2, 0, 0),
-        TT_OP_REPLAY(16, 2, 0, 0),
-        TT_OP_REPLAY(18, 4, 0, 0),
-        TT_OP_REPLAY(18, 4, 0, 0),
+        TT_OP_REPLAY(16, 4, 0, 0),
+        TT_OP_REPLAY(16, 4, 0, 0),
+        TT_OP_REPLAY(20, 8, 0, 0),
+        TT_OP_REPLAY(20, 8, 0, 0),
         TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB),
         0,
         0);
@@ -291,20 +297,20 @@ inline void _llk_math_fast_eltwise_unary_datacopy_block_(const std::uint32_t dst
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
-    // for (uint i = 0; i < block_dim; i++)
+    // for (uint i = 0; i < block_dim / 2; i++)
     // {
-    //     for (uint j = 0; j < 4; j++)
+    //     for (uint j = 0; j < 8; j++)
     //     {
     //         TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
     //     }
-    //     for (uint j = 0; j < 8; j++)
+    //     for (uint j = 0; j < 16; j++)
     //     {
     //         TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
     //     }
     //     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
     // }
 
-    TTI_MOP(0, (block_dim << 1) - 1, 0xAAAA);
+    TTI_MOP(0, block_dim - 1, 0xAAAA); // block dim must be even
 
     math::clear_dst_reg_addr();
 }
