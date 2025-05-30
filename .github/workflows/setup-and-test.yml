@@ -51,12 +51,18 @@ jobs:
           SPLITS=$(echo "$TEST_GROUPS" | jq '. | length')
           cd tests/python_tests/
           pytest --splits $SPLITS --group ${{ matrix.test_group }} \
-                 --override-ini="addopts=-v" --timeout=60 .
+                --override-ini="addopts=-v" --timeout=60 \
+                --junitxml=pytest-report-${{ matrix.test_group }}.xml .
 
-      # Step 4: Upload test log as an artifact
-      - name: Upload logs if tests fail
-        if: failure()  # Only upload the log if the previous step failed
+      # Step 4: Upload the JUnit XML report
+      - name: Upload JUnit XML report
         uses: actions/upload-artifact@v4
         with:
-          name: test-log
-          path: tests/python_tests/pytest_errors_${{ matrix.test_group }}.log
+          name: junit-report-${{ matrix.test_group }}
+          path: tests/python_tests/pytest-report-${{ matrix.test_group }}.xml
+
+      # Step 5: Publish the test results
+      - name: Publish Test Results
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: tests/python_tests/pytest-report-${{ matrix.test_group }}.xml
