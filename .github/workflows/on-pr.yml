@@ -9,7 +9,6 @@ on:
   merge_group:
 
 permissions:
-  checks: write
   contents: read
   packages: write
   pull-requests: write
