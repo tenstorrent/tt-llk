@@ -414,9 +414,9 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         datums_compared = 0;
                         while (datums_compared < total_datums_to_compare)
                         {
-                            TT_REPLAY(0, 8, 0, 0);
+                            TTI_REPLAY(0, 8, 0, 0);
                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
-                            TT_REPLAY(8, 8, 0, 0);
+                            TTI_REPLAY(8, 8, 0, 0);
                             datums_compared += 16;
                             dir = (datums_compared == sorted_seq_length) ? !dir : dir;
                         }
