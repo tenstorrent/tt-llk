@@ -16,6 +16,9 @@ on:
         required: true
         type: string
 
+permissions:
+  checks: write
+
 jobs:
   setup-and-test:
     runs-on: ${{ inputs.runs_on }}
@@ -67,3 +70,12 @@ jobs:
         with:
           name: junit-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
           path: tests/python_tests/pytest-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.xml
+
+      # Step 5: Publish the test results
+      - name: Publish Test Results
+        uses: mikepenz/action-junit-report@v5
+        if: always()
+        with:
+          report_paths: tests/python_tests/pytest-report-*-${{ matrix.test_group }}.xml
+          include_passed: true
+          annotate_only: true
