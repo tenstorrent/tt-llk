@@ -50,22 +50,30 @@ jobs:
         env:
           TEST_GROUPS: ${{ inputs.test_group }}
         run: |
-          # Parse the JSON string into an array to get its length
+          # Determine chip arch from runs_on
+          if [[ "${{ inputs.runs_on }}" =~ n150 ]]; then
+            CHIP_ARCH=wormhole
+          elif [[ "${{ inputs.runs_on }}" =~ p150 ]]; then
+            CHIP_ARCH=blackhole
+          else
+            CHIP_ARCH=unknown
+          fi
           SPLITS=$(echo "$TEST_GROUPS" | jq '. | length')
           cd tests/python_tests/
           pytest --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
-                --junitxml=pytest-report-${{ matrix.test_group }}.xml .
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
 
       # Step 4: Upload the JUnit XML report
       - name: Upload JUnit XML report
         uses: actions/upload-artifact@v4
         with:
           name: junit-report-${{ matrix.test_group }}
-          path: tests/python_tests/pytest-report-${{ matrix.test_group }}.xml
+          path: tests/python_tests/pytest-report-*-${{ matrix.test_group }}.xml
 
       # Step 5: Publish the test results
       - name: Publish Test Results
         uses: mikepenz/action-junit-report@v5
         with:
-          report_paths: tests/python_tests/pytest-report-${{ matrix.test_group }}.xml
+          report_paths: tests/python_tests/pytest-report-*-${{ matrix.test_group }}.xml
+          include_passed: true
