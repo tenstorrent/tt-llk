@@ -55,9 +55,7 @@ def _process_profiler_message(line: str):
 
 
 def build_perf_test(test_config):
-    make_cmd = generate_make_command(
-        test_config
-    )  # sstanisic TODO: add LLK_PROFILER=1 to the make command
+    make_cmd = generate_make_command(test_config, profiler_build=True)
     command = f"cd .. && {make_cmd}"
 
     result = subprocess.run(
