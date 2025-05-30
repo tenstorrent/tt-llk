@@ -212,6 +212,9 @@ constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWLESS;
 #ifdef SFPU_OP_SQRT
 constexpr auto SFPU_OPERATION = SfpuType::sqrt;
 #endif
+#ifdef SFPU_OP_RSQRT
+constexpr auto SFPU_OPERATION = SfpuType::rsqrt;
+#endif
 #ifdef SFPU_OP_LOG
 constexpr auto SFPU_OPERATION = SfpuType::log;
 #endif

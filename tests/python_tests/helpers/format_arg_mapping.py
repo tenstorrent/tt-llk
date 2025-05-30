@@ -90,6 +90,7 @@ class MathOperation(Enum):
     Sin = "SFPU_OP_SINE"
     Cos = "SFPU_OP_COSINE"
     Reciprocal = "SFPU_OP_RECIPROCAL"
+    Rsqrt = "SFPU_OP_RSQRT"
     ReduceColumn = "REDUCE_COL_OPERATION"
     ReduceRow = "REDUCE_ROW_OPERATION"
     ReduceScalar = "REDUCE_SCALAR_OPERATION"

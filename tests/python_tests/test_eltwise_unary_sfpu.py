@@ -33,15 +33,14 @@ from helpers.utils import compare_pcc, run_shell_command
 
 def generate_golden(operation, operand1, data_format):
     tensor1_float = (
-        operand1.clone()
-        .detach()
-        .to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
+        operand1.clone().detach().to(format_dict.get(data_format, torch.bfloat16))
     )
     ops = {
         MathOperation.Abs: lambda x: abs(x),
         MathOperation.Cos: lambda x: math.cos(x),
         MathOperation.Log: lambda x: math.log(x) if x != 0 else float("nan"),
         MathOperation.Reciprocal: lambda x: 1 / x if x != 0 else float("nan"),
+        MathOperation.Rsqrt: lambda x: 1 / math.sqrt(x) if x != 0 else float("nan"),
         MathOperation.Sin: lambda x: math.sin(x),
         MathOperation.Sqrt: lambda x: math.sqrt(x),
         MathOperation.Square: lambda x: x * x,
@@ -82,6 +81,7 @@ all_params = generate_params(
         MathOperation.Cos,
         MathOperation.Log,
         MathOperation.Reciprocal,
+        MathOperation.Rsqrt,
         MathOperation.Sin,
         MathOperation.Sqrt,
         MathOperation.Square,
@@ -139,19 +139,11 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
 
     golden_tensor = torch.tensor(
         golden,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
+        dtype=format_dict.get(formats.output_format, torch.bfloat16),
     )
     res_tensor = torch.tensor(
         res_from_L1,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
+        dtype=format_dict.get(formats.output_format, torch.bfloat16),
     )
 
     if formats.output_format in [
