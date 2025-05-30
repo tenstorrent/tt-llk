@@ -84,7 +84,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
 }
 
-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
+template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_AB_hw_configure_(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,

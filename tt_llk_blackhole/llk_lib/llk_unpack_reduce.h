@@ -43,7 +43,7 @@ inline void _llk_unpack_reduce_mop_config_()
     tmp.program(instrn_buffer);
 }
 
-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
+template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_reduce_hw_configure_(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,

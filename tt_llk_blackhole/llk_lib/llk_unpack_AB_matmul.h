@@ -1,3 +1,4 @@
+
 // SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -198,7 +199,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     tmp.program(instrn_buffer);
 }
 
-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
+template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_AB_matmul_hw_configure_(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,
