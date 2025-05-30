@@ -297,7 +297,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
-                                TT_REPLAY(0, 8, 0, 0);
+                                TTI_REPLAY(0, 8, 0, 0);
                             }
                             if (init_phase)
                             {
@@ -307,7 +307,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
-                                TT_REPLAY(16, 5, 0, 0);
+                                TTI_REPLAY(16, 5, 0, 0);
                             }
                             if (init_store)
                             {
@@ -317,7 +317,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
-                                TT_REPLAY(8, 8, 0, 0);
+                                TTI_REPLAY(8, 8, 0, 0);
                             }
                         }
                         break;
@@ -325,7 +325,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         for (int d = 0; d < 4; d++)
                         {
                             // Groups of 16 datums being sorted at the same time
-                            TT_REPLAY(0, 8, 0, 0);
+                            TTI_REPLAY(0, 8, 0, 0);
                             if (init_phase)
                             {
                                 lltt::record<true>(16, 6);
@@ -334,9 +334,9 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
-                                TT_REPLAY(16, 6, 0, 0);
+                                TTI_REPLAY(16, 6, 0, 0);
                             }
-                            TT_REPLAY(8, 8, 0, 0);
+                            TTI_REPLAY(8, 8, 0, 0);
                         }
                         break;
                     case 2:
