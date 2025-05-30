@@ -239,6 +239,12 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
 inline void _llk_math_fast_eltwise_unary_datacopy_addrmod_config_()
 {
     addr_mod_t {
+        .srcb = {.incr = 4},
+        .dest = {.incr = 4},
+    }
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
         .srca = {.incr = 8},
         .dest = {.incr = 8},
     }
@@ -247,22 +253,23 @@ inline void _llk_math_fast_eltwise_unary_datacopy_addrmod_config_()
 
 inline void _llk_math_fast_eltwise_unary_datacopy_mop_config_()
 {
-    TT_REPLAY(16, 9, 0, 1);
+    TTI_REPLAY(16, 6, 0, 1);
 
-    for (uint j = 0; j < 8; j++)
-    {
-        TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    }
-    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A);
+    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
         false,
-        false,
-        TT_OP_REPLAY(16, 9, 0, 0),
-        0,
-        0,
-        0,
-        0,
+        true,
+        TT_OP_REPLAY(16, 2, 0, 0),
+        TT_OP_REPLAY(16, 2, 0, 0),
+        TT_OP_REPLAY(18, 4, 0, 0),
+        TT_OP_REPLAY(18, 4, 0, 0),
+        TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB),
         0,
         0);
 
@@ -286,14 +293,18 @@ inline void _llk_math_fast_eltwise_unary_datacopy_block_(const std::uint32_t dst
 
     // for (uint i = 0; i < block_dim; i++)
     // {
-    //     for (uint j = 0; j < 8; j++)
+    //     for (uint j = 0; j < 4; j++)
     //     {
     //         TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
     //     }
-    //     TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_A);
+    //     for (uint j = 0; j < 8; j++)
+    //     {
+    //         TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    //     }
+    //     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
     // }
 
-    TTI_MOP(0, block_dim - 1, 0);
+    TTI_MOP(0, (block_dim << 1) - 1, 0xAAAA);
 
     math::clear_dst_reg_addr();
 }
