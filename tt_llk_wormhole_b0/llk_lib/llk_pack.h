@@ -278,35 +278,48 @@ inline void _llk_pack_fast_tilize_hw_configure_(const std::uint32_t pack_src_for
 inline void _llk_pack_fast_tilize_addrmod_config_()
 {
     addr_mod_pack_t {
-        .y_src = {.incr = 2},
+        .y_src = {.incr = 4},
     }
         .set(ADDR_MOD_0);
+
+    addr_mod_pack_t {
+        .y_src = {.incr = 2, .cr = 1},
+        .z_dst = {.incr = 1},
+    }
+        .set(ADDR_MOD_1);
 
     addr_mod_pack_t {
         .y_src = {.clr = 1},
         .z_src = {.incr = 1},
         .z_dst = {.incr = 1},
     }
-        .set(ADDR_MOD_1);
+        .set(ADDR_MOD_3);
 }
 
 inline void _llk_pack_fast_tilize_mop_config_()
 {
-    TTI_REPLAY(0, 2, 0, 1);
+    TTI_REPLAY(0, 9, 0, 1);
 
     TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
     TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1);
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
-        false,
         true,
-        TT_OP_REPLAY(0, 1, 0, 0),
-        TT_OP_REPLAY(0, 1, 0, 0),
-        TT_OP_REPLAY(0, 1, 0, 0),
-        TT_OP_REPLAY(0, 2, 0, 0),
-        TT_OP_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1),
-        TT_OP_NOP,
-        TT_OP_NOP);
+        true,
+        TT_OP_REPLAY(0, 5, 0, 0),
+        TT_OP_REPLAY(0, 5, 0, 0),
+        TT_OP_REPLAY(0, 5, 0, 0),
+        TT_OP_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 0, 1),
+        TT_OP_REPLAY(0, 8, 0, 0),
+        TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 0, 1),
+        TT_OP_REPLAY(1, 8, 0, 0));
 
     tmp.program(instrn_buffer);
     TTI_MOP_CFG(0x8888);
@@ -323,12 +336,12 @@ inline void _llk_pack_fast_tilize_init_()
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
     TTI_SETDMAREG(0, 0x000 + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
     TTI_SETDMAREG(0, 0x000 + 0x01, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
-    TTI_SETDMAREG(0, 0x000 + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
-    TTI_SETDMAREG(0, 0x000 + 0x21, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
+    TTI_SETDMAREG(0, 0x000 + 0x40, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+    TTI_SETDMAREG(0, 0x000 + 0x41, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
     TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
     TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x01, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
-    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
-    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x21, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x40, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+    TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x41, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
     select_packer_dest_registers<DST_SYNC_MODE>();
 }
 
@@ -366,14 +379,20 @@ inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const s
 
     program_packer_destination(address);
 
-    // for (uint i = 0; i < block_dim; i++)
+    // for (uint i = 0; i < block_dim / 2; i++)
     // {
     //     for (uint j = 0; j < 15; j++)
     //     {
     //         TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
     //     }
     //     TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1);
+    //     for (uint j = 0; j < 15; j++)
+    //     {
+    //         TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    //     }
+    //     TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 0, 1);
+    //     TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1);
     // }
 
-    TTI_MOP(0, (block_dim << 2) - 1, 0x8888);
+    TTI_MOP(0, block_dim - 1, 0x5555); // block dim must be even
 }
