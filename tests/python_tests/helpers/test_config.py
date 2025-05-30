@@ -19,10 +19,13 @@ from .format_arg_mapping import (
 from .format_config import InputOutputFormat
 
 
-def generate_make_command(test_config):
+def generate_make_command(test_config, profiler_build: bool = False):
     make_cmd = f"make --silent --always-make "
     formats = test_config.get("formats")
     testname = test_config.get("testname")
+
+    make_cmd += f"llk_profiler={profiler_build} "
+
     dest_acc = test_config.get(
         "dest_acc", DestAccumulation.No
     )  # default is not 32 bit dest_acc
