@@ -50,14 +50,13 @@ jobs:
         env:
           TEST_GROUPS: ${{ inputs.test_group }}
         run: |
-          # Determine chip arch from runs_on
+          CHIP_ARCH=unknown
           if [[ "${{ inputs.runs_on }}" =~ n150 ]]; then
             CHIP_ARCH=wormhole
           elif [[ "${{ inputs.runs_on }}" =~ p150 ]]; then
             CHIP_ARCH=blackhole
-          else
-            CHIP_ARCH=unknown
           fi
+          echo "CHIP_ARCH is $CHIP_ARCH"
           SPLITS=$(echo "$TEST_GROUPS" | jq '. | length')
           cd tests/python_tests/
           pytest --splits $SPLITS --group ${{ matrix.test_group }} \
