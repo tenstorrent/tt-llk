@@ -16,9 +16,6 @@ on:
         required: true
         type: string
 
-permissions:
-  checks: write
-
 jobs:
   setup-and-test:
     runs-on: ${{ inputs.runs_on }}
