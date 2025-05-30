@@ -51,10 +51,12 @@ inline void dbg_thread_halt()
 void run_kernel()
 {
     volatile uint32_t* buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+    volatile uint32_t* buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
 
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_B), 0, UNPACK_B_IN, UNPACK_B_OUT);
 }
 
 #endif
@@ -88,22 +90,24 @@ void run_kernel()
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
         0, MATH_FORMAT, MATH_FORMAT);
+    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     // copy srcB
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
         1, MATH_FORMAT, MATH_FORMAT);
+    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     ckernel::sfpu::_sfpu_binary_init_<false, (ckernel::sfpu::BinaryOp)ELTWISE_BINARY_SFPU_OP>();
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
+    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(3);
     // compute
 
-    for (int face = 0; face < 4; face++)
-    {
-        // sfpu_func(dst_offset, static_cast<ARGS&&>(args)...); -> sfpu add
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-    }
+    // for (int face = 0; face < 4; face++)
+    // {
+    //     // sfpu_func(dst_offset, static_cast<ARGS&&>(args)...); -> sfpu add
+    //     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+    //     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+    // }
 
     _llk_math_eltwise_binary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -141,7 +145,7 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, false, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Dest));
+    _llk_pack_<DstSync::SyncHalf, false, is_fp32_dest_acc_en>(3, L1_ADDRESS(buffer_Dest));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
