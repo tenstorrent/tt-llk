@@ -42,14 +42,21 @@ constexpr FormatConfig get_data_formats(uint32_t input, uint32_t output, bool is
     uint32_t pack_out   = output;
     uint32_t pack_in    = 0;
 
-    if (input == (uint32_t)DataFormat::Float16 && output == (uint32_t)DataFormat::Bfp8_b && !is_fp32_dest_acc_en)
+    if (input == (uint32_t)DataFormat::Float32 && !UNPACKING_TO_DEST)
+    {
+        unpack_out = static_cast<uint32_t>(DataFormat::Tf32);
+        if (is_fp32_dest_acc_en || is_exponentB(output))
+        {
+            pack_in = output;
+        }
+        else
+        {
+            pack_in = static_cast<uint32_t>(DataFormat::Tf32);
+        }
+    }
+    else if (input == (uint32_t)DataFormat::Float16 && output == (uint32_t)DataFormat::Bfp8_b && !is_fp32_dest_acc_en)
     {
         pack_in = static_cast<uint32_t>(DataFormat::Bfp8);
-    }
-    else if (is_wormhole && is_fp32_dest_acc_en && output == (uint32_t)DataFormat::Float16)
-    {
-        pack_in = static_cast<uint32_t>(DataFormat::Float32); // Gasket in wormhole cannot convert fp32 to fp16, and since dest accumulation turns on for
-                                                              // outlier cases we have fp32 in dest, so gasket cannot convert it to fp16, packer must do that
     }
     else if (is_format_combination_outlier(input, output, is_fp32_dest_acc_en))
     {
@@ -58,6 +65,12 @@ constexpr FormatConfig get_data_formats(uint32_t input, uint32_t output, bool is
     else
     {
         pack_in = is_fp32_dest_acc_en ? output : input;
+    }
+
+    if (is_wormhole && is_fp32_dest_acc_en && output == (uint32_t)DataFormat::Float16)
+    {
+        pack_in = static_cast<uint32_t>(DataFormat::Float32); // Gasket in wormhole cannot convert fp32 to fp16, and since dest accumulation turns on for
+                                                              // outlier cases we have fp32 in dest, so gasket cannot convert it to fp16, packer must do that
     }
 
     return {unpack_in, unpack_out, pack_in, pack_out};
