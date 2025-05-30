@@ -140,4 +140,4 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
 
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc < 0.98
+    assert pcc > 0.98
