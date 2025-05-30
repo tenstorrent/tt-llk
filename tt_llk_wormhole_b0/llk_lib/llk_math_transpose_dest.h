@@ -19,10 +19,10 @@ using namespace ckernel;
 // local function declarations
 template <bool is_32bit>
 inline void transpose_dest_configure_addrmod();
-template <bool is_32bit>
+template <bool transpose_of_faces, bool is_32bit>
 inline void transpose_dest_configure_mop();
 
-template <bool is_32bit = false>
+template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
@@ -31,8 +31,16 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-        // 4x 32b face transpositions followed by 8x middle-face row swaps.
-        ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
+        if constexpr (transpose_of_faces)
+        {
+            // 4x 32b face transpositions followed by 8x middle-face row swaps.
+            ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
+        }
+        else
+        {
+            // 4x 32b face transpositions.
+            ckernel_unpack_template::run(instrn_buffer, 4, 0);
+        }
     }
     else
     {
@@ -41,6 +49,8 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     // clear SrcA, SrcB valids; reset SrcA, SrcB, Dst counters to zero
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    // completely reset SrcA/SrcB sync mechanism: see https://github.com/tenstorrent/tt-metal/issues/22383
+    TTI_CLEARDVALID(0, 1);
 }
 
 template <bool is_32bit>
@@ -75,7 +85,7 @@ inline void transpose_dest_configure_addrmod()
         .set(ADDR_MOD_3);
 }
 
-template <bool is_32bit>
+template <bool transpose_of_faces, bool is_32bit>
 inline void transpose_dest_configure_mop()
 {
     if (is_32bit)
@@ -188,9 +198,12 @@ inline void transpose_dest_configure_mop()
     }
 }
 
-template <bool is_32bit = false>
+template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_init_()
 {
     transpose_dest_configure_addrmod<is_32bit>();
-    transpose_dest_configure_mop<is_32bit>();
+    transpose_dest_configure_mop<transpose_of_faces, is_32bit>();
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+    math::reset_counters(p_setrwc::SET_ABD_F);
 }
