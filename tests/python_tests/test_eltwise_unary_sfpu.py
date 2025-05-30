@@ -33,9 +33,7 @@ from helpers.utils import compare_pcc, run_shell_command
 
 def generate_golden(operation, operand1, data_format):
     tensor1_float = (
-        operand1.clone()
-        .detach()
-        .to(format_dict.get(data_format, torch.bfloat16))
+        operand1.clone().detach().to(format_dict.get(data_format, torch.bfloat16))
     )
     ops = {
         MathOperation.Abs: lambda x: abs(x),
