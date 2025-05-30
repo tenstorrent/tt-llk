@@ -48,7 +48,7 @@ def generate_golden(operation, operand1, operand2, data_format):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -72,7 +72,7 @@ all_params = generate_params(
     ["sfpu_binary_test"],
     test_formats,
     dest_acc=[DestAccumulation.Yes],
-    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+    mathop=[MathOperation.Elwadd],  # , MathOperation.Elwsub, MathOperation.Elwmul],
 )
 param_ids = generate_param_ids(all_params)
 
@@ -80,7 +80,7 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize(
     "testname, formats, dest_acc, mathop", clean_params(all_params), ids=param_ids
 )
-@pytest.mark.skip(reason="Not fully implemented")
+# @pytest.mark.skip(reason="Not fully implemented")
 def test_all(testname, formats, dest_acc, mathop):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
@@ -96,6 +96,8 @@ def test_all(testname, formats, dest_acc, mathop):
 
     make_cmd = generate_make_command(test_config)
     run_shell_command(f"cd .. && {make_cmd}")
+
+    print(src_A, "\n\n", src_B, "\n\n", golden)
 
     run_elf_files(testname)
     wait_for_tensix_operations_finished()

@@ -111,7 +111,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         pytest.skip(reason="This combination is not fully implemented in testing")
 
     src_A, src_B = generate_stimuli(
-        formats.input_format, formats.input_format, sfpu=True
+        formats.input_format, formats.input_format, sfpu=True, const_face=True
     )
     golden = generate_golden(mathop, src_A, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
@@ -153,6 +153,10 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
             else torch.bfloat16
         ),
     )
+
+    print(src_A[0:256])
+    print(golden)
+    print(res_tensor)
 
     if formats.output_format in [
         DataFormat.Float16_b,

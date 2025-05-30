@@ -8,12 +8,39 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 
-const bool unpack_to_dest = true;
-
 // Globals
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
+
+template <ckernel::ThreadId thread_id>
+inline void dbg_thread_halt()
+{
+    static_assert(
+        (thread_id == ckernel::ThreadId::MathThreadId) || (thread_id == ckernel::ThreadId::UnpackThreadId) || (thread_id == ckernel::ThreadId::PackThreadId),
+        "Invalid thread id set in dbg_wait_for_thread_idle(...)");
+
+    if constexpr (thread_id == ckernel::ThreadId::UnpackThreadId)
+    {
+        // Wait for all instructions on the running thread to complete
+        ckernel::tensix_sync();
+        // Notify math thread that unpack thread is idle
+        ckernel::mailbox_write(ckernel::ThreadId::MathThreadId, 1);
+        // Wait for math thread to complete debug dump
+        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::MathThreadId);
+    }
+    else if constexpr (thread_id == ckernel::ThreadId::MathThreadId)
+    {
+        // Wait for all instructions on the running thread to complete
+        ckernel::tensix_sync();
+        // Wait for unpack thread to complete
+        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::UnpackThreadId);
+        // Wait for previous packs to finish
+        while (ckernel::semaphore_read(ckernel::semaphore::MATH_PACK) > 0)
+        {
+        };
+    }
+}
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -37,10 +64,11 @@ void run_kernel()
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_binary.h"
 #include "llk_math_common.h"
+#include "llk_math_eltwise_binary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "params.h"
 
-using namespace ckernel;
+// using namespace ckernel;
 using namespace ckernel::sfpu;
 
 void run_kernel()
@@ -66,8 +94,8 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
         1, MATH_FORMAT, MATH_FORMAT);
 
-    _sfpu_binary_init_<false, ELTWISE_BINARY_SFPU_OP>();
-    _llk_math_eltwise_binary_sfpu_start_<>();
+    ckernel::sfpu::_sfpu_binary_init_<false, (ckernel::sfpu::BinaryOp)ELTWISE_BINARY_SFPU_OP>();
+    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
     // compute
 
     for (int face = 0; face < 4; face++)
