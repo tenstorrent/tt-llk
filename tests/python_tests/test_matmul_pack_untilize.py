@@ -99,7 +99,6 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
-    golden_tensor = golden_tensor.to(data_type)
 
     write_stimuli_to_l1(
         tilize(src_A, data_type),
