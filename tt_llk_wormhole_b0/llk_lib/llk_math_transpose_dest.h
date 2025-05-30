@@ -41,6 +41,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     // clear SrcA, SrcB valids; reset SrcA, SrcB, Dst counters to zero
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    TTI_CLEARDVALID(0, 1);
 }
 
 template <bool is_32bit>
