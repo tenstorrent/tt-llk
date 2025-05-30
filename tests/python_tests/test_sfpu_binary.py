@@ -71,7 +71,7 @@ test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["sfpu_binary_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.Elwadd],  # , MathOperation.Elwsub, MathOperation.Elwmul],
 )
 param_ids = generate_param_ids(all_params)
@@ -97,14 +97,10 @@ def test_all(testname, formats, dest_acc, mathop):
     make_cmd = generate_make_command(test_config)
     run_shell_command(f"cd .. && {make_cmd}")
 
-    print(src_A, "\n\n", src_B, "\n\n", golden)
-
     run_elf_files(testname)
     wait_for_tensix_operations_finished()
 
-    res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A)
-    )  # Bug patchup in (unpack.py): passing formats struct to check its unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
 
     assert len(res_from_L1) == len(golden)
 
