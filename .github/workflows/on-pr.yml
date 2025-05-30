@@ -9,9 +9,10 @@ on:
   merge_group:
 
 permissions:
-  contents: write
-  pull-requests: write
+  checks: write
+  contents: read
   packages: write
+  pull-requests: write
 
 concurrency:
   # Use github.run_id on main branch (or any protected branch)
