@@ -8,11 +8,11 @@ BUILD_DIR ?=build
 RMDIR := rm -rf
 
 # Tool paths, mfc changing from 'unknown' to 'tt'
-GXX:=$(wildcard $(TOOL_PATH)/riscv32-*-elf-g++)
-OBJDUMP:=$(wildcard $(TOOL_PATH)/riscv32-*-elf-objdump)
+GXX:=$(TOOL_PATH)/riscv32-tt-elf-g++
+OBJDUMP:=$(TOOL_PATH)/riscv32-tt-elf-objdump
 
 # GCC options
-OPTIONS_ALL=-O3 -mabi=ilp32 -std=c++17 -ffast-math
+OPTIONS_ALL=-O3 -mabi=ilp32 -std=c++17 -ffast-math -pipe
 OPTIONS_COMPILE=-fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-rtti -Werror -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE #-DDEBUG_PRINT_ENABLED
 
 # Default values
@@ -37,7 +37,7 @@ OPTIONS_COMPILE += $(filter -DARCH_%, $(ARCH_OPTS))
 # Architecture specific header files
 HEADER_DIR = hw_specific/inc
 
-OPTIONS_LINK=-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
+OPTIONS_LINK= -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 INCLUDES = -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc -I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR)
 INCLUDES += -Ifirmware/riscv/common -Ifirmware/riscv/$(CHIP_ARCH)/ -Isfpi/include -Ihelpers/include
 
@@ -57,9 +57,7 @@ ifeq ($(testname), multiple_tiles_eltwise_test)
 	MULTIPLE_OPS:=-DMULTIPLE_OPS
 	OPTIONS_UNPACK:=-DKERN_CNT=$(kern_cnt)
 	OPTIONS_MATH:=-DKERN_CNT=$(kern_cnt)
-	OPTIONS_PACK:=-DKERN_CNT=$(kern_cnt)
-	OPTIONS_PACK+=-DPACK_ADDR_CNT=$(pack_addr_cnt)
-	OPTIONS_PACK+=-DPACK_ADDRS=$(pack_addrs)
+	OPTIONS_PACK:=-DKERN_CNT=$(kern_cnt) -DPACK_ADDR_CNT=$(pack_addr_cnt) -DPACK_ADDRS=$(pack_addrs)
 endif
 
 OPTIONS_COMPILE+=$(FORMAT_ARG) $(MATHOP_ARG) -DTILE_SIZE_CNT=0x1000
