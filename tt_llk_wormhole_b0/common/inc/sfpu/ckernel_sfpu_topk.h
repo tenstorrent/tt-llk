@@ -524,7 +524,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                             }
                             else
                             {
-                                TT_REPLAY(0, 22, 0, 0);
+                                TTI_REPLAY(0, 22, 0, 0);
                             }
                             datums_compared += 16;
                         }
@@ -550,7 +550,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                             }
                             else
                             {
-                                TT_REPLAY(0, 26, 0, 0);
+                                TTI_REPLAY(0, 26, 0, 0);
                             }
                             datums_compared += 16;
                         }
@@ -574,7 +574,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         }
                         else
                         {
-                            TT_REPLAY(0, 29, 0, 0);
+                            TTI_REPLAY(0, 29, 0, 0);
                         }
                         datums_compared += 16;
                     }
