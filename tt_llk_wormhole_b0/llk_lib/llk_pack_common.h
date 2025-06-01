@@ -43,7 +43,7 @@ inline void _llk_packer_set_math_semaphore_()
 // Wait for all writes to complete in L1 (header + data)
 // Tell math it can write again
 // Clear dest
-template <bool is_fp32_dest_acc_en, DstSync Dst>
+template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_pack_dest_section_done_()
 {
 #ifdef PERF_DUMP
