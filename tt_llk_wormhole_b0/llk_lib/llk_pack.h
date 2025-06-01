@@ -230,7 +230,7 @@ inline void _llk_pack_init_(
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-template <bool is_fp32_dest_acc_en, DstSync Dst, bool untilize = false>
+template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
     constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
