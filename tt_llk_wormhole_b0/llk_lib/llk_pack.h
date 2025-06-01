@@ -142,7 +142,7 @@ inline void _llk_pack_hw_configure_(
     configure_pack<is_fp32_dest_acc_en, untilize>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
 }
 
-template <bool is_fp32_dest_acc_en, bool untilize = false, PoolType type, ReduceDim dim>
+template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_reduce_hw_configure_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
