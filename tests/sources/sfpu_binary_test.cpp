@@ -107,7 +107,7 @@ void run_kernel()
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
 #else
     _llk_pack_dest_init_<DstSync::SyncHalf, DstTileFaceLayout::RowMajor, false, false>();
 #endif
