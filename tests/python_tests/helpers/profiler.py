@@ -27,10 +27,10 @@ class ProfilerZoneScoped:
     duration: int
 
 
-def _hash_profiler_message(message: str, basis: int = 2166136261) -> int:
-    hash32 = basis
-    for char in message:
-        hash32 ^= ord(char)
+def _hash_profiler_message(s: str) -> int:
+    hash32 = 2166136261
+    for c in s.encode("ascii"):
+        hash32 ^= c
         hash32 = (hash32 * 16777619) & 0xFFFFFFFF  # simulate 32-bit unsigned overflow
     return (hash32 ^ (hash32 >> 16)) & 0xFFFF  # fold to 16 bits
 
