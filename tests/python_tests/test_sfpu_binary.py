@@ -73,9 +73,10 @@ all_params = generate_params(
     test_formats,
     dest_acc=[DestAccumulation.No],
     mathop=[
+        MathOperation.SfpuElwsub,
         MathOperation.SfpuElwadd,
         MathOperation.SfpuElwmul,
-    ],  # , MathOperation.SfpuElwsub
+    ],
 )
 param_ids = generate_param_ids(all_params)
 
