@@ -62,10 +62,12 @@ constexpr uint32_t trisc_id = 2;
 #error "Profiler can only be used on TRISC cores"
 #endif
 
-constexpr uint32_t BUFFER_SIZE  = 0x400;
-constexpr uint32_t BUFFER_START = 0x16E000 - 3 * (BUFFER_SIZE * sizeof(uint32_t));
+constexpr uint32_t BUFFER_LENGTH = 0x400; // 1024 entries per core
+constexpr uint32_t NUM_CORES     = 3;     // TRISC cores: unpack, math, pack
+constexpr uint32_t BUFFERS_END   = 0x16E000;
+constexpr uint32_t BUFFERS_START = BUFFERS_END - (NUM_CORES * BUFFER_LENGTH * sizeof(uint32_t));
 
-using buffer_ptr_t = volatile tt_l1_ptr uint32_t (*)[BUFFER_SIZE];
+using buffer_ptr_t = volatile tt_l1_ptr uint32_t (*)[BUFFER_LENGTH];
 
 extern buffer_ptr_t buffer;
 extern uint32_t write_idx;
@@ -73,12 +75,12 @@ extern uint32_t open_zone_cnt;
 
 __attribute__((always_inline)) inline void reset()
 {
-    buffer        = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
+    buffer        = reinterpret_cast<buffer_ptr_t>(BUFFERS_START);
     write_idx     = 0;
     open_zone_cnt = 0;
 
 #pragma GCC unroll 0
-    for (uint32_t i = 0; i < BUFFER_SIZE; i++)
+    for (uint32_t i = 0; i < BUFFER_LENGTH; i++)
     {
         buffer[trisc_id][i] = 0;
     }
@@ -90,7 +92,7 @@ __attribute__((always_inline)) inline bool is_buffer_full()
     // - timestamp with data (TIMESTAMP_DATA_ENTRY) (size = 8B)
     // - new zone (ZONE_START_ENTRY + ZONE_END_ENTRY) (size = 8B)
     // after closing all of the currently open zones
-    return (BUFFER_SIZE - (write_idx + open_zone_cnt)) < 2;
+    return (BUFFER_LENGTH - (write_idx + open_zone_cnt)) < 2;
 }
 
 __attribute__((always_inline)) inline void write_event(uint32_t type, uint32_t id16)

@@ -20,7 +20,7 @@
 namespace llk_profiler
 {
 
-buffer_ptr_t buffer    = reinterpret_cast<buffer_ptr_t>(BUFFER_START);
+buffer_ptr_t buffer    = reinterpret_cast<buffer_ptr_t>(BUFFERS_START);
 uint32_t write_idx     = 0;
 uint32_t open_zone_cnt = 0;
 
