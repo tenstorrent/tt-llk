@@ -68,7 +68,7 @@ constexpr uint32_t NUM_CORES     = 3;     // TRISC cores: unpack, math, pack
 constexpr uint32_t BUFFERS_END   = 0x16E000;
 constexpr uint32_t BUFFERS_START = BUFFERS_END - (NUM_CORES * BUFFER_LENGTH * sizeof(uint32_t));
 
-using buffer_ptr_t = volatile tt_l1_ptr uint32_t (*)[BUFFER_LENGTH];
+using buffer_ptr_t = tt_l1_ptr uint32_t (*)[BUFFER_LENGTH];
 
 extern buffer_ptr_t buffer;
 extern uint32_t write_idx;
