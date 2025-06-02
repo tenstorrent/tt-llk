@@ -46,7 +46,12 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b, DataFormat.Float32]
+supported_formats = [
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Bfp8_b,
+    DataFormat.Float32,
+]
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
 
