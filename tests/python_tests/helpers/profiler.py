@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
+from typing import Optional
 import re
 import subprocess
 
@@ -15,7 +16,7 @@ from helpers.test_config import generate_make_command
 class ProfilerTimestamp:
     full_marker: any
     timestamp: int
-    data: int | None
+    data: Optional[int]
 
 
 @dataclass()
