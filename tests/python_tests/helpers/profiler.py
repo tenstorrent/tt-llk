@@ -12,21 +12,6 @@ from ttexalens.tt_exalens_lib import read_words_from_device
 from helpers.test_config import generate_make_command
 
 
-@dataclass
-class ProfilerTimestamp:
-    full_marker: any
-    timestamp: int
-    data: Optional[int]
-
-
-@dataclass
-class ProfilerZoneScoped:
-    full_marker: str
-    start: int
-    end: int
-    duration: int
-
-
 def _hash_profiler_message(s: str) -> int:
     hash32 = 2166136261
     for c in s.encode("ascii"):
@@ -35,24 +20,32 @@ def _hash_profiler_message(s: str) -> int:
     return (hash32 ^ (hash32 >> 16)) & 0xFFFF  # fold to 16 bits
 
 
+_PROFILER_PATTERN = re.compile(
+    r"'#pragma message: (?P<full_marker>LLK_PROFILER:(?P<file>[^:]+):(?P<line>\d+):(?P<marker>[^']+))'",
+)
+
+
+@dataclass
+class ProfilerFullMarker:
+    marker: str
+    file: str
+    line: int
+    id: int
+
+
 def _process_profiler_message(line: str):
     # ex. '#pragma message: LLK_PROFILER:sources/example.cpp:1337:MARKER'
-    expr = re.search(
-        r"'#pragma message: (?P<full_marker>LLK_PROFILER:(?P<file>[^:]+):(?P<line>\d+):(?P<marker>[^']+))'",
-        line,
-    )
-
+    expr = _PROFILER_PATTERN.search(line)
     if expr is None:
         return None
 
-    full_marker = expr.group("full_marker")
-
-    return {
-        "marker": expr.group("marker"),
-        "file": expr.group("file"),
-        "line": int(expr.group("line")),
-        "id": _hash_profiler_message(full_marker),
-    }
+    groups = expr.groupdict()
+    return ProfilerFullMarker(
+        marker=groups["marker"],
+        file=groups["file"],
+        line=int(groups["line"]),
+        id=_hash_profiler_message(groups["full_marker"]),
+    )
 
 
 def build_perf_test(test_config):
@@ -78,9 +71,24 @@ def build_perf_test(test_config):
         message = _process_profiler_message(line)
 
         if message:
-            hash_to_message[message["id"]] = message
+            hash_to_message[message.id] = message
 
     return hash_to_message
+
+
+@dataclass
+class ProfilerTimestamp:
+    full_marker: ProfilerFullMarker
+    timestamp: int
+    data: Optional[int]
+
+
+@dataclass
+class ProfilerZoneScoped:
+    full_marker: ProfilerFullMarker
+    start: int
+    end: int
+    duration: int
 
 
 class ProfilerData:
@@ -116,14 +124,14 @@ class ProfilerData:
                     full = entry.full_marker
                     if isinstance(entry, ProfilerTimestamp):
                         f.write(
-                            f"{thread},TIMESTAMP,{full['marker']},{entry.timestamp},{entry.data},{full['id']},{full['file']},{full['line']}\n"
+                            f"{thread},TIMESTAMP,{full.marker},{entry.timestamp},{entry.data},{full.id},{full.file},{full.line}\n"
                         )
                     elif isinstance(entry, ProfilerZoneScoped):
                         f.write(
-                            f"{thread},ZONE_START,{full['marker']},{entry.start},,{full['id']},{full['file']},{full['line']}\n"
+                            f"{thread},ZONE_START,{full.marker},{entry.start},,{full.id},{full.file},{full.line}\n"
                         )
                         f.write(
-                            f"{thread},ZONE_END,{full['marker']},{entry.end},,{full['id']},{full['file']},{full['line']}\n"
+                            f"{thread},ZONE_END,{full.marker},{entry.end},,{full.id},{full.file},{full.line}\n"
                         )
 
     @staticmethod
