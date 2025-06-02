@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "ckernel.h"
 
@@ -80,11 +81,7 @@ __attribute__((always_inline)) inline void reset()
     write_idx     = 0;
     open_zone_cnt = 0;
 
-#pragma GCC unroll 0
-    for (uint32_t i = 0; i < BUFFER_LENGTH; i++)
-    {
-        buffer[trisc_id][i] = 0;
-    }
+    memset(buffer[trisc_id], 0, BUFFER_LENGTH * sizeof(buffer[trisc_id][0]));
 }
 
 __attribute__((always_inline)) inline bool is_buffer_full()
