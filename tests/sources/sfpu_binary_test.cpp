@@ -69,13 +69,13 @@ void run_kernel()
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
-    ckernel::sfpu::_sfpu_binary_init_<false, (ckernel::sfpu::BinaryOp)ELTWISE_BINARY_SFPU_OP>();
+    ckernel::sfpu::_sfpu_binary_init_<false, SFPU_BINARY_OPERATION>();
 
     // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of firs operand, and
     // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
 
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    _calculate_sfpu_binary_<false, BinaryOp::ADD, 32>(1);
+    _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
 
     _llk_math_eltwise_binary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

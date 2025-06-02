@@ -154,10 +154,6 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         ),
     )
 
-    print(src_A[0:256])
-    print(golden)
-    print(res_tensor)
-
     if formats.output_format in [
         DataFormat.Float16_b,
         DataFormat.Float16,

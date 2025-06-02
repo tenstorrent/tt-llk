@@ -36,9 +36,9 @@ def generate_golden(operation, operand1, operand2, data_format):
     )
 
     operations = {
-        MathOperation.Elwadd: tensor1_float + tensor2_float,
-        MathOperation.Elwsub: tensor1_float - tensor2_float,
-        MathOperation.Elwmul: tensor1_float * tensor2_float,
+        MathOperation.SfpuElwadd: tensor1_float + tensor2_float,
+        MathOperation.SfpuElwsub: tensor1_float - tensor2_float,
+        MathOperation.SfpuElwmul: tensor1_float * tensor2_float,
     }
 
     if operation not in operations:
@@ -72,7 +72,10 @@ all_params = generate_params(
     ["sfpu_binary_test"],
     test_formats,
     dest_acc=[DestAccumulation.No],
-    mathop=[MathOperation.Elwadd],  # , MathOperation.Elwsub, MathOperation.Elwmul],
+    mathop=[
+        MathOperation.SfpuElwadd,
+        MathOperation.SfpuElwmul,
+    ],  # , MathOperation.SfpuElwsub
 )
 param_ids = generate_param_ids(all_params)
 
@@ -80,8 +83,8 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize(
     "testname, formats, dest_acc, mathop", clean_params(all_params), ids=param_ids
 )
-# @pytest.mark.skip(reason="Not fully implemented")
-def test_all(testname, formats, dest_acc, mathop):
+@pytest.mark.parametrize("times", range(10))
+def test_all(testname, formats, dest_acc, mathop, times):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
     golden = generate_golden(mathop, src_A, src_B, formats.output_format)
@@ -133,6 +136,17 @@ def test_all(testname, formats, dest_acc, mathop):
             else torch.bfloat16
         ),
     )
+
+    print(
+        src_A.view(32, 32),
+        "\n",
+        src_B.view(32, 32),
+        "\n\n",
+        golden_tensor.view(32, 32),
+        "\n\n",
+        res_tensor.view(32, 32),
+    )
+    print("*" * 200)
 
     for i in range(len(golden)):
         assert torch.isclose(
