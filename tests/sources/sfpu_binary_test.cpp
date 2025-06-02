@@ -13,6 +13,40 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
+template <ckernel::ThreadId thread_id>
+inline void dbg_thread_halt()
+{
+    static_assert(
+        (thread_id == ckernel::ThreadId::MathThreadId) || (thread_id == ckernel::ThreadId::UnpackThreadId) || (thread_id == ckernel::ThreadId::PackThreadId),
+        "Invalid thread id set in dbg_wait_for_thread_idle(...)");
+
+    if constexpr (thread_id == ckernel::ThreadId::UnpackThreadId)
+    {
+        // Wait for all instructions on the running thread to complete
+        ckernel::tensix_sync();
+        // Notify math thread that unpack thread is idle
+        ckernel::mailbox_write(ckernel::ThreadId::MathThreadId, 1);
+        // Wait for math thread to complete debug dump
+        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::MathThreadId);
+    }
+    else if constexpr (thread_id == ckernel::ThreadId::MathThreadId)
+    {
+        // Wait for all instructions on the running thread to complete
+        ckernel::tensix_sync();
+        // Wait for unpack thread to complete
+        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::UnpackThreadId);
+        // Wait for previous packs to finish
+        while (ckernel::semaphore_read(ckernel::semaphore::MATH_PACK) > 0)
+        {
+        };
+    }
+}
+
+void dbg_halt() {
+    dbg_thread_halt<ckernel::MathThreadId>();
+}
+
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -46,7 +80,6 @@ using namespace ckernel::sfpu;
 
 void run_kernel()
 {
-    constexpr auto ELTWISE_BINARY_SFPU_OP = 0; // ADD
     const bool is_int_fpu_en              = false;
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -63,11 +96,9 @@ void run_kernel()
         0, MATH_FORMAT, MATH_FORMAT);
 
     // copy second input to tile 1 in dest
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
         1, MATH_FORMAT, MATH_FORMAT);
 
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
     ckernel::sfpu::_sfpu_binary_init_<false, SFPU_BINARY_OPERATION>();
 
@@ -76,6 +107,8 @@ void run_kernel()
 
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
     _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
+
+    dbg_halt();
 
     _llk_math_eltwise_binary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

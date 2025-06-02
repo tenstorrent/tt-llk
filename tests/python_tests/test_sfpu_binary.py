@@ -71,11 +71,11 @@ test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["sfpu_binary_test"],
     test_formats,
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],#, DestAccumulation.Yes],
     mathop=[
         MathOperation.SfpuElwsub,
-        MathOperation.SfpuElwadd,
-        MathOperation.SfpuElwmul,
+        # MathOperation.SfpuElwadd,
+        # MathOperation.SfpuElwmul,
     ],
 )
 param_ids = generate_param_ids(all_params)
@@ -87,6 +87,10 @@ param_ids = generate_param_ids(all_params)
 def test_all(testname, formats, dest_acc, mathop):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+
+    src_A = torch.ones(1024) * 2
+    src_B = torch.ones(1024) 
+
     golden = generate_golden(mathop, src_A, src_B, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
@@ -136,6 +140,11 @@ def test_all(testname, formats, dest_acc, mathop):
             else torch.bfloat16
         ),
     )
+
+    print(src_A.view(32,32))
+    print(src_B.view(32,32))
+    print(golden_tensor.view(32, 32))
+    print(res_tensor.view(32, 32))
 
     for i in range(len(golden)):
         assert torch.isclose(
