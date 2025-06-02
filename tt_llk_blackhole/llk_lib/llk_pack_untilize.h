@@ -92,6 +92,10 @@ inline void _llk_pack_untilize_mop_config_(
         TT_OP_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 0) // update row address
     );
 
+    /*
+    Close the row in the block by setting the Last bit to 1 in the last inner loop instruction.
+    This will allow the L1 address to be updated for the next row.
+    */
     tmp.set_last_inner_loop_instr(TT_OP_PACR(
         p_pacr::CFG_CTXT_0,
         p_pacr::NO_ROW_PAD_ZERO,
