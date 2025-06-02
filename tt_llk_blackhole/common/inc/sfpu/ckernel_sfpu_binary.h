@@ -20,7 +20,13 @@ enum class BinaryOp : uint8_t
     MUL  = 2,
     DIV  = 3,
     RSUB = 4,
-    POW  = 5
+    POW  = 5,
+    EQ   = 6,
+    NE   = 7,
+    LT   = 8,
+    LE   = 9,
+    GT   = 10,
+    GE   = 11,
 };
 
 sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::vFloat pow)
@@ -154,6 +160,54 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
         else if constexpr (BINOP == BinaryOp::POW)
         {
             result = _calculate_sfpu_binary_power_(in0, in1);
+        }
+        else if constexpr (BINOP == BinaryOp::EQ)
+        {
+            v_if (in0 == in1)
+            {
+                result = sfpi::vConst1;
+            }
+            v_endif;
+        }
+        else if constexpr (BINOP == BinaryOp::NE)
+        {
+            v_if (in0 != in1)
+            {
+                result = sfpi::vConst1;
+            }
+            v_endif;
+        }
+        else if constexpr (BINOP == BinaryOp::LT)
+        {
+            v_if (in0 < in1)
+            {
+                result = sfpi::vConst1;
+            }
+            v_endif;
+        }
+        else if constexpr (BINOP == BinaryOp::LE)
+        {
+            v_if (in0 <= in1)
+            {
+                result = sfpi::vConst1;
+            }
+            v_endif;
+        }
+        else if constexpr (BINOP == BinaryOp::GT)
+        {
+            v_if (in0 > in1)
+            {
+                result = sfpi::vConst1;
+            }
+            v_endif;
+        }
+        else if constexpr (BINOP == BinaryOp::GE)
+        {
+            v_if (in0 >= in1)
+            {
+                result = sfpi::vConst1;
+            }
+            v_endif;
         }
 
         sfpi::dst_reg[0] = result;
