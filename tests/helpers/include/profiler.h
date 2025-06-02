@@ -131,7 +131,7 @@ public:
         {
             is_opened = true;
             write_event(ZONE_START_ENTRY, id16);
-            open_zone_cnt++;
+            ++open_zone_cnt;
         }
     }
 
@@ -140,7 +140,7 @@ public:
         if (is_opened)
         {
             write_event(ZONE_END_ENTRY, id16);
-            open_zone_cnt--;
+            --open_zone_cnt;
         }
     }
 };
