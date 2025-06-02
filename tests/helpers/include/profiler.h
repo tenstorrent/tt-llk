@@ -15,16 +15,17 @@
 #define Stringize(L)       #L
 #define ExpandStringize(L) Stringize(L)
 
-constexpr uint32_t hashString32(const char* str, size_t n, uint32_t basis = UINT32_C(2166136261))
-{
-    return n == 0 ? basis : hashString32(str + 1, n - 1, (basis ^ str[0]) * UINT32_C(16777619));
-}
-
 template <size_t N>
-constexpr uint32_t hashString16(const char (&s)[N])
+constexpr std::uint32_t hashString16(const char (&s)[N])
 {
-    auto longHash = hashString32(s, N - 1);
-    return ((longHash) ^ (longHash >> 16)) & 0xFFFF;
+    std::uint32_t hash32 = UINT32_C(2166136261);
+    for (std::size_t i = 0; i < N - 1; ++i)
+    {
+        std::uint8_t c = static_cast<std::uint8_t>(s[i]);
+        hash32 ^= c;
+        hash32 *= UINT32_C(16777619);
+    }
+    return (hash32 ^ (hash32 >> 16)) & 0xFFFF;
 }
 
 // clang-format off
