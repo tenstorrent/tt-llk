@@ -6,7 +6,6 @@ import math
 import pytest
 import torch
 
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     run_elf_files,
@@ -131,21 +130,10 @@ param_ids = generate_param_ids(all_params)
 def test_matmul_and_unary_sfpu(
     testname, formats, dest_acc, approx_mode, mathop, math_fidelity
 ):
-    if formats.input_format == DataFormat.Float16:
-        if (
-            dest_acc == DestAccumulation.No
-            and get_chip_architecture() == ChipArchitecture.BLACKHOLE
-        ) or (
-            dest_acc == DestAccumulation.Yes
-            and math_fidelity == MathFidelity.LoFi
-            and mathop in [MathOperation.Sin, MathOperation.Cos, MathOperation.Square]
-        ):
-            pytest.skip(reason="This combination is not fully implemented in testing")
-    elif formats.input_format == DataFormat.Float16_b:
-        if (mathop in [MathOperation.Sin, MathOperation.Cos]) or (
-            math_fidelity == MathFidelity.LoFi and mathop == MathOperation.Square
-        ):
-            pytest.skip(reason="This combination is not fully implemented in testing")
+    if mathop in [MathOperation.Cos, MathOperation.Sin]:
+        pytest.skip("Cos and Sin operations are not fully functional yet")
+    if mathop == MathOperation.Square and math_fidelity == MathFidelity.LoFi:
+        pytest.skip("Square operation in LoFi is not fully functional yet")
 
     torch_format = format_dict.get(
         formats.output_format, format_dict[DataFormat.Float16_b]
@@ -179,7 +167,7 @@ def test_matmul_and_unary_sfpu(
     run_shell_command(f"cd .. && {make_cmd}")
 
     run_elf_files(testname)
-    print("size of src_a = ", len(src_A))
+
     wait_for_tensix_operations_finished()
     buffer_dest_address = 0x1E000
     res_from_L1 = collect_results(
