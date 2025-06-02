@@ -12,14 +12,14 @@ from ttexalens.tt_exalens_lib import read_words_from_device
 from helpers.test_config import generate_make_command
 
 
-@dataclass()
+@dataclass
 class ProfilerTimestamp:
     full_marker: any
     timestamp: int
     data: Optional[int]
 
 
-@dataclass()
+@dataclass
 class ProfilerZoneScoped:
     full_marker: str
     start: int
