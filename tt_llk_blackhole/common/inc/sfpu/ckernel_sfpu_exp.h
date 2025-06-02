@@ -361,6 +361,7 @@ inline void _init_exponential_()
     }
     else
     {
+        // Initialisation for use of _sfpu_reciprocal_<false> in _calculate_exponential_<APPROXIMATION_MODE=false>.
         _init_reciprocal_<false>();
     }
 }

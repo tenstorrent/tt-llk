@@ -166,6 +166,7 @@ inline void _sfpu_binary_init_()
 {
     if constexpr (BINOP == BinaryOp::DIV || BINOP == BinaryOp::POW)
     {
+        // Initialisation for use of _sfpu_reciprocal_<false> in DIV or POW.
         _init_reciprocal_<false>();
     }
 }
