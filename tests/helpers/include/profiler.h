@@ -120,6 +120,11 @@ private:
     bool is_opened = false;
 
 public:
+    zone_scoped(const zone_scoped&)            = delete;
+    zone_scoped(zone_scoped&&)                 = delete;
+    zone_scoped& operator=(const zone_scoped&) = delete;
+    zone_scoped& operator=(zone_scoped&&)      = delete;
+
     inline __attribute__((always_inline)) zone_scoped()
     {
         if (!is_buffer_full())
