@@ -14,7 +14,6 @@
 // Logic to convert zone name -> 16bit numeric id
 #define Stringize(L)       #L
 #define ExpandStringize(L) Stringize(L)
-#define $Line              ExpandStringize(__LINE__)
 
 constexpr uint32_t hashString32(const char* str, size_t n, uint32_t basis = UINT32_C(2166136261))
 {
@@ -29,7 +28,7 @@ constexpr uint32_t hashString16(const char (&s)[N])
 }
 
 // clang-format off
-#define MARKER_FULL(marker) "LLK_PROFILER" ":" __FILE__ ":" $Line ":" marker
+#define MARKER_FULL(marker) "LLK_PROFILER" ":" __FILE__ ":" ExpandStringize(__LINE__) ":" marker
 // clang-format on
 
 #define MARKER_ID(marker) hashString16(MARKER_FULL(marker))
