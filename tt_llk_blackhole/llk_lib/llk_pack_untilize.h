@@ -134,6 +134,10 @@ inline void _llk_pack_untilize_init_(
 {
     static_assert(!diagonal, "Diagonal not supported");
     static_assert(block_ct_dim <= 8, "block_ct_dim must be less than or equal to 8");
+    if constexpr (narrow_row)
+    {
+        static_assert(row_num_datums < FACE_C_DIM, "row_num_datums must be set to less than FACE_C_DIM for narrow_row packing");
+    }
 
     _llk_pack_untilize_configure_addrmod_<diagonal>();
 
@@ -148,7 +152,6 @@ inline void _llk_pack_untilize_init_(
 
     if constexpr (narrow_row)
     {
-        static_assert(row_num_datums < 16, "row_num_datums must be set to less than FACE_C_DIM for narrow_row packing");
         output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * row_num_datums);
     }
     else
