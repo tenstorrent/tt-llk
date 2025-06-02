@@ -2,14 +2,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import re
 from dataclasses import dataclass
 from typing import Optional
-import re
-import subprocess
 
 from ttexalens.tt_exalens_lib import read_words_from_device
 
-from helpers.test_config import generate_make_command
+from helpers.test_config import ProfilerBuild, generate_make_command
+from helpers.utils import run_shell_command
 
 
 def _hash_profiler_message(s: str) -> int:
@@ -49,31 +49,15 @@ def _process_profiler_message(line: str):
 
 
 def build_perf_test(test_config):
-    make_cmd = generate_make_command(test_config, profiler_build=True)
-    command = f"cd .. && {make_cmd}"
-
-    result = subprocess.run(
-        command,
-        shell=True,
-        text=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-    )
-
-    if result.returncode != 0:
-        raise RuntimeError(f"Build failed: {command}\n{result.stderr}")
+    make_cmd = generate_make_command(test_config, ProfilerBuild.Yes)
+    result = run_shell_command(f"cd .. && {make_cmd}")
 
     lines = result.stderr.splitlines()
-
-    hash_to_message = {}
-    for line in lines:
-        # try to parse the line as a profiler message
-        message = _process_profiler_message(line)
-
-        if message:
-            hash_to_message[message.id] = message
-
-    return hash_to_message
+    return {
+        message.id: message
+        for line in lines
+        if (message := _process_profiler_message(line))
+    }
 
 
 @dataclass

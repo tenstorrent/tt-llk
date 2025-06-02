@@ -43,7 +43,7 @@ INCLUDES += -Ifirmware/riscv/common -Ifirmware/riscv/$(CHIP_ARCH)/ -Isfpi/includ
 
 FORMAT_ARG += $(foreach var, unpack_A_src unpack_A_dst unpack_B_src unpack_B_dst fpu pack_src pack_dst, $(if $($(var)),-D$($(var))))
 
-ifeq ($(llk_profiler), True)
+ifeq ($(llk_profiler), true)
 	OPTIONS_COMPILE+=-DLLK_PROFILER
 endif
 
