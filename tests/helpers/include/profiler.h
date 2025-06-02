@@ -17,7 +17,7 @@
 #define ExpandStringize(L) Stringize(L)
 
 template <size_t N>
-constexpr std::uint32_t hashString16(const char (&s)[N])
+constexpr std::uint16_t hashString16(const char (&s)[N])
 {
     std::uint32_t hash32 = UINT32_C(2166136261);
     for (std::size_t i = 0; i < N - 1; ++i)
@@ -26,7 +26,7 @@ constexpr std::uint32_t hashString16(const char (&s)[N])
         hash32 ^= c;
         hash32 *= UINT32_C(16777619);
     }
-    return (hash32 ^ (hash32 >> 16)) & 0xFFFF;
+    return static_cast<uint16_t>(hash32 ^ (hash32 >> 16));
 }
 
 // clang-format off
@@ -93,13 +93,13 @@ __attribute__((always_inline)) inline bool is_buffer_full()
     return (BUFFER_LENGTH - (write_idx + open_zone_cnt)) < 2;
 }
 
-__attribute__((always_inline)) inline void write_event(uint32_t type, uint32_t id16)
+__attribute__((always_inline)) inline void write_event(uint32_t type, uint16_t id16)
 {
     uint32_t timestamp_high = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
     uint32_t timestamp_low  = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
 
     uint32_t type_numeric = static_cast<uint32_t>(type);
-    uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | (id16 << ENTRY_ID_SHAMT);
+    uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | ((uint32_t)id16 << ENTRY_ID_SHAMT);
 
     buffer[trisc_id][write_idx++] = meta | (timestamp_high & ~ENTRY_META_MASK);
     buffer[trisc_id][write_idx++] = timestamp_low;
@@ -111,7 +111,7 @@ __attribute__((always_inline)) inline void write_data(uint64_t data)
     buffer[trisc_id][write_idx++] = data & 0xFFFFFFFF;
 }
 
-template <uint32_t id16>
+template <uint16_t id16>
 class zone_scoped
 {
 private:
