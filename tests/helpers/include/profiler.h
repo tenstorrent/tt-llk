@@ -96,7 +96,7 @@ __attribute__((always_inline)) inline bool is_buffer_full()
     return (BUFFER_LENGTH - (write_idx + open_zone_cnt)) < 4;
 }
 
-__attribute__((always_inline)) inline void write_event(entry_type type, uint16_t id16)
+__attribute__((always_inline)) inline void write_entry(entry_type type, uint16_t id16)
 {
     uint32_t timestamp_low  = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
     uint32_t timestamp_high = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
@@ -131,7 +131,7 @@ public:
         if (!is_buffer_full())
         {
             is_opened = true;
-            write_event(entry_type::ZONE_START, id16);
+            write_entry(entry_type::ZONE_START, id16);
             ++open_zone_cnt;
         }
     }
@@ -140,7 +140,7 @@ public:
     {
         if (is_opened)
         {
-            write_event(entry_type::ZONE_END, id16);
+            write_entry(entry_type::ZONE_END, id16);
             --open_zone_cnt;
         }
     }
@@ -150,7 +150,7 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16)
 {
     if (!is_buffer_full())
     {
-        write_event(entry_type::TIMESTAMP, id16);
+        write_entry(entry_type::TIMESTAMP, id16);
     }
 }
 
@@ -158,7 +158,7 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
 {
     if (!is_buffer_full())
     {
-        write_event(entry_type::TIMESTAMP_DATA, id16);
+        write_entry(entry_type::TIMESTAMP_DATA, id16);
         write_data(data);
     }
 }
