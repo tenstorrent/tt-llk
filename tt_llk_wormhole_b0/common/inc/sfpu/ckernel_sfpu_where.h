@@ -20,7 +20,7 @@ inline void _calculate_where_(int dst_offset ,sfpi::vFloat true_value, sfpi::vFl
 
 
     for(int i = 0; i < ITERATIONS; i++){
-        sfpi::vFloat cond =  sfpi::dst_reg[0];//input_tensor;
+        sfpi::vFloat cond =  sfpi::dst_reg[dst_offset * dst_tile_size];//input_tensor;
         v_if (cond != 0.0f)
         {
             output_tensor =  true_value;
