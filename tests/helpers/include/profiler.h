@@ -55,11 +55,11 @@ constexpr uint32_t ZONE_END_ENTRY       = 0b1011;
 
 // Initialize id of the core executing the kernel
 #if defined(LLK_TRISC_UNPACK)
-constexpr uint32_t trisc_id = 0;
+constexpr uint32_t TRISC_ID = 0;
 #elif defined(LLK_TRISC_MATH)
-constexpr uint32_t trisc_id = 1;
+constexpr uint32_t TRISC_ID = 1;
 #elif defined(LLK_TRISC_PACK)
-constexpr uint32_t trisc_id = 2;
+constexpr uint32_t TRISC_ID = 2;
 #else
 #error "Profiler can only be used on TRISC cores"
 #endif
@@ -81,7 +81,7 @@ __attribute__((always_inline)) inline void reset()
     write_idx     = 0;
     open_zone_cnt = 0;
 
-    memset(buffer[trisc_id], 0, BUFFER_LENGTH * sizeof(buffer[trisc_id][0]));
+    memset(buffer[TRISC_ID], 0, BUFFER_LENGTH * sizeof(buffer[TRISC_ID][0]));
 }
 
 __attribute__((always_inline)) inline bool is_buffer_full()
@@ -101,14 +101,14 @@ __attribute__((always_inline)) inline void write_event(uint32_t type, uint16_t i
     uint32_t type_numeric = static_cast<uint32_t>(type);
     uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | ((uint32_t)id16 << ENTRY_ID_SHAMT);
 
-    buffer[trisc_id][write_idx++] = meta | (timestamp_high & ~ENTRY_META_MASK);
-    buffer[trisc_id][write_idx++] = timestamp_low;
+    buffer[TRISC_ID][write_idx++] = meta | (timestamp_high & ~ENTRY_META_MASK);
+    buffer[TRISC_ID][write_idx++] = timestamp_low;
 }
 
 __attribute__((always_inline)) inline void write_data(uint64_t data)
 {
-    buffer[trisc_id][write_idx++] = static_cast<uint32_t>(data >> 32);
-    buffer[trisc_id][write_idx++] = static_cast<uint32_t>(data);
+    buffer[TRISC_ID][write_idx++] = static_cast<uint32_t>(data >> 32);
+    buffer[TRISC_ID][write_idx++] = static_cast<uint32_t>(data);
 }
 
 template <uint16_t id16>
