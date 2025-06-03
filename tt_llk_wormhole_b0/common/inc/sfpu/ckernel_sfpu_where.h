@@ -11,21 +11,26 @@ namespace ckernel
 {
 namespace sfpu{
 
-template <int ITERATIONS>
-inline void _calculate_where_(int dst_index,sfpi::vFloat true_value, sfpi::vFloat false_value){
+template <int ITERATIONS = 32>
+inline void _calculate_where_(int dst_offset ,sfpi::vFloat true_value, sfpi::vFloat false_value){
+
+    constexpr uint dst_tile_size = 32;
+    sfpi::vFloat input_tensor = sfpi::dst_reg[dst_offset * dst_tile_size];
+    sfpi::vFloat output_tensor = 0.0f;
 
 
     for(int i = 0; i < ITERATIONS; i++){
-        sfpi::vFloat cond = sfpi::dst_reg[0];
+        sfpi::vFloat cond =  sfpi::dst_reg[0];//input_tensor;
         v_if (cond != 0.0f)
         {
-            sfpi::dst_reg[0] =  true_value;
+            output_tensor =  true_value;
         }
         v_else
         {
-            sfpi::dst_reg[0] =  false_value;
+            output_tensor =  false_value;
         }
         v_endif;
+        sfpi::dst_reg[0] = output_tensor;
         sfpi::dst_reg++;
     }
 
