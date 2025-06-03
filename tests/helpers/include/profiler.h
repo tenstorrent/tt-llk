@@ -48,7 +48,7 @@ constexpr uint32_t ENTRY_META_MASK = ~((1 << ENTRY_META_SHAMT) - 1);
 
 constexpr uint32_t ENTRY_EXISTS_BIT = 0b1000 << ENTRY_TYPE_SHAMT;
 
-enum class entry_type : uint32_t
+enum class EntryType : uint32_t
 {
     TIMESTAMP      = 0b1000,
     TIMESTAMP_DATA = 0b1001,
@@ -96,7 +96,7 @@ __attribute__((always_inline)) inline bool is_buffer_full()
     return (BUFFER_LENGTH - (write_idx + open_zone_cnt)) < 4;
 }
 
-__attribute__((always_inline)) inline void write_entry(entry_type type, uint16_t id16)
+__attribute__((always_inline)) inline void write_entry(EntryType type, uint16_t id16)
 {
     uint32_t timestamp_low  = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
     uint32_t timestamp_high = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
@@ -131,7 +131,7 @@ public:
         if (!is_buffer_full())
         {
             is_opened = true;
-            write_entry(entry_type::ZONE_START, id16);
+            write_entry(EntryType::ZONE_START, id16);
             ++open_zone_cnt;
         }
     }
@@ -140,7 +140,7 @@ public:
     {
         if (is_opened)
         {
-            write_entry(entry_type::ZONE_END, id16);
+            write_entry(EntryType::ZONE_END, id16);
             --open_zone_cnt;
         }
     }
@@ -150,7 +150,7 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16)
 {
     if (!is_buffer_full())
     {
-        write_entry(entry_type::TIMESTAMP, id16);
+        write_entry(EntryType::TIMESTAMP, id16);
     }
 }
 
@@ -158,7 +158,7 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
 {
     if (!is_buffer_full())
     {
-        write_entry(entry_type::TIMESTAMP_DATA, id16);
+        write_entry(EntryType::TIMESTAMP_DATA, id16);
         write_data(data);
     }
 }
