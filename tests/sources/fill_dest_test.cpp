@@ -54,8 +54,13 @@ void run_kernel()
     {
         // index is passed ass index of tile in dest
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_binary_<EltwiseBinaryType::ELWADD, BroadcastType::NONE, DstSync::SyncHalf, 0, EltwiseBinaryReuseDestType::NONE, is_fp32_dest_acc_en>(
-            4, index, true);
+        _llk_math_eltwise_binary_<
+            EltwiseBinaryType::ELWADD,
+            BroadcastType::NONE,
+            DstSync::SyncHalf,
+            is_fp32_dest_acc_en,
+            0,
+            EltwiseBinaryReuseDestType::NONE>(4, index, true);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -75,7 +80,7 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
 #else
-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
 #endif
 
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
@@ -83,13 +88,13 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncHalf, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, DstTileFaceLayout::RowMajor, false, false>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     for (uint index = 0; index < 16; index++)
     {
         _llk_packer_wait_for_math_done_();
-        _llk_pack_<DstSync::SyncHalf, false, is_fp32_dest_acc_en>(0, ((std::uint32_t)buffer_Dest + 0x1000 * index) / 16 - 1);
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, ((std::uint32_t)buffer_Dest + 0x1000 * index) / 16 - 1);
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

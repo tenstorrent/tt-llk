@@ -224,11 +224,11 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
 
     if constexpr (type == A2D)
     {
-        eltwise_unary_configure_mop<type, src_b_bcast_type, is_fp32_dest_acc_en, is_int_fpu_en>(p_mova2d::MOV_8_ROWS, 16, num_faces, dst_format);
+        eltwise_unary_configure_mop<type, is_fp32_dest_acc_en, src_b_bcast_type, is_int_fpu_en>(p_mova2d::MOV_8_ROWS, 16, num_faces, dst_format);
     }
     else if constexpr (type == B2D)
     {
-        eltwise_unary_configure_mop<type, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
+        eltwise_unary_configure_mop<type, is_fp32_dest_acc_en, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
     }
     else
     {

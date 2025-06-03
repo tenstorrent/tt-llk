@@ -45,7 +45,7 @@ inline void _llk_math_wait_for_dest_available_()
 #endif
 }
 
-template <bool is_fp32_dest_acc_en, DstSync Dst>
+template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_math_dest_section_done_()
 {
 #ifdef PERF_DUMP
@@ -71,7 +71,7 @@ inline void _llk_math_dest_section_done_()
     }
 }
 
-template <bool is_fp32_dest_acc_en, DstSync Dst>
+template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_math_pack_sync_init_()
 {
 #ifdef PERF_DUMP
