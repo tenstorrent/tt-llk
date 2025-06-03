@@ -32,9 +32,8 @@ from helpers.utils import compare_pcc, run_shell_command
 
 
 def generate_golden(operation, operand1, data_format):
-    tensor1_float = (
-        operand1.clone().detach().to(format_dict.get(data_format, torch.bfloat16))
-    )
+    dtype = format_dict.get(data_format, torch.bfloat16)
+    tensor1_float = operand1.clone().detach().to(dtype)
     ops = {
         MathOperation.Abs: lambda x: abs(x),
         MathOperation.Cos: lambda x: math.cos(x),
@@ -44,6 +43,17 @@ def generate_golden(operation, operand1, data_format):
         MathOperation.Sin: lambda x: math.sin(x),
         MathOperation.Sqrt: lambda x: math.sqrt(x),
         MathOperation.Square: lambda x: x * x,
+        MathOperation.Celu: lambda x: torch.nn.functional.celu(
+            (
+                x
+                if isinstance(x, torch.Tensor)
+                else torch.tensor(
+                    x,
+                    dtype=dtype,
+                )
+            ),
+            alpha=1.0,
+        ),
     }
     if operation not in ops:
         raise ValueError("Unsupported operation!")
@@ -85,6 +95,7 @@ all_params = generate_params(
         MathOperation.Sin,
         MathOperation.Sqrt,
         MathOperation.Square,
+        MathOperation.Celu,
     ],
 )
 param_ids = generate_param_ids(all_params)
@@ -122,6 +133,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         "dest_acc": dest_acc,
         "mathop": mathop,
         "approx_mode": approx_mode,
+        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
     }
 
     make_cmd = generate_make_command(test_config)
