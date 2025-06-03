@@ -46,7 +46,18 @@ def generate_golden(operation, operand1, data_format):
         MathOperation.Sqrt: lambda x: math.sqrt(x),
         MathOperation.Square: lambda x: x * x,
         MathOperation.Celu: lambda x: torch.nn.functional.celu(
-            x if isinstance(x, torch.Tensor) else torch.tensor(x, dtype=torch.float32),
+            (
+                x
+                if isinstance(x, torch.Tensor)
+                else torch.tensor(
+                    x,
+                    dtype=(
+                        format_dict[data_format]
+                        if data_format != DataFormat.Bfp8_b
+                        else torch.bfloat16
+                    ),
+                )
+            ),
             alpha=1.0,
         ),
     }

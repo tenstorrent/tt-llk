@@ -4,26 +4,17 @@
 
 #pragma once
 
+#include "ckernel_defs.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 #include "sfpu/ckernel_sfpu_exp.h"
 
-namespace ckernel
+namespace ckernel::sfpu
 {
-namespace sfpu
-{
-
-constexpr bool is_supported_activation_type(ActivationType activation_type)
-{
-    return activation_type == ActivationType::Celu;
-}
 
 // General template structure to implement activations
 template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
-struct ActivationImpl
-{
-    static inline void apply(sfpi::vFloat& v, uint param0, uint param1);
-};
+struct ActivationImpl;
 
 // Specialization for CELU activation
 template <bool APPROXIMATION_MODE>
@@ -63,7 +54,6 @@ inline void apply_activation(sfpi::vFloat& v, uint param0, uint param1)
 template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
 inline void _calculate_activation_(uint param0, uint param1)
 {
-    static_assert(is_supported_activation_type(ACTIVATION_TYPE), "Invalid activation type");
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
@@ -74,5 +64,4 @@ inline void _calculate_activation_(uint param0, uint param1)
     }
 }
 
-} // namespace sfpu
-} // namespace ckernel
+} // namespace ckernel::sfpu
