@@ -53,11 +53,15 @@ def build_perf_test(test_config):
     result = run_shell_command(f"cd .. && {make_cmd}")
 
     lines = result.stderr.splitlines()
-    return {
-        message.id: message
-        for line in lines
-        if (message := _process_profiler_message(line))
-    }
+    messages = {}
+    for line in lines:
+        if message := _process_profiler_message(line):
+            if message.id in messages:
+                first = messages[message.id]
+                second = message
+                raise AssertionError(f'Hash collision between "{first}" and "{second}"')
+            messages[message.id] = message
+    return messages
 
 
 @dataclass
