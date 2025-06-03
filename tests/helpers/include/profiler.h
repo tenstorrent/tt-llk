@@ -48,10 +48,13 @@ constexpr uint32_t ENTRY_META_MASK = ~((1 << ENTRY_META_SHAMT) - 1);
 
 constexpr uint32_t ENTRY_EXISTS_BIT = 0b1000 << ENTRY_TYPE_SHAMT;
 
-constexpr uint32_t TIMESTAMP_ENTRY      = 0b1000;
-constexpr uint32_t TIMESTAMP_DATA_ENTRY = 0b1001;
-constexpr uint32_t ZONE_START_ENTRY     = 0b1010;
-constexpr uint32_t ZONE_END_ENTRY       = 0b1011;
+enum class entry_type : uint32_t
+{
+    TIMESTAMP      = 0b1000,
+    TIMESTAMP_DATA = 0b1001,
+    ZONE_START     = 0b1010,
+    ZONE_END       = 0b1011
+};
 
 // Initialize id of the core executing the kernel
 #if defined(LLK_TRISC_UNPACK)
@@ -93,7 +96,7 @@ __attribute__((always_inline)) inline bool is_buffer_full()
     return (BUFFER_LENGTH - (write_idx + open_zone_cnt)) < 4;
 }
 
-__attribute__((always_inline)) inline void write_event(uint32_t type, uint16_t id16)
+__attribute__((always_inline)) inline void write_event(entry_type type, uint16_t id16)
 {
     uint32_t timestamp_low  = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
     uint32_t timestamp_high = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
@@ -128,7 +131,7 @@ public:
         if (!is_buffer_full())
         {
             is_opened = true;
-            write_event(ZONE_START_ENTRY, id16);
+            write_event(entry_type::ZONE_START, id16);
             ++open_zone_cnt;
         }
     }
@@ -137,7 +140,7 @@ public:
     {
         if (is_opened)
         {
-            write_event(ZONE_END_ENTRY, id16);
+            write_event(entry_type::ZONE_END, id16);
             --open_zone_cnt;
         }
     }
@@ -147,7 +150,7 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16)
 {
     if (!is_buffer_full())
     {
-        write_event(TIMESTAMP_ENTRY, id16);
+        write_event(entry_type::TIMESTAMP, id16);
     }
 }
 
@@ -155,7 +158,7 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
 {
     if (!is_buffer_full())
     {
-        write_event(TIMESTAMP_DATA_ENTRY, id16);
+        write_event(entry_type::TIMESTAMP_DATA, id16);
         write_data(data);
     }
 }
