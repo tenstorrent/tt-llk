@@ -54,13 +54,8 @@ void run_kernel()
     {
         // index is passed ass index of tile in dest
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_binary_<
-            EltwiseBinaryType::ELWADD,
-            BroadcastType::NONE,
-            DstSync::SyncHalf,
-            is_fp32_dest_acc_en,
-            0,
-            EltwiseBinaryReuseDestType::NONE>(4, index, true);
+        _llk_math_eltwise_binary_<EltwiseBinaryType::ELWADD, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, 0, EltwiseBinaryReuseDestType::NONE>(
+            4, index, true);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

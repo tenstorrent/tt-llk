@@ -103,13 +103,8 @@ void run_kernel()
 
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_binary_<
-        ELTWISE_BINARY_OP,
-        BroadcastType::NONE,
-        DstSync::SyncHalf,
-        is_fp32_dest_acc_en,
-        MATH_FIDELITY,
-        EltwiseBinaryReuseDestType::NONE>(4, res_dst_index, false);
+    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
+        4, res_dst_index, false);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
