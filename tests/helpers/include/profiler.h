@@ -95,8 +95,8 @@ __attribute__((always_inline)) inline bool is_buffer_full()
 
 __attribute__((always_inline)) inline void write_event(uint32_t type, uint16_t id16)
 {
-    uint32_t timestamp_high = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
     uint32_t timestamp_low  = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
+    uint32_t timestamp_high = ckernel::reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
 
     uint32_t type_numeric = static_cast<uint32_t>(type);
     uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | ((uint32_t)id16 << ENTRY_ID_SHAMT);
