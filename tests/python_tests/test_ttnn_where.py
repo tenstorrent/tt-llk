@@ -33,8 +33,8 @@ from helpers.utils import compare_pcc, run_shell_command
 
 
 def generate_golden(operand1, true_value, false_value):
-    # operand1 is a 1D tensor of 0s and 1s (bfloat16), true_value and false_value are 1D tensors
-    mask = operand1.view(32, 32).to(torch.bool)
+    # operand1, true_value, and false_value are 1D tensors of floats
+    mask = operand1.view(32, 32) != 0
     return torch.where(
         mask, true_value.view(32, 32), false_value.view(32, 32)
     ).flatten()
