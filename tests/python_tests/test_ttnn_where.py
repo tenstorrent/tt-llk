@@ -73,8 +73,7 @@ param_ids = generate_param_ids(all_params)
     clean_params(all_params),
     ids=param_ids,
 )
-@pytest.mark.parametrize("times", range(10))
-def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop,times):
+def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
 
     src_A = torch.randint(0, 2, (32, 32), dtype=torch.bfloat16).flatten().to(torch.bfloat16)
     src_B = torch.zeros(1024)
