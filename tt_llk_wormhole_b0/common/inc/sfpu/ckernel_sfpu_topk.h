@@ -307,8 +307,13 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
+#if 0
+                                // working
                                 TTI_REPLAY(16, 5, 0, 0);
-                                // __builtin_rvtt_ttreplay(16, 5, 0, 0);
+#else
+                                // not working
+                                __builtin_rvtt_ttreplay(16, 5, 0, 0);
+#endif
                             }
                             if (init_store)
                             {
