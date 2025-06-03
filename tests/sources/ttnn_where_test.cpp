@@ -1,7 +1,9 @@
+// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #include <algorithm>
 #include <cstdint>
-#include <cstdio>
-#include <type_traits>
 
 #include "ckernel.h"
 #include "llk_defs.h"
@@ -9,47 +11,6 @@
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
-
-template <ckernel::ThreadId thread_id>
-inline void dbg_thread_halt()
-{
-    static_assert(
-        (thread_id == ckernel::ThreadId::MathThreadId) || (thread_id == ckernel::ThreadId::UnpackThreadId) || (thread_id == ckernel::ThreadId::PackThreadId),
-        "Invalid thread id set in dbg_wait_for_thread_idle(...)");
-
-    if constexpr (thread_id == ckernel::ThreadId::UnpackThreadId)
-    {
-        // Wait for all instructions on the running thread to complete
-        ckernel::tensix_sync();
-        // Notify math thread that unpack thread is idle
-        ckernel::mailbox_write(ckernel::ThreadId::MathThreadId, 1);
-        // Wait for math thread to complete debug dump
-        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::MathThreadId);
-    }
-    else if constexpr (thread_id == ckernel::ThreadId::MathThreadId)
-    {
-        // Wait for all instructions on the running thread to complete
-        ckernel::tensix_sync();
-        // Wait for unpack thread to complete
-        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::UnpackThreadId);
-        // Wait for previous packs to finish
-        while (ckernel::semaphore_read(ckernel::semaphore::MATH_PACK) > 0)
-        {
-        };
-    }
-}
-
-void dbg_halt() {
-    dbg_thread_halt<ckernel::MathThreadId>();
-}
-
-
-
-
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
-//
-// SPDX-License-Identifier: Apache-2.0
-
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -71,18 +32,17 @@ void run_kernel()
 #ifdef LLK_TRISC_MATH
 
 #include "ckernel_sfpu.h"
+#include "ckernel_sfpu_where.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
 #include "params.h"
-#include "ckernel_sfpu_where.h"
 
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
 void run_kernel()
 {
-
     const uint32_t DST_TILE = 2;
 
 // copy srca to dest
@@ -95,17 +55,16 @@ void run_kernel()
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
-        DST_TILE , MATH_FORMAT, MATH_FORMAT);
+        DST_TILE, MATH_FORMAT, MATH_FORMAT);
 
     // calculation of sfpu operation on dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    _calculate_where_<32>(DST_TILE,1,8);
+    _calculate_where_<32>(DST_TILE, 1, 8);
 
     _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    
 }
 
 #endif
@@ -118,7 +77,6 @@ void run_kernel()
 
 void run_kernel()
 {
-
 #ifdef PACK_DST_BFP8_B
     constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
 #endif
