@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include "ckernel_sfpu_sqrt.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-#include "ckernel_sfpu_sqrt.h"
 
 namespace ckernel
 {
