@@ -41,7 +41,6 @@ void run_kernel()
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "params.h"
 
-// using namespace ckernel;
 using namespace ckernel::sfpu;
 
 void run_kernel()
