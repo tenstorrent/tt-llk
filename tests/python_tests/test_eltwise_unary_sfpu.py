@@ -32,11 +32,10 @@ from helpers.utils import compare_pcc, run_shell_command
 
 
 def generate_golden(operation, operand1, data_format):
-    tensor1_float = (
-        operand1.clone()
-        .detach()
-        .to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
+    dtype = (
+        format_dict[data_format] if data_format != DataFormat.Bfp8_b else torch.bfloat16
     )
+    tensor1_float = operand1.clone().detach().to(dtype)
     ops = {
         MathOperation.Abs: lambda x: abs(x),
         MathOperation.Cos: lambda x: math.cos(x),
@@ -51,11 +50,7 @@ def generate_golden(operation, operand1, data_format):
                 if isinstance(x, torch.Tensor)
                 else torch.tensor(
                     x,
-                    dtype=(
-                        format_dict[data_format]
-                        if data_format != DataFormat.Bfp8_b
-                        else torch.bfloat16
-                    ),
+                    dtype=dtype,
                 )
             ),
             alpha=1.0,
