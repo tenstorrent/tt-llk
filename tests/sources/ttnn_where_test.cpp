@@ -12,6 +12,60 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
+// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+template <ckernel::ThreadId thread_id>
+inline void dbg_thread_halt()
+{
+    static_assert(
+        (thread_id == ckernel::ThreadId::MathThreadId) || (thread_id == ckernel::ThreadId::UnpackThreadId) || (thread_id == ckernel::ThreadId::PackThreadId),
+        "Invalid thread id set in dbg_wait_for_thread_idle(...)");
+
+    if constexpr (thread_id == ckernel::ThreadId::UnpackThreadId)
+    {
+        // Wait for all instructions on the running thread to complete
+        ckernel::tensix_sync();
+        // Notify math thread that unpack thread is idle
+        ckernel::mailbox_write(ckernel::ThreadId::MathThreadId, 1);
+        // Wait for math thread to complete debug dump
+        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::MathThreadId);
+    }
+    else if constexpr (thread_id == ckernel::ThreadId::MathThreadId)
+    {
+        // Wait for all instructions on the running thread to complete
+        ckernel::tensix_sync();
+        // Wait for unpack thread to complete
+        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::UnpackThreadId);
+        // Wait for previous packs to finish
+        while (ckernel::semaphore_read(ckernel::semaphore::MATH_PACK) > 0)
+        {
+        };
+    }
+}
+
+void dbg_halt_math()
+{
+    dbg_thread_halt<ckernel::MathThreadId>();
+}
+
+void dbg_halt_unpack()
+{
+    dbg_thread_halt<ckernel::UnpackThreadId>();
+}
+
+void dbg_halt_pack()
+{
+    dbg_thread_halt<ckernel::PackThreadId>();
+}
+
+void dbg_halt_tensix()
+{
+    dbg_halt_unpack();
+    dbg_halt_math();
+    dbg_halt_pack();
+}
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -20,11 +74,15 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+    volatile uint32_t* const buffer_condition = reinterpret_cast<volatile uint32_t*>(0x1a000);
+    volatile uint32_t* const buffer_true      = reinterpret_cast<volatile uint32_t*>(0x1b000);
+    volatile uint32_t* const buffer_false     = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_condition), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_true), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_false), 0, UNPACK_A_IN, UNPACK_A_OUT);
 }
 
 #endif
@@ -43,8 +101,6 @@ using namespace ckernel::sfpu;
 
 void run_kernel()
 {
-    const uint32_t DST_TILE = 2;
-
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, false>(0, 0, 4, MATH_FORMAT);
@@ -55,13 +111,17 @@ void run_kernel()
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
-        DST_TILE, MATH_FORMAT, MATH_FORMAT);
+        0, MATH_FORMAT, MATH_FORMAT); // buffer condition
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
+        1, MATH_FORMAT, MATH_FORMAT); // buffer true
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
+        2, MATH_FORMAT, MATH_FORMAT); // buffer false
 
     // calculation of sfpu operation on dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    _calculate_where_<32>(DST_TILE, 1, 8);
+    _calculate_where_<32>(0);
 
     _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -81,7 +141,7 @@ void run_kernel()
     constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
 #endif
 
-    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1d000);
 
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
 
