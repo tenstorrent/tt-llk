@@ -4,6 +4,7 @@
 
 import re
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional
 
 from ttexalens.tt_exalens_lib import read_words_from_device
@@ -81,7 +82,7 @@ class ProfilerZoneScoped:
 
 class ProfilerData:
 
-    BUFFER_SIZE = 0x400
+    BUFFER_LENGTH = 0x400
     THREAD_BUFFER = {
         "UNPACK": 0x16B000,
         "MATH": 0x16C000,
@@ -97,10 +98,11 @@ class ProfilerData:
 
     ENTRY_EXISTS_BIT = 0b1000 << ENTRY_TYPE_SHAMT
 
-    TIMESTAMP_ENTRY = 0b1000
-    TIMESTAMP_DATA_ENTRY = 0b1001
-    ZONE_START_ENTRY = 0b1010
-    ZONE_END_ENTRY = 0b1011
+    class EntryType(Enum):
+        TIMESTAMP = 0b1000
+        TIMESTAMP_DATA = 0b1001
+        ZONE_START = 0b1010
+        ZONE_END = 0b1011
 
     @staticmethod
     def dump_csv(profiler_data, filename="profiler_data.csv"):
@@ -127,7 +129,7 @@ class ProfilerData:
         return ProfilerData._parse_buffers(ProfilerData._load_buffers(), profiler_meta)
 
     @staticmethod
-    def _load_buffers(core_loc="0,0", word_count=BUFFER_SIZE):
+    def _load_buffers(core_loc="0,0", word_count=BUFFER_LENGTH):
         """Load profiler buffers from device memory for each thread."""
         return {
             thread: read_words_from_device(
@@ -171,20 +173,21 @@ class ProfilerData:
             timestamp_low = next(word_stream)
             timestamp = (timestamp_high << 32) | timestamp_low
 
-            match type:
-                case ProfilerData.TIMESTAMP_ENTRY:
+            entry_type = ProfilerData.EntryType(type)
+            match entry_type:
+                case ProfilerData.EntryType.TIMESTAMP:
                     thread.append(ProfilerTimestamp(marker, timestamp))
 
-                case ProfilerData.TIMESTAMP_DATA_ENTRY:
+                case ProfilerData.EntryType.TIMESTAMP_DATA:
                     data_high = next(word_stream)
                     data_low = next(word_stream)
                     data = (data_high << 32) | data_low
                     thread.append(ProfilerTimestamp(marker, timestamp, data))
 
-                case ProfilerData.ZONE_START_ENTRY:
+                case ProfilerData.EntryType.ZONE_START:
                     zone_stack.append(timestamp)
 
-                case ProfilerData.ZONE_END_ENTRY:
+                case ProfilerData.EntryType.ZONE_END:
                     end = timestamp
                     start = zone_stack.pop()
                     duration = end - start
