@@ -4,6 +4,9 @@
 
 import pytest
 import torch
+from ttexalens.tt_exalens_lib import (
+    write_to_device,
+)
 
 from helpers.device import (
     collect_results,
@@ -18,6 +21,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
+from helpers.pack import pack_bfp16
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -29,7 +33,11 @@ from helpers.utils import compare_pcc, run_shell_command
 
 
 def generate_golden(operand1, true_value, false_value):
-    return [true_value if val != 0 else false_value for val in operand1]
+    # operand1 is a 1D tensor of 0s and 1s (bfloat16), true_value and false_value are 1D tensors
+    mask = operand1.view(32, 32).to(torch.bool)
+    return torch.where(
+        mask, true_value.view(32, 32), false_value.view(32, 32)
+    ).flatten()
 
 
 # SUPPORTED FORMATS FOR TEST
@@ -75,10 +83,25 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
     src_A = (
         torch.randint(0, 2, (32, 32), dtype=torch.bfloat16).flatten().to(torch.bfloat16)
     )
-    src_B = torch.zeros(1024)
 
-    golden = generate_golden(src_A, 1, 8)
+    # src_A = torch.arange(32).unsqueeze(1).repeat(1, 32) % 2
+    # print(src_A.view(32, 32))
+    src_A = src_A.to(torch.bfloat16).flatten()
+
+    src_B = (
+        torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
+        .flatten()
+        .to(torch.bfloat16)
+    )
+    src_C = (
+        torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
+        .flatten()
+        .to(torch.bfloat16)
+    )
+
+    golden = generate_golden(src_A, src_B, src_C)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+    write_to_device("0,0", 0x1C000, pack_bfp16(src_C))
 
     test_config = {
         "formats": formats,
@@ -94,7 +117,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
 
     wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A)
+        formats, tensor_size=len(src_A), address=0x1D000
     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
     res_from_L1 = res_from_L1[
         :1024
@@ -129,11 +152,15 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         atol = 0.05
         rtol = 0.1
 
-    # print(src_A.view(32,32))
+    # print("SRCA: \n",src_A.view(32,32))
     # print()
-    # print(golden_tensor.view(32,32))
+    # print("SRCB: \n",src_B.view(32,32))
     # print()
-    # print(res_tensor.view(32,32))
+    # print("SRCC: \n",src_C.view(32,32))
+    # print()
+    print("GOLDEN: \n", golden_tensor.view(32, 32))
+    print()
+    print("RESULT: \n", res_tensor.view(32, 32))
 
     for i in range(len(golden)):
         assert torch.isclose(
