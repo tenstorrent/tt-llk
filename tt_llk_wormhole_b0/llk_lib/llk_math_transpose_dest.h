@@ -22,6 +22,15 @@ inline void transpose_dest_configure_addrmod();
 template <bool transpose_of_faces, bool is_32bit>
 inline void transpose_dest_configure_mop();
 
+// Notes on these template parameters:
+// 1. <transpose_of_faces=false, is_32bit=false>: not supported.
+// 2. <transpose_of_faces=false, is_32bit=true>: 4x 16x16 face transpose; can be combined with _llk_unpack_A_ with transpose_of_faces=true.
+// 3. <transpose_of_faces=true, is_32bit=false>: the default case (full 32x32 tile transpose, non-32-bit).
+// 4. <transpose_of_faces=true, is_32bit=true>: full 32x32 tile transpose for 32-bit.
+//
+// We may want to revisit these template parameters, and perhaps the
+// transpose_dest API generally as it's not currently widely used:
+// https://github.com/tenstorrent/tt-llk/issues/290
 template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
