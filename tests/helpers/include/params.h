@@ -197,13 +197,14 @@ MATH_CASE(Tf32)
 #undef MATH_CASE
 
 #if !defined(MATH_BFP8_B) && !defined(MATH_INT32) && !defined(MATH_FLOAT32) && !defined(MATH_FLOAT16) && !defined(MATH_FLOAT16_B) && !defined(MATH_TF32)
-constexpr bool is_fp32_dest_acc_en      = dest_acc_en_input || is_format_combination_outlier(UNPACK_A_IN, PACK_OUT, dest_acc_en_input);
-constexpr FormatConfig pipeline_formats = get_data_formats(UNPACK_A_IN, PACK_OUT, dest_acc_en_input);
-constexpr auto UNPACK_A_OUT             = pipeline_formats.unpack_dst;
-constexpr auto UNPACK_B_IN              = pipeline_formats.unpack_src;
-constexpr auto UNPACK_B_OUT             = pipeline_formats.unpack_dst;
-constexpr auto PACK_IN                  = pipeline_formats.pack_src;
-constexpr auto MATH_FORMAT              = pipeline_formats.unpack_dst;
+constexpr bool is_fp32_dest_acc_en =
+    dest_acc_en_input || is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
+constexpr FormatConfig pipeline_formats = get_data_formats(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
+constexpr auto UNPACK_A_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+constexpr auto UNPACK_B_IN              = static_cast<uint32_t>(pipeline_formats.unpack_src);
+constexpr auto UNPACK_B_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+constexpr auto PACK_IN                  = static_cast<uint32_t>(pipeline_formats.pack_src);
+constexpr auto MATH_FORMAT              = static_cast<uint32_t>(pipeline_formats.unpack_dst);
 #else
 constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
 #endif
