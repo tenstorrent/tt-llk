@@ -29,27 +29,11 @@ from helpers.param_config import (
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.utils import compare_pcc, run_shell_command
+import random
 
 
-def generate_golden(operation, operand1, data_format):
-    tensor1_float = (
-        operand1.clone()
-        .detach()
-        .to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
-    )
-    ops = {
-        MathOperation.Abs: lambda x: abs(x),
-        MathOperation.Cos: lambda x: math.cos(x),
-        MathOperation.Log: lambda x: math.log(x) if x != 0 else float("nan"),
-        MathOperation.Reciprocal: lambda x: 1 / x if x != 0 else float("nan"),
-        MathOperation.Sin: lambda x: math.sin(x),
-        MathOperation.Sqrt: lambda x: math.sqrt(x),
-        MathOperation.Square: lambda x: x * x,
-    }
-    if operation not in ops:
-        raise ValueError("Unsupported operation!")
-    return [ops[operation](num) for num in tensor1_float.tolist()][:256]
-
+def generate_golden(operand1, true_value, false_value):
+    return [true_value if val != 0 else false_value for val in operand1]
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Float16_b]
@@ -89,26 +73,13 @@ param_ids = generate_param_ids(all_params)
     clean_params(all_params),
     ids=param_ids,
 )
-def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
-    arch = get_chip_architecture()
-    if (
-        formats.input_format in [DataFormat.Float32, DataFormat.Int32]
-        and dest_acc != DestAccumulation.Yes
-    ):
-        pytest.skip(
-            reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
-        )
+@pytest.mark.parametrize("times", range(10))
+def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop,times):
 
-    if formats.input_format == DataFormat.Float16 and (
-        dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE
-    ):
-        pytest.skip(reason="This combination is not fully implemented in testing")
-
-
-    src_A = torch.tensor([[1.0 if i % 2 == 0 else 0.0 for _ in range(32)] for i in range(32)]).flatten()
+    src_A = torch.randint(0, 2, (32, 32), dtype=torch.bfloat16).flatten().to(torch.bfloat16)
     src_B = torch.zeros(1024)
 
-    golden = generate_golden(mathop, src_A, formats.output_format)
+    golden = generate_golden(src_A, 1,8)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
     test_config = {
@@ -128,7 +99,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         formats, tensor_size=len(src_A)
     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
     res_from_L1 = res_from_L1[
-        :256
+        :1024
     ]  # this will be removed once we implement to read bytes from L1 according to data format (size of datum) which will be added in next PR
     assert len(res_from_L1) == len(golden)
 
@@ -160,7 +131,11 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         atol = 0.05
         rtol = 0.1
 
-    print(res_tensor.view(32,32))
+    # print(src_A.view(32,32))
+    # print()
+    # print(golden_tensor.view(32,32))
+    # print()
+    # print(res_tensor.view(32,32))
 
     for i in range(len(golden)):
         assert torch.isclose(
