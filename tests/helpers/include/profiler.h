@@ -87,10 +87,10 @@ __attribute__((always_inline)) inline void reset()
 __attribute__((always_inline)) inline bool is_buffer_full()
 {
     // the buffer is considered full when there is not enough space to store:
-    // - timestamp with data (TIMESTAMP_DATA_ENTRY) (size = 8B)
-    // - new zone (ZONE_START_ENTRY + ZONE_END_ENTRY) (size = 8B)
+    // - timestamp with data (TIMESTAMP_DATA_ENTRY) (size = 16B)
+    // - new zone (ZONE_START_ENTRY + ZONE_END_ENTRY) (size = 16B)
     // after closing all of the currently open zones
-    return (BUFFER_LENGTH - (write_idx + open_zone_cnt)) < 2;
+    return (BUFFER_LENGTH - (write_idx + open_zone_cnt)) < 4;
 }
 
 __attribute__((always_inline)) inline void write_event(uint32_t type, uint16_t id16)
