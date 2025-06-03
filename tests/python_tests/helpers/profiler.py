@@ -154,11 +154,13 @@ class ProfilerData:
             marker_id = (
                 word & ProfilerData.ENTRY_ID_MASK
             ) >> ProfilerData.ENTRY_ID_SHAMT
-            marker = profiler_meta.get(marker_id, None)
 
-            assert (
-                marker is not None
-            ), f"Marker with ID {marker_id} not found in profiler metadata"
+            try:
+                marker = profiler_meta[marker_id]
+            except KeyError:
+                raise AssertionError(
+                    f"Marker with ID {marker_id} not found in profiler metadata"
+                )
 
             timestamp_high = word & ProfilerData.ENTRY_TIME_HIGH_MASK
             timestamp_low = next(word_stream)
