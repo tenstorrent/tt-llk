@@ -143,6 +143,23 @@ public:
     }
 };
 
+__attribute__((always_inline)) inline void write_timestamp(uint16_t id16)
+{
+    if (!is_buffer_full())
+    {
+        write_event(TIMESTAMP_ENTRY, id16);
+    }
+}
+
+__attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64_t data)
+{
+    if (!is_buffer_full())
+    {
+        write_event(TIMESTAMP_DATA_ENTRY, id16);
+        write_data(data);
+    }
+}
+
 } // namespace llk_profiler
 
 #define ZONE_SCOPED(marker)                 \
@@ -151,12 +168,11 @@ public:
 
 #define TIMESTAMP(marker)                   \
     DO_PRAGMA(message(MARKER_FULL(marker))) \
-    llk_profiler::write_event(llk_profiler::TIMESTAMP_ENTRY, MARKER_ID(marker));
+    llk_profiler::write_timestamp(MARKER_ID(marker));
 
-#define TIMESTAMP_DATA(marker, data)                                                  \
-    DO_PRAGMA(message(MARKER_FULL(marker)))                                           \
-    llk_profiler::write_event(llk_profiler::TIMESTAMP_DATA_ENTRY, MARKER_ID(marker)); \
-    llk_profiler::write_data(data);
+#define TIMESTAMP_DATA(marker, data)        \
+    DO_PRAGMA(message(MARKER_FULL(marker))) \
+    llk_profiler::write_timestamp(MARKER_ID(marker), data);
 
 #else
 
