@@ -1,12 +1,10 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import math
 
 import pytest
 import torch
 
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     run_elf_files,
@@ -26,14 +24,13 @@ from helpers.param_config import (
     generate_params,
     input_output_formats,
 )
-from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.utils import compare_pcc, run_shell_command
-import random
 
 
 def generate_golden(operand1, true_value, false_value):
     return [true_value if val != 0 else false_value for val in operand1]
+
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Float16_b]
@@ -75,10 +72,12 @@ param_ids = generate_param_ids(all_params)
 )
 def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
 
-    src_A = torch.randint(0, 2, (32, 32), dtype=torch.bfloat16).flatten().to(torch.bfloat16)
+    src_A = (
+        torch.randint(0, 2, (32, 32), dtype=torch.bfloat16).flatten().to(torch.bfloat16)
+    )
     src_B = torch.zeros(1024)
 
-    golden = generate_golden(src_A, 1,8)
+    golden = generate_golden(src_A, 1, 8)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
     test_config = {
