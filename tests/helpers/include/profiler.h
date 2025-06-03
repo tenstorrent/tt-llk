@@ -107,8 +107,8 @@ __attribute__((always_inline)) inline void write_event(uint32_t type, uint16_t i
 
 __attribute__((always_inline)) inline void write_data(uint64_t data)
 {
-    buffer[trisc_id][write_idx++] = data >> 32;
-    buffer[trisc_id][write_idx++] = data & 0xFFFFFFFF;
+    buffer[trisc_id][write_idx++] = static_cast<uint32_t>(data >> 32);
+    buffer[trisc_id][write_idx++] = static_cast<uint32_t>(data);
 }
 
 template <uint16_t id16>
