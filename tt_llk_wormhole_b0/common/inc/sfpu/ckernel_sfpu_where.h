@@ -11,25 +11,41 @@ namespace ckernel
 namespace sfpu
 {
 
+/*
+Expects following input in Dst register:
+Index 0 ( Tile 0 ) -> condition tensor
+Index 32 ( Tile 1 ) -> true tensor
+Index 64 ( Tile 2 ) -> false tensor
+
+*/
+
 template <int ITERATIONS = 32>
-inline void _calculate_where_(int dst_offset, sfpi::vFloat true_value, sfpi::vFloat false_value)
+inline void _calculate_where_()
 {
     constexpr uint dst_tile_size = 32;
-    sfpi::vFloat input_tensor    = sfpi::dst_reg[dst_offset * dst_tile_size];
-    sfpi::vFloat output_tensor   = 0.0f;
+
+    sfpi::vFloat output_tensor = 0.0f;
+    sfpi::vFloat true_tensor   = 0.0f;
+    sfpi::vFloat false_tensor  = 0.0f;
+    sfpi::vFloat cond          = sfpi::dst_reg[0];
 
     for (int i = 0; i < ITERATIONS; i++)
     {
-        sfpi::vFloat cond = sfpi::dst_reg[dst_offset * dst_tile_size]; // input_tensor;
+        // fetch next conditions, true and false values
+        cond         = sfpi::dst_reg[0];
+        true_tensor  = sfpi::dst_reg[dst_tile_size];
+        false_tensor = sfpi::dst_reg[dst_tile_size * 2];
+
         v_if (cond != 0.0f)
         {
-            output_tensor = true_value;
+            output_tensor = true_tensor;
         }
         v_else
         {
-            output_tensor = false_value;
+            output_tensor = false_tensor;
         }
         v_endif;
+
         sfpi::dst_reg[0] = output_tensor;
         sfpi::dst_reg++;
     }
