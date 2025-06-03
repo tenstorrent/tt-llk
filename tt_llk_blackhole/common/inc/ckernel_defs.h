@@ -209,6 +209,7 @@ constexpr static std::uint32_t SCALE_DATUM_SIZE(uint format, uint datum_count)
             return (datum_count << 2);
         case ((uint8_t)DataFormat::Float16):
         case ((uint8_t)DataFormat::Float16_b):
+        case ((uint8_t)DataFormat::UInt16):
             return (datum_count << 1);
         default:
             return datum_count;
