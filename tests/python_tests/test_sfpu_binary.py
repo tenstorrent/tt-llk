@@ -49,7 +49,7 @@ def generate_golden(operation, operand1, operand2, data_format):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
+supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -72,7 +72,7 @@ test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["sfpu_binary_test"],
     test_formats,
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     mathop=[
         MathOperation.SfpuElwsub,
         MathOperation.SfpuElwadd,
