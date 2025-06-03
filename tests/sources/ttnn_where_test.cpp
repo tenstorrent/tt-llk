@@ -64,7 +64,6 @@ void run_kernel()
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
-    (*((volatile uint32_t*)0x18000)) = 0xaaaabbbb;
 }
 
 #endif
@@ -83,6 +82,9 @@ using namespace ckernel::sfpu;
 
 void run_kernel()
 {
+
+    const uint32_t DST_TILE = 2;
+
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, false>(0, 0, 4, MATH_FORMAT);
@@ -93,14 +95,13 @@ void run_kernel()
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
-        0, MATH_FORMAT, MATH_FORMAT);
+        DST_TILE , MATH_FORMAT, MATH_FORMAT);
 
     // calculation of sfpu operation on dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    _calculate_where_<32>(0,1,8);
-    //math::clear_dst_reg_addr();
+    _calculate_where_<32>(DST_TILE,1,8);
 
     _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
