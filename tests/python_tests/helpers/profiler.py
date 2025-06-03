@@ -64,7 +64,7 @@ def build_perf_test(test_config):
 class ProfilerTimestamp:
     full_marker: ProfilerFullMarker
     timestamp: int
-    data: Optional[int]
+    data: Optional[int] = None
 
 
 @dataclass
@@ -166,7 +166,7 @@ class ProfilerData:
 
             match type:
                 case ProfilerData.TIMESTAMP_ENTRY:
-                    thread.append(ProfilerTimestamp(marker, timestamp, None))
+                    thread.append(ProfilerTimestamp(marker, timestamp))
 
                 case ProfilerData.TIMESTAMP_DATA_ENTRY:
                     data_high = next(word_stream)
