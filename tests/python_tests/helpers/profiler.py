@@ -2,9 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import csv
 import re
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 from ttexalens.tt_exalens_lib import read_words_from_device
@@ -105,24 +107,71 @@ class ProfilerData:
         ZONE_END = 0b1011
 
     @staticmethod
-    def dump_csv(profiler_data, filename="profiler_data.csv"):
-        output_file = f"../build/{filename}"
-        with open(output_file, "w") as f:
-            f.write("thread,type,marker,timestamp,data,marker_id,file,line\n")
-            for thread, entries in profiler_data.items():
-                for entry in entries:
-                    full = entry.full_marker
-                    if isinstance(entry, ProfilerTimestamp):
-                        f.write(
-                            f"{thread},TIMESTAMP,{full.marker},{entry.timestamp},{entry.data},{full.id},{full.file},{full.line}\n"
-                        )
-                    elif isinstance(entry, ProfilerZoneScoped):
-                        f.write(
-                            f"{thread},ZONE_START,{full.marker},{entry.start},,{full.id},{full.file},{full.line}\n"
-                        )
-                        f.write(
-                            f"{thread},ZONE_END,{full.marker},{entry.end},,{full.id},{full.file},{full.line}\n"
-                        )
+    def dump_csv(profiler_data, filename: str = "profiler_data.csv") -> None:
+        rows = []
+        rows.append(
+            [
+                "thread",
+                "type",
+                "marker",
+                "timestamp",
+                "data",
+                "marker_id",
+                "file",
+                "line",
+            ]
+        )
+
+        for thread, entries in profiler_data.items():
+            for entry in entries:
+                full_marker = entry.full_marker
+
+                if isinstance(entry, ProfilerTimestamp):
+                    rows.append(
+                        [
+                            thread,
+                            "TIMESTAMP",
+                            full_marker.marker,
+                            entry.timestamp,
+                            entry.data,
+                            full_marker.id,
+                            full_marker.file,
+                            full_marker.line,
+                        ]
+                    )
+                elif isinstance(entry, ProfilerZoneScoped):
+                    # Add both start and end rows
+                    rows.append(
+                        [
+                            thread,
+                            "ZONE_START",
+                            full_marker.marker,
+                            entry.start,
+                            "",
+                            full_marker.id,
+                            full_marker.file,
+                            full_marker.line,
+                        ]
+                    )
+                    rows.append(
+                        [
+                            thread,
+                            "ZONE_END",
+                            full_marker.marker,
+                            entry.end,
+                            "",
+                            full_marker.id,
+                            full_marker.file,
+                            full_marker.line,
+                        ]
+                    )
+
+        output_path = Path("../build") / filename
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with output_path.open("w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
 
     @staticmethod
     def get(profiler_meta):
