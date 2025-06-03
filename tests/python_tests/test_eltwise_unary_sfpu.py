@@ -45,6 +45,10 @@ def generate_golden(operation, operand1, data_format):
         MathOperation.Sin: lambda x: math.sin(x),
         MathOperation.Sqrt: lambda x: math.sqrt(x),
         MathOperation.Square: lambda x: x * x,
+        MathOperation.Celu: lambda x: torch.nn.functional.celu(
+            x if isinstance(x, torch.Tensor) else torch.tensor(x, dtype=torch.float32),
+            alpha=1.0,
+        ),
     }
     if operation not in ops:
         raise ValueError("Unsupported operation!")
@@ -85,6 +89,7 @@ all_params = generate_params(
         MathOperation.Sin,
         MathOperation.Sqrt,
         MathOperation.Square,
+        MathOperation.Celu,
     ],
 )
 param_ids = generate_param_ids(all_params)
