@@ -284,21 +284,19 @@ inline void _llk_pack_fast_tilize_addrmod_config_()
 
     addr_mod_pack_t {
         .y_src = {.incr = 2, .cr = 1},
-        .z_dst = {.incr = 1},
     }
         .set(ADDR_MOD_1);
 
     addr_mod_pack_t {
         .y_src = {.clr = 1},
         .z_src = {.incr = 1},
-        .z_dst = {.incr = 1},
     }
         .set(ADDR_MOD_3);
 }
 
 inline void _llk_pack_fast_tilize_mop_config_()
 {
-    TTI_REPLAY(0, 9, 0, 1);
+    TTI_REPLAY(0, 13, 0, 1);
 
     TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
     TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
@@ -308,7 +306,13 @@ inline void _llk_pack_fast_tilize_mop_config_()
     TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
     TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
     TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
-    TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1);
+    
+    TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 0, 1);
+    TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1);
+    
+    TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
+    TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::ALL_THREAD_RES);
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
         true,
@@ -316,13 +320,12 @@ inline void _llk_pack_fast_tilize_mop_config_()
         TT_OP_REPLAY(0, 5, 0, 0),
         TT_OP_REPLAY(0, 5, 0, 0),
         TT_OP_REPLAY(0, 5, 0, 0),
-        TT_OP_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 0, 1),
+        TT_OP_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1),
         TT_OP_REPLAY(0, 8, 0, 0),
-        TT_OP_INCADCZW(p_setadc::PAC, 0, 0, 0, 1),
-        TT_OP_REPLAY(1, 8, 0, 0));
+        TT_OP_REPLAY(10, 3, 0, 0),
+        TT_OP_REPLAY(1, 12, 0, 0));
 
     tmp.program(instrn_buffer);
-    TTI_MOP_CFG(0x8888);
 }
 
 inline void _llk_pack_fast_tilize_init_()
@@ -377,7 +380,7 @@ inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const s
     TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
-    program_packer_destination(address);
+    program_packer_destination(address, false);
 
     // for (uint i = 0; i < block_dim / 2; i++)
     // {
@@ -386,13 +389,21 @@ inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const s
     //         TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
     //     }
     //     TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1);
+    //     TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+    //     TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
+    //     // TTI_NOP;
+    //     TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::ALL_THREAD_RES);
     //     for (uint j = 0; j < 15; j++)
     //     {
     //         TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
     //     }
     //     TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 0, 1);
     //     TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1);
+    //     TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+    //     TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
+    //     // TTI_NOP;
+    //     TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::ALL_THREAD_RES);
     // }
 
-    TTI_MOP(0, block_dim - 1, 0x5555); // block dim must be even
+    TTI_MOP(0, block_dim - 1, 0xAAAA); // block dim must be even
 }

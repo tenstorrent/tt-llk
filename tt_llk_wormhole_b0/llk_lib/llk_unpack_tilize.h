@@ -494,7 +494,6 @@ inline void _llk_unpack_fast_tilize_mop_config_()
         TT_OP_SETADCZW(0b011, 0, 0, 0, 0, 0b1111));
 
     tmp.program(instrn_buffer);
-    TTI_MOP_CFG(0x8888);
 }
 
 inline void _llk_unpack_fast_tilize_init_(const std::uint32_t full_dim)

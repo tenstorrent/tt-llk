@@ -175,7 +175,9 @@ inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_f
     if (pack_dst_format == static_cast<DataFormatType>(DataFormat::Bfp8_b))
     {
         z_stride_ch1 = FACE_R_DIM * PACK_CNT + PACK_CNT;
-    } 
+    }
+    TT_SETDMAREG(0, LOWER_HALFWORD(z_stride_ch1), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
+    TTI_SETDMAREG(0, 0, 0, HI_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
 
     TT_SETDMAREG(0, LOWER_HALFWORD((x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT)), 0, LO_16(p_gpr_pack::TMP0));
     TT_SETDMAREG(0, UPPER_HALFWORD((y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT)), 0, HI_16(p_gpr_pack::TMP0));
@@ -593,7 +595,7 @@ inline void select_packer_dest_registers()
 
 // Program packer destination addresses from GPRs
 template <PackSelMask PackSel = PACK_ALL>
-inline void program_packer_destination(uint32_t addr)
+inline void program_packer_destination(uint32_t addr, bool restore = true)
 {
     uint32_t new_l1_addr = (1 << 31) | addr;
     TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
@@ -604,7 +606,9 @@ inline void program_packer_destination(uint32_t addr)
 
     TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 0); // pack flush
 
-    TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    if (restore) {
+        TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    }
 }
 
 template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false, uint32_t row_num_datums = TILE_C_DIM>
