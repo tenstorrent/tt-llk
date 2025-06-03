@@ -6,6 +6,7 @@ import math
 import pytest
 import torch
 
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     run_elf_files,
@@ -134,6 +135,10 @@ def test_matmul_and_unary_sfpu(
         pytest.skip("Cos and Sin operations are not fully functional yet")
     if mathop == MathOperation.Square and math_fidelity == MathFidelity.LoFi:
         pytest.skip("Square operation in LoFi is not fully functional yet")
+    if (formats.input_format == formats.output_format == DataFormat.Float16 and 
+        mathop in [MathOperation.Log, MathOperation.Sqrt, MathOperation.Square] and dest_acc == DestAccumulation.No and get_chip_architecture() == ChipArchitecture.BLACKHOLE
+    ):
+        pytest.skip("BFP8 does not support Log and Reciprocal operations")
 
     torch_format = format_dict.get(
         formats.output_format, format_dict[DataFormat.Float16_b]
