@@ -138,7 +138,7 @@ inline void apply_zero_comp<SfpuType::not_equal_zero>(sfpi::vFloat& v, uint expo
 template <>
 inline void apply_zero_comp<SfpuType::less_than_zero>(sfpi::vFloat& v, uint /*unused*/)
 {
-    v_if (v >= ZERO;)
+    v_if (v >= ZERO)
     {
         v = ZERO;
     }
@@ -152,7 +152,7 @@ inline void apply_zero_comp<SfpuType::less_than_zero>(sfpi::vFloat& v, uint /*un
 template <>
 inline void apply_zero_comp<SfpuType::greater_than_equal_zero>(sfpi::vFloat& v, uint /*unused*/)
 {
-    v_if (v >= ZERO;)
+    v_if (v >= ZERO)
     {
         v = ONE;
     }
@@ -166,7 +166,7 @@ inline void apply_zero_comp<SfpuType::greater_than_equal_zero>(sfpi::vFloat& v, 
 template <>
 inline void apply_zero_comp<SfpuType::greater_than_zero>(sfpi::vFloat& v, uint /*unused*/)
 {
-    v_if (v > ZERO;)
+    v_if (v > ZERO)
     {
         v = ONE;
     }
@@ -180,7 +180,7 @@ inline void apply_zero_comp<SfpuType::greater_than_zero>(sfpi::vFloat& v, uint /
 template <>
 inline void apply_zero_comp<SfpuType::less_than_equal_zero>(sfpi::vFloat& v, uint /*unused*/)
 {
-    v_if (v > ZERO;)
+    v_if (v > ZERO)
     {
         v = ZERO;
     }
