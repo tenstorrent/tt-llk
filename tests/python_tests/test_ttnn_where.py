@@ -15,7 +15,6 @@ from helpers.device import (
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import (
-    ApproximationMode,
     DestAccumulation,
     MathOperation,
     format_dict,
@@ -32,6 +31,13 @@ from helpers.test_config import generate_make_command
 from helpers.utils import compare_pcc, run_shell_command
 
 
+# Helper function
+def extend_tensor(condition, length=1024, dtype=torch.float32):
+    condition_extended = torch.zeros(length, dtype=dtype)
+    condition_extended[: condition.shape[0]] = condition
+    return condition_extended.flatten()
+
+
 def generate_golden(operand1, true_value, false_value):
     # operand1, true_value, and false_value are 1D tensors of floats
     mask = operand1.view(32, 32) != 0
@@ -40,32 +46,57 @@ def generate_golden(operand1, true_value, false_value):
     ).flatten()
 
 
-# SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float32, DataFormat.Float16_b]
+# Helper check functiion
+def torch_equal_nan(a, b):
+    return torch.all((a == b) | (torch.isnan(a) & torch.isnan(b)))
 
-#   INPUT-OUTPUT FORMAT SWEEP
-#   input_output_formats(supported_formats)
 
-#   FULL FORMAT SWEEP
-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+# Provided test cases
+dtype = torch.float32
+condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
+condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
+condition_all_zeros = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dtype)
 
-#   SPECIFIC FORMAT COMBINATION
-#   generate_combination(
-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
-#         DataFormat.Float16_b,  # index 4 is for math format)])
+# true and false value tensors
+true_values = torch.tensor(
+    [
+        1.0,
+        float("nan"),
+        3.0,
+        float("inf"),
+        -float("inf"),
+        -1.0,
+        0.0,
+        -0.0,
+        42.49,
+        -92.42,
+    ],
+    dtype=dtype,
+)
+false_values = torch.tensor(
+    [
+        -1.0,
+        999.9,
+        float("nan"),
+        -float("inf"),
+        float("inf"),
+        1.0,
+        -0.0,
+        0.0,
+        -3.14,
+        7.84,
+    ],
+    dtype=dtype,
+)
 
-#   SPECIFIC INPUT-OUTPUT COMBINATION
-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+
+supported_formats = [DataFormat.Float32]
 
 test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
-    approx_mode=[ApproximationMode.No],
     mathop=[
         MathOperation.TTNNWhere,
     ],
@@ -74,11 +105,42 @@ param_ids = generate_param_ids(all_params)
 
 
 @pytest.mark.parametrize(
-    "testname, formats, dest_acc, approx_mode, mathop",
+    "testname, formats, dest_acc, mathop",
     clean_params(all_params),
     ids=param_ids,
 )
-def test_ttnn_where(testname, formats, dest_acc, approx_mode, mathop):
+@pytest.mark.parametrize(
+    "test_tensors",
+    [
+        [
+            torch.randint(0, 2, (32, 32), dtype=torch.bfloat16)
+            .flatten()
+            .to(torch.bfloat16),
+            torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
+            .flatten()
+            .to(torch.bfloat16),
+            torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
+            .flatten()
+            .to(torch.bfloat16),
+        ],  # random test case
+        [
+            extend_tensor(condition.bool(), length=1024, dtype=torch.float32),
+            extend_tensor(true_values, length=1024, dtype=torch.float32),
+            extend_tensor(false_values, length=1024, dtype=torch.float32),
+        ],  # provided test case
+        [
+            extend_tensor(condition_all_ones.bool(), length=1024, dtype=torch.float32),
+            extend_tensor(true_values, length=1024, dtype=torch.float32),
+            extend_tensor(false_values, length=1024, dtype=torch.float32),
+        ],  # provided test case
+        [
+            extend_tensor(condition_all_zeros.bool(), length=1024, dtype=torch.float32),
+            extend_tensor(true_values, length=1024, dtype=torch.float32),
+            extend_tensor(false_values, length=1024, dtype=torch.float32),
+        ],  # provided test case
+    ],
+)
+def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
 
     if (
         formats.output_format == DataFormat.Float32
@@ -92,13 +154,7 @@ def test_ttnn_where(testname, formats, dest_acc, approx_mode, mathop):
         torch.float32 if formats.input_format == DataFormat.Float32 else torch.bfloat16
     )
 
-    src_A = torch.randint(0, 2, (32, 32), dtype=tensor_type).flatten().to(tensor_type)
-    src_B = (
-        torch.randint(-10, 10, (32, 32), dtype=tensor_type).flatten().to(tensor_type)
-    )
-    src_C = (
-        torch.randint(-10, 10, (32, 32), dtype=tensor_type).flatten().to(tensor_type)
-    )
+    src_A, src_B, src_C = test_tensors
 
     golden = generate_golden(src_A, src_B, src_C)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
@@ -117,7 +173,6 @@ def test_ttnn_where(testname, formats, dest_acc, approx_mode, mathop):
         "testname": testname,
         "dest_acc": dest_acc,
         "mathop": mathop,
-        "approx_mode": approx_mode,
     }
 
     make_cmd = generate_make_command(test_config)
@@ -159,10 +214,9 @@ def test_ttnn_where(testname, formats, dest_acc, approx_mode, mathop):
         atol = 0.05
         rtol = 0.1
 
-    for i in range(len(golden)):
-        assert torch.isclose(
-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+    assert torch_equal_nan(
+        golden_tensor, res_tensor
+    ), "Tensors are not equal, NaN values mismatch"
 
     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
     assert pcc > 0.99
