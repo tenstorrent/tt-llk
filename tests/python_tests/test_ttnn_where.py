@@ -90,9 +90,9 @@ false_values = torch.tensor(
 )
 
 
-supported_formats = [DataFormat.Float32]
+supported_formats = [DataFormat.Float32, DataFormat.Float16_b]
 
-test_formats = input_output_formats(supported_formats)
+test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
@@ -142,6 +142,10 @@ param_ids = generate_param_ids(all_params)
 )
 def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
 
+    src_A, src_B, src_C = test_tensors
+
+    # Skipping test combinations that are not supported
+
     if (
         formats.output_format == DataFormat.Float32
         or formats.input_format == DataFormat.Float32
@@ -150,11 +154,16 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
             "Skipping test for Float32 input format with NO dest_acc, as it is not supported."
         )
 
-    tensor_type = (
-        torch.float32 if formats.input_format == DataFormat.Float32 else torch.bfloat16
-    )
+    if src_A.dtype != format_dict[formats.input_format]:
+        pytest.skip()
 
-    src_A, src_B, src_C = test_tensors
+    print(
+        "\n\nTEST COMBINATION: ",
+        src_A.dtype,
+        format_dict[formats.input_format],
+        dest_acc,
+        "\n",
+    )
 
     golden = generate_golden(src_A, src_B, src_C)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
