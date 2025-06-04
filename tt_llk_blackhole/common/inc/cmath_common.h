@@ -218,6 +218,7 @@ inline void set_dest_section_base()
     TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, base_addr);
 }
 
+/*
 inline constexpr bool is_32bit_input(const std::uint32_t src_format, const std::uint32_t dst_format)
 {
     const uint input_df  = src_format & 0xF;
@@ -225,6 +226,7 @@ inline constexpr bool is_32bit_input(const std::uint32_t src_format, const std::
     return ((input_df == (uint)DataFormat::Int32) || (input_df == (uint)DataFormat::Float32)) &&
            ((output_df == (uint)DataFormat::Int32) || (output_df == (uint)DataFormat::Float32));
 }
+*/
 
 inline constexpr int get_math_num_fidelity_phases(const int math_fidelity_desc)
 {

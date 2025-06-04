@@ -16,6 +16,31 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
+inline void _llk_unpack_AB_mop_config_st_(const bool transpose_of_faces = false, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
+{
+    const uint addr_mod                = ADDR_MOD_3;
+    auto broadcast_type                = p_elwise::SRCB_NO_BCAST;
+    const std::uint32_t replay_buf_len = 2;
+
+    load_replay_buf(
+        0,
+        replay_buf_len,
+        false,
+        []
+        {
+            TTI_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+            TTI_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        });
+
+    constexpr uint32_t outerloop = 4;
+    constexpr uint innerloop     = 16 >> 3; // 8 rows per eltwise op at a time.
+
+    ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
+    tmp.set_start_op(TT_OP_REPLAY(0, replay_buf_len, 0, 0));
+    tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
+    tmp.program(instrn_buffer);
+}
+
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
 {
@@ -116,6 +141,77 @@ inline void _llk_unpack_AB_init_(
     config_unpacker_x_end<UNP_SEL>(face_r_dim);
 
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
+}
+
+inline void _llk_unpack_AB_init_st_(
+    const std::uint32_t face_r_dim  = FACE_R_DIM,
+    const std::uint32_t num_faces   = 4,
+    const bool narrow_tile          = false,
+    const std::uint32_t transpose   = 0,
+    const std::uint32_t acc_to_dest = 0)
+{
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
+    constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
+    config_unpacker_x_end<UNP_SEL>(face_r_dim);
+
+    // Since we are running on a single thread we use ADDR_MOD_3 for unpacking, because ADDR_MOD 0-2 will be used by
+    // the packing function, so if we run unpack and pack in a loop
+    // we do not need to reconfigure repeatedly.
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_3);
+
+    _llk_unpack_AB_mop_config_st_(transpose > 0, num_faces, narrow_tile);
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+inline void _llk_unpack_AB_st_(
+    const std::uint32_t address_a, const std::uint32_t address_b, const uint32_t dst_index, const bool transpose_of_faces = 0 /*not used*/)
+{
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
+
+    // Program srcA and srcB base addresses
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Get tile address
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+    }
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+    // Run MOP
+    ckernel::ckernel_template::run(instrn_buffer);
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+
+    math::clear_dst_reg_addr();
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
