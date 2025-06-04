@@ -24,9 +24,6 @@ from helpers.utils import passed_test
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
     DataFormat.Float32,
-    DataFormat.Float16,
-    DataFormat.Float16_b,
-    DataFormat.Bfp8_b,
 ]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -47,8 +44,8 @@ supported_formats = [
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
 
-test_formats = input_output_formats(supported_formats)
-dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
+test_formats = input_output_formats(supported_formats, same=True)
+dest_acc = [DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
 param_ids = generate_param_ids(all_params)

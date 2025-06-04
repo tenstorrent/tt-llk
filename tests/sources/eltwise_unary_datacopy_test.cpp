@@ -42,6 +42,7 @@ const bool is_int_fpu_en = true;
 const bool is_int_fpu_en = false;
 #endif
 
+#include "dbg_halt.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "params.h"
