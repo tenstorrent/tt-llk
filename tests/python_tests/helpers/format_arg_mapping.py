@@ -93,6 +93,7 @@ class MathOperation(Enum):
     ReduceColumn = "REDUCE_COL_OPERATION"
     ReduceRow = "REDUCE_ROW_OPERATION"
     ReduceScalar = "REDUCE_SCALAR_OPERATION"
+    TTNNWhere = "TTNN_WHERE"
 
 
 class ReduceDimension(Enum):
