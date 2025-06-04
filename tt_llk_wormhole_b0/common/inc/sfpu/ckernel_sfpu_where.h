@@ -24,9 +24,9 @@ inline void _calculate_where_()
 {
     constexpr uint dst_tile_size = 32;
 
-    sfpi::vFloat output_tensor = 0.0f;
-    sfpi::vFloat true_tensor   = 0.0f;
-    sfpi::vFloat false_tensor  = 0.0f;
+    sfpi::vFloat output_tensor = 0;
+    sfpi::vFloat true_tensor   = 0;
+    sfpi::vFloat false_tensor  = 0;
     sfpi::vFloat cond          = sfpi::dst_reg[0];
 
     for (int i = 0; i < ITERATIONS; i++)
