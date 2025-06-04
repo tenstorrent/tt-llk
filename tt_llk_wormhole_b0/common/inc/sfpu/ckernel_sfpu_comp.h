@@ -428,7 +428,7 @@ template <>
 inline void apply_unary_comp_int<SfpuType::unary_lt>(sfpi::vInt& val, const sfpi::vInt& v, const int scalar)
 {
     sfpi::vInt s = scalar;
-    v_if (v < 0 && s >= 0)
+    v_if (v < 0 && s >= 0) // edge case comparison with different sign of lhs and rhs are not comparing properly
     {
         val = 1;
     }
