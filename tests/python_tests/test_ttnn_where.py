@@ -21,7 +21,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.pack import pack_fp32
+from helpers.pack import pack_bfp16, pack_fp32
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -41,7 +41,7 @@ def generate_golden(operand1, true_value, false_value):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float32]
+supported_formats = [DataFormat.Float32, DataFormat.Float16_b]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -64,7 +64,7 @@ test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     approx_mode=[ApproximationMode.No],
     mathop=[
         MathOperation.TTNNWhere,
@@ -80,28 +80,37 @@ param_ids = generate_param_ids(all_params)
 )
 def test_ttnn_where(testname, formats, dest_acc, approx_mode, mathop):
 
-    src_A = (
-        torch.randint(0, 2, (32, 32), dtype=torch.float32).flatten().to(torch.float32)
+    if (
+        formats.output_format == DataFormat.Float32
+        or formats.input_format == DataFormat.Float32
+    ) and dest_acc == DestAccumulation.No:
+        pytest.skip(
+            "Skipping test for Float32 input format with NO dest_acc, as it is not supported."
+        )
+
+    tensor_type = (
+        torch.float32 if formats.input_format == DataFormat.Float32 else torch.bfloat16
     )
 
-    # src_A = torch.arange(32).unsqueeze(1).repeat(1, 32) % 2
-    # print(src_A.view(32, 32))
-    src_A = src_A.to(torch.float32).flatten()
-
+    src_A = torch.randint(0, 2, (32, 32), dtype=tensor_type).flatten().to(tensor_type)
     src_B = (
-        torch.randint(-10, 10, (32, 32), dtype=torch.float32)
-        .flatten()
-        .to(torch.float32)
+        torch.randint(-10, 10, (32, 32), dtype=tensor_type).flatten().to(tensor_type)
     )
     src_C = (
-        torch.randint(-10, 10, (32, 32), dtype=torch.float32)
-        .flatten()
-        .to(torch.float32)
+        torch.randint(-10, 10, (32, 32), dtype=tensor_type).flatten().to(tensor_type)
     )
 
     golden = generate_golden(src_A, src_B, src_C)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
-    write_to_device("0,0", 0x1C000, pack_fp32(src_C))
+    write_to_device(
+        "0,0",
+        0x1C000,
+        (
+            pack_fp32(src_C)
+            if formats.input_format == DataFormat.Float32
+            else pack_bfp16(src_C)
+        ),
+    )
 
     test_config = {
         "formats": formats,
@@ -116,12 +125,8 @@ def test_ttnn_where(testname, formats, dest_acc, approx_mode, mathop):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A), address=0x1D000
-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
-    res_from_L1 = res_from_L1[
-        :1024
-    ]  # this will be removed once we implement to read bytes from L1 according to data format (size of datum) which will be added in next PR
+    res_from_L1 = collect_results(formats, tensor_size=len(src_A), address=0x1D000)
+    res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden)
 
     golden_tensor = torch.tensor(
