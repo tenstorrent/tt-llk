@@ -8,6 +8,12 @@
 #include "llk_sfpu_types.h"
 #include "sfpi.h"
 
+namespace
+{
+constexpr std::uint32_t ONE  = 1;
+constexpr std::uint32_t ZERO = 0;
+} // namespace
+
 namespace ckernel
 {
 namespace sfpu
