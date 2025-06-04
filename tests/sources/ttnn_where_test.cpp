@@ -118,7 +118,7 @@ void run_kernel()
         2, MATH_FORMAT, MATH_FORMAT); // buffer false
 
     // calculation of sfpu operation on dest
-    _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
+    _llk_math_eltwise_unary_sfpu_init_<SfpuType::where>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
     _calculate_where_<32>();

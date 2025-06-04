@@ -21,7 +21,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.pack import pack_bfp16
+from helpers.pack import pack_fp32
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -41,7 +41,7 @@ def generate_golden(operand1, true_value, false_value):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b]
+supported_formats = [DataFormat.Float32]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -64,10 +64,10 @@ test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.Yes],
     approx_mode=[ApproximationMode.No],
     mathop=[
-        MathOperation.Abs,
+        MathOperation.TTNNWhere,
     ],
 )
 param_ids = generate_param_ids(all_params)
@@ -78,30 +78,30 @@ param_ids = generate_param_ids(all_params)
     clean_params(all_params),
     ids=param_ids,
 )
-def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+def test_ttnn_where(testname, formats, dest_acc, approx_mode, mathop):
 
     src_A = (
-        torch.randint(0, 2, (32, 32), dtype=torch.bfloat16).flatten().to(torch.bfloat16)
+        torch.randint(0, 2, (32, 32), dtype=torch.float32).flatten().to(torch.float32)
     )
 
     # src_A = torch.arange(32).unsqueeze(1).repeat(1, 32) % 2
     # print(src_A.view(32, 32))
-    src_A = src_A.to(torch.bfloat16).flatten()
+    src_A = src_A.to(torch.float32).flatten()
 
     src_B = (
-        torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
+        torch.randint(-10, 10, (32, 32), dtype=torch.float32)
         .flatten()
-        .to(torch.bfloat16)
+        .to(torch.float32)
     )
     src_C = (
-        torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
+        torch.randint(-10, 10, (32, 32), dtype=torch.float32)
         .flatten()
-        .to(torch.bfloat16)
+        .to(torch.float32)
     )
 
     golden = generate_golden(src_A, src_B, src_C)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
-    write_to_device("0,0", 0x1C000, pack_bfp16(src_C))
+    write_to_device("0,0", 0x1C000, pack_fp32(src_C))
 
     test_config = {
         "formats": formats,
@@ -128,7 +128,8 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         golden,
         dtype=(
             format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
+            if formats.output_format
+            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
             else torch.bfloat16
         ),
     )
@@ -136,7 +137,8 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         res_from_L1,
         dtype=(
             format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
+            if formats.output_format
+            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
             else torch.bfloat16
         ),
     )
@@ -151,16 +153,6 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
     elif formats.output_format == DataFormat.Bfp8_b:
         atol = 0.05
         rtol = 0.1
-
-    # print("SRCA: \n",src_A.view(32,32))
-    # print()
-    # print("SRCB: \n",src_B.view(32,32))
-    # print()
-    # print("SRCC: \n",src_C.view(32,32))
-    # print()
-    print("GOLDEN: \n", golden_tensor.view(32, 32))
-    print()
-    print("RESULT: \n", res_tensor.view(32, 32))
 
     for i in range(len(golden)):
         assert torch.isclose(
