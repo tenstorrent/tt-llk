@@ -43,10 +43,10 @@ The following documentation is available to help you understand and use low-leve
 1. **[Intro](docs/llk/l1/intro.md)**
    A concise introduction to LLKs, designed for both technical and non-technical audiences. This document outlines the scope of the LLK software stack and its relationship to other Tenstorrent software components.
 
-2. **[Top-level Overview](docs/llk/l1/top_level_overview.md)**
+2. **[Top-level Overview](docs/llk/l2/top_level_overview.md)**
    Provides a high-level look at the Tensix Core and Tensix Engine architecture, including data organization for efficient LLK usage and operations supported by LLKs. This document is not tied to any specific chip generation (such as Wormhole) and is aimed at engineers and technical readers who want to understand the general architecture and capabilities.
 
-3. **[LLK Programming Model](docs/llk/l1/llk_programming_model.md)**
+3. **[LLK Programming Model](docs/llk/l3/llk_programming_model.md)**
    This document dives into architectural details to best explain the usage of the LLK API. It is intended for op writers and advanced users, and connects LLK concepts with our runtime stack, [tt-metal](https://github.com/tenstorrent/tt-metal), providing practical guidance on how to leverage LLKs for efficient kernel development.
 
 ## Contributing ##
