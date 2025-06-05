@@ -2,11 +2,11 @@
 
 ## Introduction
 
-Low-Level Kernels (LLKs) form the foundational layer in the Tenstorrent software stack. LLKs directly drive hardware to perform matrix and vector operations commonly seen in the field of machine learning. This document aims to provide an improved understanding of Tensix Core functions. 
+Low-Level Kernels (LLKs) form the foundational layer in the Tenstorrent software stack. LLKs directly drive hardware to perform matrix and vector operations commonly seen in the field of machine learning. This document aims to provide an improved understanding of Tensix Core functions.
 
 ## Tensix Core
 
-Tenstorrent chips consist of a matrix of Tensix Cores. Figure 1 represents the top level of the Tensix Core:  
+Tenstorrent chips consist of a matrix of Tensix Cores. Figure 1 represents the top level of the Tensix Core:
 
 <p align="center">
   <img src="docs/common/_static/tensix_core.png" alt="Top-level diagram of Tensix Core" width="600" /><br/>
@@ -15,20 +15,20 @@ Tenstorrent chips consist of a matrix of Tensix Cores. Figure 1 represents the t
 
 Figure 1 consists of 4 major parts:
 
-1. Internal SRAM (L1) Memory - Primarily used to store input and output tensors and hold the program code for all RISC-V processors inside the core.  
-2. Network-On-Chip (NoC) - Responsible for efficient data movement between Tensix Cores on the chip and DRAM.  
-3. 5 RISC-V Processors -   
-   * NCRISC and BRISC - Communicate with the NOC for board setup.  
-   * TRISCs - Responsible for controlling the Tensix Engine by issuing custom Tensix instructions.   
-4. Tensix Engine - Hardware block controlled by the TRISC processors, responsible for efficient matrix calculations (essential part of AI/ML operations). 
+1. Internal SRAM (L1) Memory - Primarily used to store input and output tensors and hold the program code for all RISC-V processors inside the core.
+2. Network-On-Chip (NoC) - Responsible for efficient data movement between Tensix Cores on the chip and DRAM.
+3. 5 RISC-V Processors -
+   * NCRISC and BRISC - Communicate with the NOC for board setup.
+   * TRISCs - Responsible for controlling the Tensix Engine by issuing custom Tensix instructions.
+4. Tensix Engine - Hardware block controlled by the TRISC processors, responsible for efficient matrix calculations (essential part of AI/ML operations).
 
-The main tasks that LLKs perform rely on transferring data to and from L1 memory, and programming Tensix engine to perform different operations on the data that is stored in it. 
+The main tasks that LLKs perform rely on transferring data to and from L1 memory, and programming Tensix engine to perform different operations on the data that is stored in it.
 
 ## Tensix Engine
 
 The Tensix Engine is a multi-threaded, single-issue, in-order processor with a custom instruction set (Tensix ISA). It has three threads, controlled from three different instruction streams, one from each TRISC.
 
-Figure 2 represents a simplified top-level architecture of the Tensix Engine:  
+Figure 2 represents a simplified top-level architecture of the Tensix Engine:
 <p align="center">
   <img src="docs/common/_static/tensix_engine.png" alt="Top-level architecture of Tensix Engine" width="500" /><br/>
   Figure 2: Top-level architecture of Tensix Engine
@@ -52,7 +52,7 @@ When talking about the input, each element of the tensor is referred to as *datu
 
 There are two ways to store the input tensors in the L1 memory:
 
-1. Row-major order;  
+1. Row-major order;
 2. Tile order.
 
 Row-major order is the “natural” order of storing data; it is stored row by row regardless of size.
@@ -77,15 +77,15 @@ Another important concept is [math fidelity](https://docs.tenstorrent.com/pybuda
 
 ## Unpacker
 
-The Unpacker is a DMA engine, used to move data between L1 memory and source operand registers. Tensix architectures feature two unpackers, one for each operand in the operation. Unpacker 0 is connected to Source A register, while unpacker 1 is connected to Source B register. Additionally, Unpacker 0 is able to unpack the data directly into the Destination register. 
+The Unpacker is a DMA engine, used to move data between L1 memory and source operand registers. Tensix architectures feature two unpackers, one for each operand in the operation. Unpacker 0 is connected to Source A register, while unpacker 1 is connected to Source B register. Additionally, Unpacker 0 is able to unpack the data directly into the Destination register.
 
 <p align="center">
   <img src="docs/common/_static/unpack_top_level.png" alt="Unpackers" width="400" /><br/>
   Figure 7: Unpackers
 </p>
 
-Unpackers contain hardware support for data format adjustments, called gaskets, enabling data type conversion without software overhead.   
-A designated set of instructions for controlling the unpackers is issued by TRISC0. 
+Unpackers contain hardware support for data format adjustments, called gaskets, enabling data type conversion without software overhead.
+A designated set of instructions for controlling the unpackers is issued by TRISC0.
 
 ## Source Operand Register files (Source A and Source B)
 
@@ -93,27 +93,27 @@ Source registers are organized as two-dimensional structures. Each source regist
 
 ## Floating Point Unit (FPU)
 
-Floating Point Unit is the main math engine used to perform most operations inside the Tensix Core. 
+Floating Point Unit is the main math engine used to perform most operations inside the Tensix Core.
 
 <p align="center">
   <img src="docs/common/_static/fpu_cell.png" alt="FPU" width="400" /><br/>
   Figure 8: Floating Point Unit
 </p>
 
-The FPU takes operands from Source A and Source B operands, and writes the result of the operation inside the Destination register. It is organized as a matrix of FPU cells \- multifunctional units consisting of multipliers and adders, accompanied by accumulators in Destination register.  
+The FPU takes operands from Source A and Source B operands, and writes the result of the operation inside the Destination register. It is organized as a matrix of FPU cells \- multifunctional units consisting of multipliers and adders, accompanied by accumulators in Destination register.
 Each FPU cell can perform three functions:
 
-1. Accumulated dot product;  
-2. Accumulated element-wise addition;  
+1. Accumulated dot product;
+2. Accumulated element-wise addition;
 3. Element-wise addition;
 
 The FPU, like all the other parts of the Tensix Engine, has a designated set of Tensix instructions. The instructions are issued by the TRISC1.
 
 ## Special FPU (SFPU)
 
-In cases where the programmer needs special operations that FPU cannot perform, they can opt to use SFPU. It can be thought of as a SIMD engine, meaning that it performs the same operation on multiple data points simultaneously. Compute SFPU can be used to perform 32-bit input calculations and enables implementing complex functions, such as sigmoid, exponential, reciprocal etc.    
-SFPU requires operands to be stored inside the Destination register. That means that, before the SFPU starts executing the instructions, the data needs to be copied from Source A/B to the Destination register through FPU, or directly unpacked to Destination register from L1 memory using Unpacker 0. The results produced within SFPU calculations are also stored in the Destination register.   
-SFPU is instantiated within FPU, meaning that the same processors used for issuing FPU instructions (TRISC1) should be in charge of issuing SFPU instructions. 
+In cases where the programmer needs special operations that FPU cannot perform, they can opt to use SFPU. It can be thought of as a SIMD engine, meaning that it performs the same operation on multiple data points simultaneously. Compute SFPU can be used to perform 32-bit input calculations and enables implementing complex functions, such as sigmoid, exponential, reciprocal etc.
+SFPU requires operands to be stored inside the Destination register. That means that, before the SFPU starts executing the instructions, the data needs to be copied from Source A/B to the Destination register through FPU, or directly unpacked to Destination register from L1 memory using Unpacker 0. The results produced within SFPU calculations are also stored in the Destination register.
+SFPU is instantiated within FPU, meaning that the same processors used for issuing FPU instructions (TRISC1) should be in charge of issuing SFPU instructions.
 
 ## Packer
 
@@ -164,4 +164,3 @@ Table 3 contains all pack operations currently implemented for Tensix:
 | :---: | ----- |
 | `llk_pack.h` | Packs a tile from the Destination register to L1 in tile layout. |
 | `llk_pack_untilize.h` | Packs a tile from the Destination register to L1 in row-major layout. |
-
