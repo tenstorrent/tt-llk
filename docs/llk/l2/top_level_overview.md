@@ -9,7 +9,7 @@ Low-Level Kernels (LLKs) form the foundational layer in the Tenstorrent software
 Tenstorrent chips consist of a matrix of Tensix Cores. Figure 1 represents the top level of the Tensix Core:
 
 <p align="center">
-  <img src="docs/common/_static/tensix_core.png" alt="Top-level diagram of Tensix Core" width="600" /><br/>
+  <img src="images/tensix_core.png" alt="Top-level diagram of Tensix Core" width="600" /><br/>
   Figure 1: Top-level diagram of Tensix Core
 </p>
 
@@ -30,14 +30,14 @@ The Tensix Engine is a multi-threaded, single-issue, in-order processor with a c
 
 Figure 2 represents a simplified top-level architecture of the Tensix Engine:
 <p align="center">
-  <img src="docs/common/_static/tensix_engine.png" alt="Top-level architecture of Tensix Engine" width="500" /><br/>
+  <img src="images/tensix_engine.png" alt="Top-level architecture of Tensix Engine" width="500" /><br/>
   Figure 2: Top-level architecture of Tensix Engine
 </p>
 
 
 Figure 3 shows circular data flow. Inputs arrive in L1 and are unpacked into source registers for processing by the FPU. After the FPU processes the data, it is written into the destination register, then written into L1 (packing).
 <p align="center">
-  <img src="docs/common/_static/tensix_core_data_flow.png" alt="Top-level architecture of Tensix Engine" width="400" /><br/>
+  <img src="images/tensix_core_data_flow.png" alt="Top-level architecture of Tensix Engine" width="400" /><br/>
   Figure 3: Data flow inside Tensix Core
 </p>
 
@@ -46,7 +46,7 @@ Figure 3 shows circular data flow. Inputs arrive in L1 and are unpacked into sou
 When talking about the input, each element of the tensor is referred to as *datum*. Figure 4 represents an example of a 32x64 input tensor, where each square represents a single datum.
 
 <p align="center">
-  <img src="docs/common/_static/input_tensor_example.png" alt="An example of 32x64 input tensor" width="400" /><br/>
+  <img src="images/input_tensor_example.png" alt="An example of 32x64 input tensor" width="400" /><br/>
   Figure 4: "An example of 32x64 input tensor"
 </p>
 
@@ -58,14 +58,14 @@ There are two ways to store the input tensors in the L1 memory:
 Row-major order is the “natural” order of storing data; it is stored row by row regardless of size.
 
 <p align="center">
-  <img src="docs/common/_static/row_major_order.png" alt="Row-major order" width="400" /><br/>
+  <img src="images/row_major_order.png" alt="Row-major order" width="400" /><br/>
   Figure 5: Row-major order of input data
 </p>
 
 However, for LLKs to work efficiently, the input data must be divided into tiles of 32x32 data values. The tile order requires the data to be further divided into four faces, with each face being 16x16 data values. The data is stored row by row for each face, from F0 to F3. LLKs ensure that data is properly transformed into the tile order before performing calculations.
 
 <p align="center">
-  <img src="docs/common/_static/tile_order_example.png" alt="Tile order" width="400" /><br/>
+  <img src="images/tile_order_example.png" alt="Tile order" width="400" /><br/>
   Figure 6: Tile order of input data
 </p>
 
@@ -80,7 +80,7 @@ Another important concept is [math fidelity](https://docs.tenstorrent.com/pybuda
 The Unpacker is a DMA engine, used to move data between L1 memory and source operand registers. Tensix architectures feature two unpackers, one for each operand in the operation. Unpacker 0 is connected to Source A register, while unpacker 1 is connected to Source B register. Additionally, Unpacker 0 is able to unpack the data directly into the Destination register.
 
 <p align="center">
-  <img src="docs/common/_static/unpack_top_level.png" alt="Unpackers" width="400" /><br/>
+  <img src="images/unpack_top_level.png" alt="Unpackers" width="400" /><br/>
   Figure 7: Unpackers
 </p>
 
@@ -96,7 +96,7 @@ Source registers are organized as two-dimensional structures. Each source regist
 Floating Point Unit is the main math engine used to perform most operations inside the Tensix Core.
 
 <p align="center">
-  <img src="docs/common/_static/fpu_cell.png" alt="FPU" width="400" /><br/>
+  <img src="images/fpu_cell.png" alt="FPU" width="400" /><br/>
   Figure 8: Floating Point Unit
 </p>
 
