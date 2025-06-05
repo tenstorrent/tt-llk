@@ -68,7 +68,6 @@ def test_unpack_untilze(testname, formats):
     test_config = {
         "formats": formats,
         "testname": testname,
-        "unpack_to_dest": False,
     }
 
     make_cmd = generate_make_command(test_config)
