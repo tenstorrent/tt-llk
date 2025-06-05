@@ -14,7 +14,6 @@ from helpers.format_arg_mapping import (
     DestAccumulation,
     MathFidelity,
     MathOperation,
-    TileCount,
     format_dict,
 )
 from helpers.format_config import DataFormat
@@ -27,7 +26,7 @@ from helpers.param_config import (
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import tilize
-from helpers.utils import compare_pcc, run_shell_command
+from helpers.utils import passed_test, run_shell_command
 
 
 def generate_golden(op, operand1, operand2, data_format, math_fidelity):
@@ -98,7 +97,7 @@ all_params = generate_params(
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     math_fidelity=[MathFidelity.HiFi4],
-    tile_cnt=[TileCount.One],
+    tile_cnt=1,
 )
 param_ids = generate_param_ids(all_params)
 
@@ -141,7 +140,7 @@ def test_tilize_calculate_untilize_L1(
 
     res_from_L1 = collect_results(
         formats, tensor_size=len(src_A), address=buffer_dest_address
-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(
@@ -153,17 +152,4 @@ def test_tilize_calculate_untilize_L1(
         ),
     )
 
-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
-        atol = 0.1
-        rtol = 0.05
-    elif formats.output_format == DataFormat.Bfp8_b:
-        atol = 0.1
-        rtol = 0.2
-
-    for i in range(len(golden_tensor)):
-        assert torch.isclose(
-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
-
-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.98
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
