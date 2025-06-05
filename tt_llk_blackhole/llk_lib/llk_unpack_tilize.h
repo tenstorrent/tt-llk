@@ -43,7 +43,7 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const
     tmp.program(instrn_buffer);
 }
 
-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
+template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_tilize_hw_configure_(
     const std::uint32_t unpack_src_format,
     const std::uint32_t unpack_dst_format,
