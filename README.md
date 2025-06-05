@@ -10,8 +10,8 @@
 <br><br>
 **TT-LLK** is Tenstorrent's Low Level Kernel library.
 
-[![C++](https://img.shields.io/badge/C++-20-green.svg)](#)
-[![Python](https://img.shields.io/badge/python-3.8%20|%203.10-green.svg)](#)
+[![C++](https://img.shields.io/badge/C++-17-green.svg)](#)
+[![Python](https://img.shields.io/badge/python-3.10-green.svg)](#)
 </div>
 
 ## Overview ##
