@@ -96,9 +96,7 @@ def test_all(testname, formats, dest_acc, mathop):
     golden = generate_golden(mathop, src_A, src_B, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
-    unpack_to_dest = False
-    if formats.input_format == DataFormat.Float32:
-        unpack_to_dest = True
+    unpack_to_dest = formats.input_format == DataFormat.Float32
 
     test_config = {
         "formats": formats,
