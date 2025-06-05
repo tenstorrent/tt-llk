@@ -8,10 +8,10 @@ Low-Level Kernels (LLKs) form the foundational layer in the Tenstorrent software
 
 Tenstorrent chips consist of a matrix of Tensix Cores. Figure 1 represents the top level of the Tensix Core:
 
-<p align="center">
+<div align="center">
   <img src="images/tensix_core.png" alt="Top-level diagram of Tensix Core" width="600" /><br/>
-  Figure 1: Top-level diagram of Tensix Core
-</p>
+  <em>Figure 1: Top-level diagram of Tensix Core</em>
+</div>
 
 Figure 1 consists of 4 major parts:
 
@@ -29,26 +29,26 @@ The main tasks that LLKs perform rely on transferring data to and from L1 memory
 The Tensix Engine is a multi-threaded, single-issue, in-order processor with a custom instruction set (Tensix ISA). It has three threads, controlled from three different instruction streams, one from each TRISC.
 
 Figure 2 represents a simplified top-level architecture of the Tensix Engine:
-<p align="center">
+<div align="center">
   <img src="images/tensix_engine.png" alt="Top-level architecture of Tensix Engine" width="500" /><br/>
-  Figure 2: Top-level architecture of Tensix Engine
-</p>
+  <em>Figure 2: Top-level architecture of Tensix Engine</em>
+</div>
 
 
 Figure 3 shows circular data flow. Inputs arrive in L1 and are unpacked into source registers for processing by the FPU. After the FPU processes the data, it is written into the destination register, then written into L1 (packing).
-<p align="center">
+<div align="center">
   <img src="images/tensix_core_data_flow.png" alt="Top-level architecture of Tensix Engine" width="400" /><br/>
-  Figure 3: Data flow inside Tensix Core
-</p>
+  <em>Figure 3: Data flow inside Tensix Core</em>
+</div>
 
 ## Inputs
 
 When talking about the input, each element of the tensor is referred to as *datum*. Figure 4 represents an example of a 32x64 input tensor, where each square represents a single datum.
 
-<p align="center">
+<div align="center">
   <img src="images/input_tensor_example.png" alt="An example of 32x64 input tensor" width="400" /><br/>
-  Figure 4: "An example of 32x64 input tensor"
-</p>
+  <em>Figure 4: "An example of 32x64 input tensor"</em>
+</div>
 
 There are two ways to store the input tensors in the L1 memory:
 
@@ -57,17 +57,17 @@ There are two ways to store the input tensors in the L1 memory:
 
 Row-major order is the “natural” order of storing data; it is stored row by row regardless of size.
 
-<p align="center">
+<div align="center">
   <img src="images/row_major_order.png" alt="Row-major order" width="400" /><br/>
-  Figure 5: Row-major order of input data
-</p>
+  <em>Figure 5: Row-major order of input data</em>
+</div>
 
 However, for LLKs to work efficiently, the input data must be divided into tiles of 32x32 data values. The tile order requires the data to be further divided into four faces, with each face being 16x16 data values. The data is stored row by row for each face, from F0 to F3. LLKs ensure that data is properly transformed into the tile order before performing calculations.
 
-<p align="center">
+<div align="center">
   <img src="images/tile_order_example.png" alt="Tile order" width="400" /><br/>
-  Figure 6: Tile order of input data
-</p>
+  <em>Figure 6: Tile order of input data</em>
+</div>
 
 ## Data formats
 
@@ -79,10 +79,10 @@ Another important concept is [math fidelity](https://docs.tenstorrent.com/pybuda
 
 The Unpacker is a DMA engine, used to move data between L1 memory and source operand registers. Tensix architectures feature two unpackers, one for each operand in the operation. Unpacker 0 is connected to Source A register, while unpacker 1 is connected to Source B register. Additionally, Unpacker 0 is able to unpack the data directly into the Destination register.
 
-<p align="center">
+<div align="center">
   <img src="images/unpack_top_level.png" alt="Unpackers" width="400" /><br/>
-  Figure 7: Unpackers
-</p>
+  <em>Figure 7: Unpackers</em>
+</div>
 
 Unpackers contain hardware support for data format adjustments, called gaskets, enabling data type conversion without software overhead.
 A designated set of instructions for controlling the unpackers is issued by TRISC0.
@@ -95,10 +95,10 @@ Source registers are organized as two-dimensional structures. Each source regist
 
 Floating Point Unit is the main math engine used to perform most operations inside the Tensix Core.
 
-<p align="center">
+<div align="center">
   <img src="images/fpu_cell.png" alt="FPU" width="400" /><br/>
-  Figure 8: Floating Point Unit
-</p>
+  <em>Figure 8: Floating Point Unit</em>
+</div>
 
 The FPU takes operands from Source A and Source B operands, and writes the result of the operation inside the Destination register. It is organized as a matrix of FPU cells \- multifunctional units consisting of multipliers and adders, accompanied by accumulators in Destination register.
 Each FPU cell can perform three functions:
