@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+
+from dataclasses import dataclass
+from enum import Enum
+from statistics import mean, variance
+
+from helpers.device import run_elf_files, wait_for_tensix_operations_finished
+from helpers.profiler import Profiler, build_with_profiler
+
+
+@dataclass
+class PerfZone:
+    start: int
+    end: int
+    duration: int
+
+
+@dataclass
+class PerfThreadData:
+    init: PerfZone
+    tile_loop: PerfZone
+    kernel: PerfZone = None
+
+
+@dataclass
+class PerfData:
+    unpack: PerfThreadData
+    math: PerfThreadData
+    pack: PerfThreadData
+
+
+def _parse_thread(thread_data) -> PerfThreadData:
+    zones = {}
+    markers = {"init", "tile_loop"}
+
+    for entry in thread_data:
+        marker = entry.full_marker.marker.lower()
+        if marker in markers:
+            zones[marker] = PerfZone(
+                start=entry.start, end=entry.end, duration=entry.duration
+            )
+
+    if len(zones) < len(markers):
+        missing = markers - zones.keys()
+        raise AssertionError(
+            f"Missing zones after perf run: {', '.join(sorted(missing))}"
+        )
+
+    return PerfThreadData(**zones)
+
+
+def process_profiler_data(profiler_data) -> PerfData:
+    return PerfData(
+        unpack=_parse_thread(profiler_data.unpack),
+        math=_parse_thread(profiler_data.math),
+        pack=_parse_thread(profiler_data.pack),
+    )
+
+
+def timing_l1_to_l1(perf_data: PerfData) -> int:
+    """Time to perform the whole operation (compute)"""
+    return (perf_data.pack.tile_loop.end - perf_data.unpack.tile_loop.start,)
+
+
+def timing_unpack(perf_data: PerfData) -> int:
+    return (perf_data.unpack.tile_loop.duration,)
+
+
+def timing_math(perf_data: PerfData) -> int:
+    return (perf_data.math.tile_loop.duration,)
+
+
+def timing_pack(perf_data: PerfData) -> int:
+    return (perf_data.math.tile_loop.duration,)
+
+
+def timing_l1_congestion(perf_data: PerfData) -> int:
+    return (
+        perf_data.unpack.tile_loop.duration,
+        perf_data.pack.tile_loop.duration,
+    )
+
+
+RUN_COUNT = 8
+
+
+def _build_l1_to_l1(test_config):
+    return build_with_profiler(test_config)
+
+
+def process_runs(runs, test_config):
+    tile_cnt = test_config.get("tile_cnt", 1)
+
+    return tuple(
+        {
+            "mean": mean(column) / tile_cnt,
+            "variance": variance(column) / (tile_cnt * tile_cnt),
+        }
+        for column in zip(*runs)
+    )
+
+
+class PerfRunType(Enum):
+    L1_TO_L1 = 1
+    UNPACK_ISOLATE = 2
+    MATH_ISOLATE = 3
+    PACK_ISOLATE = 4
+    L1_CONGESTION = 5
+
+
+def perf_benchmark(test_config, run_types: list[PerfRunType]):
+    # todo: support all types of runs
+    SUPPORTED_RUNS = {PerfRunType.L1_TO_L1}
+
+    results = {}
+
+    build = {PerfRunType.L1_TO_L1: _build_l1_to_l1}
+
+    get_timing = {PerfRunType.L1_TO_L1: timing_l1_to_l1}
+
+    for type in run_types:
+        assert type in SUPPORTED_RUNS, f"ERROR: run_type={type} not implemented"
+
+        profiler_meta = build[type](test_config)
+
+        runs = []
+        for _ in range(RUN_COUNT):
+            run_elf_files(test_config["testname"])
+            wait_for_tensix_operations_finished()
+
+            profiler_data = Profiler.get_data(profiler_meta)
+            perf_data = process_profiler_data(profiler_data)
+
+            runs.append(get_timing[type](perf_data))
+
+        results[type] = process_runs(runs, test_config)
+
+    return results
