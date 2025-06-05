@@ -75,9 +75,9 @@ void run_kernel()
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<UNTILIIZE, is_fp32_dest_acc_en, TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE, TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
     _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(PACK_OUT);
-    _llk_pack_dest_init_<DstSync::SyncHalf, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
     _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
