@@ -9,7 +9,11 @@
 #pragma once
 
 #define TT_OP(opcode, params) ((opcode << 24) + params)
+#define NOP asm volatile("nop")
 #define INSTRUCTION_WORD(x)   __asm__ __volatile__(".ttinsn %0" : : "i"((x))) // Swizzle 32 bits into the instruction stream.
+#define INSTRUCTION_WORD_(x)   do {INSTRUCTION_WORD(x); NOP;} while(0)
+#define _INSTRUCTION_WORD(x)   do {NOP; INSTRUCTION_WORD(x);} while(0)
+#define _INSTRUCTION_WORD_(x)   do {NOP; INSTRUCTION_WORD(x); NOP;} while(0)
 
 #define TT_OP_ADDDMAREG(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
     TT_OP(0x58, (((OpBisConst) << 23) + ((ResultRegIndex) << 12) + ((OpBRegIndex) << 6) + ((OpARegIndex) << 0)))
@@ -475,7 +479,7 @@
 #define TT_SEMWAIT_VALID(stall_res, sem_sel, wait_sem_cond) \
     (ckernel::is_valid(stall_res, 9) && ckernel::is_valid(sem_sel, 13) && ckernel::is_valid(wait_sem_cond, 2))
 #define TT_SEMWAIT(stall_res, sem_sel, wait_sem_cond)  ckernel::instrn_buffer[0] = TT_OP_SEMWAIT(stall_res, sem_sel, wait_sem_cond)
-#define TTI_SEMWAIT(stall_res, sem_sel, wait_sem_cond) INSTRUCTION_WORD(TT_OP_SEMWAIT(stall_res, sem_sel, wait_sem_cond))
+#define TTI_SEMWAIT(stall_res, sem_sel, wait_sem_cond) _INSTRUCTION_WORD_(TT_OP_SEMWAIT(stall_res, sem_sel, wait_sem_cond))
 
 #define TT_OP_SETADC(CntSetMask, ChannelIndex, DimensionIndex, Value) \
     TT_OP(0x50, (((CntSetMask) << 21) + ((ChannelIndex) << 20) + ((DimensionIndex) << 18) + ((Value) << 0)))
@@ -881,7 +885,7 @@
 #define TT_OP_STALLWAIT(stall_res, wait_res)    TT_OP(0xa2, (((stall_res) << 15) + ((wait_res) << 0)))
 #define TT_STALLWAIT_VALID(stall_res, wait_res) (ckernel::is_valid(stall_res, 9) && ckernel::is_valid(wait_res, 15))
 #define TT_STALLWAIT(stall_res, wait_res)       ckernel::instrn_buffer[0] = TT_OP_STALLWAIT(stall_res, wait_res)
-#define TTI_STALLWAIT(stall_res, wait_res)      INSTRUCTION_WORD(TT_OP_STALLWAIT(stall_res, wait_res))
+#define TTI_STALLWAIT(stall_res, wait_res)      _INSTRUCTION_WORD_(TT_OP_STALLWAIT(stall_res, wait_res))
 
 #define TT_OP_STOREIND(MemHierSel, SizeSel, RegSizeSel, OffsetIndex, AutoIncSpec, DataRegIndex, AddrRegIndex)                                      \
     TT_OP(                                                                                                                                         \
