@@ -123,3 +123,39 @@ def compare_pcc(golden, calculated, pcc=0.99):
         return True, 1.0
 
     return cal_pcc >= pcc, cal_pcc
+
+
+def get_tolerance(output_data_format):
+    if output_data_format in [
+        DataFormat.Float16,
+        DataFormat.Float16_b,
+        DataFormat.Float32,
+        DataFormat.Int32,
+    ]:
+        atol = 0.05
+        rtol = 0.05
+    elif output_data_format == DataFormat.Bfp8_b:
+        atol = 0.1
+        rtol = 0.2
+    else:
+        raise ValueError(f"Unsupported output data format: {output_data_format}")
+
+    return atol, rtol
+
+
+def passed_test(golden_tensor, res_tensor, output_format=DataFormat.Float16_b):
+    atol, rtol = get_tolerance(output_format)
+
+    tolerance_check = True
+
+    for i in range(len(golden_tensor)):
+        if not torch.isclose(golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol):
+            tolerance_check = False
+            print(
+                f"Failed at index {i} with values {golden_tensor[i]} and {res_tensor[i]}"
+            )
+            break
+
+    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+
+    return tolerance_check and (pcc > 0.99)

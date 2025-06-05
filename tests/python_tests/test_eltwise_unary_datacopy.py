@@ -20,7 +20,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
-from helpers.utils import compare_pcc, run_shell_command
+from helpers.utils import passed_test, run_shell_command
 
 
 def generate_golden(operand1, format):
@@ -70,11 +70,17 @@ def test_unary_datacopy(testname, formats, dest_acc):
     golden = generate_golden(src_A, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
+    unpack_to_dest = False
+    if (
+        formats.input_format == DataFormat.Float32
+    ):  # if copying from Float32 -> unpack to dest
+        unpack_to_dest = True
+
     test_config = {
         "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
-        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+        "unpack_to_dest": unpack_to_dest,  # This test does a datacopy and unpacks input into dest register
     }
 
     make_cmd = generate_make_command(test_config)
@@ -121,10 +127,4 @@ def test_unary_datacopy(testname, formats, dest_acc):
         ),
     )
 
-    for i in range(len(golden)):
-        assert torch.isclose(
-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
-
-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.99
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
