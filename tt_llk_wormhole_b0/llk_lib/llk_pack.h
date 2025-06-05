@@ -374,36 +374,31 @@ inline void _llk_pack_fast_tilize_uninit_(
         pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t block_dim)
+inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, std::uint32_t address, const std::uint32_t block_dim)
 {
+    uint z_stride_ch1 = 68;
     TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b1010);
     TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address, false);
+    address += z_stride_ch1;
 
-    // for (uint i = 0; i < block_dim / 2; i++)
-    // {
-    //     for (uint j = 0; j < 15; j++)
-    //     {
-    //         TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
-    //     }
-    //     TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1);
-    //     TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-    //     TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
-    //     // TTI_NOP;
-    //     TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::ALL_THREAD_RES);
-    //     for (uint j = 0; j < 15; j++)
-    //     {
-    //         TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
-    //     }
-    //     TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 0, 1);
-    //     TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 1);
-    //     TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-    //     TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::OUTPUT_ADDR);
-    //     // TTI_NOP;
-    //     TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::ALL_THREAD_RES);
-    // }
-
-    TTI_MOP(0, block_dim - 1, 0xAAAA); // block dim must be even
+    // Pack a BFP8 tile
+    for (uint j = 0; j < 15; j++)
+    {
+        TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    }
+    // Move l1 address to the next tile
+    TT_SETDMAREG(0, LOWER_HALFWORD(address), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
+    TT_SETDMAREG(0, UPPER_HALFWORD(address | 0x8000'0000), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, p_cfg::WRCFG_32b, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+    // Last pack in the first tile
+    TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 0, 1);
+    // Pack the next BFP8 tile, with the new address
+    for (uint j = 0; j < 15; j++)
+    {
+        TTI_PACR(ADDR_MOD_0, 0, 0xf, 0, 0, 0, 0);
+    }
+    TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 0, 1);
 }
