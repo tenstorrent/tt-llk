@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <limits>
+
 #include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_log.h"
 #include "ckernel_sfpu_recip.h"
@@ -104,6 +106,7 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
 template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 8>
 inline void _calculate_sfpu_binary_(const uint dst_offset)
 {
+    static constexpr float nan = std::numeric_limits<float>::quiet_NaN();
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
@@ -159,7 +162,6 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
         }
         else if constexpr (BINOP == BinaryOp::XLOGY)
         {
-            sfpi::vFloat nan = std::numeric_limits<float>::quiet_NaN();
             v_if ((in1 < 0.0f) || (in1 == nan))
             {
                 result = nan;
@@ -168,8 +170,7 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
             {
                 sfpi::dst_reg[0] = in1;
                 _calculate_log_body_<false>(0);
-                in1    = sfpi::dst_reg[0];
-                result = in1 * in0;
+                result = sfpi::dst_reg[0] * in0;
             }
             v_endif;
         }
