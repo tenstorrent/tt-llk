@@ -112,7 +112,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         "math_fidelity": math_fidelity,
     }
 
-    write_build_header(test_config, "helpers/include/build.h")
+    write_build_header(test_config)
     make_cmd = generate_make_command(test_config)
     run_shell_command(f"cd .. && {make_cmd}")
 

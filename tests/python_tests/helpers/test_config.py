@@ -124,8 +124,8 @@ def generate_build_header(
 
 def write_build_header(
     test_config,
-    output_path="helpers/include/build.h",
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    output_path="../../helpers/include/build.h",
 ):
     """Write build.h file to the specified path"""
     header_content = generate_build_header(test_config, profiler_build)
