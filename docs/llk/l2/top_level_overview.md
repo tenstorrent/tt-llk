@@ -15,18 +15,18 @@ Tenstorrent chips are architected as a matrix of Tensix Cores. Figure 1 shows th
 
 Figure 1 consists of four major parts:
 
-1. Internal SRAM (L1) Memory - Stores input/output tensors and program code for all RISC-V processors within the core.
-2. Network-On-Chip (NoC) - Manages data movement between Tensix Cores and DRAM across the chip.
-3. 5 RISC-V Processors -
-   * NCRISC and BRISC - Communicate with the NOC for board setup.
-   * TRISCs - Responsible for controlling the Tensix Engine by issuing custom Tensix instructions.
-4. Tensix Engine - Hardware block controlled by the TRISC processors, responsible for efficient matrix calculations (essential part of AI/ML operations).
+1. Internal SRAM (L1) Memory - Stores input/output tensors and program code for all RISC-V processors within the core;
+2. Network-On-Chip (NoC) - Manages data movement between Tensix Cores and DRAM across the chip;
+3. Five RISC-V Processors -
+   * NCRISC and BRISC - Handle NOC communication for board setup;
+   * TRISCs - Control the Tensix Engine through specialized Tensix instructions;
+4. Tensix Engine - Hardware accelerator controlled by TRISC processors, optimized for matrix computations essential to AI/ML operations.
 
-The main tasks that LLKs perform rely on transferring data to and from L1 memory, and programming Tensix engine to perform different operations on the data that is stored in it.
+LLKs primarily operate by transferring data to and from L1 memory, and programming the Tensix Engine to perform various operations on the stored data.
 
 ## Tensix Engine
 
-The Tensix Engine is a multi-threaded, single-issue, in-order processor with a custom instruction set (Tensix ISA). It has three threads, controlled from three different instruction streams, one from each TRISC.
+The Tensix Engine is a multi-threaded, single-issue, in-order processor with a custom instruction set architecture (Tensix ISA). It operates with three concurrent threads, each controlled by a dedicated TRISC processor through its own instruction stream.
 
 Figure 2 represents a simplified top-level architecture of the Tensix Engine:
 <div align="center">
@@ -35,7 +35,14 @@ Figure 2 represents a simplified top-level architecture of the Tensix Engine:
 </div>
 
 
-Figure 3 shows circular data flow. Inputs arrive in L1 and are unpacked into source registers for processing by the FPU. After the FPU processes the data, it is written into the destination register, then written into L1 (packing).
+Figure 3 illustrates the circular data flow within the Tensix Engine:
+1. Input data arrives in L1 memory;
+2. Data is unpacked into source registers;
+3. FPU processes data from source registers;
+4. Results are written to destination registers;
+5. Processed data is packed and written back to L1 memory.
+
+
 <div align="center">
   <img src="images/tensix_core_data_flow.png" alt="Top-level architecture of Tensix Engine" width="400" /><br/>
   <em>Figure 3: Data flow inside Tensix Core</em>
@@ -43,76 +50,98 @@ Figure 3 shows circular data flow. Inputs arrive in L1 and are unpacked into sou
 
 ## Inputs
 
-When talking about the input, each element of the tensor is referred to as *datum*. Figure 4 represents an example of a 32x64 input tensor, where each square represents a single datum.
+When describing input tensors, each individual element is referred to as a *datum*. Figure 4 shows an example of a 32x64 input tensor, where each square represents a single datum.
 
 <div align="center">
-  <img src="images/input_tensor_example.png" alt="An example of 32x64 input tensor" width="400" /><br/>
-  <em>Figure 4: "An example of 32x64 input tensor"</em>
+  <img src="images/input_tensor_example.png" alt="An example of 32x64 input tensor" width="500" /><br/>
+  <em>Figure 4: An example of 32x64 input tensor</em>
 </div>
 
-There are two ways to store the input tensors in the L1 memory:
+Input tensors can be stored in L1 memory using two formats:
 
-1. Row-major order;
-2. Tile order.
+1. Row-major order - Data is stored sequentially row by row, the conventional format for tensor storage;
+2. Tile order - A specialized storage format optimized for Tensix operations.
 
-Row-major order is the “natural” order of storing data; it is stored row by row regardless of size.
+Row-major order follows the standard linear memory layout, where elements are stored consecutively row by row regardless of tensor dimensions.
 
 <div align="center">
-  <img src="images/row_major_order.png" alt="Row-major order" width="400" /><br/>
+  <img src="images/row_major_order.png" alt="Row-major order" width="500" /><br/>
   <em>Figure 5: Row-major order of input data</em>
 </div>
 
-However, for LLKs to work efficiently, the input data must be divided into tiles of 32x32 data values. The tile order requires the data to be further divided into four faces, with each face being 16x16 data values. The data is stored row by row for each face, from F0 to F3. LLKs ensure that data is properly transformed into the tile order before performing calculations.
+For optimal LLK performance, input data must be organized into 32x32 tiles. Each tile is further subdivided into four 16x16 faces (F0-F3). Within each face, data is stored in row-major order. LLKs handle the transformation of input data into tile order before performing computations.
 
 <div align="center">
-  <img src="images/tile_order_example.png" alt="Tile order" width="400" /><br/>
+  <img src="images/tile_order_example.png" alt="Tile order" width="500" /><br/>
   <em>Figure 6: Tile order of input data</em>
 </div>
 
 ## Data formats
 
-Input and output tensors can be stored using different formats, allowing the programmer to choose the smallest precision that fits their application. For the full list of available formats, please refer to [the official data format table](https://docs.tenstorrent.com/pybuda/latest/dataformats.html). Note that not all parts of the Tensix Core support all of the available data formats. However, all the data formats can be stored in the L1 memory. When being unpacked, only a subset of the formats are available.
+Input and output tensors support multiple storage formats, enabling developers to select the optimal precision for their application. The complete list of supported formats is available in [the official data format table](https://docs.tenstorrent.com/pybuda/latest/dataformats.html).
 
-Another important concept is [math fidelity](https://docs.tenstorrent.com/pybuda/latest/dataformats.html). Depending on the data format, it can take multiple phases of multiplication to achieve full accuracy of the result. Therefore, programmers can choose how many fidelity phases are enough for their specific application. Tensix Cores provide up to four fidelity phases for all data formats.
+Important considerations:
+- All formats can be stored in L1 memory;
+- Only a subset of formats are supported during unpacking operations;
+- Different components of the Tensix Core have varying format support.
+
+[Math fidelity](https://docs.tenstorrent.com/pybuda/latest/dataformats.html) is a key concept in achieving computational accuracy. Multiple multiplication phases may be required to reach full precision, depending on the data format used. Tensix Cores support up to four fidelity phases for all data formats, allowing developers to balance accuracy requirements with performance for their specific application
 
 ## Unpacker
 
-The Unpacker is a DMA engine, used to move data between L1 memory and source operand registers. Tensix architectures feature two unpackers, one for each operand in the operation. Unpacker 0 is connected to Source A register, while unpacker 1 is connected to Source B register. Additionally, Unpacker 0 is able to unpack the data directly into the Destination register.
+The Unpacker is a DMA engine that transfers data between L1 memory and source operand registers. The Tensix architecture implements two unpackers:
+- Unpacker 0: Connected to Source A register and Destination register
+- Unpacker 1: Connected to Source B register
 
 <div align="center">
-  <img src="images/unpack_top_level.png" alt="Unpackers" width="400" /><br/>
+  <img src="images/unpack_top_level.png" alt="Unpackers" width="400"/>
+  <br/>
   <em>Figure 7: Unpackers</em>
 </div>
 
-Unpackers contain hardware support for data format adjustments, called gaskets, enabling data type conversion without software overhead.
-A designated set of instructions for controlling the unpackers is issued by TRISC0.
+Unpackers feature hardware-accelerated data format conversion through specialized components called gaskets, eliminating software overhead. TRISC0 controls both unpackers through a dedicated instruction set.
 
 ## Source Operand Register files (Source A and Source B)
 
-Source registers are organized as two-dimensional structures. Each source register is designed to hold one tile. Source registers store the data produced by the unpackers. In order to achieve high-throughput and retain the pipelined execution, source registers are double-buffered.
+Source registers are two-dimensional structures designed to hold one tile of data each. Key characteristics:
+
+- Store unpacked data from their respective unpackers;
+- Implement double-buffering to maintain high throughput;
+- Support pipelined execution through parallel buffer access.
 
 ## Floating Point Unit (FPU)
 
-Floating Point Unit is the main math engine used to perform most operations inside the Tensix Core.
+The Floating Point Unit (FPU) serves as the primary computational engine within the Tensix Core, executing the majority of mathematical operations.
 
 <div align="center">
   <img src="images/fpu_cell.png" alt="FPU" width="400" /><br/>
   <em>Figure 8: Floating Point Unit</em>
 </div>
 
-The FPU takes operands from Source A and Source B operands, and writes the result of the operation inside the Destination register. It is organized as a matrix of FPU cells \- multifunctional units consisting of multipliers and adders, accompanied by accumulators in Destination register.
-Each FPU cell can perform three functions:
+The FPU operates on data from Source A and Source B registers, storing results in the Destination register. It is architected as a matrix of FPU cells - multifunctional units that combine multipliers and adders, working with accumulators in the Destination register.
+Each FPU cell supports three operations:
 
-1. Accumulated dot product;
-2. Accumulated element-wise addition;
-3. Element-wise addition;
+1. Accumulated dot product
+2. Accumulated element-wise addition
+3. Element-wise addition
 
-The FPU, like all the other parts of the Tensix Engine, has a designated set of Tensix instructions. The instructions are issued by the TRISC1.
+The FPU is controlled through a dedicated set of Tensix instructions issued by TRISC1.
 
 ## Special FPU (SFPU)
 
-In cases where the programmer needs special operations that FPU cannot perform, they can opt to use SFPU. It can be thought of as a SIMD engine, meaning that it performs the same operation on multiple data points simultaneously. Compute SFPU can be used to perform 32-bit input calculations and enables implementing complex functions, such as sigmoid, exponential, reciprocal etc.
-SFPU requires operands to be stored inside the Destination register. That means that, before the SFPU starts executing the instructions, the data needs to be copied from Source A/B to the Destination register through FPU, or directly unpacked to Destination register from L1 memory using Unpacker 0. The results produced within SFPU calculations are also stored in the Destination register.
+SFPU provides specialized operations beyond FPU capabilities. As a SIMD engine, it executes identical operations on multiple data points in parallel. The Compute SFPU supports:
+
+- 32-bit input calculations
+- Complex mathematical functions (sigmoid, exponential, reciprocal, etc.)
+
+SFPU data flow requirements:
+
+- Input operands must reside in the Destination register;
+- Data can be moved to Destination register through:
+  - FPU transfer from Source A/B registers;
+  - Direct unpacking from L1 memory via Unpacker 0;
+- Results are stored back in the Destination register.
+
 SFPU is instantiated within FPU, meaning that the same processors used for issuing FPU instructions (TRISC1) should be in charge of issuing SFPU instructions.
 
 ## Packer
