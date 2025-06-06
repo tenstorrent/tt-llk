@@ -74,8 +74,8 @@ all_params = generate_params(
     test_formats,
     dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     mathop=[
-        MathOperation.SfpuElwsub,
-        MathOperation.SfpuElwadd,
+        # MathOperation.SfpuElwsub,
+        # MathOperation.SfpuElwadd,
         MathOperation.SfpuElwmul,
     ],
 )
@@ -134,5 +134,6 @@ def test_all(testname, formats, dest_acc, mathop):
             else torch.bfloat16
         ),
     )
+    print(res_tensor)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

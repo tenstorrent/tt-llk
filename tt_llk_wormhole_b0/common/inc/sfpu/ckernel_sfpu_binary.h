@@ -121,7 +121,14 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
         }
         else if constexpr (BINOP == BinaryOp::MUL)
         {
-            result = in0 * in1;
+            sfpi::vFloat four = 4.0f;
+            sfpi::vFloat five = 5.0f;
+            result            = 44;
+            v_if (four < five)
+            {
+                result = 55;
+            }
+            v_endif;
         }
         else if constexpr (BINOP == BinaryOp::DIV)
         {
