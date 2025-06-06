@@ -307,13 +307,8 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
-#if 0
                                 // working
-                                TTI_REPLAY(16, 5, 0, 0);
-#else
-                                // not working
-                                __builtin_rvtt_ttreplay(16, 5, 0, 0);
-#endif
+                                lltt::replay(16, 5);
                             }
                             if (init_store)
                             {
@@ -323,7 +318,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
-                                TTI_REPLAY(8, 8, 0, 0);
+                                lltt::replay(8, 8);
                             }
                         }
                         break;
@@ -331,7 +326,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         for (int d = 0; d < 4; d++)
                         {
                             // Groups of 16 datums being sorted at the same time
-                            TTI_REPLAY(0, 8, 0, 0);
+                            lltt::replay(0, 8);
                             if (init_phase)
                             {
                                 lltt::record<true>(16, 6);
@@ -340,15 +335,15 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
-                                TTI_REPLAY(16, 6, 0, 0);
+                                lltt::replay(16, 6);
                             }
-                            TTI_REPLAY(8, 8, 0, 0);
+                            lltt::replay(8, 8);
                         }
                         break;
                     case 2:
                         for (int d = 0; d < 4; d++)
                         {
-                            TTI_REPLAY(0, 8, 0, 0);
+                            lltt::replay(0, 8);
                             if (init_phase)
                             {
                                 lltt::record<true>(16, 9);
@@ -357,17 +352,17 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             }
                             else
                             {
-                                TTI_REPLAY(16, 9, 0, 0);
+                                lltt::replay(16, 9);
                             }
-                            TTI_REPLAY(8, 8, 0, 0);
+                            lltt::replay(8, 8);
                         }
                         break;
                     case 3:
                         for (int d = 0; d < 4; d++)
                         {
-                            TTI_REPLAY(0, 8, 0, 0);
+                            lltt::replay(0, 8);
                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
-                            TTI_REPLAY(8, 8, 0, 0);
+                            lltt::replay(8, 8);
                             dir = !dir;
                         }
                         break;
@@ -420,9 +415,9 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         datums_compared = 0;
                         while (datums_compared < total_datums_to_compare)
                         {
-                            TTI_REPLAY(0, 8, 0, 0);
+                            lltt::replay(0, 8);
                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
-                            TTI_REPLAY(8, 8, 0, 0);
+                            lltt::replay(8, 8);
                             datums_compared += 16;
                             dir = (datums_compared == sorted_seq_length) ? !dir : dir;
                         }
@@ -530,7 +525,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                             }
                             else
                             {
-                                TTI_REPLAY(0, 22, 0, 0);
+                                lltt::replay(0, 22);
                             }
                             datums_compared += 16;
                         }
@@ -556,7 +551,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                             }
                             else
                             {
-                                TTI_REPLAY(0, 26, 0, 0);
+                                lltt::replay(0, 26);
                             }
                             datums_compared += 16;
                         }
@@ -580,7 +575,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         }
                         else
                         {
-                            TTI_REPLAY(0, 29, 0, 0);
+                            lltt::replay(0, 29);
                         }
                         datums_compared += 16;
                     }
@@ -603,9 +598,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         }
                         else
                         {
-                            TTI_REPLAY(0, 8, 0, 0);
+                            lltt::replay(0, 8);
                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
-                            TTI_REPLAY(13, 12, 0, 0);
+                            lltt::replay(13, 12);
                         }
                         datums_compared += 16;
                         dir = !dir;
@@ -669,9 +664,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         }
                         else
                         {
-                            TTI_REPLAY(0, 8, 0, 0);
+                            lltt::replay(0, 8);
                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
-                            TTI_REPLAY(13, 8, 0, 0);
+                            lltt::replay(13, 8);
                         }
                         datums_compared += 16;
                         dir = (datums_compared == sorted_seq_length) ? !dir : dir;
