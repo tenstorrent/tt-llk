@@ -53,9 +53,9 @@ def _parse_profiler_message(line: str):
 
 def _assert_no_collision(messages, message):
     """Inserts message if no collisions, raises otherwise"""
-    collision = messages.get(message.id)
-    if collision and collision != message:
-        raise AssertionError(f'Hash collision between "{message}" and "{collision}"')
+    existing = messages.get(message.id)
+    if existing is not None and existing != message:
+        raise AssertionError(f'Hash collision between "{message}" and "{existing}"')
 
 
 def build_perf_test(test_config):
