@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import os
 from enum import Enum
 
 from .format_arg_mapping import (
@@ -126,26 +125,11 @@ def generate_build_header(
 def write_build_header(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    output_path=None,
+    output_path="../helpers/include/build.h",
 ):
-    """Write build.h file to the specified path"""
-    if output_path is None:
-        # Find the tests directory and construct the path to build.h
-        current_dir = os.getcwd()
-        if "python_tests" in current_dir:
-            # Called from python_tests directory
-            output_path = "../../helpers/include/build.h"
-        elif current_dir.endswith("tests"):
-            # Called from tests directory
-            output_path = "helpers/include/build.h"
-        else:
-            raise FileNotFoundError("Could not locate tests directory with Makefile")
-
     header_content = generate_build_header(test_config, profiler_build)
     with open(output_path, "w") as f:
         f.write(header_content)
-
-    print(f"Generated build.h at: {os.path.abspath(output_path)}")
 
 
 def generate_make_command(
