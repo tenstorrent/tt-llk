@@ -19,7 +19,7 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import generate_make_command
+from helpers.test_config import generate_make_command, write_build_header
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test, run_shell_command
 
@@ -112,6 +112,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         "math_fidelity": math_fidelity,
     }
 
+    write_build_header(test_config, "helpers/include/build.h")
     make_cmd = generate_make_command(test_config)
     run_shell_command(f"cd .. && {make_cmd}")
 
