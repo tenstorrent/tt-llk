@@ -2,21 +2,21 @@
 
 ## Introduction
 
-Low-Level Kernels (LLKs) form the foundational layer in the Tenstorrent software stack. LLKs directly drive hardware to perform matrix and vector operations commonly seen in the field of machine learning. This document aims to provide an improved understanding of Tensix Core functions.
+Low-Level Kernels (LLKs) form the foundational layer in the Tenstorrent software stack. LLKs directly drive hardware to perform matrix and vector operations that are fundamental to machine learning computations. This document provides an overview of Tensix Core functions.
 
 ## Tensix Core
 
-Tenstorrent chips consist of a matrix of Tensix Cores. Figure 1 represents the top level of the Tensix Core:
+Tenstorrent chips are architected as a matrix of Tensix Cores. Figure 1 shows the top-level diagram of a Tensix Core:
 
 <div align="center">
   <img src="images/tensix_core.png" alt="Top-level diagram of Tensix Core" width="600" /><br/>
   <em>Figure 1: Top-level diagram of Tensix Core</em>
 </div>
 
-Figure 1 consists of 4 major parts:
+Figure 1 consists of four major parts:
 
-1. Internal SRAM (L1) Memory - Primarily used to store input and output tensors and hold the program code for all RISC-V processors inside the core.
-2. Network-On-Chip (NoC) - Responsible for efficient data movement between Tensix Cores on the chip and DRAM.
+1. Internal SRAM (L1) Memory - Stores input/output tensors and program code for all RISC-V processors within the core.
+2. Network-On-Chip (NoC) - Manages data movement between Tensix Cores and DRAM across the chip.
 3. 5 RISC-V Processors -
    * NCRISC and BRISC - Communicate with the NOC for board setup.
    * TRISCs - Responsible for controlling the Tensix Engine by issuing custom Tensix instructions.
@@ -117,50 +117,49 @@ SFPU is instantiated within FPU, meaning that the same processors used for issui
 
 ## Packer
 
-Similar to unpacker, a packer can be thought of as a DMA engine, in charge of transferring data from the Destination register into L1 memory. It also features gaskets for data conversion. Packer instructions are issued by the TRISC2.
+The Packer is a DMA engine that transfers data from the Destination register to L1 memory. Like the Unpackers, it implements hardware-accelerated data conversion through gaskets. TRISC2 controls the Packer through its dedicated instruction set.
 
 ## Low Level Kernel Operations
 
-The utilization of described hardware blocks is encapsulated by LLK operations.
-Depending on the resources they use, they can be categorized in the following groups:
-1. Unpack operations;
-2. Math operations;
-3. Pack operations.
+LLK operations encapsulate the utilization of the previously described hardware blocks. These operations are categorized by their resource usage into three groups:
+
+1. Unpack operations - Data movement from L1 to source registers
+2. Math operations - Computational tasks using FPU/SFPU
+3. Pack operations - Data movement from destination register to L1
 
 ### LLK Unpack Operations (Table 1)
 
 Table 1 contains all unpack operations currently implemented for Tensix:
 
-| **LLK Name** | **Description** |
-| :---: | ----- |
-| `llk_unpack_A.h` | Unpacks a tile from L1 into a single source register (Source A by default). Used for single operand operations. |
-| `llk_unpack_AB.h` | Unpacks 2 tiles from separate addresses in L1 into Source A and Source B. Used for binary operations. |
-| `llk_unpack_AB_matmul.h` | Unpacks 2 tiles into Source A and B, optimized for matrix multiplication by reusing source registers. |
-| `llk_unpack_reduce.h` | Unpacks a tile into Source A and a scalar into Source B for reduce operations. |
-| `llk_unpack_tilize.h` | Unpacks a row-major input and reshapes it into tile format. |
-| `llk_unpack_untilize.h` | Unpacks a tile and reshapes it into row-major layout. |
-
+| LLK Header | Description |
+|:-----------|:------------|
+| `llk_unpack_A.h` | Unpacks a single tile from L1 into Source A register. Used for unary operations. |
+| `llk_unpack_AB.h` | Unpacks two tiles from L1 into Source A and Source B registers. Used for binary operations. |
+| `llk_unpack_AB_matmul.h` | Optimizes matrix multiplication by unpacking tiles into Source A and B with register reuse. |
+| `llk_unpack_reduce.h` | Unpacks a single tile into Source A and a scalar value into Source B for reduction operations. |
+| `llk_unpack_tilize.h` | Converts row-major input data into tile format during unpacking. |
+| `llk_unpack_untilize.h` | Converts tiled data back to row-major format during unpacking. |
 ---
 
 ### LLK Math Operations (Table 2)
 
 Table 2 contains all math operations currently implemented for Tensix:
 
-| **LLK Name** | **Description** |
-| :---: | ----- |
-| `llk_math_eltwise_unary_datacopy.h` | Uses FPU to move a tile from Source A or B to the Destination register. |
-| `llk_math_eltwise_unary_sfpu.h` | Uses SFPU to execute a unary operation on a tile in the Destination register. |
-| `llk_math_eltwise_binary.h` | Uses FPU to perform element-wise add/sub/mul on Source A & B and write to Destination. |
-| `llk_math_eltwise_reduce.h` | Uses FPU to compute global max or average from Source A using scalars in Source B. |
-| `llk_math_eltwise_matmul.h` | Uses FPU to perform tile matrix multiplication of Source A and Source B. |
-
+| LLK Header | Description |
+|:-----------|:------------|
+| `llk_math_eltwise_unary_datacopy.h` | Transfers a tile from Source A/B to Destination register using FPU. |
+| `llk_math_eltwise_unary_sfpu.h` | Executes unary operations on a tile data in the Destination register using SFPU. |
+| `llk_math_eltwise_binary.h` | Performs element-wise operations (add/sub/mul) on Source A and B tiles using FPU, storing results in Destination register. |
+| `llk_math_eltwise_reduce.h` | Computes global maximum or average from Source A using scalar values from Source B via FPU. |
+| `llk_math_eltwise_matmul.h` | Performs matrix multiplication between Source A and Source B tiles using FPU. |
 ---
 
 ### LLK Pack Operations (Table 3)
 
 Table 3 contains all pack operations currently implemented for Tensix:
 
-| **LLK Name** | **Description** |
-| :---: | ----- |
-| `llk_pack.h` | Packs a tile from the Destination register to L1 in tile layout. |
-| `llk_pack_untilize.h` | Packs a tile from the Destination register to L1 in row-major layout. |
+| LLK Header | Description |
+|:-----------|:------------|
+| `llk_pack.h` | Transfers a tile from Destination register to L1 memory, maintaining tile format. |
+| `llk_pack_untilize.h` | Transfers a tile from Destination register to L1 memory, converting to row-major format. |
+---
