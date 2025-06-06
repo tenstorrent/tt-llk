@@ -22,13 +22,13 @@ OBJDUMP         := $(TOOL_PATH)/riscv32-tt-elf-objdump
 # Architecture Selection
 # =========================
 ifeq ($(CHIP_ARCH),wormhole)
-	ARCH_CPU	  := -mcpu=tt-wh
-	ARCH_DEFINE   := -DARCH_WORMHOLE
-	ARCH_LLK_ROOT := tt_llk_wormhole_b0
+	ARCH_CPU	:= -mcpu=tt-wh
+	ARCH_DEFINE     := -DARCH_WORMHOLE
+	ARCH_LLK_ROOT   := tt_llk_wormhole_b0
 else ifeq ($(CHIP_ARCH),blackhole)
-	ARCH_CPU	  := -mcpu=tt-bh
-	ARCH_DEFINE   := -DARCH_BLACKHOLE
-	ARCH_LLK_ROOT := tt_llk_blackhole
+	ARCH_CPU	:= -mcpu=tt-bh
+	ARCH_DEFINE     := -DARCH_BLACKHOLE
+	ARCH_LLK_ROOT   := tt_llk_blackhole
 else
 	$(error CHIP_ARCH must be either 'wormhole' or 'blackhole')
 endif
@@ -36,7 +36,7 @@ endif
 # =========================
 # Compiler and Linker Flags
 # =========================
-OPTIONS_ALL	 := -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
+OPTIONS_ALL	:= -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-rtti -Werror \
 				   -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses \
 				   -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE \
@@ -115,7 +115,8 @@ $(OUTPUT_ELFS)/brisc.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/brisc.o
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 #compiling _test.pp to .o
-.PHONY: $(BUILD_DIR)/$(testname)_unpack.o $(BUILD_DIR)/$(testname)_math.o $(BUILD_DIR)/$(testname)_pack.o
+.PHONY: $(BUILD_DIR)/$(testname)_unpack.o $(BUILD_DIR)/$(testname)_math.o $(BUILD_DIR)/$(testname)_pack.o \
+        $(BUILD_DIR)/main_unpack.o $(BUILD_DIR)/main_math.o $(BUILD_DIR)/main_pack.o
 
 $(BUILD_DIR)/$(testname)_unpack.o: sources/$(testname).cpp
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_UNPACK) -DLLK_TRISC_UNPACK -c -o $@ $<
