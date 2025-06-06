@@ -681,7 +681,7 @@ inline void enable_gathering()
 // (should match the expansion of FN). FN is a callable, to which ARGS
 // are forwarded.
 template <bool Exec = false, typename Callable, typename... Args>
-[[gnu::always_inline, gnu::flatten]] inline auto load_replay_buf(uint start, uint len, Callable callable, Args&&... args)
+[[gnu::always_inline, gnu::flatten]] inline void load_replay_buf(uint start, uint len, Callable&& callable, Args&&... args)
 {
     // Workaround for tt-metal#16439, making sure gathering is disabled
     // WE DON'T UNDERSTAND WHY ENABLING GATHERING DOESN'T WORK
@@ -696,24 +696,25 @@ template <bool Exec = false, typename Callable, typename... Args>
     protect _;
 
     // Issue instruction to load replay buffer
-    lltt::record<Exec>(start, len);
+    lltt::record<lltt:ExecBool(Exec)>(start, len);
 
     // Send in the user's desired instructions
-    return callable(std::forward<Args>(args)...);
+    callable(std::forward<Args>(args)...);
 }
 
-// deprecated, delete once use case is altered to use the above
-// use case is in
+// deprecated, delete once the single use case in
 // tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_unpack_tilize_api.h
 // llk_unpack_tilizeA_B_mop_config(const bool narrow_tile
+// is altered to use the above function
 template<typename Callable>
-[[gnu::always_inline, gnu::flatten]] inline auto load_replay_buf(uint start, uint len, bool exec, Callable callable)
+[[gnu::always_inline, gnu::flatten, gnu::deprecated("use load_replay_byf<Exec>(start, len, callable, args...")]]
+inline void load_replay_buf(uint start, uint len, bool exec, Callable&& callable)
 {
-    // Issue instruction to load replay buffer
-    __builtin_rvtt_ttreplay(start, len, exec, true);
-
-    // Send in the user's desired instructions
-    return callable();
+    if (!exec) {
+        load_replay_buf(start, len, std::move(callable));
+    } else {
+        load_replay_buf<true>(start, len, std::move(callable));
+    }
 }
 #endif
 
