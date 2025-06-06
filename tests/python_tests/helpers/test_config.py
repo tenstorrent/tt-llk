@@ -9,6 +9,7 @@ from .format_arg_mapping import (
     MathFidelity,
     MathOperation,
     ReduceDimension,
+    ReducePool,
     math_dict,
     pack_dst_dict,
     pack_src_dict,
@@ -91,7 +92,7 @@ def generate_build_header(
         header_content.append(f"#define {mathop.value}")
 
         reduce_dim = test_config.get("reduce_dim", ReduceDimension.No)
-        pool_type = test_config.get("pool_type", ReduceDimension.No)
+        pool_type = test_config.get("pool_type", ReducePool.No)
 
         if mathop in [
             MathOperation.ReduceColumn,
