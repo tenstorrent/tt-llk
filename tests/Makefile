@@ -117,6 +117,9 @@ $(BUILD_DIR)/$(testname)_math.o: sources/$(testname).cpp
 $(BUILD_DIR)/$(testname)_pack.o: sources/$(testname).cpp
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_PACK) -DLLK_TRISC_PACK -c -o $@ $<
 
+# force recompilation of trisc.cpp for ZONE_SCOPED("KERNEL") to work
+.PHONY: $(BUILD_DIR)/main_unpack.o $(BUILD_DIR)/main_math.o $(BUILD_DIR)/main_pack.o
+
 #compiling main for every TRISC core
 $(BUILD_DIR)/main_unpack.o : $(RISCV_SOURCES)/trisc.cpp
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DLLK_TRISC_UNPACK -c -o $@ $<
