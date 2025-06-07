@@ -165,7 +165,7 @@ inline void _llk_math_debug_dump_seek_(std::uint8_t offset)
 
 // Following functions do not need to program ALU_FORMAT_SPEC_REG0_SrcA/ALU_FORMAT_SPEC_REG1_SrcB
 // for blackhole since ALU format is inferred
-template <bool to_from_int8 = false, bool is_fp32_dest_acc_en>
+template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_format)
 {
     if constexpr (to_from_int8)
@@ -177,7 +177,7 @@ inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_f
     }
 }
 
-template <bool to_from_int8 = false, bool is_fp32_dest_acc_en>
+template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_format)
 {
     if constexpr (to_from_int8)
@@ -189,7 +189,7 @@ inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_f
     }
 }
 
-template <bool to_from_int8 = false, bool is_fp32_dest_acc_en>
+template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
     if constexpr (to_from_int8)

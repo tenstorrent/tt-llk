@@ -40,7 +40,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
         TTI_NOP;
 #else
         static_assert(kernel_broadcast_b <= 1, "kernel_broadcast>1 on matmul input 1 is not supported with reuse enabled!");
-        TT_REPLAY(0, replay_buf_prog_len, 0, 1);
+        TTI_REPLAY(0, replay_buf_prog_len, 0, 1);
         if (unpA_partial_face)
         {
             TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
@@ -98,7 +98,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
         TTI_NOP;
 #else
         static_assert(kernel_broadcast_a <= 1, "kernel_broadcast>1 on matmul input 0 is not supported with reuse enabled!");
-        TT_REPLAY(0, replay_buf_prog_len, 0, 1);
+        TTI_REPLAY(0, replay_buf_prog_len, 0, 1);
         if (unpB_partial_face)
         {
             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
@@ -164,7 +164,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     tmp.program(instrn_buffer);
 }
 
-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
+template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_AB_matmul_hw_configure_(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,
@@ -183,7 +183,7 @@ inline void _llk_unpack_AB_matmul_hw_configure_(
     constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
     constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Pack);
 
-    configure_unpack_AB<is_row_pool, is_fp32_dest_acc_en, fpu_srnd_en, pack_srnd_en>(
+    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool, fpu_srnd_en, pack_srnd_en>(
         unpA_src_format,
         unpB_src_format,
         unpA_dst_format,

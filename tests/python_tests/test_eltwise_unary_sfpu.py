@@ -28,15 +28,14 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
-from helpers.utils import compare_pcc, run_shell_command
+from helpers.utils import passed_test, run_shell_command
 
 
 def generate_golden(operation, operand1, data_format):
-    tensor1_float = (
-        operand1.clone()
-        .detach()
-        .to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
+    dtype = (
+        format_dict[data_format] if data_format != DataFormat.Bfp8_b else torch.bfloat16
     )
+    tensor1_float = operand1.clone().detach().to(dtype)
     ops = {
         MathOperation.Abs: lambda x: abs(x),
         MathOperation.Cos: lambda x: math.cos(x),
@@ -45,10 +44,21 @@ def generate_golden(operation, operand1, data_format):
         MathOperation.Sin: lambda x: math.sin(x),
         MathOperation.Sqrt: lambda x: math.sqrt(x),
         MathOperation.Square: lambda x: x * x,
+        MathOperation.Celu: lambda x: torch.nn.functional.celu(
+            (
+                x
+                if isinstance(x, torch.Tensor)
+                else torch.tensor(
+                    x,
+                    dtype=dtype,
+                )
+            ),
+            alpha=1.0,
+        ),
     }
     if operation not in ops:
         raise ValueError("Unsupported operation!")
-    return [ops[operation](num) for num in tensor1_float.tolist()][:256]
+    return [ops[operation](num) for num in tensor1_float.tolist()][:1024]
 
 
 # SUPPORTED FORMATS FOR TEST
@@ -85,6 +95,7 @@ all_params = generate_params(
         MathOperation.Sin,
         MathOperation.Sqrt,
         MathOperation.Square,
+        MathOperation.Celu,
     ],
 )
 param_ids = generate_param_ids(all_params)
@@ -111,7 +122,8 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         pytest.skip(reason="This combination is not fully implemented in testing")
 
     src_A, src_B = generate_stimuli(
-        formats.input_format, formats.input_format, sfpu=True
+        formats.input_format,
+        formats.input_format,
     )
     golden = generate_golden(mathop, src_A, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
@@ -122,6 +134,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         "dest_acc": dest_acc,
         "mathop": mathop,
         "approx_mode": approx_mode,
+        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
     }
 
     make_cmd = generate_make_command(test_config)
@@ -129,12 +142,8 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A)
-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
-    res_from_L1 = res_from_L1[
-        :256
-    ]  # this will be removed once we implement to read bytes from L1 according to data format (size of datum) which will be added in next PR
+    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+    res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden)
 
     golden_tensor = torch.tensor(
@@ -154,21 +163,4 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         ),
     )
 
-    if formats.output_format in [
-        DataFormat.Float16_b,
-        DataFormat.Float16,
-        DataFormat.Float32,
-    ]:
-        atol = 0.05
-        rtol = 0.1
-    elif formats.output_format == DataFormat.Bfp8_b:
-        atol = 0.05
-        rtol = 0.1
-
-    for i in range(len(golden)):
-        assert torch.isclose(
-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
-
-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.99
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)

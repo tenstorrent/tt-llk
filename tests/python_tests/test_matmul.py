@@ -21,33 +21,36 @@ from helpers.param_config import (
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import tilize
-from helpers.utils import compare_pcc, run_shell_command
+from helpers.utils import passed_test, run_shell_command
 
 
 def generate_golden(operand1, operand2, data_format, math_fidelity):
+    torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
 
-    if data_format == DataFormat.Float16_b:
-        if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
-            for element in operand2:
-                element = element.to(torch.int32)
-                element &= 0xFFFE
-        if math_fidelity == MathFidelity.LoFi:  # LoFi
-            for element in operand1:
-                element = element.to(torch.int32)
-                element &= 0xFFF8
+    if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
+        for element in operand2:
+            element = element.to(torch.int32)
+            element &= 0xFFFE
+    if math_fidelity == MathFidelity.LoFi:  # LoFi
+        for element in operand1:
+            element = element.to(torch.int32)
+            element &= 0xFFF8
 
-    operand1_matrix = operand1.view(32, 32).to(format_dict[data_format])
-    operand2_matrix = operand2.view(32, 32).to(format_dict[data_format])
+    operand1_matrix = operand1.view(32, 32).to(torch_format)
+    operand2_matrix = operand2.view(32, 32).to(torch_format)
 
-    result_matrix = torch.zeros(32, 32, dtype=operand1_matrix.dtype)
     result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
 
-    return result_matrix.view(1024).to(format_dict[data_format])
+    return result_matrix.view(1024).to(torch_format)
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
-
+supported_formats = [
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Bfp8_b,
+    DataFormat.Float32,
+]
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
 
@@ -86,16 +89,18 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_matmul(testname, formats, dest_acc, math_fidelity):
+    torch_format = format_dict.get(
+        formats.output_format, format_dict[DataFormat.Float16_b]
+    )
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
-    golden_tensor = tilize(golden_tensor, format_dict[formats.input_format])
-    golden_tensor = golden_tensor.to(format_dict[formats.output_format])
+    golden_tensor = tilize(golden_tensor, torch_format).to(torch_format)
 
     write_stimuli_to_l1(
-        tilize(src_A, format_dict[formats.input_format]),
-        tilize(src_B, format_dict[formats.input_format]),
+        tilize(src_A, torch_format),
+        tilize(src_B, torch_format),
         formats.input_format,
         formats.input_format,
     )
@@ -113,31 +118,9 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A)
-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
     assert len(res_from_L1) == len(golden_tensor)
 
-    res_tensor = torch.tensor(
-        res_from_L1,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
-    )
+    res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
 
-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
-        atol = 0.1
-        rtol = 0.05
-    elif formats.output_format == DataFormat.Bfp8_b:
-        atol = 0.1
-        rtol = 0.2
-
-    for i in range(len(golden_tensor)):
-        assert torch.isclose(
-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
-
-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.98
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
