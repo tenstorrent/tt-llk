@@ -243,6 +243,9 @@ constexpr auto SFPU_BINARY_OPERATION = ckernel::sfpu::BinaryOp::XLOGY;
 #ifdef SFPU_OP_SQRT
 constexpr auto SFPU_OPERATION = SfpuType::sqrt;
 #endif
+#ifdef SFPU_OP_RSQRT
+constexpr auto SFPU_OPERATION = SfpuType::rsqrt;
+#endif
 #ifdef SFPU_OP_LOG
 constexpr auto SFPU_OPERATION = SfpuType::log;
 #endif
