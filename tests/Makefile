@@ -114,7 +114,8 @@ $(OUTPUT_ELFS)/$(testname)_trisc2.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/main
 $(OUTPUT_ELFS)/brisc.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/brisc.o
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
-#compiling _test.pp to .o
+# force recompilation of tests per core
+# force recompilation of trisc.cpp for ZONE_SCOPED("KERNEL") to work
 .PHONY: $(BUILD_DIR)/$(testname)_unpack.o $(BUILD_DIR)/$(testname)_math.o $(BUILD_DIR)/$(testname)_pack.o \
         $(BUILD_DIR)/main_unpack.o $(BUILD_DIR)/main_math.o $(BUILD_DIR)/main_pack.o
 
@@ -124,9 +125,6 @@ $(BUILD_DIR)/$(testname)_math.o: sources/$(testname).cpp
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_MATH) -DLLK_TRISC_MATH -c -o $@ $<
 $(BUILD_DIR)/$(testname)_pack.o: sources/$(testname).cpp
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_PACK) -DLLK_TRISC_PACK -c -o $@ $<
-
-# force recompilation of trisc.cpp for ZONE_SCOPED("KERNEL") to work
-.PHONY: $(BUILD_DIR)/main_unpack.o $(BUILD_DIR)/main_math.o $(BUILD_DIR)/main_pack.o
 
 #compiling main for every TRISC core
 $(BUILD_DIR)/main_unpack.o : $(RISCV_SOURCES)/trisc.cpp
