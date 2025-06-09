@@ -58,11 +58,51 @@ def pack_fp32(torch_tensor):
 
 def pack_int32(torch_tensor):
     def int32_to_bytes(number):
-        return list(struct.pack("<I", number))
+        return list(struct.pack("<i", number))
 
     packed_bytes = [None] * len(torch_tensor)
     for i in range(len(torch_tensor)):
         packed_bytes[i] = int32_to_bytes(torch_tensor[i])
+    return flatten_list(packed_bytes)
+
+
+def pack_uint32(torch_tensor):
+    def uint32_to_bytes(number):
+        return list(struct.pack(">I", number))
+
+    packed_bytes = [None] * len(torch_tensor)
+    for i in range(len(torch_tensor)):
+        packed_bytes[i] = uint32_to_bytes(torch_tensor[i])
+    return flatten_list(packed_bytes)
+
+
+def pack_uint16(torch_tensor):
+    def uint16_to_bytes(number):
+        return list(struct.pack("<H", number))
+
+    packed_bytes = [None] * len(torch_tensor)
+    for i in range(len(torch_tensor)):
+        packed_bytes[i] = uint16_to_bytes(torch_tensor[i])
+    return flatten_list(packed_bytes)
+
+
+def pack_int8(torch_tensor):
+    def int8_to_bytes(number):
+        return list(struct.pack("<b", number))
+
+    packed_bytes = [None] * len(torch_tensor)
+    for i in range(len(torch_tensor)):
+        packed_bytes[i] = int8_to_bytes(torch_tensor[i])
+    return flatten_list(packed_bytes)
+
+
+def pack_uint8(torch_tensor):
+    def uint8_to_bytes(number):
+        return list(struct.pack(">B", number))
+
+    packed_bytes = [None] * len(torch_tensor)
+    for i in range(len(torch_tensor)):
+        packed_bytes[i] = uint8_to_bytes(torch_tensor[i])
     return flatten_list(packed_bytes)
 
 
