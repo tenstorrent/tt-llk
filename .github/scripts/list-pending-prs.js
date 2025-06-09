@@ -205,6 +205,27 @@ th {
     font-weight: 600;
     white-space: nowrap;
 }
+th.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+th.sortable:hover {
+    background-color: #0056b3;
+}
+th.sortable::after {
+    content: ' ↕';
+    opacity: 0.5;
+    font-size: 12px;
+}
+th.sortable.sort-asc::after {
+    content: ' ↑';
+    opacity: 1;
+}
+th.sortable.sort-desc::after {
+    content: ' ↓';
+    opacity: 1;
+}
 tr:nth-child(even) {
     background-color: #f9f9f9;
 }
@@ -332,6 +353,15 @@ footer {
             <option value="days_open">Days Open</option>
             <option value="author">Author</option>
             <option value="repository">Repository</option>
+            <option value="title">Title</option>
+            <option value="created_at">Created At</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label for="sortDirection">Sort Direction:</label>
+        <select id="sortDirection">
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
         </select>
     </div>
 </div>
@@ -339,13 +369,13 @@ footer {
 <table id="prsTable">
 <thead>
     <tr>
-        <th>Repository</th>
+        <th class="sortable" data-sort="repository">Repository</th>
         <th>PR</th>
-        <th>Title</th>
-        <th>Author</th>
+        <th class="sortable" data-sort="title">Title</th>
+        <th class="sortable" data-sort="author">Author</th>
         <th>Reviewers</th>
-        <th>Created At</th>
-        <th>Days Open</th>
+        <th class="sortable" data-sort="created_at">Created At</th>
+        <th class="sortable" data-sort="days_open">Days Open</th>
         <th>Labels</th>
     </tr>
 </thead>
@@ -467,15 +497,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const authorFilter = document.getElementById('authorFilter');
     const statusFilter = document.getElementById('statusFilter');
     const sortOrder = document.getElementById('sortOrder');
+    const sortDirection = document.getElementById('sortDirection');
     const tableBody = document.querySelector('#prsTable tbody');
     const originalRows = Array.from(tableBody.rows);
+
+    // Track current sort state
+    let currentSort = 'days_open';
+    let currentDirection = 'desc';
+
+    const updateHeaderVisuals = () => {
+        // Remove all sort classes
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+        });
+
+        // Add current sort class
+        const currentHeader = document.querySelector(` th[data - sort = '${currentSort}'] `);
+        if (currentHeader) {
+            currentHeader.classList.add(` sort - $
+{
+    currentDirection
+}
+`);
+        }
+
+        // Update dropdowns to match
+        sortOrder.value = currentSort;
+        sortDirection.value = currentDirection;
+    };
 
     const filterAndSortTable = () => {
         const label = labelFilter.value;
         const llkReviewer = llkReviewerFilter.value;
         const author = authorFilter.value;
         const status = statusFilter.value;
-        const sort = sortOrder.value;
 
         let filteredRows = originalRows.filter(row => {
             const rowLabels = Array.from(row.cells[7].querySelectorAll('.label'))
@@ -494,36 +549,85 @@ document.addEventListener('DOMContentLoaded', () => {
             return labelMatch && statusMatch && reviewerMatch && authorMatch;
         });
 
-        switch (sort) {
+        switch (currentSort) {
             case 'days_open':
-                filteredRows.sort((a, b) =>
-                    parseInt(b.cells[6].textContent) - parseInt(a.cells[6].textContent)
-                );
+                filteredRows.sort((a, b) => {
+                    const comparison = parseInt(b.cells[6].textContent) - parseInt(a.cells[6].textContent);
+                    return currentDirection === 'asc' ? -comparison : comparison;
+                });
                 break;
             case 'author':
-                filteredRows.sort((a, b) =>
-                    a.cells[3].textContent.localeCompare(b.cells[3].textContent)
-                );
+                filteredRows.sort((a, b) => {
+                    const comparison = a.cells[3].textContent.localeCompare(b.cells[3].textContent);
+                    return currentDirection === 'desc' ? -comparison : comparison;
+                });
                 break;
             case 'repository':
-                filteredRows.sort((a, b) =>
-                    a.cells[0].textContent.localeCompare(b.cells[0].textContent)
-                );
+                filteredRows.sort((a, b) => {
+                    const comparison = a.cells[0].textContent.localeCompare(b.cells[0].textContent);
+                    return currentDirection === 'desc' ? -comparison : comparison;
+                });
+                break;
+            case 'title':
+                filteredRows.sort((a, b) => {
+                    // Extract title from the HTML (skip status span)
+                    const titleA = a.cells[2].querySelector('a').textContent;
+                    const titleB = b.cells[2].querySelector('a').textContent;
+                    const comparison = titleA.localeCompare(titleB);
+                    return currentDirection === 'desc' ? -comparison : comparison;
+                });
+                break;
+            case 'created_at':
+                filteredRows.sort((a, b) => {
+                    const dateA = new Date(a.cells[5].textContent);
+                    const dateB = new Date(b.cells[5].textContent);
+                    const comparison = dateB.getTime() - dateA.getTime();
+                    return currentDirection === 'asc' ? -comparison : comparison;
+                });
                 break;
         }
 
         tableBody.innerHTML = '';
         filteredRows.forEach(row => tableBody.appendChild(row));
+        updateHeaderVisuals();
     };
 
+    // Header click handlers for sorting
+    document.querySelectorAll('th.sortable').forEach(header => {
+        header.addEventListener('click', () => {
+            const sortType = header.getAttribute('data-sort');
+
+            if (currentSort === sortType) {
+                // Toggle direction if clicking the same column
+                currentDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                // Set new sort column with default direction
+                currentSort = sortType;
+                currentDirection = sortType === 'days_open' || sortType === 'created_at' ? 'desc' : 'asc';
+            }
+
+            filterAndSortTable();
+        });
+    });
+
+    // Dropdown change handlers
     labelFilter.addEventListener('change', filterAndSortTable);
     llkReviewerFilter.addEventListener('change', filterAndSortTable);
     authorFilter.addEventListener('change', filterAndSortTable);
     statusFilter.addEventListener('change', filterAndSortTable);
-    sortOrder.addEventListener('change', filterAndSortTable);
+
+    sortOrder.addEventListener('change', () => {
+        currentSort = sortOrder.value;
+        filterAndSortTable();
+    });
+
+    sortDirection.addEventListener('change', () => {
+        currentDirection = sortDirection.value;
+        filterAndSortTable();
+    });
 
     // Initial sort by days open
-    sortOrder.value = 'days_open';
+    updateHeaderVisuals();
     filterAndSortTable();
 });
 </script>
