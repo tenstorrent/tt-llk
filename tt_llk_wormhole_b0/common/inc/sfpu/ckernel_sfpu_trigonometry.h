@@ -126,5 +126,38 @@ inline void _calculate_cosine_(const int iterations)
     }
 }
 
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_deg2rad_()
+{
+    // SFPU microcode
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::vFloat v      = sfpi::dst_reg[0];
+        sfpi::vFloat result = v * sfpi::vConstFloatPrgm0;
+        sfpi::dst_reg[0]    = result;
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_rad2deg_()
+{
+    // SFPU microcode
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::vFloat v      = sfpi::dst_reg[0];
+        sfpi::vFloat result = v * sfpi::vConstFloatPrgm1;
+        sfpi::dst_reg[0]    = result;
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE>
+inline void _angle_conversion_init_()
+{
+    sfpi::vConstFloatPrgm0 = 0.017453292519943295f; // pi/180
+    sfpi::vConstFloatPrgm1 = 57.29577951308232f;    // 180/pi
+}
+
 } // namespace sfpu
 } // namespace ckernel
