@@ -36,6 +36,7 @@ all_params = generate_params(
 param_ids = generate_param_ids(all_params)
 
 
+@pytest.mark.perf
 @pytest.mark.parametrize(
     "testname, formats, dest_acc, mathop, math_fidelity",
     clean_params(all_params),
