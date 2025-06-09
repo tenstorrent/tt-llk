@@ -29,7 +29,8 @@ class ProfilerBuild(Enum):
 def generate_build_header(
     test_config, profiler_build: ProfilerBuild = ProfilerBuild.No
 ):
-    """Generate build.h file with all configuration defines"""
+    """Generate build.h file with all configuration defines
+    File location: <repository>/tests/helpers/include/build.h"""
     header_content = [
         "// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC",
         "//",
@@ -124,10 +125,9 @@ def generate_build_header(
 def write_build_header(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    output_path="../helpers/include/build.h",
 ):
     header_content = generate_build_header(test_config, profiler_build)
-    with open(output_path, "w") as f:
+    with open("../helpers/include/build.h", "w") as f:
         f.write(header_content)
 
 
