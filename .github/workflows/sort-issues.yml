@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 jobs:
   generate_reports:
@@ -31,11 +33,93 @@ jobs:
           node .github/scripts/sort-issues.js
           node .github/scripts/list-pending-prs.js
 
-      - name: Upload HTML reports as artifacts
-        uses: actions/upload-artifact@v4
+      - name: Create index page
+        run: |
+          TIMESTAMP=$(date '+%B %d, %Y at %H:%M UTC')
+          cat > index.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="UTF-8">
+              <title>LLK GitHub Reports</title>
+              <style>
+                  body {
+                      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                      background-color: #f4f6f9;
+                      color: #333;
+                      padding: 40px;
+                      text-align: center;
+                  }
+                  h1 {
+                      color: #007bff;
+                      margin-bottom: 30px;
+                  }
+                  .report-links {
+                      display: flex;
+                      justify-content: center;
+                      gap: 30px;
+                      margin-top: 30px;
+                  }
+                  .report-card {
+                      background: white;
+                      border-radius: 8px;
+                      padding: 30px;
+                      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                      text-decoration: none;
+                      color: #333;
+                      transition: transform 0.2s;
+                      min-width: 250px;
+                  }
+                  .report-card:hover {
+                      transform: translateY(-2px);
+                      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+                  }
+                  .report-card h2 {
+                      color: #007bff;
+                      margin-bottom: 15px;
+                  }
+                  .report-card p {
+                      margin: 0;
+                      color: #666;
+                  }
+                  .last-updated {
+                      margin-top: 40px;
+                      color: #666;
+                      font-size: 14px;
+                  }
+              </style>
+          </head>
+          <body>
+              <h1>LLK GitHub Reports Dashboard</h1>
+              <p>Automatically generated reports for repository insights</p>
+
+              <div class="report-links">
+                  <a href="sorted-issues.html" class="report-card">
+                      <h2>📝 Issues Report</h2>
+                      <p>Browse and filter open issues by priority, labels, and assignees</p>
+                  </a>
+
+                  <a href="pending-prs.html" class="report-card">
+                      <h2>🚀 Pull Requests Report</h2>
+                      <p>Track pending PRs with LLK team reviewers and sort by various criteria</p>
+                  </a>
+              </div>
+
+              <div class="last-updated">
+                  Last updated: $TIMESTAMP
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: github-reports
-          path: |
-            sorted-issues.html
-            pending-prs.html
-          retention-days: 30
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
