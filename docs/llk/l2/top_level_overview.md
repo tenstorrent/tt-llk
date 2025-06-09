@@ -26,7 +26,7 @@ LLKs primarily operate by transferring data to and from L1 memory, and programmi
 
 ## Tensix Engine
 
-The Tensix Engine is a multi-threaded, single-issue, in-order processor with a custom instruction set architecture (Tensix ISA). It operates with three concurrent threads, each controlled by a dedicated TRISC processor through its own instruction stream.
+The Tensix Engine is a multi-threaded, single-issue, in-order processor that uses a custom instruction set architecture known as the Tensix ISA. It runs three concurrent threads, each managed by a dedicated TRISC processor. The Tensix ISA differs from the RISC-V instruction set; instructions are issued by RISC-V cores and then executed by the Tensix Engine.
 
 Figure 2 represents a simplified top-level architecture of the Tensix Engine:
 <div align="center">
@@ -35,7 +35,7 @@ Figure 2 represents a simplified top-level architecture of the Tensix Engine:
 </div>
 
 
-Figure 3 illustrates the circular data flow within the Tensix Engine:
+Figure 3 illustrates the data flow within the Tensix Engine:
 1. Input data arrives in L1 memory;
 2. Data is unpacked into source registers;
 3. FPU processes data from source registers;
@@ -50,7 +50,7 @@ Figure 3 illustrates the circular data flow within the Tensix Engine:
 
 ## Inputs
 
-When describing input tensors, each individual element is referred to as a *datum*. Figure 4 shows an example of a 32x64 input tensor, where each square represents a single datum.
+When describing input tensors, each data element in the tensor is referred to as a *datum*. Figure 4 shows an example of a 32x64 input tensor, where each square represents a single datum.
 
 <div align="center">
   <img src="images/input_tensor_example.png" alt="An example of 32x64 input tensor" width="500" /><br/>
@@ -60,20 +60,20 @@ When describing input tensors, each individual element is referred to as a *datu
 Input tensors can be stored in L1 memory using two formats:
 
 1. Row-major order - Data is stored sequentially row by row, the conventional format for tensor storage;
-2. Tile order - A specialized storage format optimized for Tensix operations.
+2. Tile order - A specialized storage format optimized for operations performed by the Tensix cores.
 
-Row-major order follows the standard linear memory layout, where elements are stored consecutively row by row regardless of tensor dimensions.
+Row-major order follows the standard linear memory layout, where elements are stored sequentially row by row regardless of tensor dimensions.
 
 <div align="center">
   <img src="images/row_major_order.png" alt="Row-major order" width="500" /><br/>
   <em>Figure 5: Row-major order of input data</em>
 </div>
 
-For optimal LLK performance, input data must be organized into 32x32 tiles. Each tile is further subdivided into four 16x16 faces (F0-F3). Within each face, data is stored in row-major order. LLKs handle the transformation of input data into tile order before performing computations.
+For optimal LLK performance, input data must be arranged in 32×32 tiles. Each tile is divided into four 16×16 sections called faces, labeled F0 to F3 in row-major order. Within each face, data is also stored in row-major order. LLKs handle the transformation of input data from its orginal data layout into tile order before performing computations.
 
 <div align="center">
   <img src="images/tile_order_example.png" alt="Tile order" width="500" /><br/>
-  <em>Figure 6: Tile order of input data</em>
+  <em>Figure 6: Input data in tile order</em>
 </div>
 
 ## Data formats
@@ -85,11 +85,14 @@ Important considerations:
 - Only a subset of formats are supported during unpacking operations;
 - Different components of the Tensix Core have varying format support.
 
-[Math fidelity](https://docs.tenstorrent.com/pybuda/latest/dataformats.html) is a key concept in achieving computational accuracy. Multiple multiplication phases may be required to reach full precision, depending on the data format used. Tensix Cores support up to four fidelity phases for all data formats, allowing developers to balance accuracy requirements with performance for their specific application
+## Math fidelity
+
+The Tensix hardware can use a limited number of bits for multiplication operations. To utilize all the bits from the datums of a particular data format, several multiplication phases might be required to achieve full precision.
+[Math fidelity](https://docs.tenstorrent.com/pybuda/latest/dataformats.html) is a key concept in achieving computational accuracy. Tensix Cores support up to four fidelity phases for all data formats, allowing developers to balance accuracy requirements with performance for their specific application
 
 ## Unpacker
 
-The Unpacker is a DMA engine that transfers data between L1 memory and source operand registers. The Tensix architecture implements two unpackers:
+The Unpacker is a DMA engine that transfers data between L1 memory and source/destination registers. The Tensix architecture implements two unpackers:
 - Unpacker 0: Connected to Source A register and Destination register
 - Unpacker 1: Connected to Source B register
 
@@ -99,7 +102,7 @@ The Unpacker is a DMA engine that transfers data between L1 memory and source op
   <em>Figure 7: Unpackers</em>
 </div>
 
-Unpackers feature hardware-accelerated data format conversion through specialized components called gaskets, eliminating software overhead. TRISC0 controls both unpackers through a dedicated instruction set.
+Unpackers feature hardware-accelerated data format conversion through specialized components called gaskets, eliminating software overhead. TRISC0 controls both unpackers through a subset of the Tensix instruction set.
 
 ## Source Operand Register files (Source A and Source B)
 
@@ -111,7 +114,7 @@ Source registers are two-dimensional structures designed to hold one tile of dat
 
 ## Floating Point Unit (FPU)
 
-The Floating Point Unit (FPU) serves as the primary computational engine within the Tensix Core, executing the majority of mathematical operations.
+The Floating Point Unit (FPU) serves as the primary computational engine within the Tensix Engine, executing the majority of mathematical operations.
 
 <div align="center">
   <img src="images/fpu_cell.png" alt="FPU" width="400" /><br/>
@@ -129,7 +132,7 @@ The FPU is controlled through a dedicated set of Tensix instructions issued by T
 
 ## Special FPU (SFPU)
 
-SFPU provides specialized operations beyond FPU capabilities. As a SIMD engine, it executes identical operations on multiple data points in parallel. The Compute SFPU supports:
+SFPU provides specialized operations beyond FPU capabilities. As a SIMD engine, it executes identical operations on multiple data points in parallel. Unlike FPU, SFPU can only read from and write to Destination register. SFPU supports:
 
 - 32-bit input calculations
 - Complex mathematical functions (sigmoid, exponential, reciprocal, etc.)
