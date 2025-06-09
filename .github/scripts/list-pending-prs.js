@@ -357,13 +357,6 @@ footer {
             <option value="created_at">Created At</option>
         </select>
     </div>
-    <div class="filter-group">
-        <label for="sortDirection">Sort Direction:</label>
-        <select id="sortDirection">
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
-        </select>
-    </div>
 </div>
 
 <table id="prsTable">
@@ -497,7 +490,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const authorFilter = document.getElementById('authorFilter');
     const statusFilter = document.getElementById('statusFilter');
     const sortOrder = document.getElementById('sortOrder');
-    const sortDirection = document.getElementById('sortDirection');
     const tableBody = document.querySelector('#prsTable tbody');
     const originalRows = Array.from(tableBody.rows);
 
@@ -517,9 +509,8 @@ document.addEventListener('DOMContentLoaded', () => {
             currentHeader.classList.add('sort-' + currentDirection);
         }
 
-        // Update dropdowns to match
+        // Update dropdown to match
         sortOrder.value = currentSort;
-        sortDirection.value = currentDirection;
     };
 
     const filterAndSortTable = () => {
@@ -614,11 +605,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sortOrder.addEventListener('change', () => {
         currentSort = sortOrder.value;
-        filterAndSortTable();
-    });
-
-    sortDirection.addEventListener('change', () => {
-        currentDirection = sortDirection.value;
         filterAndSortTable();
     });
 
