@@ -512,13 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Add current sort class
-        const currentHeader = document.querySelector(` th[data - sort = '${currentSort}'] `);
+        const currentHeader = document.querySelector('th[data-sort="' + currentSort + '"]');
         if (currentHeader) {
-            currentHeader.classList.add(` sort - $
-{
-    currentDirection
-}
-`);
+            currentHeader.classList.add('sort-' + currentDirection);
         }
 
         // Update dropdowns to match
