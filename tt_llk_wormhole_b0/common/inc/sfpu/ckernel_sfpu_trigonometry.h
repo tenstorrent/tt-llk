@@ -126,5 +126,61 @@ inline void _calculate_cosine_(const int iterations)
     }
 }
 
+// https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Definitions_in_terms_of_logarithms
+// atanh[x] = 0.5 * ln((1 + x) / (1 - x))
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
+inline void _calculate_atanh_()
+{
+    // SFPU microcode
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::vFloat inp = sfpi::dst_reg[0];
+        v_if (inp<sfpi::vConstNeg1 || inp> sfpi::vConst1)
+        {
+            sfpi::dst_reg[0] = std::numeric_limits<float>::quiet_NaN();
+        }
+        v_elseif (inp == sfpi::vConst1)
+        {
+            sfpi::dst_reg[0] = std::numeric_limits<float>::infinity();
+        }
+        v_elseif (inp == sfpi::vConstNeg1)
+        {
+            sfpi::dst_reg[0] = -std::numeric_limits<float>::infinity();
+        }
+        v_else
+        {
+            sfpi::vFloat num       = sfpi::vConst1 + inp;
+            sfpi::vFloat den       = sfpi::vConst1 - inp;
+            sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+            sfpi::vConstFloatPrgm1 = 2.0f;
+            sfpi::vFloat tmp       = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(den);
+            v_if (den < 0.0F)
+            {
+                // Invert sign on calculated value if CC=1 (number is negative)
+                tmp = -tmp;
+            }
+            v_endif;
+            if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+            {
+                den = tmp;
+            }
+            else
+            {
+                den = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
+            }
+            num                    = num * den;
+            sfpi::vConstFloatPrgm0 = 0.692871f; // ln2
+            sfpi::vConstFloatPrgm1 = 0.1058f;
+            sfpi::vConstFloatPrgm2 = -0.7166f;
+            sfpi::dst_reg[0]       = num;
+            _calculate_log_body_<APPROXIMATION_MODE>(0);
+            den              = sfpi::dst_reg[0];
+            sfpi::dst_reg[0] = 0.5f * den;
+        }
+        v_endif;
+        sfpi::dst_reg++;
+    }
+}
+
 } // namespace sfpu
 } // namespace ckernel
