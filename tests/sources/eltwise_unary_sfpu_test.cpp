@@ -65,7 +65,7 @@ void call_sfpu_operation(SfpuType operation)
             break;
         case SfpuType::rsqrt:
             ckernel::sfpu::_init_rsqrt_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE, 10>(10);
+            ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE, 32>(32);
             break;
         case SfpuType::sine:
             ckernel::sfpu::_calculate_sine_<APPROX_MODE, 32>(32);
