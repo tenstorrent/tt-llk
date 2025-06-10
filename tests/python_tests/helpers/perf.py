@@ -20,7 +20,7 @@ class PerfZone:
 class PerfThreadData:
     init: PerfZone
     tile_loop: PerfZone
-    kernel: PerfZone = None
+    kernel: PerfZone
 
 
 @dataclass
@@ -32,7 +32,7 @@ class PerfData:
 
 def _parse_thread(thread_data) -> PerfThreadData:
     zones = {}
-    markers = {"init", "tile_loop"}
+    markers = {"kernel", "init", "tile_loop"}
 
     for entry in thread_data:
         marker = entry.full_marker.marker.lower()
