@@ -19,14 +19,14 @@ Figure 1 consists of four major parts:
 2. Network-On-Chip (NoC) - Manages data movement between Tensix Cores and DRAM across the chip;
 3. Five RISC-V Processors -
    * NCRISC and BRISC - Handle NOC communication for board setup;
-   * TRISCs - Control the Tensix Engine through specialized Tensix instructions;
+   * Three TRISCs - Control the Tensix Engine through specialized Tensix instructions;
 4. Tensix Engine - Hardware accelerator controlled by TRISC processors, optimized for matrix computations essential to AI/ML operations.
 
 LLKs primarily operate by transferring data to and from L1 memory, and programming the Tensix Engine to perform various operations on the stored data.
 
 ## Tensix Engine
 
-The Tensix Engine is a multi-threaded, single-issue, in-order processor that uses a custom instruction set architecture known as the Tensix ISA. It runs three concurrent threads, each managed by a dedicated TRISC processor. The Tensix ISA differs from the RISC-V instruction set; instructions are issued by RISC-V cores and then executed by the Tensix Engine.
+The Tensix Engine is a multi-threaded, single-issue, in-order processor that uses a custom instruction set architecture known as the Tensix ISA. It is run by three concurrent threads, each managed by a dedicated TRISC processor. The Tensix ISA differs from the RISC-V instruction set; instructions are issued by RISC-V cores and then executed by the Tensix Engine.
 
 Figure 2 represents a simplified top-level architecture of the Tensix Engine:
 <div align="center">
@@ -88,7 +88,7 @@ Important considerations:
 ## Math fidelity
 
 The Tensix hardware can use a limited number of bits for multiplication operations. To utilize all the bits from the datums of a particular data format, several multiplication phases might be required to achieve full precision.
-[Math fidelity](https://docs.tenstorrent.com/pybuda/latest/dataformats.html) is a key concept in achieving computational accuracy. Tensix Cores support up to four fidelity phases for all data formats, allowing developers to balance accuracy requirements with performance for their specific application
+[Math fidelity](https://docs.tenstorrent.com/pybuda/latest/dataformats.html) is a key concept in achieving computational accuracy. Tensix Cores support up to four fidelity phases depending on the data format, allowing developers to balance accuracy requirements with performance for their specific application
 
 ## Unpacker
 
@@ -108,9 +108,8 @@ Unpackers feature hardware-accelerated data format conversion through specialize
 
 Source registers are two-dimensional structures designed to hold one tile of data each. Key characteristics:
 
-- Store unpacked data from their respective unpackers;
-- Implement double-buffering to maintain high throughput;
-- Support pipelined execution through parallel buffer access.
+- Store unpacked data from their respective unpackers in limited accuracy (up to 19-bit data elements in current architectures);
+- Implement double-buffering to maintain high throughput and support pipelined execution.
 
 ## Floating Point Unit (FPU)
 
@@ -122,11 +121,12 @@ The Floating Point Unit (FPU) serves as the primary computational engine within 
 </div>
 
 The FPU operates on data from Source A and Source B registers, storing results in the Destination register. It is architected as a matrix of FPU cells - multifunctional units that combine multipliers and adders, working with accumulators in the Destination register.
-Each FPU cell supports three operations:
+Each FPU cell supports four operations:
 
-1. Accumulated dot product
-2. Accumulated element-wise addition
-3. Element-wise addition
+1. Accumulated dot product;
+2. Accumulated element-wise addition;
+3. Accumulated element-wise multiplication;
+4. Element-wise addition.
 
 The FPU is controlled through a dedicated set of Tensix instructions issued by TRISC1.
 
@@ -134,8 +134,8 @@ The FPU is controlled through a dedicated set of Tensix instructions issued by T
 
 SFPU provides specialized operations beyond FPU capabilities. As a SIMD engine, it executes identical operations on multiple data points in parallel. Unlike FPU, SFPU can only read from and write to Destination register. SFPU supports:
 
-- 32-bit input calculations
-- Complex mathematical functions (sigmoid, exponential, reciprocal, etc.)
+- 32-bit input calculations;
+- Complex mathematical functions (sigmoid, exponential, reciprocal, etc.).
 
 SFPU data flow requirements:
 
@@ -147,6 +147,10 @@ SFPU data flow requirements:
 
 SFPU is instantiated within FPU, meaning that the same processors used for issuing FPU instructions (TRISC1) should be in charge of issuing SFPU instructions.
 
+## Desination Operand Register file
+
+Destination register stores the results of FPU calculations and the operands and results of SFPU calculations. Destination register can, depending on the configuration and the data format, store between four and sixteen tiles. Another important feature is that, unlike Source registers, Destination register can be configured to store 32-bit data elements.
+
 ## Packer
 
 The Packer is a DMA engine that transfers data from the Destination register to L1 memory. Like the Unpackers, it implements hardware-accelerated data conversion through gaskets. TRISC2 controls the Packer through its dedicated instruction set.
@@ -155,9 +159,9 @@ The Packer is a DMA engine that transfers data from the Destination register to 
 
 LLK operations encapsulate the utilization of the previously described hardware blocks. These operations are categorized by their resource usage into three groups:
 
-1. Unpack operations - Data movement from L1 to source registers
-2. Math operations - Computational tasks using FPU/SFPU
-3. Pack operations - Data movement from destination register to L1
+1. Unpack operations - Data movement from L1 to source registers or destination register;
+2. Math operations - Computational tasks using FPU/SFPU;
+3. Pack operations - Data movement from destination register to L1.
 
 ### LLK Unpack Operations (Table 1)
 
