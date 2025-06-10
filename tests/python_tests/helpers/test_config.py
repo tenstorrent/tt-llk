@@ -29,8 +29,29 @@ class ProfilerBuild(Enum):
 def generate_build_header(
     test_config, profiler_build: ProfilerBuild = ProfilerBuild.No
 ):
-    """Generate build.h file with all configuration defines
-    File location: <repository>/tests/helpers/include/build.h"""
+    """
+    Generate the contents of a C++ header file (build.h) with all configuration defines.
+
+    This function creates a list of preprocessor #define statements based on the provided
+    test configuration and profiler build option. The generated header is used to control
+    build-time options for tests, such as data formats, math fidelity, accumulation modes,
+    and other test-specific parameters.
+
+    The resulting header content includes:
+      - Basic configuration constants
+      - Profiler and accumulation settings
+      - Data format and math operation defines
+      - Special configuration for multi-tile tests
+
+    Args:
+        test_config (dict): Dictionary containing test configuration parameters.
+        profiler_build (ProfilerBuild, optional): Whether to enable profiler defines.
+
+    Returns:
+        str: The complete contents of the build.h header file as a string.
+
+    File location: <repository>/tests/helpers/include/build.h
+    """
     header_content = [
         "// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC",
         "//",
@@ -64,8 +85,8 @@ def generate_build_header(
         f"#define APPROX_MODE {test_config.get('approx_mode', ApproximationMode.No).value}"
     )
 
-    # Format configuration
-    header_content.extend(["", "// Format configuration"])
+    # Data format configuration
+    header_content.extend(["", "// Data format configuration"])
     formats = test_config.get("formats")
     if isinstance(formats, InputOutputFormat):
         header_content.append(f"#define {unpack_A_src_dict[formats.input_format]}")

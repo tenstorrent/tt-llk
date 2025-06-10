@@ -48,7 +48,6 @@ INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 			-Ifirmware/riscv/common -Ifirmware/riscv/$(CHIP_ARCH) \
 			-Isfpi/include -Ihelpers/include
 
-# All configuration is now in build.h header file
 OPTIONS_COMPILE += $(INCLUDES)
 
 # =========================
