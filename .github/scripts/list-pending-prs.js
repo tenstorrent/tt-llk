@@ -22,23 +22,18 @@ const getDaysOpen = (createdAt) => Math.floor((new Date() - new Date(createdAt))
 
 const getStyledLabels = (labels) => labels.map((label) => `<span class="label" style="background-color:#${label.color}">${label.name}</span>`).join(' ');
 
-const LLK_TEAM_REVIEWERS = new Set([
-    'amahmudTT',
-    'atatuzunerTT',
-    'fvranicTT',
-    'ldjurovicTT',
-    'lpremovicTT',
-    'ncvetkovicTT',
-    'nvelickovicTT',
-    'pgardnerTT',
-    'pmilenkovicTT',
-    'rdjogoTT',
-    'rtawfik01',
-    'skotaracTT',
-    'skrsmanovicTT',
-    'sstanisicTT',
-    'ttmtrajkovic'
-]);
+// Read reviewers from reviewers.txt
+const reviewersFilePath = path.join(__dirname, 'reviewers.txt');
+let LLK_TEAM_REVIEWERS;
+try
+{
+    LLK_TEAM_REVIEWERS = new Set(readFileSync(reviewersFilePath, 'utf-8').split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#')));
+}
+catch (err)
+{
+    console.error('❌ Failed to load reviewers.txt:', err);
+    process.exit(1);
+}
 
 const fetchPullRequests = async ({owner, repo, tag}) => {
     const allPRs = await octokit.paginate(octokit.rest.pulls.list, {
