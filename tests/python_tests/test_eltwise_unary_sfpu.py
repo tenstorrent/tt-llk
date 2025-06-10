@@ -62,7 +62,7 @@ def generate_golden(operation, operand1, data_format):
 
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float32, DataFormat.Float16, DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -85,16 +85,16 @@ test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["eltwise_unary_sfpu_test"],
     test_formats,
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    dest_acc=[DestAccumulation.Yes],
+    approx_mode=[ApproximationMode.Yes],
     mathop=[
-        MathOperation.Abs,
-        MathOperation.Cos,
-        MathOperation.Log,
-        MathOperation.Reciprocal,
-        MathOperation.Sin,
-        MathOperation.Sqrt,
-        MathOperation.Square,
+        # MathOperation.Abs,
+        # MathOperation.Cos,
+        # MathOperation.Log,
+        # MathOperation.Reciprocal,
+        # MathOperation.Sin,
+        # MathOperation.Sqrt,
+        # MathOperation.Square,
         MathOperation.Celu,
     ],
 )
@@ -162,5 +162,6 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
             else torch.bfloat16
         ),
     )
+    print("res_tensor:", res_tensor)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

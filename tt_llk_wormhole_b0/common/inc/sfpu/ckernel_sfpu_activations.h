@@ -25,22 +25,11 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
         // All params are in FP16_B format
         // param0 = alpha
         // param1 = alpha_recip
+        sfpi::vFloat result        = 56.0f;
+        sfpi::vFloat s2v_result    = sfpi::s2vFloat16(param0);
+        sfpi::vFloat direct_result = param0;
 
-        sfpi::vFloat alpha       = param0;
-        sfpi::vFloat alpha_recip = param1;
-
-        v_if (v < 0.0f)
-        {
-            sfpi::vFloat exp_val      = _calculate_exponential_body_<APPROXIMATION_MODE>(v * alpha_recip);
-            sfpi::vFloat result       = v * exp_val;
-            sfpi::vFloat result_alpha = result * alpha;
-            v                         = result_alpha - 1;
-        }
-        v_elseif (v == 0.0f)
-        {
-            v = 0.0f;
-        }
-        v_endif;
+        v = result;
     }
 };
 
