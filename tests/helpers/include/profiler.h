@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include "build.h"
 #include "ckernel.h"
 
 #define DO_PRAGMA(x) _Pragma(#x)
