@@ -3,7 +3,7 @@ name: 📋 List Open Issues and Pull Requests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 * * * *'
 
 permissions:
   contents: read
