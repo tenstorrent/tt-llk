@@ -69,22 +69,23 @@ def write_stimuli_to_l1(
     stimuli_A_format,
     stimuli_B_format,
     core_loc="0,0",
-    tile_cnt=1,
+    tile_cnt=TileCount.One,
+    ternary_op=False,
+    buffer_C=None,
+    stimuli_C_format=None,
 ):
-
     BUFFER_SIZE = 4096
     TILE_SIZE = 1024
 
     buffer_A_address = 0x1A000
-    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt
+    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt.value
+    buffer_C_address = (
+        buffer_B_address + BUFFER_SIZE * tile_cnt.value if ternary_op else None
+    )
 
-    for i in range(tile_cnt):
-
+    for i in range(tile_cnt.value):
         start_index = TILE_SIZE * i
         end_index = start_index + TILE_SIZE
-
-        # if end_index > len(buffer_A) or end_index > len(buffer_B):
-        #     raise IndexError("Buffer access out of bounds")
 
         buffer_A_tile = buffer_A[start_index:end_index]
         buffer_B_tile = buffer_B[start_index:end_index]
@@ -102,6 +103,16 @@ def write_stimuli_to_l1(
 
         write_to_device(core_loc, buffer_A_address, pack_function_A(buffer_A_tile))
         write_to_device(core_loc, buffer_B_address, pack_function_B(buffer_B_tile))
+
+        if ternary_op:
+            if buffer_C is None or stimuli_C_format is None:
+                raise ValueError(
+                    "buffer_C and stimuli_C_format must be provided when ternary_op is True"
+                )
+            buffer_C_tile = buffer_C[start_index:end_index]
+            pack_function_C = packers.get(stimuli_C_format)
+            write_to_device(core_loc, buffer_C_address, pack_function_C(buffer_C_tile))
+            buffer_C_address += BUFFER_SIZE
 
         buffer_A_address += BUFFER_SIZE
         buffer_B_address += BUFFER_SIZE
