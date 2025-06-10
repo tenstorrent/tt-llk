@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Octokit} from '@octokit/rest';
-import {writeFileSync} from 'fs';
+import {readFileSync, writeFileSync} from 'fs';
+import path from 'path';
+import {fileURLToPath} from 'url';
 
 // Environment variables
 const token       = process.env.GITHUB_TOKEN;
@@ -23,7 +25,7 @@ const getDaysOpen = (createdAt) => Math.floor((new Date() - new Date(createdAt))
 const getStyledLabels = (labels) => labels.map((label) => `<span class="label" style="background-color:#${label.color}">${label.name}</span>`).join(' ');
 
 // Read reviewers from reviewers.txt
-const path = require('path');
+const __dirname         = path.dirname(fileURLToPath(import.meta.url));
 const reviewersFilePath = path.join(__dirname, 'reviewers.txt');
 let LLK_TEAM_REVIEWERS;
 try
