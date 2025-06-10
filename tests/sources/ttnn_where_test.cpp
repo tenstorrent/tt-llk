@@ -12,60 +12,6 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
-//
-// SPDX-License-Identifier: Apache-2.0
-template <ckernel::ThreadId thread_id>
-inline void dbg_thread_halt()
-{
-    static_assert(
-        (thread_id == ckernel::ThreadId::MathThreadId) || (thread_id == ckernel::ThreadId::UnpackThreadId) || (thread_id == ckernel::ThreadId::PackThreadId),
-        "Invalid thread id set in dbg_wait_for_thread_idle(...)");
-
-    if constexpr (thread_id == ckernel::ThreadId::UnpackThreadId)
-    {
-        // Wait for all instructions on the running thread to complete
-        ckernel::tensix_sync();
-        // Notify math thread that unpack thread is idle
-        ckernel::mailbox_write(ckernel::ThreadId::MathThreadId, 1);
-        // Wait for math thread to complete debug dump
-        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::MathThreadId);
-    }
-    else if constexpr (thread_id == ckernel::ThreadId::MathThreadId)
-    {
-        // Wait for all instructions on the running thread to complete
-        ckernel::tensix_sync();
-        // Wait for unpack thread to complete
-        volatile uint32_t temp = ckernel::mailbox_read(ckernel::ThreadId::UnpackThreadId);
-        // Wait for previous packs to finish
-        while (ckernel::semaphore_read(ckernel::semaphore::MATH_PACK) > 0)
-        {
-        };
-    }
-}
-
-void dbg_halt_math()
-{
-    dbg_thread_halt<ckernel::MathThreadId>();
-}
-
-void dbg_halt_unpack()
-{
-    dbg_thread_halt<ckernel::UnpackThreadId>();
-}
-
-void dbg_halt_pack()
-{
-    dbg_thread_halt<ckernel::PackThreadId>();
-}
-
-void dbg_halt_tensix()
-{
-    dbg_halt_unpack();
-    dbg_halt_math();
-    dbg_halt_pack();
-}
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -92,6 +38,7 @@ void run_kernel()
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_where.h"
 #include "llk_math_common.h"
+#include "llk_math_eltwise_ternary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
 #include "params.h"
@@ -118,12 +65,12 @@ void run_kernel()
         2, MATH_FORMAT, MATH_FORMAT); // buffer false
 
     // calculation of sfpu operation on dest
-    _llk_math_eltwise_unary_sfpu_init_<SfpuType::where>();
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+    _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
+    _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
     _calculate_where_<32>();
 
-    _llk_math_eltwise_unary_sfpu_done_();
+    _llk_math_eltwise_ternary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
