@@ -112,6 +112,16 @@ jobs:
           </html>
           EOF
 
+      - name: Upload HTML report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: report
+          path: |
+            sorted-issues.html
+            pending-prs.html
+            index.html
+          retention-days: 30
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
