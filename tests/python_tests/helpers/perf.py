@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
+import csv
+import os
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from statistics import mean, variance
 
 from helpers.device import run_elf_files, wait_for_tensix_operations_finished
@@ -137,3 +140,36 @@ def perf_benchmark(test_config, run_types: list[PerfRunType]):
         results[type] = process_runs(runs, test_config)
 
     return results
+
+
+def write_to_report(test_config, run_types, results):
+    assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
+    root = os.environ["LLK_HOME"]
+
+    filename = f"{test_config['testname']}.csv"
+    output_path = Path(root) / "perf" / filename
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    exclude = {"testname", "tile_cnt", "formats"}  # fix: include format info
+    sweep_columns = [param for param in test_config.keys() if not param in exclude]
+
+    result_columns = []
+    for run_type in run_types:
+        result_columns.append(f"mean({run_type.name})")
+        result_columns.append(f"variance({run_type.name})")
+
+    row = [test_config[k] for k in sweep_columns]
+    for run_type in run_types:
+        stats = results[run_type]
+        for stat in stats:
+            # fix : multiple stats per run type
+            row.append(stat["mean"])
+            row.append(stat["variance"])
+
+    # Write to CSV
+    first_entry = not os.path.exists(output_path)
+    with open(output_path, "a", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        if first_entry:
+            writer.writerow(sweep_columns + result_columns)
+        writer.writerow(row)
