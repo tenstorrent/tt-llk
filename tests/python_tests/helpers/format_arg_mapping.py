@@ -105,6 +105,7 @@ class MathOperation(Enum):
     SfpuElwadd = "SFPU_ELWADD"
     SfpuElwsub = "SFPU_ELWSUB"
     SfpuElwmul = "SFPU_ELWMUL"
+    SfpuXlogy = "SFPU_OP_XLOGY"
 
 
 class ReduceDimension(Enum):
