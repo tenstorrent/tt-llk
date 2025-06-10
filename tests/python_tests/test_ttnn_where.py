@@ -4,9 +4,6 @@
 
 import pytest
 import torch
-from ttexalens.tt_exalens_lib import (
-    write_to_device,
-)
 
 from helpers.device import (
     collect_results,
@@ -20,7 +17,6 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.pack import pack_bfp16, pack_fp32
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -166,15 +162,14 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
     )
 
     golden = generate_golden(src_A, src_B, src_C)
-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
-    write_to_device(
-        "0,0",
-        0x1C000,
-        (
-            pack_fp32(src_C)
-            if formats.input_format == DataFormat.Float32
-            else pack_bfp16(src_C)
-        ),
+    write_stimuli_to_l1(
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        ternary_op=True,
+        buffer_C=src_C,
+        stimuli_C_format=formats.input_format,
     )
 
     test_config = {
