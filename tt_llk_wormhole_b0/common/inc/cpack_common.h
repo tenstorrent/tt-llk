@@ -168,8 +168,8 @@ inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_f
                     : (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float16) ? 2
                                                                                                         : 1;
     uint y_stride = FACE_R_DIM * x_stride;
-    uint z_stride = PACK_CNT * FACE_C_DIM * y_stride;
-    uint w_stride = z_stride;
+    uint z_stride = 2 * FACE_C_DIM * y_stride;
+    uint w_stride = z_stride * 2;
 
     uint z_stride_ch1 = FACE_R_DIM * PACK_CNT * 2; // TODO hardcodeded for Float16
     if (pack_dst_format == static_cast<DataFormatType>(DataFormat::Bfp8_b))

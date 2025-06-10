@@ -236,7 +236,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
  * LLK FAST ELTWISE UNARY DATACOPY
  *************************************************************************/
 
-inline void _llk_math_fast_eltwise_unary_datacopy_addrmod_config_()
+inline void _llk_math_fast_eltwise_unary_datacopy_addrmod_config_(const std::uint32_t unit_dim)
 {
     addr_mod_t {
         .srcb = {.incr = 4},
@@ -249,68 +249,117 @@ inline void _llk_math_fast_eltwise_unary_datacopy_addrmod_config_()
         .dest = {.incr = 8},
     }
         .set(ADDR_MOD_2);
+
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .dest = {.incr = (uint8_t)(unit_dim == 1 ? 232 : 200)},
+    }
+        .set(ADDR_MOD_3);
+
+    addr_mod_t {
+        .dest = {.incr = (int16_t)(unit_dim == 1 ? -248 : -252)},
+    }
+        .set(ADDR_MOD_0);
 }
 
-inline void _llk_math_fast_eltwise_unary_datacopy_mop_config_()
+inline void _llk_math_fast_eltwise_unary_datacopy_mop_config_(const std::uint32_t unit_dim)
 {
-    TTI_REPLAY(16, 12, 0, 1);
+    // TTI_REPLAY(16, 12, 0, 1);
 
-    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    // TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    // TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    // TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    // TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
 
-    ckernel_unpack_template tmp = ckernel_unpack_template(
-        false,
-        true,
-        TT_OP_REPLAY(16, 4, 0, 0),
-        TT_OP_REPLAY(16, 4, 0, 0),
-        TT_OP_REPLAY(20, 8, 0, 0),
-        TT_OP_REPLAY(20, 8, 0, 0),
-        TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB),
-        0,
-        0);
+    // ckernel_unpack_template tmp = ckernel_unpack_template(
+    //     false,
+    //     true,
+    //     TT_OP_REPLAY(16, 4, 0, 0),
+    //     TT_OP_REPLAY(16, 4, 0, 0),
+    //     TT_OP_REPLAY(20, 8, 0, 0),
+    //     TT_OP_REPLAY(20, 8, 0, 0),
+    //     TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB),
+    //     0,
+    //     0);
 
-    tmp.program(instrn_buffer);
+    // tmp.program(instrn_buffer);
 }
 
-inline void _llk_math_fast_eltwise_unary_datacopy_init_()
+inline void _llk_math_fast_eltwise_unary_datacopy_init_(const std::uint32_t unit_dim)
 {
-    _llk_math_fast_eltwise_unary_datacopy_addrmod_config_();
+    _llk_math_fast_eltwise_unary_datacopy_addrmod_config_(unit_dim);
 
-    _llk_math_fast_eltwise_unary_datacopy_mop_config_();
+    _llk_math_fast_eltwise_unary_datacopy_mop_config_(unit_dim);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_fast_eltwise_unary_datacopy_block_(const std::uint32_t dst_index, const std::uint32_t block_dim)
+inline void _llk_math_fast_eltwise_unary_datacopy_block_(const std::uint32_t dst_index, const std::uint32_t unit_dim, const std::uint32_t num_units)
 {
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    // we split dest and write top faces in the frist half and botton faces in the second half (or more precisely quarter, since dest sync half)
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(dst_index);
 
-    // for (uint i = 0; i < block_dim / 2; i++)
-    // {
-    //     for (uint j = 0; j < 8; j++)
-    //     {
-    //         TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    //     }
-    //     for (uint j = 0; j < 16; j++)
-    //     {
-    //         TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    //     }
-    //     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
-    // }
+    for (uint i = 0; i < num_units; i++)
+    {
+        if (unit_dim == 1) {
+            for (uint j = 0; j < 3; j++)
+            {
+                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            }
+            TTI_MOVA2D(0, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
+            for (uint j = 0; j < 3; j++)
+            {
+                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            }
+            TTI_MOVA2D(0, 0, ADDR_MOD_0, p_mova2d::MOV_8_ROWS, 0);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
+        } else if (unit_dim == 2) {
+            for (uint j = 0; j < 7; j++)
+            {
+                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            }
+            TTI_MOVA2D(0, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
+            for (uint j = 0; j < 15; j++)
+            {
+                TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            }
+            TTI_MOVB2D(0, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
+        } else if (unit_dim == 3) {
+            for (uint j = 0; j < 6; j++)
+            {
+                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            }
+            for (uint j = 0; j < 12; j++)
+            {
+                TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            }
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(dst_index + i * 3 + 8);
+            for (uint j = 0; j < 6; j++)
+            {
+                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            }
+            for (uint j = 0; j < 11; j++)
+            {
+                TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            }
+            TTI_MOVB2D(0, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
+        }
+    }
 
-    TTI_MOP(0, block_dim - 1, 0xAAAA); // block dim must be even
+    // TTI_MOP(0, block_dim - 1, 0xAAAA); // block dim must be even
 
     math::clear_dst_reg_addr();
 }
