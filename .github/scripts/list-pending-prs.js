@@ -23,6 +23,7 @@ const getDaysOpen = (createdAt) => Math.floor((new Date() - new Date(createdAt))
 const getStyledLabels = (labels) => labels.map((label) => `<span class="label" style="background-color:#${label.color}">${label.name}</span>`).join(' ');
 
 // Read reviewers from reviewers.txt
+const path = require('path');
 const reviewersFilePath = path.join(__dirname, 'reviewers.txt');
 let LLK_TEAM_REVIEWERS;
 try
