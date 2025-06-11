@@ -25,12 +25,20 @@ from helpers.utils import passed_test, run_shell_command
 
 def generate_golden(operand1, operand2, data_format, math_fidelity_phases):
 
+    print("BEFORE APPLY FIDELITY\n\n")
+    print(operand1.view(32, 32))
+    print("\n\n")
+    print(operand2.view(32, 32))
+
     result_matrix = torch.zeros((32, 32))
 
     for i in range(math_fidelity_phases):
-
-        print("GENERATING GOLDEN TENSOR FOR PHASE: ", i)
         operand1, operand2 = apply_fidelity(operand1, operand2, data_format, i)
+
+        print("AFTER APPLY FIDELITY\n\n")
+        print(operand1.view(32, 32))
+        print("\n\n")
+        print(operand2.view(32, 32))
 
         operand1_matrix = operand1.view(32, 32)
         operand2_matrix = operand2.view(32, 32)
@@ -105,8 +113,6 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         math_fidelity_phases = 3
     elif math_fidelity == MathFidelity.HiFi4:
         math_fidelity_phases = 4
-
-    print("GENERATING GOLDEN TENSOR")
 
     golden_tensor = generate_golden(
         src_A, src_B, formats.input_format, math_fidelity_phases
