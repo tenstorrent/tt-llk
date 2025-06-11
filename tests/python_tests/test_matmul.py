@@ -10,7 +10,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
 from helpers.format_config import DataFormat
-from helpers.golden_generators import MatmulGolden, get_golden_generator
+from helpers.math_fidelity import apply_fidelity
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -21,17 +21,16 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test, run_shell_command
-from helpers.math_fidelity import apply_fidelity
 
 
 def generate_golden(operand1, operand2, data_format, math_fidelity_phases):
 
     result_matrix = torch.zeros((32, 32))
 
-    print("GENERATING GOLDEN TENSOR")
+    for i in range(math_fidelity_phases):
 
-    for i in range(math_fidelity_phases+1):
-        operand1,operand2 = apply_fidelity(operand1, operand2, data_format, i)
+        print("GENERATING GOLDEN TENSOR FOR PHASE: ", i)
+        operand1, operand2 = apply_fidelity(operand1, operand2, data_format, i)
 
         operand1_matrix = operand1.view(32, 32)
         operand2_matrix = operand2.view(32, 32)
@@ -46,7 +45,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity_phases):
 supported_formats = [
     DataFormat.Float16_b,
     DataFormat.Float16,
-    # DataFormat.Bfp8_b,
+    DataFormat.Bfp8_b,
     DataFormat.Float32,
 ]
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -95,31 +94,23 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    generate_golden = get_golden_generator(MatmulGolden)
-    golden_tensor = generate_golden(
-        src_A,
-        src_B,
-        formats.output_format,
-        math_fidelity,
-        input_dimensions=input_dimensions,
-    )
-    golden_tensor = tilize_block(
-        golden_tensor, dimensions=input_dimensions, stimuli_format=formats.output_format
-    ).to(torch_format)
-    golden_tensor = golden_tensor.flatten()
+    # src_A, src_B = generate_stimuli(formats.input_format, formats.input_format,const_face=True, const_value_A=1.54, const_value_B=1.67)
+    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     if math_fidelity == MathFidelity.LoFi:
-        math_fidelity_phases = 0
-    elif math_fidelity == MathFidelity.HiFi2:
         math_fidelity_phases = 1
-    elif math_fidelity == MathFidelity.HiFi3:
+    elif math_fidelity == MathFidelity.HiFi2:
         math_fidelity_phases = 2
-    elif math_fidelity == MathFidelity.HiFi4:
+    elif math_fidelity == MathFidelity.HiFi3:
         math_fidelity_phases = 3
+    elif math_fidelity == MathFidelity.HiFi4:
+        math_fidelity_phases = 4
 
     print("GENERATING GOLDEN TENSOR")
 
-    golden_tensor = generate_golden(src_A, src_B, formats.input_format, math_fidelity_phases)
+    golden_tensor = generate_golden(
+        src_A, src_B, formats.input_format, math_fidelity_phases
+    )
     golden_tensor = tilize(golden_tensor, torch_format).to(torch_format)
 
     res_address = write_stimuli_to_l1(
@@ -150,5 +141,5 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
     print("\n\n")
     print(f"Result tensor: {res_tensor.view(32,32)}")
 
-    assert 1==2
+    assert 1 == 2
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
