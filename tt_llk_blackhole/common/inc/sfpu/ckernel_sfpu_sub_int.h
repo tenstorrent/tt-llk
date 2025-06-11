@@ -17,11 +17,11 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, InstrModLoadStore INSTRUCTION_MODE = INT32_2S_COMP, bool SIGN_MAGNITUDE_FORMAT = false, int ITERATIONS = 8>
-inline void _add_int_(const uint dst_offset)
+inline void _sub_int_(const uint dst_offset)
 {
-    // Operand A is input1 (int32/uint16/uint32)
-    // Operand B is input2 (int32/uint16/uint32)
-    // Output is int32/uint16/uint32
+    // Operand A is input1 (int32/uint16)
+    // Operand B is input2 (int32/uint16)
+    // Output is int32/uint16
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
 
     // INSTRUCTION_MODE = InstrModLoadStore::INT32_2S_COMP enables LOAD/STORE operations to convert INT32 sign-magnitude to 2's complement.
@@ -33,15 +33,16 @@ inline void _add_int_(const uint dst_offset)
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        // operand A
-        TTI_SFPLOAD(p_sfpu::LREG0 /*lreg*/, INSTRUCTION_MODE, ADDR_MOD_7, 0 /*dest_reg_addr */);
+        // operand B
+        TT_SFPLOAD(p_sfpu::LREG0 /*lreg*/, INSTRUCTION_MODE, ADDR_MOD_7, dst_offset * 64 /*dest_reg_addr */);
         apply_sign_magnitude_conversion<SIGN_MAGNITUDE_FORMAT>(p_sfpu::LREG0, p_sfpu::LREG2, INSTR_MOD_CAST);
 
-        // operand B
-        TT_SFPLOAD(p_sfpu::LREG1 /*lreg*/, INSTRUCTION_MODE, ADDR_MOD_7, dst_offset * 64);
+        // operand A
+        TTI_SFPLOAD(p_sfpu::LREG1 /*lreg*/, INSTRUCTION_MODE, ADDR_MOD_7, 0);
         apply_sign_magnitude_conversion<SIGN_MAGNITUDE_FORMAT>(p_sfpu::LREG1, p_sfpu::LREG2, INSTR_MOD_CAST);
 
-        TTI_SFPIADD(0 /*imm*/, p_sfpu::LREG1 /*lreg_c*/, p_sfpu::LREG0 /*lreg_dest*/, 4 /*imod*/);
+        // Set instruction modifier to 6 to get B's 2's complement
+        TTI_SFPIADD(0 /*imm*/, p_sfpu::LREG1 /*lreg_c*/, p_sfpu::LREG0 /*lreg_dest*/, 6 /*imod*/);
 
         // LREG_0 -> dest
         apply_sign_magnitude_conversion<SIGN_MAGNITUDE_FORMAT>(p_sfpu::LREG0, p_sfpu::LREG1, INSTR_MOD_CAST);
