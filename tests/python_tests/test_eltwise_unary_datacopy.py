@@ -14,9 +14,9 @@ from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat
 from helpers.param_config import (
     clean_params,
+    format_combination_sweep,
     generate_param_ids,
     generate_params,
-    input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
@@ -29,10 +29,11 @@ def generate_golden(operand1, format):
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
-    DataFormat.Float32,
-    DataFormat.Float16,
-    DataFormat.Float16_b,
-    DataFormat.Bfp8_b,
+    DataFormat.UInt16,
+    DataFormat.Int8,
+    DataFormat.UInt8,
+    DataFormat.UInt32,
+    DataFormat.Int32,
 ]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -53,8 +54,10 @@ supported_formats = [
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
 
-test_formats = input_output_formats(supported_formats)
-dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
+test_formats = format_combination_sweep(
+    formats=supported_formats, all_same=True, same_src_reg_format=True
+)
+dest_acc = [DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
 param_ids = generate_param_ids(all_params)
@@ -70,7 +73,11 @@ def test_unary_datacopy(testname, formats, dest_acc):
     golden = generate_golden(src_A, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
-    unpack_to_dest = formats.input_format == DataFormat.Float32
+    unpack_to_dest = formats.input_format in [
+        DataFormat.Float32,
+        DataFormat.Int32,
+        DataFormat.UInt32,
+    ]
 
     test_config = {
         "formats": formats,
