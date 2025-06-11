@@ -322,7 +322,7 @@ inline void _llk_math_fast_eltwise_unary_datacopy_block_(const std::uint32_t dst
                 TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             }
             TTI_MOVA2D(0, 0, ADDR_MOD_0, p_mova2d::MOV_8_ROWS, 0);
-            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
+            TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB);
         } else if (unit_dim == 2) {
             for (uint j = 0; j < 7; j++)
             {
