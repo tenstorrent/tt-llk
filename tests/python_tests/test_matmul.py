@@ -22,26 +22,25 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test, run_shell_command
+from helpers.math_fidelity import apply_fidelity
 
 
-def generate_golden(operand1, operand2, data_format, math_fidelity):
-    torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+def generate_golden(operand1, operand2, data_format, math_fidelity_phases):
 
-    if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
-        for element in operand2:
-            element = element.to(torch.int32)
-            element &= 0xFFFE
-    if math_fidelity == MathFidelity.LoFi:  # LoFi
-        for element in operand1:
-            element = element.to(torch.int32)
-            element &= 0xFFF8
+    result_matrix = torch.zeros((32, 32))
 
-    operand1_matrix = operand1.view(32, 32).to(torch_format)
-    operand2_matrix = operand2.view(32, 32).to(torch_format)
+    print("GENERATING GOLDEN TENSOR")
 
-    result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
+    for i in range(math_fidelity_phases+1):
+        operand1,operand2 = apply_fidelity(operand1, operand2, data_format, i)
 
-    return result_matrix.view(1024).to(torch_format)
+        operand1_matrix = operand1.view(32, 32)
+        operand2_matrix = operand2.view(32, 32)
+
+        # accumulate results in a 32x32 matrix
+        result_matrix += torch.matmul(operand1_matrix, operand2_matrix)
+
+    return result_matrix.view(1024)
 
 
 # SUPPORTED FORMATS FOR TEST
@@ -95,7 +94,18 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
-    golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+    if math_fidelity == MathFidelity.LoFi:
+        math_fidelity_phases = 0
+    elif math_fidelity == MathFidelity.HiFi2:
+        math_fidelity_phases = 1
+    elif math_fidelity == MathFidelity.HiFi3:
+        math_fidelity_phases = 2
+    elif math_fidelity == MathFidelity.HiFi4:
+        math_fidelity_phases = 3
+
+    print("GENERATING GOLDEN TENSOR")
+
+    golden_tensor = generate_golden(src_A, src_B, formats.input_format, math_fidelity_phases)
     golden_tensor = tilize(golden_tensor, torch_format).to(torch_format)
 
     write_stimuli_to_l1(
@@ -123,4 +133,9 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
 
     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
 
+    print(f"Golden tensor: {golden_tensor.view(32,32)}")
+    print("\n\n")
+    print(f"Result tensor: {res_tensor.view(32,32)}")
+
+    assert 1==2
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
