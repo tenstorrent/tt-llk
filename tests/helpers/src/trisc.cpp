@@ -12,7 +12,6 @@
 #include "ckernel_pcbuf.h"
 // Necessary for ckernel variables
 #include "ckernel_helper.h"
-#include "params.h"
 #include "profiler.h"
 
 #ifdef LLK_PROFILER

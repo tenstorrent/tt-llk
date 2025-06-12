@@ -10,6 +10,7 @@
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "llk_defs.h"
+#include "params.h"
 #include "profiler.h"
 
 // Globals
@@ -23,7 +24,6 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
-#include "params.h"
 
 void run_kernel()
 {
@@ -52,7 +52,6 @@ void run_kernel()
 
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
-#include "params.h"
 
 void run_kernel()
 {
@@ -81,7 +80,6 @@ void run_kernel()
 
 #include "llk_pack.h"
 #include "llk_pack_common.h"
-#include "params.h"
 
 void run_kernel()
 {
