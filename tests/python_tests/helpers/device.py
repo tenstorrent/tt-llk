@@ -120,20 +120,16 @@ def write_stimuli_to_l1(
     stimuli_A_format,
     stimuli_B_format,
     core_loc="0,0",
-<<<<<<< HEAD
     tile_count=1,
 ):
 
     TILE_ELEMENTS = 1024
-=======
-    tile_cnt=TileCount.One,
     ternary_op=False,
     buffer_C=None,
     stimuli_C_format=None,
 ):
     BUFFER_SIZE = 4096
     TILE_SIZE = 1024
->>>>>>> 3036b10 (Write stimuli to L1 to support ternary writes)
 
     TILE_SIZE_A = format_tile_sizes.get(stimuli_A_format, 2048)
     TILE_SIZE_B = format_tile_sizes.get(stimuli_A_format, 2048)
