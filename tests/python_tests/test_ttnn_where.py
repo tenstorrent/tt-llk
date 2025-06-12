@@ -24,7 +24,7 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.test_config import generate_make_command
-from helpers.utils import compare_pcc, run_shell_command
+from helpers.utils import passed_test, run_shell_command
 
 
 # Helper function
@@ -207,20 +207,4 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         ),
     )
 
-    if formats.output_format in [
-        DataFormat.Float16_b,
-        DataFormat.Float16,
-        DataFormat.Float32,
-    ]:
-        atol = 0.05
-        rtol = 0.1
-    elif formats.output_format == DataFormat.Bfp8_b:
-        atol = 0.05
-        rtol = 0.1
-
-    assert torch_equal_nan(
-        golden_tensor, res_tensor
-    ), "Tensors are not equal, NaN values mismatch"
-
-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.99
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
