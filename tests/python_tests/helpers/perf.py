@@ -3,6 +3,7 @@
 
 import csv
 import os
+import shutil
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -145,6 +146,17 @@ def perf_benchmark(test_config, run_types: list[PerfRunType]):
         results[type] = process_runs(runs, test_config)
 
     return results
+
+
+def delete_reports():
+    assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
+    root = os.environ["LLK_HOME"]
+
+    path = Path(root) / "perf"
+    print(path)
+
+    if path.exists() and path.is_dir():
+        shutil.rmtree(path)
 
 
 def write_to_report(test_config, run_types, results):
