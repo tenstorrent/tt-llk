@@ -75,7 +75,7 @@ def timing_math(perf_data: PerfData) -> int:
 
 
 def timing_pack(perf_data: PerfData) -> int:
-    return (perf_data.math.tile_loop.duration,)
+    return (perf_data.pack.tile_loop.duration,)
 
 
 def timing_l1_congestion(perf_data: PerfData) -> int:
