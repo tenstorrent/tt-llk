@@ -69,7 +69,7 @@ def write_stimuli_to_l1(
     stimuli_A_format,
     stimuli_B_format,
     core_loc="0,0",
-    tile_cnt=TileCount.One,
+    tile_cnt=1,
     ternary_op=False,
     buffer_C=None,
     stimuli_C_format=None,
@@ -78,12 +78,10 @@ def write_stimuli_to_l1(
     TILE_SIZE = 1024
 
     buffer_A_address = 0x1A000
-    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt.value
-    buffer_C_address = (
-        buffer_B_address + BUFFER_SIZE * tile_cnt.value if ternary_op else None
-    )
+    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt
+    buffer_C_address = buffer_B_address + BUFFER_SIZE * tile_cnt if ternary_op else None
 
-    for i in range(tile_cnt.value):
+    for i in range(tile_cnt):
         start_index = TILE_SIZE * i
         end_index = start_index + TILE_SIZE
 
