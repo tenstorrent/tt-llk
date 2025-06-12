@@ -18,8 +18,6 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-#define TILE_CNT 16
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB.h"
