@@ -14,9 +14,9 @@ from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat
 from helpers.param_config import (
     clean_params,
-    format_combination_sweep,
     generate_param_ids,
     generate_params,
+    input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
@@ -53,9 +53,7 @@ supported_formats = [
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
 
-test_formats = format_combination_sweep(
-    formats=supported_formats, all_same=True, same_src_reg_format=True
-)
+test_formats = input_output_formats(supported_formats)
 dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
