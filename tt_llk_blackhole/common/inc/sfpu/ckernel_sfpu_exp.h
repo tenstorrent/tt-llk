@@ -297,8 +297,6 @@ inline void _init_exponential_()
 
         constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
 
-        // constexpr float scale_fp32 = :std:bit_cast<float>(scale);
-
         constexpr float A_scaled         = A * scale_fp32;
         constexpr float THRESHOLD_scaled = THRESHOLD / scale_fp32;
 
