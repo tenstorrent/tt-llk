@@ -56,6 +56,10 @@ class DataFormat(Enum):
             DataFormat.UInt8,
         }
 
+    def is_32_bit(self) -> bool:
+        """Checks if the data format is a 32-bit type."""
+        return self in {DataFormat.Float32, DataFormat.Int32, DataFormat.UInt32}
+
 
 @dataclass
 class FormatConfig:

@@ -29,11 +29,10 @@ def generate_golden(operand1, format):
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
-    DataFormat.UInt16,
-    DataFormat.Int8,
-    DataFormat.UInt8,
-    DataFormat.UInt32,
-    DataFormat.Int32,
+    DataFormat.Float32,
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Bfp8_b,
 ]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -57,7 +56,7 @@ supported_formats = [
 test_formats = format_combination_sweep(
     formats=supported_formats, all_same=True, same_src_reg_format=True
 )
-dest_acc = [DestAccumulation.Yes]
+dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
 param_ids = generate_param_ids(all_params)
@@ -73,11 +72,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
     golden = generate_golden(src_A, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
-    unpack_to_dest = formats.input_format in [
-        DataFormat.Float32,
-        DataFormat.Int32,
-        DataFormat.UInt32,
-    ]
+    unpack_to_dest = formats.input_format.is_32_bit()
 
     test_config = {
         "formats": formats,
