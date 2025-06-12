@@ -107,7 +107,7 @@ inline void _llk_pack_untilize_mop_config_(
     This will allow the L1 address to be updated for the next row.
     Revisit after #22820 to convert last_loop_op to constexpr.
     */
-    uint last_loop_op = TT_OP_PACR(
+    uint32_t last_loop_op = TT_OP_PACR(
         p_pacr::CFG_CTXT_0,
         p_pacr::NO_ROW_PAD_ZERO,
         p_pacr::DST_ACCESS_STRIDED_MODE,
