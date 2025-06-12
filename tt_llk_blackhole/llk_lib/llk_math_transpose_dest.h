@@ -35,8 +35,9 @@ template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::reset_counters(p_setrwc::SET_ABD_F);
 
-    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
+    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU | p_stall::MATH);
 
     if constexpr (is_32bit)
     {
@@ -218,5 +219,4 @@ inline void _llk_math_transpose_dest_init_()
     transpose_dest_configure_mop<transpose_of_faces, is_32bit>();
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
-    math::reset_counters(p_setrwc::SET_ABD_F);
 }
