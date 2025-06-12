@@ -27,6 +27,10 @@ inline void _llk_pack_untilize_configure_addrmod_()
         .set(ADDR_MOD_0);
 }
 
+/*
+block_ct_dim represents the number of input tiles in a block.
+full_ct_dim represents the total number of input tiles.
+*/
 template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim = block_ct_dim, bool diagonal = false>
 inline void _llk_pack_untilize_mop_config_(
     const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, bool narrow_row = false, std::uint32_t row_num_datums = TILE_C_DIM)
@@ -43,13 +47,16 @@ inline void _llk_pack_untilize_mop_config_(
     // For narrow row, the faces are stored in the first column of the tile, therefore requiring only one packer interface.
     const uint PACK_INTF_SEL = (narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE);
     /*
-    Each pack instruction does 2x16 datums if (num_faces>1)
-    Each row of 16 datums, has a stride of 16 from dest read
-    Dest row read in inner loop:
+    When using DST_STRIDED_MODE, each packer interface has a stride of 16*block_size,
+    where block_size is set to be the size of a row within face.
+    Each PACR instruction packs 2x16 datums if (num_faces>1), meaning that it would
+    pack out one row for each tile in the block.
+    In the inner loop, for each tile, the rows that get packed from dest register
+    in the first outer loop iteration are:
     tile 0: row 0, row 16
     tile 1: row 64, row 80
-    .
     tile block_ct_dim-1: row 64*(block_ct_dim-1), row 64*(block_ct_dim-1)+16
+    This processes is repeated for each row of the block in dest.
     */
     ckernel::ckernel_template tmp(
         MOP_OUTER_LOOP,
@@ -71,10 +78,10 @@ inline void _llk_pack_untilize_mop_config_(
 
     /*
     Since there are two inner loop operations, the instruction set by set_last_inner_loop_instr
-    will replace the second inner loop operation (in the last iteration, call the PACR instuction
-    with the Last bit set to 1 instead of 0 to close the row and allow L1 address to be updated).
+    will replace the second inner loop operation (in the last iteration, call the PACR instruction
+    with the Last bit set to 1 instead of 0 to close the row).
     Therefore, by setting the W counter to maxium value (15) as a start operation,
-    TT_OP_INCADCZW in the inner loop will reset it to 0 in the first iteration of the inner loop.
+    TT_OP_INCADCZW in the inner loop will set it to 0 in the first iteration of the inner loop.
     */
     tmp.set_start_op(TT_OP_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, 15));
 
@@ -85,23 +92,22 @@ inline void _llk_pack_untilize_mop_config_(
         false,
         []
         {
-            // update l1 address
+            // Update L1 address
             TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
             TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
             TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
             TTI_NOP;
         });
 
-    tmp.set_end_ops(
-        TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0),                             // inc ch0_y counters
-        TT_OP_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 0) // update row address
-    );
+    // After the inner loop finishes, move to the next row in the block, and update L1 address.
+    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), TT_OP_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 0));
 
     /*
     Close the row in the block by setting the Last bit to 1 in the last inner loop instruction.
     This will allow the L1 address to be updated for the next row.
+    Revisit after #22820 to convert last_loop_op to constexpr.
     */
-    tmp.set_last_inner_loop_instr(TT_OP_PACR(
+    uint last_loop_op = TT_OP_PACR(
         p_pacr::CFG_CTXT_0,
         p_pacr::NO_ROW_PAD_ZERO,
         p_pacr::DST_ACCESS_STRIDED_MODE,
@@ -113,21 +119,11 @@ inline void _llk_pack_untilize_mop_config_(
         0,
         p_pacr::NO_CTXT_CTRL,
         0,
-        1));
+        1);
 
-    tmp.set_last_outer_loop_instr(TT_OP_PACR(
-        p_pacr::CFG_CTXT_0,
-        p_pacr::NO_ROW_PAD_ZERO,
-        p_pacr::DST_ACCESS_STRIDED_MODE,
-        ADDR_MOD_0,
-        p_pacr::ADDR_CNT_CTXT_0,
-        0,
-        PACK_INTF_SEL,
-        0,
-        0,
-        p_pacr::NO_CTXT_CTRL,
-        0,
-        1));
+    tmp.set_last_inner_loop_instr(last_loop_op);
+
+    tmp.set_last_outer_loop_instr(last_loop_op);
 
     tmp.program(instrn_buffer);
 }
