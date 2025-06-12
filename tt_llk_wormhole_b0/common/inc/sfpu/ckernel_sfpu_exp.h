@@ -84,7 +84,7 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
 }
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK = false>
-void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0x3F80)
+void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0x3F80 /* 1.0f in BF16 */)
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
@@ -194,11 +194,13 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
                 {
                     v_if (val >= 89)
                     {
+                        // Algorithm is incorrect for inputs >= 89, so saturate output to infinity.
                         sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
                         sfpi::dst_reg[0]     = val_inf;
                     }
                     v_elseif (val < -42)
                     {
+                        // Algorithm is incorrect for inputs < -42, so saturate output to 0.
                         sfpi::dst_reg[0] = 0.0f;
                     }
                     v_else
@@ -220,6 +222,7 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
                 }
                 else
                 {
+                    // SKIP_POSITIVE_CHECK is true, so user is responsible for ensuring inputs are <= 89.
                     v_if (val < -42)
                     {
                         sfpi::dst_reg[0] = 0.0f;
@@ -264,7 +267,7 @@ constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uin
 constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
 constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
 
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000>
+template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000 /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
