@@ -55,7 +55,7 @@ Tenstorrent’s programming model assumes that three TRISCs are used to drive di
 - **TRISC2 (Packer):**  
   Reads results from destination registers and writes final output to L1 memory.
 
-A complete L1-to-L1 operation thus requires all three TRISCs to execute code and control their respective subsystems—typically involving three LLKs running on different TRISCs. As TRISCs are asynchronous, additional synchronization ensures correct sequencing and data integrity.
+A complete L1-to-L1 operation thus requires all three TRISCs to execute code and control their respective subsystems, typically involving three LLKs running on different TRISCs. As TRISCs are asynchronous, additional synchronization ensures correct sequencing and data integrity.
 
 ### 5.2 Types of Performance Tests
 
@@ -71,27 +71,27 @@ To meet performance evaluation goals, two types of performance tests should be r
 
 ## 6. Test Environment
 
-The performance evaluation suite should be a new test in the LLK test infrastructure, employing all available resources to implement performance evaluation for individual LLKs. Performance tests should focus on logical mathematical operations (e.g., matmul, eltwise FPU/SFU) rather than single LLK functions, as this aligns with how higher-level software layers invoke LLKs. Each logical math operation should have dedicated performance evaluation tests that consist of:
+The performance evaluation suite should consist of new tests integrated into the LLK test infrastructure, utilizing all available resources to support comprehensive performance assessment. Each test should focus on operation-level evaluation (e.g., matmul, eltwise op), reflecting how higher-level software employs LLKs in practical use cases. An operation typically consists of three LLKs, each running on a different TRISC and controlling relevant parts of the Tensix engine to execute the operation end-to-end. Therefore, a complete performance evaluation for an operation should include two main components:
 
 1. **Isolated Thread Performance Test** for each LLK involved.
-2. **Operation Performance Test** running the operation pipeline end-to-end.
+2. **Operation Performance Test** that measures the full execution pipeline end-to-end.
 
 ---
 
-## 7. Thread Isolation Test
+## 7. Isolated Thread Performance Test
 
-The goal of thread isolation is to measure the hardware utilization metric by decomposing an operation into its typical three LLK calls and running them independently. The evaluation suite accomplishes thread isolation through the following mechanisms:
+The goal of thread isolation is to measure the hardware utilization metric by decomposing an operation into its typical three LLK calls and running them independently. The evaluation infrastructure accomplishes thread isolation through the following mechanisms:
 
-- **Using Mock/Empty LLKs for Unpacker and Math:**  
+- **Mock/Empty LLKs for Unpacker and Math:**  
   Hardware-implemented synchronization (using write-ready/data-valid flags) exists between Unpacker and Math. To break this synchronization for testing without affecting LLK functionality, mock LLK instances are used. For example, when evaluating the Unpacker thread, the Math thread runs a mock LLK to continually set the write-ready flag, and vice versa.  
   **TODO:** Verify that use of mock LLKs does not introduce side effects that impact correctness of performance measurements.
 
-- **Disabling SW Synchronization between Packer and Math Threads:**  
-  Synchronization here is implemented using software primitives. For isolated testing, simply remove synchronization calls.
+- **Disable SW Synchronization between Packer and Math Threads:**  
+  Synchronization scheme between Packer and Math is implemented using software primitives. For isolated testing, simply remove synchronization calls.
 
 ---
 
-## 8. Operation Level Test
+## 8. Operation Performance Test
 
 Operation performance tests simply execute the full sequence of required LLKs to complete the operation under evaluation end to end.
 
@@ -99,9 +99,9 @@ Operation performance tests simply execute the full sequence of required LLKs to
 
 ## 9. Performance Metric Measurement Infrastructure
 
-To quantitatively assess performance, specific measurement infrastructure should be created. This includes a profiler build that enables placing of timing zones within LLK code to measure specific intervals in cycles. Each test should define time zones to support measuring length of:
+To quantitatively assess performance, specific measurement infrastructure should be created. This includes a profiler build that enables placing of timing zones within LLK code to measure specific intervals in clock cycles. Each test should define time zones to support measuring length of:
 
-1. **Hardware Initialization**
+1. **Hardware Initialization routine**
 2. **Isolated LLK per Thread** (Unpacker, Math, Packer)
 3. **L1-to-L1 (End-to-End) Operation** (from Unpacker start to Packer end)
 
@@ -116,14 +116,14 @@ Each test must define a set of input parameters that will be swept during execut
 
 ## 11. Test Iterations per Tile and Running Scheme
 
-To ensure that timing overhead from measurement infrastructure does not distort results, choose the number of operation iterations within a timing zone so that the combined estimated execution time (per best-case model) is at least two orders of magnitude greater than the measurement overhead.  
-Additionally, repeat each test sufficiently (10–30 runs) to yield statistically meaningful metrics such as mean, standard deviation, minimum, and maximum values.
+To ensure that timing overhead from measurement infrastructure does not distort results, choose the number of operation iterations within a timing zone so that the estimated execution time (per best-case model) is at least two orders of magnitude greater than the overhead introduced by measurement infrastructure.  
+Additionally, repeat each test sufficiently (10-30 runs) to yield statistically meaningful metrics such as mean, standard deviation, minimum, and maximum values.
 
 ---
 
 ## 12. Performance Metric Calculation and Reporting
 
-For each combination of test input parameters and test type (isolated thread and operation performance), run 10–30 iterations. The final performance evaluation report for each input set must include:
+For each combination of test input parameters and test type (isolated thread performance and operation performance), run 10-30 iterations. The final performance evaluation report for each input set must include:
 
 1. **Hardware Utilization (%)** for each LLK in the operation, relative to the best-case analytical performance model.
 2. **End-to-End Operation Duration** (cycles per tile).
