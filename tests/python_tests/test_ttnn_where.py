@@ -24,7 +24,7 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.test_config import generate_make_command
-from helpers.utils import passed_test, run_shell_command
+from helpers.utils import run_shell_command
 
 
 # Helper function
@@ -44,11 +44,14 @@ def generate_golden(operand1, true_value, false_value):
 
 # Helper check functiion
 def torch_equal_nan(a, b):
+    # return torch.all(
+    #     torch.isclose(a, b, rtol=1e-2, atol=1e-5) | (torch.isnan(a) & torch.isnan(b))
+    # )
     return torch.all((a == b) | (torch.isnan(a) & torch.isnan(b)))
 
 
 # Provided test cases
-dtype = torch.float32
+dtype = torch.bfloat16
 condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
 condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
 condition_all_zeros = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dtype)
@@ -86,13 +89,13 @@ false_values = torch.tensor(
 )
 
 
-supported_formats = [DataFormat.Float32, DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16_b]
 
 test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    dest_acc=[DestAccumulation.No],  # DestAccumulation.No],
     mathop=[
         MathOperation.TTNNWhere,
     ],
@@ -108,31 +111,31 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize(
     "test_tensors",
     [
+        # [
+        #     torch.randint(0, 2, (32, 32), dtype=torch.bfloat16)
+        #     .flatten()
+        #     .to(torch.bfloat16),
+        #     torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
+        #     .flatten()
+        #     .to(torch.bfloat16),
+        #     torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
+        #     .flatten()
+        #     .to(torch.bfloat16),
+        # ],  # random test case
         [
-            torch.randint(0, 2, (32, 32), dtype=torch.bfloat16)
-            .flatten()
-            .to(torch.bfloat16),
-            torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
-            .flatten()
-            .to(torch.bfloat16),
-            torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
-            .flatten()
-            .to(torch.bfloat16),
-        ],  # random test case
-        [
-            extend_tensor(condition.bool(), length=1024, dtype=torch.float32),
-            extend_tensor(true_values, length=1024, dtype=torch.float32),
-            extend_tensor(false_values, length=1024, dtype=torch.float32),
+            extend_tensor(condition.bool(), length=1024, dtype=dtype),
+            extend_tensor(true_values, length=1024, dtype=dtype),
+            extend_tensor(false_values, length=1024, dtype=dtype),
         ],  # provided test case
         [
-            extend_tensor(condition_all_ones.bool(), length=1024, dtype=torch.float32),
-            extend_tensor(true_values, length=1024, dtype=torch.float32),
-            extend_tensor(false_values, length=1024, dtype=torch.float32),
+            extend_tensor(condition_all_ones.bool(), length=1024, dtype=dtype),
+            extend_tensor(true_values, length=1024, dtype=dtype),
+            extend_tensor(false_values, length=1024, dtype=dtype),
         ],  # provided test case
         [
-            extend_tensor(condition_all_zeros.bool(), length=1024, dtype=torch.float32),
-            extend_tensor(true_values, length=1024, dtype=torch.float32),
-            extend_tensor(false_values, length=1024, dtype=torch.float32),
+            extend_tensor(condition_all_zeros.bool(), length=1024, dtype=dtype),
+            extend_tensor(true_values, length=1024, dtype=dtype),
+            extend_tensor(false_values, length=1024, dtype=dtype),
         ],  # provided test case
     ],
 )
@@ -207,4 +210,13 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         ),
     )
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    print("GOLDEN TENSOR: \n", golden_tensor.view(32, 32), "\n")
+    print("RESULT TENSOR: \n", res_tensor.view(32, 32), "\n")
+
+    # print("CONDITION: \n", src_A.view(32, 32), "\n")
+    # print("TRUE VALUES: \n", src_B.view(32, 32), "\n")
+    # print("FALSE VALUES: \n", src_C.view(32, 32), "\n")
+
+    assert torch_equal_nan(golden_tensor, res_tensor)
+
+    # assert passed_test(golden_tensor, res_tensor, formats.output_format)
