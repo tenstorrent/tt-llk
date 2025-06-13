@@ -52,6 +52,7 @@ def generate_build_header(
         "// AUTO-GENERATED CONFIGURATION HEADER. DO NOT EDIT MANUALLY!",
         "",
         '#include "tensix_types.h"',
+        "#include <type_traits>",
         "#pragma once",
         "",
         "// Basic configuration",
