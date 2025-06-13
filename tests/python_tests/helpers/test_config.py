@@ -88,13 +88,9 @@ def generate_build_header(
             [
                 f"// Activating Data Format Inference Model\n",
                 f"#define DATA_FORMAT_INFERENCE_MODEL true",
+                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format.name});",
+                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.output_format.name});",
             ]
-        )
-        header_content.append(
-            f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format.name});"
-        )
-        header_content.append(
-            f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.output_format.name});"
         )
     else:
         header_content.append(f"#define DATA_FORMAT_INFERENCE_MODEL false")
