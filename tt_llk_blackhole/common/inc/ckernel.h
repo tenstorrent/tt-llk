@@ -687,7 +687,7 @@ enum ExecBool : bool
     Exec
 };
 
-template <ExecBool Exec = lltt::NoExec, typename Callable, typename... Args>
+template <ExecBool Exec = NoExec, typename Callable, typename... Args>
 [[gnu::always_inline, gnu::flatten]] inline void load_replay_buf(uint start, uint len, Callable &&callable, Args &&...args)
 {
     // ENABLE_GATHERING is controlled by JIT build.
