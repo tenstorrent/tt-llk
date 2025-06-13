@@ -10,7 +10,7 @@
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
 
-// This header is include on non-trisc builds, for reasons
+// This header is included on non-trisc builds, for reasons
 // unknown. lltt is only available on trisc
 #if defined(COMPILE_FOR_TRISC)
 #include "lltt.h"
@@ -678,9 +678,11 @@ inline void enable_gathering()
 // Place instructions into the replay buffer. EXEC is true to execute
 // when loading (default is false). START is where to place in the
 // replay buffer, and LEN is the number of instructions to record
-// (should match the expansion of FN). FN is a callable, to which ARGS
-// are forwarded.
-template <bool Exec = false, typename Callable, typename... Args>
+// (should match the expansion of CALLABLE). CALLABLE is a callable,
+// to which ARGS are forwarded.
+// When we move to c++23 we can use 'using enum lltt::ExecBool;'
+enum ExecBool : bool { NoExec, Exec };
+template <ExecBool Exec = lltt::NoExec, typename Callable, typename... Args>
 [[gnu::always_inline, gnu::flatten]] inline void load_replay_buf(uint start, uint len, Callable&& callable, Args&&... args)
 {
     // ENABLE_GATHERING is controlled by JIT build.
