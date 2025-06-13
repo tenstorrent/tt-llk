@@ -13,8 +13,9 @@
 // This header is included on non-trisc builds, for reasons
 // unknown. lltt is only available on trisc
 #if defined(COMPILE_FOR_TRISC)
-#include "lltt.h"
 #include <utility>
+
+#include "lltt.h"
 #endif
 
 // Compiler hint that a branch is unlikely to be taken
