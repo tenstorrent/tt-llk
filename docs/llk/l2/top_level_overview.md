@@ -44,7 +44,7 @@ Figure 3 illustrates the data flow within the Tensix Engine:
 
 
 <div align="center">
-  <img src="images/tensix_core_data_flow.png" alt="Data flow inside Tensix Core" width="400" /><br/>
+  <img src="images/tensix_core_data_flow.png" alt="Data flow inside Tensix Engine" width="400" /><br/>
   <em>Figure 3: Data flow inside Tensix Core</em>
 </div>
 
@@ -82,7 +82,7 @@ Input and output tensors support multiple storage formats, enabling developers t
 
 Important considerations:
 - All formats can be stored in L1 memory.
-- Only a subset of formats are supported in SRC and DEST registers, leading to automatic conversions in unpacker/packer.
+- Only a subset of formats are supported in Source and Destination registers, leading to automatic conversions in unpacker/packer.
 
 ## Math fidelity
 
@@ -154,7 +154,7 @@ Destination register stores the results of FPU calculations and the operands and
 
 The Packer is a DMA engine that transfers data from the Destination register to L1 memory. Like the Unpackers, it implements hardware-accelerated data conversion through gaskets. TRISC2 controls the Packer through its dedicated instruction set.
 
-## Low Level Kernel Operations
+## Low-Level Kernel Operations
 
 LLK operations encapsulate the utilization of the previously described hardware blocks. These operations are categorized by their resource usage into three groups:
 
