@@ -54,7 +54,7 @@ def generate_matmul_golden(operand1, operand2, data_format, math_fidelity):
 
 
 def generate_sfpu_golden(operation, operand1, data_format):
-    data_type = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+    data_type = format_dict[data_format]
     tensor1_float = operand1.clone().detach().to(data_type)
     ops = {
         MathOperation.Abs: lambda x: abs(x),
@@ -143,9 +143,7 @@ def test_matmul_and_unary_sfpu(
     ):
         pytest.skip("BFP8 does not support Log and Reciprocal operations")
 
-    torch_format = format_dict.get(
-        formats.output_format, format_dict[DataFormat.Float16_b]
-    )
+    torch_format = format_dict.get(formats.output_format)
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     golden_tensor = generate_matmul_golden(
@@ -182,9 +180,6 @@ def test_matmul_and_unary_sfpu(
         formats, tensor_size=len(src_A), address=buffer_dest_address
     )
 
-    res_tensor = torch.tensor(
-        res_from_L1[:256],
-        dtype=(torch_format),
-    )
+    res_tensor = torch.tensor(res_from_L1[:256], dtype=torch_format)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

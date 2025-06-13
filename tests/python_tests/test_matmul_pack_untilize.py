@@ -86,9 +86,7 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
     if formats.output == DataFormat.Bfp8_b and arch == ChipArchitecture.WORMHOLE:
         pytest.skip("Pack untilize does not support Bfp8_b")
 
-    torch_format = format_dict.get(
-        formats.output_format, format_dict[DataFormat.Float16_b]
-    )
+    torch_format = format_dict[formats.output_format]
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 

@@ -30,16 +30,9 @@ from helpers.utils import passed_test, run_shell_command
 
 
 def generate_golden(op, operand1, operand2, data_format, math_fidelity):
-    tensor1_float = (
-        operand1.clone()
-        .detach()
-        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
-    )
-    tensor2_float = (
-        operand2.clone()
-        .detach()
-        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
-    )
+    tensor1_float = operand1.clone().detach().to(format_dict[data_format])
+
+    tensor2_float = operand2.clone().detach().to(format_dict[data_format])
 
     if data_format == DataFormat.Float16_b:
         if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
@@ -143,13 +136,6 @@ def test_tilize_calculate_untilize_L1(
     )
     assert len(res_from_L1) == len(golden_tensor)
 
-    res_tensor = torch.tensor(
-        res_from_L1,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
-    )
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

@@ -87,10 +87,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
     res_from_L1 = collect_results(formats, tensor_size=len(src_A))
     assert len(res_from_L1) == len(golden)
 
-    torch_format = format_dict.get(
-        formats.output_format, format_dict[DataFormat.Float16_b]
-    )
-    golden_tensor = torch.tensor(golden, dtype=(torch_format))
-    res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+    torch_format = format_dict.get(formats.output_format)
+    golden_tensor = torch.tensor(golden, dtype=torch_format)
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

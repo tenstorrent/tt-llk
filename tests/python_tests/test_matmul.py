@@ -25,7 +25,7 @@ from helpers.utils import passed_test, run_shell_command
 
 
 def generate_golden(operand1, operand2, data_format, math_fidelity):
-    torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+    torch_format = format_dict[data_format]
 
     if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
         for element in operand2:
@@ -89,9 +89,7 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_matmul(testname, formats, dest_acc, math_fidelity):
-    torch_format = format_dict.get(
-        formats.output_format, format_dict[DataFormat.Float16_b]
-    )
+    torch_format = format_dict[formats.output_format]
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
@@ -121,6 +119,6 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
     res_from_L1 = collect_results(formats, tensor_size=len(src_A))
     assert len(res_from_L1) == len(golden_tensor)
 
-    res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
