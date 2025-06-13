@@ -35,13 +35,14 @@ Figure 2 represents a simplified top-level architecture of the Tensix Engine:
 </div>
 
 
-Figure 3 illustrates the data flow within the Tensix Engine:
+Figure 3 illustrates the common data flow within the Tensix Engine:
 1. Input data arrives in L1 memory.
 2. Data is unpacked into source registers.
 3. FPU processes data from source registers.
 4. Results are written to destination registers.
 5. Processed data is packed and written back to L1 memory.
 
+Alternatively, the data can be processed within SFPU, which requires operands to be stored in the Destination register rather than in the Source registers.
 
 <div align="center">
   <img src="images/tensix_core_data_flow.png" alt="Data flow inside Tensix Engine" width="400" /><br/>
