@@ -13,7 +13,6 @@
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
-
 #include "lltt.h"
 
 using namespace ckernel;
@@ -101,7 +100,7 @@ inline void transpose_dest_configure_mop()
 {
     if (is_32bit)
     {
-    lltt::record(16, 16);
+        lltt::record(16, 16);
 
 #pragma GCC unroll 2
         for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)

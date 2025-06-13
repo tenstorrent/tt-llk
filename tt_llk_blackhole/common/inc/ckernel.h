@@ -681,9 +681,14 @@ inline void enable_gathering()
 // (should match the expansion of CALLABLE). CALLABLE is a callable,
 // to which ARGS are forwarded.
 // When we move to c++23 we can use 'using enum lltt::ExecBool;'
-enum ExecBool : bool { NoExec, Exec };
+enum ExecBool : bool
+{
+    NoExec,
+    Exec
+};
+
 template <ExecBool Exec = lltt::NoExec, typename Callable, typename... Args>
-[[gnu::always_inline, gnu::flatten]] inline void load_replay_buf(uint start, uint len, Callable&& callable, Args&&... args)
+[[gnu::always_inline, gnu::flatten]] inline void load_replay_buf(uint start, uint len, Callable &&callable, Args &&...args)
 {
     // ENABLE_GATHERING is controlled by JIT build.
     // Not enabled by default due to tt-metal#16439.

@@ -12,9 +12,8 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
-
-#include "sfpi.h"
 #include "lltt.h"
+#include "sfpi.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;

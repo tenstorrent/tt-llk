@@ -5,8 +5,8 @@
 #pragma once
 
 #include "ckernel_ops.h"
-#include "sfpi.h"
 #include "lltt.h"
+#include "sfpi.h"
 
 namespace ckernel
 {

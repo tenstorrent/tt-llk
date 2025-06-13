@@ -9,8 +9,8 @@
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
 #include "ckernel_sfpu_load_config.h"
-#include "sfpi.h"
 #include "lltt.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
@@ -513,7 +513,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                             // Groups of 8 datums being sorted at the same time
                             if (init_rebuild)
                             {
-                                load_replay_buf<Exec>(0, 22,
+                                load_replay_buf<Exec>(
+                                    0,
+                                    22,
                                     [ld_offset]
                                     {
                                         bitonic_topk_load8(0, ld_offset);
@@ -539,7 +541,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                             // Groups of 16 datums being sorted at the same time
                             if (init_rebuild)
                             {
-                                load_replay_buf<Exec>(0, 26,
+                                load_replay_buf<Exec>(
+                                    0,
+                                    26,
                                     [ld_offset, ld_dist]
                                     {
                                         bitonic_topk_load16(ld_offset, ld_dist);
@@ -566,7 +570,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         // Groups of 16 datums being sorted at the same time
                         if (init_rebuild)
                         {
-                            load_replay_buf<Exec>(0, 29,
+                            load_replay_buf<Exec>(
+                                0,
+                                29,
                                 [ld_offset]
                                 {
                                     bitonic_topk_load16(4, ld_offset);
@@ -594,7 +600,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         {
                             load_replay_buf<Exec>(0, 8, [] { bitonic_topk_load16(4, 8); });
                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
-                            load_replay_buf<Exec>(13, 12,
+                            load_replay_buf<Exec>(
+                                13,
+                                12,
                                 []
                                 {
                                     bitonic_topk_store16<true>(4, 8);

@@ -99,7 +99,9 @@ inline void transpose_dest_configure_mop()
 {
     if (is_32bit)
     {
-        load_replay_buf(16, 16,
+        load_replay_buf(
+            16,
+            16,
             []
             {
 #pragma GCC unroll 2
@@ -164,7 +166,9 @@ inline void transpose_dest_configure_mop()
     }
     else
     {
-        load_replay_buf(16, 15,
+        load_replay_buf(
+            16,
+            15,
             []
             {
                 // ABCD

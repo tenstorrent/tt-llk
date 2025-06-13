@@ -137,7 +137,9 @@ inline void _llk_unpack_A_mop_config_(
         {
 #if SKIP_UNP == 0
             constexpr uint replay_buf_len = 2;
-            load_replay_buf(0, replay_buf_len,
+            load_replay_buf(
+                0,
+                replay_buf_len,
                 [num_faces]
                 {
                     TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
@@ -154,7 +156,7 @@ inline void _llk_unpack_A_mop_config_(
             const uint32_t outerloop = num_faces < 4 ? 1 : 2;
             const uint32_t innerloop = num_faces < 2 ? 1 : 2;
             ckernel_template tmp(outerloop, innerloop, lltt::replay_insn(0, replay_buf_len)); // Unpack faces 0/2 && 1/3 to srcA
-                                                                                               // or 0/1 for 2 face tile
+                                                                                              // or 0/1 for 2 face tile
             if (num_faces > 2)
             {
                 tmp.set_end_op(srca_set_z_1);

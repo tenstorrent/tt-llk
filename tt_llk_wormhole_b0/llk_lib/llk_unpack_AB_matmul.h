@@ -12,9 +12,8 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
-
-#include "sfpi.h"
 #include "lltt.h"
+#include "sfpi.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -154,8 +153,8 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     }
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
-        false,                                     // src B
-        false,                                     // halo - just used for 4 unpacks
+        false,                                    // src B
+        false,                                    // halo - just used for 4 unpacks
         lltt::replay_insn(0, replay_buf_run_len), // runs when context is 0
         0,
         0,

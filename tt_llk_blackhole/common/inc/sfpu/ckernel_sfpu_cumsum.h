@@ -149,7 +149,9 @@ inline void _calculate_cumsum_(const bool first)
 template <bool APPROXIMATION_MODE /*unused*/>
 inline void _cumsum_init_()
 {
-    load_replay_buf(0, 16,
+    load_replay_buf(
+        0,
+        16,
         []
         {
             TTI_SFPADD(10, 7, 0, 0, 0);

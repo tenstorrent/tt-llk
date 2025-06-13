@@ -104,7 +104,7 @@ inline void _llk_pack_untilize_mop_config_(
                 });
 
             tmp.set_end_ops(
-                TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0),                             // inc ch0_y counters
+                TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0),                            // inc ch0_y counters
                 lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len) // update row address
             );
         }
