@@ -122,22 +122,13 @@ def generate_build_header(
                 f"#define POOL_TYPE {test_config.get('pool_type', ReducePool.No).value}"
             )
 
-    # Multiple tiles test specific configuration
-    if test_config.get("testname") == "multiple_tiles_eltwise_test":
         header_content.extend(
             [
                 "",
                 "// Multiple tiles test configuration",
-                "#define MULTIPLE_OPS",
                 f"#define KERN_CNT {test_config.get('kern_cnt', 1)}",
             ]
         )
-        pack_addr_cnt = test_config.get("pack_addr_cnt")
-        pack_addrs = test_config.get("pack_addrs")
-        if pack_addr_cnt is not None:
-            header_content.append(f"#define PACK_ADDR_CNT {pack_addr_cnt}")
-        if pack_addrs is not None:
-            header_content.append(f"#define PACK_ADDRS {pack_addrs}")
 
     header_content.append("")
     return "\n".join(header_content)

@@ -25,7 +25,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import flatten_list, generate_stimuli
 from helpers.test_config import generate_make_command
-from helpers.utils import format_kernel_list, passed_test, run_shell_command
+from helpers.utils import passed_test, run_shell_command
 
 
 def generate_golden(op, operand1, operand2, data_format, math_fidelity):
@@ -112,9 +112,10 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
 
-    pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt
-    pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
-    pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
+    buffer_size = tile_cnt * 0x1000
+    start_srca = 0x1A000
+    start_srcb = start_srca + buffer_size
+    start_dst = start_srcb + buffer_size
 
     src_A, src_B = generate_stimuli(
         formats.input_format, formats.input_format, tile_cnt=tile_cnt
@@ -130,8 +131,6 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
         "dest_acc": dest_acc,
         "mathop": mathop,
         "kern_cnt": tile_cnt,
-        "pack_addr_cnt": len(pack_addresses),
-        "pack_addrs": pack_addresses_formatted,
         "math_fidelity": math_fidelity,
     }
 
@@ -142,14 +141,10 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     wait_for_tensix_operations_finished()
 
     # check resluts from multiple tiles
-    res_from_L1 = []
-
-    for address in pack_addresses:
-        res_from_L1.append(
-            collect_results(
-                formats, tensor_size=len(src_A) // len(pack_addresses), address=address
-            )
-        )
+    res_from_L1 = [
+        collect_results(formats, tensor_size=len(src_A) // tile_cnt, address=address)
+        for address in range(start_dst, start_dst + buffer_size, 0x1000)
+    ]
 
     res_from_L1 = flatten_list(res_from_L1)
 
