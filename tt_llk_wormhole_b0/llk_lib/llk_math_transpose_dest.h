@@ -52,13 +52,19 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
             // 4x 32b face transpositions.
             ckernel_unpack_template::run(instrn_buffer, 4, 0);
         }
-        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
+        // This should be CLR_B if paired with _llk_unpack_set_srcb_dummy_valid_, see CLEARDVALID comment below.
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
     }
     else
     {
         ckernel_unpack_template::run(instrn_buffer, 2, 2);
         TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
     }
+    // When used with transpose_wh_dest, we need to set SrcA/SrcB DVALID, to pair with _llk_unpack_set_srcab_dummy_valid_.
+    // When used with transpose_wh_tile, we only need to set SrcB DVALID, to pair with _llk_unpack_set_srcb_dummy_valid_.
+    // Until we resolve this discrepancy, we completely reset the SrcA/SrcB sync mechanism here via CLEARDVALID(0, 1).
+    // See: https://github.com/tenstorrent/tt-metal/issues/22383
+    TTI_CLEARDVALID(0, 1);
 }
 
 template <bool is_32bit>
@@ -113,45 +119,50 @@ inline void transpose_dest_configure_mop()
             TTI_MOVB2D(dest_32b_lo, 28, dest_32b_lo == 1 ? ADDR_MOD_0 : ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
         }
 
-        // Macro 0: SFPLOAD VD; SFPMOV LReg[16],VD; SFPSTORE LReg[0].
-        // Intended for use with VD=LReg[1].
+        uint macro0 = TT_OP_SFPNOP;
+        uint macro1 = TT_OP_SFPNOP;
 
-        // Set InstructionTemplate[0] to SFPMOV.
-        TTI_SFPMOV(0, 0, 12, 0);
+        if (transpose_of_faces) {
+            // Macro 0: SFPLOAD VD; SFPMOV LReg[16],VD; SFPSTORE LReg[0].
+            // Intended for use with VD=LReg[1].
 
-        // StoreSubUnit: schedule SFPSTORE with VD=0 after 1 cycle.
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x80 | (1 << 3) | 3) << 8);
-        // SimpleSubUnit: schedule SFPMOV LReg[16],VD after 0 cycles.
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (0x40 | 4) << 0);
-        // Set Sequence[0].
-        TTI_SFPCONFIG(0, 4, 0);
+            // Set InstructionTemplate[0] to SFPMOV.
+            TTI_SFPMOV(0, 0, 12, 0);
 
-        // Macro 1: SFPLOAD VD; delay; SFPSTORE LReg[16].
-        // Intended for use with VD=LReg[0].
+            // StoreSubUnit: schedule SFPSTORE with VD=0 after 1 cycle.
+            TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x80 | (1 << 3) | 3) << 8);
+            // SimpleSubUnit: schedule SFPMOV LReg[16],VD after 0 cycles.
+            TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (0x40 | 4) << 0);
+            // Set Sequence[0].
+            TTI_SFPCONFIG(0, 4, 0);
 
-        // StoreSubUnit: schedule SFPSTORE with VD=LReg[16] after 1 cycle.
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x40 | (1 << 3) | 3) << 8);
-        // Other sub-units: nothing scheduled.
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, 0);
-        // Set Sequence[1].
-        TTI_SFPCONFIG(0, 5, 0);
+            // Macro 1: SFPLOAD VD; delay; SFPSTORE LReg[16].
+            // Intended for use with VD=LReg[0].
 
-        // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for macros 0 and 1.
-        TTI_SFPCONFIG(0x330, 8, 1);
+            // StoreSubUnit: schedule SFPSTORE with VD=LReg[16] after 1 cycle.
+            TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x40 | (1 << 3) | 3) << 8);
+            // Other sub-units: nothing scheduled.
+            TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, 0);
+            // Set Sequence[1].
+            TTI_SFPCONFIG(0, 5, 0);
+
+            // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for macros 0 and 1.
+            TTI_SFPCONFIG(0x330, 8, 1);
+
+            // Macro 0: SFPLOAD LReg[1], 16 (addr_mod_1); SFPMOV LReg[16],LReg[1]; SFPSTORE LReg[0].
+            // Note: 0x3ff mask is used to ensure negative offset value is 10 bits.
+            macro0 = TT_OP_SFPLOADMACRO((0 << 2) | 1, 4, ADDR_MOD_1, 0x3ff & -48);
+
+            // Macro 1: SFPLOAD LReg[0], 32 (addr_mod_2); delay; SFPSTORE LReg[16].
+            // Note: 0x3ff mask is used to ensure negative offset value is 10 bits.
+            macro1 = TT_OP_SFPLOADMACRO((1 << 2) | 0, 4, ADDR_MOD_2, 0x3ff & -32);
+        }
 
         // A 32b face transpose consists of: (movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, movb2d_lo).
         uint movd2b_hi        = TT_OP_REPLAY(16, 4, 0, 0);
         uint movb2d_hi_d2b_lo = TT_OP_REPLAY(20, 8, 0, 0);
         uint movb2d_lo        = TT_OP_REPLAY(28, 4, 0, 0);
         uint transpose        = TT_OP_TRNSPSRCB;
-
-        // Macro 0: SFPLOAD LReg[1], 16 (addr_mod_1); SFPMOV LReg[16],LReg[1]; SFPSTORE LReg[0].
-        // Note: 0x3ff mask is used to ensure negative offset value is 10 bits.
-        uint macro0 = TT_OP_SFPLOADMACRO((0 << 2) | 1, 4, ADDR_MOD_1, 0x3ff & -48);
-
-        // Macro 1: SFPLOAD LReg[0], 32 (addr_mod_2); delay; SFPSTORE LReg[16].
-        // Note: 0x3ff mask is used to ensure negative offset value is 10 bits.
-        uint macro1 = TT_OP_SFPLOADMACRO((1 << 2) | 0, 4, ADDR_MOD_2, 0x3ff & -32);
 
         // MOP config:
         // - zmask 0-bits: 32b 16x16 face transpose.
