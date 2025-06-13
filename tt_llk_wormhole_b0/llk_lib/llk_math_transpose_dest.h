@@ -122,7 +122,8 @@ inline void transpose_dest_configure_mop()
         uint macro0 = TT_OP_SFPNOP;
         uint macro1 = TT_OP_SFPNOP;
 
-        if (transpose_of_faces) {
+        if (transpose_of_faces)
+        {
             // Macro 0: SFPLOAD VD; SFPMOV LReg[16],VD; SFPSTORE LReg[0].
             // Intended for use with VD=LReg[1].
 
