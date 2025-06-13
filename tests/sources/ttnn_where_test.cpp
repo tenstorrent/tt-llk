@@ -12,6 +12,10 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
+#include "dbg_halt.h"
+
+constexpr bool disable_src_zero_flag = true;
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -24,7 +28,7 @@ void run_kernel()
     volatile uint32_t* const buffer_true      = reinterpret_cast<volatile uint32_t*>(0x1b000);
     volatile uint32_t* const buffer_false     = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, disable_src_zero_flag>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_condition), 0, UNPACK_A_IN, UNPACK_A_OUT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_true), 0, UNPACK_A_IN, UNPACK_A_OUT);
@@ -69,6 +73,8 @@ void run_kernel()
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
     _calculate_where_<32>();
+
+    dbg_halt_tensix();
 
     _llk_math_eltwise_ternary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
