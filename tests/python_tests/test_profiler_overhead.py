@@ -5,8 +5,6 @@ from helpers.device import (
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
-from helpers.format_config import DataFormat
-from helpers.param_config import InputOutputFormat
 from helpers.profiler import Profiler, build_with_profiler
 
 
@@ -15,9 +13,6 @@ def test_profiler_overhead():
     EXPECTED_OVERHEAD = 36
 
     test_config = {
-        "formats": InputOutputFormat(
-            DataFormat.Float16, DataFormat.Float16
-        ),  # sstanisic todo: remove need to specify the format
         "testname": "profiler_overhead_test",
     }
 
