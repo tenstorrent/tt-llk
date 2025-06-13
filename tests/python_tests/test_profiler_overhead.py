@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
+
 from helpers.device import (
     run_elf_files,
     wait_for_tensix_operations_finished,
@@ -31,9 +33,9 @@ def test_profiler_overhead():
     ), f"Expected 32 overhead zones, got {len(overhead_zones)}"
 
     for loop_iterations, zone in enumerate(overhead_zones, 8):
-        overhead = zone.duration - (loop_iterations * 10)
+        calculated_duration = 10 * loop_iterations
+        overhead = zone.duration - calculated_duration
 
-        abs_err = abs(overhead - EXPECTED_OVERHEAD)
-        assert (
-            abs_err < 5
-        ), f"Expected overhead {EXPECTED_OVERHEAD}, got {overhead} cycles"
+        assert overhead == pytest.approx(
+            EXPECTED_OVERHEAD, abs=5
+        ), f"iterations: {loop_iterations}, runtime: {zone.duration}/{calculated_duration} (actual/calculated), overhead {overhead}/{EXPECTED_OVERHEAD} (actual/expected) "
