@@ -16,7 +16,7 @@ eval $(grep -v '^#' $version_file)
 sfpi_arch_os=$(uname -m)_$(uname -s)
 sfpi_txz_md5=$(eval echo "\$sfpi_${sfpi_arch_os}_txz_md5")
 if [ -z "$sfpi_txz_md5" ] ; then
-    echo "SFPI debian package for ${sfpi_arch_os} is not available" >&2
+    echo "SFPI tarball for ${sfpi_arch_os} is not available" >&2
     exit 1
 fi
 if [ ! -e "sfpi/sfpi.version" ] || [ $(cat "sfpi/sfpi.version") != "$sfpi_version" ] ; then
