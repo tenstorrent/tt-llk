@@ -2,14 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <algorithm>
 #include <cstdint>
-#include <cstdio>
-#include <type_traits>
-
-#include "ckernel.h"
-#include "llk_defs.h"
-#include "profiler.h"
 
 // Globals
 uint32_t unp_cfg_context        = 0;
