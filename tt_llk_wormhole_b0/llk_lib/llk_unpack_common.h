@@ -156,9 +156,14 @@ inline void _llk_enable_int8_fpu_math_()
     enable_int8_fpu_math();
 }
 
-inline void _llk_unpack_set_srcb_dummy_valid_()
+inline void _llk_unpack_set_srcab_dummy_valid_()
 {
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::UNPACK);
     TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
+}
+
+inline void _llk_unpack_set_srcb_dummy_valid_()
+{
+    TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
 }
