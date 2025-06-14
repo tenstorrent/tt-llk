@@ -12,69 +12,10 @@ format_dict = {
     DataFormat.Float16: torch.float16,
     DataFormat.Float16_b: torch.bfloat16,
     DataFormat.Int32: torch.int32,
-}
-
-unpack_A_src_dict = {
-    DataFormat.Float32: "UNPACK_A_SRC_FLOAT32",
-    DataFormat.Float16: "UNPACK_A_SRC_FLOAT16",
-    DataFormat.Float16_b: "UNPACK_A_SRC_FLOAT16_B",
-    DataFormat.Bfp8_b: "UNPACK_A_SRC_BFP8_B",
-    DataFormat.Int32: "UNPACK_A_SRC_INT32",
-    DataFormat.Tf32: "UNPACK_A_SRC_TF32",
-}
-
-unpack_A_dst_dict = {
-    DataFormat.Float32: "UNPACK_A_DST_FLOAT32",
-    DataFormat.Float16: "UNPACK_A_DST_FLOAT16",
-    DataFormat.Float16_b: "UNPACK_A_DST_FLOAT16_B",
-    DataFormat.Bfp8_b: "UNPACK_A_DST_BFP8_B",
-    DataFormat.Int32: "UNPACK_A_DST_INT32",
-    DataFormat.Tf32: "UNPACK_A_DST_TF32",
-}
-
-unpack_B_src_dict = {
-    DataFormat.Float32: "UNPACK_B_SRC_FLOAT32",
-    DataFormat.Float16: "UNPACK_B_SRC_FLOAT16",
-    DataFormat.Float16_b: "UNPACK_B_SRC_FLOAT16_B",
-    DataFormat.Bfp8_b: "UNPACK_B_SRC_BFP8_B",
-    DataFormat.Int32: "UNPACK_B_SRC_INT32",
-    DataFormat.Tf32: "UNPACK_B_SRC_TF32",
-}
-
-unpack_B_dst_dict = {
-    DataFormat.Float32: "UNPACK_B_DST_FLOAT32",
-    DataFormat.Float16: "UNPACK_B_DST_FLOAT16",
-    DataFormat.Float16_b: "UNPACK_B_DST_FLOAT16_B",
-    DataFormat.Bfp8_b: "UNPACK_B_DST_BFP8_B",
-    DataFormat.Int32: "UNPACK_B_DST_INT32",
-    DataFormat.Tf32: "UNPACK_B_DST_TF32",
-}
-
-math_dict = {
-    DataFormat.Float32: "MATH_FLOAT32",
-    DataFormat.Float16: "MATH_FLOAT16",
-    DataFormat.Float16_b: "MATH_FLOAT16_B",
-    DataFormat.Bfp8_b: "MATH_BFP8_B",
-    DataFormat.Int32: "MATH_INT32",
-    DataFormat.Tf32: "MATH_TF32",
-}
-
-pack_src_dict = {
-    DataFormat.Float32: "PACK_SRC_FLOAT32",
-    DataFormat.Float16: "PACK_SRC_FLOAT16",
-    DataFormat.Float16_b: "PACK_SRC_FLOAT16_B",
-    DataFormat.Bfp8_b: "PACK_SRC_BFP8_B",
-    DataFormat.Int32: "PACK_SRC_INT32",
-    DataFormat.Tf32: "PACK_SRC_TF32",
-}
-
-pack_dst_dict = {
-    DataFormat.Float32: "PACK_DST_FLOAT32",
-    DataFormat.Float16: "PACK_DST_FLOAT16",
-    DataFormat.Float16_b: "PACK_DST_FLOAT16_B",
-    DataFormat.Bfp8_b: "PACK_DST_BFP8_B",
-    DataFormat.Int32: "PACK_DST_INT32",
-    DataFormat.Tf32: "PACK_DST_TF32",
+    DataFormat.UInt32: torch.int64,
+    DataFormat.UInt16: torch.int32,
+    DataFormat.Int8: torch.int8,
+    DataFormat.UInt8: torch.uint8,
 }
 
 
