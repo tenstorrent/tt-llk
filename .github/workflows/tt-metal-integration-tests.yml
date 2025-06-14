@@ -14,7 +14,7 @@ jobs:
   test-tt-metal:
     name: 🔧 LLK unit tests
     runs-on: ${{ inputs.runs_on }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     container:
       image: ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-ci-build-amd64:latest
       options: --user root --device /dev/tenstorrent --rm
