@@ -53,17 +53,14 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
             ckernel_unpack_template::run(instrn_buffer, 4, 0);
         }
         // This should be CLR_B if paired with _llk_unpack_set_srcb_dummy_valid_, see CLEARDVALID comment below.
-        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD);
     }
     else
     {
         ckernel_unpack_template::run(instrn_buffer, 2, 2);
-        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD);
     }
-    // When used with transpose_wh_dest, we need to set SrcA/SrcB DVALID, to pair with _llk_unpack_set_srcab_dummy_valid_.
-    // When used with transpose_wh_tile, we only need to set SrcB DVALID, to pair with _llk_unpack_set_srcb_dummy_valid_.
-    // Until we resolve this discrepancy, we completely reset the SrcA/SrcB sync mechanism here via CLEARDVALID(0, 1).
-    // See: https://github.com/tenstorrent/tt-metal/issues/22383
+    // Completely reset the SrcA/SrcB sync mechanism to work around https://github.com/tenstorrent/tt-metal/issues/22383
     TTI_CLEARDVALID(0, 1);
 }
 
