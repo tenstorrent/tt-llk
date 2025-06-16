@@ -23,9 +23,6 @@ def get_expected_overhead():
 
 def test_profiler_overhead():
 
-    EXPECTED_OVERHEAD_WORMHOLE = 36
-    EXPECTED_OVERHEAD_BLACKHOLE = 30
-
     test_config = {
         "testname": "profiler_overhead_test",
     }
