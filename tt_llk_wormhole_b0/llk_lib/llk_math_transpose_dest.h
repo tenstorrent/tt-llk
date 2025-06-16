@@ -38,8 +38,9 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
     math::reset_counters(p_setrwc::SET_ABD_F);
 
-    // Note: unclear why p_stall::MATH condition is necessary here, see: https://github.com/tenstorrent/tt-llk/issues/367
-    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU | p_stall::MATH);
+    // Wait condition SRCB_VLD is required as MOVD2B doesn't automatically wait
+    // for SrcB[MatrixUnit.SrcBBank].AllowedClient == SrcClient::MatrixUnit.
+    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU | p_stall::SRCB_VLD);
 
     if constexpr (is_32bit)
     {
@@ -53,15 +54,13 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
             // 4x 32b face transpositions.
             ckernel_unpack_template::run(instrn_buffer, 4, 0);
         }
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD);
     }
     else
     {
         ckernel_unpack_template::run(instrn_buffer, 2, 2);
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD);
     }
-    // Completely reset the SrcA/SrcB sync mechanism to work around https://github.com/tenstorrent/tt-metal/issues/22383
-    TTI_CLEARDVALID(0, 1);
+
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
 }
 
 template <bool is_32bit>
