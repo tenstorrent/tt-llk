@@ -7,9 +7,10 @@ import torch
 from helpers.format_arg_mapping import (
     MathFidelity,
     MathOperation,
+    ReduceDimension,
+    ReducePool,
     format_dict,
 )
-from helpers.format_config import DataFormat
 
 golden_registry = {}
 
@@ -126,24 +127,57 @@ class UnarySFPUGolden:
 
 @register_golden
 class EltwiseBinaryGolden(FidelityMasking):
+    def __init__(self):
+        self.ops = {
+            MathOperation.Elwadd: self.add,
+            MathOperation.Elwsub: self.sub,
+            MathOperation.Elwmul: self.mul,
+        }
+
     def __call__(self, op, operand1, operand2, data_format, math_fidelity):
-        tensor1 = to_tensor(operand1, data_format)
-        tensor2 = to_tensor(operand2, data_format)
+        if op not in self.ops:
+            raise ValueError(f"Unsupported Eltwise operation: {op}")
 
-        if data_format == DataFormat.Float16_b:
-            self.apply_fidelity_masking(tensor1, tensor2, math_fidelity)
+        t1 = to_tensor(operand1, data_format)
+        t2 = to_tensor(operand2, data_format)
 
-        return self.apply_eltwise_op(op, tensor1, tensor2)
+        self.apply_fidelity_masking(t1, t2, math_fidelity)
 
-    def apply_eltwise_op(self, op, t1, t2):
-        if op == MathOperation.Elwadd:
-            return t1 + t2
-        elif op == MathOperation.Elwsub:
-            return t1 - t2
-        elif op == MathOperation.Elwmul:
-            return t1 * t2
-        else:
-            raise ValueError(f"Unsupported operation: {op}")
+        return self.ops[op](t1, t2)
+
+    # Operation methods
+    def add(self, t1, t2):
+        return t1 + t2
+
+    def sub(self, t1, t2):
+        return t1 - t2
+
+    def mul(self, t1, t2):
+        return t1 * t2
+
+
+@register_golden
+class BinarySFPUGolden(EltwiseBinaryGolden):
+    def __init__(self):
+        self.ops = {
+            MathOperation.SfpuElwadd: self.add,
+            MathOperation.SfpuElwsub: self.sub,
+            MathOperation.SfpuElwmul: self.mul,
+            MathOperation.SfpuXlogy: self._xlogy,
+        }
+
+    def __call__(self, operation, operand1, operand2, data_format):
+        if operation not in self.ops:
+            raise ValueError(f"Unsupported SFPU operation: {operation}")
+
+        t1 = to_tensor(operand1, data_format)
+        t2 = to_tensor(operand2, data_format)
+
+        return self.ops[operation](t1, t2)
+
+    # Operation methods are cover by Eltwise Binary Golden
+    def _xlogy(self, t1, t2):
+        return torch.xlogy(t1, t2)
 
 
 @register_golden
@@ -161,18 +195,77 @@ class FillDestGolden(EltwiseBinaryGolden):
 
 
 @register_golden
+class ReduceGolden:
+    def __init__(self):
+        self.dim_handlers = {
+            ReduceDimension.Column: self._reduce_column,
+            ReduceDimension.Row: self._reduce_row,
+            ReduceDimension.Scalar: self._reduce_scalar,
+        }
+
+    def __call__(self, operand, reduce_dim, pool_type, data_format):
+        if reduce_dim not in self.dim_handlers:
+            raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
+
+        f0 = operand[:256].view(16, 16)
+        f1 = operand[256:512].view(16, 16)
+        f2 = operand[512:768].view(16, 16)
+        f3 = operand[768:].view(16, 16)
+        faces = [f0, f1, f2, f3]
+        if reduce_dim == ReduceDimension.Scalar:
+            faces = operand
+        return self.dim_handlers[reduce_dim](faces, pool_type, data_format)
+
+    def _reduce_column(self, faces, pool_type, data_format):
+        left_half = torch.cat((faces[0], faces[2]), 0)
+        right_half = torch.cat((faces[1], faces[3]), 0)
+
+        result = torch.zeros(32, 32, dtype=format_dict[data_format])
+        result[0, 0:16] = self._apply_pooling(left_half, pool_type, dim=0)
+        result[0, 16:32] = self._apply_pooling(right_half, pool_type, dim=0)
+
+        return result.view(1024)
+
+    def _reduce_row(self, faces, pool_type, data_format):
+        left_half = torch.cat((faces[0], faces[2]), 1)
+        right_half = torch.cat((faces[1], faces[3]), 1)
+
+        result = torch.zeros(32, 32, dtype=format_dict[data_format])
+        result[0:16, 0] = self._apply_pooling(left_half, pool_type, dim=1).view(16)
+        result[16:32, 0] = self._apply_pooling(right_half, pool_type, dim=1).view(16)
+
+        return result.view(1024)
+
+    def _reduce_scalar(self, operand, pool_type, data_format):
+        tensor = operand.view(1024)
+        result = torch.zeros(32, 32, dtype=format_dict[data_format])
+        result[0, 0] = self._apply_pooling(tensor, pool_type, dim=0)
+        return result.view(1024)
+
+    def _apply_pooling(self, tensor, pool_type, dim):
+        if pool_type == ReducePool.Max:
+            return torch.max(tensor, dim=dim).values
+        elif pool_type == ReducePool.Average:
+            return torch.mean(tensor, dim=dim)
+        elif pool_type == ReducePool.Sum:
+            return torch.sum(tensor, dim=dim)
+        else:
+            raise ValueError(f"Unsupported pool type: {pool_type}")
+
+
+@register_golden
 class UntilizeGolden:
-    def __call__(self, operand1, data_format):
+    def __call__(self, operand, data_format):
         from helpers.tilize_untilize import untilize
 
-        result = untilize(operand1, data_format)
+        result = untilize(operand, data_format)
         return result.flatten()
 
 
 @register_golden
 class TilizeGolden:
-    def __call__(self, operand1, data_format):
+    def __call__(self, operand, data_format):
         from helpers.tilize_untilize import tilize
 
-        result = tilize(operand1, data_format)
+        result = tilize(operand, data_format)
         return result.flatten()

@@ -21,6 +21,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
+from helpers.golden_generators import MatmulGolden, UnarySFPUGolden, get_golden
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -146,10 +147,13 @@ def test_matmul_and_unary_sfpu(
     torch_format = format_dict.get(formats.output_format)
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
+    generate_matmul_golden = get_golden(MatmulGolden)
     golden_tensor = generate_matmul_golden(
         src_A, src_B, formats.output_format, math_fidelity
     )
     golden_tensor = tilize(golden_tensor, formats.output_format)
+
+    generate_sfpu_golden = get_golden(UnarySFPUGolden)
     golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
     golden_tensor = golden_tensor.to(torch_format)
 

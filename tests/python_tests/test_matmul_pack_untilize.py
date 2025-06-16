@@ -13,6 +13,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
 from helpers.format_config import DataFormat
+from helpers.golden_generators import MatmulGolden, get_golden
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -23,18 +24,6 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test, run_shell_command
-
-
-def generate_golden(operand1, operand2, data_format, math_fidelity):
-    torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
-
-    operand1_matrix = operand1.view(32, 32).to(torch_format)
-    operand2_matrix = operand2.view(32, 32).to(torch_format)
-
-    result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
-
-    return result_matrix.flatten()
-
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
@@ -90,6 +79,7 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
+    generate_golden = get_golden(MatmulGolden)
     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
 
     write_stimuli_to_l1(
