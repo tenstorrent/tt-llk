@@ -3,6 +3,7 @@
 
 import pytest
 
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     run_elf_files,
     wait_for_tensix_operations_finished,
@@ -10,9 +11,20 @@ from helpers.device import (
 from helpers.profiler import Profiler, build_with_profiler
 
 
+def get_expected_overhead():
+    match get_chip_architecture():
+        case ChipArchitecture.WORMHOLE:
+            return 36
+        case ChipArchitecture.BLACKHOLE:
+            return 30
+        case _:
+            raise ValueError("Unsupported chip architecture")
+
+
 def test_profiler_overhead():
 
-    EXPECTED_OVERHEAD = 36
+    EXPECTED_OVERHEAD_WORMHOLE = 36
+    EXPECTED_OVERHEAD_BLACKHOLE = 30
 
     test_config = {
         "testname": "profiler_overhead_test",
@@ -37,5 +49,5 @@ def test_profiler_overhead():
         overhead = zone.duration - calculated_duration
 
         assert overhead == pytest.approx(
-            EXPECTED_OVERHEAD, abs=5
+            get_expected_overhead(), abs=5
         ), f"iterations: {loop_iterations}, runtime: {zone.duration}/{calculated_duration} (actual/calculated), overhead {overhead}/{EXPECTED_OVERHEAD} (actual/expected) "
