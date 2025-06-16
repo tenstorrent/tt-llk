@@ -40,10 +40,10 @@ const bool is_int_fpu_en = true;
 const bool is_int_fpu_en = false;
 #endif
 
-#include "dbg_halt.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "params.h"
+#include "sfpi.h"
 
 using namespace ckernel;
 
@@ -61,7 +61,8 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         0, UNPACK_A_OUT, UNPACK_A_OUT);
 
-    dbg_halt_tensix();
+
+
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
