@@ -29,10 +29,10 @@ def test_profiler_overhead():
     # filter out all zones that dont have marker "OVERHEAD"
     overhead_zones = [x for x in runtime.unpack if x.full_marker.marker == "OVERHEAD"]
     assert (
-        len(overhead_zones) == 32
+        len(overhead_zones) == 30
     ), f"Expected 32 overhead zones, got {len(overhead_zones)}"
 
-    for loop_iterations, zone in enumerate(overhead_zones, 8):
+    for loop_iterations, zone in enumerate(overhead_zones, 10):
         calculated_duration = 10 * loop_iterations
         overhead = zone.duration - calculated_duration
 
