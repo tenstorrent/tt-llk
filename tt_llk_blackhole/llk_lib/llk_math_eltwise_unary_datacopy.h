@@ -265,8 +265,5 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
-    // Unclear exactly why this is needed, see: https://github.com/tenstorrent/tt-metal/issues/22383
-    TTI_CLEARDVALID(0, 1);
-
     math::reset_counters(p_setrwc::SET_ABD_F);
 }

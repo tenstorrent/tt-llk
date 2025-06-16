@@ -37,9 +37,11 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
     math::reset_counters(p_setrwc::SET_ABD_F);
 
+    // Wait condition SRCA_VLD is required as MOVB2A doesn't automatically wait
+    // for SrcA[MatrixUnit.SrcABank].AllowedClient == SrcClient::MatrixUnit.
     // Wait condition SRCB_VLD is required as MOVD2B doesn't automatically wait
     // for SrcB[MatrixUnit.SrcBBank].AllowedClient == SrcClient::MatrixUnit.
-    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU | p_stall::SRCB_VLD);
+    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU | p_stall::SRCA_VLD | p_stall::SRCB_VLD);
 
     if constexpr (is_32bit)
     {
@@ -60,6 +62,8 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
     }
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    // Unclear exactly why this is needed, see: https://github.com/tenstorrent/tt-metal/issues/22383
+    TTI_CLEARDVALID(0, 1);
 }
 
 template <bool is_32bit>
