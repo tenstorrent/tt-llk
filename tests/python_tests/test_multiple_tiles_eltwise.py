@@ -17,6 +17,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
+from helpers.golden_generators import EltwiseBinaryGolden, get_golden
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -112,7 +113,11 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     src_A, src_B = generate_stimuli(
         formats.input_format, formats.input_format, tile_cnt=tile_cnt
     )
-    golden = generate_golden(mathop, src_A, src_B, formats.output_format, math_fidelity)
+
+    generate_golden = get_golden(EltwiseBinaryGolden)
+    golden_tensor = generate_golden(
+        mathop, src_A, src_B, formats.output_format, math_fidelity
+    )
     write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, "0,0", tile_cnt
     )
@@ -147,7 +152,6 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
     res_from_L1 = flatten_list(res_from_L1)
 
     torch_format = format_dict.get(formats.output_format)
-    golden_tensor = torch.tensor(golden, dtype=torch_format)
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
