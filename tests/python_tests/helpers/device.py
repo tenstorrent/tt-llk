@@ -76,7 +76,7 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
 
     # Load ELF files
     for i in range(3):
-        load_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
+        load_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_name=f"trisc{i}")
 
     # Reset the profiler barrier
     TRISC_PROFILER_BARRIER = 0x16AFF4
