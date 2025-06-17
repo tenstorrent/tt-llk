@@ -44,13 +44,14 @@ def test_profiler_overhead():
     # the first iteration is inconsistent, because code is not in icache
     overhead_zones.pop(0)
 
-    for loop_iterations, zone in enumerate(
+    for i, zone in enumerate(
         overhead_zones, 9
     ):  # enumerate from 9 because the first iteration is ignored
-        calculated_duration = 10 * loop_iterations
+        calculated_duration = 10 * i
         overhead = zone.duration - calculated_duration
 
         expected_overhead = get_expected_overhead()
-        assert overhead == pytest.approx(
-            expected_overhead, abs=5
-        ), f"iterations: {i}, runtime: {zone.duration}/{calculated_duration} (actual/calculated), overhead {overhead}/{expected_overhead} (actual/expected) "
+        assert overhead == pytest.approx(expected_overhead, abs=5), (
+            f"iterations: {i}, runtime: {zone.duration}/{i * 10} "
+            f"(actual/calculated), overhead {overhead}/{expected_overhead} (actual/expected)"
+        )
