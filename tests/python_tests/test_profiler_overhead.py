@@ -45,6 +45,7 @@ def test_profiler_overhead():
         calculated_duration = 10 * loop_iterations
         overhead = zone.duration - calculated_duration
 
+        expected = get_expected_overhead()
         assert overhead == pytest.approx(
-            get_expected_overhead(), abs=5
-        ), f"iterations: {loop_iterations}, runtime: {zone.duration}/{calculated_duration} (actual/calculated), overhead {overhead}/{EXPECTED_OVERHEAD} (actual/expected) "
+            expected, abs=5
+        ), f"iterations: {loop_iterations}, runtime: {zone.duration}/{calculated_duration} (actual/calculated), overhead {overhead}/{expected} (actual/expected) "
