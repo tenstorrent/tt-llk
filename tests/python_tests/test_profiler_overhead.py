@@ -41,7 +41,12 @@ def test_profiler_overhead():
         len(overhead_zones) == 32
     ), f"Expected 32 overhead zones, got {len(overhead_zones)}"
 
-    for loop_iterations, zone in enumerate(overhead_zones, 8):
+    # the first iteration is inconsistent, because code is not in icache
+    overhead_zones.pop(0)
+
+    for loop_iterations, zone in enumerate(
+        overhead_zones, 9
+    ):  # enumerate from 9 because the first iteration is ignored
         calculated_duration = 10 * loop_iterations
         overhead = zone.duration - calculated_duration
 
