@@ -9,6 +9,23 @@ from helpers.device import (
 from helpers.profiler import Profiler, build_with_profiler
 
 
+def assert_marker(
+    marker_obj, expected_marker, expected_file_suffix, expected_line, expected_id
+):
+    assert (
+        marker_obj.marker == expected_marker
+    ), f"Expected marker = '{expected_marker}', got {marker_obj.marker}"
+    assert marker_obj.file.endswith(
+        expected_file_suffix
+    ), f"Expected file to end with '{expected_file_suffix}', got {marker_obj.file}"
+    assert (
+        marker_obj.line == expected_line
+    ), f"Expected line = {expected_line}, got {marker_obj.line}"
+    assert (
+        marker_obj.id == expected_id
+    ), f"Expected id = {expected_id}, got {marker_obj.id}"
+
+
 def test_profiler_primitives():
 
     test_config = {
@@ -25,19 +42,13 @@ def test_profiler_primitives():
 
     # ZONE_SCOPED
     zone = runtime.unpack[0]
-    zone_marker = zone.full_marker
-    assert (
-        zone_marker.marker == "TEST_ZONE"
-    ), f"Expected zone_maker.marker = 'TEST_ZONE', got {zone_marker.marker}"
-    assert zone_marker.file.endswith(
-        "profiler_primitives_test.cpp"
-    ), f"expected zone_marker.file to end with 'profiler_primitives_test.cpp', got {zone_marker.file}"
-    assert (
-        zone_marker.line == 17
-    ), f"Expected zone_marker.line = 17, got {zone_marker.line}"
-    assert (
-        zone_marker.id == 42158
-    ), f"Expected zone_marker.id = 42158, got {zone_marker.id}"
+    assert_marker(
+        zone.full_marker,
+        "TEST_ZONE",
+        "profiler_primitives_test.cpp",
+        17,
+        42158,
+    )
     assert zone.start > 0, f"Expected zone.start > 0, got {zone.start}"
     assert zone.end > zone.start, f"Expected zone.end > {zone.start}, got {zone.end}"
     assert (
@@ -46,19 +57,13 @@ def test_profiler_primitives():
 
     # TIMESTAMP
     timestamp = runtime.math[0]
-    timestamp_marker = timestamp.full_marker
-    assert (
-        timestamp_marker.marker == "TEST_TIMESTAMP"
-    ), f"Expected timestamp_marker.marker = 'TEST_TIMESTAMP', got {timestamp_marker.marker}"
-    assert timestamp_marker.file.endswith(
-        "profiler_primitives_test.cpp"
-    ), f"expected timestamp_marker.file to end with 'profiler_primitives_test.cpp', got {timestamp_marker.file}"
-    assert (
-        timestamp_marker.line == 26
-    ), f"Expected timestamp_marker.line = 26, got {timestamp_marker.line}"
-    assert (
-        timestamp_marker.id == 28111
-    ), f"Expected timestamp_marker.id = 28111, got {timestamp_marker.id}"
+    assert_marker(
+        timestamp.full_marker,
+        "TEST_TIMESTAMP",
+        "profiler_primitives_test.cpp",
+        26,
+        28111,
+    )
     assert (
         timestamp.timestamp > 0
     ), f"Expected timestamp.timestamp > 0, got {timestamp.timestamp}"
@@ -66,20 +71,15 @@ def test_profiler_primitives():
         timestamp.data is None
     ), f"Expected timestamp.date to be None, got {timestamp.data}"
 
+    # TIMESTAMP_DATA
     timestamp_data = runtime.pack[0]
-    timestamp_data_marker = timestamp_data.full_marker
-    assert (
-        timestamp_data_marker.marker == "TEST_TIMESTAMP_DATA"
-    ), f"Expected timestamp_data_marker.marker = 'TEST_TIMESTAMP_DATA', got {timestamp_data_marker.marker}"
-    assert timestamp_data_marker.file.endswith(
-        "profiler_primitives_test.cpp"
-    ), f"expected timestamp_data_marker.file to end with 'profiler_primitives_test.cpp', got {timestamp_data_marker.file}"
-    assert (
-        timestamp_data_marker.line == 35
-    ), f"Expected timestamp_data_marker.line = 35, got {timestamp_data_marker.line}"
-    assert (
-        timestamp_data_marker.id == 18694
-    ), f"Expected timestamp_data_marker.id = 18694, got {timestamp_data_marker.id}"
+    assert_marker(
+        timestamp_data.full_marker,
+        "TEST_TIMESTAMP_DATA",
+        "profiler_primitives_test.cpp",
+        35,
+        18694,
+    )
     assert (
         timestamp_data.timestamp > 0
     ), f"Expected timestamp_data.timestamp > 0, got {timestamp_data.timestamp}"
