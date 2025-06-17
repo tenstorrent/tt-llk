@@ -63,6 +63,8 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         0, UNPACK_A_OUT, UNPACK_A_OUT);
 
+    // CODE FOR REORDERING DATA IN DEST REGISTER FOR DUMPING
+
     constexpr uint32_t tile_size  = 32;
     constexpr uint32_t ITERATIONS = 32;
 
@@ -71,21 +73,62 @@ void run_kernel()
         sfpi::vUInt data       = sfpi::dst_reg[0];
         sfpi::vUInt lower_mask = 0x0000FFFF;
         sfpi::vUInt upper_mask = 0xFFFF0000;
-        sfpi::vUInt shift      = 16;
 
         sfpi::dst_reg[tile_size]     = (data & lower_mask);
         sfpi::dst_reg[tile_size * 2] = data & upper_mask;
 
-        sfpi::vUInt float_lower      = sfpi::dst_reg[tile_size * 2];
-        float_lower                  = float_lower >> shift;
-        sfpi::dst_reg[tile_size * 2] = float_lower;
+        sfpi::dst_reg++;
+    }
 
+    math::clear_dst_reg_addr();
+    math::clear_addr_mod_base();
+    sfpu::_init_sfpu_config_reg();
+
+    // Upper 16 bits to tile 0
+
+    for (uint32_t i = 0; i < ITERATIONS; i++)
+    {
+        sfpi::vUInt data = sfpi::dst_reg[tile_size * 2];
+        sfpi::dst_reg[0] = data;
+
+        sfpi::dst_reg++;
+    }
+    // -> At this point dest register tile 0 contatins upper 16 bits of wanted data
+
+    math::clear_dst_reg_addr();
+    math::clear_addr_mod_base();
+    sfpu::_init_sfpu_config_reg();
+
+    for (uint32_t i = 0; i < ITERATIONS; i++)
+    {
+        sfpi::vUInt src   = sfpi::dst_reg[tile_size];
+        sfpi::vUInt res   = sfpi::dst_reg[0];
+        sfpi::vUInt shift = 16;
+
+        sfpi::vec_swap(res, src);
+        res              = res << shift;
+        sfpi::dst_reg[0] = res;
+        sfpi::dst_reg++;
+    }
+    // -> At this point dest register tile 0 contatins lowe 16 bits in upper 16 bits of wanted data
+
+    math::clear_dst_reg_addr();
+    math::clear_addr_mod_base();
+
+    // RECONSTRUCT DEST REGISTER
+    for (uint32_t i = 0; i < ITERATIONS; i++)
+    {
+        sfpi::vUInt upper = sfpi::dst_reg[tile_size * 2];
+        sfpi::vUInt lower = sfpi::dst_reg[tile_size];
+
+        sfpi::vUInt res = (upper | lower);
+
+        sfpi::dst_reg[0] = res;
         sfpi::dst_reg++;
     }
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
-
 #endif
 
 #ifdef LLK_TRISC_PACK
@@ -111,7 +154,7 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(2, L1_ADDRESS(buffer_Dest));
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Dest));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 #endif
