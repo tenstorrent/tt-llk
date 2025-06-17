@@ -192,7 +192,7 @@ class FillDestGolden(EltwiseBinaryGolden):
         res = []
         max_tiles_in_dest = 8 if data_format.is_32_bit() else 16
         for i in range(max_tiles_in_dest):
-            res.extend(self.apply_eltwise_op(op, tensor1, tensor2).tolist())
+            res.extend(self.ops[op](tensor1, tensor2).tolist())
         return torch.tensor(res, dtype=format_dict[data_format])
 
 
