@@ -15,6 +15,7 @@ from ttexalens.tt_exalens_lib import (
     arc_msg,
     write_words_to_device,
 )
+from ttexalens import tt_exalens_init
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_arg_mapping import Mailbox
@@ -234,6 +235,20 @@ def pytest_sessionfinish(session, exitstatus):
         arg1=0,
         timeout=10,
     )
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run_simulator", action="store_true", help="Run tests using the simulator."
+    )
+
+
+def pytest_configure(config):
+    run_simulator = config.getoption("--run_simulator")
+    if run_simulator:
+        tt_exalens_init.init_ttexalens_remote()
+    else:
+        tt_exalens_init.init_ttexalens()
 
 
 # Skip decorators for specific architectures
