@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import pytest
 import requests
@@ -20,10 +21,7 @@ from helpers.perf import delete_reports
 def init_llk_home():
     if "LLK_HOME" in os.environ:
         return
-
-    os.environ["LLK_HOME"] = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "..")
-    )
+    os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
 
 
 def set_chip_architecture():
