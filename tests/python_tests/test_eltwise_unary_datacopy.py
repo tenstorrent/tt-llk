@@ -19,7 +19,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
-from helpers.utils import compare_pcc, run_shell_command
+from helpers.utils import passed_test, run_shell_command
 
 
 def generate_golden(operand1, format):
@@ -49,7 +49,7 @@ supported_formats = [
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
 
-test_formats = input_output_formats(supported_formats, same=True)
+test_formats = input_output_formats(supported_formats)
 dest_acc = [DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
@@ -62,14 +62,17 @@ param_ids = generate_param_ids(all_params)
 def test_unary_datacopy(testname, formats, dest_acc):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
-    srcB = torch.full((1024,), 0)
+
     golden = generate_golden(src_A, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+
+    unpack_to_dest = formats.input_format.is_32_bit()
 
     test_config = {
         "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
+        "unpack_to_dest": unpack_to_dest,
     }
 
     run_test(test_config)
@@ -77,46 +80,10 @@ def test_unary_datacopy(testname, formats, dest_acc):
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
-    if formats.output_format in format_dict:
-        atol = 0.05
-        rtol = 0.1
-    else:
-        atol = 0.2
-        rtol = 0.1
-
-    golden_tensor = torch.tensor(
-        golden,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format
-            in [
-                DataFormat.Float16,
-                DataFormat.Float16_b,
-                DataFormat.Float32,
-                DataFormat.Int32,
-            ]
-            else torch.bfloat16
-        ),
+    torch_format = format_dict.get(
+        formats.output_format, format_dict[DataFormat.Float16_b]
     )
-    res_tensor = torch.tensor(
-        res_from_L1,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format
-            in [
-                DataFormat.Float16,
-                DataFormat.Float16_b,
-                DataFormat.Float32,
-                DataFormat.Int32,
-            ]
-            else torch.bfloat16
-        ),
-    )
+    golden_tensor = torch.tensor(golden, dtype=(torch_format))
+    res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
 
-    for i in range(len(golden)):
-        assert torch.isclose(
-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
-
-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
-    assert pcc > 0.99
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
