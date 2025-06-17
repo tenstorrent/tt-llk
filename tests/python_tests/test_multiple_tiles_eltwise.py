@@ -28,37 +28,6 @@ from helpers.stimuli_generator import flatten_list, generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.utils import format_kernel_list, passed_test, run_shell_command
 
-
-def generate_golden(op, operand1, operand2, data_format, math_fidelity):
-    op_num = list(MathOperation).index(op) + 1
-    if op.value == "Elwadd":
-        assert op_num == 1
-    tensor1_float = operand1.clone().detach().to(format_dict[data_format])
-
-    tensor2_float = operand2.clone().detach().to(format_dict[data_format])
-
-    if data_format == DataFormat.Float16_b:
-        if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
-            for element in operand2:
-                element = element.to(torch.int32)
-                element &= 0xFFFE
-        if math_fidelity == MathFidelity.LoFi:  # LoFi
-            for element in operand1:
-                element = element.to(torch.int32)
-                element &= 0xFFF8
-
-    if op_num == 1:
-        res = tensor1_float + tensor2_float
-    elif op_num == 2:
-        res = tensor1_float - tensor2_float
-    elif op_num == 3:
-        res = tensor1_float * tensor2_float
-    else:
-        raise ValueError("Unsupported operation!")
-
-    return res.tolist()
-
-
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
 

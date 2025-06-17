@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import math
 
 import pytest
 import torch
@@ -32,52 +31,6 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test, run_shell_command
-
-
-def generate_matmul_golden(operand1, operand2, data_format, math_fidelity):
-    data_type = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
-
-    if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
-        for element in operand2:
-            element = element.to(torch.int32)
-            element &= 0xFFFE
-    if math_fidelity == MathFidelity.LoFi:  # LoFi
-        for element in operand1:
-            element = element.to(torch.int32)
-            element &= 0xFFF8
-
-    operand1_matrix = operand1.view(32, 32).to(data_type)
-    operand2_matrix = operand2.view(32, 32).to(data_type)
-
-    result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
-
-    return result_matrix.view(1024).to(data_type)
-
-
-def generate_sfpu_golden(operation, operand1, data_format):
-    data_type = format_dict[data_format]
-    tensor1_float = operand1.clone().detach().to(data_type)
-    ops = {
-        MathOperation.Abs: lambda x: abs(x),
-        MathOperation.Cos: lambda x: math.cos(x),
-        MathOperation.Log: lambda x: math.log(x) if x != 0 else float("nan"),
-        MathOperation.Reciprocal: lambda x: 1 / x if x != 0 else float("nan"),
-        MathOperation.Sin: lambda x: math.sin(x),
-        MathOperation.Sqrt: lambda x: math.sqrt(x),
-        MathOperation.Square: lambda x: x * x,
-    }
-    if operation not in ops:
-        raise ValueError("Unsupported operation!")
-    golden = [ops[operation](num) for num in tensor1_float.tolist()][:256]
-    return torch.tensor(
-        golden,
-        dtype=(
-            format_dict[data_format]
-            if data_format in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
-    )
-
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Float16, DataFormat.Float16_b]

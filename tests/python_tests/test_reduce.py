@@ -37,55 +37,6 @@ mathop_mapping = {
     ReduceDimension.Scalar: MathOperation.ReduceScalar,
 }
 
-
-def generate_golden(operand1, reduce_dim, pool_type, data_format):
-
-    result = torch.zeros(1024, dtype=format_dict[data_format]).view(32, 32)
-
-    f0 = operand1[:256].view(16, 16)
-    f1 = operand1[256:512].view(16, 16)
-    f2 = operand1[512:768].view(16, 16)
-    f3 = operand1[768:].view(16, 16)
-
-    def apply_pooling(tensor, pool_type, dim):
-        if pool_type == ReducePool.Max:
-            return torch.max(tensor, dim=dim).values
-        elif pool_type == ReducePool.Average:
-            return torch.mean(tensor, dim=dim)
-        elif pool_type == ReducePool.Sum:
-            return torch.sum(tensor, dim=dim)
-        else:
-            pytest.skip("Nonexisting pool type")
-
-    if reduce_dim == ReduceDimension.Column:
-        left_half = torch.cat((f0, f2), 0)
-        right_half = torch.cat((f1, f3), 0)
-
-        left_half_max = apply_pooling(left_half, pool_type, dim=0)
-        right_half_max = apply_pooling(right_half, pool_type, dim=0)
-
-        result[0][0:16] = left_half_max.view(1, 16)
-        result[0][16:32] = right_half_max.view(1, 16)
-
-    elif reduce_dim == ReduceDimension.Row:
-        left_half = torch.cat((f0, f2), 1)
-        right_half = torch.cat((f1, f3), 1)
-
-        left_half_max = apply_pooling(left_half, pool_type, dim=1)
-        right_half_max = apply_pooling(right_half, pool_type, dim=1)
-
-        result[0:16, 0] = left_half_max.view(16)
-        result[16:32, 0] = right_half_max.view(16)
-    elif reduce_dim == ReduceDimension.Scalar:
-
-        result[0][0] = apply_pooling(operand1.view(1024), pool_type, dim=0)
-
-    else:
-        pytest.skip("To be implemented")
-
-    return result.view(1024)
-
-
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
 
