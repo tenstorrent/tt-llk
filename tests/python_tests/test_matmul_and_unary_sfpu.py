@@ -152,7 +152,6 @@ def test_matmul_and_unary_sfpu(
         src_A, src_B, formats.output_format, math_fidelity
     )
     golden_tensor = tilize(golden_tensor, formats.output_format)
-
     generate_sfpu_golden = get_golden(UnarySFPUGolden)
     golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
     golden_tensor = golden_tensor.to(torch_format)
@@ -184,6 +183,6 @@ def test_matmul_and_unary_sfpu(
         formats, tensor_size=len(src_A), address=buffer_dest_address
     )
 
-    res_tensor = torch.tensor(res_from_L1[:256], dtype=torch_format)
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

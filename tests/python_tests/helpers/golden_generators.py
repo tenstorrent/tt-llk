@@ -55,14 +55,15 @@ class MatmulGolden(FidelityMasking):
     def __call__(self, operand1, operand2, data_format, math_fidelity):
         torch_format = format_dict[data_format]
 
+        self.apply_fidelity_masking(operand1, operand2, math_fidelity)
+
         # Clone and detach to avoid modifying original input
         operand1_matrix = to_tensor(operand1, data_format).view(32, 32)
         operand2_matrix = to_tensor(operand2, data_format).view(32, 32)
 
-        self.apply_fidelity_masking(operand1, operand2, math_fidelity)
-
-        result = torch.matmul(operand1_matrix, operand2_matrix)
-        return result.view(1024).to(torch_format)
+        return (
+            torch.matmul(operand1_matrix, operand2_matrix).view(1024).to(torch_format)
+        )
 
 
 @register_golden
@@ -85,42 +86,43 @@ class UnarySFPUGolden:
             MathOperation.Square: self._square,
             MathOperation.Celu: self._celu,
         }
+        self.data_format = None
 
     def __call__(self, operation, operand1, data_format):
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
-
+        self.data_format = data_format
         tensor = to_tensor(operand1, data_format)
-        result = [self.ops[operation](x, data_format) for x in tensor.tolist()[:1024]]
+        result = [self.ops[operation](x) for x in tensor.tolist()]
         return torch.tensor(result, dtype=format_dict[data_format])
 
     # Operation methods
-    def _abs(self, x, fmt):
+    def _abs(self, x):
         return abs(x)
 
-    def _cos(self, x, fmt):
+    def _cos(self, x):
         return math.cos(x)
 
-    def _log(self, x, fmt):
+    def _log(self, x):
         return math.log(x) if x != 0 else float("nan")
 
-    def _reciprocal(self, x, fmt):
+    def _reciprocal(self, x):
         return 1 / x if x != 0 else float("nan")
 
-    def _sin(self, x, fmt):
+    def _sin(self, x):
         return math.sin(x)
 
-    def _sqrt(self, x, fmt):
+    def _sqrt(self, x):
         return math.sqrt(x)
 
-    def _square(self, x, fmt):
+    def _square(self, x):
         return x * x
 
-    def _celu(self, x, data_format):
+    def _celu(self, x):
         input_tensor = (
             x
             if isinstance(x, torch.Tensor)
-            else torch.tensor(x, dtype=format_dict[data_format])
+            else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.celu(input_tensor, alpha=1.0).item()
 
