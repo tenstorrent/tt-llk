@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
 #include "sfpi.h"
