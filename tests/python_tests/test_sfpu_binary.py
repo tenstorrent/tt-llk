@@ -25,7 +25,8 @@ from helpers.test_config import generate_make_command
 from helpers.utils import passed_test, run_shell_command
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b, DataFormat.Int32]  # , DataFormat.Float16]
+supported_float_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+supported_int_formats = [DataFormat.Int32]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -44,20 +45,34 @@ supported_formats = [DataFormat.Float16_b, DataFormat.Int32]  # , DataFormat.Flo
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
-test_formats = input_output_formats(supported_formats)
-all_params = generate_params(
+float_ops = [
+    MathOperation.SfpuElwadd,
+    MathOperation.SfpuElwsub,
+    MathOperation.SfpuElwmul,
+    MathOperation.SfpuXlogy,
+]
+
+int_ops = [
+    MathOperation.SfpuElwRightShift,
+    MathOperation.SfpuElwLeftShift,
+]
+
+float_params = generate_params(
     ["sfpu_binary_test"],
-    test_formats,
-    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
-    mathop=[
-        MathOperation.SfpuElwsub,
-        MathOperation.SfpuElwadd,
-        MathOperation.SfpuElwmul,
-        MathOperation.SfpuXlogy,
-        MathOperation.SfpuElwRightShift,
-        MathOperation.SfpuElwLeftShift,
-    ],
+    input_output_formats(supported_float_formats),
+    dest_acc=[DestAccumulation.No],
+    mathop=float_ops,
 )
+
+int_params = generate_params(
+    ["sfpu_binary_test"],
+    input_output_formats(supported_int_formats),
+    dest_acc=[DestAccumulation.No],
+    mathop=int_ops,
+)
+
+all_params = float_params + int_params
+
 param_ids = generate_param_ids(all_params)
 
 
@@ -69,12 +84,6 @@ def test_all(testname, formats, dest_acc, mathop):
     chip_arch = get_chip_architecture()
     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
         pytest.skip("Not currently supported in tests")
-
-    if mathop in {MathOperation.SfpuElwRightShift, MathOperation.SfpuElwLeftShift} and {
-        formats.input_format,
-        formats.output_format,
-    } != {DataFormat.Int32}:
-        pytest.skip("Shift operations are only supported for int32 input/output format")
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
