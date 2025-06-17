@@ -69,7 +69,7 @@ supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
-test_formats = input_output_formats(supported_formats)
+test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["sfpu_binary_test"],
     test_formats,
