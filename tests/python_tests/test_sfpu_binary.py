@@ -67,7 +67,7 @@ float_params = generate_params(
 int_params = generate_params(
     ["sfpu_binary_test"],
     input_output_formats(supported_int_formats),
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.Yes],
     mathop=int_ops,
 )
 
