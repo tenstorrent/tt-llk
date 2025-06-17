@@ -60,11 +60,29 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < TILE_CNT; ++i)
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        0, UNPACK_A_OUT, UNPACK_A_OUT);
+
+    constexpr uint32_t tile_size  = 32;
+    constexpr uint32_t ITERATIONS = 32;
+
+    for (uint32_t i = 0; i < ITERATIONS; i++)
     {
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            i, UNPACK_A_OUT, UNPACK_A_OUT);
+        sfpi::vUInt data       = sfpi::dst_reg[0];
+        sfpi::vUInt lower_mask = 0x0000FFFF;
+        sfpi::vUInt upper_mask = 0xFFFF0000;
+        sfpi::vUInt shift      = 16;
+
+        sfpi::dst_reg[tile_size]     = (data & lower_mask);
+        sfpi::dst_reg[tile_size * 2] = data & upper_mask;
+
+        sfpi::vUInt float_lower      = sfpi::dst_reg[tile_size * 2];
+        float_lower                  = float_lower >> shift;
+        sfpi::dst_reg[tile_size * 2] = float_lower;
+
+        sfpi::dst_reg++;
     }
+
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -93,10 +111,7 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < TILE_CNT; ++i)
-    {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
-    }
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(2, L1_ADDRESS(buffer_Dest));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 #endif
