@@ -299,9 +299,23 @@ inline void _llk_math_fast_eltwise_unary_datacopy_init_(const std::uint32_t unit
 
     _llk_math_fast_eltwise_unary_datacopy_mop_config_(unit_dim);
 
+    TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 1);
+    TTI_NOP;
+    TTI_NOP;
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+template <bool is_fp32_dest_acc_en>
+inline void _llk_math_fast_eltwise_unary_datacopy_uninit_()
+{
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(is_fp32_dest_acc_en);
+    TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 0);
+    TTI_NOP;
+    TTI_NOP;
 }
 
 inline void _llk_math_fast_eltwise_unary_datacopy_block_(const std::uint32_t dst_index, const std::uint32_t unit_dim, const std::uint32_t num_units)
