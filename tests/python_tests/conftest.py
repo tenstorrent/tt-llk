@@ -18,17 +18,12 @@ from helpers.perf import delete_reports
 
 
 def init_llk_home():
-    if "LLK_HOME" not in os.environ:
-        helpers = os.path.abspath(os.path.dirname(__file__))
+    if "LLK_HOME" in os.environ:
+        return
 
-        os.environ["LLK_HOME"] = os.path.abspath(
-            os.path.join(
-                helpers,
-                "..",
-                "..",
-                "..",
-            )
-        )
+    os.environ["LLK_HOME"] = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..")
+    )
 
 
 def set_chip_architecture():
