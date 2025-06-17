@@ -17,6 +17,20 @@ from helpers.log_utils import _format_log
 from helpers.perf import delete_reports
 
 
+def init_llk_home():
+    if "LLK_HOME" not in os.environ:
+        helpers = os.path.abspath(os.path.dirname(__file__))
+
+        os.environ["LLK_HOME"] = os.path.abspath(
+            os.path.join(
+                helpers,
+                "..",
+                "..",
+                "..",
+            )
+        )
+
+
 def set_chip_architecture():
     def _identify_chip_architecture(output):
         if "Blackhole" in output:
@@ -182,6 +196,9 @@ def pytest_runtest_protocol(item, nextitem):
 
 
 def pytest_sessionstart(session):
+    # Default LLK_HOME environment variable
+    init_llk_home()
+
     # Send ARC message for GO BUSY signal. This should increase device clock speed.
     ARC_COMMON_PREFIX = 0xAA00
     GO_BUSY_MESSAGE_CODE = 0x52
