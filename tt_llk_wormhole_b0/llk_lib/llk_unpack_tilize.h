@@ -463,10 +463,10 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
  * LLK UNPACK FAST TILIZE SRC A
  *************************************************************************/
 
-template <bool is_fp32_dest_acc_en = false>
+template <bool is_fp32_dest_acc_en>
 inline void _llk_unpack_fast_tilize_hw_configure_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
-    configure_unpack_AB<false, is_fp32_dest_acc_en>(unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format);
+    configure_unpack_AB<is_fp32_dest_acc_en>(unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format);
 }
 
 inline void _llk_unpack_fast_tilize_mop_config_(const std::uint32_t unit_dim)
@@ -527,6 +527,7 @@ inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unit_dim, const st
     _llk_unpack_fast_tilize_mop_config_(unit_dim);
 }
 
+template <bool is_fp32_dest_acc_en>
 inline void _llk_unpack_fast_tilize_uninit_()
 {
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, 0, UNP0_ADDR_CTRL_ZW_REG_1_Zstride_ADDR32);
