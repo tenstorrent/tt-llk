@@ -5,7 +5,7 @@
 
 set -e
 
-wget -O ttexalens-0.1.250514+dev.d45dfb0-cp310-cp310-linux_x86_64.whl \
-    https://github.com/tenstorrent/tt-exalens/releases/download/0.1.250514/ttexalens-0.1.250514+dev.d45dfb0-cp310-cp310-linux_x86_64.whl
-pip install --no-cache-dir ttexalens-0.1.250514+dev.d45dfb0-cp310-cp310-linux_x86_64.whl
-rm ttexalens-0.1.250514+dev.d45dfb0-cp310-cp310-linux_x86_64.whl
+wget -O ttexalens-0.1.250617+dev.32e94cb-cp310-cp310-linux_x86_64.whl \
+    https://github.com/tenstorrent/tt-exalens/releases/download/0.1.250617/ttexalens-0.1.250617+dev.32e94cb-cp310-cp310-linux_x86_64.whl
+pip install --no-cache-dir ttexalens-0.1.250617+dev.32e94cb-cp310-cp310-linux_x86_64.whl
+rm ttexalens-0.1.250617+dev.32e94cb-cp310-cp310-linux_x86_64.whl
