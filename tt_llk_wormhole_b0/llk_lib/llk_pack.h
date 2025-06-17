@@ -269,7 +269,7 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
  * LLK PACK FAST TILIZE
  *************************************************************************/
 
-template <bool is_fp32_dest_acc_en = false>
+template <bool is_fp32_dest_acc_en>
 inline void _llk_pack_fast_tilize_hw_configure_(const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format)
 {
     configure_pack<is_fp32_dest_acc_en, true>(pack_src_format, pack_dst_format);
@@ -341,6 +341,8 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t unit_dim)
 
     TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 
+    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(0);
+
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
     TTI_SETDMAREG(0, 0x000 + 0x000, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
     TTI_SETDMAREG(0, 0x000 + 0x001, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
@@ -353,6 +355,7 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t unit_dim)
     select_packer_dest_registers<DST_SYNC_MODE>();
 }
 
+template <bool is_fp32_dest_acc_en>
 inline void _llk_pack_fast_tilize_uninit_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -361,6 +364,8 @@ inline void _llk_pack_fast_tilize_uninit_(
     const bool narrow_tile         = false)
 {
     TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+
+    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(is_fp32_dest_acc_en);
     
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
     TTI_SETDMAREG(0, 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
