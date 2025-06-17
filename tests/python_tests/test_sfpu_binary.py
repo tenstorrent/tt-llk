@@ -25,7 +25,7 @@ from helpers.test_config import generate_make_command
 from helpers.utils import passed_test, run_shell_command
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+supported_formats = [DataFormat.Float16_b, DataFormat.Int32]  # , DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -54,6 +54,8 @@ all_params = generate_params(
         MathOperation.SfpuElwadd,
         MathOperation.SfpuElwmul,
         MathOperation.SfpuXlogy,
+        MathOperation.SfpuElwRightShift,
+        MathOperation.SfpuElwLeftShift,
     ],
 )
 param_ids = generate_param_ids(all_params)
@@ -67,6 +69,12 @@ def test_all(testname, formats, dest_acc, mathop):
     chip_arch = get_chip_architecture()
     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
         pytest.skip("Not currently supported in tests")
+
+    if mathop in {MathOperation.SfpuElwRightShift, MathOperation.SfpuElwLeftShift} and {
+        formats.input_format,
+        formats.output_format,
+    } != {DataFormat.Int32}:
+        pytest.skip("Shift operations are only supported for int32 input/output format")
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
