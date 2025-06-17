@@ -62,6 +62,7 @@ param_ids = generate_param_ids(all_params)
 def test_unary_datacopy(testname, formats, dest_acc):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+    src_A = torch.arange(1, 33, 1 / 32, dtype=torch.float32)
 
     golden = generate_golden(src_A, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
@@ -85,5 +86,21 @@ def test_unary_datacopy(testname, formats, dest_acc):
     )
     golden_tensor = torch.tensor(golden, dtype=(torch_format))
     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+
+    def to_hex_matrix(tensor):
+        arr = tensor.cpu().to(torch.float32).reshape(32, 32)
+        hex_matrix = arr.view(torch.uint32)
+        return hex_matrix.apply_(lambda x: int(x))
+
+    print("Golden (hex):")
+    golden_hex = to_hex_matrix(golden_tensor)
+    for i in range(32):
+        print(" ".join(f"0x{golden_hex[i, j].item():08x}" for j in range(32)))
+    print("Result (hex):")
+    result_hex = to_hex_matrix(res_tensor)
+    for i in range(32):
+        print(" ".join(f"0x{result_hex[i, j].item():08x}" for j in range(32)))
+
+    assert 1 == 2
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

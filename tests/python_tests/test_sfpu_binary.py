@@ -43,19 +43,8 @@ supported_int_formats = [DataFormat.Int32]
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
-float_ops = [
-    MathOperation.SfpuElwadd,
-    MathOperation.SfpuElwsub,
-    MathOperation.SfpuElwmul,
-    MathOperation.SfpuXlogy,
-]
-
-int_ops = [
-    MathOperation.SfpuElwRightShift,
-    MathOperation.SfpuElwLeftShift,
-]
-
-float_params = generate_params(
+test_formats = input_output_formats(supported_formats, same=True)
+all_params = generate_params(
     ["sfpu_binary_test"],
     input_output_formats(supported_float_formats),
     dest_acc=[DestAccumulation.No],
