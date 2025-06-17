@@ -186,8 +186,8 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 class FillDestGolden(EltwiseBinaryGolden):
     def __call__(self, operand1, operand2, data_format, op):
 
-        tensor1 = to_tensor(operand1, format_dict[data_format])
-        tensor2 = to_tensor(operand2, format_dict[data_format])
+        tensor1 = to_tensor(operand1, data_format)
+        tensor2 = to_tensor(operand2, data_format)
 
         res = []
         max_tiles_in_dest = 8 if data_format.is_32_bit() else 16
