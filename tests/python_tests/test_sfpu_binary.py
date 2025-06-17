@@ -13,7 +13,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict
 from helpers.format_config import DataFormat
-from helpers.golden_generators import BinarySFPUGolden, get_golden
+from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -70,7 +70,7 @@ def test_all(testname, formats, dest_acc, mathop):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
-    generate_golden = get_golden(BinarySFPUGolden)
+    generate_golden = get_golden_generator(BinarySFPUGolden)
     golden_tensor = generate_golden(mathop, src_A, src_B, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 

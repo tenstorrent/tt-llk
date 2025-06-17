@@ -12,7 +12,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import format_dict
 from helpers.format_config import DataFormat
-from helpers.golden_generators import UntilizeGolden, get_golden
+from helpers.golden_generators import UntilizeGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -54,7 +54,7 @@ def test_unpack_untilze(testname, formats):
     src_A, _ = generate_stimuli(formats.input_format, formats.input_format)
     src_B = torch.full((1024,), 0)
 
-    generate_golden = get_golden(UntilizeGolden)
+    generate_golden = get_golden_generator(UntilizeGolden)
     golden_tensor = generate_golden(src_A, formats.output_format)
 
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)

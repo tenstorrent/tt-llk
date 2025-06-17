@@ -19,7 +19,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.golden_generators import UnarySFPUGolden, get_golden
+from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -94,7 +94,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         formats.input_format,
         formats.input_format,
     )
-    generate_golden = get_golden(UnarySFPUGolden)
+    generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(mathop, src_A, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 

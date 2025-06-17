@@ -18,7 +18,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.golden_generators import ReduceGolden, get_golden
+from helpers.golden_generators import ReduceGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -90,7 +90,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
         else:
             src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
 
-    generate_golden = get_golden(ReduceGolden)
+    generate_golden = get_golden_generator(ReduceGolden)
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 

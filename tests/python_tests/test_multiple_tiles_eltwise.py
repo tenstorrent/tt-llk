@@ -17,7 +17,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.golden_generators import EltwiseBinaryGolden, get_golden
+from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -83,7 +83,7 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
         formats.input_format, formats.input_format, tile_cnt=tile_cnt
     )
 
-    generate_golden = get_golden(EltwiseBinaryGolden)
+    generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
         mathop, src_A, src_B, formats.output_format, math_fidelity
     )

@@ -21,7 +21,7 @@ def register_golden(cls):
     return cls
 
 
-def get_golden(cls):
+def get_golden_generator(cls):
     """Retrieve the registered golden class instance."""
     if cls not in golden_registry:
         raise KeyError(f"Golden class {cls.__name__} is not registered.")
@@ -29,7 +29,7 @@ def get_golden(cls):
 
 
 class FidelityMasking:
-    def apply_fidelity_masking(self, operand1, operand2, math_fidelity):
+    def _apply_fidelity_masking(self, operand1, operand2, math_fidelity):
         if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:
             # Apply mask to operand2
             for element in operand1:
@@ -55,7 +55,7 @@ class MatmulGolden(FidelityMasking):
     def __call__(self, operand1, operand2, data_format, math_fidelity):
         torch_format = format_dict[data_format]
 
-        self.apply_fidelity_masking(operand1, operand2, math_fidelity)
+        self._apply_fidelity_masking(operand1, operand2, math_fidelity)
 
         # Clone and detach to avoid modifying original input
         operand1_matrix = to_tensor(operand1, data_format).view(32, 32)
@@ -131,9 +131,9 @@ class UnarySFPUGolden:
 class EltwiseBinaryGolden(FidelityMasking):
     def __init__(self):
         self.ops = {
-            MathOperation.Elwadd: self.add,
-            MathOperation.Elwsub: self.sub,
-            MathOperation.Elwmul: self.mul,
+            MathOperation.Elwadd: self._add,
+            MathOperation.Elwsub: self._sub,
+            MathOperation.Elwmul: self._mul,
         }
 
     def __call__(self, op, operand1, operand2, data_format, math_fidelity):
@@ -143,18 +143,18 @@ class EltwiseBinaryGolden(FidelityMasking):
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
 
-        self.apply_fidelity_masking(t1, t2, math_fidelity)
+        self._apply_fidelity_masking(t1, t2, math_fidelity)
 
         return self.ops[op](t1, t2)
 
     # Operation methods
-    def add(self, t1, t2):
+    def _add(self, t1, t2):
         return t1 + t2
 
-    def sub(self, t1, t2):
+    def _sub(self, t1, t2):
         return t1 - t2
 
-    def mul(self, t1, t2):
+    def _mul(self, t1, t2):
         return t1 * t2
 
 
@@ -162,9 +162,9 @@ class EltwiseBinaryGolden(FidelityMasking):
 class BinarySFPUGolden(EltwiseBinaryGolden):
     def __init__(self):
         self.ops = {
-            MathOperation.SfpuElwadd: self.add,
-            MathOperation.SfpuElwsub: self.sub,
-            MathOperation.SfpuElwmul: self.mul,
+            MathOperation.SfpuElwadd: self._add,
+            MathOperation.SfpuElwsub: self._sub,
+            MathOperation.SfpuElwmul: self._mul,
             MathOperation.SfpuXlogy: self._xlogy,
         }
 
