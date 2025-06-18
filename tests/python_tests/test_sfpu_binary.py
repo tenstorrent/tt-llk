@@ -13,6 +13,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict
 from helpers.format_config import DataFormat
+from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -23,34 +24,9 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import generate_make_command
 from helpers.utils import passed_test, run_shell_command
 
-
-def generate_golden(operation, operand1, operand2, data_format):
-    tensor1_float = (
-        operand1.clone()
-        .detach()
-        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
-    )
-    tensor2_float = (
-        operand2.clone()
-        .detach()
-        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
-    )
-
-    operations = {
-        MathOperation.SfpuElwadd: tensor1_float + tensor2_float,
-        MathOperation.SfpuElwsub: tensor1_float - tensor2_float,
-        MathOperation.SfpuElwmul: tensor1_float * tensor2_float,
-        MathOperation.SfpuXlogy: torch.xlogy(tensor1_float, tensor2_float),
-    }
-
-    if operation not in operations:
-        raise ValueError("Unsupported operation!")
-
-    return operations[operation].tolist()
-
-
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+supported_float_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+supported_int_formats = [DataFormat.Int32]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -69,18 +45,34 @@ supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
-test_formats = input_output_formats(supported_formats)
-all_params = generate_params(
+float_ops = [
+    MathOperation.SfpuElwadd,
+    MathOperation.SfpuElwsub,
+    MathOperation.SfpuElwmul,
+    MathOperation.SfpuXlogy,
+]
+
+int_ops = [
+    MathOperation.SfpuElwRightShift,
+    MathOperation.SfpuElwLeftShift,
+]
+
+float_params = generate_params(
     ["sfpu_binary_test"],
-    test_formats,
-    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
-    mathop=[
-        MathOperation.SfpuElwsub,
-        MathOperation.SfpuElwadd,
-        MathOperation.SfpuElwmul,
-        MathOperation.SfpuXlogy,
-    ],
+    input_output_formats(supported_float_formats),
+    dest_acc=[DestAccumulation.No],
+    mathop=float_ops,
 )
+
+int_params = generate_params(
+    ["sfpu_binary_test"],
+    input_output_formats(supported_int_formats),
+    dest_acc=[DestAccumulation.Yes],
+    mathop=int_ops,
+)
+
+all_params = float_params + int_params
+
 param_ids = generate_param_ids(all_params)
 
 
@@ -95,10 +87,11 @@ def test_all(testname, formats, dest_acc, mathop):
 
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
-    golden = generate_golden(mathop, src_A, src_B, formats.output_format)
+    generate_golden = get_golden_generator(BinarySFPUGolden)
+    golden_tensor = generate_golden(mathop, src_A, src_B, formats.output_format)
     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
 
-    unpack_to_dest = formats.input_format == DataFormat.Float32
+    unpack_to_dest = formats.input_format.is_32_bit()
 
     test_config = {
         "formats": formats,
@@ -116,25 +109,9 @@ def test_all(testname, formats, dest_acc, mathop):
 
     res_from_L1 = collect_results(formats, tensor_size=len(src_A))
 
-    assert len(res_from_L1) == len(golden)
+    assert len(res_from_L1) == len(golden_tensor)
 
-    golden_tensor = torch.tensor(
-        golden,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format
-            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
-            else torch.bfloat16
-        ),
-    )
-    res_tensor = torch.tensor(
-        res_from_L1,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format
-            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
-            else torch.bfloat16
-        ),
-    )
+    torch_format = format_dict[formats.output_format]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

@@ -16,8 +16,28 @@ from ttexalens.tt_exalens_lib import (
 
 from .format_arg_mapping import Mailbox
 from .format_config import DataFormat, FormatConfig
-from .pack import pack_bfp8_b, pack_bfp16, pack_fp16, pack_fp32, pack_int32
-from .unpack import unpack_bfp8_b, unpack_bfp16, unpack_fp16, unpack_fp32, unpack_int32
+from .pack import (
+    pack_bfp8_b,
+    pack_bfp16,
+    pack_fp16,
+    pack_fp32,
+    pack_int8,
+    pack_int32,
+    pack_uint8,
+    pack_uint16,
+    pack_uint32,
+)
+from .unpack import (
+    unpack_bfp8_b,
+    unpack_bfp16,
+    unpack_fp16,
+    unpack_fp32,
+    unpack_int8,
+    unpack_int32,
+    unpack_uint8,
+    unpack_uint16,
+    unpack_uint32,
+)
 from .utils import calculate_read_byte_count
 
 MAX_READ_BYTE_SIZE_16BIT = 2048
@@ -58,6 +78,10 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
     for i in range(3):
         load_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
 
+    # Reset the profiler barrier
+    TRISC_PROFILER_BARRIER = 0x16AFF4
+    write_words_to_device(core_loc, TRISC_PROFILER_BARRIER, [0, 0, 0])
+
     # Clear soft reset
     soft_reset &= ~0x7800
     write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
@@ -95,6 +119,10 @@ def write_stimuli_to_l1(
             DataFormat.Float16_b: pack_bfp16,
             DataFormat.Float32: pack_fp32,
             DataFormat.Int32: pack_int32,
+            DataFormat.UInt32: pack_uint32,
+            DataFormat.UInt16: pack_uint16,
+            DataFormat.Int8: pack_int8,
+            DataFormat.UInt8: pack_uint8,
         }
 
         pack_function_A = packers.get(stimuli_A_format)
@@ -119,6 +147,10 @@ def get_result_from_device(
         DataFormat.Float16_b: unpack_bfp16,
         DataFormat.Float32: unpack_fp32,
         DataFormat.Int32: unpack_int32,
+        DataFormat.UInt32: unpack_uint32,
+        DataFormat.UInt16: unpack_uint16,
+        DataFormat.Int8: unpack_int8,
+        DataFormat.UInt8: unpack_uint8,
     }
 
     # Handling "Bfp8_b" format separately with sfpu condition
@@ -132,7 +164,7 @@ def get_result_from_device(
         if num_args > 1:
             return unpack_func(
                 read_data_bytes, formats.input_format, formats.output_format
-            )  # Bug patchup in (unpack.py): in case unpack_src is Bfp8_b != pack_dst, L1 must be read in different order to extract correct results
+            )
         else:
             return unpack_func(read_data_bytes)
     else:

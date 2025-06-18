@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import pytest
 import requests
@@ -14,6 +15,13 @@ from ttexalens.tt_exalens_lib import arc_msg
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.log_utils import _format_log
+from helpers.perf import delete_reports
+
+
+def init_llk_home():
+    if "LLK_HOME" in os.environ:
+        return
+    os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
 
 
 def set_chip_architecture():
@@ -51,6 +59,11 @@ def set_chip_architecture():
         sys.exit(1)
     os.environ["CHIP_ARCH"] = architecture.value
     return architecture
+
+
+@pytest.fixture(scope="session", autouse=True)
+def delete_perf_reports():
+    delete_reports()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -176,6 +189,9 @@ def pytest_runtest_protocol(item, nextitem):
 
 
 def pytest_sessionstart(session):
+    # Default LLK_HOME environment variable
+    init_llk_home()
+
     # Send ARC message for GO BUSY signal. This should increase device clock speed.
     ARC_COMMON_PREFIX = 0xAA00
     GO_BUSY_MESSAGE_CODE = 0x52

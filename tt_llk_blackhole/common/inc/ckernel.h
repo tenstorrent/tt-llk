@@ -5,10 +5,20 @@
 #pragma once
 
 #include "ckernel_instr_params.h"
+#include "ckernel_ops.h"
+#include "llk_defs.h"
 #include "risc_attribs.h"
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
+
+// This header is included on non-trisc builds, for reasons
+// unknown. lltt is only available on trisc
+#if defined(COMPILE_FOR_TRISC)
+#include <utility>
+
+#include "lltt.h"
+#endif
 
 // Compiler hint that a branch is unlikely to be taken
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
@@ -667,12 +677,21 @@ inline void enable_gathering()
     asm("csrrc zero, 0x7c0, %0" : : "r"(1 << 18));
 }
 
-// Pass a lambda function (or a regular function pointer) that takes void,
-// returns void, and issues the instructions you want to load into the
-// replay buffer. start, len, and exec_while_loading have the same meaning
-// as they do for the REPLAY instruction, as descired in assembly.yaml.
-template <uint start, uint len, bool exec_while_loading = false, typename F>
-inline void load_replay_buf(F fn)
+#if defined(COMPILE_FOR_TRISC)
+// Place instructions into the replay buffer. EXEC is true to execute
+// when loading (default is false). START is where to place in the
+// replay buffer, and LEN is the number of instructions to record
+// (should match the expansion of CALLABLE). CALLABLE is a callable,
+// to which ARGS are forwarded.
+// When we move to c++23 we can use 'using enum lltt::ExecBool;'
+enum ExecBool : bool
+{
+    NoExec,
+    Exec
+};
+
+template <ExecBool Exec = NoExec, typename Callable, typename... Args>
+[[gnu::always_inline, gnu::flatten]] inline void load_replay_buf(uint start, uint len, Callable &&callable, Args &&...args)
 {
     // ENABLE_GATHERING is controlled by JIT build.
     // Not enabled by default due to tt-metal#16439.
@@ -681,37 +700,16 @@ inline void load_replay_buf(F fn)
 #endif
 
     // Issue instruction to load replay buffer
-    TTI_REPLAY(start, len, exec_while_loading, 1);
+    lltt::record<lltt::ExecBool(Exec)>(start, len);
 
     // Send in the user's desired instructions
-    fn();
+    callable(std::forward<Args>(args)...);
 
 #if defined(ENABLE_GATHERING)
     enable_gathering();
 #endif
 }
-
-// Same as above, but used if start/len/exec_while_loading are not known
-// at compiletime.
-template <typename F>
-inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
-{
-    // ENABLE_GATHERING is controlled by JIT build.
-    // Not enabled by default due to tt-metal#16439.
-#if defined(ENABLE_GATHERING)
-    disable_gathering();
-#endif
-
-    // Issue instruction to load replay buffer
-    TTI_REPLAY(start, len, exec_while_loading, 1);
-
-    // Send in the user's desired instructions
-    fn();
-
-#if defined(ENABLE_GATHERING)
-    enable_gathering();
-#endif
-}
+#endif // defined(COMPILE_FOR_TRISC)
 
 enum class CSR : uint16_t
 {
@@ -834,6 +832,18 @@ inline void init_prng_seed(const uint seed)
     {
         TTI_SFPNOP;
     }
+}
+
+inline constexpr bool is_valid_instruction_mode(InstrModLoadStore mode)
+{
+    return mode == InstrModLoadStore::INT32_2S_COMP || mode == InstrModLoadStore::INT32 || mode == InstrModLoadStore::LO16;
+}
+
+inline void apply_sign_magnitude_conversion(uint src, uint dst, InstrModCast cast_mode)
+{
+    TTI_SFPCAST(src /*lreg*/, dst /*ldest*/, cast_mode);
+    // Required after cast due to a bug in Blackhole RTL (Refer tenstorrent/tt-llk-bh#16)
+    TTI_SFPSETSGN(0 /* imm */, dst /*lreg_c*/, src /*ldest*/, 0 /*imod*/);
 }
 
 } // namespace ckernel
