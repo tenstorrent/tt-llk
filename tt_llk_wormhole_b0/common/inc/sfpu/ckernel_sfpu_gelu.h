@@ -227,7 +227,7 @@ inline void _init_gelu_derivative_()
     else
     {
         // Initialisation for use of _calculate_exponential_body_<false>.
-        _init_exponential_<false>();
+        _init_exponential_<false, false>();
 
         imm0 = 0x28FF;
         imm1 = 0x3020;
