@@ -18,6 +18,8 @@ namespace sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
 inline void _calculate_binary_left_shift_(const uint dst_offset)
 {
+    static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
+
     constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
@@ -43,6 +45,8 @@ inline void _calculate_binary_left_shift_(const uint dst_offset)
 template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
 inline void _calculate_binary_right_shift_(const uint dst_offset)
 {
+    static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
+
     constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
