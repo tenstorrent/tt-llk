@@ -157,6 +157,51 @@ inline void _llk_unpack_AB_init_st_(
     _llk_unpack_AB_mop_config_st_(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
 }
 
+inline void _llk_unpack_AB_st_(const std::uint32_t address_a, const std::uint32_t address_b, const uint32_t dst_index, const bool transpose_of_faces = 0 /*not used*/)
+{
+	
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
+
+    // Program srcA and srcB base addresses
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Get tile address
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+    }
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+
+    // Run MOP
+    ckernel::ckernel_template::run(instrn_buffer);
+
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+
+    math::clear_dst_reg_addr();
+}
+
 
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b, const bool transpose_of_faces = 0 /*not used*/)
