@@ -116,9 +116,6 @@ constexpr auto SFPU_OPERATION = SfpuType::reciprocal;
 constexpr auto SFPU_OPERATION = SfpuType::celu;
 #endif
 
-// todo: load from build.h
-constexpr auto PERF_RUN_TYPE = PerfRunType::UNPACK_ISOLATE;
-
 inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
 {
     buffer_Dest[0] = reinterpret_cast<volatile uint32_t*>(first);
