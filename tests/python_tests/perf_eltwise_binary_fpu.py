@@ -51,7 +51,7 @@ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidel
 
     test_config = {
         "testname": testname,
-        "tile_cnt": 16,  # currently isn't passed to kernel, should be TILE_CNT
+        "tile_cnt": 16,
         "formats": formats,
         "dest_acc": dest_acc,
         "mathop": mathop,
