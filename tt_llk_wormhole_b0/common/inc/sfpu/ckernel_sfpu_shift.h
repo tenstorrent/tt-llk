@@ -14,7 +14,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE = INT32, bool SIGN_MAGNITUDE_FORMAT = false>
+template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
 inline void _calculate_binary_left_shift_(const uint dst_offset)
 {
     constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
@@ -30,7 +30,7 @@ inline void _calculate_binary_left_shift_(const uint dst_offset)
         TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
         TTI_SFPIADD(0xFE0, p_sfpu::LREG1, p_sfpu::LREG2, 1); // 0xFE0 = -32
         TTI_SFPCOMPC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
-        TTI_SFPMOV(0, 9, p_sfpu::LREG0, 0);
+        TTI_SFPMOV(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
         TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
         // shift left
         TTI_SFPSHFT(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);
@@ -40,7 +40,7 @@ inline void _calculate_binary_left_shift_(const uint dst_offset)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE = INT32, bool SIGN_MAGNITUDE_FORMAT = false>
+template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
 inline void _calculate_binary_right_shift_(const uint dst_offset)
 {
     constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
@@ -65,7 +65,7 @@ inline void _calculate_binary_right_shift_(const uint dst_offset)
         TTI_SFPSETCC(0, p_sfpu::LREG4, p_sfpu::LREG0, 0);    // only run if shift_value is negative
         TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 2);    // only needed if shift_amount>0
         TTI_SFPIADD(0x020, p_sfpu::LREG1, p_sfpu::LREG2, 5); // take 32-shift_amount (0x020 = 32)
-        TTI_SFPNOT(0, 9, p_sfpu::LREG3, 0);                  // put all 1's into LREG3
+        TTI_SFPNOT(0, p_sfpu::LCONST_0, p_sfpu::LREG3, 0);   // put all 1's into LREG3
         TTI_SFPSHFT(0, p_sfpu::LREG2, p_sfpu::LREG3, 0);     // shift all 1's by 32-shift_amount
         TTI_SFPOR(0, p_sfpu::LREG3, p_sfpu::LREG0, 0);       // OR in the 1's
         TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
