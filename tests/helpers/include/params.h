@@ -17,6 +17,7 @@
 #include "data_format_inference.h"
 #include "llk_defs.h"
 #include "llk_sfpu_types.h"
+#include "perf.h"
 #include "tensix_types.h"
 
 inline uint32_t L1_ADDRESS(const volatile void* buffer)
@@ -114,6 +115,9 @@ constexpr auto SFPU_OPERATION = SfpuType::reciprocal;
 #ifdef SFPU_OP_CELU
 constexpr auto SFPU_OPERATION = SfpuType::celu;
 #endif
+
+// todo: load from build.h
+constexpr auto PERF_RUN_TYPE = PerfRunType::UNPACK_ISOLATE;
 
 inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
 {
