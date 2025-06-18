@@ -4,11 +4,12 @@
 
 import subprocess
 from collections import namedtuple
+from typing import Optional
 
 import numpy as np
 import torch
 
-from conftest import all_test_results
+
 from helpers.format_config import FormatConfig
 from helpers.output_test_results import update_failed_test, update_passed_test
 
@@ -159,7 +160,7 @@ def get_tolerance(output_data_format):
     return atol, rtol
 
 
-def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16_b):
+def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16_b, test_results: Optional[list] = None):
 
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
 
@@ -192,12 +193,12 @@ def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16
         # Find all indices where values differ
         diff_indices = torch.where(~is_close)[0]
         print(f"Found {len(diff_indices)} differences:")
-        update_failed_test(all_test_results, (res_tensor[0], res_tensor[0]))
+        update_failed_test(test_results, (res_tensor[0], res_tensor[0]))
         for idx in diff_indices:
             print(
                 f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
             )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
-    update_passed_test(all_test_results, pcc)
+    update_passed_test(test_results, pcc)
     return is_within_tolerance and (pcc > 0.99) 

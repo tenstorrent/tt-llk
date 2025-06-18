@@ -4,7 +4,6 @@
 import pytest
 import torch
 
-from conftest import all_test_results
 from helpers.device import (
     collect_results,
     run_elf_files,
@@ -15,7 +14,6 @@ from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, get_golden_generator
 from helpers.output_test_results import (
-    input_output_formats,
     pass_fail_results,
     sweep_integers,
 )
@@ -61,8 +59,8 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize(
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
-def test_unary_datacopy(testname, formats, dest_acc):
-    all_test_results.append(pass_fail_results(testname, formats, dest_acc))
+def test_unary_datacopy(testname, formats, dest_acc, test_results):
+    test_results.append(pass_fail_results(testname, formats, dest_acc))
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     generate_golden = get_golden_generator(DataCopyGolden)
@@ -89,4 +87,4 @@ def test_unary_datacopy(testname, formats, dest_acc):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format, test_results)

@@ -253,4 +253,4 @@ def test_results():
     global all_test_results
     yield all_test_results  # This makes the fixture available globally
     format_results(all_test_results)
-    all_test_results.extend(all_test_results)                                                    
+    all_test_results.extend(all_test_results)
