@@ -200,5 +200,6 @@ def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16
             )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
-    update_passed_test(test_results, pcc)
+    if is_within_tolerance and (pcc > 0.99):
+        update_passed_test(test_results, pcc)
     return is_within_tolerance and (pcc > 0.99) 

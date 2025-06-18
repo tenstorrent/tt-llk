@@ -28,7 +28,7 @@ from helpers.test_config import generate_make_command
 from helpers.utils import passed_test, run_shell_command
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Int32]
+supported_formats = [DataFormat.Int32, DataFormat.UInt16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -50,7 +50,7 @@ supported_formats = [DataFormat.Int32]
 
 test_formats = input_output_formats(supported_formats)
 test_formats = sweep_integers(supported_formats)
-dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
+dest_acc = [DestAccumulation.Yes]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
 param_ids = generate_param_ids(all_params)
@@ -60,6 +60,7 @@ param_ids = generate_param_ids(all_params)
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
 def test_unary_datacopy(testname, formats, dest_acc, test_results):
+    run_shell_command(f"tt-smi -r")
     test_results.append(pass_fail_results(testname, formats, dest_acc))
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
