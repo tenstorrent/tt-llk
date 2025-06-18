@@ -89,7 +89,6 @@ inline void _llk_pack_untilize_mop_config_(
     load_replay_buf(
         ckernel::packer::replay_buf_offset,
         replay_buf_len,
-        false,
         []
         {
             // Update L1 address
@@ -100,7 +99,7 @@ inline void _llk_pack_untilize_mop_config_(
         });
 
     // After the inner loop finishes, move to the next row in the block, and update L1 address.
-    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), TT_OP_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 0));
+    tmp.set_end_ops(TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0), lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len));
 
     /*
     Close the row in the block by setting the Last bit to 1 in the last inner loop instruction.
