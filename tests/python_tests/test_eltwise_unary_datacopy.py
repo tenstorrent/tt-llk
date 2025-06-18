@@ -4,6 +4,7 @@
 import pytest
 import torch
 
+from conftest import all_test_results
 from helpers.device import (
     collect_results,
     run_elf_files,
@@ -13,6 +14,11 @@ from helpers.device import (
 from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, get_golden_generator
+from helpers.output_test_results import (
+    input_output_formats,
+    pass_fail_results,
+    sweep_integers,
+)
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -24,12 +30,7 @@ from helpers.test_config import generate_make_command
 from helpers.utils import passed_test, run_shell_command
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [
-    DataFormat.Float32,
-    DataFormat.Float16,
-    DataFormat.Float16_b,
-    DataFormat.Bfp8_b,
-]
+supported_formats = [DataFormat.Int32]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -50,6 +51,7 @@ supported_formats = [
 
 
 test_formats = input_output_formats(supported_formats)
+test_formats = sweep_integers(supported_formats)
 dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
@@ -60,7 +62,7 @@ param_ids = generate_param_ids(all_params)
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
 def test_unary_datacopy(testname, formats, dest_acc):
-
+    all_test_results.append(pass_fail_results(testname, formats, dest_acc))
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
 
     generate_golden = get_golden_generator(DataCopyGolden)

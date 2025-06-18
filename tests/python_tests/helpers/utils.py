@@ -1,3 +1,4 @@
+
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
@@ -6,6 +7,10 @@ from collections import namedtuple
 
 import numpy as np
 import torch
+
+from conftest import all_test_results
+from helpers.format_config import FormatConfig
+from helpers.output_test_results import update_failed_test, update_passed_test
 
 from .format_config import DataFormat, FormatConfig
 
@@ -187,11 +192,12 @@ def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16
         # Find all indices where values differ
         diff_indices = torch.where(~is_close)[0]
         print(f"Found {len(diff_indices)} differences:")
+        update_failed_test(all_test_results, (res_tensor[0], res_tensor[0]))
         for idx in diff_indices:
             print(
                 f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
             )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
-
-    return is_within_tolerance and (pcc > 0.99)
+    update_passed_test(all_test_results, pcc)
+    return is_within_tolerance and (pcc > 0.99) 

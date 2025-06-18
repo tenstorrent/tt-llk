@@ -15,7 +15,12 @@ from ttexalens.tt_exalens_lib import arc_msg
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.log_utils import _format_log
+from helpers.output_test_results import format_results
 from helpers.perf import delete_reports
+
+# Declare all_test_results as a global variable
+
+all_test_results = []
 
 
 def init_llk_home():
@@ -241,3 +246,11 @@ skip_for_blackhole = pytest.mark.skipif(
     lambda: get_chip_architecture() == ChipArchitecture.BLACKHOLE,
     reason="Test is not supported on Blackhole architecture",
 )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def test_results():
+    global all_test_results
+    yield all_test_results  # This makes the fixture available globally
+    format_results(all_test_results)
+    all_test_results.extend(all_test_results)                                                    
