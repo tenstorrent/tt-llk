@@ -19,11 +19,28 @@ namespace sfpu
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
-    sfpi::vFloat negative_x = -in;
-    sfpi::vFloat y          = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(in));
+
+    // Set the sign bit to zero, making x positive.  This avoids issues when subtracting from the magic constant, which would complicate edge case detection.
+    sfpi::vFloat x = setsgn(in, 0);
+
+    // Note that SFPI's codegen is suboptimal here, since we can use SFPIADD to set the condition flags directly.
+    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(x));
+
+    // Handle cases where the bit pattern x > magic constant.  This happens for:
+    // - extremely large finite values, whose reciprocal will be zero.
+    // - +inf, whose reciprocal will be zero.
+    // - +nan, which we do not support, but zero is acceptable.
+    v_if (y < 0)
+    {
+        x = sfpi::vConst0;
+        y = sfpi::vConst0;
+    }
+    v_endif;
+
+    sfpi::vFloat negative_x = -x;
     sfpi::vFloat t          = sfpi::vConstFloatPrgm2 + negative_x * y;
-    y                       = y * sfpi::vConstFloatPrgm1;
-    y                       = y * t;
+    sfpi::vFloat t1         = y * sfpi::vConstFloatPrgm1;
+    y                       = t1 * t;
 
     if constexpr (!APPROXIMATE)
     {
@@ -32,7 +49,8 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
         y = y * t + y;
     }
 
-    return y;
+    // Restore sign bit.
+    return setsgn(y, in);
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
