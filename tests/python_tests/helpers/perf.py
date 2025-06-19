@@ -106,18 +106,23 @@ class PerfRunType(Enum):
     L1_CONGESTION = 5
 
 
-RUN_COUNT = 8
+ALL_RUN_TYPES = [
+    PerfRunType.L1_TO_L1,
+    PerfRunType.UNPACK_ISOLATE,
+    PerfRunType.MATH_ISOLATE,
+    PerfRunType.PACK_ISOLATE,
+    PerfRunType.L1_CONGESTION,
+]
 
 
-def perf_benchmark(test_config, run_types: list[PerfRunType]):
-    # todo: support all types of runs
+def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
+
     RUN_CONFIGURATIONS = {
         PerfRunType.L1_TO_L1: timing_l1_to_l1,
         PerfRunType.UNPACK_ISOLATE: timing_unpack,
         PerfRunType.MATH_ISOLATE: timing_math,
         PerfRunType.PACK_ISOLATE: timing_pack,
-        # Add new run types here as they're implemented:
-        # PerfRunType.L1_CONGESTION: timing_l1_congestion,
+        PerfRunType.L1_CONGESTION: timing_l1_congestion,
     }
     SUPPORTED_RUNS = RUN_CONFIGURATIONS.keys()
 
@@ -131,7 +136,7 @@ def perf_benchmark(test_config, run_types: list[PerfRunType]):
         profiler_meta = build_with_profiler(test_config)
 
         runs = []
-        for _ in range(RUN_COUNT):
+        for _ in range(run_count):
             run_elf_files(test_config["testname"])
             wait_for_tensix_operations_finished()
 
