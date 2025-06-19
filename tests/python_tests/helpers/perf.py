@@ -173,15 +173,14 @@ def write_to_report(test_config, run_types, results):
     sweep_columns = [param for param in test_config.keys() if not param in exclude]
 
     result_columns = []
-    for run_type in run_types:
-        result_columns.append(f"mean({run_type.name})")
-        result_columns.append(f"variance({run_type.name})")
 
     row = [test_config[k] for k in sweep_columns]
     for run_type in run_types:
         stats = results[run_type]
-        for stat in stats:
-            # fix : multiple stats per run type
+        for i, stat in enumerate(stats):
+            # fixme: give results names instead of printing indicies
+            result_columns.append(f"mean({run_type.name}[{i}])")
+            result_columns.append(f"variance({run_type.name}[{i}])")
             row.append(stat["mean"])
             row.append(stat["variance"])
 
