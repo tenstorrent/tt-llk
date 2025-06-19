@@ -155,6 +155,10 @@ inline void _llk_unpack_AB_init_st_(
     }
     .set(ADDR_MOD_0);
     _llk_unpack_AB_mop_config_st_(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
+    
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
 inline void _llk_unpack_AB_st_(const std::uint32_t address_a, const std::uint32_t address_b, const uint32_t dst_index, const bool transpose_of_faces = 0 /*not used*/)
