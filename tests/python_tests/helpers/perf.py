@@ -106,13 +106,7 @@ class PerfRunType(Enum):
     L1_CONGESTION = 5
 
 
-ALL_RUN_TYPES = [
-    PerfRunType.L1_TO_L1,
-    PerfRunType.UNPACK_ISOLATE,
-    PerfRunType.MATH_ISOLATE,
-    PerfRunType.PACK_ISOLATE,
-    PerfRunType.L1_CONGESTION,
-]
+ALL_RUN_TYPES = [type for type in PerfRunType]
 
 
 def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
