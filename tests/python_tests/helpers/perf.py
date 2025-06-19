@@ -163,7 +163,12 @@ def write_to_report(test_config, run_types, results):
     output_path = Path(root) / "perf" / filename
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    exclude = {"testname", "tile_cnt", "formats"}  # fix: include format info
+    exclude = {
+        "testname",
+        "perf_run_type",
+        "tile_cnt",
+        "formats",
+    }  # fix: include format info
     sweep_columns = [param for param in test_config.keys() if not param in exclude]
 
     result_columns = []
