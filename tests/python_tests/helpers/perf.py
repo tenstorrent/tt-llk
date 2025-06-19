@@ -86,7 +86,7 @@ def timing_l1_congestion(perf_data: PerfData) -> int:
     )
 
 
-RUN_COUNT = 2
+RUN_COUNT = 8
 
 
 def _build_l1_to_l1(test_config):
