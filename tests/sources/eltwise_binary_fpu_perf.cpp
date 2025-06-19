@@ -72,16 +72,21 @@ void run_kernel()
         {
             return _perf_math_loop_clear_valid<true, true>(TILE_CNT * TILE_NUM_FACES);
         }
-
-        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            if constexpr (PERF_RUN_TYPE != PerfRunType::MATH_ISOLATE)
+            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+            {
+                _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
+                    TILE_NUM_FACES, 0, false);
+            }
+        }
+        else
+        {
+            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-            }
-            _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(TILE_NUM_FACES, 0, false);
-            if constexpr (PERF_RUN_TYPE != PerfRunType::MATH_ISOLATE)
-            {
+                _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
+                    TILE_NUM_FACES, 0, false);
                 _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
