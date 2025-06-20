@@ -36,6 +36,14 @@ constexpr std::uint16_t hashString16(const char (&s)[N])
 
 #define MARKER_ID(marker) hashString16(MARKER_FULL(marker))
 
+#define PROFILER_META(full_marker)                          \
+    {                                                       \
+        asm volatile(                                     \
+            ".pushsection .profiler_meta,\"a\"\n\t"       \
+            ".asciz " ExpandStringize(full_marker) "\n\t" \
+            ".popsection\n\t"); \
+    }
+
 #if defined(LLK_PROFILER)
 
 namespace llk_profiler
@@ -193,14 +201,17 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
 } // namespace llk_profiler
 
 #define ZONE_SCOPED(marker)                 \
+    PROFILER_META(MARKER_FULL(marker))      \
     DO_PRAGMA(message(MARKER_FULL(marker))) \
     const auto _zone_scoped_ = llk_profiler::zone_scoped<MARKER_ID(marker)>();
 
 #define TIMESTAMP(marker)                   \
+    PROFILER_META(MARKER_FULL(marker))      \
     DO_PRAGMA(message(MARKER_FULL(marker))) \
     llk_profiler::write_timestamp(MARKER_ID(marker));
 
 #define TIMESTAMP_DATA(marker, data)        \
+    PROFILER_META(MARKER_FULL(marker))      \
     DO_PRAGMA(message(MARKER_FULL(marker))) \
     llk_profiler::write_timestamp(MARKER_ID(marker), data);
 
