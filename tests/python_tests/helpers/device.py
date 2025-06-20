@@ -14,7 +14,7 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
-from .format_arg_mapping import Mailbox
+from .format_arg_mapping import DestAccumulation, Mailbox
 from .format_config import DataFormat, FormatConfig
 from .pack import (
     pack_bfp8_b,
@@ -169,6 +169,56 @@ def get_result_from_device(
             return unpack_func(read_data_bytes)
     else:
         raise ValueError(f"Unsupported format: {formats.output_format}")
+
+
+def read_dest_register(num_tiles: int = None, dest_acc: DestAccumulation = None):
+    """
+    Reads values in the destination register from the device.
+    Args:
+        num_tiles: Number of tiles to read from the destination register.
+        dest_acc: Whether destination accumulation is enabled or not.
+
+    Prerquisite: Disable flag that clear dest register after packing (in llk_pack_common.h) otherwise you will read garbage values.
+        - comment out this line : TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+
+    Note:
+        - The destination register is read from the address 0xFFBD8000.
+        - The number of tiles must be specified if destination accumulation is enabled.
+    """
+    from ttexalens.debug_risc import RiscDebug, RiscLoc
+    from ttexalens.tt_exalens_lib import (
+        check_context,
+        convert_coordinate,
+        validate_device_id,
+    )
+
+    risc_id = 1  # we want to use TRISC 0 for reading the destination register
+    noc_id = 0  # NOC ID for the device
+    device_id = 0  # Device ID for the device
+    core_loc = "0,0"  # Core location in the format "tile_id,risc_id"
+    base_address = 4290609152
+
+    context = check_context()
+    validate_device_id(device_id, context)
+    coordinate = convert_coordinate(core_loc, device_id, context)
+
+    if noc_id not in (0, 1):
+        raise ValueError("Invalid value for noc_id. Expected 0 or 1.")
+
+    if risc_id < 0 or risc_id > 3:
+        raise ValueError("Invalid value for risc_id. Expected value between 0 and 3.")
+
+    location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
+    debug_risc = RiscDebug(location=location, context=context, verbose=False)
+
+    assert num_tiles <= 8 if dest_acc == DestAccumulation.Yes else num_tiles <= 16
+    dest_reg = []
+    for i in range((num_tiles * 1024)):
+        address = base_address + (i * 4)  # we read 32 bit integer which is 4 bytes
+        with debug_risc.ensure_halted():
+            dest_reg.append(debug_risc.read_memory(address))
+
+    return dest_reg
 
 
 def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):
