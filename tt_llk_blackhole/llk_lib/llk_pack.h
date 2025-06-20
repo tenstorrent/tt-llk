@@ -68,6 +68,63 @@ inline void _llk_pack_configure_addrmod_()
     }
 }
 
+void run_pack_st() {
+    const uint face_r_dim = FACE_R_DIM;
+    const uint num_faces = 4;
+    constexpr uint ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
+    const uint PACK_INTF_SEL = p_pacr::ALL_INTF_ACTIVE;
+    const uint MOP_INNER_LOOP = face_r_dim >> 2;
+    const uint MOP_OUTER_LOOP = num_faces;
+
+    for(uint out = 0; out < MOP_OUTER_LOOP; out++) {
+       for(uint in = 0; in < MOP_INNER_LOOP; in++) { 
+       	  if(in == MOP_INNER_LOOP -1 && out == MOP_OUTER_LOOP -1) {
+       	               TTI_PACR(
+       	                   p_pacr::CFG_CTXT_0,
+       	                   p_pacr::NO_ROW_PAD_ZERO,
+       	                   p_pacr::DST_ACCESS_NORMAL_MODE,
+       	                   ADDR_MOD_1,
+       	                   p_pacr::ADDR_CNT_CTXT_0,
+       	                   ZERO_OUTPUT_FLAG,
+       	                   PACK_INTF_SEL,
+       	                   0,
+       	                   0,
+       	                   0,
+       	                   0,
+       	                   1);
+       	 	} else if (in == MOP_INNER_LOOP -1 ) {
+       	               TTI_PACR(
+       	                   p_pacr::CFG_CTXT_0,
+       	                   p_pacr::NO_ROW_PAD_ZERO,
+       	                   p_pacr::DST_ACCESS_NORMAL_MODE,
+       	                   ADDR_MOD_2,
+       	                   p_pacr::ADDR_CNT_CTXT_0,
+       	                   ZERO_OUTPUT_FLAG,
+       	                   PACK_INTF_SEL,
+       	                   0,
+       	                   0,
+       	                   0,
+       	                   0,
+       	                   0);
+       	 	} else {
+       	               TTI_PACR(
+       	                   p_pacr::CFG_CTXT_0,
+       	                   p_pacr::NO_ROW_PAD_ZERO,
+       	                   p_pacr::DST_ACCESS_NORMAL_MODE,
+       	                   ADDR_MOD_0,
+       	                   p_pacr::ADDR_CNT_CTXT_0,
+       	                   ZERO_OUTPUT_FLAG,
+       	                   PACK_INTF_SEL,
+       	                   0,
+       	                   0,
+       	                   0,
+       	                   0,
+       	                   0);
+       	 	}
+       }
+    }
+}
+
 template <
     bool untilize                = false,
     bool zero_output             = false,
