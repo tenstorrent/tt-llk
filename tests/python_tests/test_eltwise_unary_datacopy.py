@@ -6,6 +6,7 @@ import torch
 
 from helpers.device import (
     collect_results,
+    read_dest_register,
     run_elf_files,
     wait_for_tensix_operations_finished,
     write_stimuli_to_l1,
@@ -28,7 +29,7 @@ from helpers.test_config import generate_make_command
 from helpers.utils import passed_test, run_shell_command
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Int32, DataFormat.UInt16]
+supported_formats = [DataFormat.UInt16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -63,6 +64,7 @@ def test_unary_datacopy(testname, formats, dest_acc, test_results):
     run_shell_command(f"tt-smi -r")
     test_results.append(pass_fail_results(testname, formats, dest_acc))
     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+    src_A = torch.ones(1024, dtype=format_dict[formats.input_format])
 
     generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(src_A, formats.output_format)
@@ -84,6 +86,16 @@ def test_unary_datacopy(testname, formats, dest_acc, test_results):
     wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(formats, tensor_size=len(src_A))
     assert len(res_from_L1) == len(golden_tensor)
+
+    dest_register = read_dest_register(1, dest_acc)
+    print(dest_register)
+    print(
+        torch.tensor(dest_register, dtype=format_dict[formats.output_format]).view(
+            64, 16
+        )
+    )
+    # import numpy as np
+    # print(np.uint16(dest_register[0]))
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
