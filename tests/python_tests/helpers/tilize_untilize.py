@@ -7,6 +7,32 @@ from .format_arg_mapping import format_dict
 from .format_config import DataFormat
 
 
+def tilize_block(input_tensor, dimensions, stimuli_format=DataFormat.Float16_b):
+
+    input_reshaped = input_tensor.view(dimensions[0], dimensions[1])
+
+    if input_reshaped.ndim != 2:
+        raise ValueError(
+            f"Expected a 2D tensor for tilize_block, got shape {input_tensor.shape}"
+        )
+
+    rows, cols = input_reshaped.shape
+    if rows % 32 != 0 or cols % 32 != 0:
+        raise ValueError(
+            f"Input tensor dimensions must be divisible by 32. Got shape: {input_tensor.shape}"
+        )
+
+    output = torch.empty_like(input_reshaped)
+    rows, cols = input_reshaped.shape
+    for i in range(0, rows, 32):
+        for j in range(0, cols, 32):
+            block = input_reshaped[i : i + 32, j : j + 32].contiguous().view(-1)
+            tilized_block = tilize(block)
+            output[i : i + 32, j : j + 32] = tilized_block.view(32, 32)
+
+    return output
+
+
 def tilize(original_tensor, stimuli_format=DataFormat.Float16_b):
 
     if original_tensor.size(0) != 1024:
@@ -39,3 +65,14 @@ def untilize(tilized_tensor, stimuli_format=DataFormat.Float16_b):
     original_tensor = torch.cat((top, bottom), dim=0).view(1024)
 
     return original_tensor.to(dtype=format_dict[stimuli_format])
+
+
+def untilize_block(input_tensor, stimuli_format=DataFormat.Float16_b):
+    output = torch.empty_like(input_tensor)
+    rows, cols = input_tensor.shape
+    for i in range(0, rows, 32):
+        for j in range(0, cols, 32):
+            block = input_tensor[i : i + 32, j : j + 32].contiguous().view(-1)
+            untilized_block = untilize(block, stimuli_format=stimuli_format)
+            output[i : i + 32, j : j + 32] = untilized_block.view(32, 32)
+    return output
