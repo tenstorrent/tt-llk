@@ -3,13 +3,19 @@
 
 from enum import Enum
 
+from ttexalens.tt_exalens_lib import (
+    read_word_from_device,
+)
+
 from .format_arg_mapping import (
     ApproximationMode,
     DestAccumulation,
+    L1_buffer_locations,
     MathFidelity,
     MathOperation,
     ReduceDimension,
     ReducePool,
+    format_tile_sizes,
 )
 from .format_config import FormatConfig, InputOutputFormat
 
@@ -127,10 +133,52 @@ def generate_build_header(
                 f"#define POOL_TYPE {test_config.get('pool_type', ReducePool.No).value}"
             )
 
+    tile_cnt = test_config.get("tile_cnt", 1)
+
     header_content.append("")
     # Multi-tile test configuration
     header_content.append("// Multi-tile test configuration")
-    header_content.append(f"#define TILE_CNT {test_config.get('tile_cnt', 1)}")
+    header_content.append(f"#define TILE_CNT {tile_cnt}")
+
+    # Unpack an result buffer addresses arrrays generations
+    buffer_A_address = read_word_from_device("0,0", L1_buffer_locations.srcA.value)
+    buffer_B_address = read_word_from_device("0,0", L1_buffer_locations.srcB.value)
+    res_buffer_address = read_word_from_device("0,0", L1_buffer_locations.Res.value)
+
+    buffer_A_array = []
+    buffer_B_array = []
+    buffer_res_array = []
+
+    for i in range(tile_cnt):
+        buffer_A_array.append(
+            buffer_A_address + i * format_tile_sizes[formats.input_format]
+        )
+        buffer_B_array.append(
+            buffer_B_address + i * format_tile_sizes[formats.input_format]
+        )
+        buffer_res_array.append(
+            res_buffer_address + i * format_tile_sizes[formats.output_format]
+        )
+
+    buffer_A_str = ", ".join(
+        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_A_array
+    )
+    buffer_B_str = ", ".join(
+        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_B_array
+    )
+    buffer_res_str = ", ".join(
+        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})"
+        for addr in buffer_res_array
+    )
+    header_content.append(
+        "#if defined(LLK_TRISC_UNPACK) && defined(TEST_KERNEL)\n"
+        "volatile uint32_t* buffer_A[TILE_CNT] = {" + buffer_A_str + "}; \n"
+        "volatile uint32_t* buffer_B[TILE_CNT] = {" + buffer_B_str + "}; \n"
+        "#endif\n"
+        "#if defined(LLK_TRISC_PACK) && defined(TEST_KERNEL)\n"
+        "volatile uint32_t* buffer_Res[TILE_CNT] = {" + buffer_res_str + "}; \n"
+        "#endif\n"
+    )
 
     # todo: refactor multiple tiles test to remove this
     # Multiple tiles test specific configuration

@@ -14,7 +14,7 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
-from .format_arg_mapping import DestAccumulation, Mailbox
+from .format_arg_mapping import L1_buffer_locations, Mailbox, format_tile_sizes, DestAccumulation
 from .format_config import DataFormat, FormatConfig
 from .pack import (
     pack_bfp8_b,
@@ -96,16 +96,32 @@ def write_stimuli_to_l1(
     tile_cnt=1,
 ):
 
-    BUFFER_SIZE = 4096
-    TILE_SIZE = 1024
+    TILE_ELEMENTS = 1024
 
+    TILE_SIZE_A = format_tile_sizes.get(stimuli_A_format, 2048)
+    TILE_SIZE_B = format_tile_sizes.get(stimuli_A_format, 2048)
+
+    # beginning addresses of srcA, srcB and result buffers in L1
     buffer_A_address = 0x1A000
-    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt
+    buffer_B_address = 0x1A000 + TILE_SIZE_A * tile_cnt
+    res_buffer_address = buffer_B_address + TILE_SIZE_B * tile_cnt
+
+    write_to_device(
+        core_loc, L1_buffer_locations.srcA.value, buffer_A_address.to_bytes(4, "little")
+    )
+    write_to_device(
+        core_loc, L1_buffer_locations.srcB.value, buffer_B_address.to_bytes(4, "little")
+    )
+    write_to_device(
+        core_loc,
+        L1_buffer_locations.Res.value,
+        res_buffer_address.to_bytes(4, "little"),
+    )
 
     for i in range(tile_cnt):
 
-        start_index = TILE_SIZE * i
-        end_index = start_index + TILE_SIZE
+        start_index = TILE_ELEMENTS * i
+        end_index = start_index + TILE_ELEMENTS
 
         # if end_index > len(buffer_A) or end_index > len(buffer_B):
         #     raise IndexError("Buffer access out of bounds")
@@ -131,8 +147,10 @@ def write_stimuli_to_l1(
         write_to_device(core_loc, buffer_A_address, pack_function_A(buffer_A_tile))
         write_to_device(core_loc, buffer_B_address, pack_function_B(buffer_B_tile))
 
-        buffer_A_address += BUFFER_SIZE
-        buffer_B_address += BUFFER_SIZE
+        buffer_A_address += TILE_SIZE_A
+        buffer_B_address += TILE_SIZE_B
+
+    return res_buffer_address  # return address where result will be stored
 
 
 def get_result_from_device(
