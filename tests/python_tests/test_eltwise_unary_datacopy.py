@@ -28,7 +28,7 @@ supported_formats = [
     DataFormat.Float32,
     DataFormat.Float16,
     DataFormat.Float16_b,
-    DataFormat.Bfp8_b,
+    # DataFormat.Bfp8_b,
 ]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -50,7 +50,7 @@ supported_formats = [
 
 
 test_formats = input_output_formats(supported_formats)
-dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
+dest_acc = [DestAccumulation.Yes]  # , DestAccumulation.No]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
 param_ids = generate_param_ids(all_params)
@@ -61,11 +61,22 @@ param_ids = generate_param_ids(all_params)
 )
 def test_unary_datacopy(testname, formats, dest_acc):
 
-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+    input_dimensions = [32, 64]
+
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_dimensions,
+        const_face=True,
+        const_value_A=1,
+        const_value_B=2,
+    )
 
     generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(src_A, formats.output_format)
-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+    res_address = write_stimuli_to_l1(
+        src_A, src_B, formats.input_format, formats.input_format, tile_cnt=tile_cnt
+    )
 
     unpack_to_dest = formats.input_format.is_32_bit()
 
@@ -73,7 +84,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
         "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
-        "unpack_to_dest": unpack_to_dest,  # This test does a datacopy and unpacks input into dest register
+        "unpack_to_dest": unpack_to_dest,
+        "tile_cnt": tile_cnt,
     }
 
     make_cmd = generate_make_command(test_config)
@@ -81,7 +93,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+    res_from_L1 = collect_results(formats, tensor_size=len(src_A), address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]

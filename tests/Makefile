@@ -50,6 +50,8 @@ INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 
 OPTIONS_COMPILE += $(INCLUDES)
 
+TEST_KERNEL_FLAG := -DTEST_KERNEL
+
 # =========================
 # Targets
 # =========================
@@ -100,11 +102,11 @@ $(OUTPUT_ELFS)/brisc.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/brisc.o
         $(BUILD_DIR)/main_unpack.o $(BUILD_DIR)/main_math.o $(BUILD_DIR)/main_pack.o
 
 $(BUILD_DIR)/$(testname)_unpack.o: sources/$(testname).cpp
-	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DLLK_TRISC_UNPACK -c -o $@ $<
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(TEST_KERNEL_FLAG) -DLLK_TRISC_UNPACK -c -o $@ $<
 $(BUILD_DIR)/$(testname)_math.o: sources/$(testname).cpp
-	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DLLK_TRISC_MATH -c -o $@ $<
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(TEST_KERNEL_FLAG) -DLLK_TRISC_MATH -c -o $@ $<
 $(BUILD_DIR)/$(testname)_pack.o: sources/$(testname).cpp
-	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DLLK_TRISC_PACK -c -o $@ $<
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(TEST_KERNEL_FLAG) -DLLK_TRISC_PACK -c -o $@ $<
 
 #compiling main for every TRISC core
 $(BUILD_DIR)/main_unpack.o : $(RISCV_SOURCES)/trisc.cpp
