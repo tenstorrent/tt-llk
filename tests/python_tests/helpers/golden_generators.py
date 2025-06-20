@@ -52,17 +52,25 @@ def to_tensor(operand, data_format):
 
 @register_golden
 class MatmulGolden(FidelityMasking):
-    def __call__(self, operand1, operand2, data_format, math_fidelity):
+    def __call__(
+        self, operand1, operand2, data_format, math_fidelity, input_dimensions=[32, 32]
+    ):
         torch_format = format_dict[data_format]
 
         self._apply_fidelity_masking(operand1, operand2, math_fidelity)
 
         # Clone and detach to avoid modifying original input
-        operand1_matrix = to_tensor(operand1, data_format).view(32, 32)
-        operand2_matrix = to_tensor(operand2, data_format).view(32, 32)
+        operand1_matrix = to_tensor(operand1, data_format).view(
+            input_dimensions[0], input_dimensions[1]
+        )
+        operand2_matrix = to_tensor(operand2, data_format).view(
+            input_dimensions[0], input_dimensions[1]
+        )
 
         return (
-            torch.matmul(operand1_matrix, operand2_matrix).view(1024).to(torch_format)
+            torch.matmul(operand1_matrix, operand2_matrix)
+            .view(input_dimensions[0] * input_dimensions[1])
+            .to(torch_format)
         )
 
 
