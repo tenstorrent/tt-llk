@@ -67,7 +67,12 @@ def untilize(tilized_tensor, stimuli_format=DataFormat.Float16_b):
     return original_tensor.to(dtype=format_dict[stimuli_format])
 
 
-def untilize_block(input_tensor, stimuli_format=DataFormat.Float16_b):
+def untilize_block(
+    input_tensor, stimuli_format=DataFormat.Float16_b, dimensions=[32, 32]
+):
+
+    input_tensor = input_tensor.view(dimensions[0], dimensions[1])
+
     output = torch.empty_like(input_tensor)
     rows, cols = input_tensor.shape
     for i in range(0, rows, 32):
