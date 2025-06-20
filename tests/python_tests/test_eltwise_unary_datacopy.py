@@ -50,7 +50,7 @@ supported_formats = [
 
 
 test_formats = input_output_formats(supported_formats)
-dest_acc = [DestAccumulation.Yes]  # , DestAccumulation.No]
+dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
 param_ids = generate_param_ids(all_params)
