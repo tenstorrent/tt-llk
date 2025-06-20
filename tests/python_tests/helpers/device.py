@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import inspect
 import time
 
 from ttexalens.tt_exalens_lib import (
@@ -28,32 +27,23 @@ from .pack import (
     pack_uint32,
 )
 from .unpack import (
-    unpack_bfp8_b,
-    unpack_bfp16,
-    unpack_fp16,
-    unpack_fp32,
-    unpack_int8,
-    unpack_int32,
-    unpack_uint8,
-    unpack_uint16,
-    unpack_uint32,
+    unpack_res_tiles,
 )
-from .utils import calculate_read_byte_count
 
 MAX_READ_BYTE_SIZE_16BIT = 2048
 
 
 def collect_results(
     formats: FormatConfig,
-    tensor_size: int,
+    tile_cnt: int,
     address: int = 0x1C000,
     core_loc: str = "0,0",
     sfpu: bool = False,
 ):
 
-    read_bytes_cnt = calculate_read_byte_count(formats, tensor_size, sfpu)
+    read_bytes_cnt = format_tile_sizes[formats.output_format] * tile_cnt
     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
-    res_from_L1 = get_result_from_device(formats, read_data, sfpu)
+    res_from_L1 = unpack_res_tiles(read_data, formats, tile_cnt=tile_cnt, sfpu=sfpu)
     return res_from_L1
 
 
@@ -151,42 +141,6 @@ def write_stimuli_to_l1(
         buffer_B_address += TILE_SIZE_B
 
     return res_buffer_address  # return address where result will be stored
-
-
-def get_result_from_device(
-    formats: FormatConfig,
-    read_data_bytes: bytes,
-    core_loc: str = "0,0",
-    sfpu: bool = False,
-):
-    # Dictionary of format to unpacking function mappings
-    unpackers = {
-        DataFormat.Float16: unpack_fp16,
-        DataFormat.Float16_b: unpack_bfp16,
-        DataFormat.Float32: unpack_fp32,
-        DataFormat.Int32: unpack_int32,
-        DataFormat.UInt32: unpack_uint32,
-        DataFormat.UInt16: unpack_uint16,
-        DataFormat.Int8: unpack_int8,
-        DataFormat.UInt8: unpack_uint8,
-    }
-
-    # Handling "Bfp8_b" format separately with sfpu condition
-    if formats.output_format == DataFormat.Bfp8_b:
-        unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
-    else:
-        unpack_func = unpackers.get(formats.output_format)
-
-    if unpack_func:
-        num_args = len(inspect.signature(unpack_func).parameters)
-        if num_args > 1:
-            return unpack_func(
-                read_data_bytes, formats.input_format, formats.output_format
-            )
-        else:
-            return unpack_func(read_data_bytes)
-    else:
-        raise ValueError(f"Unsupported format: {formats.output_format}")
 
 
 def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):

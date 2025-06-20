@@ -28,7 +28,7 @@ supported_formats = [
     DataFormat.Float32,
     DataFormat.Float16,
     DataFormat.Float16_b,
-    # DataFormat.Bfp8_b,
+    DataFormat.Bfp8_b,
 ]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -61,15 +61,12 @@ param_ids = generate_param_ids(all_params)
 )
 def test_unary_datacopy(testname, formats, dest_acc):
 
-    input_dimensions = [32, 64]
+    input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
         input_dimensions=input_dimensions,
-        const_face=True,
-        const_value_A=1,
-        const_value_B=2,
     )
 
     generate_golden = get_golden_generator(DataCopyGolden)
@@ -93,7 +90,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A), address=res_address)
+    res_from_L1 = collect_results(formats, tile_cnt=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]
