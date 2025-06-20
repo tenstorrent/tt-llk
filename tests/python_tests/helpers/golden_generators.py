@@ -273,17 +273,17 @@ class ReduceGolden:
 
 @register_golden
 class UntilizeGolden:
-    def __call__(self, operand, data_format):
-        from helpers.tilize_untilize import untilize
+    def __call__(self, operand, data_format, dimensions=[32, 32]):
+        from helpers.tilize_untilize import untilize_block
 
-        result = untilize(operand, data_format)
+        result = untilize_block(operand, data_format, dimensions)
         return result.flatten()
 
 
 @register_golden
 class TilizeGolden:
-    def __call__(self, operand, data_format):
-        from helpers.tilize_untilize import tilize
+    def __call__(self, operand, dimensions, data_format):
+        from helpers.tilize_untilize import tilize_block
 
-        result = tilize(operand, data_format)
+        result = tilize_block(operand, dimensions, data_format)
         return result.flatten()

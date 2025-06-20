@@ -50,17 +50,24 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_tilize(testname, formats):
 
-    src_A, _ = generate_stimuli(formats.input_format, formats.input_format)
+    input_dimensions = [32, 32]
+
+    src_A, _, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+    )
     src_B = torch.full((1024,), 0)
 
     generate_golden = get_golden_generator(TilizeGolden)
-    golden_tensor = generate_golden(src_A, formats.output_format)
+    golden_tensor = generate_golden(src_A, input_dimensions, formats.output_format)
 
-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+    res_address = write_stimuli_to_l1(
+        src_A, src_B, formats.input_format, formats.input_format, tile_cnt=tile_cnt
+    )
 
     test_config = {
         "formats": formats,
         "testname": testname,
+        "tile_cnt": tile_cnt,
     }
 
     make_cmd = generate_make_command(test_config)
@@ -69,7 +76,7 @@ def test_unpack_tilize(testname, formats):
     run_elf_files(testname)
     wait_for_tensix_operations_finished()
 
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+    res_from_L1 = collect_results(formats, tile_cnt=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
