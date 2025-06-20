@@ -66,7 +66,9 @@ inline void _calculate_sqrt_internal_(int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::dst_reg[0] = _sfpu_sqrt_<APPROXIMATION_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
+        sfpi::vFloat out = _sfpu_sqrt_<APPROXIMATION_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
+        sfpi::dst_reg[0] = out;
+        //sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
         sfpi::dst_reg++;
     }
 }

@@ -19,28 +19,34 @@ namespace sfpu
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
-
-    // Set the sign bit to zero, making x positive.  This avoids issues when subtracting from the magic constant, which would complicate edge case detection.
+    // Set the sign bit to zero, making x positive.
+    // This avoids issues when subtracting from the magic constant, which would complicate edge case detection.
     sfpi::vFloat x = setsgn(in, 0);
+    sfpi::vFloat negative_x = -x;
 
-    // Note that SFPI's codegen is suboptimal here, since we can use SFPIADD to set the condition flags directly.
-    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(x));
+    sfpi::vInt i = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(x);
 
     // Handle cases where the bit pattern x > magic constant.  This happens for:
     // - extremely large finite values, whose reciprocal will be zero.
     // - +inf, whose reciprocal will be zero.
     // - +nan, which we do not support, but zero is acceptable.
-    v_if (y < 0)
+    v_if (i < 0)
     {
-        x = sfpi::vConst0;
-        y = sfpi::vConst0;
+        // Set -x to zero, ensuring that the reciprocal of infinity is zero.
+        negative_x = sfpi::vConst0;
+
+        // SFPI forces use to use a temporary variable so that we can reinterpret vConst0 as VInt.
+        sfpi::vFloat tmp = sfpi::vConst0;
+
+        // Set i to zero, which in turn sets our initial approximation y to zero below.
+        i = sfpi::reinterpret<sfpi::vInt>(tmp);
     }
     v_endif;
 
-    sfpi::vFloat negative_x = -x;
-    sfpi::vFloat t          = sfpi::vConstFloatPrgm2 + negative_x * y;
-    sfpi::vFloat t1         = y * sfpi::vConstFloatPrgm1;
-    y                       = t1 * t;
+    sfpi::vFloat y  = sfpi::reinterpret<sfpi::vFloat>(i);
+    sfpi::vFloat t  = sfpi::vConstFloatPrgm2 + negative_x * y;
+    sfpi::vFloat t1 = y * sfpi::vConstFloatPrgm1;
+    y               = t1 * t;
 
     if constexpr (!APPROXIMATE)
     {
