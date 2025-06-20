@@ -4,7 +4,7 @@
 import csv
 import os
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 from pathlib import Path
 from statistics import mean, variance
@@ -155,7 +155,39 @@ def delete_reports():
         shutil.rmtree(path)
 
 
-def write_to_report(test_config, run_types, results):
+def _flatten(list):
+    return [item for sublist in list for item in sublist]
+
+
+def _dataclass_names(parent, obj):
+    """Provides the **names** of the columns for the report"""
+    return [f"{parent}.{f.name}" for f in fields(obj)]
+
+
+def _dataclass_values(obj):
+    """Provides the **values** of the columns for the report"""
+    return [getattr(obj, f.name) for f in fields(obj)]
+
+
+def report_header(params, result):
+    columns = _flatten(
+        [
+            _dataclass_names(param, value) if is_dataclass(value) else [param]
+            for param, value in params.items()
+        ]
+    )
+
+    for run_type, stats in result.items():
+        for i, _ in enumerate(stats):
+            columns += [
+                f"mean({run_type.name}[{i}])",
+                f"variance({run_type.name}[{i}])",
+            ]
+
+    return columns
+
+
+def write_to_report(test_config, result):
     assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
     root = os.environ["LLK_HOME"]
 
@@ -167,26 +199,27 @@ def write_to_report(test_config, run_types, results):
         "testname",
         "perf_run_type",
         "tile_cnt",
-        "formats",
-    }  # fix: include format info
-    sweep_columns = [param for param in test_config.keys() if not param in exclude]
+    }
 
-    result_columns = []
+    params = {
+        param: value for param, value in test_config.items() if param not in exclude
+    }
 
-    row = [test_config[k] for k in sweep_columns]
-    for run_type in run_types:
-        stats = results[run_type]
-        for i, stat in enumerate(stats):
-            # fixme: give results names instead of printing indicies
-            result_columns.append(f"mean({run_type.name}[{i}])")
-            result_columns.append(f"variance({run_type.name}[{i}])")
-            row.append(stat["mean"])
-            row.append(stat["variance"])
+    row = _flatten(
+        [
+            _dataclass_values(value) if is_dataclass(value) else [value]
+            for value in params.values()
+        ]
+    )
+
+    for stats in result.values():
+        for stat in stats:
+            row += [stat["mean"], stat["variance"]]
 
     # Write to CSV
     first_entry = not os.path.exists(output_path)
     with open(output_path, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
         if first_entry:
-            writer.writerow(sweep_columns + result_columns)
+            writer.writerow(report_header(params, result))
         writer.writerow(row)
