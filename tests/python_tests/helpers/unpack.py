@@ -7,12 +7,55 @@ import struct
 
 import torch
 
+from .format_arg_mapping import DataFormat, format_dict, format_tile_sizes
 
-def unpack_fp16(packed_list, unpack_src, pack_dst):
+
+def unpack_res_tiles(packed_list, formats, tile_cnt=1, sfpu=False):
+
+    unpacked_tile = []
+
+    # Dictionary of format to unpacking function mappings
+    unpackers = {
+        DataFormat.Float16: unpack_fp16,
+        DataFormat.Float16_b: unpack_bfp16,
+        DataFormat.Float32: unpack_fp32,
+        DataFormat.Int32: unpack_int32,
+        DataFormat.UInt32: unpack_uint32,
+        DataFormat.UInt16: unpack_uint16,
+        DataFormat.Int8: unpack_int8,
+        DataFormat.UInt8: unpack_uint8,
+    }
+
+    if formats.output_format == DataFormat.Bfp8_b:
+        unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
+    else:
+        unpack_func = unpackers.get(formats.output_format)
+
+    for i in range(tile_cnt):
+        start_index = i * format_tile_sizes[formats.output_format]
+        end_index = start_index + format_tile_sizes[formats.output_format]
+
+        # Ensure we don't go out of bounds
+        if end_index > len(packed_list):
+            raise IndexError("Buffer access out of bounds")
+
+        packed_tile = packed_list[start_index:end_index]
+
+        # Unpack the tile using the appropriate unpacking function
+        unpacked_tile.append(unpack_func(packed_tile))
+
+    # Convert to tensor and return
+    unpacked_tile = [
+        item for sublist in unpacked_tile for item in sublist
+    ]  # flatten tensor
+    return torch.tensor(unpacked_tile, dtype=format_dict[formats.output_format])
+
+
+def unpack_fp16(packed_list):
     return [val[0] for val in struct.iter_unpack("<e", bytes(packed_list))]
 
 
-def unpack_bfp16(packed_list, unpack_src, pack_dst):
+def unpack_bfp16(packed_list):
     # Step 1: Promote each 2-byte bfloat16 to 4-byte float32
     # Place bfloat16 in high 2 bytes (little-endian)
     padded_bytes = bytearray()
@@ -85,7 +128,7 @@ def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
     return bfloat16_values
 
 
-def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
+def unpack_bfp8_b(bfp8_block, sfpu=False):
 
     if not sfpu:
         exponents = bfp8_block[:64]
