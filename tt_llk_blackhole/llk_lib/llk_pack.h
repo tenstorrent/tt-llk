@@ -651,6 +651,39 @@ inline void _llk_pack_init_(
         pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 }
 
+template <
+    bool untilize                = false,
+    bool zero_output             = false,
+    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
+    bool write_tile_header       = true,
+    bool tilize                  = false>
+inline void _llk_pack_init_st_(
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim = FACE_R_DIM,
+    const std::uint32_t tile_c_dim = TILE_C_DIM,
+    const std::uint32_t num_faces  = 4,
+    const bool partial_face        = false,
+    const bool narrow_tile         = false)
+{
+    _llk_pack_configure_addrmod_<untilize, tilize>();
+}
+
+
+template <DstSync Dst, bool untilize = false, bool is_fp32_dest_acc_en = false>
+inline void _llk_pack_st_(const std::uint32_t tile_index, const std::uint32_t address)
+{
+    {
+        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+    }
+
+    program_packer_destination(address);
+
+    run_pack_st();
+
+    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
+}
+
+
 template <DstSync Dst, bool untilize = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {

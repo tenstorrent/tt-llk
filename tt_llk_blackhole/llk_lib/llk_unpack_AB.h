@@ -18,7 +18,7 @@ using namespace ckernel::unpacker;
 
 inline void _llk_unpack_AB_mop_config_st_(const bool transpose_of_faces = false, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
 {
-    const uint addr_mod = ADDR_MOD_0; 
+    const uint addr_mod = ADDR_MOD_3; 
     auto broadcast_type = p_elwise::SRCB_NO_BCAST;
     const std::uint32_t replay_buf_len = 2;
    
@@ -148,12 +148,16 @@ inline void _llk_unpack_AB_init_st_(
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
     constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
     config_unpacker_x_end<UNP_SEL>(face_r_dim);
+    
+    // Since we are using a single thread leave the other addr_mod registers for packer
+    // Packer will use 0-2
     addr_mod_t{
                 .srca = {.incr = 8},
                 .srcb = {.incr = 8},
                 .dest = {.incr = 8},
     }
-    .set(ADDR_MOD_0);
+    .set(ADDR_MOD_3);
+
     _llk_unpack_AB_mop_config_st_(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
     
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
