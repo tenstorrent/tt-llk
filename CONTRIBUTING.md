@@ -7,7 +7,7 @@ This repository (`tt-llk`) is **consumed by another repository** (`tt-metal`) as
 
 - This repository is **shared and reused downstream**.
 - All changes should aim to **preserve backward compatibility**.
-- **Breaking changes must be coordinated** with the parent repository before being merged here.
+- **Breaking changes must be coordinated** with the parent repository (`tt-metal`) before being merged here.
 
 
 ## 🔒 Breaking Changes
@@ -18,7 +18,7 @@ A breaking change is any change that:
 - Removes or alters public APIs, interfaces, or headers.
 - Changes existing behavior in a non-backward-compatible way.
 - Adds new build/runtime dependencies.
-- Modifies file structure or exported symbols relied on by the parent repo.
+- Modifies file structure or exported symbols relied on by the `tt-metal` repo.
 
 ### Breaking Change Workflow
 
@@ -27,9 +27,9 @@ A breaking change is any change that:
    - If a destructive change is necessary, introduce it in a way that requires minimal modifications to the existing code. If larger or additional destructive changes are needed, split them into separate pull requests.
 
 2. **Communicate early**
-   - Notify maintainers from the parent repo.
+   - Notify maintainers from the parent repo (via Slack channel [`#tt-metal-pr-review-requests`](https://tenstorrent.enterprise.slack.com/archives/C07G47JMQHM))
 
-3. **Test with the parent repo first**
+3. **Test with the `tt-metal` repo first**
    - Open a **pull request in the tt-metal** that:
      - Points to your branch in the submodule.
      - Adapts `tt-metal` codebase to the breaking change.
@@ -44,7 +44,7 @@ A breaking change is any change that:
 
 ## 🔁 Submodule Update Guidelines
 
-- Never update the submodule pointer in the parent repo (`tt-metal`) to an **untested** or **unstable** commit.
+- Never update the submodule pointer in the `tt-metal` to an **untested** or **unstable** commit.
 - Submodule updates must reference a **compatible and validated** commit on `main` branch.
 
 
@@ -75,6 +75,10 @@ By following this process, we ensure safe evolution of shared code while minimiz
 # 🛠️ Development Standards
 
 Beyond submodule coordination, this repository follows standard development practices for code quality and consistency.
+
+## 🤝 Code of Conduct
+
+This project and everyone participating in it is expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please read it to understand the standards of behavior we expect from all contributors and community members.
 
 ## Code Formatting and Style
 This project has adopted C++ formatting and style as defined in `.clang-format`.
