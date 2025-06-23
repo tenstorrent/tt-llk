@@ -33,7 +33,9 @@ A breaking change is any change that:
    - Open a **pull request in the tt-metal** that:
      - Points to your branch in the submodule.
      - Adapts `tt-metal` codebase to the breaking change.
-     - Passes **all CI checks** using that branch.
+     - Passes **all CI checks** using that branch:
+         - [All post-commit checks](https://github.com/tenstorrent/tt-metal/actions/workflows/all-post-commit-workflows.yaml)
+         - [Blackhole post-commit checks](https://github.com/tenstorrent/tt-metal/actions/workflows/blackhole-post-commit.yaml)
 
 4. **Merge only after validation**
    - Do **not merge** the change into the submodule’s main branch until:
