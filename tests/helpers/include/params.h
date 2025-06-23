@@ -114,6 +114,9 @@ constexpr auto SFPU_OPERATION = SfpuType::reciprocal;
 #ifdef SFPU_OP_CELU
 constexpr auto SFPU_OPERATION = SfpuType::celu;
 #endif
+#ifdef SFPU_OP_GELU
+constexpr auto SFPU_OPERATION = SfpuType::gelu;
+#endif
 
 inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
 {
