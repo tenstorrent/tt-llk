@@ -171,7 +171,7 @@ def get_result_from_device(
         raise ValueError(f"Unsupported format: {formats.output_format}")
 
 
-def read_dest_register(num_tiles: int = None, dest_acc: DestAccumulation = None):
+def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     """
     Reads values in the destination register from the device.
         - Only supported on BH . Due to hardware bug, TRISCs exit the halted state after a single read and must be rehalted for each read. On wormhole they cannot be halted again. This breaks multi-read loops (e.g., 1024 reads).
