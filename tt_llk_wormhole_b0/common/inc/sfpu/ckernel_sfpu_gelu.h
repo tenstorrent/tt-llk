@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include "ckernel_sfpu_cdf.h"
 #include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_load_config.h"
-#include "ckernel_sfpu_cdf.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -239,14 +239,14 @@ inline void _init_gelu_derivative_()
 }
 
 inline void _calculate_gelu_accurate_(const int iterations)
-{   
+{
     constexpr bool scaled = true;
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat in = sfpi::dst_reg[0];
+        sfpi::vFloat in     = sfpi::dst_reg[0];
         sfpi::vFloat result = _calculate_cdf_appx_(in, scaled);
-        sfpi::dst_reg[0] = result;
+        sfpi::dst_reg[0]    = result;
         sfpi::dst_reg++;
     }
 }
