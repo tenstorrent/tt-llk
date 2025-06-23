@@ -185,7 +185,7 @@ def generate_build_header(
     block_rt_dim = input_dimensions[0] // 32
 
     header_content.append(
-        "#if defined(LLK_TRISC_UNPACK) && defined(TEST_KERNEL)\n"
+        "#if (defined(LLK_TRISC_UNPACK) || defined(LLK_TRISC_MATH)) && defined(TEST_KERNEL)\n"
         f"constexpr uint32_t BLOCK_CT_DIM = {block_ct_dim}; \n"
         f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim}; \n"
         "#endif\n"

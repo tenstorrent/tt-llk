@@ -71,7 +71,7 @@ param_ids = generate_param_ids(all_params)
 def test_matmul(testname, formats, dest_acc, math_fidelity):
     torch_format = format_dict[formats.output_format]
 
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -123,6 +123,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
+        "input_dimensions": input_dimensions,
     }
 
     make_cmd = generate_make_command(test_config)
