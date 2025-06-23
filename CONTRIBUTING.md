@@ -32,20 +32,20 @@ A breaking change is any change that:
 3. **Test with the parent repo first**
    - Open a **pull request in the tt-metal** that:
      - Points to your branch in the submodule.
-     - Adapts tt-metal codebase to the breaking change.
+     - Adapts `tt-metal` codebase to the breaking change.
      - Passes **all CI checks** using that branch.
 
 4. **Merge only after validation**
    - Do **not merge** the change into the submodule’s main branch until:
-     - The tt-metal PR is **approved**.
+     - The `tt-metal` PR is **approved**.
      - **All checks are passing**.
      - Reviewers from both repos have signed off.
 
 
 ## 🔁 Submodule Update Guidelines
 
-- Never update the submodule pointer in the parent repo (tt-metal) to an **untested** or **unstable** commit.
-- Submodule updates must reference a **compatible and validated** commit on **main** branch.
+- Never update the submodule pointer in the parent repo (`tt-metal`) to an **untested** or **unstable** commit.
+- Submodule updates must reference a **compatible and validated** commit on `main` branch.
 
 
 
