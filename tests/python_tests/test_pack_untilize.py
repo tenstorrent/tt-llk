@@ -87,12 +87,4 @@ def test_pack_untilize(testname, formats):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    print(golden_tensor.view(64, 16))
-    print("-" * 200)
-    print(res_tensor.view(64, 16))
-    print("*" * 200)
-    print(golden_tensor.view(32, 32))
-    print("-" * 200)
-    print(res_tensor.view(32, 32))
-
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

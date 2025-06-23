@@ -76,17 +76,17 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
-    _llk_pack_untilize_init_<ct_dim>(PACK_IN, PACK_OUT, FACE_R_DIM, 4);
+    _llk_pack_untilize_init_<BLOCK_CT_DIM>(PACK_IN, PACK_OUT, FACE_R_DIM, 4);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
-    _llk_pack_untilize_init_<ct_dim>(PACK_OUT, FACE_R_DIM, 4);
+    _llk_pack_untilize_init_<BLOCK_CT_DIM>(PACK_OUT, FACE_R_DIM, 4);
 #endif
 
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Res[i]), PACK_OUT, FACE_R_DIM, 4, i);
+        _llk_pack_untilize_<BLOCK_CT_DIM>(L1_ADDRESS(buffer_Res[0]), PACK_OUT, FACE_R_DIM, 4, i);
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
