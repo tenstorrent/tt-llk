@@ -174,17 +174,22 @@ def get_result_from_device(
 def read_dest_register(num_tiles: int = None, dest_acc: DestAccumulation = None):
     """
     Reads values in the destination register from the device.
+        - Only supported on BH . Due to hardware bug, TRISCs exit the halted state after a single read and must be rehalted for each read. On wormhole they cannot be halted again. This breaks multi-read loops (e.g., 1024 reads).
+        - On blackhole, debug_risc.read_memory() re-halts the TRISC, so multi-read loops work. Until the debug team provides a workaround, memory reads are limited to blackhole only.
+        - We read with TRISC 0 (Risc ID 1) because this is the only core that can be rehalted.
+
     Args:
         num_tiles: Number of tiles to read from the destination register.
         dest_acc: Whether destination accumulation is enabled or not.
 
-    Prerquisite: Disable flag that clear dest register after packing (in llk_pack_common.h) otherwise you will read garbage values.
-        - comment out this line : TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+    Prerequisite: Disable flag that clears dest register after packing (in llk_pack_common.h) otherwise you will read garbage values.
+        - For BH in pack_dest_section_done_, comment out this line : TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
 
     Note:
         - The destination register is read from the address 0xFFBD8000.
-        - The number of tiles must be specified if destination accumulation is enabled.
+        - Number of tiles that can fit in dest register depends on size of datum. If dest register is in 32 bit mode (dest accumulation is enabled), num_tiles must be ≤ 8. Otherwise, ≤ 16.
     """
+
     from ttexalens.debug_risc import RiscDebug, RiscLoc
     from ttexalens.tt_exalens_lib import (
         check_context,
@@ -202,11 +207,10 @@ def read_dest_register(num_tiles: int = None, dest_acc: DestAccumulation = None)
     validate_device_id(device_id, context)
     coordinate = convert_coordinate(core_loc, device_id, context)
 
-    if noc_id not in (0, 1):
-        raise ValueError("Invalid value for noc_id. Expected 0 or 1.")
-
-    if risc_id < 0 or risc_id > 3:
-        raise ValueError("Invalid value for risc_id. Expected value between 0 and 3.")
+    if risc_id == 1:
+        raise ValueError(
+            "Risc id is not 1. Only TRISC 0 can be halted and read from memory."
+        )
 
     location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
     debug_risc = RiscDebug(location=location, context=context, verbose=False)
