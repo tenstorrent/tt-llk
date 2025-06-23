@@ -207,7 +207,7 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     validate_device_id(device_id, context)
     coordinate = convert_coordinate(core_loc, device_id, context)
 
-    if risc_id == 1:
+    if risc_id != 1:
         raise ValueError(
             "Risc id is not 1. Only TRISC 0 can be halted and read from memory."
         )
@@ -216,11 +216,13 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     debug_risc = RiscDebug(location=location, context=context, verbose=False)
 
     assert num_tiles <= 8 if dest_acc == DestAccumulation.Yes else num_tiles <= 16
-    dest_reg = []
+
+    word_size = 4  # bytes per 32-bit integer
+    num_words = num_tiles * 1024
+    addresses = [base_address + i * word_size for i in range(num_words)]
+
     with debug_risc.ensure_halted():
-        for i in range((num_tiles * 1024)):
-            address = base_address + (i * 4)  # we read 32 bit integer which is 4 bytes
-            dest_reg.append(debug_risc.read_memory(address))
+        dest_reg = [debug_risc.read_memory(addr) for addr in addresses]
 
     return dest_reg
 
