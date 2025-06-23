@@ -22,17 +22,9 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    volatile uint32_t* buffer_A[KERN_CNT];
-    volatile uint32_t* buffer_B[KERN_CNT];
-
-    for (int i = 0; i < KERN_CNT; i++)
-    {
-        buffer_A[i] = reinterpret_cast<volatile uint32_t*>(0x1a000 + i * TILE_SIZE_CNT);
-        buffer_B[i] = reinterpret_cast<volatile uint32_t*>(0x1a000 + TILE_SIZE_CNT * KERN_CNT + i * TILE_SIZE_CNT);
-    }
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_A_OUT);
     _llk_unpack_AB_init_<>();
-    for (int index = 0; index < KERN_CNT; index++)
+    for (int index = 0; index < TILE_CNT; index++)
     {
         _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[index]), L1_ADDRESS(buffer_B[index]));
     }
@@ -76,10 +68,6 @@ void run_kernel()
 
 void run_kernel()
 {
-    volatile uint32_t* buffer_Dest[KERN_CNT];
-
-    process_addresses(buffer_Dest, KERN_CNT, PACK_ADDRS);
-
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
 #else
@@ -97,7 +85,7 @@ void run_kernel()
     for (int index = 0; index < KERN_CNT; index++)
     {
         _llk_packer_wait_for_math_done_();
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Dest[index]));
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[index]));
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 }
