@@ -83,6 +83,14 @@ void call_sfpu_operation(SfpuType operation)
         case SfpuType::silu:
             ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
             break;
+        case SfpuType::gelu:
+            ckernel::sfpu::_init_gelu_<APPROX_MODE>();
+            if(APPROX_MODE){
+                ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>(iterations);
+            }else{
+                ckernel::sfpu::_calculate_gelu_accurate_(iterations);
+            }
+            break;
         default:
             return;
     }
