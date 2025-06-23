@@ -96,11 +96,21 @@ def untilize_block(
 
     input_tensor = input_tensor.view(dimensions[0], dimensions[1])
 
-    output = torch.empty_like(input_tensor)
-    rows, cols = input_tensor.shape
-    for i in range(0, rows, 32):
-        for j in range(0, cols, 32):
-            block = input_tensor[i : i + 32, j : j + 32].contiguous().view(-1)
-            untilized_block = untilize(block, stimuli_format=stimuli_format)
-            output[i : i + 32, j : j + 32] = untilized_block.view(32, 32)
-    return output
+    output = []
+
+    rt_dim = input_tensor.shape[0] // 32
+    ct_dim = input_tensor.shape[1] // 32
+
+    tile_index = 0
+    result = []
+
+    for i in range(ct_dim * rt_dim):
+        untilized = untilize(input_tensor[tile_index * 1024 : (tile_index + 1) * 1024])
+        result.append(untilized)
+        tile_index += 1
+
+    return (
+        torch.stack(result, dim=1)
+        .to(dtype=format_dict[stimuli_format])
+        .view(dimensions[0], dimensions[1])
+    )

@@ -70,7 +70,7 @@ void run_kernel()
 
 void run_kernel()
 {
-    const std::uint32_t ct_dim = 2;
+    const std::uint32_t ct_dim = 1;
     const bool UNTILIZE        = true;
 
 #ifdef ARCH_BLACKHOLE

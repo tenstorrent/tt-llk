@@ -276,7 +276,7 @@ class UntilizeGolden:
     def __call__(self, operand, data_format, dimensions=[32, 32]):
         from helpers.tilize_untilize import untilize_block
 
-        result = untilize_block(operand, data_format, dimensions)
+        result = untilize_block(operand, data_format, dimensions=dimensions)
         return result.flatten()
 
 

@@ -51,18 +51,11 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_pack_untilize(testname, formats):
 
-    input_dimensions = [32, 64]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-    # src_A = torch.cat(
-    #     [
-    #         torch.full((256,), i, dtype=format_dict[formats.input_format])
-    #         for i in range(input_dimensions[0] * input_dimensions[1] // 256)
-    #     ]
-    # )
-
     src_A = torch.arange(
         0,
         input_dimensions[0] * input_dimensions[1] / 256,
@@ -70,27 +63,8 @@ def test_pack_untilize(testname, formats):
         dtype=format_dict[formats.input_format],
     )
 
-    # src_B = torch.full((1024,), 0)
-    # Print src_A as a 32x64 matrix with | and - separating 32x32 submatrices
-    def print_block(tensor, rows, cols, block_size=32):
-        mat = tensor.view(rows, cols)
-        for i, row in enumerate(mat):
-            row_str = ""
-            for j, val in enumerate(row):
-                row_str += f"{val.item():6.1f}"
-                if (j + 1) % block_size == 0 and j != cols - 1:
-                    row_str += " |"
-            print(row_str)
-            if (i + 1) % block_size == 0 and i != rows - 1:
-                print("-" * (7 * cols + 2))
-
-    print_block(src_A, input_dimensions[0], input_dimensions[1])
-
     generate_golden = get_golden_generator(UntilizeGolden)
     golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
-
-    print("\n" * 5)
-    print_block(golden_tensor, input_dimensions[0], input_dimensions[1])
 
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_cnt=tile_cnt
@@ -113,7 +87,12 @@ def test_pack_untilize(testname, formats):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    print("\n" * 5)
-    print_block(res_tensor, input_dimensions[0], input_dimensions[1])
+    print(golden_tensor.view(64, 16))
+    print("-" * 200)
+    print(res_tensor.view(64, 16))
+    print("*" * 200)
+    print(golden_tensor.view(32, 32))
+    print("-" * 200)
+    print(res_tensor.view(32, 32))
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
