@@ -59,11 +59,11 @@ Avoid the following:
 
 ## 📣 Summary
 
-| Step       | Action                                                                 |
-|------------|------------------------------------------------------------------------|
+| Step        | Action                                                                |
+|-------------|-----------------------------------------------------------------------|
 | 🔍 Plan     | Discuss breaking changes and tag downstream maintainers               |
-| 🧪 Test     | Open a PR in the tt-metal repo using your submodule branch              |
-| ✅ Validate | Ensure CI is green and the PR is approved in the tt-metal repo          |
+| 🧪 Test     | Open a PR in the tt-metal repo using your submodule branch            |
+| ✅ Validate | Ensure CI is green and the PR is approved in the tt-metal repo        |
 | 🔀 Merge    | Only merge to submodule main after successful validation and approval |
 
 ---
