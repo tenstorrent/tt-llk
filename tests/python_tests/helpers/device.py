@@ -215,7 +215,7 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
     debug_risc = RiscDebug(location=location, context=context, verbose=False)
 
-    assert num_tiles <= 8 if dest_acc == DestAccumulation.Yes else num_tiles <= 16
+    assert num_tiles <= (8 if dest_acc == DestAccumulation.Yes else 16)
 
     word_size = 4  # bytes per 32-bit integer
     num_words = num_tiles * 1024
