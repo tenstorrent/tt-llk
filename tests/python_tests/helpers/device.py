@@ -58,10 +58,10 @@ def collect_results(
 
 
 def run_elf_files(testname, core_loc="0,0", run_brisc=True):
-    ELF_LOCATION = "../build/elf/"
+    BUILD = "../build"
 
     if run_brisc:
-        run_elf(f"{ELF_LOCATION}brisc.elf", core_loc, risc_id=0)
+        run_elf(f"{BUILD}/share/brisc.elf", core_loc, risc_id=0)
 
     context = check_context()
     device = context.devices[0]
@@ -76,7 +76,7 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
 
     # Load ELF files
     for i in range(3):
-        load_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
+        load_elf(f"{BUILD}/tests/{testname}/elf/trisc{i}.elf", core_loc, risc_id=i + 1)
 
     # Reset the profiler barrier
     TRISC_PROFILER_BARRIER = 0x16AFF4
