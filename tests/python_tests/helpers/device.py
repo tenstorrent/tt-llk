@@ -196,7 +196,7 @@ def read_dest_register(num_tiles: int = None, dest_acc: DestAccumulation = None)
     noc_id = 0  # NOC ID for the device
     device_id = 0  # Device ID for the device
     core_loc = "0,0"  # Core location in the format "tile_id,risc_id"
-    base_address = 4290609152
+    base_address = 0xFFBD8000
 
     context = check_context()
     validate_device_id(device_id, context)
