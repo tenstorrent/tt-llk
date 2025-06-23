@@ -213,9 +213,9 @@ def read_dest_register(num_tiles: int = None, dest_acc: DestAccumulation = None)
 
     assert num_tiles <= 8 if dest_acc == DestAccumulation.Yes else num_tiles <= 16
     dest_reg = []
-    for i in range((num_tiles * 1024)):
-        address = base_address + (i * 4)  # we read 32 bit integer which is 4 bytes
-        with debug_risc.ensure_halted():
+    with debug_risc.ensure_halted():
+        for i in range((num_tiles * 1024)):
+            address = base_address + (i * 4)  # we read 32 bit integer which is 4 bytes
             dest_reg.append(debug_risc.read_memory(address))
 
     return dest_reg
