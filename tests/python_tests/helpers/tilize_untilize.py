@@ -9,6 +9,10 @@ from .format_config import DataFormat
 
 def tilize_block(input_tensor, dimensions, stimuli_format=DataFormat.Float16_b):
 
+    if input_tensor.numel() != dimensions[0] * dimensions[1]:
+        raise ValueError(
+            f"Cannot reshape tensor of size {input_tensor.numel()} to shape {dimensions}."
+        )
     input_reshaped = input_tensor.view(dimensions[0], dimensions[1])
 
     if input_reshaped.ndim != 2:
@@ -24,13 +28,32 @@ def tilize_block(input_tensor, dimensions, stimuli_format=DataFormat.Float16_b):
 
     output = torch.empty_like(input_reshaped)
     rows, cols = input_reshaped.shape
+
+    # Extract all 32x32 submatrices from input_reshaped
+    submatrices = []
     for i in range(0, rows, 32):
         for j in range(0, cols, 32):
-            block = input_reshaped[i : i + 32, j : j + 32].contiguous().view(-1)
-            tilized_block = tilize(block)
-            output[i : i + 32, j : j + 32] = tilized_block.view(32, 32)
+            submat = input_reshaped[i : i + 32, j : j + 32]
+            submatrices.append(submat)
 
-    return output
+    tilized_output = torch.empty_like(input_reshaped, dtype=format_dict[stimuli_format])
+    tilized_submatrices = []
+
+    for submat in submatrices:
+        if submat.numel() != 1024:
+            raise ValueError(
+                f"Each submatrix must have 1024 elements, got {submat.numel()}."
+            )
+        submat = submat.flatten().view(-1)
+        tilized_submat = tilize(submat, stimuli_format=stimuli_format)
+        tilized_submatrices.append(tilized_submat)
+
+    # Concatenate all flattened tilized submatrices into the output tensor
+    tilized_output = torch.cat([t.flatten() for t in tilized_submatrices]).view(
+        rows, cols
+    )
+
+    return tilized_output
 
 
 def tilize(original_tensor, stimuli_format=DataFormat.Float16_b):

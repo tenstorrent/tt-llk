@@ -180,6 +180,17 @@ def generate_build_header(
         "#endif\n"
     )
 
+    input_dimensions = test_config.get("input_dimensions", [32, 32])
+    block_ct_dim = input_dimensions[1] // 32
+    block_rt_dim = input_dimensions[0] // 32
+
+    header_content.append(
+        "#if defined(LLK_TRISC_UNPACK) && defined(TEST_KERNEL)\n"
+        f"constexpr uint32_t BLOCK_CT_DIM = {block_ct_dim}; \n"
+        f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim}; \n"
+        "#endif\n"
+    )
+
     # todo: refactor multiple tiles test to remove this
     # Multiple tiles test specific configuration
     if test_config.get("testname") == "multiple_tiles_eltwise_test":

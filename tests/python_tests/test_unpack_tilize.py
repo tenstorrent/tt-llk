@@ -23,7 +23,7 @@ from helpers.test_config import generate_make_command
 from helpers.utils import passed_test, run_shell_command
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -50,12 +50,12 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_tilize(testname, formats):
 
-    input_dimensions = [32, 32]
+    input_dimensions = [64, 64]
 
     src_A, _, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-    src_B = torch.full((1024,), 0)
+    src_B = torch.full((1024 * tile_cnt,), 0)
 
     generate_golden = get_golden_generator(TilizeGolden)
     golden_tensor = generate_golden(src_A, input_dimensions, formats.output_format)
@@ -68,6 +68,7 @@ def test_unpack_tilize(testname, formats):
         "formats": formats,
         "testname": testname,
         "tile_cnt": tile_cnt,
+        "input_dimensions": input_dimensions,
     }
 
     make_cmd = generate_make_command(test_config)

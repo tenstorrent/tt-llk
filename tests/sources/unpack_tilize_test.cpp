@@ -23,10 +23,17 @@ uint32_t math_sync_tile_dst_index = 0;
 void run_kernel()
 {
     _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
-    _llk_unpack_tilize_init_(UNPACK_A_IN, UNPACK_A_OUT, 1, FACE_R_DIM, false);
-    for (int i = 0; i < TILE_CNT; ++i)
+    _llk_unpack_tilize_init_(UNPACK_A_IN, UNPACK_A_OUT, BLOCK_CT_DIM, FACE_R_DIM, false);
+
+    uint32_t read_offset = 0;
+
+    for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
     {
-        _llk_unpack_tilize_(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, 1, FACE_R_DIM, 4, false);
+        for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+        {
+            _llk_unpack_tilize_(L1_ADDRESS(buffer_A[read_offset]), j, UNPACK_A_IN, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
+        }
+        read_offset += BLOCK_RT_DIM;
     }
 }
 
