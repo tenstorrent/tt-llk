@@ -64,7 +64,7 @@ all_params = generate_params(
 param_ids = generate_param_ids(all_params)
 
 
-@pytest.mark.parametrize("input_dimensions", [[32, 32], [32, 64]])
+@pytest.mark.parametrize("input_dimensions", [[32, 32], [32, 64], [64, 64]])
 @pytest.mark.parametrize(
     "testname, formats, dest_acc, mathop, math_fidelity",
     clean_params(all_params),
@@ -94,7 +94,6 @@ def test_multiple_tiles(
         "testname": testname,
         "dest_acc": dest_acc,
         "mathop": mathop,
-        "kern_cnt": tile_cnt,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
     }

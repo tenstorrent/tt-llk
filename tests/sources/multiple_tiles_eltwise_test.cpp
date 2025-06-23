@@ -24,9 +24,9 @@ void run_kernel()
 {
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_A_OUT);
     _llk_unpack_AB_init_<>();
-    for (int index = 0; index < TILE_CNT; index++)
+    for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[index]), L1_ADDRESS(buffer_B[index]));
+        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
 }
 
@@ -44,7 +44,7 @@ void run_kernel()
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
 
-    for (int index = 0; index < KERN_CNT; index++)
+    for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         _llk_math_eltwise_binary_<
@@ -82,10 +82,10 @@ void run_kernel()
     _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
 #endif
 
-    for (int index = 0; index < KERN_CNT; index++)
+    for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_packer_wait_for_math_done_();
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[index]));
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[i]));
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 }
