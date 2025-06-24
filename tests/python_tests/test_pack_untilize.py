@@ -51,7 +51,7 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_pack_untilize(testname, formats):
 
-    input_dimensions = [32, 32]
+    input_dimensions = [32, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -62,6 +62,10 @@ def test_pack_untilize(testname, formats):
         1 / 256,
         dtype=format_dict[formats.input_format],
     )
+
+    for i, row in enumerate(src_A.view(128, 16)):
+        print(f"Row {i}: {row}")
+    print("*" * 300)
 
     generate_golden = get_golden_generator(UntilizeGolden)
     golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
@@ -74,6 +78,7 @@ def test_pack_untilize(testname, formats):
         "formats": formats,
         "testname": testname,
         "tile_cnt": tile_cnt,
+        "input_dimensions": input_dimensions,
     }
 
     make_cmd = generate_make_command(test_config)
@@ -87,4 +92,9 @@ def test_pack_untilize(testname, formats):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
+    # print(golden_tensor.view(128,16))
+    print("#" * 300)
+    print(res_tensor.view(128, 16))
+
+    # assert 1==2
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

@@ -76,7 +76,9 @@ def tilize(original_tensor, stimuli_format=DataFormat.Float16_b):
 def untilize(tilized_tensor, stimuli_format=DataFormat.Float16_b):
 
     if tilized_tensor.size(0) != 1024:
-        raise ValueError("Input tensor must have 1024 elements.")
+        raise ValueError(
+            f"Input tensor must have 1024 elements. It has: {len(tilized_tensor)}"
+        )
 
     tilized_tensor = tilized_tensor.view(-1)
 
@@ -97,23 +99,50 @@ def untilize_block(
     input_tensor, stimuli_format=DataFormat.Float16_b, dimensions=[32, 32]
 ):
 
-    input_tensor = input_tensor.view(dimensions[0], dimensions[1])
+    reshaped_input = input_tensor.view(dimensions[0], dimensions[1])
 
-    output = []
+    rt_dim = reshaped_input.shape[0] // 32
+    ct_dim = reshaped_input.shape[1] // 32
 
-    rt_dim = input_tensor.shape[0] // 32
-    ct_dim = input_tensor.shape[1] // 32
-
-    tile_index = 0
-    result = []
+    tile_rows = []
 
     for i in range(ct_dim * rt_dim):
-        untilized = untilize(input_tensor[tile_index * 1024 : (tile_index + 1) * 1024])
-        result.append(untilized)
-        tile_index += 1
+        tile = input_tensor[i * 1024 : (i + 1) * 1024]
+        untilized_tile = untilize(tile, stimuli_format=stimuli_format)
 
-    return (
-        torch.stack(result, dim=1)
-        .to(dtype=format_dict[stimuli_format])
-        .view(dimensions[0], dimensions[1])
-    )
+        # print("*"*200)
+        # print(untilized_tile.view(64, 16))
+        # print("*"*200)
+
+        reshaped_untilized = untilized_tile.view(32, 32)
+
+        # print("*"*200)
+        # print(reshaped_untilized)
+        # print("*"*200)
+
+        for i in range(32):
+            tile_rows.append(reshaped_untilized[i])
+
+    # now full 32 elemt wide rows of tiles are in tile_rows
+
+    for i in range(len(tile_rows)):
+        print(i, " : ", tile_rows[i])
+
+    full_rows = []
+
+    base = 0
+    for i in range(rt_dim):
+
+        for offset in range(32):
+            stride_indices = [base + offset + j * 32 for j in range(ct_dim)]
+            row_pair = torch.cat([tile_rows[idx] for idx in stride_indices])
+            full_rows.append(row_pair)
+
+        base += ct_dim * 32
+
+    full_rows = torch.stack(full_rows)
+    print("-" * 200)
+    print(full_rows.view(32, 64))
+    print(full_rows.shape)
+
+    return full_rows
