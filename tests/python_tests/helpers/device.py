@@ -13,7 +13,12 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
-from .format_arg_mapping import L1_buffer_locations, Mailbox, format_tile_sizes, DestAccumulation
+from .format_arg_mapping import (
+    DestAccumulation,
+    L1_buffer_locations,
+    Mailbox,
+    format_tile_sizes,
+)
 from .format_config import DataFormat, FormatConfig
 from .pack import (
     pack_bfp8_b,
@@ -27,13 +32,13 @@ from .pack import (
     pack_uint32,
 )
 from .unpack import (
-    unpack_res_tiles,
     unpack_bfp8_b,
     unpack_bfp16,
     unpack_fp16,
     unpack_fp32,
     unpack_int8,
     unpack_int32,
+    unpack_res_tiles,
     unpack_uint8,
     unpack_uint16,
     unpack_uint32,
