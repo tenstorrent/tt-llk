@@ -110,23 +110,12 @@ def untilize_block(
         tile = input_tensor[i * 1024 : (i + 1) * 1024]
         untilized_tile = untilize(tile, stimuli_format=stimuli_format)
 
-        # print("*"*200)
-        # print(untilized_tile.view(64, 16))
-        # print("*"*200)
-
         reshaped_untilized = untilized_tile.view(32, 32)
-
-        # print("*"*200)
-        # print(reshaped_untilized)
-        # print("*"*200)
 
         for i in range(32):
             tile_rows.append(reshaped_untilized[i])
 
     # now full 32 elemt wide rows of tiles are in tile_rows
-
-    for i in range(len(tile_rows)):
-        print(i, " : ", tile_rows[i])
 
     full_rows = []
 
@@ -141,8 +130,5 @@ def untilize_block(
         base += ct_dim * 32
 
     full_rows = torch.stack(full_rows)
-    print("-" * 200)
-    print(full_rows.view(32, 64))
-    print(full_rows.shape)
 
     return full_rows

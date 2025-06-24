@@ -27,8 +27,8 @@ void run_kernel()
     _llk_unpack_untilize_init_(UNPACK_A_IN, 1024, FACE_R_DIM, 4);
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_unpack_untilize_pass_<true>(L1_ADDRESS(buffer_A[i]), 1);
-        _llk_unpack_untilize_pass_<false>(L1_ADDRESS(buffer_A[i]), 1);
+        _llk_unpack_untilize_pass_<true>(L1_ADDRESS(buffer_A[0]), 1);
+        _llk_unpack_untilize_pass_<false>(L1_ADDRESS(buffer_A[0]), 1);
     }
 }
 
