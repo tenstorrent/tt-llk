@@ -56,19 +56,21 @@ INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 
 OPTIONS_COMPILE += $(INCLUDES)
 
+TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
+
 # =========================
 # Targets
 # =========================
 .PHONY: all dis clean
 
-all: $(ELF_DIR)/trisc0.elf \
-	 $(ELF_DIR)/trisc1.elf \
-	 $(ELF_DIR)/trisc2.elf \
+all: $(ELF_DIR)/unpack.elf \
+	 $(ELF_DIR)/math.elf \
+	 $(ELF_DIR)/pack.elf \
 	 $(SHARED_DIR)/brisc.elf
 
-dis: $(DIS_DIR)/trisc0.S \
-	 $(DIS_DIR)/trisc1.S \
-	 $(DIS_DIR)/trisc2.S \
+dis: $(DIS_DIR)/unpack.S \
+	 $(DIS_DIR)/math.S \
+	 $(DIS_DIR)/pack.S \
 	 $(SHARED_DIR)/brisc.S
 
 # =========================
@@ -84,21 +86,12 @@ $(DIS_DIR)/%.S: $(ELF_DIR)/%.elf | $(DIS_DIR)
 	$(OBJDUMP) -xsD $< > $@
 	$(OBJDUMP) -t $< | sort >> $@
 
-# Explicit rules for TRISC .elfs
-# Buiding .elf files for every TRISC core
-
-$(ELF_DIR)/trisc0.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_unpack.o $(OBJ_DIR)/kernel_unpack.o | $(ELF_DIR)
-	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc0.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
-$(ELF_DIR)/trisc1.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_math.o $(OBJ_DIR)/kernel_math.o | $(ELF_DIR)
-	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc1.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
-$(ELF_DIR)/trisc2.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_pack.o $(OBJ_DIR)/kernel_pack.o | $(ELF_DIR)
-	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc2.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+$(ELF_DIR)/%.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o | $(ELF_DIR)
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # Building brisc.elf for BRISC core
 $(SHARED_DIR)/brisc.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/brisc.o | $(SHARED_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
-
-TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
 
 $(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp | $(OBJ_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -MMD -MP -MF $(@:.o=.d) -DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
