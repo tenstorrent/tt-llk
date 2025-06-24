@@ -98,37 +98,33 @@ def untilize(tilized_tensor, stimuli_format=DataFormat.Float16_b):
 def untilize_block(
     input_tensor, stimuli_format=DataFormat.Float16_b, dimensions=[32, 32]
 ):
+    # Assume input_tensor is 1D and already tilized (flattened tiles)
+    # dimensions: [rows, cols] of the output matrix
 
-    reshaped_input = input_tensor.view(dimensions[0], dimensions[1])
+    rows, cols = dimensions
+    # Each tile is 32x32
+    tile_rows = rows // 32
+    tile_cols = cols // 32
+    tile_size = 1024  # 32x32
 
-    rt_dim = reshaped_input.shape[0] // 32
-    ct_dim = reshaped_input.shape[1] // 32
+    output = []
 
-    tile_rows = []
+    for t in range(tile_rows):
+        tile_start_index = t * tile_cols
+        physical_start_for_tile_row = tile_start_index * tile_size
 
-    for i in range(ct_dim * rt_dim):
-        tile = input_tensor[i * 1024 : (i + 1) * 1024]
-        untilized_tile = untilize(tile, stimuli_format=stimuli_format)
-
-        reshaped_untilized = untilized_tile.view(32, 32)
-
+        # For each tile row, iterate over 32 rows (face_r_dim)
         for i in range(32):
-            tile_rows.append(reshaped_untilized[i])
+            # For each tile column
+            for j in range(tile_cols):
+                # Untilize the tile
+                tile_offset = physical_start_for_tile_row + j * tile_size
+                tile = input_tensor[tile_offset : tile_offset + tile_size]
+                untilized_tile = untilize(tile, stimuli_format=stimuli_format)
+                reshaped_untilized = untilized_tile.view(32, 32)
+                # Append the i-th row of this tile
+                output.append(reshaped_untilized[i])
 
-    # now full 32 elemt wide rows of tiles are in tile_rows
-
-    full_rows = []
-
-    base = 0
-    for i in range(rt_dim):
-
-        for offset in range(32):
-            stride_indices = [base + offset + j * 32 for j in range(ct_dim)]
-            row_pair = torch.cat([tile_rows[idx] for idx in stride_indices])
-            full_rows.append(row_pair)
-
-        base += ct_dim * 32
-
-    full_rows = torch.stack(full_rows)
-
+    # Stack all rows to form the output matrix
+    full_rows = torch.cat(output).view(rows, cols)
     return full_rows

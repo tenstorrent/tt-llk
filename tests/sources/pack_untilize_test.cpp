@@ -87,7 +87,7 @@ void run_kernel()
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_untilize_<BLOCK_CT_DIM>(L1_ADDRESS(buffer_Res[i]), PACK_OUT, FACE_R_DIM, 4, i);
+        _llk_pack_untilize_<BLOCK_CT_DIM>(L1_ADDRESS(buffer_Res[i]), PACK_OUT, FACE_R_DIM, 4, 0);
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
