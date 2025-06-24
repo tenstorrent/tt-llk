@@ -61,7 +61,6 @@ all_params = generate_params(
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    tile_cnt=1,
 )
 param_ids = generate_param_ids(all_params)
 
@@ -72,11 +71,13 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_tilize_calculate_untilize_L1(
-    testname, formats, dest_acc, mathop, math_fidelity, tile_cnt
+    testname, formats, dest_acc, mathop, math_fidelity
 ):
 
-    src_A, src_B = generate_stimuli(
-        formats.input_format, formats.input_format, tile_cnt
+    input_dimensions = [32, 32]
+
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
@@ -84,11 +85,10 @@ def test_tilize_calculate_untilize_L1(
         mathop, tilize(src_A), tilize(src_B), formats.output_format, math_fidelity
     )
 
-    write_stimuli_to_l1(
+    res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, "0,0", tile_cnt
     )
 
-    buffer_dest_address = 0x1E000  # Since this test calls LLK pipeline twise, unpacker will read at address in L1 that packer packed to, this address is able to be reaused for two LLK calls
     test_config = {
         "formats": formats,
         "testname": testname,
@@ -102,10 +102,7 @@ def test_tilize_calculate_untilize_L1(
 
     run_elf_files(testname)
     wait_for_tensix_operations_finished()
-
-    res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A), address=buffer_dest_address
-    )
+    res_from_L1 = collect_results(formats, tile_cnt=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
