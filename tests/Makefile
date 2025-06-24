@@ -87,11 +87,11 @@ $(DIS_DIR)/%.S: $(ELF_DIR)/%.elf | $(DIS_DIR)
 # Explicit rules for TRISC .elfs
 # Buiding .elf files for every TRISC core
 
-$(ELF_DIR)/trisc0.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_unpack.o $(OBJ_DIR)/unpack.o | $(ELF_DIR)
+$(ELF_DIR)/trisc0.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_unpack.o $(OBJ_DIR)/kernel_unpack.o | $(ELF_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc0.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
-$(ELF_DIR)/trisc1.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_math.o $(OBJ_DIR)/math.o | $(ELF_DIR)
+$(ELF_DIR)/trisc1.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_math.o $(OBJ_DIR)/kernel_math.o | $(ELF_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc1.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
-$(ELF_DIR)/trisc2.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_pack.o $(OBJ_DIR)/pack.o | $(ELF_DIR)
+$(ELF_DIR)/trisc2.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/main_pack.o $(OBJ_DIR)/kernel_pack.o | $(ELF_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc2.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # Building brisc.elf for BRISC core
@@ -100,7 +100,7 @@ $(SHARED_DIR)/brisc.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/brisc.o | $(SHAR
 
 TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
 
-$(OBJ_DIR)/%.o: sources/$(testname).cpp | $(OBJ_DIR)
+$(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp | $(OBJ_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -MMD -MP -MF $(@:.o=.d) -DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
 # compiling main for every TRISC core
