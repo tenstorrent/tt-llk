@@ -149,16 +149,17 @@ def generate_build_header(
     buffer_B_array = []
     buffer_res_array = []
 
-    for i in range(tile_cnt):
-        buffer_A_array.append(
-            buffer_A_address + i * format_tile_sizes[formats.input_format]
-        )
-        buffer_B_array.append(
-            buffer_B_address + i * format_tile_sizes[formats.input_format]
-        )
-        buffer_res_array.append(
-            res_buffer_address + i * format_tile_sizes[formats.output_format]
-        )
+    if formats is not None:
+        for i in range(tile_cnt):
+            buffer_A_array.append(
+                buffer_A_address + i * format_tile_sizes[formats.input_format]
+            )
+            buffer_B_array.append(
+                buffer_B_address + i * format_tile_sizes[formats.input_format]
+            )
+            buffer_res_array.append(
+                res_buffer_address + i * format_tile_sizes[formats.output_format]
+            )
 
     buffer_A_str = ", ".join(
         f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_A_array
