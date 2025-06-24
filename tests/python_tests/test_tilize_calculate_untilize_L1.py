@@ -66,7 +66,7 @@ param_ids = generate_param_ids(all_params)
 
 
 @pytest.mark.parametrize(
-    "testname, formats, dest_acc, mathop, math_fidelity, tile_cnt",
+    "testname, formats, dest_acc, mathop, math_fidelity",
     clean_params(all_params),
     ids=param_ids,
 )
@@ -95,6 +95,7 @@ def test_tilize_calculate_untilize_L1(
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
         "mathop": mathop,
+        "tile_cnt": tile_cnt,
     }
 
     make_cmd = generate_make_command(test_config)

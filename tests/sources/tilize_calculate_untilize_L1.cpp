@@ -17,7 +17,7 @@ uint32_t math_sync_tile_dst_index = 0;
 // TODO: CLEANUP
 
 volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x16000);
-volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>(0x16000);
+volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>(0x17000);
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -123,8 +123,6 @@ void run_kernel()
     const std::uint32_t res_dst_index       = 0;
     const bool UNTILIZE                     = false;
     const bool TILIZE                       = true;
-
-    std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
