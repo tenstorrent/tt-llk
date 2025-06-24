@@ -145,8 +145,9 @@ def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
 
 
 def delete_reports():
-    assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
-    root = os.environ["LLK_HOME"]
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
 
     path = Path(root) / "perf"
     print(path)
@@ -186,8 +187,9 @@ def report_header(params, result):
 
 
 def write_to_report(test_config, result):
-    assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
-    root = os.environ["LLK_HOME"]
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
 
     filename = f"{test_config['testname']}.csv"
     output_path = Path(root) / "perf" / filename
