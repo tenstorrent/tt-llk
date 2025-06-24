@@ -13,6 +13,8 @@ from ttexalens.tt_exalens_lib import (
     write_to_device,
     write_words_to_device,
 )
+from ttexalens.debug_tensix import REGFILE
+from ttexalens.util import WARN, TTException
 
 from .format_arg_mapping import DestAccumulation, Mailbox
 from .format_config import DataFormat, FormatConfig
@@ -226,6 +228,40 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
 
     return dest_reg
 
+
+def print_regfile(data: list[int | float | str]):
+    for i in range(len(data)):
+        print(data[i], end="\t")
+        if i % 32 == 31:
+            print()
+            
+            
+def read_regfile(regfile: int | str | REGFILE) -> list[int | float | str]:
+        """Dumps SrcA and Dest register file from the specified core, and parses the data into a list of values.
+
+        Args:
+                regfile (int | str | REGFILE): Register file to dump (0: SRCA, 1: SRCB, 2: DSTACC).
+
+        Returns:
+                list[int | float | str]: 64x(8/16) values in register file (64 rows, 8 or 16 values per row, depending on the format of the data).
+        """
+        from ttexalens.unpack_regfile import unpack_data
+        from ttexalens.debug_tensix import TensixDebug, convert_regfile
+        
+        debug = TensixDebug("0,0", 0)
+        
+        regfile = convert_regfile(regfile)
+        data = debug.read_regfile_data(regfile)
+        df = debug.read_tensix_register("ALU_FORMAT_SPEC_REG2_Dstacc")
+        df = 1
+        try:
+            return unpack_data(data, df)
+        except ValueError as e:
+            # If format is unsupported we reutrn raw data in hex format
+            WARN(e)
+            WARN("Printing raw data...")
+            return [hex(datum) for datum in data]
+ 
 
 def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):
     """
