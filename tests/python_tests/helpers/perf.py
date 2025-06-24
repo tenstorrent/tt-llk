@@ -155,10 +155,6 @@ def delete_reports():
         shutil.rmtree(path)
 
 
-def _flatten(list):
-    return [item for sublist in list for item in sublist]
-
-
 def _dataclass_names(parent, obj):
     """Provides the **names** of the columns for the report"""
     return [f"{parent}.{f.name}" for f in fields(obj)]
@@ -170,19 +166,21 @@ def _dataclass_values(obj):
 
 
 def report_header(params, result):
-    columns = _flatten(
-        [
-            _dataclass_names(param, value) if is_dataclass(value) else [param]
-            for param, value in params.items()
-        ]
-    )
+    columns = []
+    for param, value in params.items():
+        if is_dataclass(value):
+            columns.extend(_dataclass_names(param, value))
+        else:
+            columns.append(param)
 
     for run_type, stats in result.items():
         for i, _ in enumerate(stats):
-            columns += [
-                f"mean({run_type.name}[{i}])",
-                f"variance({run_type.name}[{i}])",
-            ]
+            columns.extend(
+                [
+                    f"mean({run_type.name}[{i}])",
+                    f"variance({run_type.name}[{i}])",
+                ]
+            )
 
     return columns
 
@@ -205,16 +203,16 @@ def write_to_report(test_config, result):
         param: value for param, value in test_config.items() if param not in exclude
     }
 
-    row = _flatten(
-        [
-            _dataclass_values(value) if is_dataclass(value) else [value]
-            for value in params.values()
-        ]
-    )
+    row = []
+    for value in params.values():
+        if is_dataclass(value):
+            row.extend(_dataclass_values(value))
+        else:
+            row.append(value)
 
     for stats in result.values():
         for stat in stats:
-            row += [stat["mean"], stat["variance"]]
+            row.extend([stat["mean"], stat["variance"]])
 
     # Write to CSV
     first_entry = not os.path.exists(output_path)
