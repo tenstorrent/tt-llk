@@ -61,7 +61,7 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
     BUILD = "../build"
 
     if run_brisc:
-        run_elf(f"{BUILD}/share/brisc.elf", core_loc, risc_id=0)
+        run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_id=0)
 
     context = check_context()
     device = context.devices[0]
