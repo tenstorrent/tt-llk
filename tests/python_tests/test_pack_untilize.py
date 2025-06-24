@@ -51,16 +51,10 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_pack_untilize(testname, formats):
 
-    input_dimensions = [32, 32]
+    input_dimensions = [32, 128]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
-    )
-    src_A = torch.arange(
-        0,
-        input_dimensions[0] * input_dimensions[1] / 256,
-        1 / 256,
-        dtype=format_dict[formats.input_format],
     )
 
     generate_golden = get_golden_generator(UntilizeGolden)
