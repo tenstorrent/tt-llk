@@ -51,15 +51,17 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_untilze(testname, formats):
 
-    input_dimensions = [32, 32]
+    input_dimensions = [64, 64]
 
     src_A, _, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-    src_B = torch.full((1024,), 0)
+    src_B = torch.full((1024 * tile_cnt,), 0)
 
     generate_golden = get_golden_generator(UntilizeGolden)
-    golden_tensor = generate_golden(src_A, formats.output_format)
+    golden_tensor = generate_golden(
+        src_A, formats.output_format, dimensions=input_dimensions
+    )
 
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_cnt=tile_cnt
