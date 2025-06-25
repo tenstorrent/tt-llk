@@ -60,9 +60,6 @@ def collect_results(
 def run_elf_files(testname, core_loc="0,0", run_brisc=True):
     BUILD = "../build"
 
-    if run_brisc:
-        run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_id=0)
-
     context = check_context()
     device = context.devices[0]
     RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address(
@@ -85,9 +82,8 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
     TRISC_PROFILER_BARRIER = 0x16AFF4
     write_words_to_device(core_loc, TRISC_PROFILER_BARRIER, [0, 0, 0])
 
-    # Clear soft reset
-    soft_reset &= ~0x7800
-    write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
+    if run_brisc:
+        run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_id=0)
 
 
 def write_stimuli_to_l1(

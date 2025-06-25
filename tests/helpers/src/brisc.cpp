@@ -4,6 +4,7 @@
 
 #include <cstdint>
 
+#include "ckernel.h"
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
 #include "ckernel_structs.h"
@@ -35,9 +36,20 @@ void device_setup()
     TTI_SEMINIT(1, 0, ckernel::semaphore::PACK_DONE);
 }
 
+void clear_trisc_soft_reset()
+{
+    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    soft_reset &= ~0x7000;
+    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+}
+
 int main()
 {
     device_setup();
+
+    // Reset triscs here in order to achieve brisc <-> trisc synchronization
+    clear_trisc_soft_reset();
+
     // Use a volatile variable to prevent the compiler from optimizing away the loop
     volatile bool run = true;
 
