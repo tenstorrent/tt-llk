@@ -11,8 +11,6 @@
 #include "build.h"
 #include "ckernel.h"
 
-#define DO_PRAGMA(x) _Pragma(#x)
-
 // Logic to convert zone name -> 16bit numeric id
 #define Stringize(L)       #L
 #define ExpandStringize(L) Stringize(L)
@@ -200,19 +198,16 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
 
 } // namespace llk_profiler
 
-#define ZONE_SCOPED(marker)                 \
-    PROFILER_META(MARKER_FULL(marker))      \
-    DO_PRAGMA(message(MARKER_FULL(marker))) \
+#define ZONE_SCOPED(marker)            \
+    PROFILER_META(MARKER_FULL(marker)) \
     const auto _zone_scoped_ = llk_profiler::zone_scoped<MARKER_ID(marker)>();
 
-#define TIMESTAMP(marker)                   \
-    PROFILER_META(MARKER_FULL(marker))      \
-    DO_PRAGMA(message(MARKER_FULL(marker))) \
+#define TIMESTAMP(marker)              \
+    PROFILER_META(MARKER_FULL(marker)) \
     llk_profiler::write_timestamp(MARKER_ID(marker));
 
-#define TIMESTAMP_DATA(marker, data)        \
-    PROFILER_META(MARKER_FULL(marker))      \
-    DO_PRAGMA(message(MARKER_FULL(marker))) \
+#define TIMESTAMP_DATA(marker, data)   \
+    PROFILER_META(MARKER_FULL(marker)) \
     llk_profiler::write_timestamp(MARKER_ID(marker), data);
 
 #else
