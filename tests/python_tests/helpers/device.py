@@ -81,7 +81,7 @@ def run_elf_files(testname, core_loc="0,0"):
         load_elf(
             f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf",
             core_loc,
-            risc_name=f"trisc{i}"
+            risc_name=f"trisc{i}",
         )
 
     # Reset the profiler barrier
