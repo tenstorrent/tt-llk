@@ -41,7 +41,7 @@ void device_setup()
 void clear_trisc_soft_reset()
 {
     uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    soft_reset &= ~0x7000;
+    soft_reset &= ~TRISC_SOFT_RESET_MASK;
     ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
 }
 
