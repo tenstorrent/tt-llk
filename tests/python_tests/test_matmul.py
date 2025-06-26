@@ -95,19 +95,12 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
     ).to(torch_format)
     golden_tensor = golden_tensor.flatten()
 
-    print(
-        f"src_A shape: {src_A.shape}, src_B shape: {src_B.shape}, tile_cnt: {tile_cnt}"
-    )
-
     tilized_A = tilize_block(
         src_A, dimensions=input_dimensions, stimuli_format=formats.input_format
     )
     tilized_B = tilize_block(
         src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
     )
-
-    print(f"tilized_A shape: {tilized_A.shape}, numel: {tilized_A.numel()}")
-    print(f"tilized_B shape: {tilized_B.shape}, numel: {tilized_B.numel()}")
 
     res_address = write_stimuli_to_l1(
         tilized_A.flatten(),
