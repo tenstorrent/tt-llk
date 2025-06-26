@@ -92,7 +92,8 @@ def process_runs(runs, test_config):
     return tuple(
         {
             "mean": mean(column) / tile_cnt,
-            "variance": variance(column) / (tile_cnt * tile_cnt),
+            "min": min(column) / tile_cnt,
+            "max": max(column) / tile_cnt,
         }
         for column in zip(*runs)
     )
@@ -179,7 +180,8 @@ def report_header(params, result):
             columns.extend(
                 [
                     f"mean({run_type.name}[{i}])",
-                    f"variance({run_type.name}[{i}])",
+                    f"min({run_type.name}[{i}])",
+                    f"max({run_type.name}[{i}])",
                 ]
             )
 
@@ -198,6 +200,10 @@ def write_to_report(test_config, result):
     exclude = {
         "testname",
         "perf_run_type",
+        "formats",
+        "dest_acc",
+        "mathop",
+        "math_fidelity",
     }
 
     params = {
@@ -213,7 +219,7 @@ def write_to_report(test_config, result):
 
     for stats in result.values():
         for stat in stats:
-            row.extend([stat["mean"], stat["variance"]])
+            row.extend([stat["mean"], stat["min"], stat["max"]])
 
     # Write to CSV
     first_entry = not os.path.exists(output_path)

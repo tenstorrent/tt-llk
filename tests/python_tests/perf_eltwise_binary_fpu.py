@@ -48,6 +48,7 @@ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidel
     for num_tiles in [1, 2, 3, 4, 5, 8, 16, 32, 64, 128, 256, 512, 1024]:
         test_config = {
             "testname": testname,
+            "num_iterations": 8,
             "tile_cnt": num_tiles,
             "formats": formats,
             "dest_acc": dest_acc,
@@ -55,5 +56,5 @@ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidel
             "math_fidelity": math_fidelity,
         }
 
-        results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1])
+        results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], test_config["num_iterations"])
         write_to_report(test_config, results)
