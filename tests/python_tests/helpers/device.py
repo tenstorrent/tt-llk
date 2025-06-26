@@ -79,7 +79,9 @@ def run_elf_files(testname, core_loc="0,0"):
     TRISC = ["unpack", "math", "pack"]
     for i in range(3):
         load_elf(
-            f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf", core_loc, risc_name=f"trisc{i}"
+            f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf",
+            core_loc,
+            risc_name=f"trisc{i}"
         )
 
     # Reset the profiler barrier
