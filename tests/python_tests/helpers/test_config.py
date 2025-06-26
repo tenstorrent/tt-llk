@@ -10,7 +10,7 @@ from ttexalens.tt_exalens_lib import (
 from .format_arg_mapping import (
     ApproximationMode,
     DestAccumulation,
-    L1_buffer_locations,
+    L1BufferLocations,
     MathFidelity,
     MathOperation,
     ReduceDimension,
@@ -141,9 +141,9 @@ def generate_build_header(
     header_content.append(f"#define TILE_CNT {tile_cnt}")
 
     # Unpack an result buffer addresses arrrays generations
-    buffer_A_address = read_word_from_device("0,0", L1_buffer_locations.srcA.value)
-    buffer_B_address = read_word_from_device("0,0", L1_buffer_locations.srcB.value)
-    res_buffer_address = read_word_from_device("0,0", L1_buffer_locations.Res.value)
+    buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
+    buffer_B_address = read_word_from_device("0,0", L1BufferLocations.srcB.value)
+    res_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
 
     buffer_A_array = []
     buffer_B_array = []

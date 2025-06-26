@@ -15,7 +15,7 @@ from ttexalens.tt_exalens_lib import (
 
 from .format_arg_mapping import (
     DestAccumulation,
-    L1_buffer_locations,
+    L1BufferLocations,
     Mailbox,
     format_tile_sizes,
 )
@@ -114,14 +114,14 @@ def write_stimuli_to_l1(
     res_buffer_address = buffer_B_address + TILE_SIZE_B * tile_cnt
 
     write_to_device(
-        core_loc, L1_buffer_locations.srcA.value, buffer_A_address.to_bytes(4, "little")
+        core_loc, L1BufferLocations.srcA.value, buffer_A_address.to_bytes(4, "little")
     )
     write_to_device(
-        core_loc, L1_buffer_locations.srcB.value, buffer_B_address.to_bytes(4, "little")
+        core_loc, L1BufferLocations.srcB.value, buffer_B_address.to_bytes(4, "little")
     )
     write_to_device(
         core_loc,
-        L1_buffer_locations.Res.value,
+        L1BufferLocations.Result.value,
         res_buffer_address.to_bytes(4, "little"),
     )
 

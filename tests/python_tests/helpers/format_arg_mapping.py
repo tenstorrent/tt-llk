@@ -98,7 +98,7 @@ format_tile_sizes = {
 }
 
 
-class L1_buffer_locations(Enum):
+class L1BufferLocations(Enum):
     srcA = 0x18FE0
     srcB = 0x18FE4
-    Res = 0x18FE8
+    Result = 0x18FE8
