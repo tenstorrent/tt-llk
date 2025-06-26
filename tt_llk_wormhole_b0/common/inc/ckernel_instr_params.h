@@ -86,6 +86,12 @@ struct p_unpacr
     constexpr static uint AUTO_INC_CONTEXT      = (1); // Auto increment config context (max value set through unpacker config command)
 };
 
+#define TTI_UNPACR_COMMON(Unpack_block_selection, AddrMode, SetDatValid) \
+    TTI_UNPACR(Unpack_block_selection, AddrMode, 0/*CfgContextCntInc*/, 0/*CfgContextId*/, 0/*AddrCntContextId*/, 1/*OvrdThreadId*/, SetDatValid, 0/*srcb_bcast*/, 0/*ZeroWrite2*/, 0/*AutoIncContextID*/, 0/*RowSearch*/, 0/*SearchCacheFlush*/, 1/*Last*/)
+
+#define TT_OP_UNPACR_COMMON(Unpack_block_selection, AddrMode, SetDatValid) \
+    TT_OP_UNPACR(Unpack_block_selection, AddrMode, 0/*CfgContextCntInc*/, 0/*CfgContextId*/, 0/*AddrCntContextId*/, 1/*OvrdThreadId*/, SetDatValid, 0/*srcb_bcast*/, 0/*ZeroWrite2*/, 0/*AutoIncContextID*/, 0/*RowSearch*/, 0/*SearchCacheFlush*/, 1/*Last*/)
+
 struct p_unpacr_nop
 {
     constexpr static uint UNP_POP = 0b000;
@@ -110,6 +116,21 @@ struct p_srcb
     constexpr static uint BACKWARD_PASS = 0x1;
 };
 
+constexpr static uint SETADC_CH0(uint cnt)
+{
+    return cnt;
+}
+
+constexpr static uint SETADC_CH1(uint cnt)
+{
+    return cnt << 2;
+}
+
+constexpr static uint SETADC_CH01(uint cnt)
+{
+    return cnt << 2 | cnt;
+}
+
 struct p_setadc
 {
     constexpr static uint UNP0   = 0b001;
@@ -123,6 +144,13 @@ struct p_setadc
     constexpr static uint SET_Y = 1;
     constexpr static uint SET_Z = 2;
     constexpr static uint SET_W = 3;
+
+    constexpr static uint X = 1;
+    constexpr static uint Y = 2;
+    constexpr static uint XY = 3;
+    constexpr static uint Z = 1;
+    constexpr static uint W = 2;
+    constexpr static uint ZW = 3;
 
     constexpr static uint CH_0 = 0;
     constexpr static uint CH_1 = 1;
@@ -367,6 +395,18 @@ struct p_exp
     // -0x4300 : 1011 1101 0000 0000
     // ADJ_EXP : 1011 1101 0011 1111 (-0x4300 + 0x003F = 0xBD3F)
     constexpr static uint ADJ_EXP = 0xBD3F;
+};
+
+struct p_setdmareg
+{
+    constexpr static uint PAYLOAD_IMMEDIATE   = 0;
+    constexpr static uint PAYLOAD_16BIT       = 0;
+    constexpr static uint PAYLOAD_32BIT       = 1;
+    constexpr static uint PAYLOAD_128BIT      = 2;
+    constexpr static uint PAYLOAD_TILE_HEADER = 3;
+
+    constexpr static uint MODE_IMMEDIATE = 0;
+    constexpr static uint MODE_SIGNAL    = 1;
 };
 
 } // namespace ckernel

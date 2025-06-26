@@ -168,26 +168,19 @@ inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_f
                     : (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float16) ? 2
                                                                                                         : 1;
     uint y_stride = FACE_R_DIM * x_stride;
-    uint z_stride = 2 * FACE_C_DIM * y_stride;
-    uint w_stride = z_stride * 2;
+    uint z_stride = FACE_C_DIM * y_stride;
+    uint w_stride = TILE_NUM_FACES * z_stride;
 
-    uint z_stride_ch1 = FACE_R_DIM * PACK_CNT * 2; // TODO hardcodeded for Float16
-    if (pack_dst_format == static_cast<DataFormatType>(DataFormat::Bfp8_b))
-    {
-        z_stride_ch1 = FACE_R_DIM * PACK_CNT + PACK_CNT;
-    }
-    TT_SETDMAREG(0, LOWER_HALFWORD(z_stride_ch1), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
-    TTI_SETDMAREG(0, 0, 0, HI_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
-
-    TT_SETDMAREG(0, LOWER_HALFWORD((x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT)), 0, LO_16(p_gpr_pack::TMP0));
-    TT_SETDMAREG(0, UPPER_HALFWORD((y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT)), 0, HI_16(p_gpr_pack::TMP0));
+    uint32_t xy_stride = (x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT) |
+                         (y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT);
+    uint32_t zw_stride = (z_stride << PCK0_ADDR_CTRL_ZW_REG_0_Zstride_SHAMT) |
+                         (w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT);
+    TT_SETDMAREG(0, LOWER_HALFWORD(xy_stride), 0, LO_16(p_gpr_pack::TMP0));
+    TT_SETDMAREG(0, UPPER_HALFWORD(xy_stride), 0, HI_16(p_gpr_pack::TMP0));
     TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK0_ADDR_CTRL_XY_REG_0_Xstride_ADDR32);
-    TT_SETDMAREG(0, LOWER_HALFWORD((z_stride << PCK0_ADDR_CTRL_ZW_REG_0_Zstride_SHAMT)), 0, LO_16(p_gpr_pack::TMP0));
-    TT_SETDMAREG(0, UPPER_HALFWORD((w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT)), 0, HI_16(p_gpr_pack::TMP0));
+    TT_SETDMAREG(0, LOWER_HALFWORD(zw_stride), 0, LO_16(p_gpr_pack::TMP0));
+    TT_SETDMAREG(0, UPPER_HALFWORD(zw_stride), 0, HI_16(p_gpr_pack::TMP0));
     TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK0_ADDR_CTRL_ZW_REG_0_Zstride_ADDR32);
-    TT_SETDMAREG(0, LOWER_HALFWORD((z_stride_ch1 << PCK0_ADDR_CTRL_ZW_REG_1_Zstride_SHAMT)), 0, LO_16(p_gpr_pack::TMP0));
-    TT_SETDMAREG(0, UPPER_HALFWORD((z_stride_ch1 << PCK0_ADDR_CTRL_ZW_REG_1_Wstride_SHAMT)), 0, HI_16(p_gpr_pack::TMP0)); // same as z_stride
-    TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK0_ADDR_CTRL_ZW_REG_1_Zstride_ADDR32);
     TTI_NOP;
     TTI_NOP;
 }
