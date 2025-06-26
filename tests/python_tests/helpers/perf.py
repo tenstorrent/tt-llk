@@ -198,7 +198,6 @@ def write_to_report(test_config, result):
     exclude = {
         "testname",
         "perf_run_type",
-        "tile_cnt",
     }
 
     params = {
@@ -222,4 +221,5 @@ def write_to_report(test_config, result):
         writer = csv.writer(csvfile)
         if first_entry:
             writer.writerow(report_header(params, result))
-        writer.writerow(row)
+        formatted_row = [f"{x:.2f}" if isinstance(x, float) else x for x in row]
+        writer.writerow(formatted_row)
