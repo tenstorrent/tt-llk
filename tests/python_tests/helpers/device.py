@@ -3,6 +3,7 @@
 
 import time
 
+from ttexalens.debug_tensix import TensixDebug
 from ttexalens.tt_exalens_lib import (
     check_context,
     load_elf,
@@ -64,29 +65,26 @@ def collect_results(
 def run_elf_files(testname, core_loc="0,0"):
     BUILD = "../build"
 
-    context = check_context()
-    device = context.devices[0]
-    RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address(
-        "RISCV_DEBUG_REG_SOFT_RESET_0"
-    )
-
     # Perform soft reset
-    soft_reset = read_word_from_device(core_loc, RISC_DBG_SOFT_RESET0)
+    context = check_context()
+    RISC_DBG_SOFT_RESET0 = "RISCV_DEBUG_REG_SOFT_RESET_0"
+    tensix_debug = TensixDebug(core_loc, 0, context)
+    soft_reset = tensix_debug.read_tensix_register(RISC_DBG_SOFT_RESET0)
     soft_reset |= 0x7800
-    write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
+    tensix_debug.write_tensix_register(RISC_DBG_SOFT_RESET0, soft_reset)
 
     # Load TRISC ELF files
     TRISC = ["unpack", "math", "pack"]
     for i in range(3):
         load_elf(
-            f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf",
-            core_loc,
+            elf_file=f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf",
+            core_loc=core_loc,
             risc_name=f"trisc{i}",
         )
 
     # Reset the profiler barrier
-    TRISC_PROFILER_BARRIER = 0x16AFF4
-    write_words_to_device(core_loc, TRISC_PROFILER_BARRIER, [0, 0, 0])
+    TRISC_PROFILER_BARRIE_ADDRESS = 0x16AFF4
+    write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
 
     # Run BRISC
     run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_name="brisc")
