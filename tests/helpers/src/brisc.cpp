@@ -12,7 +12,7 @@
 #include "risc_attribs.h"
 #include "tensix.h"
 
-const uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+static constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 
 void device_setup()
 {
