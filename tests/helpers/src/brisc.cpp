@@ -12,6 +12,8 @@
 #include "risc_attribs.h"
 #include "tensix.h"
 
+const uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+
 void device_setup()
 {
     volatile tt_reg_ptr std::uint32_t* cfg_regs = reinterpret_cast<std::uint32_t*>(TENSIX_CFG_BASE);
