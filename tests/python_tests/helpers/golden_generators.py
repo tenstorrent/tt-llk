@@ -85,6 +85,7 @@ class UnarySFPUGolden:
             MathOperation.Sqrt: self._sqrt,
             MathOperation.Square: self._square,
             MathOperation.Celu: self._celu,
+            MathOperation.Neg: self._neg,
         }
         self.data_format = None
 
@@ -125,6 +126,9 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.celu(input_tensor, alpha=1.0).item()
+
+    def _neg(self, x):
+        return -x
 
 
 @register_golden
