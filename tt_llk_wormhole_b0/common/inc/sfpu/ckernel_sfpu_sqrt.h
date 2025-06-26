@@ -26,34 +26,39 @@ sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
     if constexpr (APPROXIMATE)
     {
         // Algorithm SQRT_10-bits, with modifications for reciprocal.
-        sfpi::vFloat c          = x * y;
-        sfpi::vFloat negative_y = -y;
+        sfpi::vFloat c            = x * y;
+        sfpi::vFloat negative_y   = -y;
+        sfpi::vFloat k1_minus_xyy = sfpi::vConstFloatPrgm1 + negative_y * c;
+
         if constexpr (RECIPROCAL)
         {
-            y = y * (sfpi::vConstFloatPrgm1 + negative_y * c);
+            y = y * k1_minus_xyy;
         }
         else
         {
-            y = c * (sfpi::vConstFloatPrgm1 + negative_y * c);
+            y = c * k1_minus_xyy;
         }
     }
     else
     {
         // Algorithm SQRT_23-bits, with modifications for reciprocal.
-        sfpi::vFloat negative_x = -x;
-        sfpi::vFloat c          = negative_x * y * y;
-        y                       = y * (sfpi::vConstFloatPrgm1 + c * (sfpi::vConstFloatPrgm2 + c));
-        sfpi::vFloat half_y     = sfpi::addexp(y, -1);
+        sfpi::vFloat xy            = x * y;
+        sfpi::vFloat negative_y    = -y;
+        sfpi::vFloat c             = negative_y * xy;
+        y                          = y * (sfpi::vConstFloatPrgm1 + c * (sfpi::vConstFloatPrgm2 + c));
+        xy                         = x * y;
+        negative_y                 = -y;
+        sfpi::vFloat one_minus_xyy = sfpi::vConst1 + (negative_y * xy);
 
         if constexpr (RECIPROCAL)
         {
-            y = y + (sfpi::vConst1 + negative_x * y * y) * half_y;
+            sfpi::vFloat half_y = 0.5f * y;
+            y                   = one_minus_xyy * half_y + y;
         }
         else
         {
-            half_y = -half_y;
-            y      = x * y;
-            y      = y + (y * y + negative_x) * half_y;
+            sfpi::vFloat half_xy = 0.5f * xy;
+            y                    = one_minus_xyy * half_xy + xy;
         }
     }
 
