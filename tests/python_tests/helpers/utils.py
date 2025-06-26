@@ -9,6 +9,7 @@ import torch
 
 from .format_arg_mapping import format_dict
 from .format_config import DataFormat, FormatConfig
+from helpers.unpack import check_values_in_range
 
 torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
 
@@ -157,6 +158,7 @@ def get_tolerance(output_data_format):
 
 
 def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16_b):
+    check_values_in_range(res_tensor, output_data_format)  # certain values may be out of range and must be "NaN" to represent torch representation 
 
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
 
@@ -186,13 +188,15 @@ def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16
     is_close = torch.isclose(
         golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
     )
-    is_within_tolerance = torch.all(is_close)
+    is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
+    
+    is_within_tolerance = torch.all(is_close | is_nan)
 
     if not is_within_tolerance:
         # Find all indices where values differ
         diff_indices = torch.where(~is_close)[0]
         print(f"Found {len(diff_indices)} differences:")
-        for idx in diff_indices:
+        for idx in diff_indices[:5]:
             print(
                 f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
             )
