@@ -6,8 +6,6 @@ import torch
 
 from helpers.device import (
     collect_results,
-    run_elf_files,
-    wait_for_tensix_operations_finished,
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import format_dict
@@ -20,8 +18,8 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import generate_make_command
-from helpers.utils import passed_test, run_shell_command
+from helpers.test_config import run_test
+from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
@@ -51,25 +49,40 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_untilze(testname, formats):
 
-    src_A, _ = generate_stimuli(formats.input_format, formats.input_format)
-    src_B = torch.full((1024,), 0)
+    input_dimensions = [32, 32]
+
+    src_A, _, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+    )
+
+    src_B = torch.full((1024 * tile_cnt,), 0)
+
+    src_A = torch.arange(
+        0,
+        input_dimensions[0] * input_dimensions[1] / 256,
+        1 / 256,
+        dtype=format_dict[formats.input_format],
+    )
 
     generate_golden = get_golden_generator(UntilizeGolden)
-    golden_tensor = generate_golden(src_A, formats.output_format)
+    golden_tensor = generate_golden(
+        src_A, formats.output_format, dimensions=input_dimensions
+    )
 
-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+    res_address = write_stimuli_to_l1(
+        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+    )
 
     test_config = {
         "formats": formats,
         "testname": testname,
+        "tile_cnt": tile_cnt,
+        "input_dimensions": input_dimensions,
     }
 
-    make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd}")
+    run_test(test_config)
 
-    run_elf_files(testname)
-    wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])

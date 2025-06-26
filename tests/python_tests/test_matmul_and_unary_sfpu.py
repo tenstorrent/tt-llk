@@ -8,8 +8,6 @@ import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
-    run_elf_files,
-    wait_for_tensix_operations_finished,
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import (
@@ -32,9 +30,9 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import generate_make_command
+from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize
-from helpers.utils import passed_test, run_shell_command
+from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
@@ -89,6 +87,9 @@ param_ids = generate_param_ids(all_params)
 def test_matmul_and_unary_sfpu(
     testname, formats, dest_acc, approx_mode, mathop, math_fidelity
 ):
+
+    input_dimensions = [32, 32]
+
     if mathop in [MathOperation.Cos, MathOperation.Sin]:
         pytest.skip("Cos and Sin operations are not fully functional yet")
     if mathop == MathOperation.Square and math_fidelity == MathFidelity.LoFi:
@@ -102,7 +103,9 @@ def test_matmul_and_unary_sfpu(
         pytest.skip("BFP8 does not support Log and Reciprocal operations")
 
     torch_format = format_dict.get(formats.output_format)
-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format
+    )
 
     generate_matmul_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_matmul_golden(
@@ -113,7 +116,7 @@ def test_matmul_and_unary_sfpu(
     golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
     golden_tensor = golden_tensor.to(torch_format)
 
-    write_stimuli_to_l1(
+    res_address = write_stimuli_to_l1(
         tilize(src_A, formats.input_format),
         tilize(src_B, formats.input_format),
         formats.input_format,
@@ -129,16 +132,9 @@ def test_matmul_and_unary_sfpu(
         "mathop": mathop,
     }
 
-    make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd}")
+    run_test(test_config)
 
-    run_elf_files(testname)
-
-    wait_for_tensix_operations_finished()
-    buffer_dest_address = 0x1E000
-    res_from_L1 = collect_results(
-        formats, tensor_size=len(src_A), address=buffer_dest_address
-    )
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 

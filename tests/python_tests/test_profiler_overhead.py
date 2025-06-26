@@ -4,11 +4,8 @@
 import pytest
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import (
-    run_elf_files,
-    wait_for_tensix_operations_finished,
-)
-from helpers.profiler import Profiler, build_with_profiler
+from helpers.profiler import Profiler
+from helpers.test_config import ProfilerBuild, run_test
 
 
 def get_expected_overhead():
@@ -27,13 +24,9 @@ def test_profiler_overhead():
         "testname": "profiler_overhead_test",
     }
 
-    profiler_meta = build_with_profiler(test_config)
-    assert profiler_meta is not None, "Profiler metadata should not be None"
+    run_test(test_config, profiler_build=ProfilerBuild.Yes)
 
-    run_elf_files("profiler_overhead_test")
-    wait_for_tensix_operations_finished()
-
-    runtime = Profiler.get_data(profiler_meta)
+    runtime = Profiler.get_data(test_config["testname"])
 
     # filter out all zones that dont have marker "OVERHEAD"
     overhead_zones = [x for x in runtime.unpack if x.full_marker.marker == "OVERHEAD"]

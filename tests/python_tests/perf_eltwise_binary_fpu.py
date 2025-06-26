@@ -15,7 +15,7 @@ from helpers.param_config import (
     generate_params,
     input_output_formats,
 )
-from helpers.perf import PerfRunType, perf_benchmark, write_to_report
+from helpers.perf import ALL_RUN_TYPES, perf_benchmark, write_to_report
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
@@ -50,12 +50,12 @@ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidel
 
     test_config = {
         "testname": testname,
-        "tile_cnt": 16,  # currently isn't passed to kernel, should be TILE_CNT
+        "tile_cnt": 16,
         "formats": formats,
         "dest_acc": dest_acc,
         "mathop": mathop,
         "math_fidelity": math_fidelity,
     }
 
-    results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1])
-    write_to_report(test_config, [PerfRunType.L1_TO_L1], results)
+    results = perf_benchmark(test_config, ALL_RUN_TYPES)
+    write_to_report(test_config, results)

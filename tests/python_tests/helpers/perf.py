@@ -4,13 +4,14 @@
 import csv
 import os
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 from pathlib import Path
 from statistics import mean, variance
 
 from helpers.device import run_elf_files, wait_for_tensix_operations_finished
-from helpers.profiler import Profiler, build_with_profiler
+from helpers.profiler import Profiler
+from helpers.test_config import ProfilerBuild, build_test
 
 
 @dataclass
@@ -86,13 +87,6 @@ def timing_l1_congestion(perf_data: PerfData) -> int:
     )
 
 
-RUN_COUNT = 8
-
-
-def _build_l1_to_l1(test_config):
-    return build_with_profiler(test_config)
-
-
 def process_runs(runs, test_config):
     tile_cnt = test_config.get("tile_cnt", 1)
 
@@ -113,32 +107,35 @@ class PerfRunType(Enum):
     L1_CONGESTION = 5
 
 
-def perf_benchmark(test_config, run_types: list[PerfRunType]):
-    # todo: support all types of runs
-    SUPPORTED_RUNS = {PerfRunType.L1_TO_L1}
+ALL_RUN_TYPES = [type for type in PerfRunType]
+
+
+def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
+
     RUN_CONFIGURATIONS = {
-        PerfRunType.L1_TO_L1: (_build_l1_to_l1, timing_l1_to_l1),
-        # Add new run types here as they're implemented:
-        # PerfRunType.UNPACK_ISOLATE: (_build_unpack_isolate, timing_unpack),
-        # PerfRunType.MATH_ISOLATE: (_build_math_isolate, timing_math),
-        # PerfRunType.PACK_ISOLATE: (_build_pack_isolate, timing_pack),
-        # PerfRunType.L1_CONGESTION: (_build_l1_congestion, timing_l1_congestion),
+        PerfRunType.L1_TO_L1: timing_l1_to_l1,
+        PerfRunType.UNPACK_ISOLATE: timing_unpack,
+        PerfRunType.MATH_ISOLATE: timing_math,
+        PerfRunType.PACK_ISOLATE: timing_pack,
+        PerfRunType.L1_CONGESTION: timing_l1_congestion,
     }
+    SUPPORTED_RUNS = RUN_CONFIGURATIONS.keys()
 
     results = {}
 
     for type in run_types:
         assert type in SUPPORTED_RUNS, f"ERROR: run_type={type} not implemented"
-        build, get_timing = RUN_CONFIGURATIONS[type]
+        get_timing = RUN_CONFIGURATIONS[type]
 
-        profiler_meta = build(test_config)
+        test_config["perf_run_type"] = type
+        build_test(test_config, profiler_build=ProfilerBuild.Yes)
 
         runs = []
-        for _ in range(RUN_COUNT):
+        for _ in range(run_count):
             run_elf_files(test_config["testname"])
             wait_for_tensix_operations_finished()
 
-            profiler_data = Profiler.get_data(profiler_meta)
+            profiler_data = Profiler.get_data(test_config["testname"])
             perf_data = process_profiler_data(profiler_data)
 
             runs.append(get_timing(perf_data))
@@ -149,8 +146,9 @@ def perf_benchmark(test_config, run_types: list[PerfRunType]):
 
 
 def delete_reports():
-    assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
-    root = os.environ["LLK_HOME"]
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
 
     path = Path(root) / "perf"
     print(path)
@@ -159,34 +157,70 @@ def delete_reports():
         shutil.rmtree(path)
 
 
-def write_to_report(test_config, run_types, results):
-    assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
-    root = os.environ["LLK_HOME"]
+def _dataclass_names(parent, obj):
+    """Provides the **names** of the columns for the report"""
+    return [f"{parent}.{f.name}" for f in fields(obj)]
+
+
+def _dataclass_values(obj):
+    """Provides the **values** of the columns for the report"""
+    return [getattr(obj, f.name) for f in fields(obj)]
+
+
+def report_header(params, result):
+    columns = []
+    for param, value in params.items():
+        if is_dataclass(value):
+            columns.extend(_dataclass_names(param, value))
+        else:
+            columns.append(param)
+
+    for run_type, stats in result.items():
+        for i, _ in enumerate(stats):
+            columns.extend(
+                [
+                    f"mean({run_type.name}[{i}])",
+                    f"variance({run_type.name}[{i}])",
+                ]
+            )
+
+    return columns
+
+
+def write_to_report(test_config, result):
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
 
     filename = f"{test_config['testname']}.csv"
     output_path = Path(root) / "perf" / filename
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    exclude = {"testname", "tile_cnt", "formats"}  # fix: include format info
-    sweep_columns = [param for param in test_config.keys() if not param in exclude]
+    exclude = {
+        "testname",
+        "perf_run_type",
+        "tile_cnt",
+    }
 
-    result_columns = []
-    for run_type in run_types:
-        result_columns.append(f"mean({run_type.name})")
-        result_columns.append(f"variance({run_type.name})")
+    params = {
+        param: value for param, value in test_config.items() if param not in exclude
+    }
 
-    row = [test_config[k] for k in sweep_columns]
-    for run_type in run_types:
-        stats = results[run_type]
+    row = []
+    for value in params.values():
+        if is_dataclass(value):
+            row.extend(_dataclass_values(value))
+        else:
+            row.append(value)
+
+    for stats in result.values():
         for stat in stats:
-            # fix : multiple stats per run type
-            row.append(stat["mean"])
-            row.append(stat["variance"])
+            row.extend([stat["mean"], stat["variance"]])
 
     # Write to CSV
     first_entry = not os.path.exists(output_path)
     with open(output_path, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
         if first_entry:
-            writer.writerow(sweep_columns + result_columns)
+            writer.writerow(report_header(params, result))
         writer.writerow(row)

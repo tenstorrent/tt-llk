@@ -21,19 +21,17 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    volatile uint32_t* buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
-    volatile uint32_t* buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
-
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_B), 0, UNPACK_B_IN, UNPACK_B_OUT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[0]), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_B[0]), 0, UNPACK_B_IN, UNPACK_B_OUT);
 }
 
 #endif
 
 #ifdef LLK_TRISC_MATH
 
+#include "ckernel_defs.h"
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_binary.h"
 #include "llk_math_common.h"
@@ -42,6 +40,31 @@ void run_kernel()
 #include "params.h"
 
 using namespace ckernel::sfpu;
+
+namespace
+{
+void call_binary_sfpu_operation(BinaryOp operation)
+{
+    switch (operation)
+    {
+        case BinaryOp::ADD:
+        case BinaryOp::SUB:
+        case BinaryOp::MUL:
+        case BinaryOp::XLOGY:
+            _sfpu_binary_init_<false, SFPU_BINARY_OPERATION>();
+            _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
+            break;
+        case BinaryOp::RSHFT:
+            _calculate_binary_right_shift_<false, 32, INT32, false>(1);
+            break;
+        case BinaryOp::LSHFT:
+            _calculate_binary_left_shift_<false, 32, INT32, false>(1);
+            break;
+        default:
+            return;
+    }
+}
+} // namespace
 
 void run_kernel()
 {
@@ -65,13 +88,12 @@ void run_kernel()
         1, MATH_FORMAT, MATH_FORMAT);
 
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
-    ckernel::sfpu::_sfpu_binary_init_<false, SFPU_BINARY_OPERATION>();
 
     // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of firs operand, and
     // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
 
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
+    call_binary_sfpu_operation(SFPU_BINARY_OPERATION);
 
     _llk_math_eltwise_binary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -87,10 +109,6 @@ void run_kernel()
 
 void run_kernel()
 {
-    volatile uint32_t* buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
-
-    std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
-
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
         PACK_IN,
@@ -109,7 +127,7 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Dest));
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

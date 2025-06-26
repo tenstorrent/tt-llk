@@ -2,11 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-from helpers.device import (
-    run_elf_files,
-    wait_for_tensix_operations_finished,
-)
-from helpers.profiler import Profiler, build_with_profiler
+from helpers.profiler import Profiler
+from helpers.test_config import ProfilerBuild, run_test
 
 
 def assert_marker(
@@ -32,13 +29,9 @@ def test_profiler_primitives():
         "testname": "profiler_primitives_test",
     }
 
-    profiler_meta = build_with_profiler(test_config)
-    assert profiler_meta is not None, "Profiler metadata should not be None"
+    run_test(test_config, profiler_build=ProfilerBuild.Yes)
 
-    run_elf_files("profiler_primitives_test")
-    wait_for_tensix_operations_finished()
-
-    runtime = Profiler.get_data(profiler_meta)
+    runtime = Profiler.get_data(test_config["testname"])
 
     # ZONE_SCOPED
     zone = runtime.unpack[0]
