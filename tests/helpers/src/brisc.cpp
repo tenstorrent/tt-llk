@@ -49,7 +49,7 @@ int main()
 {
     device_setup();
 
-    // Reset triscs here in order to achieve brisc <-> trisc synchronization
+    // Release reset of triscs here in order to achieve brisc <-> trisc synchronization
     clear_trisc_soft_reset();
 
     // Use a volatile variable to prevent the compiler from optimizing away the loop
