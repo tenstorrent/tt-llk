@@ -72,6 +72,22 @@ true_values = torch.tensor(
     ],
     dtype=dtype,
 )
+# true_values = torch.tensor(
+#     [
+#         -0.0,
+#         -0.0,
+#         -0.0,
+#         -0.0,
+#         -0.0,
+#         -0.0,
+#         -0.0,
+#         -0.0,
+#         -0.0,
+#         -0.0,
+#     ],
+#     dtype=dtype,
+# )
+
 false_values = torch.tensor(
     [
         -1.0,
@@ -209,13 +225,13 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
             else torch.bfloat16
         ),
     )
-
-    print("RESULT TENSOR: \n", res_tensor.view(32, 32), "\n")
-    print("GOLDEN TENSOR: \n", golden_tensor.view(32, 32), "\n")
-
-    # print("CONDITION: \n", src_A.view(32, 32), "\n")
-    # print("TRUE VALUES: \n", src_B.view(32, 32), "\n")
-    # print("FALSE VALUES: \n", src_C.view(32, 32), "\n")
+    print(
+        "RESULT TENSOR (first 10 elements of 1st row):", res_tensor.view(32, 32)[0, :10]
+    )
+    print(
+        "GOLDEN TENSOR (first 10 elements of 1st row):",
+        golden_tensor.view(32, 32)[0, :10],
+    )
 
     assert torch_equal_nan(golden_tensor, res_tensor)
 
