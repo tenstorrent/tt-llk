@@ -11,10 +11,25 @@ from helpers.format_arg_mapping import (
     ReducePool,
     format_dict,
 )
+from helpers.format_config import DataFormat
 
 golden_registry = {}
 
+def check_bfp8_b(operand: torch.Tensor, format: DataFormat) -> None:
+    """Check if datum is BFP8_B there is a +/- inf then zero out entire row of 16 elements because they share the same exponent."""
+    if format == DataFormat.Bfp8_b:
+        for i in range(len(operand)):
+            if not torch.isfinite(operand[i]):
+                inf_index = i
+                for col in range(16):
+                    row = inf_index//16
+                    index = row * 16 + col
+                    if torch.isfinite(operand[index]):
+                        operand[index] = 0.0
 
+    return operand
+                    
+                    
 def register_golden(cls):
     """Register a golden class by its type."""
     golden_registry[cls] = cls()
@@ -104,7 +119,7 @@ class UnarySFPUGolden:
         self.data_format = data_format
         tensor = to_tensor(operand1, data_format)
         result = [self.ops[operation](x) for x in tensor.tolist()]
-        return torch.tensor(result, dtype=format_dict[data_format])
+        return check_bfp8_b(torch.tensor(result, dtype=format_dict[data_format]), data_format)
 
     # Operation methods
     def _abs(self, x):
