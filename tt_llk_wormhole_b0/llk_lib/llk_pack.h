@@ -331,15 +331,16 @@ inline void _llk_pack_fast_tilize_mop_config_(const std::uint32_t unit_dim)
 }
 
 inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, const std::uint32_t pack_dst_format, const std::uint32_t unit_dim)
-{   
-    // we are ignoring the actual is_fp32_dest_acc_en flag and instead using 32 bit dest only if unpack_src_format is TF32 (due to a hw quirk with MOVA2D and MOVB2D)
+{
+    // we are ignoring the actual is_fp32_dest_acc_en flag and instead using 32 bit dest only if unpack_src_format is TF32
+    // this is due to a hw quirk with MOVA2D and MOVB2D)
     // so we clear PCK_DEST_RD_CTRL_Read_32b_data unless unpack_src_format is TF32
     // unpack src format is not easy to determine here so we use an argument that is going to be computed at a higher level
     if (!use_32bit_dest)
     {
         cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(0);
     }
-    
+
     // set address offet to the size of the tile in 16B words
     uint tile_size = SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM);
     if (IS_BFP_FORMAT(pack_dst_format))
@@ -348,12 +349,13 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     }
     tile_size = tile_size >> 4; // convert to 16B words
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
-    
+
     // since faces are interleaved and top and bottom faces are in separate halves of the active dest bank, each packer needs a special offset
     // difference between 16 bit dest and 32 bit dest is where the half of the active bank is (256 rows vs 128 rows)
     // stallwait and select_packer_dest_registers just replicate what _llk_init_packer_dest_offset_registers_ does
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
-    if (!use_32bit_dest) {
+    if (!use_32bit_dest)
+    {
         TTI_SETDMAREG(0, 0x000 + 0x000, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
         TTI_SETDMAREG(0, 0x000 + 0x001, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
         TTI_SETDMAREG(0, 0x000 + 0x100, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
@@ -362,7 +364,9 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
         TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x001, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
         TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x100, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
         TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x101, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
-    } else {
+    }
+    else
+    {
         TTI_SETDMAREG(0, 0x000 + 0x000, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
         TTI_SETDMAREG(0, 0x000 + 0x001, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
         TTI_SETDMAREG(0, 0x000 + 0x080, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
@@ -392,7 +396,7 @@ inline void _llk_pack_fast_tilize_uninit_(
 {
     // restore PCK_DEST_RD_CTRL_Read_32b_data to the original value
     cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(is_fp32_dest_acc_en);
-    
+
     // restore default packer dest offsets
     _llk_init_packer_dest_offset_registers_<DST_SYNC_MODE, DstTileFaceLayout::RowMajor>();
 
@@ -404,16 +408,16 @@ inline void _llk_pack_fast_tilize_uninit_(
     // for some reason short inits avoid the packer init (probably since its usually the same)
     // but that means we have to call it here with reasonable defaults
     // it just initializes the address mods and mop
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(
-        pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t unit_dim, const std::uint32_t num_units)
+inline void _llk_pack_fast_tilize_block_(
+    const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t unit_dim, const std::uint32_t num_units)
 {
     // we use false here so that 31st bit of the address remains set as we want to continue using offset addreses for other packers
     // while we manipulate the address for the first packer using ADDDMAREG and REG2FLOP
     program_packer_destination(address, false);
-    
+
     // reset counters and set W counter
     TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b1010);
     TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
@@ -424,7 +428,8 @@ inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const s
 
     for (uint i = 0; i < num_units; i++)
     {
-        if (unit_dim == 1) {
+        if (unit_dim == 1)
+        {
             // pack a single tile
             // inside mop:
             // for (uint j = 0; j < 15; j++)
@@ -442,7 +447,9 @@ inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const s
             // but it actually provides some kind of a stall required when modifying the L1 base address while the packer is running
             // and has less performance impact than a PACK PACK STALLWAIT
             TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 1, 0);
-        } else if (unit_dim == 2) {
+        }
+        else if (unit_dim == 2)
+        {
             // pack a single tile
             // inside mop:
             // for (uint j = 0; j < 15; j++)
@@ -473,7 +480,9 @@ inline void _llk_pack_fast_tilize_block_(const std::uint32_t tile_index, const s
             // same notes for the flush bit as above
             // address mod here resets to the begining of the unit
             TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 1, 0);
-        } else if (unit_dim == 3) {
+        }
+        else if (unit_dim == 3)
+        {
             // pack a single tile
             // inside mop:
             // for (uint j = 0; j < 15; j++)

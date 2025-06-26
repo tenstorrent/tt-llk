@@ -171,10 +171,8 @@ inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_f
     uint z_stride = FACE_C_DIM * y_stride;
     uint w_stride = TILE_NUM_FACES * z_stride;
 
-    uint32_t xy_stride = (x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT) |
-                         (y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT);
-    uint32_t zw_stride = (z_stride << PCK0_ADDR_CTRL_ZW_REG_0_Zstride_SHAMT) |
-                         (w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT);
+    uint32_t xy_stride = (x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT) | (y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT);
+    uint32_t zw_stride = (z_stride << PCK0_ADDR_CTRL_ZW_REG_0_Zstride_SHAMT) | (w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT);
     TT_SETDMAREG(0, LOWER_HALFWORD(xy_stride), 0, LO_16(p_gpr_pack::TMP0));
     TT_SETDMAREG(0, UPPER_HALFWORD(xy_stride), 0, HI_16(p_gpr_pack::TMP0));
     TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK0_ADDR_CTRL_XY_REG_0_Xstride_ADDR32);
@@ -599,7 +597,8 @@ inline void program_packer_destination(uint32_t addr, bool restore = true)
 
     TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 0); // pack flush
 
-    if (restore) {
+    if (restore)
+    {
         TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
     }
 }
