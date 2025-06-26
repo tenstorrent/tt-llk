@@ -233,147 +233,205 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
 }
 
 /*************************************************************************
- * LLK FAST ELTWISE UNARY DATACOPY
+ * LLK MATH FAST TILIZE (Tilize single input using both unpackers and packer)
+ * unit_dim is number of tiles processed in a single iteration, num_units is number of units processed in a single call
+ * unit_dim and num_units must match the ones given to the unpacker (all unit_dim usage notes from unpacker also apply here)
+ * dst_index is the index of the tile inside destination register to write to
+ * both dest modes are supported (although 32 bit mode is supported by intentionally ignoring it for both math and pack unless src regs are TF32)
+ * only DstSync::SyncHalf is supported
+ * tiles are split across halves of the active dest bank (effectively quarters since DstSync::SyncHalf) so nothing except fast tilize should be using that dest bank
  *************************************************************************/
 
-inline void _llk_math_fast_eltwise_unary_datacopy_addrmod_config_(const std::uint32_t unit_dim)
+inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
 {
+    // standard addrmod that follows MOVB2D
     addr_mod_t {
         .srcb = {.incr = 4},
         .dest = {.incr = 4},
     }
         .set(ADDR_MOD_1);
 
+    // standard addrmod that follows MOVA2D
     addr_mod_t {
         .srca = {.incr = 8},
         .dest = {.incr = 8},
     }
         .set(ADDR_MOD_2);
 
+    // next two addrmods are mostly used for jumping to and from the offset for bottom faces
+    // offset for bottom faces is always half the number of rows in dest bank (512 / 2 for 16bit dest and 256 / 2 for 32bit dest since DstSync is always SyncHalf)
+    uint32_t bottom_face_offset = (unpack_dst_format == (uint)DataFormat::Tf32 ? 256 : 512) / 2;
+    // for unit_dim 1 we write 2 faces before jumping so at the moment of performing the jump dest RWC is 2*16 (two faces) -  8 (number of rows moved by current instruction)
+    // for unit_dim 2 we write 4 faces before jumping so at the moment of performing the jump dest RWC is 4*16 (four faces) - 8 (number of rows moved by current instruction)
+    uint8_t unit_dim_1_forward_jump = bottom_face_offset - (1 * (TILE_NUM_FACES / 2) * FACE_R_DIM - 8);
+    uint8_t unit_dim_2_forward_jump = bottom_face_offset - (2 * (TILE_NUM_FACES / 2) * FACE_R_DIM - 8);
+    
+    // jumping back to the offset for next tile is logically -bottom_face_offset if dest RWC is at the correct offset for bottom faces of the next tile
+    // only catch is that we have to compensate for the current instruction, for unit_dim 1 that is MOVA2D while for unit_dim 2 and 3 that is MOVB2D
+    int16_t unit_dim_1_backward_jump = -bottom_face_offset + 8;
+    int16_t unit_dim_2_backward_jump = -bottom_face_offset + 4;
+
+    // this follows MOVA2D in src and jumps to the offset for bottom faces (for unit_dim 1 and 2, unit_dim 3 is handled the other way)
     addr_mod_t {
         .srca = {.incr = 8},
-        .dest = {.incr = (uint8_t)(unit_dim == 1 ? 232 : 200)},
+        .dest = {.incr = unit_dim == 1 ? unit_dim_1_forward_jump : unit_dim_2_forward_jump},
     }
         .set(ADDR_MOD_3);
 
+    // this jumps back to the offset for next tile, RWCs for source registers are reset separately when clearing dvalids
     addr_mod_t {
-        .dest = {.incr = (int16_t)(unit_dim == 1 ? -248 : -252)},
+        .dest = {.incr = unit_dim == 1 ? unit_dim_1_backward_jump : unit_dim_2_backward_jump},
     }
         .set(ADDR_MOD_0);
 }
 
-inline void _llk_math_fast_eltwise_unary_datacopy_mop_config_(const std::uint32_t unit_dim)
+inline void _llk_math_fast_tilize_mop_config_()
 {
-    // TTI_REPLAY(16, 12, 0, 1);
+    ckernel_unpack_template tmp = ckernel_unpack_template(
+        false,
+        false,
+        TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0),
+        TT_OP_NOP,
+        TT_OP_NOP,
+        TT_OP_NOP,
+        TT_OP_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0),
+        TT_OP_NOP,
+        TT_OP_NOP);
 
-    // TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    // TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    // TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    // TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-    // TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-
-    // ckernel_unpack_template tmp = ckernel_unpack_template(
-    //     false,
-    //     true,
-    //     TT_OP_REPLAY(16, 4, 0, 0),
-    //     TT_OP_REPLAY(16, 4, 0, 0),
-    //     TT_OP_REPLAY(20, 8, 0, 0),
-    //     TT_OP_REPLAY(20, 8, 0, 0),
-    //     TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB),
-    //     0,
-    //     0);
-
-    // tmp.program(instrn_buffer);
+    tmp.program(instrn_buffer);
 }
 
-inline void _llk_math_fast_eltwise_unary_datacopy_init_(const std::uint32_t unit_dim)
+inline void _llk_math_fast_tilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
 {
-    _llk_math_fast_eltwise_unary_datacopy_addrmod_config_(unit_dim);
-
-    _llk_math_fast_eltwise_unary_datacopy_mop_config_(unit_dim);
-
-    TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 1);
-    TTI_NOP;
-    TTI_NOP;
-    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
-
+    // even though MOVA2D and MOVB2D are supposed to ignore ALU_ACC_CTRL_Fp32_enabled i guess some parts still rely on it
+    // it would be easier if they just fully respected ALU_ACC_CTRL_Fp32_enabled but its an hw quirk
+    // so in non Tf32 cases we want to clear it to fully ignore FP32 dest mode
+    // im not sure why it doesnt work if CFG_STATE_ID_StateID is not 1
+    if (unpack_dst_format != (uint)DataFormat::Tf32)
+    {
+        TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 1);
+        TTI_NOP;
+        TTI_NOP;
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+    }
+    
+    // everything else is quite standard math init
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
-
+    
     math::reset_counters(p_setrwc::SET_ABD_F);
+    
+    _llk_math_fast_tilize_addrmod_config_(unpack_dst_format, unit_dim);
+
+    _llk_math_fast_tilize_mop_config_();
 }
 
 template <bool is_fp32_dest_acc_en>
-inline void _llk_math_fast_eltwise_unary_datacopy_uninit_()
+inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
 {
-    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(is_fp32_dest_acc_en);
-    TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 0);
-    TTI_NOP;
-    TTI_NOP;
+    // if we previously cleared ALU_ACC_CTRL_Fp32_enabled restore it
+    // still not sure why this CFG_STATE_ID_StateID manipulation is needed
+    if (unpack_dst_format != (uint)DataFormat::Tf32)
+    {
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(is_fp32_dest_acc_en);
+        TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 0);
+        TTI_NOP;
+        TTI_NOP;
+    }
 }
 
-inline void _llk_math_fast_eltwise_unary_datacopy_block_(const std::uint32_t dst_index, const std::uint32_t unit_dim, const std::uint32_t num_units)
+inline void _llk_math_fast_tilize_block_(const std::uint32_t dst_index, const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim, const std::uint32_t num_units)
 {
-    // we split dest and write top faces in the frist half and botton faces in the second half (or more precisely quarter, since dest sync half)
+    // we split dest and write top faces in the frist half and bottom faces in the second half (or more precisely quarter, since dest sync half)
+    // we make our lives easier by lying to set_dst_write_addr that our tile shape is 32x16 so we get correct stride for our dst_index
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(dst_index);
 
     for (uint i = 0; i < num_units; i++)
     {
         if (unit_dim == 1) {
-            for (uint j = 0; j < 3; j++)
-            {
-                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-            }
+            // srcA has the full tile, copy top faces first
+            // inside mop:
+            // for (uint j = 0; j < 3; j++)
+            // {
+            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            // }
+            TTI_MOP(0, 3 - 1, 0x0);
+            // finish with top faces and jump to the offset for bottom faces
             TTI_MOVA2D(0, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
-            for (uint j = 0; j < 3; j++)
-            {
-                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-            }
+            // copy bottom faces
+            // inside mop:
+            // for (uint j = 0; j < 3; j++)
+            // {
+            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            // }
+            TTI_MOP(0, 3 - 1, 0x0);
+            // finish with bottom faces and jump back to the offset for next tile
             TTI_MOVA2D(0, 0, ADDR_MOD_0, p_mova2d::MOV_8_ROWS, 0);
+            // clear just srcA dvalid since its the only one set by the unpacker for unit_dim 1 and src RWCs
             TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB);
         } else if (unit_dim == 2) {
-            for (uint j = 0; j < 7; j++)
-            {
-                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-            }
+            // srcA has top faces (4 of them), copy them
+            // inside mop:
+            // for (uint j = 0; j < 7; j++)
+            // {
+            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            // }
+            TTI_MOP(0, 7 - 1, 0x0);
+            // finish with top faces and jump to the offset for bottom faces
             TTI_MOVA2D(0, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
-            for (uint j = 0; j < 15; j++)
-            {
-                TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-            }
+            // srcB has bottom faces (4 of them), copy them
+            // inside mop:
+            // for (uint j = 0; j < 15; j++)
+            // {
+            //     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            // }
+            TTI_MOP(0, 15 - 1, 0xFFFF);
+            // finish with bottom faces and jump back to the offset for next tile
             TTI_MOVB2D(0, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+            // clear both dvalids and src RWCs
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
         } else if (unit_dim == 3) {
-            for (uint j = 0; j < 6; j++)
-            {
-                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-            }
-            for (uint j = 0; j < 12; j++)
-            {
-                TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-            }
+            // srcA has top 8 rows of top faces (6 of them), copy them
+            // inside mop:
+            // for (uint j = 0; j < 6; j++)
+            // {
+            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            // }
+            TTI_MOP(0, 6 - 1, 0x0);
+            // srcB has bottom 8 rows of top faces (6 of them), copy them
+            // inside mop:
+            // for (uint j = 0; j < 12; j++)
+            // {
+            //     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            // }
+            TTI_MOP(0, 12 - 1, 0xFFFF);
+            // done with top faces, clear dvalids and src RWCs, next banks contain bottom faces
+            // also clear dest RWC since we use dest offset for forward jump here
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(dst_index + i * 3 + 8);
-            for (uint j = 0; j < 6; j++)
-            {
-                TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
-            }
-            for (uint j = 0; j < 11; j++)
-            {
-                TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
-            }
+            // we dont have enough address mods to have unit_dim 3 forward jump so we use dest offset here
+            uint32_t top_face_offset = dst_index + i * 3; // we copy 3 tiles per iteration
+            // offset to bottom is the number of tiles that fit into the dest bank since we specify half size faces that will get us into the correct position in the second half
+            uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == (uint)DataFormat::Tf32 ? 4 : 8);
+            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(bottom_face_offset);
+            // srcA has top 8 rows of bottom faces (6 of them), copy them
+            // inside mop:
+            // for (uint j = 0; j < 6; j++)
+            // {
+            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            // }
+            TTI_MOP(0, 6 - 1, 0x0);
+            // srcB has bottom 8 rows of top faces (6 of them), copy them
+            // inside mop:
+            // for (uint j = 0; j < 11; j++)
+            // {
+            //     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            // }
+            TTI_MOP(0, 11 - 1, 0xFFFF);
+            // finish with bottom faces and jump back to the offset for next tile
             TTI_MOVB2D(0, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+            // clear both dvalids and src RWCs
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
         }
     }
-
-    // TTI_MOP(0, block_dim - 1, 0xAAAA); // block dim must be even
 
     math::clear_dst_reg_addr();
 }
