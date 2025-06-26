@@ -76,8 +76,8 @@ dis: $(DIS_DIR)/unpack.S \
 	 $(SHARED_DIR)/brisc.S
 
 profiler: $(PROFILER_DIR)/unpack.meta.bin \
-	      $(PROFILER_DIR)/math.meta.bin \
-	      $(PROFILER_DIR)/pack.meta.bin
+	  $(PROFILER_DIR)/math.meta.bin \
+	  $(PROFILER_DIR)/pack.meta.bin
 # =========================
 # Build Rules
 # =========================
