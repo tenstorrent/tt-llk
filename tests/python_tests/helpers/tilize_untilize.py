@@ -8,13 +8,12 @@ from .format_config import DataFormat
 
 
 def tilize_block(input_tensor, dimensions, stimuli_format=DataFormat.Float16_b):
-
     if input_tensor.numel() != dimensions[0] * dimensions[1]:
         raise ValueError(
             f"Cannot reshape tensor of size {input_tensor.numel()} to shape {dimensions}."
         )
-    input_reshaped = input_tensor.view(dimensions[0], dimensions[1])
 
+    input_reshaped = input_tensor.view(dimensions[0], dimensions[1])
     if input_reshaped.ndim != 2:
         raise ValueError(
             f"Expected a 2D tensor for tilize_block, got shape {input_tensor.shape}"
@@ -26,31 +25,28 @@ def tilize_block(input_tensor, dimensions, stimuli_format=DataFormat.Float16_b):
             f"Input tensor dimensions must be divisible by 32. Got shape: {input_tensor.shape}"
         )
 
-    output = torch.empty_like(input_reshaped)
-    rows, cols = input_reshaped.shape
+    # Calculate number of blocks in each dimension
+    row_blocks = rows // 32
+    col_blocks = cols // 32
+    total_blocks = row_blocks * col_blocks
 
-    # Extract all 32x32 submatrices from input_reshaped
-    submatrices = []
-    for i in range(0, rows, 32):
-        for j in range(0, cols, 32):
-            submat = input_reshaped[i : i + 32, j : j + 32]
-            submatrices.append(submat)
+    blocked_tensor = input_reshaped.reshape(row_blocks, 32, col_blocks, 32)
 
-    tilized_output = torch.empty_like(input_reshaped, dtype=format_dict[stimuli_format])
-    tilized_submatrices = []
+    # Permute to get blocks in the right order: (row_blocks, col_blocks, 32, 32)
+    blocked_tensor = blocked_tensor.permute(0, 2, 1, 3)
 
-    for submat in submatrices:
-        if submat.numel() != 1024:
-            raise ValueError(
-                f"Each submatrix must have 1024 elements, got {submat.numel()}."
-            )
-        submat = submat.flatten().view(-1)
-        tilized_submat = tilize(submat, stimuli_format=stimuli_format)
-        tilized_submatrices.append(tilized_submat)
+    # Reshape to get all blocks as sequential entities: (total_blocks, 32, 32)
+    all_blocks = blocked_tensor.reshape(total_blocks, 32, 32)
 
-    # Concatenate all flattened tilized submatrices into the output tensor
-    tilized_output = torch.cat([t.flatten() for t in tilized_submatrices]).view(
-        rows, cols
+    flat_blocks = all_blocks.reshape(total_blocks, -1)
+
+    tilized_blocks = torch.stack(
+        [tilize(block, stimuli_format=stimuli_format) for block in flat_blocks]
+    )
+
+    # Reshape tilized blocks back to original dimensions
+    tilized_output = (
+        tilized_blocks.flatten().reshape(rows, cols).to(format_dict[stimuli_format])
     )
 
     return tilized_output
@@ -98,33 +94,40 @@ def untilize(tilized_tensor, stimuli_format=DataFormat.Float16_b):
 def untilize_block(
     input_tensor, stimuli_format=DataFormat.Float16_b, dimensions=[32, 32]
 ):
-    # Assume input_tensor is 1D and already tilized (flattened tiles)
-    # dimensions: [rows, cols] of the output matrix
+    """Optimized function to untilize blocks of data.
 
+    Args:
+        input_tensor: Input tensor to be untilized
+        stimuli_format: Data format
+        dimensions: Target dimensions for the output
+
+    Returns:
+        Untilized tensor with specified dimensions and data format
+    """
+    if input_tensor.numel() != dimensions[0] * dimensions[1]:
+        raise ValueError(
+            f"Cannot reshape tensor of size {input_tensor.numel()} to shape {dimensions}."
+        )
+
+    # Calculate number of 32x32 tiles
     rows, cols = dimensions
-    # Each tile is 32x32
-    tile_rows = rows // 32
-    tile_cols = cols // 32
-    tile_size = 1024  # 32x32
+    row_blocks = rows // 32
+    col_blocks = cols // 32
+    total_blocks = row_blocks * col_blocks
 
-    output = []
+    if rows % 32 != 0 or cols % 32 != 0:
+        raise ValueError(
+            f"Dimensions must be divisible by 32. Got dimensions: {dimensions}"
+        )
 
-    for t in range(tile_rows):
-        tile_start_index = t * tile_cols
-        physical_start_for_tile_row = tile_start_index * tile_size
+    # Reshape input to have one block per 1024 elements
+    input_reshaped = input_tensor.reshape(total_blocks, 1024)
 
-        # For each tile row, iterate over 32 rows (face_r_dim)
-        for i in range(32):
-            # For each tile column
-            for j in range(tile_cols):
-                # Untilize the tile
-                tile_offset = physical_start_for_tile_row + j * tile_size
-                tile = input_tensor[tile_offset : tile_offset + tile_size]
-                untilized_tile = untilize(tile, stimuli_format=stimuli_format)
-                reshaped_untilized = untilized_tile.view(32, 32)
-                # Append the i-th row of this tile
-                output.append(reshaped_untilized[i])
+    untilized_blocks = torch.stack([untilize(block) for block in input_reshaped])
 
-    # Stack all rows to form the output matrix
-    full_rows = torch.cat(output).view(rows, cols)
-    return full_rows
+    output = untilized_blocks.reshape(row_blocks, col_blocks, 32, 32)
+
+    # Then permute and reshape to get the final dimensions
+    output = output.permute(0, 2, 1, 3).reshape(rows, cols)
+
+    return output.to(dtype=format_dict[stimuli_format])
