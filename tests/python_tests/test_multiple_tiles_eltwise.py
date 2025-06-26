@@ -86,7 +86,12 @@ def test_multiple_tiles(
         mathop, src_A, src_B, formats.output_format, math_fidelity
     )
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, "0,0", tile_cnt
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        "0,0",
+        tile_count=tile_cnt,
     )
 
     test_config = {
@@ -104,7 +109,7 @@ def test_multiple_tiles(
     run_elf_files(testname)
     wait_for_tensix_operations_finished()
 
-    res_from_L1 = collect_results(formats, tile_cnt=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]

@@ -10,7 +10,7 @@ import torch
 from .format_arg_mapping import DataFormat, format_dict, format_tile_sizes
 
 
-def unpack_res_tiles(packed_list, formats, tile_cnt=1, sfpu=False):
+def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False):
 
     unpacked_tile = []
 
@@ -31,7 +31,7 @@ def unpack_res_tiles(packed_list, formats, tile_cnt=1, sfpu=False):
     else:
         unpack_func = unpackers.get(formats.output_format)
 
-    for i in range(tile_cnt):
+    for i in range(tile_count):
         start_index = i * format_tile_sizes[formats.output_format]
         end_index = start_index + format_tile_sizes[formats.output_format]
 

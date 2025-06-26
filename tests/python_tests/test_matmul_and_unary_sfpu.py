@@ -140,7 +140,7 @@ def test_matmul_and_unary_sfpu(
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tile_cnt=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 

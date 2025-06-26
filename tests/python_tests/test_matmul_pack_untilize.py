@@ -87,7 +87,7 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
         tilize(src_B, formats.input_format),
         formats.input_format,
         formats.input_format,
-        tile_cnt=tile_cnt,
+        tile_count=tile_cnt,
     )
 
     test_config = {
@@ -103,7 +103,7 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tile_cnt=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))

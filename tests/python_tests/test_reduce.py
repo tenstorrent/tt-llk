@@ -97,7 +97,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
     generate_golden = get_golden_generator(ReduceGolden)
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_cnt=tile_cnt
+        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
 
     mathop = mathop_mapping[reduce_dim]
@@ -117,7 +117,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
     run_elf_files(testname)
     wait_for_tensix_operations_finished()
 
-    res_from_L1 = collect_results(formats, tile_cnt=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])

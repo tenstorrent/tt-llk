@@ -72,7 +72,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
     generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(src_A, formats.output_format)
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_cnt=tile_cnt
+        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
 
     unpack_to_dest = formats.input_format.is_32_bit()
@@ -90,7 +90,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tile_cnt=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]

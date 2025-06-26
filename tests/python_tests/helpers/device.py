@@ -49,15 +49,15 @@ MAX_READ_BYTE_SIZE_16BIT = 2048
 
 def collect_results(
     formats: FormatConfig,
-    tile_cnt: int,
+    tile_count: int,
     address: int = 0x1C000,
     core_loc: str = "0,0",
     sfpu: bool = False,
 ):
 
-    read_bytes_cnt = format_tile_sizes[formats.output_format] * tile_cnt
+    read_bytes_cnt = format_tile_sizes[formats.output_format] * tile_count
     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
-    res_from_L1 = unpack_res_tiles(read_data, formats, tile_cnt=tile_cnt, sfpu=sfpu)
+    res_from_L1 = unpack_res_tiles(read_data, formats, tile_count=tile_count, sfpu=sfpu)
     return res_from_L1
 
 
@@ -100,7 +100,7 @@ def write_stimuli_to_l1(
     stimuli_A_format,
     stimuli_B_format,
     core_loc="0,0",
-    tile_cnt=1,
+    tile_count=1,
 ):
 
     TILE_ELEMENTS = 1024
@@ -110,8 +110,8 @@ def write_stimuli_to_l1(
 
     # beginning addresses of srcA, srcB and result buffers in L1
     buffer_A_address = 0x1A000
-    buffer_B_address = 0x1A000 + TILE_SIZE_A * tile_cnt
-    res_buffer_address = buffer_B_address + TILE_SIZE_B * tile_cnt
+    buffer_B_address = 0x1A000 + TILE_SIZE_A * tile_count
+    res_buffer_address = buffer_B_address + TILE_SIZE_B * tile_count
 
     write_to_device(
         core_loc, L1BufferLocations.srcA.value, buffer_A_address.to_bytes(4, "little")
@@ -125,7 +125,7 @@ def write_stimuli_to_l1(
         res_buffer_address.to_bytes(4, "little"),
     )
 
-    for i in range(tile_cnt):
+    for i in range(tile_count):
 
         start_index = TILE_ELEMENTS * i
         end_index = start_index + TILE_ELEMENTS
