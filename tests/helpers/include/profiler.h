@@ -34,6 +34,10 @@ constexpr std::uint16_t hashString16(const char (&s)[N])
 
 #define MARKER_ID(marker) hashString16(MARKER_FULL(marker))
 
+/* Push a string containing the full marker into the .profiler_meta section.
+ * This section will be processed by the host code to construct a mapping
+ * MARKER_ID -> { filename, line, marker } for parsing the profiler buffer.
+ */
 #define PROFILER_META(full_marker)                          \
     {                                                       \
         asm volatile(                                     \
