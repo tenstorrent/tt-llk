@@ -14,6 +14,8 @@ uint32_t math_sync_tile_dst_index = 0;
 
 constexpr bool disable_src_zero_flag = true;
 
+constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32);
+
 #define ACC_DEST true
 
 #ifdef LLK_TRISC_UNPACK
@@ -28,11 +30,11 @@ void run_kernel()
     volatile uint32_t* const buffer_true      = reinterpret_cast<volatile uint32_t*>(0x1b000);
     volatile uint32_t* const buffer_false     = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
-    _llk_unpack_A_hw_configure_<ACC_DEST, StochRndType::None, disable_src_zero_flag>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_condition), 0, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_true), 0, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_false), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    _llk_unpack_A_hw_configure_<ACC_DEST, StochRndType::None, disable_src_zero_flag>(PACK_FMT, PACK_FMT, FACE_R_DIM, 0, 4);
+    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, true>(0, 0, FACE_R_DIM, 4, PACK_FMT, PACK_FMT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, true>(L1_ADDRESS(buffer_condition), 0, PACK_FMT, PACK_FMT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, true>(L1_ADDRESS(buffer_true), 0, PACK_FMT, PACK_FMT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, true>(L1_ADDRESS(buffer_false), 0, PACK_FMT, PACK_FMT);
 }
 
 #endif
@@ -54,19 +56,16 @@ void run_kernel()
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ACC_DEST, BroadcastType::NONE, false, false>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ACC_DEST, BroadcastType::NONE, false, false>(0, 0, 4, PACK_FMT);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ACC_DEST, BroadcastType::NONE, false>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, ACC_DEST, BroadcastType::NONE, false>(0, 0, 4, PACK_FMT);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, ACC_DEST>();
-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+    _llk_math_hw_configure_<false, false>(PACK_FMT, PACK_FMT);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, unpack_to_dest>(
-        0, MATH_FORMAT, MATH_FORMAT); // buffer condition
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, unpack_to_dest>(
-        1, MATH_FORMAT, MATH_FORMAT); // buffer true
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, unpack_to_dest>(
-        2, MATH_FORMAT, MATH_FORMAT); // buffer false
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, true>(0, PACK_FMT, PACK_FMT); // buffer condition
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, true>(1, PACK_FMT, PACK_FMT); // buffer true
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, true>(2, PACK_FMT, PACK_FMT); // buffer false
 
     // calculation of sfpu operation on dest
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
@@ -85,8 +84,6 @@ void run_kernel()
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 #include "params.h"
-
-constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32);
 
 void run_kernel()
 {
@@ -114,8 +111,6 @@ void run_kernel()
 
     _llk_packer_wait_for_math_done_();
     _llk_pack_<DstSync::SyncHalf, false, ACC_DEST>(0, L1_ADDRESS(buffer_Dest));
-    _llk_pack_reconfig_l1_acc_(1);
-    _llk_pack_<DstSync::SyncHalf, false, ACC_DEST>(3, L1_ADDRESS(buffer_Dest));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, ACC_DEST>();
 }
 
