@@ -138,11 +138,12 @@ inline void _llk_pack_untilize_init_(
 {
     static_assert(!diagonal, "Diagonal not supported");
     static_assert(block_ct_dim <= 8, "block_ct_dim must be less than or equal to 8");
-    // Commented out until tt-metal#24095 is resolved.
-    // if constexpr (narrow_row)
-    // {
-    //     static_assert(row_num_datums < FACE_C_DIM, "row_num_datums must be set to less than FACE_C_DIM for narrow_row packing");
-    // }
+
+    if constexpr (narrow_row)
+    {
+        // Changed to check against TILE_C_DIM instead of FACE_C_DIM until tt-metal#24095 is investigated.
+        static_assert(row_num_datums < TILE_C_DIM, "row_num_datums must be set to less than TILE_C_DIM for narrow_row packing");
+    }
 
     _llk_pack_untilize_configure_addrmod_<diagonal>();
 
