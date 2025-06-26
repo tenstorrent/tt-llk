@@ -111,7 +111,7 @@ def write_stimuli_to_l1(
     # beginning addresses of srcA, srcB and result buffers in L1
     buffer_A_address = 0x1A000
     buffer_B_address = 0x1A000 + TILE_SIZE_A * tile_count
-    res_buffer_address = buffer_B_address + TILE_SIZE_B * tile_count
+    result_buffer_address = buffer_B_address + TILE_SIZE_B * tile_count
 
     write_to_device(
         core_loc, L1BufferLocations.srcA.value, buffer_A_address.to_bytes(4, "little")
@@ -122,7 +122,7 @@ def write_stimuli_to_l1(
     write_to_device(
         core_loc,
         L1BufferLocations.Result.value,
-        res_buffer_address.to_bytes(4, "little"),
+        result_buffer_address.to_bytes(4, "little"),
     )
 
     for i in range(tile_count):
@@ -157,7 +157,7 @@ def write_stimuli_to_l1(
         buffer_A_address += TILE_SIZE_A
         buffer_B_address += TILE_SIZE_B
 
-    return res_buffer_address  # return address where result will be stored
+    return result_buffer_address  # return address where result will be stored
 
 
 def get_result_from_device(

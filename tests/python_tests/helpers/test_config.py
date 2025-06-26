@@ -143,7 +143,7 @@ def generate_build_header(
     # Unpack an result buffer addresses arrrays generations
     buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
     buffer_B_address = read_word_from_device("0,0", L1BufferLocations.srcB.value)
-    res_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
+    result_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
 
     buffer_A_array = []
     buffer_B_array = []
@@ -158,7 +158,7 @@ def generate_build_header(
                 buffer_B_address + i * format_tile_sizes[formats.input_format]
             )
             buffer_res_array.append(
-                res_buffer_address + i * format_tile_sizes[formats.output_format]
+                result_buffer_address + i * format_tile_sizes[formats.output_format]
             )
 
     buffer_A_str = ", ".join(
