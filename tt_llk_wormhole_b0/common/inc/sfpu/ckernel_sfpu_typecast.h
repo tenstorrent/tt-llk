@@ -243,5 +243,38 @@ inline void _calculate_typecast_uint16_to_uint32_()
     }
 }
 
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_typecast_uint32_to_uint16_()
+{
+    //Packer will read HI16 bits from DEST if DEST is in 32bit mode but pck is configured for uint16
+#pragma GCC unroll 0
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        TTI_SFPLOAD(p_sfpu::LREG0, 4, ADDR_MOD_3, 0); //Load 32bit datums from DEST
+        TTI_SFPLOADI(p_sfpu::LREG1, 2, 0xFFFF); //Load Lo16 of LREG1 with 0xFFFF (65535)
+        TTI_SFPSETCC(0, p_sfpu::LREG0, 0, 4); //If sign bit of LREG0 is 0, set CC
+        TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1); //Put smaller of LREG0 & 1 into LREG1
+        TTI_SFPENCC(0, 0, 0, 0); //Clear CC bits
+        TTI_SFPSTORE(p_sfpu::LREG1, 6, ADDR_MOD_3, 0); //Store output
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_typecast_int32_to_uint16_()
+{
+#pragma GCC unroll 0
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        TTI_SFPLOAD(0, 4, ADDR_MOD_3, 0);
+        TTI_SFPLOADI(1, 2, 0);
+        TTI_SFPSWAP(0, 0, 1, 1);
+        TTI_SFPLOADI(2, 2, 0xFFFF);
+        TTI_SFPSWAP(0, 2, 0, 1);
+        TTI_SFPSTORE(0, 6, ADDR_MOD_3, 0);
+        sfpi::dst_reg++;
+    }
+}
+
 } // namespace sfpu
 } // namespace ckernel
