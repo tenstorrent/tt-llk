@@ -24,15 +24,13 @@ inline void _calculate_where_()
 {
     constexpr uint dst_tile_size = 32;
 
-    sfpi::vUInt output_tensor = 0;
-    sfpi::vUInt true_tensor   = 0;
-    sfpi::vUInt false_tensor  = 0;
-    // sfpi::vUInt sign_shift = 31;
-    sfpi::vUInt cond = sfpi::dst_reg[0];
+    sfpi::vFloat output_tensor = 0;
+    sfpi::vFloat true_tensor   = 0;
+    sfpi::vFloat false_tensor  = 0;
+    sfpi::vFloat cond          = sfpi::dst_reg[0];
 
     for (int i = 0; i < ITERATIONS; i++)
     {
-        // fetch next conditions, true and false values
         cond         = sfpi::dst_reg[0];
         true_tensor  = sfpi::dst_reg[dst_tile_size];
         false_tensor = sfpi::dst_reg[dst_tile_size * 2];
@@ -47,20 +45,9 @@ inline void _calculate_where_()
         }
         v_endif;
 
-        v_if (output_tensor == 0x80000000)
-        {
-            output_tensor = 55;
-        }
-        v_endif;
-
-        sfpi::dst_reg[0]                 = output_tensor;
-        sfpi::dst_reg[dst_tile_size * 3] = (output_tensor & 0x80000000); // >> sign_shift;
+        sfpi::dst_reg[0] = output_tensor;
         sfpi::dst_reg++;
     }
-    // for(int i = 0; i < ITERATIONS; i++)
-    // {
-    //     sfpi::dst_reg[0] = sfpi::dst_reg[0] + sfpi::dst_reg[3*dst_tile_size];
-    // }
 }
 
 } // namespace sfpu
