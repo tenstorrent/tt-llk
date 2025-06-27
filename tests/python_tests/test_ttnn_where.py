@@ -236,3 +236,97 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
     assert torch_equal_nan(golden_tensor, res_tensor)
 
     # assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+
+supported_formats = [DataFormat.Float32]  # , DataFormat.Float16_b]
+
+test_formats = input_output_formats(supported_formats, same=True)
+all_params = generate_params(
+    ["ttnn_where_test"],
+    test_formats,
+    dest_acc=[DestAccumulation.Yes],  # DestAccumulation.No],
+    mathop=[
+        MathOperation.TTNNWhere,
+    ],
+)
+param_ids = generate_param_ids(all_params)
+
+
+@pytest.mark.parametrize(
+    "testname, formats, dest_acc, mathop",
+    clean_params(all_params),
+    ids=param_ids,
+)
+@pytest.mark.parametrize("h", [32])
+@pytest.mark.parametrize("w", [32])
+def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
+    C = torch.arange(h * w, dtype=torch.float32)
+    C = (C % 2).float()  # Alternates 0, 1, 0, 1, ...
+    C = C.reshape(1, 1, h, w)
+    C = C.expand(1, 1, h, w)  # Broadcast to (n, c, h, w)
+    T = torch.ones(1, 1, h, w, dtype=torch.float32) * 2
+    F = torch.ones(1, 1, h, w, dtype=torch.float32) * 10
+    golden = torch.where(C != 0, T, F)
+
+    C = C.flatten().to(format_dict[formats.input_format])
+    T = T.flatten().to(format_dict[formats.input_format])
+    F = F.flatten().to(format_dict[formats.input_format])
+
+    write_stimuli_to_l1(
+        C,
+        T,
+        formats.input_format,
+        formats.input_format,
+        ternary_op=True,
+        buffer_C=F,
+        stimuli_C_format=formats.input_format,
+    )
+
+    test_config = {
+        "formats": formats,
+        "testname": testname,
+        "dest_acc": dest_acc,
+        "mathop": mathop,
+    }
+
+    make_cmd = generate_make_command(test_config)
+    run_shell_command(f"cd .. && {make_cmd}")
+    run_elf_files(testname)
+
+    wait_for_tensix_operations_finished()
+    res_from_L1 = collect_results(formats, tensor_size=len(C), address=0x1D000)
+    res_from_L1 = res_from_L1[:1024]
+
+    golden_tensor = torch.tensor(
+        golden,
+        dtype=(
+            format_dict[formats.output_format]
+            if formats.output_format
+            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
+            else torch.bfloat16
+        ),
+    )
+
+    golden_tensor = golden_tensor.flatten()[:1024]  # Ensure it matches the result size
+
+    res_tensor = torch.tensor(
+        res_from_L1,
+        dtype=(
+            format_dict[formats.output_format]
+            if formats.output_format
+            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
+            else torch.bfloat16
+        ),
+    )
+
+    assert len(res_tensor) == len(golden_tensor)
+
+    print(
+        "RESULT TENSOR (first 10 elements of 1st row):", res_tensor.view(32, 32)[0, :10]
+    )
+    print(
+        "GOLDEN TENSOR (first 10 elements of 1st row):",
+        golden_tensor.view(32, 32)[0, :10],
+    )
+
+    assert torch_equal_nan(golden_tensor, res_tensor)
