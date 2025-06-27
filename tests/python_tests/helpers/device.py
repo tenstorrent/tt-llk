@@ -70,7 +70,13 @@ def collect_results(
     return res_from_L1
 
 
+<<<<<<< Updated upstream
 def perform_tensix_soft_reset(core_loc="0,0"):
+=======
+def run_elf_files(testname, core_loc="0,0", run_brisc=True):
+    ELF_LOCATION = "../build/elf/"
+
+>>>>>>> Stashed changes
     context = check_context()
     device = context.devices[0]
     chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
@@ -103,10 +109,20 @@ def run_elf_files(testname, core_loc="0,0"):
     TRISC_PROFILER_BARRIE_ADDRESS = 0x16AFF4
     write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
 
+<<<<<<< Updated upstream
     # Run BRISC
+<<<<<<< HEAD
     brisc_elf_path = build_dir / "shared" / "brisc.elf"
     run_elf(str(brisc_elf_path.absolute()), core_loc, risc_name="brisc")
+=======
+    run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_name="brisc")
+=======
+    if run_brisc:
+        run_elf(f"{ELF_LOCATION}brisc.elf", core_loc, risc_id=0)
+>>>>>>> Stashed changes
+>>>>>>> 2b6e05e (Update with changes from main, brisc trisc sync)
 
+    print("RUN ELF FILES")
 
 def write_stimuli_to_l1(
     buffer_A,
@@ -266,7 +282,7 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     return dest_reg
 
 
-def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):
+def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=600, max_backoff=5):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
 
@@ -284,7 +300,7 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
             return
 
         time.sleep(backoff)
-        backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
+      #  backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
     assert False, f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
 
