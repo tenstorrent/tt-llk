@@ -275,6 +275,8 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
 
     while time.time() - start_time < timeout:
         if read_word_from_device(core_loc, mailbox_addr.value) == 1:
+            # write value different than 1 to mailbox to indicate kernel is running
+            write_words_to_device(core_loc, mailbox_addr.value, 2)
             return
 
         time.sleep(backoff)
