@@ -49,7 +49,7 @@ from .unpack import (
 MAX_READ_BYTE_SIZE_16BIT = 2048
 
 # Constants for soft reset operation
-TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack)
+TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack) and BRISC
 
 
 def collect_results(
