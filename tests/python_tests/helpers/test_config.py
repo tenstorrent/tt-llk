@@ -84,6 +84,10 @@ def generate_build_header(
     # Unpack to dest
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
     header_content.append(f"#define UNPACKING_TO_DEST {unpack_to_dest}")
+    
+    # Tilize / Untilize
+    tilize_untilize = str(test_config.get("tilize_untilize", False)).lower()
+    header_content.append(f"#define TILIZE_UNTILIZE {tilize_untilize}")
 
     # Math fidelity & Approximation mode
     header_content.append(

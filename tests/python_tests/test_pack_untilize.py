@@ -13,6 +13,7 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
+    generate_combination,
     generate_param_ids,
     generate_params,
     input_output_formats,
@@ -22,7 +23,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
+supported_formats = [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32] # pack untilize doesn't work for block float formats (Bfp8_b)
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -67,6 +68,7 @@ def test_pack_untilize(testname, formats):
         "testname": testname,
         "tile_cnt": tile_cnt,
         "input_dimensions": input_dimensions,
+        "tilize_untilize": True,
     }
 
     run_test(test_config)
