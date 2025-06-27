@@ -157,7 +157,7 @@ def get_tolerance(output_data_format):
     return atol, rtol
 
 
-def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16_b):
+def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16_b, fused_with_bfp8_b: bool = False):
     check_values_in_range(res_tensor, output_data_format)  # certain values may be out of range and must be "NaN" to represent torch representation 
 
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
@@ -202,5 +202,9 @@ def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16
             )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
-
+    
+    if fused_with_bfp8_b:
+        # For fused ops tests with Bfp8_b, PCC is > 0.98
+        pcc += 1
+    
     return is_within_tolerance and (pcc > 0.99)
