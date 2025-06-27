@@ -72,13 +72,7 @@ def collect_results(
     return res_from_L1
 
 
-<<<<<<< Updated upstream
 def perform_tensix_soft_reset(core_loc="0,0"):
-=======
-def run_elf_files(testname, core_loc="0,0", run_brisc=True):
-    ELF_LOCATION = "../build/elf/"
-
->>>>>>> Stashed changes
     context = check_context()
     device = context.devices[0]
     chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
@@ -274,7 +268,7 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     return dest_reg
 
 
-def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=600, max_backoff=5):
+def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
 

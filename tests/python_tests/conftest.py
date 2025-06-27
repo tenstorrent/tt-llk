@@ -232,6 +232,10 @@ def pytest_configure(config):
     else:
         tt_exalens_init.init_ttexalens()
 
+@pytest.fixture(scope="session", autouse=True)
+def run_simulator_enabled(pytestconfig):
+    RUN_SIMULATOR["enabled"] = pytestconfig.getoption("--run_simulator")
+
 
 # Skip decorators for specific architectures
 # These decorators can be used to skip tests based on the architecture
