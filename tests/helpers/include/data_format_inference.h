@@ -33,7 +33,7 @@ constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output
     return (is_exponentB(input) && output == DataFormat::Float16 && !is_fp32_dest_acc_en);
 }
 
-constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en)
+constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en, bool tilize_untilize)
 {
     DataFormat unpack_in  = input;
     DataFormat unpack_out = input;
@@ -42,14 +42,24 @@ constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, boo
 
     if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
     {
-        unpack_out = DataFormat::Tf32;
+        if (tilize_untilize) {
+            //Cannot tilize on Tf32 format
+            if (is_exponentB(output) || output == DataFormat::Float32){
+                unpack_out = DataFormat::Float16_b; // If output Float32 or Float16_b
+            } else {
+                unpack_out = DataFormat::Float16; // Tilize to Float16
+            }
+            
+        } else {
+            unpack_out = DataFormat::Tf32;
+        }
         if (is_fp32_dest_acc_en || is_exponentB(output))
         {
             pack_in = output;
         }
         else
         {
-            pack_in = DataFormat::Tf32;
+            pack_in = unpack_out;
         }
     }
     else if (input == DataFormat::Float16 && output == DataFormat::Bfp8_b && !is_fp32_dest_acc_en)
