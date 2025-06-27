@@ -72,14 +72,14 @@ def perform_tensix_soft_reset(core_loc="0,0"):
     chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
     noc_block = device.get_block(chip_coordinate)
     register_store = noc_block.get_register_store()
-    RISC_DBG_SOFT_RESET0 = register_store.get_register_noc_address(
+    soft_reset_register_address = register_store.get_register_noc_address(
         "RISCV_DEBUG_REG_SOFT_RESET_0"
     )
 
     # Read current soft reset register, set TRISC reset bits, and write back
-    soft_reset = read_word_from_device(core_loc, RISC_DBG_SOFT_RESET0)
+    soft_reset = read_word_from_device(core_loc, soft_reset_register_address)
     soft_reset |= TRISC_SOFT_RESET_MASK
-    write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
+    write_words_to_device(core_loc, soft_reset_register_address, soft_reset)
 
 
 def run_elf_files(testname, core_loc="0,0"):
