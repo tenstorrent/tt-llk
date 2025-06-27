@@ -56,7 +56,7 @@ inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
 inline sfpi::vFloat _calculate_cdf_appx_(sfpi::vFloat val, bool scaled = false)
 {
     sfpi::vFloat result = 0.0f;
-    sfpi::vFloat val2   = 0.0;
+    sfpi::vFloat val2   = 0.0f;
     v_if (val < 0.0f)
     {
         val2 = -val;
