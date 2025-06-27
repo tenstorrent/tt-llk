@@ -330,6 +330,7 @@ inline void _llk_pack_fast_tilize_mop_config_(const std::uint32_t unit_dim)
     tmp.program(instrn_buffer);
 }
 
+template <DstSync Dst>
 inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, const std::uint32_t pack_dst_format, const std::uint32_t unit_dim)
 {
     // we are ignoring the actual is_fp32_dest_acc_en flag and instead using 32 bit dest only if unpack_src_format is TF32
@@ -376,7 +377,7 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
         TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x080, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
         TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x081, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
     }
-    select_packer_dest_registers<DST_SYNC_MODE>();
+    select_packer_dest_registers<Dst>();
 
     // each packer packs a single row per call and in total each packer will pack a single face
     TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
@@ -386,7 +387,7 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     _llk_pack_fast_tilize_mop_config_(unit_dim);
 }
 
-template <bool is_fp32_dest_acc_en>
+template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_pack_fast_tilize_uninit_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -398,7 +399,7 @@ inline void _llk_pack_fast_tilize_uninit_(
     cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(is_fp32_dest_acc_en);
 
     // restore default packer dest offsets
-    _llk_init_packer_dest_offset_registers_<DST_SYNC_MODE, DstTileFaceLayout::RowMajor>();
+    _llk_init_packer_dest_offset_registers_<Dst, DstTileFaceLayout::RowMajor>();
 
     // packers pack a whole face by default, restore it
     TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
