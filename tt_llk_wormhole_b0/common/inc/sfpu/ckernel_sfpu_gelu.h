@@ -38,7 +38,7 @@ inline sfpi::vFloat _calculate_gelu_core_(sfpi::vFloat in)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_gelu_(const int iterations)
+inline void _calculate_gelu_appx_(const int iterations)
 {
     sfpi::vUInt l0 = sfpi::l_reg[sfpi::LRegs::LReg0];
     sfpi::vUInt l1 = sfpi::l_reg[sfpi::LRegs::LReg1];
@@ -83,6 +83,33 @@ inline void _calculate_gelu_(const int iterations)
     sfpi::l_reg[sfpi::LRegs::LReg4] = l4;
     sfpi::l_reg[sfpi::LRegs::LReg5] = l5;
     sfpi::l_reg[sfpi::LRegs::LReg6] = l6;
+}
+
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_gelu_accurate_(const int iterations)
+{
+    constexpr bool scaled = true;
+#pragma GCC unroll 8
+    for (int d = 0; d < iterations; d++)
+    {
+        sfpi::vFloat in     = sfpi::dst_reg[0];
+        sfpi::vFloat result = _calculate_cdf_appx_(in, scaled);
+        sfpi::dst_reg[0]    = result;
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_gelu_(const int iterations)
+{
+    if constexpr (APPROXIMATION_MODE)
+    {
+        _calculate_gelu_appx_<APPROXIMATION_MODE, ITERATIONS>(iterations);
+    }
+    else
+    {
+        _calculate_gelu_accurate_<APPROXIMATION_MODE, ITERATIONS>(iterations);
+    }
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
@@ -235,19 +262,6 @@ inline void _init_gelu_derivative_()
         imm1 = 0x3020;
         _sfpu_load_imm16_(0, imm0);
         _sfpu_load_imm16_(1, imm1);
-    }
-}
-
-inline void _calculate_gelu_accurate_(const int iterations)
-{
-    constexpr bool scaled = true;
-#pragma GCC unroll 8
-    for (int d = 0; d < iterations; d++)
-    {
-        sfpi::vFloat in     = sfpi::dst_reg[0];
-        sfpi::vFloat result = _calculate_cdf_appx_(in, scaled);
-        sfpi::dst_reg[0]    = result;
-        sfpi::dst_reg++;
     }
 }
 
