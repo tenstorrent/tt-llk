@@ -21,6 +21,7 @@ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
 
+from helpers.device import RUN_SIMULATOR
 
 def init_llk_home():
     if "LLK_HOME" in os.environ:
@@ -224,13 +225,16 @@ def pytest_addoption(parser):
         "--run_simulator", action="store_true", help="Run tests using the simulator."
     )
 
-
 def pytest_configure(config):
     run_simulator = config.getoption("--run_simulator")
     if run_simulator:
         tt_exalens_init.init_ttexalens_remote()
     else:
         tt_exalens_init.init_ttexalens()
+
+@pytest.fixture(scope="session", autouse=True)
+def run_simulator_enabled(pytestconfig):
+    RUN_SIMULATOR["enabled"] = pytestconfig.getoption("--run_simulator")
 
 
 # Skip decorators for specific architectures
