@@ -68,7 +68,6 @@ def test_pack_untilize(testname, formats):
         "testname": testname,
         "tile_cnt": tile_cnt,
         "input_dimensions": input_dimensions,
-        "tilize_untilize": True,
     }
 
     run_test(test_config)
