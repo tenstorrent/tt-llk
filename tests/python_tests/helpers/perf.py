@@ -8,6 +8,7 @@ from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 from pathlib import Path
 from statistics import mean, variance
+from typing import List
 
 from helpers.device import run_elf_files, wait_for_tensix_operations_finished
 from helpers.profiler import Profiler
@@ -145,16 +146,11 @@ def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
     return results
 
 
-def delete_reports():
-    root = os.environ.get("LLK_HOME")
-    if not root:
-        raise AssertionError("Environment variable LLK_HOME is not set")
-
-    path = Path(root) / "perf"
-    print(path)
-
-    if path.exists() and path.is_dir():
-        shutil.rmtree(path)
+class PerfReport:
+    sweep_names: List[str] = []
+    stat_names: List[str] = []
+    sweep_values: List[List] = []
+    stat_values: List[List] = []
 
 
 def _dataclass_names(parent, obj):
@@ -167,60 +163,101 @@ def _dataclass_values(obj):
     return [getattr(obj, f.name) for f in fields(obj)]
 
 
-def report_header(params, result):
-    columns = []
+def _get_sweep_names(params):
+    names = []
     for param, value in params.items():
         if is_dataclass(value):
-            columns.extend(_dataclass_names(param, value))
+            names.extend(_dataclass_names(param, value))
         else:
-            columns.append(param)
+            names.append(param)
 
+    return names
+
+
+def _get_stat_names(result):
+    names = []
     for run_type, stats in result.items():
         for i, _ in enumerate(stats):
-            columns.extend(
+            idx = f"[{i}]" if len(stats) > 1 else ""
+            names.extend(
                 [
-                    f"mean({run_type.name}[{i}])",
-                    f"variance({run_type.name}[{i}])",
+                    f"mean({run_type.name}{idx})",
+                    f"variance({run_type.name}{idx})",
                 ]
             )
 
-    return columns
+    return names
 
 
-def write_to_report(test_config, result):
-    root = os.environ.get("LLK_HOME")
-    if not root:
-        raise AssertionError("Environment variable LLK_HOME is not set")
-
-    filename = f"{test_config['testname']}.csv"
-    output_path = Path(root) / "perf" / filename
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+def update_report(report: PerfReport, test_config, results):
 
     exclude = {
         "testname",
         "perf_run_type",
-        "tile_cnt",
     }
 
     params = {
         param: value for param, value in test_config.items() if param not in exclude
     }
 
-    row = []
-    for value in params.values():
-        if is_dataclass(value):
-            row.extend(_dataclass_values(value))
-        else:
-            row.append(value)
+    if not report.sweep_names:
+        report.sweep_names = _get_sweep_names(params)
 
-    for stats in result.values():
+    if not report.stat_names:
+        report.stat_names = _get_stat_names(results)
+
+    sweep = []
+    for param in params.values():
+        if is_dataclass(param):
+            sweep.extend(_dataclass_values(param))
+        else:
+            sweep.append(param)
+    report.sweep_values.append(sweep)
+
+    stat_values = []
+    for stats in results.values():
         for stat in stats:
-            row.extend([stat["mean"], stat["variance"]])
+            stat_values.append(stat["mean"])
+            stat_values.append(stat["variance"])
+    report.stat_values.append(stat_values)
+
+
+def delete_benchmark_dir(testname: str):
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
+
+    path = Path(root) / "perf" / testname
+
+    if path.exists() and path.is_dir():
+        shutil.rmtree(path)
+
+
+def create_benchmark_dir(testname: str):
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
+
+    output_path = Path(root) / "perf" / testname
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    return output_path
+
+
+def dump_report(testname: str, report: PerfReport):
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
+
+    dir = create_benchmark_dir(testname)
+    output_path = dir / f"{testname}.csv"
 
     # Write to CSV
-    first_entry = not os.path.exists(output_path)
     with open(output_path, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        if first_entry:
-            writer.writerow(report_header(params, result))
-        writer.writerow(row)
+        writer.writerow(report.sweep_names + report.stat_names)
+
+        assert len(report.sweep_values) == len(report.stat_values)
+
+        for i in range(len(report.sweep_values)):
+            writer.writerow(report.sweep_values[i] + report.stat_values[i])
