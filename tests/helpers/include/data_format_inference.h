@@ -42,6 +42,7 @@ constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, boo
 
     if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
     {
+        tilize_untilize = true;
         if (tilize_untilize) {
             //Cannot tilize on Tf32 format
             if (is_exponentB(output) || output == DataFormat::Float32){

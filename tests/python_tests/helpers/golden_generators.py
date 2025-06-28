@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import math
+from typing import Optional
 
 import torch
 
@@ -24,7 +25,7 @@ def check_bfp8_b(operand: torch.Tensor, format: DataFormat) -> None:
                 for col in range(16):
                     row = inf_index//16
                     index = row * 16 + col
-                    if torch.isfinite(operand[index]):
+                    if torch.isfinite(operand[index]) and index != i:
                         operand[index] = 0.0
 
     return operand
@@ -202,15 +203,20 @@ class EltwiseBinaryGolden(FidelityMasking):
 @register_golden
 class BinarySFPUGolden(EltwiseBinaryGolden):
     def __init__(self):
-        self.ops = {
+        super().__init__()
+        self.ops.update({
             MathOperation.SfpuElwadd: self._add,
             MathOperation.SfpuElwsub: self._sub,
             MathOperation.SfpuElwmul: self._mul,
             MathOperation.SfpuXlogy: self._xlogy,
             MathOperation.SfpuElwRightShift: self._right_shift,
             MathOperation.SfpuElwLeftShift: self._left_shift,
+<<<<<<< HEAD
             MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
         }
+=======
+        })
+>>>>>>> 805e83b (saving curr work)
 
     def __call__(self, operation, operand1, operand2, data_format):
         if operation not in self.ops:
@@ -219,7 +225,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
 
-        return self.ops[operation](t1, t2)
+        return check_bfp8_b(self.ops[operation](t1, t2), data_format)
 
     # Operation methods are cover by Eltwise Binary Golden
     def _xlogy(self, t1, t2):

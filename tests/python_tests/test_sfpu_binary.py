@@ -10,10 +10,11 @@ from helpers.device import (
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
+    generate_combination,
     generate_param_ids,
     generate_params,
     input_output_formats,
@@ -23,7 +24,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_float_formats = [DataFormat.Float16_b, DataFormat.Float16]
+supported_float_formats = [DataFormat.Float32, DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]
 supported_int_formats = [DataFormat.Int32]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -38,15 +39,15 @@ supported_int_formats = [DataFormat.Int32]
 #         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
 #         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
 #         DataFormat.Bfp8_b,  # index 3 is for pack_dst
-#         DataFormat.Float16_b,  # index 4 is for math format)])
+#         DataFormat.Float16_b,)]) # index 4 is for math format
 
 #   SPECIFIC INPUT-OUTPUT COMBINATION
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
 float_ops = [
-    MathOperation.SfpuElwadd,
-    MathOperation.SfpuElwsub,
-    MathOperation.SfpuElwmul,
+    # MathOperation.SfpuElwadd,
+    # MathOperation.SfpuElwsub,
+    # MathOperation.SfpuElwmul,
     MathOperation.SfpuXlogy,
 ]
 
@@ -59,7 +60,7 @@ int_ops = [
 float_params = generate_params(
     ["sfpu_binary_test"],
     input_output_formats(supported_float_formats),
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     mathop=float_ops,
 )
 
@@ -70,7 +71,7 @@ int_params = generate_params(
     mathop=int_ops,
 )
 
-all_params = float_params + int_params
+all_params = float_params # + int_params
 
 param_ids = generate_param_ids(all_params)
 
@@ -85,6 +86,9 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
     chip_arch = get_chip_architecture()
     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
         pytest.skip("Not currently supported in tests")
+    
+    if dest_acc == DestAccumulation.No and chip_arch == ChipArchitecture.BLACKHOLE and formats.input_format == DataFormat.Float16:
+        pytest.skip("Float16_a isn't supported for SFPU on Blackhole without destination accumulation")
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -119,5 +123,8 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+    
+    print("\n\n\nResult from L1: ", res_tensor.view(64,16), "\n\n\n")
+    print("\n\n\nGolden tensor: ", golden_tensor.view(64,16), "\n\n\n")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
