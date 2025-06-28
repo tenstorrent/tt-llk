@@ -35,8 +35,8 @@ from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
-
+supported_formats = [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
+supported_formats = [DataFormat.Bfp8_b]
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
 
