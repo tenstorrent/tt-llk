@@ -138,4 +138,4 @@ def test_matmul_and_unary_sfpu(
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format, fused_with_bfp8_b=True)
