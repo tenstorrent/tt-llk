@@ -45,9 +45,9 @@ supported_int_formats = [DataFormat.Int32]
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
 float_ops = [
-    # MathOperation.SfpuElwadd,
-    # MathOperation.SfpuElwsub,
-    # MathOperation.SfpuElwmul,
+    MathOperation.SfpuElwadd,
+    MathOperation.SfpuElwsub,
+    MathOperation.SfpuElwmul,
     MathOperation.SfpuXlogy,
 ]
 
@@ -71,7 +71,7 @@ int_params = generate_params(
     mathop=int_ops,
 )
 
-all_params = float_params # + int_params
+all_params = float_params + int_params
 
 param_ids = generate_param_ids(all_params)
 
@@ -100,7 +100,7 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
 
-    unpack_to_dest = formats.input_format.is_32_bit()
+    unpack_to_dest = formats.input_format.is_32_bit() 
 
     # Blackhole needs this for some reason
     if formats.input_format == DataFormat.Float16:
@@ -123,8 +123,5 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-    
-    print("\n\n\nResult from L1: ", res_tensor.view(64,16), "\n\n\n")
-    print("\n\n\nGolden tensor: ", golden_tensor.view(64,16), "\n\n\n")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

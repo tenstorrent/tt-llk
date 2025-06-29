@@ -33,7 +33,7 @@ constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output
     return (is_exponentB(input) && output == DataFormat::Float16 && !is_fp32_dest_acc_en);
 }
 
-constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en, bool tilize_untilize)
+constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en, bool truncate_16bit)
 {
     DataFormat unpack_in  = input;
     DataFormat unpack_out = input;
@@ -42,8 +42,7 @@ constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, boo
 
     if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
     {
-        tilize_untilize = true;
-        if (tilize_untilize) {
+        if (truncate_16bit) {
             //Cannot tilize on Tf32 format
             if (is_exponentB(output) || output == DataFormat::Float32){
                 unpack_out = DataFormat::Float16_b; // If output Float32 or Float16_b

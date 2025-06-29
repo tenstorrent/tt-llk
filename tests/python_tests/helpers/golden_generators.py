@@ -229,7 +229,13 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 
     # Operation methods are cover by Eltwise Binary Golden
     def _xlogy(self, t1, t2):
-        return torch.xlogy(t1, t2)
+        result = torch.xlogy(t1, t2)
+        # Tensix interprets 0 * log(0) as non-finite (e.g., -inf or NaN),
+        # so we explicitly set it to NaN to match hardware behavior.
+        # Without this, golden and Tensix results will mismatch due to different edge case handling.
+        zero_zero_mask = (t1 == 0) & (t2 == 0)
+        result = torch.where(zero_zero_mask, torch.full_like(result, float('nan')), result)
+        return result
 
     def _right_shift(self, t1, t2):
         return torch.bitwise_right_shift(t1, t2)
