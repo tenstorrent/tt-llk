@@ -85,6 +85,18 @@ def generate_build_header(
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
     header_content.append(f"#define UNPACKING_TO_DEST {unpack_to_dest}")
 
+    # Tilize / Untilize / Sfpu doesn't work on Tf32 unpacked datums: We unpack 32 bit input to src registers in 16 bit format
+    test_name = test_config.get("testname", "").lower()
+    if "tilize" in test_name or "sfpu" in test_name:
+        truncate_to_16_bit = str(True).lower()
+    else:
+        truncate_to_16_bit = str(False).lower()
+    header_content.append(f"#define TRUNCATE_16_BIT {truncate_to_16_bit}")
+
+    # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
+    fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
+    header_content.append(f"#define L1_to_L1_ITERATIONS {str(fused_L1_to_L1)}")
+
     # Math fidelity & Approximation mode
     header_content.append(
         f"#define MATH_FIDELITY {test_config.get('math_fidelity', MathFidelity.LoFi).value}"
