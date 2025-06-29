@@ -43,7 +43,7 @@ constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, boo
     if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
     {
         if (truncate_16bit) {
-            //Cannot tilize on Tf32 format
+            //Cannot tilize/untilize/unpack for sfpu with Tf32 format
             if (is_exponentB(output) || output == DataFormat::Float32){
                 unpack_out = DataFormat::Float16_b; // If output Float32 or Float16_b
             } else {

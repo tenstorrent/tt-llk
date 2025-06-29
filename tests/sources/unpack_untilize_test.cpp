@@ -24,7 +24,7 @@ uint32_t math_sync_tile_dst_index = 0;
 void run_kernel()
 {
     _llk_unpack_untilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
-    _llk_unpack_untilize_init_(UNPACK_A_IN, 1024, FACE_R_DIM, 4);
+    _llk_unpack_untilize_init_(UNPACK_A_OUT, 1024, FACE_R_DIM, 4);
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_unpack_untilize_pass_<true>(L1_ADDRESS(buffer_A[0]), 1);
