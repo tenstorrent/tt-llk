@@ -130,6 +130,7 @@ def test_matmul_and_unary_sfpu(
         "math_fidelity": math_fidelity,
         "approx_mode": approx_mode,
         "mathop": mathop,
+        "fused_L1_to_L1": 2, # Fused L1 to L1 test has more than one L1-L1 runs: output of first run is used as input for the second run ... This flag marks the number of L1-L1 runs in the test
     }
 
     run_test(test_config)
