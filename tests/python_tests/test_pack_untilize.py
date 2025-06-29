@@ -23,7 +23,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32, DataFormat.Bfp8_b] # pack untilize doesn't work for block float formats (Bfp8_b) we only include as input in our test
+supported_formats = [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32, DataFormat.Bfp8_b] # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
