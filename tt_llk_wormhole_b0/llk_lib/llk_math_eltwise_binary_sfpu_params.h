@@ -20,7 +20,6 @@ inline void _llk_math_eltwise_binary_sfpu_params_(Callable&& sfpu_func, uint dst
     if (mode == VectorMode::R)
     {
         // Do a row vector, Face0 + Face1 -- first iteration (first row)
-        const int ITERATIONS = 1;
 #pragma GCC unroll 0
         for (int face = 0; face < 2; face++)
         {
