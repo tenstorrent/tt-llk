@@ -71,7 +71,7 @@ void run_kernel()
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    _calculate_where_<32>();
+    _calculate_where_<false, 32>();
 
     _llk_math_eltwise_ternary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, ACC_DEST>();
