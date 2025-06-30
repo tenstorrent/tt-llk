@@ -19,7 +19,7 @@ Index 64 ( Tile 2 ) -> false tensor
 
 */
 
-template <int ITERATIONS = 32>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 32>
 inline void _calculate_where_()
 {
     constexpr uint dst_tile_size = 32;
