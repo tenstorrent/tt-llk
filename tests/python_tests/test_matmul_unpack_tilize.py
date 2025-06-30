@@ -91,6 +91,7 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
         "testname": testname,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
+        "L1_to_L1_iterations": 2,  # Fused L1 to L1 test has multiple L1-L1 runs: output of first run is used as input for the second run ... This flag marks the number of L1-L1 runs in the test
     }
 
     run_test(test_config)
