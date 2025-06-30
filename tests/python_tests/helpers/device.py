@@ -124,12 +124,6 @@ def write_stimuli_to_l1(
 ):
 
     TILE_ELEMENTS = 1024
-    ternary_op=False,
-    buffer_C=None,
-    stimuli_C_format=None,
-):
-    BUFFER_SIZE = 4096
-    TILE_SIZE = 1024
 
     TILE_SIZE_A = format_tile_sizes.get(stimuli_A_format, 2048)
     TILE_SIZE_B = format_tile_sizes.get(stimuli_A_format, 2048)
@@ -155,6 +149,9 @@ def write_stimuli_to_l1(
 
         start_index = TILE_ELEMENTS * i
         end_index = start_index + TILE_ELEMENTS
+
+        # if end_index > len(buffer_A) or end_index > len(buffer_B):
+        #     raise IndexError("Buffer access out of bounds")
 
         buffer_A_tile = buffer_A[start_index:end_index]
         buffer_B_tile = buffer_B[start_index:end_index]
