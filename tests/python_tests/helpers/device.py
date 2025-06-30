@@ -51,6 +51,11 @@ MAX_READ_BYTE_SIZE_16BIT = 2048
 # Constants for soft reset operation
 TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack) and BRISC
 
+# Constants indicating the TRISC kernel run status
+RESET_VAL = 0  # Kernel not running and not complete
+KERNEL_COMPLETE = 1  # Kernel completed its run
+KERNEL_IN_PROGRESS = 15  # Kernel running
+
 
 def collect_results(
     formats: FormatConfig,
@@ -274,9 +279,9 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
     backoff = 0.1  # Initial backoff time in seconds
 
     while time.time() - start_time < timeout:
-        if read_word_from_device(core_loc, mailbox_addr.value) == 1:
+        if read_word_from_device(core_loc, mailbox_addr.value) == KERNEL_COMPLETE:
             # write value different than 1 to mailbox to indicate kernel is running
-            write_words_to_device(core_loc, mailbox_addr.value, 2)
+            write_words_to_device(core_loc, mailbox_addr.value, RESET_VAL)
             return
 
         time.sleep(backoff)
