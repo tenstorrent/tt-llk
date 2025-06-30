@@ -253,8 +253,8 @@ def dump_report(testname: str, report: PerfReport):
     if not root:
         raise AssertionError("Environment variable LLK_HOME is not set")
 
-    dir = create_benchmark_dir(testname)
-    output_path = dir / f"{testname}.csv"
+    benchmark_dir = create_benchmark_dir(testname)
+    output_path = benchmark_dir / f"{testname}.csv"
 
     # Write to CSV
     with open(output_path, "a", newline="") as csvfile:
