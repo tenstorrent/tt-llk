@@ -640,10 +640,10 @@ inline void _llk_unpack_fast_tilize_block_(
             //     TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1, 0);
             //     TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1, 0);
             // }
-            TTI_MOP(0, (FACE_R_DIM - 1) - 1, 0x0);
+            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
             TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_2_CH0Z_0, 1);
             TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_2_CH0Z_0, 1);
-            TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
+            TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
         }
         else if (unit_dim == 3)
         {
@@ -655,7 +655,7 @@ inline void _llk_unpack_fast_tilize_block_(
             //     TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0);
             //     TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0);
             // }
-            TTI_MOP(0, ((FACE_R_DIM / 2) - 1) - 1, 0xFFFF);
+            TTI_MOP(p_mop::MASK_LOOP, ((FACE_R_DIM / 2) - 1) - 1, 0xFFFF);
             TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 1);
             TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 1);
             TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 1, 0, SETADC_CH01(p_setadc::ZW));
@@ -668,7 +668,7 @@ inline void _llk_unpack_fast_tilize_block_(
             //     TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0);
             //     TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0);
             // }
-            TTI_MOP(0, ((FACE_R_DIM / 2) - 1) - 1, 0xFFFF);
+            TTI_MOP(p_mop::MASK_LOOP, ((FACE_R_DIM / 2) - 1) - 1, 0xFFFF);
             TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_3_CH0Z_0, 1);
             TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_3_CH0Z_0, 1);
             TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));

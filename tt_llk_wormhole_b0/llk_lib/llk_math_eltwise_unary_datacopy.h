@@ -293,11 +293,11 @@ inline void _llk_math_fast_tilize_mop_config_()
     ckernel_unpack_template tmp = ckernel_unpack_template(
         false,
         false,
-        TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0),
+        TT_OP_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0),
         TT_OP_NOP,
         TT_OP_NOP,
         TT_OP_NOP,
-        TT_OP_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0),
+        TT_OP_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0),
         TT_OP_NOP,
         TT_OP_NOP);
 
@@ -357,20 +357,20 @@ inline void _llk_math_fast_tilize_block_(
             // inside mop:
             // for (uint j = 0; j < 3; j++)
             // {
-            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
-            TTI_MOP(0, 3 - 1, 0x0);
+            TTI_MOP(p_mop::MASK_LOOP, 3 - 1, 0x0);
             // finish with top faces and jump to the offset for bottom faces
-            TTI_MOVA2D(0, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
+            TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
             // copy bottom faces
             // inside mop:
             // for (uint j = 0; j < 3; j++)
             // {
-            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
-            TTI_MOP(0, 3 - 1, 0x0);
+            TTI_MOP(p_mop::MASK_LOOP, 3 - 1, 0x0);
             // finish with bottom faces and jump back to the offset for next tile
-            TTI_MOVA2D(0, 0, ADDR_MOD_0, p_mova2d::MOV_8_ROWS, 0);
+            TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_0, p_mova2d::MOV_8_ROWS, 0);
             // clear just srcA dvalid since its the only one set by the unpacker for unit_dim 1 and src RWCs
             TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB);
         }
@@ -380,20 +380,20 @@ inline void _llk_math_fast_tilize_block_(
             // inside mop:
             // for (uint j = 0; j < 7; j++)
             // {
-            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
-            TTI_MOP(0, 7 - 1, 0x0);
+            TTI_MOP(p_mop::MASK_LOOP, 7 - 1, 0x0);
             // finish with top faces and jump to the offset for bottom faces
-            TTI_MOVA2D(0, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
+            TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
             // srcB has bottom faces (4 of them), copy them
             // inside mop:
             // for (uint j = 0; j < 15; j++)
             // {
-            //     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
             // }
-            TTI_MOP(0, 15 - 1, 0xFFFF);
+            TTI_MOP(p_mop::MASK_LOOP, 15 - 1, 0xFFFF);
             // finish with bottom faces and jump back to the offset for next tile
-            TTI_MOVB2D(0, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
             // clear both dvalids and src RWCs
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
         }
@@ -403,16 +403,16 @@ inline void _llk_math_fast_tilize_block_(
             // inside mop:
             // for (uint j = 0; j < 6; j++)
             // {
-            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
-            TTI_MOP(0, 6 - 1, 0x0);
+            TTI_MOP(p_mop::MASK_LOOP, 6 - 1, 0x0);
             // srcB has bottom 8 rows of top faces (6 of them), copy them
             // inside mop:
             // for (uint j = 0; j < 12; j++)
             // {
-            //     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
             // }
-            TTI_MOP(0, 12 - 1, 0xFFFF);
+            TTI_MOP(p_mop::MASK_LOOP, 12 - 1, 0xFFFF);
             // done with top faces, clear dvalids and src RWCs, next banks contain bottom faces
             // also clear dest RWC since we use dest offset for forward jump here
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
@@ -426,18 +426,18 @@ inline void _llk_math_fast_tilize_block_(
             // inside mop:
             // for (uint j = 0; j < 6; j++)
             // {
-            //     TTI_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
-            TTI_MOP(0, 6 - 1, 0x0);
+            TTI_MOP(p_mop::MASK_LOOP, 6 - 1, 0x0);
             // srcB has bottom 8 rows of top faces (6 of them), copy them
             // inside mop:
             // for (uint j = 0; j < 11; j++)
             // {
-            //     TTI_MOVB2D(0, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
             // }
-            TTI_MOP(0, 11 - 1, 0xFFFF);
+            TTI_MOP(p_mop::MASK_LOOP, 11 - 1, 0xFFFF);
             // finish with bottom faces and jump back to the offset for next tile
-            TTI_MOVB2D(0, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
             // clear both dvalids and src RWCs
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
         }
