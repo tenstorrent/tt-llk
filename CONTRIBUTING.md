@@ -44,7 +44,7 @@ A breaking change is any change that:
    - Do **not merge** the change into the submodule’s main branch until:
      - The `tt-metal` PR is **approved**.
      - **All checks are passing**.
-     - Reviewers from both repos have signed off.
+     - Reviewers from both repositories have approved your changes.
 
 
 ## 🔁 Submodule Update Guidelines
