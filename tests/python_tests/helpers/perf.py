@@ -249,6 +249,9 @@ def create_benchmark_dir(testname: str):
 
 
 def dump_report(testname: str, report: PerfReport):
+    if len(report.sweep_values) != len(report.stat_values):
+        raise ValueError("Mismatch between sweep_values and stat_values lengths")
+
     root = os.environ.get("LLK_HOME")
     if not root:
         raise AssertionError("Environment variable LLK_HOME is not set")
@@ -259,9 +262,8 @@ def dump_report(testname: str, report: PerfReport):
     # Write to CSV
     with open(output_path, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(report.sweep_names + report.stat_names)
-
-        assert len(report.sweep_values) == len(report.stat_values)
+        header_row = report.sweep_names + report.stat_names
+        writer.writerow(header_row)
 
         for sweep_vals, stat_vals in zip(report.sweep_values, report.stat_values):
             writer.writerow(sweep_vals + stat_vals)
