@@ -5,9 +5,9 @@ This repository (`tt-llk`) is **consumed by another repository** (`tt-metal`) as
 
 ## ✅ General Principles
 
-- This repository is **shared and reused downstream**.
-- All changes should aim to **preserve backward compatibility**.
-- **Breaking changes must be coordinated** with the parent repository (`tt-metal`) before being merged here.
+- This repository is **used as a git submodule** by `tt-metal`.
+- **Prefer backward compatibility** when possible, but breaking changes are acceptable when properly coordinated.
+- **Breaking changes must be coordinated** with `tt-metal` maintainers before being merged here.
 
 
 ## 🔒 Breaking Changes
@@ -27,7 +27,9 @@ A breaking change is any change that:
    - If a destructive change is necessary, introduce it in a way that requires minimal modifications to the existing code. If larger or additional destructive changes are needed, split them into separate pull requests.
 
 2. **Communicate early**
-   - Notify maintainers from the parent repo (via Slack channel [`#tt-metal-pr-review-requests`](https://tenstorrent.enterprise.slack.com/archives/C07G47JMQHM))
+   - Notify maintainers from the `tt-metal` repo.
+   - Provide context: what will break, why the change is needed, and provide an estimated timeline.
+   - Allow time for feedback and coordination before implementing changes.
 
 3. **Test with the `tt-metal` repo first**
    - Open a **pull request in the tt-metal** that:
@@ -36,6 +38,7 @@ A breaking change is any change that:
      - Passes **all CI checks** using that branch:
          - [All post-commit checks](https://github.com/tenstorrent/tt-metal/actions/workflows/all-post-commit-workflows.yaml)
          - [Blackhole post-commit checks](https://github.com/tenstorrent/tt-metal/actions/workflows/blackhole-post-commit.yaml)
+         - If your change is affecting ttnn operations, additional checks might be required by the maintainers.
 
 4. **Merge only after validation**
    - Do **not merge** the change into the submodule’s main branch until:
