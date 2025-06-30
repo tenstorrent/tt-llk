@@ -188,6 +188,10 @@ struct p_pacr
     constexpr static uint P_ZERO_OUTPUT_ENABLED  = 0x1;
 };
 
+#define TTI_PACR_COMMON(AddrMode, ZeroWrite, PackSel, Flush, Last) TTI_PACR(AddrMode, ZeroWrite, PackSel, 0 /*OvrdThreadId*/, 0 /*Concat*/, Flush, Last)
+
+#define TT_OP_PACR_COMMON(AddrMode, ZeroWrite, PackSel, Flush, Last) TT_OP_PACR(AddrMode, ZeroWrite, PackSel, 0 /*OvrdThreadId*/, 0 /*Concat*/, Flush, Last)
+
 struct p_ind
 {
     constexpr static uint HIER_REGFILE = 0x0;
@@ -202,6 +206,12 @@ struct p_ind
     constexpr static uint LD_32bit = 1;
     constexpr static uint LD_16bit = 2;
     constexpr static uint LD_8bit  = 3;
+};
+
+struct p_mov
+{
+    constexpr static uint DEST_NORM    = 0;
+    constexpr static uint DEST_32B_LOW = 1;
 };
 
 struct p_mova2d
@@ -434,5 +444,34 @@ struct p_setdmareg
     constexpr static uint MODE_IMMEDIATE = 0;
     constexpr static uint MODE_SIGNAL    = 1;
 };
+
+struct p_mop
+{
+    constexpr static uint MASK_LOOP   = 0;
+    constexpr static uint DOUBLE_LOOP = 1;
+};
+
+struct p_adddmareg
+{
+    constexpr static uint REG_PLUS_REG = 0;
+    constexpr static uint REG_PLUS_IMM = 1;
+};
+
+constexpr static uint REG2FLOP_FLOP_INDEX(uint addr)
+{
+    return addr - THCON_CFGREG_BASE_ADDR32;
+}
+
+struct p_reg2flop
+{
+    constexpr static uint WRITE_16B = 0;
+    constexpr static uint WRITE_4B  = 1;
+    constexpr static uint WRITE_2B  = 2;
+    constexpr static uint WRITE_1B  = 3;
+};
+
+#define TTI_REG2FLOP_COMMON(SizeSel, FlopIndex, RegIndex) TTI_REG2FLOP(SizeSel, 0 /*TargetSel*/, 0 /*ByteOffset*/, 0 /*ContextId*/, FlopIndex, RegIndex)
+
+#define TT_OP_REG2FLOP_COMMON(SizeSel, FlopIndex, RegIndex) TT_OP_REG2FLOP(SizeSel, 0 /*TargetSel*/, 0 /*ByteOffset*/, 0 /*ContextId*/, FlopIndex, RegIndex)
 
 } // namespace ckernel
