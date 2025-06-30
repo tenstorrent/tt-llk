@@ -84,18 +84,17 @@ def perform_tensix_soft_reset(core_loc="0,0"):
 
 
 def run_elf_files(testname, core_loc="0,0"):
-    BUILD = "../build"
+    build_dir = Path("../build")
 
     # Perform soft reset
     perform_tensix_soft_reset(core_loc)
 
     # Load TRISC ELF files
-    TRISC = ["unpack", "math", "pack"]
-    for i in range(3):
+    trisc_names = ["unpack", "math", "pack"]
+    for i, trisc_name in enumerate(trisc_names):
+        elf_path = build_dir / "tests" / testname / "elf" / f"{trisc_name}.elf"
         load_elf(
-            elf_file=str(
-                Path(f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf").absolute()
-            ),
+            elf_file=str(elf_path.absolute()),
             core_loc=core_loc,
             risc_name=f"trisc{i}",
         )
@@ -105,9 +104,8 @@ def run_elf_files(testname, core_loc="0,0"):
     write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
 
     # Run BRISC
-    run_elf(
-        str(Path(f"{BUILD}/shared/brisc.elf").absolute()), core_loc, risc_name="brisc"
-    )
+    brisc_elf_path = build_dir / "shared" / "brisc.elf"
+    run_elf(str(brisc_elf_path.absolute()), core_loc, risc_name="brisc")
 
 
 def write_stimuli_to_l1(

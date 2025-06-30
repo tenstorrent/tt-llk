@@ -21,9 +21,6 @@ from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
 from helpers.perf import delete_reports
 
-# Constant - indicates the TRISC kernel run status
-RESET_VAL = 0  # Kernel not running and not complete
-
 
 def init_llk_home():
     if "LLK_HOME" in os.environ:
@@ -69,10 +66,13 @@ def set_chip_architecture():
 
 
 @pytest.fixture(autouse=True)
-def setup_all_mailboxes_before_test():
-    write_words_to_device(core_loc="0, 0", addr=Mailbox.Packer.value, data=RESET_VAL)
-    write_words_to_device(core_loc="0, 0", addr=Mailbox.Math.value, data=RESET_VAL)
-    write_words_to_device(core_loc="0, 0", addr=Mailbox.Unpacker.value, data=RESET_VAL)
+def reset_mailboxes():
+    """Reset all core mailboxes before each test."""
+    core_loc = "0, 0"
+    reset_value = 0  # Constant - indicates the TRISC kernel run status
+    mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
+    for mailbox in mailboxes:
+        write_words_to_device(core_loc=core_loc, addr=mailbox.value, data=reset_value)
     yield
 
 
