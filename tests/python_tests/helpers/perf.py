@@ -175,16 +175,20 @@ def _get_sweep_names(params):
 
 
 def _get_stat_names(result):
-    names = []
+    """Version with pre-allocation."""
+
+    # Pre-calculate total size needed
+    total_stats = sum(len(stats) for stats in result.values())
+    names = [None] * (total_stats * 2)  # Pre-allocate exact size
+
+    column = 0
     for run_type, stats in result.items():
-        for i, _ in enumerate(stats):
-            idx = f"[{i}]" if len(stats) > 1 else ""
-            names.extend(
-                [
-                    f"mean({run_type.name}{idx})",
-                    f"variance({run_type.name}{idx})",
-                ]
-            )
+        stats_count = len(stats)
+        for idx in range(stats_count):
+            idx_str = f"[{idx}]" if len(stats) > 1 else ""
+            names[column] = f"mean({run_type.name}{idx_str})"
+            names[column + 1] = f"variance({run_type.name}{idx_str})"
+            column += 2
 
     return names
 
