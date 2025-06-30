@@ -259,11 +259,14 @@ def dump_report(testname: str, report: PerfReport):
     benchmark_dir = create_benchmark_dir(testname)
     output_path = benchmark_dir / f"{testname}.csv"
 
+    header_row = report.sweep_names + report.stat_names
+    data_rows = [
+        sweep_vals + stat_vals
+        for sweep_vals, stat_vals in zip(report.sweep_values, report.stat_values)
+    ]
+
     # Write to CSV
     with open(output_path, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        header_row = report.sweep_names + report.stat_names
         writer.writerow(header_row)
-
-        for sweep_vals, stat_vals in zip(report.sweep_values, report.stat_values):
-            writer.writerow(sweep_vals + stat_vals)
+        writer.writerows(data_rows)
