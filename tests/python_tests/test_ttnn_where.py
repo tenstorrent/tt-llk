@@ -4,12 +4,14 @@
 
 import pytest
 import torch
+from ttexalens.tt_exalens_lib import (
+    write_to_device,
+)
 
 from helpers.device import (
     collect_results,
     run_elf_files,
     wait_for_tensix_operations_finished,
-    write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import (
     DestAccumulation,
@@ -17,6 +19,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
+from helpers.pack import pack_fp32
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -172,24 +175,18 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
     if src_A.dtype != format_dict[formats.input_format]:
         pytest.skip()
 
-    print(
-        "\n\nTEST COMBINATION: ",
-        src_A.dtype,
-        format_dict[formats.input_format],
-        dest_acc,
-        "\n",
-    )
+    core_loc = "0,0"
+    buffer_A_address = 0x1A000
+    buffer_B_address = 0x1B000
+    buffer_C_address = 0x1C000
+
+    pack_function_A = pack_fp32
+    pack_function_B = pack_fp32
 
     golden = generate_golden(src_A, src_B, src_C)
-    write_stimuli_to_l1(
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        ternary_op=True,
-        buffer_C=src_C,
-        stimuli_C_format=formats.input_format,
-    )
+    write_to_device(core_loc, buffer_A_address, pack_function_A(src_A))
+    write_to_device(core_loc, buffer_B_address, pack_function_B(src_B))
+    write_to_device(core_loc, buffer_C_address, pack_function_B(src_C))
 
     test_config = {
         "formats": formats,
@@ -203,7 +200,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A), address=0x1D000)
+    res_from_L1 = collect_results(formats, tile_count=1, address=0x1D000)
     res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden)
 
@@ -272,15 +269,18 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     T = T.flatten().to(format_dict[formats.input_format])
     F = F.flatten().to(format_dict[formats.input_format])
 
-    write_stimuli_to_l1(
-        C,
-        T,
-        formats.input_format,
-        formats.input_format,
-        ternary_op=True,
-        buffer_C=F,
-        stimuli_C_format=formats.input_format,
-    )
+    core_loc = "0,0"
+    buffer_A_address = 0x1A000
+    buffer_B_address = 0x1B000
+    buffer_C_address = 0x1C000
+
+    pack_function_A = pack_fp32
+    pack_function_B = pack_fp32
+
+    golden = generate_golden(C, T, F)
+    write_to_device(core_loc, buffer_A_address, pack_function_A(C))
+    write_to_device(core_loc, buffer_B_address, pack_function_B(T))
+    write_to_device(core_loc, buffer_C_address, pack_function_B(F))
 
     test_config = {
         "formats": formats,
@@ -294,7 +294,7 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     run_elf_files(testname)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(C), address=0x1D000)
+    res_from_L1 = collect_results(formats, tile_count=1, address=0x1D000)
     res_from_L1 = res_from_L1[:1024]
 
     golden_tensor = torch.tensor(
