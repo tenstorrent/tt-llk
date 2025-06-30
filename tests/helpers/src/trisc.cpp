@@ -43,7 +43,6 @@ int main()
     std::uint64_t wall_clock = ckernel::read_wall_clock();
 
     *(TIMESTAMP_ADDRESS + core_idx * 2) = wall_clock;
-    *mailbox                            = ckernel::KERNEL_IN_PROGRESS; // 0xf
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
     ckernel::reset_cfg_state_id();

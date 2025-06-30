@@ -11,11 +11,18 @@ from pathlib import Path
 import pytest
 import requests
 from requests.exceptions import ConnectionError, RequestException, Timeout
-from ttexalens.tt_exalens_lib import arc_msg
+from ttexalens.tt_exalens_lib import (
+    arc_msg,
+    write_words_to_device,
+)
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
 from helpers.perf import delete_reports
+
+# Constant - indicates the TRISC kernel run status
+RESET_VAL = 0  # Kernel not running and not complete
 
 
 def init_llk_home():
@@ -59,6 +66,14 @@ def set_chip_architecture():
         sys.exit(1)
     os.environ["CHIP_ARCH"] = architecture.value
     return architecture
+
+
+@pytest.fixture(autouse=True)
+def setup_all_mailboxes_before_test():
+    write_words_to_device(core_loc="0, 0", addr=Mailbox.Packer.value, data=RESET_VAL)
+    write_words_to_device(core_loc="0, 0", addr=Mailbox.Math.value, data=RESET_VAL)
+    write_words_to_device(core_loc="0, 0", addr=Mailbox.Unpacker.value, data=RESET_VAL)
+    yield
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -3,6 +3,7 @@
 
 import inspect
 import time
+from pathlib import Path
 
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.tt_exalens_lib import (
@@ -51,10 +52,8 @@ MAX_READ_BYTE_SIZE_16BIT = 2048
 # Constants for soft reset operation
 TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack) and BRISC
 
-# Constants indicating the TRISC kernel run status
-RESET_VAL = 0  # Kernel not running and not complete
+# Constant - indicates the TRISC kernel run status
 KERNEL_COMPLETE = 1  # Kernel completed its run
-KERNEL_IN_PROGRESS = 15  # Kernel running
 
 
 def collect_results(
@@ -94,7 +93,9 @@ def run_elf_files(testname, core_loc="0,0"):
     TRISC = ["unpack", "math", "pack"]
     for i in range(3):
         load_elf(
-            elf_file=f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf",
+            elf_file=str(
+                Path(f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf").absolute()
+            ),
             core_loc=core_loc,
             risc_name=f"trisc{i}",
         )
@@ -104,7 +105,9 @@ def run_elf_files(testname, core_loc="0,0"):
     write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
 
     # Run BRISC
-    run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_name="brisc")
+    run_elf(
+        str(Path(f"{BUILD}/shared/brisc.elf").absolute()), core_loc, risc_name="brisc"
+    )
 
 
 def write_stimuli_to_l1(
@@ -280,8 +283,6 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
 
     while time.time() - start_time < timeout:
         if read_word_from_device(core_loc, mailbox_addr.value) == KERNEL_COMPLETE:
-            # write value different than 1 to mailbox to indicate kernel is running
-            write_words_to_device(core_loc, mailbox_addr.value, RESET_VAL)
             return
 
         time.sleep(backoff)
