@@ -263,5 +263,5 @@ def dump_report(testname: str, report: PerfReport):
 
         assert len(report.sweep_values) == len(report.stat_values)
 
-        for i in range(len(report.sweep_values)):
-            writer.writerow(report.sweep_values[i] + report.stat_values[i])
+        for sweep_vals, stat_vals in zip(report.sweep_values, report.stat_values):
+            writer.writerow(sweep_vals + stat_vals)
