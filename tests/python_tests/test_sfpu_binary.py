@@ -10,11 +10,10 @@ from helpers.device import (
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict
-from helpers.format_config import DataFormat, InputOutputFormat
+from helpers.format_config import DataFormat
 from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
-    generate_combination,
     generate_param_ids,
     generate_params,
     input_output_formats,
@@ -24,7 +23,12 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_float_formats = [DataFormat.Float32, DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]
+supported_float_formats = [
+    DataFormat.Float32,
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Bfp8_b,
+]
 supported_int_formats = [DataFormat.Int32]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -86,9 +90,15 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
     chip_arch = get_chip_architecture()
     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
         pytest.skip("Not currently supported in tests")
-    
-    if dest_acc == DestAccumulation.No and chip_arch == ChipArchitecture.BLACKHOLE and formats.input_format == DataFormat.Float16:
-        pytest.skip("Float16_a isn't supported for SFPU on Blackhole without destination accumulation")
+
+    if (
+        dest_acc == DestAccumulation.No
+        and chip_arch == ChipArchitecture.BLACKHOLE
+        and formats.input_format == DataFormat.Float16
+    ):
+        pytest.skip(
+            "Float16_a isn't supported for SFPU on Blackhole without destination accumulation"
+        )
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -100,7 +110,7 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
 
-    unpack_to_dest = formats.input_format.is_32_bit() 
+    unpack_to_dest = formats.input_format.is_32_bit()
 
     # Blackhole needs this for some reason
     if formats.input_format == DataFormat.Float16:

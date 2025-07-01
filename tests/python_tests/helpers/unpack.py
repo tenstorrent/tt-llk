@@ -7,13 +7,16 @@ import struct
 from itertools import chain
 
 import torch
-from helpers.format_config import DataFormat
+
 from helpers.format_arg_mapping import format_dict
+from helpers.format_config import DataFormat
 
 from .format_arg_mapping import DataFormat, format_dict, format_tile_sizes
+
+
 def check_values_in_range(tensor: torch.Tensor, format: DataFormat):
     for i in range(len(tensor)):
-        if tensor[i] >= 1.0e+38 or not torch.isfinite(tensor[i]):
+        if tensor[i] >= 1.0e38 or not torch.isfinite(tensor[i]):
             tensor[i] = float("nan")
 
     return tensor

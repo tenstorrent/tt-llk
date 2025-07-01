@@ -20,7 +20,6 @@ from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
-    generate_combination,
     generate_param_ids,
     generate_params,
     input_output_formats,
@@ -30,7 +29,12 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float32, DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]
+supported_formats = [
+    DataFormat.Float32,
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Bfp8_b,
+]
 
 # supported_formats = [DataFormat.Float32]
 
@@ -82,9 +86,10 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
     arch = get_chip_architecture()
 
     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
-        if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(DataFormat.Float32, DataFormat.Float16):
+        if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
+            DataFormat.Float32, DataFormat.Float16
+        ):
             pytest.skip(reason="This combination is not fully implemented in testing")
-        
 
     input_dimensions = [64, 64]
 
@@ -98,7 +103,9 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
 
-    unpack_to_dest = formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    )
     test_config = {
         "formats": formats,
         "testname": testname,
