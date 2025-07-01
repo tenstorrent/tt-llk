@@ -13,7 +13,6 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
-    generate_combination,
     generate_param_ids,
     generate_params,
     input_output_formats,
