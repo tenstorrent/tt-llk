@@ -205,10 +205,7 @@ def pytest_runtest_protocol(item, nextitem):
 
 def pytest_sessionstart(session):
     # Default LLK_HOME environment variable
-    print("BEFOREEEE")
     init_llk_home()
-
-    print(helpers.device.RUN_SIMULATOR)
 
     if not helpers.device.RUN_SIMULATOR:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
