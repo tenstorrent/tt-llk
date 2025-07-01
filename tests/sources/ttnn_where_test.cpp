@@ -63,9 +63,12 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncHalf, ACC_DEST>();
     _llk_math_hw_configure_<false, false>(PACK_FMT, PACK_FMT);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, true>(0, PACK_FMT, PACK_FMT); // buffer condition
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, true>(1, PACK_FMT, PACK_FMT); // buffer true
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, ACC_DEST, BroadcastType::NONE, true>(2, PACK_FMT, PACK_FMT); // buffer false
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        0, MATH_UINT, MATH_UINT); // buffer condition
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        1, MATH_UINT, MATH_UINT); // buffer true
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        2, MATH_UINT, MATH_UINT); // buffer false
 
     // calculation of sfpu operation on dest
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
