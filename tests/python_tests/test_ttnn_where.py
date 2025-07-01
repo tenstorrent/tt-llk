@@ -98,7 +98,7 @@ test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes],  # , DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     mathop=[
         MathOperation.TTNNWhere,
     ],

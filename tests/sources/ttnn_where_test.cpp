@@ -94,10 +94,6 @@ void run_kernel()
 
 void run_kernel()
 {
-#ifdef PACK_DST_BFP8_B
-    constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
-#endif
-
     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1d000);
 
     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
