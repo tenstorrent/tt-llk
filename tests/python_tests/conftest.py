@@ -78,11 +78,6 @@ def reset_mailboxes():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def delete_perf_reports():
-    delete_reports()
-
-
-@pytest.fixture(scope="session", autouse=True)
 def download_headers():
     CHIP_ARCH = set_chip_architecture()
     if CHIP_ARCH not in [ChipArchitecture.WORMHOLE, ChipArchitecture.BLACKHOLE]:
