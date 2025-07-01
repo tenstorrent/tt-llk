@@ -8,12 +8,14 @@
 #include "ckernel_defs.h"
 #include "sfpi.h"
 
-namespace ckernel
-{
-namespace sfpu
+namespace ckernel::sfpu
 {
 
-#define POLYVAL5(coef4, coef3, coef2, coef1, coef0, val) ((((coef4 * val + coef3) * val + coef2) * val + coef1) * val + coef0)
+template <typename T>
+constexpr T POLYVAL5(T coef4, T coef3, T coef2, T coef1, T coef0, T val)
+{
+    return (((((coef4 * val) + coef3) * val + coef2) * val + coef1) * val + coef0);
+}
 
 inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
 {
@@ -31,7 +33,7 @@ inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
     sfpi::vFloat result;
     v_if (val < 2.5f)
     {
-        result = POLYVAL5(0.0122792f, -0.05281024f, -0.03048313f, 0.41314081f, 0.49866379f, val);
+        result = POLYVAL5<sfpi::vFloat>(0.0122792f, -0.05281024f, -0.03048313f, 0.41314081f, 0.49866379f, val);
     }
     v_else
     {
@@ -56,22 +58,14 @@ inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
 inline sfpi::vFloat _calculate_cdf_appx_(sfpi::vFloat val, bool scaled = false)
 {
     sfpi::vFloat result = 0.0f;
-    sfpi::vFloat val2   = 0.0f;
+
     v_if (val < 0.0f)
     {
-        val2 = -val;
+        result = 1.0f - _calculate_pos_cdf_appx_(-val);
     }
     v_else
     {
-        val2 = val;
-    }
-    v_endif;
-
-    result = _calculate_pos_cdf_appx_(val2);
-
-    v_if (val < 0.0f)
-    {
-        result = 1.0f - result;
+        result = _calculate_pos_cdf_appx_(val);
     }
     v_endif;
 
@@ -82,5 +76,4 @@ inline sfpi::vFloat _calculate_cdf_appx_(sfpi::vFloat val, bool scaled = false)
     return result;
 }
 
-} // namespace sfpu
-} // namespace ckernel
+} // namespace ckernel::sfpu
