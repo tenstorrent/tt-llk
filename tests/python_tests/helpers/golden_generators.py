@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import math
-from typing import Optional
 
 import torch
 
@@ -16,6 +15,7 @@ from helpers.format_config import DataFormat
 
 golden_registry = {}
 
+
 def check_bfp8_b(operand: torch.Tensor, format: DataFormat) -> None:
     """Check if datum is BFP8_B there is a +/- inf then zero out entire row of 16 elements because they share the same exponent."""
     if format == DataFormat.Bfp8_b:
@@ -23,14 +23,14 @@ def check_bfp8_b(operand: torch.Tensor, format: DataFormat) -> None:
             if not torch.isfinite(operand[i]):
                 inf_index = i
                 for col in range(16):
-                    row = inf_index//16
+                    row = inf_index // 16
                     index = row * 16 + col
                     if torch.isfinite(operand[index]) and index != i:
                         operand[index] = 0.0
 
     return operand
-                    
-                    
+
+
 def register_golden(cls):
     """Register a golden class by its type."""
     golden_registry[cls] = cls()
@@ -118,7 +118,9 @@ class UnarySFPUGolden:
         self.data_format = data_format
         tensor = to_tensor(operand1, data_format)
         result = [self.ops[operation](x) for x in tensor.tolist()]
-        return check_bfp8_b(torch.tensor(result, dtype=format_dict[data_format]), data_format)
+        return check_bfp8_b(
+            torch.tensor(result, dtype=format_dict[data_format]), data_format
+        )
 
     # Operation methods
     def _abs(self, x):
@@ -186,14 +188,16 @@ class EltwiseBinaryGolden(FidelityMasking):
 class BinarySFPUGolden(EltwiseBinaryGolden):
     def __init__(self):
         super().__init__()
-        self.ops.update({
-            MathOperation.SfpuElwadd: self._add,
-            MathOperation.SfpuElwsub: self._sub,
-            MathOperation.SfpuElwmul: self._mul,
-            MathOperation.SfpuXlogy: self._xlogy,
-            MathOperation.SfpuElwRightShift: self._right_shift,
-            MathOperation.SfpuElwLeftShift: self._left_shift,
-        })
+        self.ops.update(
+            {
+                MathOperation.SfpuElwadd: self._add,
+                MathOperation.SfpuElwsub: self._sub,
+                MathOperation.SfpuElwmul: self._mul,
+                MathOperation.SfpuXlogy: self._xlogy,
+                MathOperation.SfpuElwRightShift: self._right_shift,
+                MathOperation.SfpuElwLeftShift: self._left_shift,
+            }
+        )
 
     def __call__(self, operation, operand1, operand2, data_format):
         if operation not in self.ops:
@@ -211,7 +215,9 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         # so we explicitly set it to NaN to match hardware behavior.
         # Without this, golden and Tensix results will mismatch due to different edge case handling.
         zero_zero_mask = (t1 == 0) & (t2 == 0)
-        result = torch.where(zero_zero_mask, torch.full_like(result, float('nan')), result)
+        result = torch.where(
+            zero_zero_mask, torch.full_like(result, float("nan")), result
+        )
         return result
 
     def _right_shift(self, t1, t2):

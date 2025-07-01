@@ -27,9 +27,9 @@ supported_formats = [
     DataFormat.Float16_b,
     DataFormat.Float16,
     DataFormat.Float32,
-]   #  Add DataFormat.Bfp8_b only as input when Data format Inference Model 2.0 supports format conversions for > 1 pipeline run with different inputs and outputs. 
-    #  Now tests runs with same input and output format.
-    #  We cannot unpack tilize on Bfp8_b format, so it will be included only as input format.
+]  #  Add DataFormat.Bfp8_b only as input when Data format Inference Model 2.0 supports format conversions for > 1 pipeline run with different inputs and outputs.
+#  Now tests runs with same input and output format.
+#  We cannot unpack tilize on Bfp8_b format, so it will be included only as input format.
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
