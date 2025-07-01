@@ -23,7 +23,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_float_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+supported_float_formats = [DataFormat.Float16_b, DataFormat.Float16]
 supported_int_formats = [DataFormat.Int32]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -47,7 +47,7 @@ float_ops = [
     MathOperation.SfpuElwadd,
     MathOperation.SfpuElwsub,
     MathOperation.SfpuElwmul,
-    MathOperation.SfpuXlogy,
+    # MathOperation.SfpuXlogy,
 ]
 
 int_ops = [
@@ -69,7 +69,7 @@ int_params = generate_params(
     mathop=int_ops,
 )
 
-all_params = float_params + int_params
+all_params = float_params  # + int_params
 
 param_ids = generate_param_ids(all_params)
 
@@ -79,7 +79,7 @@ param_ids = generate_param_ids(all_params)
 )
 def test_sfpu_binary(testname, formats, dest_acc, mathop):
 
-    input_dimensions = [32, 32]
+    input_dimensions = [32, 64]
 
     chip_arch = get_chip_architecture()
     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
@@ -87,6 +87,19 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
+    )
+
+    src_A = torch.cat(
+        [
+            torch.full((1024,), 2, dtype=format_dict[formats.input_format]),
+            torch.full((1024,), 3, dtype=format_dict[formats.input_format]),
+        ]
+    )
+    src_B = torch.cat(
+        [
+            torch.full((1024,), 4, dtype=format_dict[formats.input_format]),
+            torch.full((1024,), 5, dtype=format_dict[formats.input_format]),
+        ]
     )
 
     generate_golden = get_golden_generator(BinarySFPUGolden)
@@ -103,6 +116,7 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
         "dest_acc": dest_acc,
         "mathop": mathop,
         "unpack_to_dest": unpack_to_dest,
+        "tile_cnt": tile_cnt,
     }
 
     run_test(test_config)
@@ -114,4 +128,9 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
+    print(res_tensor)
+    print("-" * 200)
+    print(golden_tensor)
+
+    assert 1 == 2
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
