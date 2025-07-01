@@ -325,4 +325,3 @@ def dump_scatter(testname: str, report: PerfReport):
     )
 
     fig.write_html(str(output_path))
-    print(f"Scatter plot saved to {output_path}")
