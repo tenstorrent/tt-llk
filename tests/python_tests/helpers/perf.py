@@ -233,7 +233,7 @@ def delete_benchmark_dir(testname: str):
     if not root:
         raise AssertionError("Environment variable LLK_HOME is not set")
 
-    path = Path(root) / "perf" / testname
+    path = Path(root) / "perf_data" / testname
 
     if path.exists() and path.is_dir():
         shutil.rmtree(path)
@@ -244,7 +244,7 @@ def create_benchmark_dir(testname: str):
     if not root:
         raise AssertionError("Environment variable LLK_HOME is not set")
 
-    output_path = Path(root) / "perf" / testname
+    output_path = Path(root) / "perf_data" / testname
     output_path.mkdir(parents=True, exist_ok=True)
 
     return output_path
