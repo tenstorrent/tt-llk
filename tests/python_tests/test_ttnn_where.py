@@ -98,7 +98,7 @@ test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     mathop=[
         MathOperation.TTNNWhere,
     ],
@@ -220,13 +220,13 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         golden_tensor.view(32, 32)[0, :10],
     )
 
-    # assert 1==2
     assert torch_equal_nan(golden_tensor, res_tensor)
 
     # assert passed_test(golden_tensor, res_tensor, formats.output_format)
 
 
-supported_formats = [DataFormat.Float32]  # , DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16_b]
+dtype = torch.bfloat16
 
 test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
@@ -248,12 +248,13 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("h", [32])
 @pytest.mark.parametrize("w", [32])
 def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
-    C = torch.arange(h * w, dtype=torch.float32)
+    C = torch.arange(h * w, dtype=dtype)
     C = (C % 2).float()  # Alternates 0, 1, 0, 1, ...
     C = C.reshape(1, 1, h, w)
     C = C.expand(1, 1, h, w)  # Broadcast to (n, c, h, w)
-    T = torch.ones(1, 1, h, w, dtype=torch.float32) * 2
-    F = torch.ones(1, 1, h, w, dtype=torch.float32) * 10
+    C = C.to(dtype=dtype)
+    T = torch.ones(1, 1, h, w, dtype=dtype) * 2
+    F = torch.ones(1, 1, h, w, dtype=dtype) * 10
     golden = torch.where(C != 0, T, F)
 
     C = C.flatten().to(format_dict[formats.input_format])
