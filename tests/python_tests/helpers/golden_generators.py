@@ -17,7 +17,7 @@ from helpers.format_config import DataFormat
 golden_registry = {}
 
 def check_bfp8_b(operand: torch.Tensor, format: DataFormat) -> None:
-    """Check if datum is BFP8_B there is a +/- inf then zero out entire row of 16 elements because they share the same exponent."""
+    """Check if datum is BFP8_B there is a +/- inf then zero out entire row of 16 elements because they inherit the same exponent and therefore get zeroed out in tensix."""
     if format == DataFormat.Bfp8_b:
         for i in range(len(operand)):
             if not torch.isfinite(operand[i]):
@@ -120,7 +120,14 @@ class UnarySFPUGolden:
         self.data_format = data_format
         tensor = to_tensor(operand1, data_format)
         result = [self.ops[operation](x) for x in tensor.tolist()]
+<<<<<<< HEAD
         return check_bfp8_b(torch.tensor(result, dtype=format_dict[data_format]), data_format)
+=======
+        return check_bfp8_b(
+            torch.tensor(result, dtype=format_dict[data_format]),
+            data_format,  # in tensix: computing on Bfp8_b with certain SFPU op results in zeroed out rows where one result is non-finite and the rest inherit its shared exponent
+        )
+>>>>>>> e597536 (add: comments)
 
     # Operation methods
     def _abs(self, x):
@@ -222,7 +229,9 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
 
-        return check_bfp8_b(self.ops[operation](t1, t2), data_format)
+        return check_bfp8_b(
+            self.ops[operation](t1, t2), data_format
+        )  # in tensix: computing on Bfp8_b with certain SFPU op results in zeroed out rows where one result is non-finite and the rest inherit its shared exponent
 
     # Operation methods are cover by Eltwise Binary Golden
     def _xlogy(self, t1, t2):

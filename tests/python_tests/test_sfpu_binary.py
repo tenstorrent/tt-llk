@@ -97,7 +97,7 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
         and formats.input_format == DataFormat.Float16
     ):
         pytest.skip(
-            "Float16_a isn't supported for SFPU on Blackhole without destination accumulation"
+            "Float16_a isn't supported for SFPU on Blackhole without being converted to 32-bit intermediate format in dest register"
         )
 
     src_A, src_B, tile_cnt = generate_stimuli(

@@ -89,7 +89,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
             DataFormat.Float32, DataFormat.Float16
         ):
-            pytest.skip(reason="This combination is not fully implemented in testing")
+            pytest.skip(reason="This combination is not supported on BH architecture")
 
     input_dimensions = [64, 64]
 
@@ -104,7 +104,9 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
     )
 
     unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+        formats.input_format.is_32_bit()
+        and dest_acc
+        == DestAccumulation.Yes  # If dest_acc is off, we unpack Float32 into 16-bit format in src regsiters (later copied over in dest reg for SFPU op)
     )
     test_config = {
         "formats": formats,

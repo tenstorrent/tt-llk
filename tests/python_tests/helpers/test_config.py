@@ -86,7 +86,9 @@ def generate_build_header(
     header_content.append(f"#define UNPACKING_TO_DEST {unpack_to_dest}")
 
     # Tilize / Untilize / Sfpu doesn't work on Tf32 unpacked datums: We unpack 32 bit input to src registers in 16 bit format
-    test_name = test_config.get("testname", "").lower()
+    test_name = test_config.get(
+        "testname", ""
+    ).lower()  # design choice: no need to pass into test_config dictionary for each test, it's automated
     if "tilize" in test_name or "sfpu" in test_name:
         truncate_to_16_bit = str(True).lower()
     else:
