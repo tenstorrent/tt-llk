@@ -206,7 +206,7 @@ def passed_test(
         # Find all indices where values differ
         diff_indices = torch.where(~is_valid)[0]
         print(f"Found {len(diff_indices)} differences:")
-        for idx in diff_indices[:5]:
+        for idx in diff_indices:
             print(
                 f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
             )
@@ -215,6 +215,9 @@ def passed_test(
 
     if fused_with_bfp8_b:
         # For fused ops tests with Bfp8_b, PCC is > 0.98
+        # The results produced are correct and accurate; however, precision can drop to about 98% (worst case) instead of 98%.
+        # Consequently, we either skip these tests or introduce tolerance thresholds to account for this precision loss.
+        # This reduction in precision occurs primarily when copying results from the first L1-to-L1 stage, and is further compounded when truncating values to the Bfp8_b format.
         pcc += 1
 
     return is_within_tolerance and (pcc > 0.99)
