@@ -1,15 +1,21 @@
-name: Trigger tt-metal Uplift
+name: Trigger tt-metal CI
 
 on:
   push:
-    branches:
-      - main-like # need to change to main once verified
+    branches: [main-like] # need to change to main once verified
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
-  trigger-uplift:
-    uses: tenstorrent/tt-metal/.github/workflows/uplift-llk.yml@main
-    with:
-      llk_sha: ${{ github.sha }}
-    permissions:
-      contents: write
-      pull-requests: write
+  trigger-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send dispatch event to tt-metal
+        run: |
+          curl -X POST https://api.github.com/repos/tenstorrent/tt-metal/dispatches \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"event_type": "trigger-ci", "client_payload": {"source": "tt-llk"}}'
