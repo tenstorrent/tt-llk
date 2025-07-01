@@ -17,11 +17,16 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
+
+import helpers.device
+
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
 
-from helpers.device import RUN_SIMULATOR
+# Constants indicating the TRISC kernel run status
+RESET_VAL = 0  # Kernel not running and not complete
+
 
 def init_llk_home():
     if "LLK_HOME" in os.environ:
@@ -75,6 +80,11 @@ def reset_mailboxes():
     for mailbox in mailboxes:
         write_words_to_device(core_loc=core_loc, addr=mailbox.value, data=reset_value)
     yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def delete_perf_reports():
+    delete_reports()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -201,11 +211,25 @@ def pytest_runtest_protocol(item, nextitem):
 
 def pytest_sessionstart(session):
     # Default LLK_HOME environment variable
+    print("BEFOREEEE")
     init_llk_home()
 
-    # Send ARC message for GO BUSY signal. This should increase device clock speed.
-    ARC_COMMON_PREFIX = 0xAA00
-    GO_BUSY_MESSAGE_CODE = 0x52
+    print(helpers.device.RUN_SIMULATOR)
+
+    if not helpers.device.RUN_SIMULATOR:
+        # Send ARC message for GO BUSY signal. This should increase device clock speed.
+        ARC_COMMON_PREFIX = 0xAA00
+        GO_BUSY_MESSAGE_CODE = 0x52
+        config = session.config
+        arc_msg(
+            device_id=0,
+            msg_code=ARC_COMMON_PREFIX | GO_BUSY_MESSAGE_CODE,
+            wait_for_done=True,
+            arg0=0,
+            arg1=0,
+            timeout=10,
+        )
+
 
 def pytest_sessionfinish(session, exitstatus):
     BOLD = "\033[1m"
@@ -216,25 +240,42 @@ def pytest_sessionfinish(session, exitstatus):
         for input_fmt, output_fmt in _format_log:
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
-    # Send ARC message for GO IDLE signal. This should decrease device clock speed.
-    ARC_COMMON_PREFIX = 0xAA00
-    GO_IDLE_MESSAGE_CODE = 0x54
+    if not helpers.device.RUN_SIMULATOR:
+        # Send ARC message for GO IDLE signal. This should decrease device clock speed.
+        ARC_COMMON_PREFIX = 0xAA00
+        GO_IDLE_MESSAGE_CODE = 0x54
+        arc_msg(
+            device_id=0,
+            msg_code=ARC_COMMON_PREFIX | GO_IDLE_MESSAGE_CODE,
+            wait_for_done=True,
+            arg0=0,
+            arg1=0,
+            timeout=10,
+        )
 
+
+# Define the possible custom command line options
 def pytest_addoption(parser):
     parser.addoption(
         "--run_simulator", action="store_true", help="Run tests using the simulator."
     )
+    parser.addoption(
+        "--port",
+        action="store",
+        type=int,
+        default=5555,
+        help="Integer number of the server port.",
+    )
 
+
+# Configure pytest depending on the given command line options
 def pytest_configure(config):
-    run_simulator = config.getoption("--run_simulator")
-    if run_simulator:
-        tt_exalens_init.init_ttexalens_remote()
+    helpers.device.RUN_SIMULATOR = config.getoption("--run_simulator")
+    simulator_server_port = config.getoption("--port")
+    if helpers.device.RUN_SIMULATOR:
+        tt_exalens_init.init_ttexalens_remote(port=simulator_server_port)
     else:
         tt_exalens_init.init_ttexalens()
-
-@pytest.fixture(scope="session", autouse=True)
-def run_simulator_enabled(pytestconfig):
-    RUN_SIMULATOR["enabled"] = pytestconfig.getoption("--run_simulator")
 
 
 # Skip decorators for specific architectures

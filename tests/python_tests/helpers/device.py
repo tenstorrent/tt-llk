@@ -47,7 +47,7 @@ from .unpack import (
     unpack_uint32,
 )
 
-RUN_SIMULATOR = {"enabled": False}
+RUN_SIMULATOR = False
 
 MAX_READ_BYTE_SIZE_16BIT = 2048
 
@@ -289,10 +289,12 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
             return
 
         time.sleep(backoff)
-        if RUN_SIMULATOR == False:
+        if not RUN_SIMULATOR:
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
-    assert False, f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
+    raise TimeoutError(
+        f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
+    )
 
 
 def wait_for_tensix_operations_finished(core_loc: str = "0,0"):
