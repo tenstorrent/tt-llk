@@ -19,7 +19,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.pack import pack_fp32
+from helpers.pack import pack_bfp16, pack_fp32
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -54,7 +54,7 @@ def torch_equal_nan(a, b):
 
 
 # Provided test cases
-dtype = torch.float32
+dtype = torch.bfloat16
 condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
 condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
 condition_all_zeros = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dtype)
@@ -75,22 +75,6 @@ true_values = torch.tensor(
     ],
     dtype=dtype,
 )
-# true_values = torch.tensor(
-#     [
-#         -0.0,
-#         -0.0,
-#         -0.0,
-#         -0.0,
-#         -0.0,
-#         -0.0,
-#         -0.0,
-#         -0.0,
-#         -0.0,
-#         -0.0,
-#     ],
-#     dtype=dtype,
-# )
-
 false_values = torch.tensor(
     [
         -1.0,
@@ -108,13 +92,13 @@ false_values = torch.tensor(
 )
 
 
-supported_formats = [DataFormat.Float32]  # , DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16_b]
 
 test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes],  # DestAccumulation.No],
+    dest_acc=[DestAccumulation.No],  # DestAccumulation.No],
     mathop=[
         MathOperation.TTNNWhere,
     ],
@@ -180,13 +164,19 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
     buffer_B_address = 0x1B000
     buffer_C_address = 0x1C000
 
-    pack_function_A = pack_fp32
-    pack_function_B = pack_fp32
+    if formats.input_format == DataFormat.Float32:
+        pack_function_A = pack_fp32
+        pack_function_B = pack_fp32
+        pack_function_C = pack_fp32
+    else:
+        pack_function_A = pack_bfp16
+        pack_function_B = pack_bfp16
+        pack_function_C = pack_bfp16
 
     golden = generate_golden(src_A, src_B, src_C)
     write_to_device(core_loc, buffer_A_address, pack_function_A(src_A))
     write_to_device(core_loc, buffer_B_address, pack_function_B(src_B))
-    write_to_device(core_loc, buffer_C_address, pack_function_B(src_C))
+    write_to_device(core_loc, buffer_C_address, pack_function_C(src_C))
 
     test_config = {
         "formats": formats,
@@ -230,6 +220,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         golden_tensor.view(32, 32)[0, :10],
     )
 
+    # assert 1==2
     assert torch_equal_nan(golden_tensor, res_tensor)
 
     # assert passed_test(golden_tensor, res_tensor, formats.output_format)
@@ -274,13 +265,19 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     buffer_B_address = 0x1B000
     buffer_C_address = 0x1C000
 
-    pack_function_A = pack_fp32
-    pack_function_B = pack_fp32
+    if formats.input_format == DataFormat.Float32:
+        pack_function_A = pack_fp32
+        pack_function_B = pack_fp32
+        pack_function_C = pack_fp32
+    else:
+        pack_function_A = pack_bfp16
+        pack_function_B = pack_bfp16
+        pack_function_C = pack_bfp16
 
     golden = generate_golden(C, T, F)
     write_to_device(core_loc, buffer_A_address, pack_function_A(C))
     write_to_device(core_loc, buffer_B_address, pack_function_B(T))
-    write_to_device(core_loc, buffer_C_address, pack_function_B(F))
+    write_to_device(core_loc, buffer_C_address, pack_function_C(F))
 
     test_config = {
         "formats": formats,
@@ -329,4 +326,5 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
         golden_tensor.view(32, 32)[0, :10],
     )
 
+    assert 1 == 2
     assert torch_equal_nan(golden_tensor, res_tensor)
