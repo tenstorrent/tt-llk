@@ -14,6 +14,7 @@ from requests.exceptions import ConnectionError, RequestException, Timeout
 from ttexalens import tt_exalens_init
 from ttexalens.tt_exalens_lib import (
     arc_msg,
+    write_words_to_device,
 )
 
 import helpers.device
