@@ -294,14 +294,14 @@ def dump_scatter(testname: str, report: PerfReport):
         (name, i) for i, name in enumerate(report.stat_names) if name.startswith("mean")
     ]
 
+    hover = [
+        ", ".join(f"{name}={val}" for name, val in zip(report.sweep_names, sweep))
+        for sweep in report.sweep_values
+    ]
+
     # For each stat column (run type), plot all points
     for stat_name, stat_idx in mean_columns:
         y_vals = [stat[stat_idx] for stat in report.stat_values]
-
-        hover = [
-            ", ".join(f"{name}={val}" for name, val in zip(report.sweep_names, sweep))
-            for sweep in report.sweep_values
-        ]
 
         fig.add_trace(
             go.Scatter(
