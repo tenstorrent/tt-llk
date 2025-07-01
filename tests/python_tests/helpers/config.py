@@ -8,6 +8,7 @@ from typing import Optional
 class TestConfig:
     run_simulator: bool = False
     simulator_port: Optional[int] = None
+    device_id: int = 0
     log_level: str = "INFO"
 
 
