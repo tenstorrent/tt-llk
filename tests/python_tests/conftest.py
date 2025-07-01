@@ -14,18 +14,12 @@ from requests.exceptions import ConnectionError, RequestException, Timeout
 from ttexalens import tt_exalens_init
 from ttexalens.tt_exalens_lib import (
     arc_msg,
-    write_words_to_device,
 )
 
-
 import helpers.device
-
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
-
-# Constants indicating the TRISC kernel run status
-RESET_VAL = 0  # Kernel not running and not complete
 
 
 def init_llk_home():
