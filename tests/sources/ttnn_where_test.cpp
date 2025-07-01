@@ -6,7 +6,9 @@
 #include <cstdint>
 
 #include "ckernel.h"
+#include "ckernel_debug.h"
 #include "llk_defs.h"
+
 // Globals
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
@@ -14,7 +16,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 constexpr bool disable_src_zero_flag = true;
 
-constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32);
+constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
 
 #define ACC_DEST true
 
@@ -31,10 +33,10 @@ void run_kernel()
     volatile uint32_t* const buffer_false     = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
     _llk_unpack_A_hw_configure_<ACC_DEST, StochRndType::None, disable_src_zero_flag>(PACK_FMT, PACK_FMT, FACE_R_DIM, 0, 4);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, true>(0, 0, FACE_R_DIM, 4, PACK_FMT, PACK_FMT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, true>(L1_ADDRESS(buffer_condition), 0, PACK_FMT, PACK_FMT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, true>(L1_ADDRESS(buffer_true), 0, PACK_FMT, PACK_FMT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, true>(L1_ADDRESS(buffer_false), 0, PACK_FMT, PACK_FMT);
+    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, FACE_R_DIM, 4, PACK_FMT, PACK_FMT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_condition), 0, PACK_FMT, PACK_FMT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_true), 0, PACK_FMT, PACK_FMT);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_false), 0, PACK_FMT, PACK_FMT);
 }
 
 #endif
@@ -75,6 +77,8 @@ void run_kernel()
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
     _calculate_where_<false, 32>();
+
+    // dbg_thread_halt<ThreadId::MathThreadId>();
 
     _llk_math_eltwise_ternary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, ACC_DEST>();
