@@ -1,0 +1,15 @@
+name: Trigger tt-metal Uplift
+
+on:
+  push:
+    branches:
+      - main-like # need to change to main once verified
+
+jobs:
+  trigger-uplift:
+    uses: tenstorrent/tt-metal/.github/workflows/uplift-llk.yml@main
+    with:
+      llk_sha: ${{ github.sha }}
+    permissions:
+      contents: write
+      pull-requests: write
