@@ -42,17 +42,35 @@ constexpr bool dest_acc_en_input =
 
 constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 
+/*DATA FORMAT CONFIGURATION*/
+
+// Given input and output formats, infer the rest of the format configuration
 #if DATA_FORMAT_INFERENCE_MODEL
+
+// If the input is exponentB, we cannot convert it to Float16 without enabling fp32 mode in dest;
+// this is considered a format combination outlier, so we enable dest_acc
 constexpr bool is_fp32_dest_acc_en =
     dest_acc_en_input || is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
-constexpr FormatConfig pipeline_formats = get_data_formats(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
-constexpr auto UNPACK_A_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
-constexpr auto UNPACK_B_IN              = static_cast<uint32_t>(pipeline_formats.unpack_src);
-constexpr auto UNPACK_B_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
-constexpr auto PACK_IN                  = static_cast<uint32_t>(pipeline_formats.pack_src);
-constexpr auto MATH_FORMAT              = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+
+// Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
+#if L1_to_L1_ITERATIONS == 1
+constexpr FormatConfig formats =
+    data_formats<static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input, L1_to_L1_ITERATIONS>()[0];
 #else
-constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
+// Fusing: multiple L1-to-L1 iterations, so we retrieve an array of format configurations
+// (organized in the same order as the iterations)
+inline constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> fused_formats =
+    data_formats<static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input, L1_to_L1_ITERATIONS>();
+#endif
+
+#else // Not inferring formats — all formats are pre-defined. Set format configuration directly.
+constexpr bool is_fp32_dest_acc_en = dest_acc_en_input; // dest_acc doesn't require adjustment; configuration is hard-coded
+constexpr FormatConfig formats     = get_data_formats(
+    static_cast<DataFormat>(UNPACK_A_IN),
+    static_cast<DataFormat>(UNPACK_A_OUT),
+    static_cast<DataFormat>(MATH),
+    static_cast<DataFormat>(PACK_IN),
+    static_cast<DataFormat>(PACK_OUT));
 #endif
 
 #ifdef ELTWISE_BINARY_ADD
