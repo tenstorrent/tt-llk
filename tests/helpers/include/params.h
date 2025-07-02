@@ -120,4 +120,15 @@ constexpr auto SFPU_OPERATION = SfpuType::celu;
 #endif
 #ifdef SFPU_OP_SILU
 constexpr auto SFPU_OPERATION = SfpuType::silu;
+#ifdef SFPU_OP_ELU
+constexpr auto SFPU_OPERATION = SfpuType::elu;
+#endif
+#ifdef SFPU_OP_EXP
+constexpr auto SFPU_OPERATION = SfpuType::exponential;
+#endif
+#ifdef SFPU_OP_EXP2
+constexpr auto SFPU_OPERATION = SfpuType::exp2;
+#endif
+#ifdef SFPU_OP_EXPM1
+constexpr auto SFPU_OPERATION = SfpuType::expm1;
 #endif

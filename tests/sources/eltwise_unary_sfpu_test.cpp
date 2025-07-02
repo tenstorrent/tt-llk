@@ -83,6 +83,22 @@ void call_sfpu_operation(SfpuType operation)
         case SfpuType::silu:
             ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
             break;
+        case SfpuType::elu:
+            ckernel::sfpu::_init_elu_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_elu_<APPROX_MODE, iterations>(1);
+            break;
+        case SfpuType::exponential:
+            ckernel::sfpu::_init_exponential_<APPROX_MODE, false /*fast_mode*/>();
+            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false /* scale_en */, iterations, false /* fast_approx */, false /* skip_positive_check */>();
+            break;
+        case SfpuType::exp2:
+            ckernel::sfpu::_init_exp2_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_exp2_<APPROX_MODE, iterations>();
+            break;
+        case SfpuType::expm1:
+            ckernel::sfpu::_init_expm1_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_expm1_<APPROX_MODE, iterations>();
+            break;
         default:
             return;
     }
