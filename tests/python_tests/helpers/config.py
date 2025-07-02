@@ -11,6 +11,8 @@ class TestConfig:
     device_id: int = 0
     log_level: str = "INFO"
 
-
-# Global instance
-test_config = TestConfig()
+    @classmethod
+    def from_pytest_config(cls, config):
+        cls.run_simulator = (config.getoption("--run_simulator"),)
+        cls.simulator_port = config.getoption("--port")
+        return cls

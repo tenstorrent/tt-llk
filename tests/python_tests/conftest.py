@@ -18,7 +18,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.config import test_config
+from helpers.config import TestConfig
 from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
 
@@ -203,7 +203,7 @@ def pytest_sessionstart(session):
     # Default LLK_HOME environment variable
     init_llk_home()
 
-    if not test_config.run_simulator:
+    if not TestConfig.run_simulator:
         _send_arc_message("GO_BUSY", test_config.device_id)
 
 
@@ -251,10 +251,9 @@ def pytest_addoption(parser):
 
 # Configure pytest depending on the given command line options
 def pytest_configure(config):
-    test_config.run_simulator = config.getoption("--run_simulator")
-    test_config.simulator_port = config.getoption("--port")
-    if test_config.run_simulator:
-        port = test_config.simulator_port or 5555
+    TestConfig.from_pytest_config(config)
+    if TestConfig.run_simulator:
+        port = TestConfig.simulator_port or 5555
         tt_exalens_init.init_ttexalens_remote(port=port)
     else:
         tt_exalens_init.init_ttexalens()

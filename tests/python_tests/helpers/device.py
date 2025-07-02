@@ -16,7 +16,7 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
-from .config import test_config
+from .config import TestConfig
 from .format_arg_mapping import (
     DestAccumulation,
     L1BufferLocations,
@@ -277,7 +277,7 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
         timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds.
         max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
     """
-    timeout = 600 if test_config.run_simulator else timeout
+    timeout = 600 if TestConfig.run_simulator else timeout
 
     start_time = time.time()
     backoff = 0.1  # Initial backoff time in seconds
@@ -287,7 +287,7 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
             return
 
         time.sleep(backoff)
-        if not test_config.run_simulator:
+        if not TestConfig.run_simulator:
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
     raise TimeoutError(
