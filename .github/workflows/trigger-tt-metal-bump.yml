@@ -2,7 +2,7 @@ name: Trigger tt-metal CI
 
 on:
   push:
-    branches: [main-like] # need to change to main once verified
+    branches: [main]
 
 permissions:
   contents: read
