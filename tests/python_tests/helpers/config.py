@@ -1,13 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
-from dataclasses import dataclass
-from typing import ClassVar
 
 
-@dataclass
 class TestConfig:
-    run_simulator: ClassVar[bool] = False
-    simulator_port: ClassVar[int] = 5555
+    run_simulator: bool = False
+    simulator_port: int = 5555
     device_id: int = 0
     log_level: str = "INFO"
 
