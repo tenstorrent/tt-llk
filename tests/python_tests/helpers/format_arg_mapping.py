@@ -53,6 +53,9 @@ class MathOperation(Enum):
     Silu = "SFPU_OP_SILU"
     Gelu = "SFPU_OP_GELU"
     Neg = "SFPU_OP_NEG"
+    Elu = "SFPU_OP_ELU"
+    Exp = "SFPU_OP_EXP"
+    Exp2 = "SFPU_OP_EXP2"
 
 
 class ReduceDimension(Enum):

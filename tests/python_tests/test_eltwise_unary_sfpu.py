@@ -66,6 +66,9 @@ float_ops = [
     MathOperation.Silu,
     MathOperation.Gelu,
     MathOperation.Neg,
+    MathOperation.Elu,
+    MathOperation.Exp,
+    MathOperation.Exp2,
 ]
 
 int_ops = [
