@@ -12,10 +12,20 @@ from helpers.device import (
 from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import TilizeGolden, get_golden_generator
-from helpers.perf import PerfRunType, perf_benchmark, write_to_report
+from helpers.perf import (
+    PerfReport,
+    PerfRunType,
+    delete_benchmark_dir,
+    dump_report,
+    dump_scatter,
+    perf_benchmark,
+    update_report,
+)
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
+
+TEST_NAME = "fast_tilize_test"
 
 
 def generate_input_dimensions(max_size):
@@ -66,7 +76,7 @@ def test_fast_tilize(input_format, output_format, fp32_dest, input_width, input_
 
     test_config = {
         "formats": formats,
-        "testname": "fast_tilize_test",
+        "testname": TEST_NAME,
         "tile_cnt": tile_cnt,
         "input_dimensions": input_dimensions,
         "dest_acc": fp32_dest,
@@ -80,6 +90,17 @@ def test_fast_tilize(input_format, output_format, fp32_dest, input_width, input_
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[output_format])
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+
+report = PerfReport()
+
+
+@pytest.fixture(scope="module")
+def report_fixture():
+    delete_benchmark_dir(TEST_NAME)
+    yield
+    dump_report(TEST_NAME, report)
+    dump_scatter(TEST_NAME, report)
 
 
 @skip_for_blackhole
@@ -96,15 +117,23 @@ def test_fast_tilize_perf(
 
     input_dimensions = [input_height * 32, input_width * 32]
 
+    src_A, src_B, tile_cnt = generate_stimuli(
+        input_format, input_format, input_dimensions=input_dimensions
+    )
+
+    res_address = write_stimuli_to_l1(
+        src_A, src_B, input_format, input_format, tile_count=tile_cnt
+    )
+
     formats = InputOutputFormat(input_format, output_format)
 
     test_config = {
         "formats": formats,
-        "testname": "fast_tilize_test",
+        "testname": TEST_NAME,
         "tile_cnt": input_height * input_width,
         "input_dimensions": input_dimensions,
         "dest_acc": fp32_dest,
     }
 
     results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], 2)
-    write_to_report(test_config, results)
+    update_report(report, test_config, results)
