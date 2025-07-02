@@ -204,7 +204,7 @@ def pytest_sessionstart(session):
     init_llk_home()
 
     if not TestConfig.run_simulator:
-        _send_arc_message("GO_BUSY", test_config.device_id)
+        _send_arc_message("GO_BUSY", TestConfig.device_id)
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -216,8 +216,8 @@ def pytest_sessionfinish(session, exitstatus):
         for input_fmt, output_fmt in _format_log:
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
-    if not test_config.run_simulator:
-        _send_arc_message("GO_IDLE", test_config.device_id)
+    if not TestConfig.run_simulator:
+        _send_arc_message("GO_IDLE", TestConfig.device_id)
 
 
 def _send_arc_message(message_type: str, device_id: int):
