@@ -274,7 +274,7 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
     Args:
         core_loc: The location of the core to poll.
         mailbox_addr: The mailbox address to read from.
-        timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds.
+        timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds. If running on a simulator it is 600 seconds.
         max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
     """
     timeout = 600 if TestConfig.run_simulator else timeout
@@ -287,6 +287,8 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
             return
 
         time.sleep(backoff)
+        # Disable exponential backoff if running on simulator
+        # The simulator sits idle due to no polling - If it is idle for too long, it gets stuck
         if not TestConfig.run_simulator:
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
