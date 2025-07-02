@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
-
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
 #include "ckernel_sfpu_recip.h"
@@ -82,7 +81,7 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
     return out;
 }
 
-template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK = false>
+template <bool APPROXIMATION_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK = false>
 inline sfpi::vFloat _calculate_exponential_body_improved_(sfpi::vFloat in, uint16_t exp_base_scale_factor = 0x3F80 /* 1.0f in BF16 */)
 {
     // This function is used to calculate the exponential of a value in a more accurate manner.
@@ -99,7 +98,7 @@ inline sfpi::vFloat _calculate_exponential_body_improved_(sfpi::vFloat in, uint1
             {
                 // Algorithm is incorrect for inputs >= 89, so saturate output to infinity.
                 sfpi::vFloat in_inf = std::numeric_limits<float>::infinity();
-                result     = in_inf;
+                result              = in_inf;
             }
             v_elseif (in < -42)
             {
@@ -112,7 +111,7 @@ inline sfpi::vFloat _calculate_exponential_body_improved_(sfpi::vFloat in, uint1
                 sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
                 sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
                 sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
-                in                         = in * vConstLn2Recip + c23_73;
+                in                          = in * vConstLn2Recip + c23_73;
 
                 // Remove Exponent of 7 and bias the Mantissa to 127.
                 sfpi::vInt in_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(in);
@@ -136,7 +135,7 @@ inline sfpi::vFloat _calculate_exponential_body_improved_(sfpi::vFloat in, uint1
                 sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
                 sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
                 sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
-                in                         = in * vConstLn2Recip + c23_73;
+                in                          = in * vConstLn2Recip + c23_73;
 
                 // Remove Exponent of 7 and bias the Mantissa to 127.
                 sfpi::vInt in_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(in);
@@ -159,7 +158,7 @@ inline sfpi::vFloat _calculate_exponential_body_improved_(sfpi::vFloat in, uint1
         v_endif;
     }
 
-    return result; 
+    return result;
 }
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK = false>
@@ -260,11 +259,11 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
     else
     {
         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
-        for (int d = 0; d < iterations; d++)
+        for (int d = 0; d < ITERATIONS; d++)
         {
-            sfpi::vFloat in = sfpi::dst_reg[0];
-            sfpi::vFloat result = _calculate_exponential_body_improved_<APPROXIMATION_MODE, SCALE_EN, ITERATIONS, FAST_APPROX, SKIP_POSITIVE_CHECK>(in);
-            sfpi::dst_reg[0] = result;
+            sfpi::vFloat in     = sfpi::dst_reg[0];
+            sfpi::vFloat result = _calculate_exponential_body_improved_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(in, exp_base_scale_factor);
+            sfpi::dst_reg[0]    = result;
             sfpi::dst_reg++;
         }
     }
@@ -419,4 +418,3 @@ inline void _init_exponential_()
 }
 
 } // namespace ckernel::sfpu
-
