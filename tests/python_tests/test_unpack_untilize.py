@@ -22,7 +22,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16_b]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -49,7 +49,7 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_untilze(testname, formats):
 
-    input_dimensions = [32, 32]
+    input_dimensions = [32, 64]
 
     src_A, _, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -87,4 +87,8 @@ def test_unpack_untilze(testname, formats):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
+    print(f"Golden tensor: \n\n {golden_tensor}")
+    print(f"Result tensor: \n\n {res_tensor}")
+
+    assert 1 == 2
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
