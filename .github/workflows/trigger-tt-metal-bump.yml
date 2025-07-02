@@ -21,7 +21,7 @@ jobs:
           retry-exempt-status-codes: 400,401,403,404,422
           script: |
             const payload = {
-              event_type: 'trigger-ci',
+              event_type: 'trigger-llk-update',
               client_payload: {
                 source: 'tt-llk',
                 ref: context.ref,
