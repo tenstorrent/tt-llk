@@ -4,6 +4,7 @@
 import pytest
 import torch
 
+from conftest import skip_for_blackhole
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -39,7 +40,7 @@ def generate_input_dimensions(max_size):
     return dimensions
 
 
-# @skip_for_blackhole
+@skip_for_blackhole
 @pytest.mark.parametrize("input_format", [DataFormat.Float32, DataFormat.Float16_b])
 @pytest.mark.parametrize(
     "output_format", [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Bfp8_b]
@@ -81,7 +82,7 @@ def test_fast_tilize(input_format, output_format, fp32_dest, input_width, input_
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
 
 
-# @skip_for_blackhole
+@skip_for_blackhole
 @pytest.mark.perf
 @pytest.mark.parametrize("input_format", [DataFormat.Float32, DataFormat.Float16_b])
 @pytest.mark.parametrize(
