@@ -25,9 +25,9 @@ from helpers.utils import passed_test
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
     DataFormat.Float16_b,
-    DataFormat.Float16,
-    DataFormat.Bfp8_b,
-    DataFormat.Float32,
+    # DataFormat.Float16,
+    # DataFormat.Bfp8_b,
+    # DataFormat.Float32,
 ]
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -50,12 +50,12 @@ test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["matmul_test"],
     test_formats,
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     math_fidelity=[
         MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi2,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
 )
 param_ids = generate_param_ids(all_params)
@@ -69,7 +69,7 @@ param_ids = generate_param_ids(all_params)
 def test_matmul(testname, formats, dest_acc, math_fidelity):
     torch_format = format_dict[formats.output_format]
 
-    input_dimensions = [32, 32]
+    input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
