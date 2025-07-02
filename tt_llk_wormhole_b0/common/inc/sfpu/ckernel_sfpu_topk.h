@@ -39,7 +39,7 @@ inline void bitonic_topk_load8(uint offset, uint dist)
     TT_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_3, ld_offset + dist);
 
     // Load 16 consecutive indices
-    TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset); // How to load indices ? This is unpacked directly to dest!
+    TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset);
     TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset + dist);
 }
 
@@ -57,7 +57,7 @@ inline void bitonic_topk_store8(uint offset, uint dist)
     TT_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_3, ld_offset + dist);
 
     // Load 16 consecutive indices
-    TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset + 0); // How to load indices ? This is unpacked directly to dest!
+    TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset + 0);
     TT_SFPSTORE(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset + dist);
 }
 
@@ -83,7 +83,7 @@ inline void bitonic_topk_load16(uint dist0, uint dist1)
     }
 
     // Load 16 consecutive indices
-    TTI_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, dst_indices_offset + 0); // How to load indices ? This is unpacked directly to dest!
+    TTI_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, dst_indices_offset + 0);
     if ((dist0 == 4) && (dist1 == 8))
     {
         TTI_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, dst_indices_offset + 4);
@@ -120,7 +120,7 @@ inline void bitonic_topk_store16(uint dist0, uint dist1)
     }
 
     // Load 16 consecutive indices
-    TTI_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, dst_indices_offset + 0); // How to load indices ? This is unpacked directly to dest!
+    TTI_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, dst_indices_offset + 0);
     if ((dist0 == 4) && (dist1 == 8))
     {
         TTI_SFPSTORE(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, dst_indices_offset + 4);

@@ -47,7 +47,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
     {
         if constexpr (is_fp32_dest_acc_en)
         {
-            // Needs to be disabled for MOVD2B/B2D on BH
+            // Needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
         }
         if constexpr (transpose_of_faces)
