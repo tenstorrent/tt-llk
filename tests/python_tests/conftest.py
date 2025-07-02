@@ -271,11 +271,11 @@ def pytest_configure(config):
 # decorate the test with @skip_for_wormhole.
 
 skip_for_wormhole = pytest.mark.skipif(
-    lambda: get_chip_architecture() == ChipArchitecture.WORMHOLE,
+    get_chip_architecture() == ChipArchitecture.WORMHOLE,
     reason="Test is not supported on Wormhole architecture",
 )
 
 skip_for_blackhole = pytest.mark.skipif(
-    lambda: get_chip_architecture() == ChipArchitecture.BLACKHOLE,
+    get_chip_architecture() == ChipArchitecture.BLACKHOLE,
     reason="Test is not supported on Blackhole architecture",
 )
