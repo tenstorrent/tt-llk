@@ -90,7 +90,7 @@ void run_kernel()
             0, MATH_FORMAT, MATH_FORMAT);
 
         // copy second input to tile 1 in dest
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::B2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             1, MATH_FORMAT, MATH_FORMAT);
 
         _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
@@ -134,8 +134,8 @@ void run_kernel()
     {
         _llk_packer_wait_for_math_done_();
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
