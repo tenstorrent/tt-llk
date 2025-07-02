@@ -119,5 +119,4 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    tp = passed_test(golden_tensor, res_tensor, formats.output_format)
-    assert tp == True
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
