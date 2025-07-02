@@ -13,6 +13,6 @@ class TestConfig:
 
     @classmethod
     def from_pytest_config(cls, config):
-        cls.run_simulator = (config.getoption("--run_simulator"),)
+        cls.run_simulator = config.getoption("--run_simulator")
         cls.simulator_port = config.getoption("--port")
         return cls
