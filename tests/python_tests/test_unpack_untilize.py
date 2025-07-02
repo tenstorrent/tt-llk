@@ -22,7 +22,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -49,7 +49,7 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_untilze(testname, formats):
 
-    input_dimensions = [32, 64]
+    input_dimensions = [32, 128]
 
     src_A, _, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -57,18 +57,10 @@ def test_unpack_untilze(testname, formats):
 
     src_B = torch.full((1024 * tile_cnt,), 0)
 
-    src_A = torch.arange(
-        0,
-        input_dimensions[0] * input_dimensions[1] / 256,
-        1 / 256,
-        dtype=format_dict[formats.input_format],
-    )
-
     generate_golden = get_golden_generator(UntilizeGolden)
     golden_tensor = generate_golden(
         src_A, formats.output_format, dimensions=input_dimensions
     )
-
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
@@ -87,8 +79,4 @@ def test_unpack_untilze(testname, formats):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    print(f"Golden tensor: \n\n {golden_tensor}")
-    print(f"Result tensor: \n\n {res_tensor}")
-
-    assert 1 == 2
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
