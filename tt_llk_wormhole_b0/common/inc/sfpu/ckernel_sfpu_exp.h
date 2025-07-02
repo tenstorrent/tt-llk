@@ -9,9 +9,7 @@
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
-namespace ckernel
-{
-namespace sfpu
+namespace ckernel::sfpu
 {
 
 sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
@@ -419,5 +417,4 @@ inline void _init_exponential_()
     }
 }
 
-} // namespace sfpu
-} // namespace ckernel
+} // namespace ckernel::sfpu
