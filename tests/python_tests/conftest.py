@@ -256,8 +256,7 @@ def pytest_configure(config):
     test_config.from_pytest_config(config)
 
     if test_config.run_simulator:
-        port = test_config.simulator_port or 5555
-        tt_exalens_init.init_ttexalens_remote(port=port)
+        tt_exalens_init.init_ttexalens_remote(port=test_config.simulator_port)
     else:
         tt_exalens_init.init_ttexalens()
 
