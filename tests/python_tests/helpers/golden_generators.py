@@ -94,6 +94,7 @@ class UnarySFPUGolden:
             MathOperation.Square: self._square,
             MathOperation.Celu: self._celu,
             MathOperation.Gelu: self._gelu,
+            MathOperation.Silu: self._silu,
         }
         self.data_format = None
 
@@ -134,6 +135,16 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.celu(input_tensor, alpha=1.0).item()
+
+
+    def _silu(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.silu(input_tensor).item()
+
 
     def _gelu(self, x):
         input_tensor = (
