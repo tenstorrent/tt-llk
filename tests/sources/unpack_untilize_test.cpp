@@ -55,10 +55,10 @@ void run_kernel()
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, MATH_FORMAT, MATH_FORMAT);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

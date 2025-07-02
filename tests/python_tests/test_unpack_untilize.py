@@ -47,7 +47,7 @@ param_ids = generate_param_ids(all_params)
 
 
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
-def test_unpack_untilze(testname, formats):
+def test_unpack_untilize(testname, formats):
 
     input_dimensions = [32, 128]
 
