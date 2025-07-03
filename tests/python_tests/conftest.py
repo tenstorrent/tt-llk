@@ -3,7 +3,6 @@
 
 import logging
 import os
-import subprocess
 import sys
 import time
 from pathlib import Path
@@ -28,43 +27,6 @@ def init_llk_home():
     os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
 
 
-def set_chip_architecture():
-    def _identify_chip_architecture(output):
-        if "Blackhole" in output:
-            return ChipArchitecture.BLACKHOLE
-        elif "Wormhole" in output:
-            return ChipArchitecture.WORMHOLE
-        return None
-
-    chip_arch = get_chip_architecture()
-    if chip_arch:
-        print(f"CHIP_ARCH is already set to {chip_arch}")
-        return chip_arch
-    try:
-        result = subprocess.run(
-            ["tt-smi", "-ls"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True,
-        )
-    except FileNotFoundError:
-        print("Error: tt-smi command not found.", file=sys.stderr)
-        sys.exit(1)
-    except subprocess.CalledProcessError as e:
-        print(f"Error: tt-smi failed with error: {e.stderr}", file=sys.stderr)
-        sys.exit(1)
-
-    architecture = _identify_chip_architecture(result.stdout)
-    if not architecture:
-        print(
-            "Error: Unable to detect architecture from tt-smi output.", file=sys.stderr
-        )
-        sys.exit(1)
-    os.environ["CHIP_ARCH"] = architecture.value
-    return architecture
-
-
 @pytest.fixture(autouse=True)
 def reset_mailboxes_fixture():
     reset_mailboxes()
@@ -73,7 +35,7 @@ def reset_mailboxes_fixture():
 
 @pytest.fixture(scope="session", autouse=True)
 def download_headers():
-    CHIP_ARCH = set_chip_architecture()
+    CHIP_ARCH = get_chip_architecture()
     if CHIP_ARCH not in [ChipArchitecture.WORMHOLE, ChipArchitecture.BLACKHOLE]:
         sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH.value}")
 

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import subprocess
+import sys
 from enum import Enum
 
 
@@ -22,8 +24,41 @@ class ChipArchitecture(Enum):
             raise ValueError(f"Unknown architecture: {arch_str}")
 
 
+def set_chip_architecture():
+    def _identify_chip_architecture(output):
+        if "Blackhole" in output:
+            return ChipArchitecture.BLACKHOLE
+        elif "Wormhole" in output:
+            return ChipArchitecture.WORMHOLE
+        return None
+
+    try:
+        result = subprocess.run(
+            ["tt-smi", "-ls"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
+    except FileNotFoundError:
+        print("Error: tt-smi command not found.", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"Error: tt-smi failed with error: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+
+    architecture = _identify_chip_architecture(result.stdout)
+    if not architecture:
+        print(
+            "Error: Unable to detect architecture from tt-smi output.", file=sys.stderr
+        )
+        sys.exit(1)
+    os.environ["CHIP_ARCH"] = architecture.value
+    return architecture
+
+
 def get_chip_architecture():
     chip_architecture = os.getenv("CHIP_ARCH")
     if not chip_architecture:
-        return None
+        return set_chip_architecture()
     return ChipArchitecture.from_string(chip_architecture.strip())
