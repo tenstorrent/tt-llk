@@ -50,6 +50,8 @@ class MathOperation(Enum):
     SfpuXlogy = "SFPU_OP_XLOGY"
     SfpuElwRightShift = "SFPU_OP_RSHFT"
     SfpuElwLeftShift = "SFPU_OP_LSHFT"
+    SfpuElwLogicalRightShift = "SFPU_OP_LOGICAL_RSHFT"
+    Silu = "SFPU_OP_SILU"
 
 
 class ReduceDimension(Enum):
@@ -88,3 +90,18 @@ class Mailbox(Enum):
     Unpacker = 0x19FFC
     Math = 0x19FF8
     Packer = 0x19FF4
+
+
+format_tile_sizes = {
+    DataFormat.Bfp8_b: 1088,
+    DataFormat.Float16: 2048,
+    DataFormat.Float16_b: 2048,
+    DataFormat.Float32: 4096,
+    DataFormat.Int32: 4096,
+}
+
+
+class L1BufferLocations(Enum):
+    srcA = 0x18FE0
+    srcB = 0x18FE4
+    Result = 0x18FE8

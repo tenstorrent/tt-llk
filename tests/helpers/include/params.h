@@ -90,6 +90,9 @@ constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::RSHFT;
 #ifdef SFPU_OP_LSHFT
 constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::LSHFT;
 #endif
+#ifdef SFPU_OP_LOGICAL_RSHFT
+constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::LOGICAL_RSHFT;
+#endif
 
 #ifdef SFPU_OP_SQRT
 constexpr auto SFPU_OPERATION = SfpuType::sqrt;
@@ -118,17 +121,6 @@ constexpr auto SFPU_OPERATION = SfpuType::reciprocal;
 #ifdef SFPU_OP_CELU
 constexpr auto SFPU_OPERATION = SfpuType::celu;
 #endif
-
-inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
-{
-    buffer_Dest[0] = reinterpret_cast<volatile uint32_t*>(first);
-
-    va_list args;
-    va_start(args, first);
-    for (int i = 1; i < n; ++i)
-    {
-        int num        = va_arg(args, int);
-        buffer_Dest[i] = reinterpret_cast<volatile uint32_t*>(num);
-    }
-    va_end(args);
-}
+#ifdef SFPU_OP_SILU
+constexpr auto SFPU_OPERATION = SfpuType::silu;
+#endif

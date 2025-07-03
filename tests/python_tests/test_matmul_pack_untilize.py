@@ -4,11 +4,8 @@
 import pytest
 import torch
 
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
-    run_elf_files,
-    wait_for_tensix_operations_finished,
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
@@ -21,9 +18,9 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import generate_make_command
+from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize
-from helpers.utils import passed_test, run_shell_command
+from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
@@ -71,22 +68,24 @@ param_ids = generate_param_ids(all_params)
     ids=param_ids,
 )
 def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
-    arch = get_chip_architecture()
-    if formats.output == DataFormat.Bfp8_b and arch == ChipArchitecture.WORMHOLE:
+    if formats.output == DataFormat.Bfp8_b:
         pytest.skip("Pack untilize does not support Bfp8_b")
 
     torch_format = format_dict[formats.output_format]
 
-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format
+    )
 
     generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
 
-    write_stimuli_to_l1(
+    res_address = write_stimuli_to_l1(
         tilize(src_A, formats.input_format),
         tilize(src_B, formats.input_format),
         formats.input_format,
         formats.input_format,
+        tile_count=tile_cnt,
     )
 
     test_config = {
@@ -96,13 +95,9 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
         "math_fidelity": math_fidelity,
     }
 
-    make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd}")
+    run_test(test_config)
 
-    run_elf_files(testname)
-
-    wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
