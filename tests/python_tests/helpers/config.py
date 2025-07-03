@@ -3,13 +3,13 @@
 
 
 class TestConfig:
-    """TestConfig class represents the test configuration set by command line options."""
+    """TestConfig class represents the test configuration set by command line options related to simulator use."""
 
     def __init__(
         self, run_simulator=False, simulator_port=5555, device_id=0, log_level="INFO"
     ):
         """
-            Initializes the test configuration.
+            Initializes the test configuration in regards to using the simulator.
         Args:
             run_simulator (bool): True if the test is run on simulator, False if on silicon
             simulator_port (int): Simulator server port number
@@ -32,5 +32,5 @@ class TestConfig:
         self.simulator_port = port if port is not None else 5555
 
 
-# Global instance
+# Global instance used to share simulator settings
 test_config = TestConfig()
