@@ -72,12 +72,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
     input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format,
-        formats.input_format,
-        input_dimensions=input_dimensions,
-        const_face=True,
-        const_value_A=2,
-        const_value_B=2,
+        formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
     generate_golden = get_golden_generator(MatmulGolden)
