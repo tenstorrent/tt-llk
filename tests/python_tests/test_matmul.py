@@ -25,7 +25,7 @@ from helpers.utils import passed_test
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
     DataFormat.Float16_b,
-    # DataFormat.Float16,
+    DataFormat.Float16,
     # DataFormat.Bfp8_b,
     # DataFormat.Float32,
 ]
@@ -50,12 +50,12 @@ test_formats = input_output_formats(supported_formats)
 all_params = generate_params(
     ["matmul_test"],
     test_formats,
-    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     math_fidelity=[
         MathFidelity.LoFi,
-        # MathFidelity.HiFi2,
-        # MathFidelity.HiFi3,
-        # MathFidelity.HiFi4,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
     ],
 )
 param_ids = generate_param_ids(all_params)

@@ -7,7 +7,6 @@
 #include <cstdio>
 
 #include "ckernel.h"
-#include "ckernel_debug.h"
 #include "llk_defs.h"
 
 // Globals
@@ -72,8 +71,6 @@ void run_kernel()
     {
         _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, 0, ct_dim, rt_dim, kt_dim);
     }
-
-    // dbg_thread_halt<ThreadId::MathThreadId>();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
