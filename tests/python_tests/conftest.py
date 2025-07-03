@@ -18,9 +18,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.config import (
-    test_config,
-)
+from helpers.config import test_config
 from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
 
