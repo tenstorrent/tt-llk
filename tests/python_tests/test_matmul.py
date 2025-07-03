@@ -27,7 +27,7 @@ supported_formats = [
     DataFormat.Float16_b,
     DataFormat.Float16,
     # DataFormat.Bfp8_b,
-    # DataFormat.Float32,
+    DataFormat.Float32,
 ]
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -88,12 +88,17 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
     ).to(torch_format)
     golden_tensor = golden_tensor.flatten()
 
-    tilized_A = tilize_block(
-        src_A, dimensions=input_dimensions, stimuli_format=formats.input_format
-    )
-    tilized_B = tilize_block(
-        src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
-    )
+    if formats.input_format != DataFormat.Bfp8_b:
+        tilized_A = tilize_block(
+            src_A, dimensions=input_dimensions, stimuli_format=formats.input_format
+        )
+        tilized_B = tilize_block(
+            src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
+        )
+    else:
+        # BFP8 format requires special handling for tilization
+        tilized_A = src_A
+        tilized_B = src_B
 
     res_address = write_stimuli_to_l1(
         tilized_A.flatten(),

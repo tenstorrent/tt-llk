@@ -27,6 +27,15 @@ void run_kernel()
 
     std::uint32_t tile_size = 128;
 
+    if constexpr (static_cast<std::underlying_type_t<DataFormat>>(UNPACK_A_IN) == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Bfp8_b))
+    {
+        tile_size = 68;
+    }
+    else if constexpr (static_cast<std::underlying_type_t<DataFormat>>(UNPACK_A_IN) == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    {
+        tile_size = 256;
+    }
+
     _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
         UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, FACE_R_DIM, 0, 4, 4, tile_size, tile_size);
     _llk_unpack_AB_matmul_init_<>(0, ct_dim, rt_dim, kt_dim, FACE_R_DIM, FACE_R_DIM);
