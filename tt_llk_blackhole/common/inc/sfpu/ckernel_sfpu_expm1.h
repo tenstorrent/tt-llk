@@ -11,16 +11,17 @@
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_expm1_()
 {
-    const bool SCALE_EN            = false; // Expm1 does not use scale.
-    const bool SKIP_POSITIVE_CHECK = false; // Expm1 does not skip positive check.
+    const bool SCALE_EN                  = false; // Expm1 does not use scale.
+    const bool SKIP_POSITIVE_CHECK       = false; // Expm1 does not skip positive check.
+    const uint16_t exp_base_scale_factor = 0x3F80;
 
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat v   = sfpi::dst_reg[0];
-        v                = _calculate_exponential_body_improved_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v);
+        v                = _calculate_exponential_body_improved_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
         sfpi::dst_reg[0] = v - 1.0f;
         sfpi::dst_reg++;
     }

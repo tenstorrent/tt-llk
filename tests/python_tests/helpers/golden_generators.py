@@ -146,7 +146,7 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.silu(input_tensor).item()
-        
+
     def _elu(self, x):
         input_tensor = (
             x
