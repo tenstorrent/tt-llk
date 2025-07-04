@@ -204,6 +204,7 @@ def pytest_sessionstart(session):
     init_llk_home()
 
     if not test_config.run_simulator:
+        # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_config.device_id)
 
 
@@ -217,6 +218,7 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
     if not test_config.run_simulator:
+        # Send ARC message for GO IDLE signal. This should decrease device clock speed.
         _send_arc_message("GO_IDLE", test_config.device_id)
 
 
