@@ -18,7 +18,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.config import test_config
+from helpers.config import TestConfig, initialize_test_config_from_pytest
 from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
 
@@ -249,9 +249,11 @@ def pytest_addoption(parser):
     )
 
 
-# Configure pytest depending on the given command line options
+# Use simulator or silicon to run tests depending on the given command line options
 def pytest_configure(config):
-    test_config.from_pytest_config(config)
+    global test_config
+    initialize_test_config_from_pytest(config)
+    test_config = TestConfig()
 
     if test_config.run_simulator:
         tt_exalens_init.init_ttexalens_remote(port=test_config.simulator_port)
