@@ -18,10 +18,12 @@ namespace sfpu
 // https://doi.org/10.1007/s11075-024-01932-7
 
 template <bool APPROXIMATE = false, bool RECIPROCAL = false>
-sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
+sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat in)
 {
+    sfpi::vFloat x = in;
     sfpi::vInt i   = sfpi::reinterpret<sfpi::vInt>(sfpi::reinterpret<sfpi::vUInt>(x) >> 1);
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - i);
+    sfpi::vFloat infinity = sfpi::s2vFloat16b(std::numeric_limits<float>::infinity());
 
     if constexpr (APPROXIMATE)
     {
@@ -48,17 +50,32 @@ sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
         y                          = y * (sfpi::vConstFloatPrgm1 + c * (sfpi::vConstFloatPrgm2 + c));
         xy                         = x * y;
         negative_y                 = -y;
+        sfpi::vFloat negative_xyy = negative_y * xy;
         sfpi::vFloat one_minus_xyy = sfpi::vConst1 + (negative_y * xy);
 
         if constexpr (RECIPROCAL)
         {
             sfpi::vFloat half_y = 0.5f * y;
-            y                   = one_minus_xyy * half_y + y;
+            // if -xyy == 0, 
+            v_if (negative_xyy == 0.0f) {
+                y = infinity;
+            } v_else {
+                y = one_minus_xyy * half_y + y;
+            } v_endif;
+            //sfpi::vInt exp = sfpi::exexp_nodebias(y);
+            //v_if (exp != 0) {
+            //    y = one_minus_xyy * half_y + y;
+            //} v_endif;
         }
         else
         {
             sfpi::vFloat half_xy = 0.5f * xy;
-            y                    = one_minus_xyy * half_xy + xy;
+            sfpi::vInt exp = sfpi::exexp_nodebias(xy);
+            // if xy is inf or nan, then y will already be inf or nan
+            // if xy is inf, then we skip this step to avoid it getting converted to nan due to inf - inf
+            v_if (exp != 255) {
+                y = one_minus_xyy * half_xy + xy;
+            } v_endif;
         }
     }
 
