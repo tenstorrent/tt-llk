@@ -27,28 +27,34 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
     if constexpr (APPROXIMATE)
     {
         // Algorithm SQRT_10-bits, with modifications for reciprocal.
-        sfpi::vFloat c          = x * y;
-        sfpi::vFloat negative_y = -y;
-        sfpi::vFloat infinity = sfpi::s2vFloat16b(std::numeric_limits<float>::infinity());
+        sfpi::vFloat c           = x * y;
+        sfpi::vFloat negative_y  = -y;
+        sfpi::vFloat infinity    = sfpi::s2vFloat16b(std::numeric_limits<float>::infinity());
         sfpi::vInt infinity_bits = sfpi::reinterpret<sfpi::vInt>(infinity);
-        sfpi::vFloat t          = sfpi::vConstFloatPrgm1 + negative_y * c;
+        sfpi::vFloat t           = sfpi::vConstFloatPrgm1 + negative_y * c;
         if constexpr (RECIPROCAL)
         {
-            sfpi::vInt x_bits = sfpi::reinterpret<sfpi::vInt>(x);
+            sfpi::vInt x_bits                = sfpi::reinterpret<sfpi::vInt>(x);
             sfpi::vInt infinity_minus_x_bits = infinity_bits - x_bits;
-            v_if (infinity_minus_x_bits != 0 && x_bits != 0) {
+            v_if (infinity_minus_x_bits != 0 && x_bits != 0)
+            {
                 y = y * t;
-            } v_else {
+            }
+            v_else
+            {
                 // If x = 0, then y = inf.  If x = inf, then y = 0.
                 y = sfpi::reinterpret<sfpi::vFloat>(infinity_minus_x_bits);
-            } v_endif;
+            }
+            v_endif;
         }
         else
         {
             y = c;
-            v_if (sfpi::reinterpret<sfpi::vInt>(x) != infinity_bits) {
+            v_if (sfpi::reinterpret<sfpi::vInt>(x) != infinity_bits)
+            {
                 y = y * t;
-            } v_endif;
+            }
+            v_endif;
         }
     }
     else
@@ -57,33 +63,39 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
         sfpi::vFloat xy            = x * y;
         sfpi::vFloat negative_y    = -y;
         sfpi::vFloat c             = negative_y * xy;
-        sfpi::vFloat infinity = sfpi::s2vFloat16b(std::numeric_limits<float>::infinity());
-        sfpi::vInt infinity_bits = sfpi::reinterpret<sfpi::vInt>(infinity);
+        sfpi::vFloat infinity      = sfpi::s2vFloat16b(std::numeric_limits<float>::infinity());
+        sfpi::vInt infinity_bits   = sfpi::reinterpret<sfpi::vInt>(infinity);
         y                          = y * (sfpi::vConstFloatPrgm1 + c * (sfpi::vConstFloatPrgm2 + c));
         xy                         = x * y;
         negative_y                 = -y;
-        sfpi::vFloat negative_xyy = negative_y * xy;
+        sfpi::vFloat negative_xyy  = negative_y * xy;
         sfpi::vFloat one_minus_xyy = sfpi::vConst1 + (negative_y * xy);
 
         if constexpr (RECIPROCAL)
         {
-            sfpi::vFloat half_y = sfpi::addexp(y, -1);
-            sfpi::vInt x_bits = sfpi::reinterpret<sfpi::vInt>(x);
+            sfpi::vFloat half_y              = sfpi::addexp(y, -1);
+            sfpi::vInt x_bits                = sfpi::reinterpret<sfpi::vInt>(x);
             sfpi::vInt infinity_minus_x_bits = infinity_bits - x_bits;
-            v_if (infinity_minus_x_bits != 0 && x_bits != 0) {
+            v_if (infinity_minus_x_bits != 0 && x_bits != 0)
+            {
                 y = one_minus_xyy * half_y + y;
-            } v_else {
+            }
+            v_else
+            {
                 y = sfpi::reinterpret<sfpi::vFloat>(infinity_minus_x_bits);
-            } v_endif;
+            }
+            v_endif;
         }
         else
         {
             sfpi::vFloat half_xy = 0.5f * xy;
             // if xy is inf or nan, then y will already be inf or nan
             // if xy is inf, then we skip this step to avoid it getting converted to nan due to inf - inf
-            v_if (sfpi::reinterpret<sfpi::vInt>(x) < infinity_bits) {
+            v_if (sfpi::reinterpret<sfpi::vInt>(x) < infinity_bits)
+            {
                 y = one_minus_xyy * half_xy + xy;
-            } v_endif;
+            }
+            v_endif;
         }
     }
 
