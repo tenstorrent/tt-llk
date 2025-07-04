@@ -2,15 +2,15 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
 
-class TestConfig:
-    """TestConfig class represents the test configuration set by command line options related to simulator use."""
+class TestTargetConfig:
+    """TestTargetConfig class represents where the test will be run: simulator or silicon."""
 
     _instance = None
     _initialized = False
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(TestConfig, cls).__new__(cls)
+            cls._instance = super(TestTargetConfig, cls).__new__(cls)
         return cls._instance
 
     def __init__(
@@ -25,12 +25,12 @@ class TestConfig:
             log_level (str): Log level
         """
         # Only initialize once
-        if not TestConfig._initialized:
+        if not TestTargetConfig._initialized:
             self.run_simulator: bool = run_simulator
             self.simulator_port: int = simulator_port
             self.device_id: int = device_id
             self.log_level: str = log_level
-            TestConfig._initialized = True
+            TestTargetConfig._initialized = True
 
     def update_from_pytest_config(self, config):
         """Update only the simulator related settings from pytest config"""
@@ -38,7 +38,7 @@ class TestConfig:
         self.simulator_port = config.getoption("--port", default=5555)
 
 
-def initialize_test_config_from_pytest(config):
+def initialize_test_target_from_pytest(config):
     """Initialize the global test configuration from pytest command line options."""
-    test_config = TestConfig()
-    test_config.update_from_pytest_config(config)
+    test_target = TestTargetConfig()
+    test_target.update_from_pytest_config(config)

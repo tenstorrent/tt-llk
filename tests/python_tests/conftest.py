@@ -18,9 +18,9 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.config import TestConfig, initialize_test_config_from_pytest
 from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
+from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 
 
 def init_llk_home():
@@ -203,9 +203,9 @@ def pytest_sessionstart(session):
     # Default LLK_HOME environment variable
     init_llk_home()
 
-    if not test_config.run_simulator:
+    if not target_config.run_simulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
-        _send_arc_message("GO_BUSY", test_config.device_id)
+        _send_arc_message("GO_BUSY", target_config.device_id)
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -217,9 +217,9 @@ def pytest_sessionfinish(session, exitstatus):
         for input_fmt, output_fmt in _format_log:
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
-    if not test_config.run_simulator:
+    if not target_config.run_simulator:
         # Send ARC message for GO IDLE signal. This should decrease device clock speed.
-        _send_arc_message("GO_IDLE", test_config.device_id)
+        _send_arc_message("GO_IDLE", target_config.device_id)
 
 
 def _send_arc_message(message_type: str, device_id: int):
@@ -253,12 +253,12 @@ def pytest_addoption(parser):
 
 # Use simulator or silicon to run tests depending on the given command line options
 def pytest_configure(config):
-    global test_config
-    initialize_test_config_from_pytest(config)
-    test_config = TestConfig()
+    global target_config
+    initialize_test_target_from_pytest(config)
+    target_config = TestTargetConfig()
 
-    if test_config.run_simulator:
-        tt_exalens_init.init_ttexalens_remote(port=test_config.simulator_port)
+    if test_target.run_simulator:
+        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
     else:
         tt_exalens_init.init_ttexalens()
 
