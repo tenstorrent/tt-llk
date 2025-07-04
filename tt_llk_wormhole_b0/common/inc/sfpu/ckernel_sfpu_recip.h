@@ -21,7 +21,7 @@ namespace sfpu
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
-    sfpi::vFloat abs_x = sfpi::abs(in);
+    sfpi::vFloat abs_x = sfpi::abs(x);
     sfpi::vFloat negative_x = -x;
     sfpi::vInt y0_bits = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(abs_x);
     sfpi::vFloat y = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(y0_bits), x);
