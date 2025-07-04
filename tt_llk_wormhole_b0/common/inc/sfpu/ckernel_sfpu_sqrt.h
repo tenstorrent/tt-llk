@@ -24,7 +24,7 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
     sfpi::vInt i   = sfpi::reinterpret<sfpi::vInt>(sfpi::reinterpret<sfpi::vUInt>(x) >> 1);
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - i);
 
-    if constexpr (APPROXIMATE || 0)
+    if constexpr (APPROXIMATE)
     {
         // Algorithm SQRT_10-bits, with modifications for reciprocal.
         sfpi::vFloat c          = x * y;
@@ -110,7 +110,7 @@ inline void _calculate_sqrt_(int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_sqrt_()
 {
-    if (APPROXIMATION_MODE || 0)
+    if (APPROXIMATION_MODE)
     {
         sfpi::vConstIntPrgm0   = 0x5f0b3892;
         sfpi::vConstFloatPrgm1 = 1.89099014875f;
