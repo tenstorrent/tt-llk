@@ -42,13 +42,20 @@ constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, boo
 
     if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
     {
-        if (is_exponentB(output) || output == DataFormat::Float32)
+        if (is_fp32_dest_acc_en)
         {
-            unpack_out = DataFormat::Float16_b; // If output Float32 or Float16_b
+            unpack_out = DataFormat::Tf32;
         }
         else
         {
-            unpack_out = DataFormat::Float16; // Tilize to Float16
+            if (is_exponentB(output) || output == DataFormat::Float32)
+            {
+                unpack_out = DataFormat::Float16_b; // If output Float32 or Float16_b
+            }
+            else
+            {
+                unpack_out = DataFormat::Float16; // Tilize to Float16
+            }
         }
 
         if (is_fp32_dest_acc_en || is_exponentB(output))
