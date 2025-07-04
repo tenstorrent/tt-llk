@@ -432,7 +432,7 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.silu(input_tensor).item()
-        
+
     def _elu(self, x):
         input_tensor = (
             x
@@ -456,14 +456,6 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.exp2(input_tensor).item()
-
-    def _expm1(self, x):
-        input_tensor = (
-            x
-            if isinstance(x, torch.Tensor)
-            else torch.tensor(x, dtype=format_dict[self.data_format])
-        )
-        return torch.expm1(input_tensor).item()
 
     def _neg(self, x):
         return -x

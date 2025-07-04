@@ -24,7 +24,6 @@
 #include "sfpu/ckernel_sfpu_elu.h"
 #include "sfpu/ckernel_sfpu_exp.h"
 #include "sfpu/ckernel_sfpu_exp2.h"
-#include "sfpu/ckernel_sfpu_expm1.h"
 #include "sfpu/ckernel_sfpu_fill.h"
 #include "sfpu/ckernel_sfpu_gelu.h"
 #include "sfpu/ckernel_sfpu_hardtanh.h"
