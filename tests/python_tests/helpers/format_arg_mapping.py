@@ -40,6 +40,7 @@ class MathOperation(Enum):
     Cos = "SFPU_OP_COSINE"
     Reciprocal = "SFPU_OP_RECIPROCAL"
     Celu = "SFPU_OP_CELU"
+    Gelu = "SFPU_OP_GELU"
     ReduceColumn = "REDUCE_COL_OPERATION"
     ReduceRow = "REDUCE_ROW_OPERATION"
     ReduceScalar = "REDUCE_SCALAR_OPERATION"
