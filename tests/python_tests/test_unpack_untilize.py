@@ -53,12 +53,17 @@ param_ids = generate_param_ids(all_params)
 
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_untilize(testname, formats):
-    if (formats.input_format == DataFormat.Bfp8_b):
-        pytest.skip("BFP8 format is not supported for unpack_untilize operation for multiple tiles")
+    if formats.input_format == DataFormat.Bfp8_b:
+        pytest.skip(
+            "BFP8 format is not supported for unpack_untilize operation for multiple tiles"
+        )
 
     input_dimensions = [32, 128]
     if formats.input_format == DataFormat.Float32:
-        input_dimensions = [32, 32]  # Multiple tile unpack untilize not supported for Float32, @ldjurovic can take a look to extend this
+        input_dimensions = [
+            32,
+            32,
+        ]  # Multiple tile unpack untilize not supported for Float32, @ldjurovic can take a look to extend this
 
     src_A, _, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
