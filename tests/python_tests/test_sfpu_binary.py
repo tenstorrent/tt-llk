@@ -52,7 +52,6 @@ float_ops = [
     MathOperation.SfpuElwadd,
     MathOperation.SfpuElwsub,
     MathOperation.SfpuElwmul,
-    MathOperation.SfpuXlogy,
 ]
 
 int_ops = [

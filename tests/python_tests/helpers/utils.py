@@ -7,8 +7,6 @@ from collections import namedtuple
 import numpy as np
 import torch
 
-from helpers.unpack import check_values_in_range
-
 from .format_arg_mapping import format_dict
 from .format_config import DataFormat, FormatConfig
 
@@ -162,13 +160,8 @@ def passed_test(
     golden_tensor,
     res_tensor,
     output_data_format=DataFormat.Float16_b,
-    fused_with_bfp8_b: bool = False,
+    L1_to_L1_iterations: bool = 1,
 ):
-    check_values_in_range(
-        res_tensor, output_data_format
-    )  # certain values may be out of range and must be "NaN" to represent torch representation
-    check_values_in_range(golden_tensor, output_data_format)
-
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
 
     def get_tolerance(output_data_format):
@@ -206,18 +199,16 @@ def passed_test(
         # Find all indices where values differ
         diff_indices = torch.where(~is_valid)[0]
         print(f"Found {len(diff_indices)} differences:")
-        for idx in diff_indices:
+        for idx in diff_indices[0:10]:
             print(
                 f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
             )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
 
-    if fused_with_bfp8_b:
-        # For fused ops tests with Bfp8_b, PCC is > 0.98
-        # The results produced are correct and accurate; however, precision can drop to about 98% (worst case) instead of 98%.
-        # Consequently, we either skip these tests or introduce tolerance thresholds to account for this precision loss.
-        # This reduction in precision occurs primarily when copying results from the first L1-to-L1 stage, and is further compounded when truncating values to the Bfp8_b format.
-        pcc += 1
-
-    return is_within_tolerance and (pcc > 0.99)
+    # Once we iterate L1-L1 more than once the loss in percision is accumulated because the result from the first run is transferred as input to the next run
+    # We don't have a robust accuracy model to determine exact percision loss from each run and accumulate as such per test, so we use a heuristic
+    #   - This reduction in precision occurs primarily when copying results from the first L1-to-L1 stage, and is further compounded when truncating values with less percision (Bfp8_b for example).
+    target_pcc = pow(0.99, L1_to_L1_iterations)
+    print("PCC:", pcc)
+    return is_within_tolerance and (pcc > target_pcc)

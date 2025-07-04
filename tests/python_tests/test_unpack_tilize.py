@@ -25,7 +25,8 @@ supported_formats = [
     DataFormat.Float16_b,
     DataFormat.Float16,
     DataFormat.Float32,
-]  # unpack tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
+    DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
+]  # Included in test only as input format
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -51,6 +52,9 @@ param_ids = generate_param_ids(all_params)
 
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_tilize(testname, formats):
+
+    if formats.input_format == DataFormat.Bfp8_b:
+        pytest.skip("Unpack Tilize does not support Bfp8_b input format")
 
     input_dimensions = [64, 64]
 
