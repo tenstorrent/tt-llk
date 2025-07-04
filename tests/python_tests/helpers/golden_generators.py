@@ -289,8 +289,8 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 =======
     def _xlogy(self, x, y):
         # Unable to model edge cases for Tensix behavior in golden.
-        # Tensix shows inconsistent patterns in handling non-finite results for xogy, depending on the input,
-        # data format (both input and output), and destination accumulator (dest_acc).
+        # Tensix shows inconsistent patterns in handling non-finite results for xlogy, depending on the input,
+        # data format (both input and output), and destination accumulation (dest_acc).
         # We need to work with the Tensix team to understand when and why certain results are returned,
         # what configuration dependencies exist, and how to handle them appropriately.
         # Without this understanding, discrepancies will occur between golden and Tensix results due to differing edge case handling.

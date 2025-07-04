@@ -190,14 +190,11 @@ def passed_test(
     is_close = torch.isclose(
         golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
     )
-    is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
-
-    is_valid = is_close | is_nan
-    is_within_tolerance = torch.all(is_valid)
+    is_within_tolerance = torch.all(is_close)
 
     if not is_within_tolerance:
         # Find all indices where values differ
-        diff_indices = torch.where(~is_valid)[0]
+        diff_indices = torch.where(~is_close)[0]
         print(f"Found {len(diff_indices)} differences:")
         for idx in diff_indices[0:10]:
             print(
