@@ -120,13 +120,13 @@ class UnarySFPUGolden:
         return 1 / x if x != 0 else float("inf")
 
     def _rsqrt(self, x):
-        return 1 / math.sqrt(x) if x > 0 else float("inf")
+        return 1 / math.sqrt(x) if x > 0 else float("inf") if x == 0 else float("nan")
 
     def _sin(self, x):
         return math.sin(x)
 
     def _sqrt(self, x):
-        return math.sqrt(x)
+        return math.sqrt(x) if x >= 0 else float("nan")
 
     def _square(self, x):
         return x * x
