@@ -17,38 +17,30 @@ namespace sfpu
 // Fast and accurate approximation algorithms for computing floating point square root. Numer Algor (2024).
 // https://doi.org/10.1007/s11075-024-01932-7
 
-// Assumptions:
-// - x is positive.
-// - x is not subnormal.
+// Computes the square root or reciprocal square root of a positive floating point value x.
 template <bool APPROXIMATE = false, bool RECIPROCAL = false>
 sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
 {
-    // this is just a hack so that zero becomes +inf, and +inf remains +inf
-    //sfpi::vFloat tmp1 = sfpi::addexp(x, -1);
-    //tmp1 = tmp1 * 2.0f;
     sfpi::vInt i   = sfpi::reinterpret<sfpi::vInt>(sfpi::reinterpret<sfpi::vUInt>(x) >> 1);
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - i);
-    // if x = 0, then y = some large number
-    // if x = inf, then y = some small number
 
     if constexpr (APPROXIMATE || 0)
     {
         // Algorithm SQRT_10-bits, with modifications for reciprocal.
-        sfpi::vFloat c          = x * y; // if x == 0, c == 0; if x == inf, c == inf
+        sfpi::vFloat c          = x * y;
         sfpi::vFloat negative_y = -y;
         sfpi::vFloat infinity = sfpi::s2vFloat16b(std::numeric_limits<float>::infinity());
         sfpi::vInt infinity_bits = sfpi::reinterpret<sfpi::vInt>(infinity);
-        sfpi::vFloat t          = sfpi::vConstFloatPrgm1 + negative_y * c; // if x == 0, t == k1; if x == inf, t == -inf
+        sfpi::vFloat t          = sfpi::vConstFloatPrgm1 + negative_y * c;
         if constexpr (RECIPROCAL)
         {
             sfpi::vInt x_bits = sfpi::reinterpret<sfpi::vInt>(x);
-            sfpi::vInt _x_bits = infinity_bits - x_bits;
-            v_if (x_bits != 0 && _x_bits != 0) {
-                y = y * t; // y = y * (k1 - y * y * x)
+            sfpi::vInt infinity_minus_x_bits = infinity_bits - x_bits;
+            v_if (infinity_minus_x_bits != 0 && x_bits != 0) {
+                y = y * t;
             } v_else {
-                // if e == 0, set ie = 255 (t=inf)
-                // if e == 255, set ie = 0 (t=0)
-                y = sfpi::reinterpret<sfpi::vFloat>(_x_bits);
+                // If x = 0, then y = inf.  If x = inf, then y = 0.
+                y = sfpi::reinterpret<sfpi::vFloat>(infinity_minus_x_bits);
             } v_endif;
         }
         else
@@ -57,11 +49,6 @@ sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
             v_if (sfpi::reinterpret<sfpi::vInt>(x) != infinity_bits) {
                 y = y * t;
             } v_endif;
-            // if x == 0, y = c * t = 0 * 0 = 0
-            // if x == inf, y = c * t = inf * -inf = -inf
-            //v_if (sfpi::reinterpret<sfpi::vInt>(x) != 0) {
-            //    y = c * t;
-            //} v_endif;
         }
     }
     else
@@ -82,11 +69,11 @@ sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
         {
             sfpi::vFloat half_y = sfpi::addexp(y, -1);
             sfpi::vInt x_bits = sfpi::reinterpret<sfpi::vInt>(x);
-            sfpi::vInt _x_bits = infinity_bits - x_bits;
-            v_if (_x_bits != 0 && x_bits != 0) {
+            sfpi::vInt infinity_minus_x_bits = infinity_bits - x_bits;
+            v_if (infinity_minus_x_bits != 0 && x_bits != 0) {
                 y = one_minus_xyy * half_y + y;
             } v_else {
-                y = sfpi::reinterpret<sfpi::vFloat>(_x_bits);
+                y = sfpi::reinterpret<sfpi::vFloat>(infinity_minus_x_bits);
             } v_endif;
         }
         else
