@@ -11,11 +11,12 @@
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_exp2_()
 {
-    const bool SCALE_EN            = false; // Exp2 does not use scale.
-    const bool SKIP_POSITIVE_CHECK = false; // Exp2 does not skip positive check.
+    const bool SCALE_EN                  = false; // Exp2 does not use scale.
+    const bool SKIP_POSITIVE_CHECK       = false; // Exp2 does not skip positive check.
+    const uint16_t exp_base_scale_factor = p_sfpu::kCONST_1_FP16B;
 
     for (int d = 0; d < ITERATIONS; d++)
     {
@@ -23,7 +24,7 @@ inline void _calculate_exp2_()
         // log(2) = 0.6931471805;
         v = v * 0.6931471805f;
         // exp = e^(v)
-        sfpi::vFloat exp = _calculate_exponential_body_improved_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v);
+        sfpi::vFloat exp = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
         sfpi::dst_reg[0] = exp;
         sfpi::dst_reg++;
     }
@@ -32,8 +33,9 @@ inline void _calculate_exp2_()
 template <bool APPROXIMATION_MODE>
 inline void _init_exp2_()
 {
-    const bool FAST_APPROX = false; // Exp2 does not use fast approximation.
-    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX>();
+    const uint32_t EXP_BASE_SCALE_FACTOR = 0x3F800000;
+    const bool FAST_APPROX               = false; // Exp2 does not use fast approximation.
+    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
 }
 
 } // namespace ckernel::sfpu
