@@ -110,6 +110,7 @@ class UnarySFPUGolden:
             MathOperation.Sqrt: self._sqrt,
             MathOperation.Square: self._square,
             MathOperation.Celu: self._celu,
+            MathOperation.Silu: self._silu,
         }
         self.data_format = None
         self.shared_exponent_zeroed = False
@@ -179,6 +180,14 @@ class UnarySFPUGolden:
         )
         return torch.nn.functional.celu(input_tensor, alpha=1.0).item()
 
+    def _silu(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.silu(input_tensor).item()
+
 
 @register_golden
 class EltwiseBinaryGolden(FidelityMasking):
@@ -223,6 +232,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
                 MathOperation.SfpuXlogy: self._xlogy,
                 MathOperation.SfpuElwRightShift: self._right_shift,
                 MathOperation.SfpuElwLeftShift: self._left_shift,
+                MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
             }
         )
 
@@ -253,6 +263,12 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 
     def _left_shift(self, x, y):
         return torch.bitwise_left_shift(x, y).item()
+
+    def _logical_right_shift(self, t1, t2):
+        # Perform logical right shift by treating t1 as unsigned 32-bit
+        t1_uint = t1.to(torch.int64) & 0xFFFFFFFF
+        result = (t1_uint >> t2).to(torch.int32)
+        return result
 
 
 @register_golden
