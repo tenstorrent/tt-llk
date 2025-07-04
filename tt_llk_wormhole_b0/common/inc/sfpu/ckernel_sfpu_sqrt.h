@@ -36,13 +36,14 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
         {
             sfpi::vInt x_bits                = sfpi::reinterpret<sfpi::vInt>(x);
             sfpi::vInt infinity_minus_x_bits = infinity_bits - x_bits;
+            // If x != inf and x != 0.
             v_if (infinity_minus_x_bits != 0 && x_bits != 0)
             {
                 y = y * t;
             }
+            // Otherwise, if x = 0, then y = inf; if x = inf, then y = 0.
             v_else
             {
-                // If x = 0, then y = inf.  If x = inf, then y = 0.
                 y = sfpi::reinterpret<sfpi::vFloat>(infinity_minus_x_bits);
             }
             v_endif;
@@ -50,6 +51,7 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
         else
         {
             y = c;
+            // If x != inf.  Otherwise, y = inf, since c = inf.
             v_if (sfpi::reinterpret<sfpi::vInt>(x) != infinity_bits)
             {
                 y = y * t;
@@ -76,10 +78,12 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
             sfpi::vFloat half_y              = sfpi::addexp(y, -1);
             sfpi::vInt x_bits                = sfpi::reinterpret<sfpi::vInt>(x);
             sfpi::vInt infinity_minus_x_bits = infinity_bits - x_bits;
+            // If x != inf and x != 0.
             v_if (infinity_minus_x_bits != 0 && x_bits != 0)
             {
                 y = one_minus_xyy * half_y + y;
             }
+            // Otherwise, if x = 0, then y = inf; if x = inf, then y = 0.
             v_else
             {
                 y = sfpi::reinterpret<sfpi::vFloat>(infinity_minus_x_bits);
@@ -89,8 +93,7 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
         else
         {
             sfpi::vFloat half_xy = 0.5f * xy;
-            // if xy is inf or nan, then y will already be inf or nan
-            // if xy is inf, then we skip this step to avoid it getting converted to nan due to inf - inf
+            // If x == inf, we need to skip to avoid y = inf - inf = nan; y will already be inf.
             v_if (sfpi::reinterpret<sfpi::vInt>(x) < infinity_bits)
             {
                 y = one_minus_xyy * half_xy + xy;
