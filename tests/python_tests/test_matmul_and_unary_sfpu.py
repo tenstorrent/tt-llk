@@ -35,7 +35,12 @@ from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
+supported_formats = [
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Float32,
+    DataFormat.Bfp8_b,
+]
 supported_formats = [DataFormat.Bfp8_b]
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -104,7 +109,7 @@ def test_matmul_and_unary_sfpu(
 
     torch_format = format_dict.get(formats.output_format)
     src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format
+        formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
     generate_matmul_golden = get_golden_generator(MatmulGolden)
@@ -112,6 +117,7 @@ def test_matmul_and_unary_sfpu(
         src_A, src_B, formats.output_format, math_fidelity
     )
     golden_tensor = tilize(golden_tensor, formats.output_format)
+
     generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
     golden_tensor = golden_tensor.to(torch_format)
@@ -130,6 +136,7 @@ def test_matmul_and_unary_sfpu(
         "math_fidelity": math_fidelity,
         "approx_mode": approx_mode,
         "mathop": mathop,
+        "L1_to_L1_iterations": 2,  # This is a fused test does two runs of L1-L1, result tensor from first run (matmul) is used as input for second run (sfpu operation)
     }
 
     run_test(test_config)
@@ -142,5 +149,7 @@ def test_matmul_and_unary_sfpu(
         golden_tensor,
         res_tensor,
         formats.output_format,
-        fused_with_bfp8_b=True,  # Fusing tests (more than L1-L1 run, reusing output of first run as input for second etc.) with more than one math op reduces percision + using Bfp8_formats reduces percision
+        test_config.get(
+            "L1_to_L1_iterations"
+        ),  # Needed to calculate accumulated percision loss for fused tests that copy result tensor as input for next runs
     )
