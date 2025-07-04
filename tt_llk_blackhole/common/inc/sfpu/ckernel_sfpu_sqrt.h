@@ -19,7 +19,7 @@ namespace sfpu
 
 // Computes the square root or reciprocal square root of a positive floating point value x.
 template <bool APPROXIMATE = false, bool RECIPROCAL = false>
-sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
+sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
 {
     sfpi::vInt i   = sfpi::reinterpret<sfpi::vInt>(sfpi::reinterpret<sfpi::vUInt>(x) >> 1);
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - i);
@@ -91,12 +91,12 @@ sfpi_inline sfpi::vFloat _sfpu_sqrt_(const sfpi::vFloat x)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool RECIPROCAL>
-inline void _calculate_sqrt_internal_(int iterations)
+inline void _calculate_sqrt_internal_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::dst_reg[0] = _sfpu_sqrt_<APPROXIMATION_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
+        sfpi::dst_reg[0] = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
         sfpi::dst_reg++;
     }
 }
