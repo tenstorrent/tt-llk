@@ -159,8 +159,8 @@ def get_tolerance(output_data_format):
 def passed_test(
     golden_tensor,
     res_tensor,
-    output_data_format=DataFormat.Float16_b,
-    L1_to_L1_iterations: bool = 1,
+    output_data_format: DataFormat = DataFormat.Float16_b,
+    L1_to_L1_iterations: int = 1,
 ):
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
 
@@ -205,10 +205,12 @@ def passed_test(
             )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
-
+    target_pcc = 0.99
     # Once we iterate L1-L1 more than once the loss in percision is accumulated because the result from the first run is transferred as input to the next run
     # We don't have a robust accuracy model to determine exact percision loss from each run and accumulate as such per test, so we use a heuristic
-    #   - This reduction in precision occurs primarily when copying results from the first L1-to-L1 stage, and is further compounded when truncating values with less percision (Bfp8_b for example).
-    target_pcc = pow(0.99, L1_to_L1_iterations)
+    #   - This reduction in precision occurs primarily when copying results from the first L1-to-L1 stage, and is further compounded when truncating
+    #     values with less percision (Bfp8_b) and drops below 99% in that case
+    if output_data_format == DataFormat.Bfp8_b:
+        target_pcc = pow(0.99, L1_to_L1_iterations)
     print("PCC:", pcc)
     return is_within_tolerance and (pcc > target_pcc)
