@@ -45,13 +45,12 @@ constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 #if DATA_FORMAT_INFERENCE_MODEL
 constexpr bool is_fp32_dest_acc_en =
     dest_acc_en_input || is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
-constexpr FormatConfig pipeline_formats =
-    get_data_formats(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input, TRUNCATE_16_BIT);
-constexpr auto UNPACK_A_OUT = static_cast<uint32_t>(pipeline_formats.unpack_dst);
-constexpr auto UNPACK_B_IN  = static_cast<uint32_t>(pipeline_formats.unpack_src);
-constexpr auto UNPACK_B_OUT = static_cast<uint32_t>(pipeline_formats.unpack_dst);
-constexpr auto PACK_IN      = static_cast<uint32_t>(pipeline_formats.pack_src);
-constexpr auto MATH_FORMAT  = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+constexpr FormatConfig pipeline_formats = get_data_formats(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
+constexpr auto UNPACK_A_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+constexpr auto UNPACK_B_IN              = static_cast<uint32_t>(pipeline_formats.unpack_src);
+constexpr auto UNPACK_B_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+constexpr auto PACK_IN                  = static_cast<uint32_t>(pipeline_formats.pack_src);
+constexpr auto MATH_FORMAT              = static_cast<uint32_t>(pipeline_formats.unpack_dst);
 #else
 constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
 #endif
