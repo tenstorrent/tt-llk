@@ -27,11 +27,11 @@ void run_kernel()
 
     std::uint32_t tile_size = 128;
 
-    if constexpr (static_cast<std::underlying_type_t<DataFormat>>(UNPACK_A_IN) == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Bfp8_b))
+    if constexpr (static_cast<DataFormat>(UNPACK_A_IN) == DataFormat::Bfp8_b)
     {
         tile_size = 68;
     }
-    else if constexpr (static_cast<std::underlying_type_t<DataFormat>>(UNPACK_A_IN) == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    else if constexpr (static_cast<DataFormat>(UNPACK_A_IN) == DataFormat::Float32)
     {
         tile_size = 256;
     }
