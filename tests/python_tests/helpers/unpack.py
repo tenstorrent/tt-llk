@@ -14,14 +14,6 @@ from helpers.format_config import DataFormat
 from .format_arg_mapping import DataFormat, format_dict, format_tile_sizes
 
 
-def check_values_in_range(tensor: torch.Tensor, format: DataFormat):
-    for i in range(len(tensor)):
-        if tensor[i] >= 1.0e38 or not torch.isfinite(tensor[i]):
-            tensor[i] = float("nan")
-
-    return tensor
-
-
 def unpack_fp16(packed_list):
     return [val[0] for val in struct.iter_unpack("<e", bytes(packed_list))]
 
