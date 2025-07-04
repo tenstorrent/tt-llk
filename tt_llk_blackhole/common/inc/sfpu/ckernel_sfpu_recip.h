@@ -19,11 +19,14 @@ namespace sfpu
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
-    sfpi::vFloat negative_x = -in;
-    sfpi::vFloat y          = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(in));
-    sfpi::vFloat t          = sfpi::vConstFloatPrgm2 + negative_x * y;
-    y                       = y * sfpi::vConstFloatPrgm1;
-    y                       = y * t;
+    sfpi::vFloat abs_x = sfpi::abs(in);
+    sfpi::vFloat x = abs_x; //sfpi::setexp(in, 127);
+    sfpi::vFloat negative_x = -x;
+    sfpi::vInt tmp = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(x);
+    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(tmp);
+    sfpi::vFloat t = sfpi::vConstFloatPrgm2 + negative_x * y;
+    y = y * sfpi::vConstFloatPrgm1;
+    y = y * t;
 
     if constexpr (!APPROXIMATE)
     {
@@ -32,7 +35,18 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
         y = y * t + y;
     }
 
-    return y;
+/*
+    sfpi::vInt orig_exp = sfpi::exexp(in);
+    sfpi::vInt new_exp  = sfpi::exexp_nodebias(y);
+    new_exp -= orig_exp;
+    y = setexp(y, new_exp);
+*/
+
+v_if (tmp < 0) {
+    y = sfpi::vConst0;
+} v_endif;
+
+    return setsgn(y, in);
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
