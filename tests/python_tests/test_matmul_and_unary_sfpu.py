@@ -41,7 +41,6 @@ supported_formats = [
     DataFormat.Float32,
     DataFormat.Bfp8_b,
 ]
-supported_formats = [DataFormat.Bfp8_b]
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
 
