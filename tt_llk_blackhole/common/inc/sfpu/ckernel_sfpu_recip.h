@@ -20,7 +20,8 @@ template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
     sfpi::vFloat abs_x = sfpi::abs(in);
-    sfpi::vFloat negative_x = -in;
+    sfpi::vFloat x = in;
+    sfpi::vFloat negative_x = -x;
     sfpi::vInt tmp = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(abs_x);
     sfpi::vFloat y = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(tmp), in);
     sfpi::vFloat t = sfpi::vConstFloatPrgm2 + negative_x * y;
@@ -34,9 +35,9 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
         y = y * t + y;
     }
 
-v_if (tmp < 0) {
-y = sfpi::vConst0;
-} v_endif;
+    v_if (tmp < 0) {
+        y = sfpi::vConst0;
+    } v_endif;
 
     return y;
 }
