@@ -203,6 +203,7 @@ def pytest_sessionstart(session):
     # Default LLK_HOME environment variable
     init_llk_home()
 
+    test_target = TestTargetConfig()
     if not test_target.run_simulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_target.device_id)
@@ -217,6 +218,7 @@ def pytest_sessionfinish(session, exitstatus):
         for input_fmt, output_fmt in _format_log:
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
+    test_target = TestTargetConfig()
     if not test_target.run_simulator:
         # Send ARC message for GO IDLE signal. This should decrease device clock speed.
         _send_arc_message("GO_IDLE", test_target.device_id)
@@ -253,7 +255,6 @@ def pytest_addoption(parser):
 
 # Use simulator or silicon to run tests depending on the given command line options
 def pytest_configure(config):
-    global test_target
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
 
