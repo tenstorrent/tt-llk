@@ -16,37 +16,18 @@ namespace sfpu
 // Optimal Approximation of the 1/x Function using Chebyshev Polynomials and Magic Constants.
 // https://doi.org/10.1145/3708472
 
+// Computes the reciprocal of a floating point value x.
+// Returns 0 if abs(x) > 0x1.6a09e6p+126, or if x is NaN.
 template <bool APPROXIMATE = false>
-sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
+sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
-    // Set the sign bit to zero, making x positive.
-    // This avoids issues when subtracting from the magic constant, which would complicate edge case detection.
-    sfpi::vFloat x = setsgn(in, 0);
+    sfpi::vFloat abs_x = sfpi::abs(in);
     sfpi::vFloat negative_x = -x;
-
-    sfpi::vInt i = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(x);
-
-    // Handle cases where the bit pattern x > magic constant.  This happens for:
-    // - extremely large finite values, whose reciprocal will be zero.
-    // - +inf, whose reciprocal will be zero.
-    // - +nan, which we do not support, but zero is acceptable.
-    v_if (i < 0)
-    {
-        // Set -x to zero, ensuring that the reciprocal of infinity is zero.
-        negative_x = sfpi::vConst0;
-
-        // SFPI forces use to use a temporary variable so that we can reinterpret vConst0 as VInt.
-        sfpi::vFloat tmp = sfpi::vConst0;
-
-        // Set i to zero, which in turn sets our initial approximation y to zero below.
-        i = sfpi::reinterpret<sfpi::vInt>(tmp);
-    }
-    v_endif;
-
-    sfpi::vFloat y  = sfpi::reinterpret<sfpi::vFloat>(i);
-    sfpi::vFloat t  = sfpi::vConstFloatPrgm2 + negative_x * y;
-    sfpi::vFloat t1 = y * sfpi::vConstFloatPrgm1;
-    y               = t1 * t;
+    sfpi::vInt y0_bits = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(abs_x);
+    sfpi::vFloat y = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(y0_bits), x);
+    sfpi::vFloat t = sfpi::vConstFloatPrgm2 + negative_x * y;
+    y = y * sfpi::vConstFloatPrgm1;
+    y = y * t;
 
     if constexpr (!APPROXIMATE)
     {
@@ -55,8 +36,14 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
         y = y * t + y;
     }
 
-    // Restore sign bit.
-    return setsgn(y, in);
+    v_if (y0_bits < 0)
+    {
+        // This occurs for a small portion of very large floats, infinity, and NaN.
+        y = sfpi::vConst0;
+    }
+    v_endif;
+
+    return y;
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
