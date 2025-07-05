@@ -89,6 +89,7 @@ class UnarySFPUGolden:
             MathOperation.Cos: self._cos,
             MathOperation.Log: self._log,
             MathOperation.Reciprocal: self._reciprocal,
+            MathOperation.Rsqrt: self._rsqrt,
             MathOperation.Sin: self._sin,
             MathOperation.Sqrt: self._sqrt,
             MathOperation.Square: self._square,
@@ -113,16 +114,19 @@ class UnarySFPUGolden:
         return math.cos(x)
 
     def _log(self, x):
-        return math.log(x) if x != 0 else float("nan")
+        return math.log(x) if x != 0 else float("-inf")
 
     def _reciprocal(self, x):
-        return 1 / x if x != 0 else float("nan")
+        return 1 / x if x != 0 else float("inf")
+
+    def _rsqrt(self, x):
+        return 1 / math.sqrt(x) if x > 0 else float("inf") if x == 0 else float("nan")
 
     def _sin(self, x):
         return math.sin(x)
 
     def _sqrt(self, x):
-        return math.sqrt(x)
+        return math.sqrt(x) if x >= 0 else float("nan")
 
     def _square(self, x):
         return x * x
