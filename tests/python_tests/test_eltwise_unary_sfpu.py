@@ -59,6 +59,7 @@ all_params = generate_params(
         MathOperation.Cos,
         MathOperation.Log,
         MathOperation.Reciprocal,
+        MathOperation.Rsqrt,
         MathOperation.Sin,
         MathOperation.Sqrt,
         MathOperation.Square,

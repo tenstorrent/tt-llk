@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2025 Jason Davies <jason@jasondavies.com>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -11,44 +12,38 @@ namespace ckernel
 namespace sfpu
 {
 
-template <int max_iter = 3>
-sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
+// See: Cezary J. Walczyk, Leonid V. Moroz, Volodymyr Samotyy, and Jan L. Cieśliński.
+// Optimal Approximation of the 1/x Function using Chebyshev Polynomials and Magic Constants.
+// https://doi.org/10.1145/3708472
+
+// Computes the reciprocal of a floating point value x.
+// Returns 0 if abs(x) > 0x1.6a09e6p+126, or if x is NaN.
+template <bool APPROXIMATE = false>
+sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
-    // Force sign to 1 (make number negative)
-    sfpi::vFloat val = sfpi::setsgn(in, 1);
+    sfpi::vFloat abs_x      = sfpi::abs(x);
+    sfpi::vFloat negative_x = -x;
+    sfpi::vInt y0_bits      = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(abs_x);
+    sfpi::vFloat y          = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(y0_bits), x);
+    sfpi::vFloat t          = sfpi::vConstFloatPrgm2 + negative_x * y;
+    y                       = y * sfpi::vConstFloatPrgm1;
+    y                       = y * t;
 
-    val = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
-    // Use 1.44 as first guess at x, ideal value would be 1.33.
-    // Grayskull has hardwired 1.44 and uses it to avoid a load.
-    // We use it here for consistency.
-    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
-    sfpi::vFloat two            = sfpi::vConstFloatPrgm1;
-    sfpi::vFloat result         = vConstLn2Recip * (val * vConstLn2Recip + two);
-
-    for (int s_iter = 0; s_iter < (max_iter - 1); s_iter++)
+    if constexpr (!APPROXIMATE)
     {
-        result = result * (val * result + two);
+        // 2nd iteration of Newton-Raphson
+        t = y * negative_x + sfpi::vConst1;
+        y = y * t + y;
     }
 
-    sfpi::vInt orig_exp = exexp(in);
-    sfpi::vInt new_exp  = exexp(result);
-
-    // "Subtract" exponents, and re-bias.
-    // Execute: -1 - exp, then exp += 127
-    new_exp -= orig_exp;
-    new_exp += 126;
-
-    v_if (new_exp < 0)
+    v_if (y0_bits < 0)
     {
-        // If rebiased exponent is negative, we need to saturate at 0.
-        // This means the initial number was too big so reciprocal result should be 0
-        result  = 0.0F;
-        new_exp = 0;
+        // This occurs for a small portion of very large floats, infinity, and NaN.
+        y = sfpi::vConst0;
     }
     v_endif;
 
-    // Set newly denormalized exponent to result exponent field
-    return setexp(result, new_exp);
+    return y;
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
@@ -58,14 +53,7 @@ inline void _calculate_reciprocal_(const int iterations)
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(in);
-
-        v_if (in < 0.0F)
-        {
-            // Invert sign on calculated value if CC=1 (number is negative)
-            out = -out;
-        }
-        v_endif;
+        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE>(in);
 
         if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
         {
@@ -83,8 +71,9 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
-    sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
-    sfpi::vConstFloatPrgm1 = 2.0f;
+    sfpi::vConstIntPrgm0   = 0x7eb504f3;
+    sfpi::vConstFloatPrgm1 = 1.94090888923f;
+    sfpi::vConstFloatPrgm2 = 1.43566017178f;
 }
 
 } // namespace sfpu
