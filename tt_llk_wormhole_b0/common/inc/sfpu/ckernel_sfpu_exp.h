@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"

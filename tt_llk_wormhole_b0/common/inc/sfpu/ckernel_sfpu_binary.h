@@ -6,7 +6,6 @@
 
 #include <limits>
 
-#include "ckernel_sfpu_binary.h"
 #include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_log.h"
 #include "ckernel_sfpu_recip.h"
