@@ -31,7 +31,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
         sfpi::vFloat t = sfpi::vConstFloatPrgm2 + negative_x * y;
         y              = y * sfpi::vConstFloatPrgm1;
         y              = y * t;
- 
+
         if constexpr (!APPROXIMATE)
         {
             // 2nd iteration of Newton-Raphson
