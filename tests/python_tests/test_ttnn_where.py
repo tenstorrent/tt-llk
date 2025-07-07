@@ -26,7 +26,7 @@ from helpers.param_config import (
     generate_params,
     input_output_formats,
 )
-from helpers.test_config import generate_make_command
+from helpers.test_config import generate_make_command, run_test
 from helpers.utils import run_shell_command
 
 
@@ -185,9 +185,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         "mathop": mathop,
     }
 
-    make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd}")
-    run_elf_files(testname)
+    run_test(test_config)
 
     wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(formats, tile_count=1, address=0x1D000)
@@ -219,8 +217,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         "GOLDEN TENSOR (first 10 elements of 1st row):",
         golden_tensor.view(32, 32)[0, :10],
     )
-
-    assert 1 == 2
+    
     assert torch_equal_nan(golden_tensor, res_tensor)
 
     # assert passed_test(golden_tensor, res_tensor, formats.output_format)
@@ -233,7 +230,7 @@ test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes],  # DestAccumulation.No],
+    dest_acc=[DestAccumulation.No],  # DestAccumulation.No],
     mathop=[
         MathOperation.TTNNWhere,
     ],
