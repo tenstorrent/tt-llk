@@ -3,6 +3,7 @@
 
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -84,6 +85,7 @@ def download_headers():
         sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH}")
 
     HEADER_DIR = "../hw_specific/inc"
+    BUILD_DIR = "../build"
     ARCH_FILE = os.path.join(HEADER_DIR, ".architecture")
 
     # Check if architecture has changed
@@ -97,12 +99,12 @@ def download_headers():
             return
         else:
             print(
-                f"Architecture changed from {stored_arch} to {CHIP_ARCH.value}. Clearing headers directory."
+                f"Architecture changed from {stored_arch} to {CHIP_ARCH.value}. Clearing headers and build directory."
             )
             if os.path.exists(HEADER_DIR):
-                import shutil
-
                 shutil.rmtree(HEADER_DIR)
+            if os.path.exists(BUILD_DIR):
+                shutil.rmtree(BUILD_DIR)
     else:
         print(
             f"No architecture file found. Will download headers for {CHIP_ARCH.value}."
