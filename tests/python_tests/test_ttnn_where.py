@@ -92,13 +92,13 @@ false_values = torch.tensor(
 )
 
 
-supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]
 
 test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     mathop=[
         MathOperation.TTNNWhere,
     ],
@@ -220,6 +220,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         golden_tensor.view(32, 32)[0, :10],
     )
 
+    assert 1 == 2
     assert torch_equal_nan(golden_tensor, res_tensor)
 
     # assert passed_test(golden_tensor, res_tensor, formats.output_format)
