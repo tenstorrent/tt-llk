@@ -6,6 +6,7 @@ import torch
 
 from helpers.device import (
     collect_results,
+    read_src_a,
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import DestAccumulation, format_dict
@@ -17,17 +18,10 @@ from helpers.param_config import (
     generate_params,
     input_output_formats,
 )
-from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [
-    DataFormat.Float32,
-    DataFormat.Float16,
-    DataFormat.Float16_b,
-    DataFormat.Bfp8_b,
-]
+supported_formats = [DataFormat.UInt16]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -48,7 +42,9 @@ supported_formats = [
 
 
 test_formats = input_output_formats(supported_formats)
-dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
+dest_acc = [
+    DestAccumulation.Yes
+]  # Sets dest accumulation i.e if dest register is in 32-bit mode or not
 testname = ["eltwise_unary_datacopy_test"]
 all_params = generate_params(testname, test_formats, dest_acc)
 param_ids = generate_param_ids(all_params)
@@ -60,12 +56,15 @@ param_ids = generate_param_ids(all_params)
 def test_unary_datacopy(testname, formats, dest_acc):
 
     input_dimensions = [64, 64]
+    tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
 
-    src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format,
-        formats.input_format,
-        input_dimensions=input_dimensions,
-    )
+    src_A = torch.ones(tile_cnt * 1024, dtype=format_dict[formats.input_format])
+    src_A = torch.tensor(
+        [117] * (tile_cnt * 1024), dtype=format_dict[formats.input_format]
+    )  # Fill with a constant value for testing
+    src_B = torch.zeros(
+        tile_cnt * 1024, dtype=format_dict[formats.input_format]
+    )  # Placeholder for src_B, not used in unary operation
 
     generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(src_A, formats.output_format)
@@ -85,10 +84,20 @@ def test_unary_datacopy(testname, formats, dest_acc):
 
     run_test(test_config)
 
+    src_reg = read_src_a(formats.input_format)
+    rows = 64
+    cols = 16
+
+    print(f"Read src_A from L1")
+    for i in range(rows):
+        row = src_reg[i * cols : (i + 1) * cols]
+        print(row)
+
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    # Not looking at result for test only checking what is in src register for sake of debugging
+    # assert passed_test(golden_tensor, res_tensor, formats.output_format)

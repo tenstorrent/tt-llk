@@ -267,6 +267,149 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     return dest_reg
 
 
+def read_src_a(input_format: DataFormat) -> list[int | float | str]:
+    """Dumps SrcA file from the specified core, and parses the data into a list of values.
+
+    Returns:
+            list[int | float | str]: 64x(8/16) values in register file (64 rows, 8 or 16 values per row, depending on the format of the data).
+    """
+    from ttexalens.debug_tensix import TensixDebug, convert_regfile
+    from ttexalens.unpack_regfile import unpack_data
+
+    context = check_context()
+    current_device = context.devices[0]
+    core_loc = OnChipCoordinate.create("0,0", device=current_device)
+
+    debug = TensixDebug(core_loc, 0, context)
+
+    regfile = convert_regfile(2)  # only want to read from SRCA register file)
+    data = debug.read_regfile_data(regfile)
+    df = debug.read_tensix_register("ALU_FORMAT_SPEC_REG2_Dstacc")
+    if input_format == DataFormat.Float32 or input_format == DataFormat.Bfp8_b:
+        df = 5
+    try:
+        data = unpack_data(data, df)
+        for i in range(0, len(data) - 1, 2):
+            tmp = data[i]
+            data[i] = data[i + 1]
+            data[i + 1] = tmp
+        return data
+    except ValueError as e:
+        # If format is unsupported we return raw data in hex format
+        hex_pairs = [f"0x{data[i]:02x}{data[i+1]:02x}" for i in range(0, len(data), 2)]
+        return hex_pairs
+        # return [hex(datum) for datum in data]
+
+
+def write_dest_register(input_tensor, dest_acc: DestAccumulation):
+    """
+    Writes values to the destination register on the device.
+        - Only supported on BH . Due to hardware bug, TRISCs exit the halted state after a single write and must be rehalted for each write. On wormhole they cannot be halted again. This breaks multi-write loops (e.g., 1024 writes).
+        - On blackhole, debug_risc.write_memory() re-halts the TRISC, so multi-write loops work. Until the debug team provides a workaround, memory writes are limited to blackhole only.
+        - We write with TRISC 0 (Risc ID 1) because this is the only core that can be rehalted.
+
+    Args:
+        num_tiles: Number of tiles to write to the destination register.
+        dest_acc: Whether destination accumulation is enabled or not.
+
+    Prerequisite: Disable flag that clears dest register after packing (in llk_pack_common.h) otherwise you will write garbage values.
+        - For BH in pack_dest_section_done_, comment out this line : TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+
+    Note:
+        - The destination register is written to the address 0xFFBD8000.
+        - Number of tiles that can fit in dest register depends on size of datum. If dest register is in 32 bit mode (dest accumulation is enabled), num_tiles must be ≤ 8. Otherwise, ≤ 16.
+    """
+
+    from ttexalens.debug_risc import RiscDebug, RiscLoc
+    from ttexalens.tt_exalens_lib import (
+        check_context,
+        convert_coordinate,
+        validate_device_id,
+    )
+
+    # from ttexalens.hardware.baby_risc_debug import BabyRiscDebug
+
+    risc_id = 1  # we want to use TRISC 0 for writing to the destination register
+    noc_id = 0  # NOC ID for the device
+    device_id = 0  # Device ID for the device
+    core_loc = "0,0"  # Core location in the format "tile_id,risc_id"
+    base_address = 0xFFBD8000
+
+    context = check_context()
+    validate_device_id(device_id, context)
+    coordinate = convert_coordinate(core_loc, device_id, context)
+
+    location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
+    debug_risc = RiscDebug(location=location, context=context, verbose=False)
+
+    if debug_risc.enable_asserts:
+        debug_risc.assert_not_in_reset()
+
+    eight_tiles = 1024
+    sixteen_tiles = 2048
+    assert len(input_tensor) <= (
+        eight_tiles if dest_acc == DestAccumulation.Yes else sixteen_tiles
+    )
+
+    word_size = 4  # bytes per 32-bit integer
+    addresses = [base_address + i * word_size for i in range(len(input_tensor))]
+
+    with debug_risc.ensure_halted():
+        for i in range(len(input_tensor)):
+            debug_risc.write_memory(addresses[i], input_tensor[i])
+
+
+def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
+    """
+    Reads values in the destination register from the device.
+        - Only supported on BH . Due to hardware bug, TRISCs exit the halted state after a single read and must be rehalted for each read. On wormhole they cannot be halted again. This breaks multi-read loops (e.g., 1024 reads).
+        - On blackhole, debug_risc.read_memory() re-halts the TRISC, so multi-read loops work. Until the debug team provides a workaround, memory reads are limited to blackhole only.
+        - We read with TRISC 0 (Risc ID 1) because this is the only core that can be rehalted.
+
+    Args:
+        num_tiles: Number of tiles to read from the destination register.
+        dest_acc: Whether destination accumulation is enabled or not.
+
+    Prerequisite: Disable flag that clears dest register after packing (in llk_pack_common.h) otherwise you will read garbage values.
+        - For BH in pack_dest_section_done_, comment out this line : TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+
+    Note:
+        - The destination register is read from the address 0xFFBD8000.
+        - Number of tiles that can fit in dest register depends on size of datum. If dest register is in 32 bit mode (dest accumulation is enabled), num_tiles must be ≤ 8. Otherwise, ≤ 16.
+    """
+
+    from ttexalens.debug_risc import RiscDebug, RiscLoc
+    from ttexalens.tt_exalens_lib import (
+        check_context,
+        convert_coordinate,
+        validate_device_id,
+    )
+
+    risc_id = 1  # we can only use TRISC 0 for reading the destination register
+    noc_id = 0  # NOC ID for the device
+    device_id = 0  # Device ID for the device
+    core_loc = "0,0"  # Core location in the format "tile_id,risc_id"
+    base_address = 0xFFBD8000
+
+    context = check_context()
+    validate_device_id(device_id, context)
+    coordinate = convert_coordinate(core_loc, device_id, context)
+
+    location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
+    debug_risc = RiscDebug(location=location, context=context, verbose=False)
+
+    assert num_tiles <= (8 if dest_acc == DestAccumulation.Yes else 16)
+
+    word_size = 4  # bytes per 32-bit integer
+    num_words = num_tiles * 1024
+    addresses = [base_address + i * word_size for i in range(num_words)]
+
+    with debug_risc.ensure_halted():
+        dest_reg = [debug_risc.read_memory(addr) for addr in addresses]
+
+    return dest_reg
+
+
 def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
