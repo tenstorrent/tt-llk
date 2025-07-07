@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "ckernel_debug.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -37,15 +38,22 @@ inline void _calculate_where_()
 
         v_if (cond == 0.0f)
         {
-            output_tensor = false_tensor;
+            // output_tensor = false_tensor;
+            TTI_SFPLOAD(p_sfpu::LREG3, 6, 0, 128);
+            TTI_SFPLOAD(p_sfpu::LREG3, 6, 0, 130);
         }
         v_else
         {
-            output_tensor = true_tensor;
+            // output_tensor = true_tensor;
+            TTI_SFPLOAD(p_sfpu::LREG3, 6, 0, 64);
+            TTI_SFPLOAD(p_sfpu::LREG3, 6, 0, 66);
         }
         v_endif;
 
-        sfpi::dst_reg[0] = output_tensor;
+        // sfpi::dst_reg[0] = output_tensor;
+        TTI_SFPSTORE(p_sfpu::LREG3, 6, 0, 0);
+        TTI_SFPSTORE(p_sfpu::LREG3, 6, 0, 2);
+
         sfpi::dst_reg++;
     }
 }
