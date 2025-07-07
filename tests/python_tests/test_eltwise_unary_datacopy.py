@@ -6,7 +6,7 @@ import torch
 
 from helpers.device import (
     collect_results,
-    read_src_a,
+    read_from_regs,
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import DestAccumulation, format_dict
@@ -21,7 +21,7 @@ from helpers.param_config import (
 from helpers.test_config import run_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.UInt8]
+supported_formats = [DataFormat.Int8]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -59,6 +59,9 @@ def test_unary_datacopy(testname, formats, dest_acc):
     tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
 
     src_A = torch.ones(tile_cnt * 1024, dtype=format_dict[formats.input_format])
+    src_A = torch.tensor(
+        [1] * (tile_cnt * 1024), dtype=format_dict[formats.input_format]
+    )
     src_B = torch.zeros(
         tile_cnt * 1024, dtype=format_dict[formats.input_format]
     )  # Placeholder for src_B, not used in unary operation
@@ -81,11 +84,14 @@ def test_unary_datacopy(testname, formats, dest_acc):
 
     run_test(test_config)
 
-    src_reg = read_src_a(formats.input_format)
+    reg = (
+        0  # reading from src register file, to read from dst register file use reg = 2
+    )
+    src_reg = read_from_regs(formats.input_format, reg)
     rows = 64
     cols = 16
 
-    print(f"Read src_A from L1")
+    print(f"Read from register")
     for i in range(rows):
         row = src_reg[i * cols : (i + 1) * cols]
         print(row)

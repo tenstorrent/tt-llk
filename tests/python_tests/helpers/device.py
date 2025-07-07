@@ -267,22 +267,23 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     return dest_reg
 
 
-def read_src_a(input_format: DataFormat) -> list[int | float | str]:
+def read_from_regs(input_format: DataFormat, register: int) -> list[int | float | str]:
     """Dumps SrcA file from the specified core, and parses the data into a list of values.
-
+    Args:
+        register (int): Register file to dump from (0: SRCA, 1: SRCB, 2: DST)
     Returns:
             list[int | float | str]: 64x(8/16) values in register file (64 rows, 8 or 16 values per row, depending on the format of the data).
     """
     from ttexalens.debug_tensix import TensixDebug, convert_regfile
     from ttexalens.unpack_regfile import unpack_data
 
+    # Setup
     context = check_context()
     current_device = context.devices[0]
     core_loc = OnChipCoordinate.create("0,0", device=current_device)
-
     debug = TensixDebug(core_loc, 0, context)
 
-    regfile = convert_regfile(2)  # only want to read from SRCA register file)
+    regfile = convert_regfile(register)  # only want to read from SRCA register file)
     data = debug.read_regfile_data(regfile)
     df = debug.read_tensix_register("ALU_FORMAT_SPEC_REG2_Dstacc")
     if input_format == DataFormat.Float32 or input_format == DataFormat.Bfp8_b:
