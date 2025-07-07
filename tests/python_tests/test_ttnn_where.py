@@ -10,7 +10,6 @@ from ttexalens.tt_exalens_lib import (
 
 from helpers.device import (
     collect_results,
-    run_elf_files,
     wait_for_tensix_operations_finished,
 )
 from helpers.format_arg_mapping import (
@@ -26,8 +25,7 @@ from helpers.param_config import (
     generate_params,
     input_output_formats,
 )
-from helpers.test_config import generate_make_command, run_test
-from helpers.utils import run_shell_command
+from helpers.test_config import run_test
 
 
 # Helper function
@@ -217,7 +215,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         "GOLDEN TENSOR (first 10 elements of 1st row):",
         golden_tensor.view(32, 32)[0, :10],
     )
-    
+
     assert torch_equal_nan(golden_tensor, res_tensor)
 
     # assert passed_test(golden_tensor, res_tensor, formats.output_format)
@@ -252,12 +250,18 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     C = C.expand(1, 1, h, w)  # Broadcast to (n, c, h, w)
     C = C.to(dtype=dtype)
     T = torch.ones(1, 1, h, w, dtype=dtype) * 2
-    F = torch.ones(1, 1, h, w, dtype=dtype) * 10
+    F = torch.ones(1, 1, h, w, dtype=dtype) * 11
     golden = torch.where(C != 0, T, F)
 
     C = C.flatten().to(format_dict[formats.input_format])
     T = T.flatten().to(format_dict[formats.input_format])
     F = F.flatten().to(format_dict[formats.input_format])
+
+    print(C.view(32, 32))
+    print("-" * 200)
+    print(T.view(32, 32))
+    print("-" * 200)
+    print(F.view(32, 32))
 
     core_loc = "0,0"
     buffer_A_address = 0x1A000
@@ -285,9 +289,7 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
         "mathop": mathop,
     }
 
-    make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd}")
-    run_elf_files(testname)
+    run_test(test_config)
 
     wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(formats, tile_count=1, address=0x1D000)
@@ -318,11 +320,13 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     assert len(res_tensor) == len(golden_tensor)
 
     print(
-        "RESULT TENSOR (first 10 elements of 1st row):", res_tensor.view(32, 32)[0, :10]
+        "RESULT TENSOR (first 10 elements of 1st row):",
+        res_tensor.view(32, 32),  # [0, :10]
     )
     print(
         "GOLDEN TENSOR (first 10 elements of 1st row):",
         golden_tensor.view(32, 32)[0, :10],
     )
 
+    # assert 1==2
     assert torch_equal_nan(golden_tensor, res_tensor)
