@@ -6,16 +6,11 @@
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
+#include "ckernel_sfpu_polyval.h"
 #include "sfpi.h"
 
 namespace ckernel::sfpu
 {
-
-template <typename T>
-constexpr T POLYVAL5(T coef4, T coef3, T coef2, T coef1, T coef0, T val)
-{
-    return (((((coef4 * val) + coef3) * val + coef2) * val + coef1) * val + coef0);
-}
 
 inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
 {
