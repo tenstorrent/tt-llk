@@ -11,6 +11,7 @@
 #include "ckernel_sfpu_log.h"
 #include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
+#include "ckernel_sfpu_rounding_ops.h"
 
 namespace ckernel
 {
@@ -61,7 +62,7 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
     sfpi::vFloat val = pow * log_result;
 
     // Force sign to 0 (make number positive)
-    sfpi::vFloat result = _sfpu_exp_(sfpi::setsgn(val, 0));
+    sfpi::vFloat result = _sfpu_exp_21f_acc_(sfpi::setsgn(val, 0));
 
     v_if (val < 0)
     {

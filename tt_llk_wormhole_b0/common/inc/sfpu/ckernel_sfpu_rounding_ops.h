@@ -79,6 +79,24 @@ inline constexpr std::array<float, 84> PRECOMPUTED_POW10_TABLE = {
     1e23F,  1e24F,  1e25F,  1e26F,  1e27F,  1e28F,  1e29F,  1e30F,  1e31F,  1e32F,  1e33F,  1e34F,  1e35F,  1e36F,  1e37F,  1e38F,
 };
 
+sfpi_inline sfpi::vFloat _sfpu_exp_21f_acc_(sfpi::vFloat val) {
+    sfpi::vInt z = _float_to_int32_(val * sfpi::vFloat(0x00b8aa3b) + sfpi::vFloat(0x3f800000));
+    sfpi::vInt zii = z & 0x7f800000;
+    sfpi::vInt zif = z & sfpi::vInt(0x007fffff);  // extra mantissa
+
+    sfpi::vFloat d1 = sfpi::vFloat(0.40196114e-7);
+    sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(0xf94ee7) + zif);
+    sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(0x560) + zif);
+    d2 = d1 * d2;
+    zif = _float_to_int32_(d2 * d3);
+
+    zii |= zif;  // restore exponent
+
+    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
+
+    return y;
+}
+
 template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
 inline void _calculate_floor_()
 {
