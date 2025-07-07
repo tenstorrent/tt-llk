@@ -35,13 +35,13 @@ inline void _calculate_where_()
         true_tensor  = sfpi::dst_reg[dst_tile_size];
         false_tensor = sfpi::dst_reg[dst_tile_size * 2];
 
-        v_if (cond != 0.0f)
+        v_if (cond == 0.0f)
         {
-            output_tensor = true_tensor;
+            output_tensor = false_tensor;
         }
         v_else
         {
-            output_tensor = false_tensor;
+            output_tensor = true_tensor;
         }
         v_endif;
 
