@@ -21,7 +21,7 @@ from helpers.param_config import (
 from helpers.test_config import run_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.UInt16]
+supported_formats = [DataFormat.UInt8]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -59,9 +59,6 @@ def test_unary_datacopy(testname, formats, dest_acc):
     tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
 
     src_A = torch.ones(tile_cnt * 1024, dtype=format_dict[formats.input_format])
-    src_A = torch.tensor(
-        [117] * (tile_cnt * 1024), dtype=format_dict[formats.input_format]
-    )  # Fill with a constant value for testing
     src_B = torch.zeros(
         tile_cnt * 1024, dtype=format_dict[formats.input_format]
     )  # Placeholder for src_B, not used in unary operation
