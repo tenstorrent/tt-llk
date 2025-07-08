@@ -41,18 +41,13 @@ def set_chip_architecture():
             check=True,
         )
     except FileNotFoundError:
-        print("Error: tt-smi command not found.", file=sys.stderr)
-        sys.exit(1)
+        raise FileNotFoundError("tt-smi command not found. Please ensure tt-smi is installed and in PATH.")
     except subprocess.CalledProcessError as e:
-        print(f"Error: tt-smi failed with error: {e.stderr}", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError(f"tt-smi failed with error: {e.stderr}")
 
     architecture = _identify_chip_architecture(result.stdout)
     if not architecture:
-        print(
-            "Error: Unable to detect architecture from tt-smi output.", file=sys.stderr
-        )
-        sys.exit(1)
+        raise RuntimeError("Unable to detect architecture from tt-smi output. Please verify device is connected and tt-smi is working correctly.")
     os.environ["CHIP_ARCH"] = architecture.value
     return architecture
 
