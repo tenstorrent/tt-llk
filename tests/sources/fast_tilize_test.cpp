@@ -27,6 +27,41 @@ uint32_t loop_factor = 1;
 #include "llk_unpack_common.h"
 #include "llk_unpack_tilize.h"
 
+// the kernel algorithm is the same across all threads, with the only difference being the particular calls made to the llks
+// the high level algorithm is explained here as well as in the metal compute api where it is copied from
+// the kernel tilizes the input tensor of arbitrary shape (divisible by tile dimensions in both axes)
+// tensor shape is defined by BLOCK_RT_DIM and BLOCK_CT_DIM which represent the number of rows and columns of tiles respectively
+// they are calculated as BLOCK_RT_DIM = TENSOR_HEIGHT / TILE_R_DIM and BLOCK_CT_DIM = TENSOR_WIDTH / TILE_C_DIM
+// the first two loops are part of the kernel, providing looping for the performance measurement and calling the high level algorithm for each row of tiles
+// everything inside the "for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)" loop implements the actual high level algorithm as used in the metal compute api
+
+// the goal of the high level algorithm is to break down the BLOCK_CT_DIM of the input tensor into a sequence of llk calls
+// using available unit_dim primitives while maximizing the utilization of the destination buffer
+
+// principle of operation is as follows:
+// BLOCK_CT_DIM == 1: Single call with unit_dim == 1
+// BLOCK_CT_DIM == 2: Single call with unit_dim == 2
+// BLOCK_CT_DIM == 3: Single call with unit_dim == 3
+// BLOCK_CT_DIM > 3 && BLOCK_CT_DIM % 2 == 0: BLOCK_CT_DIM / 2 calls with unit_dim == 2
+// BLOCK_CT_DIM > 3 && BLOCK_CT_DIM % 2 == 1: (BLOCK_CT_DIM - 3) / 2 calls with unit_dim == 2, plus one call with unit_dim == 3
+// it is good to note that only unit_dim == 2 is called multiple times and/or with num_units > 1
+// meaning that unit_dims 1 and 3 will only appear as the last call in the last dest bank
+
+// each iteration of the while loop represents processing of a single dest bank
+// the idea is to process as many tiles as possible in each iteration, except the last two
+// where the aim is to balance the number of tiles processed between the two dest banks to minimize the perf hit
+// depending on the number of remaining tiles, algorithm will decide how many tiles to process
+// if remaining_tiles > 2 * dest_size, there will be at least two more dest banks to process so the algorithm is free to process as much tiles as possible
+// if remaining_tiles > dest_size, there will be at least one more dest bank to process so the algorithm will aim to split the remaining tiles eavenly
+// "even_remainder" is calculated by taking half the tiles and rounding it up to be even as all dest banks except the last only use unit_dim 2
+// for all valid inputs ([5, 8] and [9, 16], depending on the dest_size) the number of tiles processed in the last two dest banks will be within 2 of each other
+// and number of tiles left in the last dest bank will be at least 2
+// in the last iteration there are three distinct cases:
+// if the number of remaining tiles is even or unit_dim == 1, the algorithm will process all remaining tiles in a single call
+// if the number of remaining tiles is 3, the algorithm will process them in a single call with unit_dim == 3
+// if the number of remaining tiles is odd and greater than 3, the algorithm will process all but the last three tiles in a single call with unit_dim == 2
+// followed by a call with unit_dim == 3 for the last three tiles
+
 void run_kernel()
 {
     {
