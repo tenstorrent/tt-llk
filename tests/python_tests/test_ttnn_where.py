@@ -218,8 +218,6 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
 
     assert torch_equal_nan(golden_tensor, res_tensor)
 
-    # assert passed_test(golden_tensor, res_tensor, formats.output_format)
-
 
 supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16_b]
 dtype = torch.bfloat16
@@ -256,12 +254,6 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     C = C.flatten().to(format_dict[formats.input_format])
     T = T.flatten().to(format_dict[formats.input_format])
     F = F.flatten().to(format_dict[formats.input_format])
-
-    print(C.view(32, 32))
-    print("-" * 200)
-    print(T.view(32, 32))
-    print("-" * 200)
-    print(F.view(32, 32))
 
     core_loc = "0,0"
     buffer_A_address = 0x1A000
@@ -321,12 +313,11 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
 
     print(
         "RESULT TENSOR (first 10 elements of 1st row):",
-        res_tensor.view(32, 32),  # [0, :10]
+        res_tensor.view(32, 32)[0, :10],
     )
     print(
         "GOLDEN TENSOR (first 10 elements of 1st row):",
         golden_tensor.view(32, 32)[0, :10],
     )
 
-    assert 1 == 2
     assert torch_equal_nan(golden_tensor, res_tensor)
