@@ -51,18 +51,8 @@ void call_binary_sfpu_operation(BinaryOp operation)
     switch (operation)
     {
         case BinaryOp::ADD:
-            _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
-            break;
-        case BinaryOp::DIV:
-            _sfpu_binary_init_<false, SFPU_BINARY_OPERATION>();
-            _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
-            break;
         case BinaryOp::SUB:
-            _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
-            break;
         case BinaryOp::MUL:
-            _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
-            break;
         case BinaryOp::XLOGY:
             _sfpu_binary_init_<false, SFPU_BINARY_OPERATION>();
             _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
