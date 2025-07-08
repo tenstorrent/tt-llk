@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import math
-from typing import Optional
 
 import torch
 
@@ -16,22 +15,13 @@ from helpers.format_config import DataFormat
 
 golden_registry = {}
 
-<<<<<<< HEAD
-def check_bfp8_b(operand: torch.Tensor, format: DataFormat) -> None:
-    """Check if datum is BFP8_B there is a +/- inf then zero out entire row of 16 elements because they inherit the same exponent and therefore get zeroed out in tensix."""
-    if format == DataFormat.Bfp8_b:
-        for i in range(len(operand)):
-            if not torch.isfinite(operand[i]):
-                inf_index = i
-                for col in range(16):
-                    row = inf_index//16
-                    index = row * 16 + col
-                    if torch.isfinite(operand[index]) and index != i:
-                        operand[index] = 0.0
-=======
 
 def check_bfp8_b(operand: list) -> list:
     """Check if datum is BFP8_B there is a +/- inf then zero out entire row of 16 elements because they inherit the same exponent and therefore get zeroed out in tensix."""
+    # tensor_bytes = pack_bfp8_b(torch.tensor(operand, dtype=torch.bfloat16))
+    # tensor = unpack_bfp8_b(tensor_bytes)
+    # return tensor
+
     not_finite = [1.7014118346046923e38, float("inf"), float("-inf"), float("nan")]
     for i in range(len(operand)):
         if operand[i] in not_finite:
@@ -42,11 +32,10 @@ def check_bfp8_b(operand: list) -> list:
                 index = row * 16 + col
                 if operand[index] not in not_finite:
                     operand[index] = 0.0
->>>>>>> 913be67 (fix: handing bfp8_b shared exponent handling + accumulated percision loss PCC from fused testing + edge case, non-finite number handling from sfpu ops)
 
     return operand
-                    
-                    
+
+
 def register_golden(cls):
     """Register a golden class by its type."""
     golden_registry[cls] = cls()
@@ -137,16 +126,6 @@ class UnarySFPUGolden:
             raise ValueError(f"Unsupported operation: {operation}")
         tensor = to_tensor(operand1, self.data_format)
         result = [self.ops[operation](x) for x in tensor.tolist()]
-<<<<<<< HEAD
-<<<<<<< HEAD
-        return check_bfp8_b(torch.tensor(result, dtype=format_dict[data_format]), data_format)
-=======
-        return check_bfp8_b(
-            torch.tensor(result, dtype=format_dict[data_format]),
-            data_format,  # in tensix: computing on Bfp8_b with certain SFPU op results in zeroed out rows where one result is non-finite and the rest inherit its shared exponent
-        )
->>>>>>> e597536 (add: comments)
-=======
         if self.shared_exponent_zeroed:
             check_bfp8_b(result)
         return torch.tensor(result, dtype=format_dict[data_format])
@@ -166,7 +145,6 @@ class UnarySFPUGolden:
             return expected
         else:  # self.data_format == DataFormat.Float16:
             return float("NaN")
->>>>>>> 913be67 (fix: handing bfp8_b shared exponent handling + accumulated percision loss PCC from fused testing + edge case, non-finite number handling from sfpu ops)
 
     # Operation methods
     def _abs(self, x):
@@ -259,15 +237,16 @@ class EltwiseBinaryGolden(FidelityMasking):
 class BinarySFPUGolden(EltwiseBinaryGolden):
     def __init__(self):
         super().__init__()
-        self.ops.update({
-            MathOperation.SfpuElwadd: self._add,
-            MathOperation.SfpuElwsub: self._sub,
-            MathOperation.SfpuElwmul: self._mul,
-            MathOperation.SfpuXlogy: self._xlogy,
-            MathOperation.SfpuElwRightShift: self._right_shift,
-            MathOperation.SfpuElwLeftShift: self._left_shift,
-            MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
-        }
+        self.ops.update(
+            {
+                MathOperation.SfpuElwadd: self._add,
+                MathOperation.SfpuElwsub: self._sub,
+                MathOperation.SfpuElwmul: self._mul,
+                MathOperation.SfpuXlogy: self._xlogy,
+                MathOperation.SfpuElwRightShift: self._right_shift,
+                MathOperation.SfpuElwLeftShift: self._left_shift,
+                MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
+            }
         )
 
     def __call__(
@@ -283,10 +262,6 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         return torch.tensor(result, dtype=format_dict[data_format])
 
     # Operation methods are cover by Eltwise Binary Golden
-<<<<<<< HEAD
-    def _xlogy(self, t1, t2):
-        return torch.xlogy(t1, t2)
-=======
     def _xlogy(self, x, y):
         # Unable to model edge cases for Tensix behavior in golden.
         # Tensix shows inconsistent patterns in handling non-finite results for xlogy, depending on the input,
@@ -295,13 +270,12 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         # what configuration dependencies exist, and how to handle them appropriately.
         # Without this understanding, discrepancies will occur between golden and Tensix results due to differing edge case handling.
         pass
->>>>>>> 913be67 (fix: handing bfp8_b shared exponent handling + accumulated percision loss PCC from fused testing + edge case, non-finite number handling from sfpu ops)
 
-    def _right_shift(self, x, y):
-        return torch.bitwise_right_shift(x, y).item()
+    def _right_shift(self, t1, t2):
+        return torch.bitwise_right_shift(t1, t2).item()
 
     def _left_shift(self, x, y):
-        return torch.bitwise_left_shift(x, y).item()
+        return torch.bitwise_left_shift(t1, t2).item()
 
     def _logical_right_shift(self, t1, t2):
         # Perform logical right shift by treating t1 as unsigned 32-bit
