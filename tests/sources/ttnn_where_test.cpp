@@ -6,7 +6,6 @@
 #include <cstdint>
 
 #include "ckernel.h"
-#include "ckernel_debug.h"
 #include "llk_defs.h"
 
 // Globals
@@ -16,7 +15,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 constexpr bool disable_src_zero_flag = true;
 
-constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
+constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32);
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -31,7 +30,7 @@ void run_kernel()
     volatile uint32_t* const buffer_false     = reinterpret_cast<volatile uint32_t*>(0x1c000);
 
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, disable_src_zero_flag>(PACK_FMT, PACK_FMT, FACE_R_DIM, 0, 4);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, FACE_R_DIM, 4, PACK_FMT, PACK_FMT);
+    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, PACK_FMT, PACK_FMT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_condition), 0, PACK_FMT, PACK_FMT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_true), 0, PACK_FMT, PACK_FMT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_false), 0, PACK_FMT, PACK_FMT);
@@ -74,11 +73,16 @@ void run_kernel()
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    _calculate_where_<false, 32>();
+    if (PACK_FMT == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32))
+    {
+        _calculate_where_fp32<false, 32>();
+    }
+    else
+    {
+        _calculate_where_fp16_b<false, 32>();
+    }
 
     _llk_math_eltwise_ternary_sfpu_done_();
-
-    // dbg_thread_halt<ThreadId::MathThreadId>();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -94,8 +98,6 @@ void run_kernel()
 void run_kernel()
 {
     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1d000);
-
-    std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_FMT, PACK_FMT, 16 * 16 * 4);
