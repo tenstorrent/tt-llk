@@ -50,7 +50,6 @@ GXX             := $(TOOL_PATH)/riscv32-tt-elf-g++
 OBJDUMP         := $(TOOL_PATH)/riscv32-tt-elf-objdump
 OBJCOPY         := $(TOOL_PATH)/riscv32-tt-elf-objcopy
 
-
 # =========================
 # Compiler and Linker Flags
 # =========================
@@ -96,53 +95,61 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 # Build Rules
 # =========================
 
-# Currently only used for brisc.dis
-$(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
-	$(OBJDUMP) -xsD $< > $@
-	$(OBJDUMP) -t $< | sort >> $@
 
+# extract profiler metadata from .elf
 $(PROFILER_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(PROFILER_DIR)
 	$(OBJCOPY) -O binary -j .profiler_meta $< $@
 
+# disasseble unpack.elf, math.elf, pack.elf
 $(DIS_DIR)/%.S: $(ELF_DIR)/%.elf | $(DIS_DIR)
 	$(OBJDUMP) -xsD $< > $@
 	$(OBJDUMP) -t $< | sort >> $@
 
+# disassemble brisc.elf
+$(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
+	$(OBJDUMP) -xsD $< > $@
+	$(OBJDUMP) -t $< | sort >> $@
+
+# link unpack.elf, math.elf, pack.elf
 $(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o | $(ELF_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).ld -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
-# Building brisc.elf for BRISC core
+# link brisc.elf
 $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o | $(SHARED_ELF_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
-# makes sure that make doesn't automatically delete intermediate files (didn't know this was a feature)
+# disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
 
+# build kernel_unpack.o, kernel_math.o, kernel_pack.o
 $(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp | $(OBJ_DIR) $(DEPS_DIR)
 	$(GXX) $(OPTIONS_ALL) $(TEST_KERNEL_FLAG) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
-# compiling main for every TRISC core
+# build main_unpack.o, main_math.o, main_pack.o
 $(SHARED_OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
+# build brisc.o
 $(SHARED_OBJ_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cpp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
+# build c runtime library
 $(SHARED_OBJ_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
-# required folder structure
+# create folder structure for shared files
 $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
 	mkdir -p $@
 
+# create folder structure for test specific files
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
 	mkdir -p $@
 
