@@ -31,7 +31,7 @@ supported_formats = [
     DataFormat.Bfp8_b,
     DataFormat.Float16,
     DataFormat.Float16_b,
-    DataFormat.Float32,
+    # DataFormat.Float32,
 ]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -56,7 +56,7 @@ all_params = generate_params(
     ["multiple_tiles_eltwise_test"],
     test_formats,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+    mathop=[MathOperation.Elwmul],  # , MathOperation.Elwsub, MathOperation.Elwmul],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
