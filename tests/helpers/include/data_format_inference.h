@@ -42,7 +42,7 @@ constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, boo
 
     if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
     {
-        unpack_out = DataFormat::Tf32;
+        unpack_out = is_fp32_dest_acc_en ? DataFormat::Tf32 : DataFormat::Float16_b;
         if (is_fp32_dest_acc_en || is_exponentB(output))
         {
             pack_in = output;
