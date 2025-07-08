@@ -274,7 +274,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
     def _right_shift(self, t1, t2):
         return torch.bitwise_right_shift(t1, t2).item()
 
-    def _left_shift(self, x, y):
+    def _left_shift(self, t1, t2):
         return torch.bitwise_left_shift(t1, t2).item()
 
     def _logical_right_shift(self, t1, t2):
