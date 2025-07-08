@@ -19,7 +19,18 @@ from helpers.utils import passed_test
 TEST_NAME = "fast_tilize_test"
 
 
-def generate_input_dimensions(max_size):
+def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
+    """
+    Generates a list of tuples representing width and height in tiles for input tensors,
+    up to the specified maximum size in tiles.
+    For tilize tensor width is important so all widths from 1 to max_size are generated.
+    In the interest of reducing the number of test cases, instead of generating all possible heights
+    critical subsets of valid heights are generated (three smallest, three largest and three middle heights).
+    Parameters:
+    max_size (int): Maximum number of tiles the resulting tensor can have.
+    Returns:
+    List[tuple[int, int]]: A list of tuples representing the width and height of the input tensor in tiles.
+    """
     dimensions = []
     for width in range(1, max_size + 1):
         max_height = max_size // width
