@@ -19,6 +19,7 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.test_config import run_test
+from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [DataFormat.Int8]
@@ -41,7 +42,7 @@ supported_formats = [DataFormat.Int8]
 #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
 
 
-test_formats = input_output_formats(supported_formats)
+test_formats = input_output_formats(supported_formats, same=True)
 dest_acc = [
     DestAccumulation.Yes
 ]  # Sets dest accumulation i.e if dest register is in 32-bit mode or not
@@ -103,4 +104,4 @@ def test_unary_datacopy(testname, formats, dest_acc):
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     # Not looking at result for test only checking what is in src register for sake of debugging
-    # assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
