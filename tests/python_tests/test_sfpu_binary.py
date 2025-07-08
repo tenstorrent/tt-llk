@@ -112,7 +112,7 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
     unpack_to_dest = formats.input_format.is_32_bit()
 
     # Blackhole needs this for some reason
-    if formats.input_format == DataFormat.Float16:
+    if formats.input_format in [DataFormat.Float16, DataFormat.Float32]:
         dest_acc = DestAccumulation.Yes
 
     test_config = {
