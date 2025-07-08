@@ -328,5 +328,5 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
         golden_tensor.view(32, 32)[0, :10],
     )
 
-    # assert 1==2
+    assert 1 == 2
     assert torch_equal_nan(golden_tensor, res_tensor)
