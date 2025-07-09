@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <type_traits>
 
 #include "ckernel.h"
@@ -48,6 +49,15 @@ using namespace ckernel;
 using namespace ckernel::sfpu;
 
 const int iterations = 32;
+
+template <class To, class From>
+typename std::enable_if<sizeof(To) == sizeof(From) && std::is_trivially_copyable<From>::value && std::is_trivially_copyable<To>::value, To>::type bit_cast(
+    const From& src) noexcept
+{
+    To dst;
+    std::memcpy(&dst, &src, sizeof(To));
+    return dst;
+}
 
 namespace
 {
@@ -98,6 +108,9 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             {
                 ckernel::sfpu::_calculate_negative_<APPROX_MODE, iterations>();
             }
+            break;
+        case SfpuType::fill:
+            ckernel::sfpu::_calculate_fill_bitcast_<APPROX_MODE, iterations>(bit_cast<uint32_t>(5.0f));
             break;
         default:
             return;
