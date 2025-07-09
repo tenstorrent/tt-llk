@@ -6,9 +6,9 @@
 
 #include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_recip.h"
+#include "ckernel_sfpu_rounding_ops.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-#include "ckernel_sfpu_floor.h"
 
 namespace ckernel
 {
@@ -27,7 +27,7 @@ static constexpr ExpVariant SELECTED_EXP = EXP_ACCURATE_BASE;
 
 sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val) {
 
-    sfpi::vInt z = sfpu::float_to_int32(val * sfpi::vFloat(0x00b8aa3b) + sfpi::vFloat(0x3f800000));
+    sfpi::vInt z = _float_to_int32_(val * sfpi::vFloat(0x00b8aa3b) + sfpi::vFloat(0x3f800000));
     sfpi::vInt zii = z & 0x7f800000; 
     sfpi::vInt zif = z & sfpi::vInt(0x007fffff); // extra mantissa
 
@@ -35,7 +35,7 @@ sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val) {
     sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(0xf94ee7) + zif);
     sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(0x560) + zif);
     d2 = d1 * d2;
-    zif = sfpu::float_to_int32(d2 * d3);
+    zif = _float_to_int32_(d2 * d3);
     
     zii |= zif; // restore exponent
     
@@ -48,12 +48,12 @@ sfpi_inline sfpi::vFloat _sfpu_exp_21f_alt_(sfpi::vFloat val) {
 
     // sfpi::vFloat val_debiased = val * sfpi::vConstFloatPrgm2;
     // val_debiased = addexp(val_debiased, 127);
-    // sfpi::vInt z = sfpu::float_to_int32(val_debiased);
+    // sfpi::vInt z = _float_to_int32_(val_debiased);
     // return val;
 
     sfpi::vFloat val_debiased = val * sfpi::vConstFloatPrgm2 + sfpi::vFloat(0x3f800000);
     // val_debiased = addexp(val_debiased, 127);
-    sfpi::vInt z = sfpu::float_to_int32(val_debiased);
+    sfpi::vInt z = _float_to_int32_(val_debiased);
 
     sfpi::vInt zii = z & 0x7f800000; 
     sfpi::vInt zif = z & sfpi::vInt(0x007fffff); // extra mantissa
@@ -63,7 +63,7 @@ sfpi_inline sfpi::vFloat _sfpu_exp_21f_alt_(sfpi::vFloat val) {
     sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(0xf94ee7) + zif);
     sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(0x560) + zif);
     d2 = d1 * d2;
-    zif = sfpu::float_to_int32(d2 * d3);
+    zif = _float_to_int32_(d2 * d3);
     
     zii |= zif; // restore exponent
     
