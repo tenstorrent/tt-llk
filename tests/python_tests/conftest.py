@@ -11,11 +11,16 @@ from pathlib import Path
 import pytest
 import requests
 from requests.exceptions import ConnectionError, RequestException, Timeout
-from ttexalens.tt_exalens_lib import arc_msg
+from ttexalens import tt_exalens_init
+from ttexalens.tt_exalens_lib import (
+    arc_msg,
+    write_words_to_device,
+)
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.format_arg_mapping import Mailbox
 from helpers.log_utils import _format_log
-from helpers.perf import delete_reports
+from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 
 
 def init_llk_home():
@@ -61,18 +66,25 @@ def set_chip_architecture():
     return architecture
 
 
-@pytest.fixture(scope="session", autouse=True)
-def delete_perf_reports():
-    delete_reports()
+@pytest.fixture(autouse=True)
+def reset_mailboxes():
+    """Reset all core mailboxes before each test."""
+    core_loc = "0, 0"
+    reset_value = 0  # Constant - indicates the TRISC kernel run status
+    mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
+    for mailbox in mailboxes:
+        write_words_to_device(core_loc=core_loc, addr=mailbox.value, data=reset_value)
+    yield
 
 
 @pytest.fixture(scope="session", autouse=True)
 def download_headers():
     CHIP_ARCH = set_chip_architecture()
     if CHIP_ARCH not in [ChipArchitecture.WORMHOLE, ChipArchitecture.BLACKHOLE]:
-        sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH}")
+        sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH.value}")
 
-    HEADER_DIR = "../hw_specific/inc"
+    LLK_HOME = os.environ.get("LLK_HOME")
+    HEADER_DIR = os.path.join(LLK_HOME, "tests", "hw_specific", CHIP_ARCH.value, "inc")
     STAMP_FILE = os.path.join(HEADER_DIR, ".headers_downloaded")
     if os.path.exists(STAMP_FILE):
         print("Headers already downloaded. Skipping download.")
@@ -192,17 +204,10 @@ def pytest_sessionstart(session):
     # Default LLK_HOME environment variable
     init_llk_home()
 
-    # Send ARC message for GO BUSY signal. This should increase device clock speed.
-    ARC_COMMON_PREFIX = 0xAA00
-    GO_BUSY_MESSAGE_CODE = 0x52
-    arc_msg(
-        device_id=0,
-        msg_code=ARC_COMMON_PREFIX | GO_BUSY_MESSAGE_CODE,
-        wait_for_done=True,
-        arg0=0,
-        arg1=0,
-        timeout=10,
-    )
+    test_target = TestTargetConfig()
+    if not test_target.run_simulator:
+        # Send ARC message for GO BUSY signal. This should increase device clock speed.
+        _send_arc_message("GO_BUSY", test_target.device_id)
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -214,17 +219,50 @@ def pytest_sessionfinish(session, exitstatus):
         for input_fmt, output_fmt in _format_log:
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
-    # Send ARC message for GO IDLE signal. This should decrease device clock speed.
+    test_target = TestTargetConfig()
+    if not test_target.run_simulator:
+        # Send ARC message for GO IDLE signal. This should decrease device clock speed.
+        _send_arc_message("GO_IDLE", test_target.device_id)
+
+
+def _send_arc_message(message_type: str, device_id: int):
+    """Helper to send ARC messages with better abstraction."""
     ARC_COMMON_PREFIX = 0xAA00
-    GO_IDLE_MESSAGE_CODE = 0x54
+    message_codes = {"GO_BUSY": 0x52, "GO_IDLE": 0x54}
+
     arc_msg(
-        device_id=0,
-        msg_code=ARC_COMMON_PREFIX | GO_IDLE_MESSAGE_CODE,
+        device_id=device_id,
+        msg_code=ARC_COMMON_PREFIX | message_codes[message_type],
         wait_for_done=True,
         arg0=0,
         arg1=0,
         timeout=10,
     )
+
+
+# Define the possible custom command line options
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run_simulator", action="store_true", help="Run tests using the simulator."
+    )
+    parser.addoption(
+        "--port",
+        action="store",
+        type=int,
+        default=5555,
+        help="Integer number of the server port.",
+    )
+
+
+# Use simulator or silicon to run tests depending on the given command line options
+def pytest_configure(config):
+    initialize_test_target_from_pytest(config)
+    test_target = TestTargetConfig()
+
+    if test_target.run_simulator:
+        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+    else:
+        tt_exalens_init.init_ttexalens()
 
 
 # Skip decorators for specific architectures

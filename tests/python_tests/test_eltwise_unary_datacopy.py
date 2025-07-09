@@ -6,12 +6,11 @@ import torch
 
 from helpers.device import (
     collect_results,
-    run_elf_files,
-    wait_for_tensix_operations_finished,
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat
+from helpers.golden_generators import DataCopyGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -19,13 +18,8 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import generate_make_command
-from helpers.utils import passed_test, run_shell_command
-
-
-def generate_golden(operand1, format):
-    return operand1
-
+from helpers.test_config import run_test
+from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
@@ -65,10 +59,19 @@ param_ids = generate_param_ids(all_params)
 )
 def test_unary_datacopy(testname, formats, dest_acc):
 
-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+    input_dimensions = [64, 64]
 
-    golden = generate_golden(src_A, formats.output_format)
-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_dimensions,
+    )
+
+    generate_golden = get_golden_generator(DataCopyGolden)
+    golden_tensor = generate_golden(src_A, formats.output_format)
+    res_address = write_stimuli_to_l1(
+        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+    )
 
     unpack_to_dest = formats.input_format.is_32_bit()
 
@@ -76,21 +79,16 @@ def test_unary_datacopy(testname, formats, dest_acc):
         "formats": formats,
         "testname": testname,
         "dest_acc": dest_acc,
-        "unpack_to_dest": unpack_to_dest,  # This test does a datacopy and unpacks input into dest register
+        "unpack_to_dest": unpack_to_dest,
+        "tile_cnt": tile_cnt,
     }
 
-    make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd}")
-    run_elf_files(testname)
+    run_test(test_config)
 
-    wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
-    assert len(res_from_L1) == len(golden)
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    assert len(res_from_L1) == len(golden_tensor)
 
-    torch_format = format_dict.get(
-        formats.output_format, format_dict[DataFormat.Float16_b]
-    )
-    golden_tensor = torch.tensor(golden, dtype=(torch_format))
-    res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+    torch_format = format_dict[formats.output_format]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

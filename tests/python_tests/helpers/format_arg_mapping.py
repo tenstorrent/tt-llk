@@ -11,6 +11,7 @@ format_dict = {
     DataFormat.Float32: torch.float32,
     DataFormat.Float16: torch.float16,
     DataFormat.Float16_b: torch.bfloat16,
+    DataFormat.Bfp8_b: torch.bfloat16,  # BFP8 not native to PyTorch, is represented as bfloat16
     DataFormat.Int32: torch.int32,
     DataFormat.UInt32: torch.int64,
     DataFormat.UInt16: torch.int32,
@@ -46,6 +47,12 @@ class MathOperation(Enum):
     SfpuElwsub = "SFPU_ELWSUB"
     SfpuElwmul = "SFPU_ELWMUL"
     SfpuXlogy = "SFPU_OP_XLOGY"
+    SfpuElwRightShift = "SFPU_OP_RSHFT"
+    SfpuElwLeftShift = "SFPU_OP_LSHFT"
+    SfpuElwLogicalRightShift = "SFPU_OP_LOGICAL_RSHFT"
+    Silu = "SFPU_OP_SILU"
+    Gelu = "SFPU_OP_GELU"
+    Neg = "SFPU_OP_NEG"
 
 
 class ReduceDimension(Enum):
@@ -84,3 +91,18 @@ class Mailbox(Enum):
     Unpacker = 0x19FFC
     Math = 0x19FF8
     Packer = 0x19FF4
+
+
+format_tile_sizes = {
+    DataFormat.Bfp8_b: 1088,
+    DataFormat.Float16: 2048,
+    DataFormat.Float16_b: 2048,
+    DataFormat.Float32: 4096,
+    DataFormat.Int32: 4096,
+}
+
+
+class L1BufferLocations(Enum):
+    srcA = 0x18FE0
+    srcB = 0x18FE4
+    Result = 0x18FE8

@@ -11,6 +11,7 @@ compile_commands.json
 .cache/**
 .envrc
 .vscode/
+perf_data/
 *.log
 *.csv
 *.whl
@@ -18,3 +19,6 @@ compile_commands.json
 
 # Ignore generated build.h
 tests/helpers/include/build.h
+
+# Ignore generated compile_flags.txt
+tests/compile_flags.txt

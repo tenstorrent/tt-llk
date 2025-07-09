@@ -6,8 +6,6 @@ import torch
 
 from helpers.device import (
     collect_results,
-    run_elf_files,
-    wait_for_tensix_operations_finished,
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import (
@@ -18,6 +16,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
+from helpers.golden_generators import ReduceGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -25,9 +24,9 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import generate_make_command
+from helpers.test_config import run_test
 from helpers.tilize_untilize import untilize
-from helpers.utils import passed_test, run_shell_command
+from helpers.utils import passed_test
 
 # Helper dictionary to map reduce dimensions to math operations
 mathop_mapping = {
@@ -36,57 +35,13 @@ mathop_mapping = {
     ReduceDimension.Scalar: MathOperation.ReduceScalar,
 }
 
-
-def generate_golden(operand1, reduce_dim, pool_type, data_format):
-
-    result = torch.zeros(1024, dtype=format_dict[data_format]).view(32, 32)
-
-    f0 = operand1[:256].view(16, 16)
-    f1 = operand1[256:512].view(16, 16)
-    f2 = operand1[512:768].view(16, 16)
-    f3 = operand1[768:].view(16, 16)
-
-    def apply_pooling(tensor, pool_type, dim):
-        if pool_type == ReducePool.Max:
-            return torch.max(tensor, dim=dim).values
-        elif pool_type == ReducePool.Average:
-            return torch.mean(tensor, dim=dim)
-        elif pool_type == ReducePool.Sum:
-            return torch.sum(tensor, dim=dim)
-        else:
-            pytest.skip("Nonexisting pool type")
-
-    if reduce_dim == ReduceDimension.Column:
-        left_half = torch.cat((f0, f2), 0)
-        right_half = torch.cat((f1, f3), 0)
-
-        left_half_max = apply_pooling(left_half, pool_type, dim=0)
-        right_half_max = apply_pooling(right_half, pool_type, dim=0)
-
-        result[0][0:16] = left_half_max.view(1, 16)
-        result[0][16:32] = right_half_max.view(1, 16)
-
-    elif reduce_dim == ReduceDimension.Row:
-        left_half = torch.cat((f0, f2), 1)
-        right_half = torch.cat((f1, f3), 1)
-
-        left_half_max = apply_pooling(left_half, pool_type, dim=1)
-        right_half_max = apply_pooling(right_half, pool_type, dim=1)
-
-        result[0:16, 0] = left_half_max.view(16)
-        result[16:32, 0] = right_half_max.view(16)
-    elif reduce_dim == ReduceDimension.Scalar:
-
-        result[0][0] = apply_pooling(operand1.view(1024), pool_type, dim=0)
-
-    else:
-        pytest.skip("To be implemented")
-
-    return result.view(1024)
-
-
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
+supported_formats = [
+    DataFormat.Float16_b,
+    DataFormat.Float16,
+    DataFormat.Float32,
+    DataFormat.Bfp8_b,
+]
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -124,7 +79,11 @@ param_ids = generate_param_ids(all_params)
 )
 def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
 
-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+    input_dimensions = [32, 32]
+
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+    )
 
     if pool_type in [
         ReducePool.Max,
@@ -138,8 +97,11 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
         else:
             src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
 
+    generate_golden = get_golden_generator(ReduceGolden)
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+    res_address = write_stimuli_to_l1(
+        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+    )
 
     mathop = mathop_mapping[reduce_dim]
 
@@ -152,25 +114,18 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
         "mathop": mathop,
     }
 
-    make_cmd = generate_make_command(test_config)
-    run_shell_command(f"cd .. && {make_cmd}")
+    run_test(test_config)
 
-    run_elf_files(testname)
-    wait_for_tensix_operations_finished()
-
-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
 
-    res_tensor = torch.tensor(
-        res_from_L1,
-        dtype=(
-            format_dict[formats.output_format]
-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
-            else torch.bfloat16
-        ),
-    )
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize(res_tensor, formats.output_format)
 
-    run_shell_command(f"cd .. && make clean")
+    # run_shell_command(f"cd .. && make clean") -> TODO: Investigate
+
+    # E           RuntimeError: Build failed: cd .. && make clean
+    # E           rm: cannot remove 'build/elf': Directory not empty
+    # E           make: *** [Makefile:129: clean] Error 1
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

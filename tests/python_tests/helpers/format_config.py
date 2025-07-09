@@ -60,6 +60,15 @@ class DataFormat(Enum):
         """Checks if the data format is a 32-bit type."""
         return self in {DataFormat.Float32, DataFormat.Int32, DataFormat.UInt32}
 
+    def is_exponent_B(self) -> bool:
+        """Checks if the data format is an exponent B format."""
+        return self in {
+            DataFormat.Float16_b,
+            DataFormat.Bfp8_b,
+            DataFormat.Tf32,
+            DataFormat.Float32,
+        }
+
 
 @dataclass
 class FormatConfig:
@@ -144,7 +153,7 @@ class FormatConfig:
 
 
 @dataclass
-class InputOutputFormat(FormatConfig):
+class InputOutputFormat:
     """
     A data class that holds configuration details for formats passed to LLKs.
     This class is used to hold input and output DataFormat that the client wants to test.

@@ -6,6 +6,7 @@
 
 #include <type_traits>
 
+#include "ckernel.h"
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
 #include "sfpi.h"
@@ -14,15 +15,8 @@ namespace ckernel
 {
 namespace sfpu
 {
-namespace
-{
-constexpr bool is_valid_instruction_mode(InstrModLoadStore mode)
-{
-    return mode == InstrModLoadStore::INT32_2S_COMP || mode == InstrModLoadStore::INT32 || mode == InstrModLoadStore::LO16;
-}
-} // anonymous namespace
 
-template <bool APPROXIMATION_MODE, InstrModLoadStore INSTRUCTION_MODE = INT32, bool SIGN_MAGNITUDE_FORMAT = false, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
 inline void _add_int_(const uint dst_offset)
 {
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
@@ -38,12 +32,12 @@ inline void _add_int_(const uint dst_offset)
     for (int d = 0; d < ITERATIONS; d++)
     {
         // operand A
-        TTI_SFPLOAD(0, sfpload_instr_mod, 3, 0);
+        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, 0);
         // operand B
-        TT_SFPLOAD(1, sfpload_instr_mod, 3, dst_offset * 64);
-        TTI_SFPIADD(0, 1, 0, 4);
+        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_3, dst_offset * 64);
+        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
         // LREG_0 -> dest
-        TTI_SFPSTORE(0, sfpload_instr_mod, 3, 0);
+        TTI_SFPSTORE(0, sfpload_instr_mod, ADDR_MOD_3, 0);
         sfpi::dst_reg++;
     }
 }
