@@ -8,7 +8,7 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, format_dict
+from helpers.format_arg_mapping import DataCopyType, DestAccumulation, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, get_golden_generator
 from helpers.param_config import (
@@ -50,14 +50,21 @@ supported_formats = [
 test_formats = input_output_formats(supported_formats)
 dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
 testname = ["eltwise_unary_datacopy_test"]
-all_params = generate_params(testname, test_formats, dest_acc)
+all_params = generate_params(
+    testname,
+    test_formats,
+    dest_acc,
+    data_copy_type=[DataCopyType.A2D, DataCopyType.B2D],
+)
 param_ids = generate_param_ids(all_params)
 
 
 @pytest.mark.parametrize(
-    "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
+    "testname, formats, dest_acc, data_copy_type",
+    clean_params(all_params),
+    ids=param_ids,
 )
-def test_unary_datacopy(testname, formats, dest_acc):
+def test_unary_datacopy(testname, formats, dest_acc, data_copy_type):
 
     input_dimensions = [64, 64]
 
@@ -81,6 +88,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
         "dest_acc": dest_acc,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
+        "data_copy_type": data_copy_type,
     }
 
     run_test(test_config)

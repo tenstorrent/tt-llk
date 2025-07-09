@@ -106,3 +106,8 @@ class L1BufferLocations(Enum):
     srcA = 0x18FE0
     srcB = 0x18FE4
     Result = 0x18FE8
+
+
+class DataCopyType(Enum):
+    A2D = "DataCopyType::A2D"
+    B2D = "DataCopyType::B2D"
