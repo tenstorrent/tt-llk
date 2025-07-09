@@ -71,6 +71,7 @@ float_ops = [
 
 int_ops = [
     MathOperation.Neg,
+    MathOperation.Fill,
 ]
 
 float_params = generate_params(
