@@ -46,6 +46,12 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
     }
     v_endif;
 
+    v_if (x == 0)
+    {
+        y = sfpi::s2vFloat16b(std::numeric_limits<float>::infinity());
+    }
+    v_endif;
+
     return y;
 }
 
