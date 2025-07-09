@@ -35,11 +35,14 @@ def check_bfp8_b(operand: list) -> list:
 
     return operand
 def calculate_farc_part(mantissa_value):
+    # mantissa_value = mantissa_value[1:]  # Remove the leading '1' bit
     fract_value = 0.0
     for i in range(len(mantissa_value)):
         # If the bit is '1', add the corresponding fractional value to fract_value
         if mantissa_value[i] == "1":
             fract_value += 1 / (2 ** (i))
+
+    # fract_value += 1.0  # Add the implicit leading '1' for normalized numbers
     return fract_value
 
 
@@ -55,9 +58,15 @@ def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, 
     exponent1 = exponent1 - 127
     exponent2 = exponent2 - 127
 
+    print("EXPONENTS")
+    print(exponent1[:10])
+    print(exponent2[:10])
+
     print("MANTISSAS BEFORE RECONSTRUCTING FLOAT:")
-    print([format(int(x.item()), "011b") for x in mant1[:10]])
-    print([format(int(x.item()), "011b") for x in mant2[:10]])
+    # print("mant1 (bin):", [format(int(x.item()), "011b") for x in mant1[:10]])
+    # print("mant2 (bin):", [format(int(x.item()), "011b") for x in mant2[:10]])
+    print("mant1 (hex):", [hex(int(x.item())) for x in mant1[:10]])
+    print("mant2 (hex):", [hex(int(x.item())) for x in mant2[:10]])
 
     mantissa1 = []
     mantissa2 = []
@@ -72,8 +81,15 @@ def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, 
     print(mantissa1[:10])
     print(mantissa2[:10])
 
-    reconstructed1 = ((-1.0) ** sgn1) * (2**exponent1) * torch.tensor(mantissa1)
-    reconstructed2 = ((-1.0) ** sgn2) * (2**exponent2) * torch.tensor(mantissa2)
+    # Convert exponent1 to float to allow negative exponents
+    # print((2.0 ** exponent1[:10]))
+
+    reconstructed1 = ((-1.0) ** sgn1) * (2.0**exponent1) * torch.tensor(mantissa1)
+    reconstructed2 = ((-1.0) ** sgn2) * (2.0**exponent2) * torch.tensor(mantissa2)
+
+    print("RECONSTRUCTED FLOATS:")
+    print(reconstructed1[:10])
+    print(reconstructed2[:10])
 
     torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
 
@@ -162,17 +178,31 @@ class FidelityMasking:
                 f"Unsupported data format for fidelity appication: {data_format}"
             )
 
-        if data_format == DataFormat.Float16:
-            pass
-        elif data_format == DataFormat.Float16_b:
-            mantissas_1 = (mantissas_1.to(torch.int32) << 3).to(torch.int32)
-            mantissas_2 = (mantissas_2.to(torch.int32) << 3).to(torch.int32)
-        elif data_format == DataFormat.Float32:
-            pass
-        else:
-            raise ValueError(
-                f"Unsupported data format for fidelity appication: {data_format}"
+        print("Mantissas 1 (hex):")
+        print(
+            "\n".join(
+                [
+                    " ".join([f"{x.item():02x}" for x in row])
+                    for row in mantissas_1.view(32, 32)[:1]
+                ]
             )
+        )
+        print("Mantissas 2 (hex):")
+        print(
+            "\n".join(
+                [
+                    " ".join([f"{x.item():02x}" for x in row])
+                    for row in mantissas_2.view(32, 32)[:1]
+                ]
+            )
+        )
+
+        # Shift mantissas left by 3 bits
+        if data_format == DataFormat.Float16_b:
+            mantissas_1 = mantissas_1.to(torch.int32) << 3
+            mantissas_2 = mantissas_2.to(torch.int32) << 3
+        elif data_format == DataFormat.Float16:
+            pass
 
         # Append 1 as MSB to each mantissa (for normalized numbers - implied leading 1)
         if data_format == DataFormat.Float16:
@@ -185,24 +215,24 @@ class FidelityMasking:
         mantissas_1 = mantissas_1 | mantissa_msb
         mantissas_2 = mantissas_2 | mantissa_msb
 
-        # print("Mantissas 1 (binary):")
-        # print(
-        #     "\n".join(
-        #         [
-        #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_1.view(32, 32)[:2]
-        #         ]
-        #     )
-        # )
-        # print("Mantissas 2 (binary):")
-        # print(
-        #     "\n".join(
-        #         [
-        #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_2.view(32, 32)[:2]
-        #         ]
-        #     )
-        # )
+        print("Mantissas 1 (hex) AFTER APPENDING 1:")
+        print(
+            "\n".join(
+                [
+                    " ".join([f"{x.item():02x}" for x in row])
+                    for row in mantissas_1.view(32, 32)[:1]
+                ]
+            )
+        )
+        print("Mantissas 2 (hex) AFTER APPENDING 1:")
+        print(
+            "\n".join(
+                [
+                    " ".join([f"{x.item():02x}" for x in row])
+                    for row in mantissas_2.view(32, 32)[:1]
+                ]
+            )
+        )
 
         # set masks based on math fidelity phase
         if math_fidelity_phase == 0:
@@ -222,24 +252,24 @@ class FidelityMasking:
         mantissas_1 = mantissas_1 & a_mask
         mantissas_2 = mantissas_2 & b_mask
 
-        # print("Mantissas 1 AFTER MASKING:")
-        # print(
-        #     "\n".join(
-        #         [
-        #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_1.view(32, 32)[:2]
-        #         ]
-        #     )
-        # )
-        # print("Mantissas 2 AFTER MASKING:")
-        # print(
-        #     "\n".join(
-        #         [
-        #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_2.view(32, 32)[:2]
-        #         ]
-        #     )
-        # )
+        print("Mantissas 1 AFTER MASKING (hex):")
+        print(
+            "\n".join(
+                [
+                    " ".join([f"{x.item():02x}" for x in row])
+                    for row in mantissas_1.view(32, 32)[:1][:10]
+                ]
+            )
+        )
+        print("Mantissas 2 AFTER MASKING (hex):")
+        print(
+            "\n".join(
+                [
+                    " ".join([f"{x.item():02x}" for x in row])
+                    for row in mantissas_2.view(32, 32)[:1][:10]
+                ]
+            )
+        )
 
         # Remove the MSB from mantissas (for normalized numbers)
         # mantissas_1 = mantissas_1 & (~mantissa_msb)
@@ -313,12 +343,9 @@ class FidelityMasking:
             mantissas_2,
         )
 
-        print("OPERANDS FOR THIS PHASE REASSEMBLED (TO BE ADDED ):")
+        print("OPERANDS FOR THIS PHASE REASSEMBLED:")
         print(reassembled1[:10])
         print(reassembled2[:10])
-        # print("#"*200)
-
-        # print("-"*500)
 
         return reassembled1, reassembled2
 
