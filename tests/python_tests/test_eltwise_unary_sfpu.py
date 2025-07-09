@@ -29,7 +29,12 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_float_formats = [DataFormat.Float32, DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]
+supported_float_formats = [
+    DataFormat.Float32,
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Bfp8_b,
+]
 supported_int_formats = [DataFormat.Int32]
 
 #   INPUT-OUTPUT FORMAT SWEEP
