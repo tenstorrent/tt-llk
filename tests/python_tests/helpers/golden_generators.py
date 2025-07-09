@@ -34,6 +34,50 @@ def check_bfp8_b(operand: list) -> list:
                     operand[index] = 0.0
 
     return operand
+def calculate_farc_part(mantissa_value):
+    fract_value = 0.0
+    for i in range(len(mantissa_value)):
+        # If the bit is '1', add the corresponding fractional value to fract_value
+        if mantissa_value[i] == "1":
+            fract_value += 1 / (2 ** (i))
+    return fract_value
+
+
+def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, mant2):
+
+    if data_format in [DataFormat.Float16, DataFormat.Float16_b]:
+        exponent1 = exp1.to(torch.int16)
+        exponent2 = exp2.to(torch.int16)
+    else:
+        exponent1 = exp1.to(torch.int32)
+        exponent2 = exp2.to(torch.int32)
+
+    exponent1 = exponent1 - 127
+    exponent2 = exponent2 - 127
+
+    print("MANTISSAS BEFORE RECONSTRUCTING FLOAT:")
+    print([format(int(x.item()), "011b") for x in mant1[:10]])
+    print([format(int(x.item()), "011b") for x in mant2[:10]])
+
+    mantissa1 = []
+    mantissa2 = []
+
+    # Convert mantissa tensor values to binary strings before passing to calculate_farc_part
+    for m1 in mant1:
+        mantissa1.append(calculate_farc_part(format(int(m1.item()), "011b")))
+    for m2 in mant2:
+        mantissa2.append(calculate_farc_part(format(int(m2.item()), "011b")))
+
+    print("MANTISSAS AFTER RECONSTRUCTING FLOAT:")
+    print(mantissa1[:10])
+    print(mantissa2[:10])
+
+    reconstructed1 = ((-1.0) ** sgn1) * (2**exponent1) * torch.tensor(mantissa1)
+    reconstructed2 = ((-1.0) ** sgn2) * (2**exponent2) * torch.tensor(mantissa2)
+
+    torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+
+    return reconstructed1.to(torch_format), reconstructed2.to(torch_format)
 
 
 def register_golden(cls):
@@ -65,36 +109,20 @@ class FidelityMasking:
 
             exponents_1 = operand1_uint & exponent_mask
             exponents_2 = operand2_uint & exponent_mask
+            exponents_1 = exponents_1.to(torch.int32) >> 10
+            exponents_2 = exponents_2.to(torch.int32) >> 10
         elif data_format == DataFormat.Float16_b:
             # Convert operands to uint16 for bitwise operations
             operand1_uint = operand1.to(torch.bfloat16).view(torch.uint16)
             operand2_uint = operand2.to(torch.bfloat16).view(torch.uint16)
-
-            # Print operands as hex numbers in 32x32 matrix
-            # print("Operand1 (bfloat16) as hex:")
-            # print(
-            #     "\n".join(
-            #         [
-            #             " ".join([f"{x.item():04x}" for x in row])
-            #             for row in operand1_uint.view(32, 32)
-            #         ]
-            #     )
-            # )
-            # print("Operand2 (bfloat16) as hex:")
-            # print(
-            #     "\n".join(
-            #         [
-            #             " ".join([f"{x.item():04x}" for x in row])
-            #             for row in operand2_uint.view(32, 32)
-            #         ]
-            #     )
-            # )
 
             # Mask 8 bits starting from 2nd MSB (bits 7 to 14)
             exponent_mask = 0x7F80  # 0111 1111 1000 0000
 
             exponents_1 = operand1_uint & exponent_mask
             exponents_2 = operand2_uint & exponent_mask
+            exponents_1 = exponents_1.to(torch.int32) >> 7
+            exponents_2 = exponents_2.to(torch.int32) >> 7
         elif data_format == DataFormat.Float32:
             # Convert operands to uint32 for bitwise operations
             operand1_uint = operand1.to(torch.float32).view(torch.uint32)
@@ -131,13 +159,20 @@ class FidelityMasking:
             mantissas_2 = operand2_uint & mantissa_mask
         else:
             raise ValueError(
-                f"Unsupported data format for mantissa extraction: {data_format}"
+                f"Unsupported data format for fidelity appication: {data_format}"
             )
 
-        # Shift mantissas 3 times to the left
-        # TODO: DO IT FOR ALL DATA FORMATS DIFFERENTLY 11 - mantissa length
-        mantissas_1 = (mantissas_1.to(torch.int32) << 3).to(torch.int32)
-        mantissas_2 = (mantissas_2.to(torch.int32) << 3).to(torch.int32)
+        if data_format == DataFormat.Float16:
+            pass
+        elif data_format == DataFormat.Float16_b:
+            mantissas_1 = (mantissas_1.to(torch.int32) << 3).to(torch.int32)
+            mantissas_2 = (mantissas_2.to(torch.int32) << 3).to(torch.int32)
+        elif data_format == DataFormat.Float32:
+            pass
+        else:
+            raise ValueError(
+                f"Unsupported data format for fidelity appication: {data_format}"
+            )
 
         # Append 1 as MSB to each mantissa (for normalized numbers - implied leading 1)
         if data_format == DataFormat.Float16:
@@ -155,7 +190,7 @@ class FidelityMasking:
         #     "\n".join(
         #         [
         #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_1.view(32, 32)
+        #             for row in mantissas_1.view(32, 32)[:2]
         #         ]
         #     )
         # )
@@ -164,7 +199,7 @@ class FidelityMasking:
         #     "\n".join(
         #         [
         #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_2.view(32, 32)
+        #             for row in mantissas_2.view(32, 32)[:2]
         #         ]
         #     )
         # )
@@ -174,45 +209,48 @@ class FidelityMasking:
             a_mask = 0x7C0
             b_mask = 0x7F0
         elif math_fidelity_phase == 1:
-            print()
+            a_mask = 0x3E
+            b_mask = 0x7F0
         elif math_fidelity_phase == 2:
-            print()
+            a_mask = 0x7C0
+            b_mask = 0x0F0
         elif math_fidelity_phase == 3:
-            print()
+            a_mask = 0x3E
+            b_mask = 0x0F
 
         # apply masks to mantissas
         mantissas_1 = mantissas_1 & a_mask
         mantissas_2 = mantissas_2 & b_mask
 
-        # print("Mantissas 1 AFTER:")
+        # print("Mantissas 1 AFTER MASKING:")
         # print(
         #     "\n".join(
         #         [
         #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_1.view(32, 32)
+        #             for row in mantissas_1.view(32, 32)[:2]
         #         ]
         #     )
         # )
-        # print("Mantissas 2 AFTER:")
+        # print("Mantissas 2 AFTER MASKING:")
         # print(
         #     "\n".join(
         #         [
         #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_2.view(32, 32)
+        #             for row in mantissas_2.view(32, 32)[:2]
         #         ]
         #     )
         # )
 
         # Remove the MSB from mantissas (for normalized numbers)
-        mantissas_1 = mantissas_1 & (~mantissa_msb)
-        mantissas_2 = mantissas_2 & (~mantissa_msb)
+        # mantissas_1 = mantissas_1 & (~mantissa_msb)
+        # mantissas_2 = mantissas_2 & (~mantissa_msb)
 
         # print("Mantissas 1 REMOVED SIGN:")
         # print(
         #     "\n".join(
         #         [
         #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_1.view(32, 32)
+        #             for row in mantissas_1.view(32, 32)[:2]
         #         ]
         #     )
         # )
@@ -221,34 +259,42 @@ class FidelityMasking:
         #     "\n".join(
         #         [
         #             " ".join([f"{x.item():011b}" for x in row])
-        #             for row in mantissas_2.view(32, 32)
+        #             for row in mantissas_2.view(32, 32)[:2]
         #         ]
         #     )
         # )
 
-        # Now when masks are applied shift mantissas back to their original positions
-        mantissas_1 = (mantissas_1.to(torch.int32) >> 3).to(torch.int32)
-        mantissas_2 = (mantissas_2.to(torch.int32) >> 3).to(torch.int32)
+        # # Now when masks are applied shift mantissas back to their original positions
+        # mantissas_1 = (mantissas_1.to(torch.int32) >> 3).to(torch.int32)
+        # mantissas_2 = (mantissas_2.to(torch.int32) >> 3).to(torch.int32)
 
-        # Recombine the sign, exponent, and mantissa bits
-        if data_format == DataFormat.Float16:
+        # print("Mantissas 1 SHIFTED BACK:")
+        # print(
+        #     "\n".join(
+        #         [
+        #             " ".join([f"{x.item():011b}" for x in row])
+        #             for row in mantissas_1.view(32, 32)[:2]
+        #         ]
+        #     )
+        # )
+        # print("Mantissas 2 SHIFTED BACK:")
+        # print(
+        #     "\n".join(
+        #         [
+        #             " ".join([f"{x.item():011b}" for x in row])
+        #             for row in mantissas_2.view(32, 32)[:2]
+        #         ]
+        #     )
+        # )
+
+        #     # Recombine the sign, exponent, and mantissa bits
+        if data_format in [DataFormat.Float16, DataFormat.Float16]:
             sign_1 = sign_1.to(torch.int16)
             exponents_1 = exponents_1.to(torch.int16)
             mantissas_1 = mantissas_1.to(torch.int16)
             sign_2 = sign_2.to(torch.int16)
             exponents_2 = exponents_2.to(torch.int16)
             mantissas_2 = mantissas_2.to(torch.int16)
-            operand1 = (sign_1 | exponents_1 | mantissas_1).view(torch.float16)
-            operand2 = (sign_2 | exponents_2 | mantissas_2).view(torch.float16)
-        elif data_format == DataFormat.Float16_b:
-            sign_1 = sign_1.to(torch.int16)
-            exponents_1 = exponents_1.to(torch.int16)
-            mantissas_1 = mantissas_1.to(torch.int16)
-            sign_2 = sign_2.to(torch.int16)
-            exponents_2 = exponents_2.to(torch.int16)
-            mantissas_2 = mantissas_2.to(torch.int16)
-            operand1 = (sign_1 | exponents_1 | mantissas_1).view(torch.bfloat16)
-            operand2 = (sign_2 | exponents_2 | mantissas_2).view(torch.bfloat16)
         elif data_format == DataFormat.Float32:
             sign_1 = sign_1.to(torch.int32)
             exponents_1 = exponents_1.to(torch.int32)
@@ -256,14 +302,25 @@ class FidelityMasking:
             sign_2 = sign_2.to(torch.int32)
             exponents_2 = exponents_2.to(torch.int32)
             mantissas_2 = mantissas_2.to(torch.int32)
-            operand1 = (sign_1 | exponents_1 | mantissas_1).view(torch.float32)
-            operand2 = (sign_2 | exponents_2 | mantissas_2).view(torch.float32)
 
-        torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+        reassembled1, reassembled2 = reassemble_float_after_fidelity(
+            data_format,
+            sign_1,
+            sign_2,
+            exponents_1,
+            exponents_2,
+            mantissas_1,
+            mantissas_2,
+        )
 
-        print("\n\n", torch_format)
+        print("OPERANDS FOR THIS PHASE REASSEMBLED (TO BE ADDED ):")
+        print(reassembled1[:10])
+        print(reassembled2[:10])
+        # print("#"*200)
 
-        return operand1.to(torch_format), operand2.to(torch_format)
+        # print("-"*500)
+
+        return reassembled1, reassembled2
 
 
 def to_tensor(operand, data_format):
@@ -431,9 +488,61 @@ class EltwiseBinaryGolden(FidelityMasking):
 
         num_fidelity_phases = _fildelity_dict.get(math_fidelity, 0)
 
-        self._apply_fidelity_masking(t1, t2, num_fidelity_phases, data_format)
+        print("NUM FIDELITY PHASES: ", num_fidelity_phases)
 
-        return self.ops[op](t1, t2)
+        # self._apply_fidelity_masking(t1, t2, num_fidelity_phases, data_format)
+
+        res = 0
+
+        # If multiply is chosen apply fidelity
+        if op == MathOperation.Elwmul:
+
+            if num_fidelity_phases == 0:
+
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
+                res = self.ops[op](t1, t2)
+
+                return res
+
+            elif num_fidelity_phases == 1:
+
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
+                res = self.ops[op](t1, t2)
+
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
+
+                res += self.ops[op](t1, t2)
+
+                return res
+
+            elif num_fidelity_phases == 2:
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
+                res = self.ops[op](t1, t2)
+
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
+                res += self.ops[op](t1, t2)
+
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 2, data_format)
+                res += self.ops[op](t1, t2)
+
+                return res
+            elif num_fidelity_phases == 3:
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
+                res = self.ops[op](t1, t2)
+
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
+                res += self.ops[op](t1, t2)
+
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 2, data_format)
+                res += self.ops[op](t1, t2)
+
+                t1, t2 = self._apply_fidelity_masking(t1, t2, 3, data_format)
+                res += self.ops[op](t1, t2)
+
+                return res
+
+        else:
+            return self.ops[op](t1, t2)
 
     # Operation methods
     def _add(self, t1, t2):
