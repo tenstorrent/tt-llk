@@ -11,7 +11,20 @@ namespace ckernel::sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_fill_(const uint value)
+inline void _calculate_fill_(const float value)
+{
+    // SFPU microcode
+    sfpi::vFloat fill_val = value;
+
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        sfpi::dst_reg[0] = fill_val;
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_fill_int_(const uint value)
 {
     // SFPU microcode
     int scalar = value;
