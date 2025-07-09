@@ -11,11 +11,65 @@
 #include "ckernel_sfpu_log.h"
 #include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
+#include "ckernel_sfpu_rounding_ops.h"
 
 namespace ckernel
 {
 namespace sfpu
 {
+
+sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_null_(sfpi::vFloat base, sfpi::vFloat pow) {
+
+    return sfpi::vFloat(80.819f);
+
+}
+
+sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_(sfpi::vFloat base, sfpi::vFloat pow) {
+
+    // Normalize base to calculation range
+    sfpi::vFloat x = sfpi::setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
+
+    // 3rd order polynomial approx - determined using rminimax over [1,2]
+    sfpi::vFloat series_result = x * (x * (x * 0x2.44734p-4f - 0xd.e712ap-4f) + 0x2.4f5388p+0f) - 0x1.952992p+0f;
+
+    // Convert exponent to float
+    sfpi::vInt exp = sfpi::exexp(base);
+    v_if (exp < 0)
+    {
+        exp = sfpi::setsgn(~exp + 1, 1);
+    }
+    v_endif;
+    sfpi::vFloat expf = sfpi::int32_to_float(exp, 0);
+
+
+
+    // De-normalize to original range
+    // sfpi::vFloat vConstLn2  = 0.692871f;
+    sfpi::vFloat vConst1Ln2 = 1.4426950408889634f;
+    sfpi::vFloat log2_result = expf + series_result * vConst1Ln2; // exp correction: ln(1+x) + exp*ln(2)
+
+
+    log2_result = log2_result * sfpi::vFloat(8388608); // could be done by addexp or equivalent ?
+
+    // log2_result = sfpi::vFloat(26591258.22649899f);
+
+
+    sfpi::vInt z = _float_to_int32_(pow * log2_result + sfpi::vFloat(0x3f800000)); // (bias + x * log2(a)) * N_m
+    sfpi::vInt zii = z & 0x7f800000; 
+    sfpi::vInt zif = z & sfpi::vInt(0x007fffff); // extra mantissa
+
+    sfpi::vFloat d1 = sfpi::vFloat(0.40196114e-7); 
+    sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(0xf94ee7) + zif);
+    sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(0x560) + zif);
+    d2 = d1 * d2;
+    zif = _float_to_int32_(d2 * d3);
+    
+    zii |= zif; // restore exponent
+    
+    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
+    
+    return y;
+}
 
 sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::vFloat pow)
 {
@@ -48,6 +102,7 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
 
     // De-normalize to original range
     sfpi::vFloat vConstLn2  = 0.692871f;
+
     sfpi::vFloat log_result = expf * vConstLn2 + series_result; // exp correction: ln(1+x) + exp*ln(2)
 
     // Base case when input is 0. ln(0) = -inf
@@ -148,7 +203,9 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
         }
         else if constexpr (BINOP == BinaryOp::POW)
         {
-            result = _calculate_sfpu_binary_power_(in0, in1);
+            for (uint32_t i = 0; i < 100'000; i++) {
+                result = _calculate_sfpu_binary_power_(in0, in1);
+            }
         }
         else if constexpr (BINOP == BinaryOp::XLOGY)
         {
