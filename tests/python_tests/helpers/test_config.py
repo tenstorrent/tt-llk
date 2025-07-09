@@ -12,6 +12,7 @@ from ttexalens.tt_exalens_lib import (
 from .device import run_elf_files, wait_for_tensix_operations_finished
 from .format_arg_mapping import (
     ApproximationMode,
+    DataCopyType,
     DestAccumulation,
     L1BufferLocations,
     MathFidelity,
@@ -84,6 +85,10 @@ def generate_build_header(
     # Unpack to dest
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
     header_content.append(f"#define UNPACKING_TO_DEST {unpack_to_dest}")
+
+    # Datacopy type : srcA to dst or srcB to dst
+    data_copy_type = test_config.get("data_copy_type", DataCopyType.A2D)
+    header_content.append(f"#define DATA_COPY_TYPE {data_copy_type}")
 
     # Math fidelity & Approximation mode
     header_content.append(
