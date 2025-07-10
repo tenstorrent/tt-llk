@@ -55,8 +55,12 @@ def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, 
         exponent1 = exp1.to(torch.int32)
         exponent2 = exp2.to(torch.int32)
 
-    exponent1 = exponent1 - 127
-    exponent2 = exponent2 - 127
+    if data_format == DataFormat.Float16_b:
+        exponent1 = exponent1 - 127
+        exponent2 = exponent2 - 127
+    else:
+        exponent1 = exponent1 - 15
+        exponent2 = exponent2 - 15
 
     print("EXPONENTS")
     print(exponent1[:10])
