@@ -51,7 +51,7 @@ all_params = generate_params(
     ["multiple_tiles_eltwise_test"],
     test_formats,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    mathop=[MathOperation.Elwmul, MathOperation.Elwsub, MathOperation.Elwmul],
+    mathop=[MathOperation.Elwmul, MathOperation.Elwsub, MathOperation.Elwadd],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
