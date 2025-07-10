@@ -22,20 +22,19 @@ template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
     sfpi::vFloat abs_x      = sfpi::abs(x);
-    sfpi::vFloat negative_x = -x;
     sfpi::vInt y0_bits      = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(abs_x);
     sfpi::vFloat y;
     v_if (y0_bits >= 0)
     {
         y              = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(y0_bits), x);
-        sfpi::vFloat t = sfpi::vConstFloatPrgm2 + negative_x * y;
+        sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm2;
         y              = y * sfpi::vConstFloatPrgm1;
         y              = y * t;
 
         if constexpr (!APPROXIMATE)
         {
             // 2nd iteration of Newton-Raphson
-            t = y * negative_x + sfpi::vConst1;
+            t = y * -x + sfpi::vConst1;
             y = y * t + y;
         }
     }
