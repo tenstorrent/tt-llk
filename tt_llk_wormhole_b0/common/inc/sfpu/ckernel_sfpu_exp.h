@@ -110,30 +110,38 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
     }
     if constexpr (APPROXIMATION_MODE)
     {
-        v_if (in >= -42)
+        if constexpr (!SKIP_POSITIVE_CHECK)
         {
-            if constexpr (!SKIP_POSITIVE_CHECK)
+            v_if (in >= 89)
             {
-                v_if (in >= 89)
-                {
-                    // Algorithm is incorrect for inputs >= 89, so saturate output to infinity.
-                    sfpi::vFloat in_inf = std::numeric_limits<float>::infinity();
-                    result              = in_inf;
-                }
-                v_else
-                {
-                    result = _calculate_exponential_approx_(in);
-                }
-                v_endif;
+                // Algorithm is incorrect for inputs >= 89, so saturate output to infinity.
+                sfpi::vFloat in_inf = std::numeric_limits<float>::infinity();
+                result              = in_inf;
             }
-            else
+            v_elseif (in < -42)
             {
-                // SKIP_POSITIVE_CHECK is true, so user is responsible for ensuring inputs are <= 89.
+                // Algorithm is incorrect for inputs < -42, so saturate output to 0.
+                result = 0.0f;
+            }
+            v_else
+            {
                 result = _calculate_exponential_approx_(in);
             }
+            v_endif;
         }
-        v_endif;
-        // If in < -42, result remains 0.0f (already initialized)
+        else
+        {
+            // SKIP_POSITIVE_CHECK is true, so user is responsible for ensuring inputs are <= 89.
+            v_if (in < -42)
+            {
+                result = 0.0f;
+            }
+            v_else
+            {
+                result = _calculate_exponential_approx_(in);
+            }
+            v_endif;
+        }
     }
     else
     {
