@@ -42,19 +42,26 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_(sfpi::vFloat base, sf
     sfpi::vFloat expf = sfpi::int32_to_float(exp, 0);
 
 
-
     // De-normalize to original range
     // sfpi::vFloat vConstLn2  = 0.692871f;
     sfpi::vFloat vConst1Ln2 = 1.4426950408889634f;
     sfpi::vFloat log2_result = expf + series_result * vConst1Ln2; // exp correction: ln(1+x) + exp*ln(2)
 
+    sfpi::vFloat zff = pow * log2_result;
+    v_if (zff < sfpi::vFloat(-127.f)) { // -126.99999237060546875
+        zff = sfpi::vFloat(-127.f);
+    }
+    v_endif;
 
-    log2_result = log2_result * sfpi::vFloat(8388608); // could be done by addexp or equivalent ?
+    zff = zff * sfpi::vFloat(8388608); // could be done by addexp or equivalent ?
 
     // log2_result = sfpi::vFloat(26591258.22649899f);
 
+    
 
-    sfpi::vInt z = _float_to_int32_(pow * log2_result + sfpi::vFloat(0x3f800000)); // (bias + x * log2(a)) * N_m
+    sfpi::vInt z = _float_to_int32_(zff + sfpi::vFloat(0x3f800000)); // (bias + x * log2(a)) * N_m
+
+
     sfpi::vInt zii = z & 0x7f800000; 
     sfpi::vInt zif = z & sfpi::vInt(0x007fffff); // extra mantissa
 
@@ -66,6 +73,65 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_(sfpi::vFloat base, sf
     
     zii |= zif; // restore exponent
     
+    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
+    
+    return y;
+}
+
+
+sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_alt0_(sfpi::vFloat base, sfpi::vFloat pow) {
+
+    // Normalize base to calculation range
+    sfpi::vFloat x = sfpi::setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
+
+    // 3rd order polynomial approx - determined using rminimax over [1,2]
+    sfpi::vFloat series_result = x * (x * (x * 0x2.44734p-4f - 0xd.e712ap-4f) + 0x2.4f5388p+0f) - 0x1.952992p+0f;
+
+    // Convert exponent to float
+    sfpi::vInt exp = sfpi::exexp(base);
+    v_if (exp < 0)
+    {
+        exp = sfpi::setsgn(~exp + 1, 1);
+    }
+    v_endif;
+    sfpi::vFloat expf = sfpi::int32_to_float(exp, 0);
+
+
+    // De-normalize to original range
+    // sfpi::vFloat vConstLn2  = 0.692871f;
+    const sfpi::vFloat vConst1Ln2 = sfpi::vConstFloatPrgm0; // 1.4426950408889634f;
+    sfpi::vFloat log2_result = expf + series_result * vConst1Ln2; // exp correction: ln(1+x) + exp*ln(2)
+
+
+    sfpi::vFloat zff = pow * log2_result;
+    v_if (zff < sfpi::vFloat(-127.f)) { // -126.99999237060546875
+        zff = sfpi::vFloat(-127.f);
+    }
+    v_endif;
+
+    // zff = zff * sfpi::vFloat(8388608); // could be done by addexp or equivalent ?
+
+    zff = addexp(zff, 23); // * 2**23 (Mn)
+
+    // log2_result = sfpi::vFloat(26591258.22649899f);
+
+    sfpi::vFloat vOneF32 = sfpi::vConst1;
+    // sfpi::vInt z = _float_to_int32_(zff) + sfpi::reinterpret<sfpi::vInt>(vOneF32); // (bias + x * log2(a)) * N_m // TODO: Problem with negative values 
+    sfpi::vInt z = _float_to_int32_(zff + sfpi::vFloat(0x3f800000)); // (bias + x * log2(a)) * N_m
+
+
+    sfpi::vInt zii = exexp(sfpi::reinterpret<sfpi::vFloat>(z)); // & 0x7f800000; 
+    sfpi::vInt zif = sfpi::exman9(sfpi::reinterpret<sfpi::vFloat>(z)); //z & sfpi::vInt(0x007fffff); // extract mantissa // 
+
+    sfpi::vFloat d1 = sfpi::vFloat(0.40196114e-7); 
+    sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(0xf94ee7) + zif);
+    sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(0x560) + zif);
+    d2 = d1 * d2;
+    zif = _float_to_int32_(d2 * d3);
+    
+    // zii |= zif; // restore exponent
+    zii = sfpi::reinterpret<sfpi::vInt>(sfpi::setexp(sfpi::reinterpret<sfpi::vFloat>(zif), 127U + zii));
+
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
     
     return y;
@@ -203,9 +269,9 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
         }
         else if constexpr (BINOP == BinaryOp::POW)
         {
-            for (uint32_t i = 0; i < 100'000; i++) {
-                result = _calculate_sfpu_binary_power_(in0, in1);
-            }
+            // for (uint32_t i = 0; i < 100'000; i++) {
+                result = _calculate_sfpu_binary_power_21f_alt0_(in0, in1);
+            // }
         }
         else if constexpr (BINOP == BinaryOp::XLOGY)
         {
@@ -232,6 +298,7 @@ inline void _sfpu_binary_init_()
 {
     if constexpr (BINOP == BinaryOp::DIV || BINOP == BinaryOp::POW)
     {
+        // Note: pow_21f version does not call reciprocal, but uses similar fixed-register (1/log(2))
         _init_reciprocal_<APPROXIMATION_MODE>();
     }
     else if constexpr (BINOP == BinaryOp::XLOGY)
