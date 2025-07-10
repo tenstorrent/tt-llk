@@ -46,14 +46,14 @@ def calculate_farc_part(mantissa_value):
 
 def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, mant2):
 
-    if data_format in [DataFormat.Float16, DataFormat.Float16_b]:
+    if data_format in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]:
         exponent1 = exp1.to(torch.int16)
         exponent2 = exp2.to(torch.int16)
     else:
         exponent1 = exp1.to(torch.int32)
         exponent2 = exp2.to(torch.int32)
 
-    if data_format == DataFormat.Float16_b:
+    if data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b]:
         exponent1 = exponent1 - 127
         exponent2 = exponent2 - 127
     else:
@@ -108,7 +108,7 @@ class FidelityMasking:
             exponents_2 = operand2_uint & exponent_mask
             exponents_1 = exponents_1.to(torch.int32) >> 10
             exponents_2 = exponents_2.to(torch.int32) >> 10
-        elif data_format == DataFormat.Float16_b:
+        elif data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b]:
             # Convert operands to uint16 for bitwise operations
             operand1_uint = operand1.to(torch.bfloat16).view(torch.uint16)
             operand2_uint = operand2.to(torch.bfloat16).view(torch.uint16)
@@ -132,7 +132,7 @@ class FidelityMasking:
             exponents_2 = operand2_uint & exponent_mask
 
         # extract sign bits from all operands based on data format
-        if data_format in [DataFormat.Float16, DataFormat.Float16_b]:
+        if data_format in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]:
             sign_mask = 0x8000  # 1000 0000 0000 0000
             sign_1 = operand1_uint & sign_mask
             sign_2 = operand2_uint & sign_mask
@@ -146,7 +146,7 @@ class FidelityMasking:
             mantissa_mask = 0x3FF  # 0000 0011 1111 1111
             mantissas_1 = operand1_uint & mantissa_mask
             mantissas_2 = operand2_uint & mantissa_mask
-        elif data_format == DataFormat.Float16_b:
+        elif data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b]:
             mantissa_mask = 0x7F  # 0000 0000 0111 1111
             mantissas_1 = operand1_uint & mantissa_mask
             mantissas_2 = operand2_uint & mantissa_mask
@@ -160,16 +160,14 @@ class FidelityMasking:
             )
 
         # Shift mantissas left by 3 bits
-        if data_format == DataFormat.Float16_b:
+        if data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b]:
             mantissas_1 = mantissas_1.to(torch.int32) << 3
             mantissas_2 = mantissas_2.to(torch.int32) << 3
         elif data_format == DataFormat.Float16:
             pass
 
         # Append 1 as MSB to each mantissa (for normalized numbers - implied leading 1)
-        if data_format == DataFormat.Float16:
-            mantissa_msb = 0x400  # 1 << 10, MSB of an 11-bit number
-        elif data_format == DataFormat.Float16_b:
+        if data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b, DataFormat.Float16]:
             mantissa_msb = 0x400  # 1 << 10, MSB of an 11-bit number
         elif data_format == DataFormat.Float32:
             mantissa_msb = 0x800000  # 1 << 23
@@ -196,7 +194,7 @@ class FidelityMasking:
         mantissas_2 = mantissas_2 & b_mask
 
         # Recombine the sign, exponent, and mantissa bits
-        if data_format in [DataFormat.Float16, DataFormat.Float16]:
+        if data_format in [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b]:
             sign_1 = sign_1.to(torch.int16)
             exponents_1 = exponents_1.to(torch.int16)
             mantissas_1 = mantissas_1.to(torch.int16)
