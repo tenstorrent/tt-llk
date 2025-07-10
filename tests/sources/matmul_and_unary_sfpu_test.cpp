@@ -146,8 +146,8 @@ void run_kernel()
 
 void run_kernel()
 {
-#ifdef ARCH_BLACKHOLE
     int run = 0; // first L1-to-L1 run, we access the first set of formats in our array
+#ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats[run].pack_src, formats[run].pack_dst, 16 * 16 * 4);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
