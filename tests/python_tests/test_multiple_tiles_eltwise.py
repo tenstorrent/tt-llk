@@ -28,7 +28,8 @@ from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
-    DataFormat.Float16
+    DataFormat.Float16,
+    DataFormat.Float16_b,
 ]  # [DataFormat.Bfp8_b, DatsFormat.Float16, DataFormat.Float16_b]
 
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -64,7 +65,7 @@ all_params = generate_params(
 param_ids = generate_param_ids(all_params)
 
 
-@pytest.mark.parametrize("input_dimensions", [[32, 32]])  # , [32, 64], [64, 64]])
+@pytest.mark.parametrize("input_dimensions", [[32, 32], [32, 64], [64, 64]])
 @pytest.mark.parametrize(
     "testname, formats, dest_acc, mathop, math_fidelity",
     clean_params(all_params),
@@ -80,9 +81,6 @@ def test_multiple_tiles(
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-
-    # src_A = torch.ones(1024, dtype=format_dict[formats.input_format]) * 2
-    # src_B = torch.ones(1024, dtype=format_dict[formats.input_format]) * 3
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
