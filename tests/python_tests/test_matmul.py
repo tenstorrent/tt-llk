@@ -66,7 +66,7 @@ param_ids = generate_param_ids(all_params)
     clean_params(all_params),
     ids=param_ids,
 )
-def test_matmul(testname, formats, dest_acc, math_fidelity):
+def test_matmul(testname, formats, dest_acc, math_fidelity, test_logger):
     torch_format = format_dict[formats.output_format]
 
     input_dimensions = [64, 64]
@@ -124,4 +124,4 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format, test_logger)
