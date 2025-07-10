@@ -6,7 +6,6 @@ import torch
 from .format_arg_mapping import format_dict
 from .format_config import DataFormat
 
-torch.manual_seed(123456)
 
 def flatten_list(sublists):
     return [item for sublist in sublists for item in sublist]
