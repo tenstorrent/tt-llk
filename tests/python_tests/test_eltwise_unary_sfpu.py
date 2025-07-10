@@ -33,7 +33,7 @@ supported_float_formats = [
     DataFormat.Float32,
     DataFormat.Float16,
     DataFormat.Float16_b,
-    # DataFormat.Bfp8_b,
+    DataFormat.Bfp8_b,
 ]
 supported_int_formats = [DataFormat.Int32]
 
@@ -111,6 +111,18 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
             DataFormat.Float32, DataFormat.Float16
         ):
             pytest.skip(reason="This combination is not supported on BH architecture")
+
+    if (
+        approx_mode == ApproximationMode.Yes
+        and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
+        and (
+            formats.input_format == DataFormat.Bfp8_b
+            or formats.output_format == DataFormat.Bfp8_b
+        )
+    ):
+        pytest.skip(
+            reason="Exp-related operations are not supported for bf8_b format in approximation mode."
+        )
 
     input_dimensions = [64, 64]
 
