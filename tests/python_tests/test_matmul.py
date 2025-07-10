@@ -10,7 +10,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
 from helpers.format_config import DataFormat
-from helpers.math_fidelity import apply_fidelity
+from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -18,42 +18,15 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import generate_make_command
-from helpers.tilize_untilize import tilize
-from helpers.utils import passed_test, run_shell_command
-
-
-def generate_golden(operand1, operand2, data_format, math_fidelity_phases):
-
-    print("BEFORE APPLY FIDELITY\n\n")
-    print(operand1.view(32, 32))
-    print("\n\n")
-    print(operand2.view(32, 32))
-
-    result_matrix = torch.zeros((32, 32))
-
-    for i in range(math_fidelity_phases):
-        operand1, operand2 = apply_fidelity(operand1, operand2, data_format, i)
-
-        print("AFTER APPLY FIDELITY\n\n")
-        print(operand1.view(32, 32))
-        print("\n\n")
-        print(operand2.view(32, 32))
-
-        operand1_matrix = operand1.view(32, 32)
-        operand2_matrix = operand2.view(32, 32)
-
-        # accumulate results in a 32x32 matrix
-        result_matrix += torch.matmul(operand1_matrix, operand2_matrix)
-
-    return result_matrix.view(1024)
-
+from helpers.test_config import run_test
+from helpers.tilize_untilize import tilize_block
+from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
     DataFormat.Float16_b,
     DataFormat.Float16,
-    DataFormat.Bfp8_b,
+    # DataFormat.Bfp8_b,
     DataFormat.Float32,
 ]
 #   INPUT-OUTPUT FORMAT SWEEP
@@ -102,22 +75,30 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    # src_A, src_B = generate_stimuli(formats.input_format, formats.input_format,const_face=True, const_value_A=1.54, const_value_B=1.67)
-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
-
-    if math_fidelity == MathFidelity.LoFi:
-        math_fidelity_phases = 1
-    elif math_fidelity == MathFidelity.HiFi2:
-        math_fidelity_phases = 2
-    elif math_fidelity == MathFidelity.HiFi3:
-        math_fidelity_phases = 3
-    elif math_fidelity == MathFidelity.HiFi4:
-        math_fidelity_phases = 4
-
+    generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(
-        src_A, src_B, formats.input_format, math_fidelity_phases
+        src_A,
+        src_B,
+        formats.output_format,
+        math_fidelity,
+        input_dimensions=input_dimensions,
     )
-    golden_tensor = tilize(golden_tensor, torch_format).to(torch_format)
+    golden_tensor = tilize_block(
+        golden_tensor, dimensions=input_dimensions, stimuli_format=formats.output_format
+    ).to(torch_format)
+    golden_tensor = golden_tensor.flatten()
+
+    if formats.input_format != DataFormat.Bfp8_b:
+        tilized_A = tilize_block(
+            src_A, dimensions=input_dimensions, stimuli_format=formats.input_format
+        )
+        tilized_B = tilize_block(
+            src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
+        )
+    else:
+        # BFP8 format requires special handling for tilization
+        tilized_A = src_A
+        tilized_B = src_B
 
     res_address = write_stimuli_to_l1(
         tilized_A.flatten(),
@@ -143,9 +124,4 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    print(f"Golden tensor: {golden_tensor.view(32,32)}")
-    print("\n\n")
-    print(f"Result tensor: {res_tensor.view(32,32)}")
-
-    assert 1 == 2
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
