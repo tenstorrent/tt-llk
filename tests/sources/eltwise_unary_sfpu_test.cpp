@@ -51,7 +51,7 @@ const int iterations = 32;
 
 namespace
 {
-void call_sfpu_operation(SfpuType operation, DataFormat MATH_FORMAT)
+void call_sfpu_operation(SfpuType operation, uint32_t math_format)
 {
     switch (operation)
     {
@@ -90,7 +90,7 @@ void call_sfpu_operation(SfpuType operation, DataFormat MATH_FORMAT)
             ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();
             break;
         case SfpuType::neg:
-            if (MATH_FORMAT == DataFormat::Int32)
+            if (math_format == static_cast<uint32_t>(DataFormat::Int32))
             {
                 ckernel::sfpu::_calculate_negative_int_<APPROX_MODE, iterations>();
             }
@@ -127,7 +127,7 @@ void run_kernel()
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
         // calling sfpu function from ckernel
         // this part is where parametrization of operation takes part
-        call_sfpu_operation(SFPU_OPERATION, static_cast<DataFormat>(MATH_FORMAT));
+        call_sfpu_operation(SFPU_OPERATION, formats.math);
 
         _llk_math_eltwise_unary_sfpu_done_();
     }

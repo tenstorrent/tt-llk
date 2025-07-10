@@ -52,15 +52,20 @@ constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 constexpr bool is_fp32_dest_acc_en =
     dest_acc_en_input || is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
 
+// Get Data Formats :)
+inline constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array =
+    data_formats<static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input, L1_to_L1_ITERATIONS>();
+
 // Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
+// L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor 
+// If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
+// If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration 
 #if L1_to_L1_ITERATIONS == 1
-constexpr FormatConfig formats =
-    data_formats<static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input, L1_to_L1_ITERATIONS>()[0];
+constexpr auto& formats = formats_array[0];
 #else
 // Fusing: multiple L1-to-L1 iterations, so we retrieve an array of format configurations
 // (organized in the same order as the iterations)
-inline constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> fused_formats =
-    data_formats<static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input, L1_to_L1_ITERATIONS>();
+constexpr auto& formats = formats_array; 
 #endif
 
 #else // Not inferring formats — all formats are pre-defined. Set format configuration directly.
