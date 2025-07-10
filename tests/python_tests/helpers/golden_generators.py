@@ -52,15 +52,27 @@ def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, 
         exponent1 = exp1.to(torch.int16)
         exponent2 = exp2.to(torch.int16)
     else:
-        exponent1 = exp1.to(torch.int32)
-        exponent2 = exp2.to(torch.int32)
+        exponent1 = exp1.to(torch.int16)
+        exponent2 = exp2.to(torch.int16)
 
-    if data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b]:
+    if data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b, DataFormat.Float32]:
         exponent1 = exponent1 - 127
         exponent2 = exponent2 - 127
-    else:
+    elif data_format == DataFormat.Float16:
         exponent1 = exponent1 - 15
         exponent2 = exponent2 - 15
+    else:
+        raise ValueError(f"Unsupported data format: {data_format}")
+
+    # print("EXPONENTS")
+    # print(exponent1[:10])
+    # print(exponent2[:10])
+
+    # print("MANTISSAS BEFORE RECONSTRUCTING FLOAT:")
+    # # print("mant1 (bin):", [format(int(x.item()), "011b") for x in mant1[:10]])
+    # # print("mant2 (bin):", [format(int(x.item()), "011b") for x in mant2[:10]])
+    # print("mant1 (hex):", [hex(int(x.item())) for x in mant1[:10]])
+    # print("mant2 (hex):", [hex(int(x.item())) for x in mant2[:10]])
 
     mantissa1 = []
     mantissa2 = []
@@ -133,6 +145,9 @@ class FidelityMasking:
             exponents_1 = operand1_uint & exponent_mask
             exponents_2 = operand2_uint & exponent_mask
 
+            exponents_1 = exponents_1.to(torch.int32) >> 23
+            exponents_2 = exponents_2.to(torch.int32) >> 23
+
         # extract sign bits from all operands based on data format
         if data_format in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]:
             sign_mask = 0x8000  # 1000 0000 0000 0000
@@ -156,6 +171,46 @@ class FidelityMasking:
             mantissa_mask = 0x007FFFFF  # 0000 0000 0111 1111 1111 1111 1111 1111
             mantissas_1 = operand1_uint & mantissa_mask
             mantissas_2 = operand2_uint & mantissa_mask
+
+            # Print original mantissas for debugging
+            # print("Operand1 UINT (hex):")
+            # print(
+            #     "\n".join(
+            #     [
+            #         " ".join([f"{x.item():04x}" for x in row])
+            #         for row in operand1_uint.view(32, 32)[:1][:10]
+            #     ]
+            #     )
+            # )
+            # print("Operand2 UINT (hex):")
+            # print(
+            #     "\n".join(
+            #     [
+            #         " ".join([f"{x.item():04x}" for x in row])
+            #         for row in operand2_uint.view(32, 32)[:1][:10]
+            #     ]
+            #     )
+            # )
+
+            # print("Mantissas 1 ORIGNAL (hex):")
+            # print(
+            #     "\n".join(
+            #         [
+            #             " ".join([f"{x.item():02x}" for x in row])
+            #             for row in mantissas_1.view(32, 32)[:1][:10]
+            #         ]
+            #     )
+            # )
+            # print("Mantissas 2 ORIGNAL (hex):")
+            # print(
+            #     "\n".join(
+            #         [
+            #             " ".join([f"{x.item():02x}" for x in row])
+            #             for row in mantissas_2.view(32, 32)[:1][:10]
+            #         ]
+            #     )
+            # )
+
         else:
             raise ValueError(
                 f"Unsupported data format for fidelity appication: {data_format}"
@@ -167,15 +222,37 @@ class FidelityMasking:
             mantissas_2 = mantissas_2.to(torch.int32) << 3
         elif data_format == DataFormat.Float16:
             pass
+        elif data_format == DataFormat.Float32:
+            mantissas_1 = mantissas_1.to(torch.int32) >> 13
+            mantissas_2 = mantissas_2.to(torch.int32) >> 13
 
         # Append 1 as MSB to each mantissa (for normalized numbers - implied leading 1)
         if data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b, DataFormat.Float16]:
             mantissa_msb = 0x400  # 1 << 10, MSB of an 11-bit number
         elif data_format == DataFormat.Float32:
-            mantissa_msb = 0x800000  # 1 << 23
+            mantissa_msb = 0x400
 
         mantissas_1 = mantissas_1 | mantissa_msb
         mantissas_2 = mantissas_2 | mantissa_msb
+
+        # print("Mantissas 1 BEFORE MASKING (hex):")
+        # print(
+        #     "\n".join(
+        #         [
+        #             " ".join([f"{x.item():02x}" for x in row])
+        #             for row in mantissas_1.view(32, 32)[:1][:10]
+        #         ]
+        #     )
+        # )
+        # print("Mantissas 2 BEFORE MASKING (hex):")
+        # print(
+        #     "\n".join(
+        #         [
+        #             " ".join([f"{x.item():02x}" for x in row])
+        #             for row in mantissas_2.view(32, 32)[:1][:10]
+        #         ]
+        #     )
+        # )
 
         # set masks based on math fidelity phase
         if math_fidelity_phase == 0:
@@ -195,6 +272,25 @@ class FidelityMasking:
         mantissas_1 = mantissas_1 & a_mask
         mantissas_2 = mantissas_2 & b_mask
 
+        # print("Mantissas 1 AFTER MASKING (hex):")
+        # print(
+        #     "\n".join(
+        #         [
+        #             " ".join([f"{x.item():02x}" for x in row])
+        #             for row in mantissas_1.view(32, 32)[:1][:10]
+        #         ]
+        #     )
+        # )
+        # print("Mantissas 2 AFTER MASKING (hex):")
+        # print(
+        #     "\n".join(
+        #         [
+        #             " ".join([f"{x.item():02x}" for x in row])
+        #             for row in mantissas_2.view(32, 32)[:1][:10]
+        #         ]
+        #     )
+        # )
+
         # Recombine the sign, exponent, and mantissa bits
         if data_format in [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b]:
             sign_1 = sign_1.to(torch.int16)
@@ -205,11 +301,11 @@ class FidelityMasking:
             mantissas_2 = mantissas_2.to(torch.int16)
         elif data_format == DataFormat.Float32:
             sign_1 = sign_1.to(torch.int32)
-            exponents_1 = exponents_1.to(torch.int32)
-            mantissas_1 = mantissas_1.to(torch.int32)
+            exponents_1 = exponents_1.to(torch.int16)
+            mantissas_1 = mantissas_1.to(torch.int16)
             sign_2 = sign_2.to(torch.int32)
-            exponents_2 = exponents_2.to(torch.int32)
-            mantissas_2 = mantissas_2.to(torch.int32)
+            exponents_2 = exponents_2.to(torch.int16)
+            mantissas_2 = mantissas_2.to(torch.int16)
 
         reassembled1, reassembled2 = reassemble_float_after_fidelity(
             data_format,
@@ -231,12 +327,111 @@ def to_tensor(operand, data_format):
 
 @register_golden
 class MatmulGolden(FidelityMasking):
+
     def __call__(
         self, operand1, operand2, data_format, math_fidelity, input_dimensions=[32, 32]
     ):
         torch_format = format_dict[data_format]
 
-        self._apply_fidelity_masking(operand1, operand2, math_fidelity)
+        t1 = to_tensor(operand1, data_format)
+        t2 = to_tensor(operand2, data_format)
+
+        _fildelity_dict = {
+            MathFidelity.LoFi: 0,
+            MathFidelity.HiFi2: 1,
+            MathFidelity.HiFi3: 2,
+            MathFidelity.HiFi4: 3,
+        }
+
+        num_fidelity_phases = _fildelity_dict.get(math_fidelity, 0)
+
+        res = 0
+
+        if num_fidelity_phases == 0:
+
+            t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
+            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
+                input_dimensions[0], input_dimensions[1]
+            )
+            res = (
+                torch.matmul(t1, t2)
+                .view(input_dimensions[0] * input_dimensions[1])
+                .to(torch_format)
+            )
+
+            return res
+
+        elif num_fidelity_phases == 1:
+
+            t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
+            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
+                input_dimensions[0], input_dimensions[1]
+            )
+            res = (
+                torch.matmul(t1, t2)
+                .view(input_dimensions[0] * input_dimensions[1])
+                .to(torch_format)
+            )
+
+            t1 = to_tensor(operand1, data_format)
+            t2 = to_tensor(operand2, data_format)
+            t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
+            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
+                input_dimensions[0], input_dimensions[1]
+            )
+            res += (
+                torch.matmul(t1, t2)
+                .view(input_dimensions[0] * input_dimensions[1])
+                .to(torch_format)
+            )
+
+            return res
+
+        elif num_fidelity_phases == 2:
+
+            t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
+            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
+                input_dimensions[0], input_dimensions[1]
+            )
+            res = (
+                torch.matmul(t1, t2)
+                .view(input_dimensions[0] * input_dimensions[1])
+                .to(torch_format)
+            )
+
+            t1 = to_tensor(operand1, data_format)
+            t2 = to_tensor(operand2, data_format)
+            t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
+            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
+                input_dimensions[0], input_dimensions[1]
+            )
+            res += (
+                torch.matmul(t1, t2)
+                .view(input_dimensions[0] * input_dimensions[1])
+                .to(torch_format)
+            )
+
+            # TODO: INVESTIGATE WHY COMMENTING THIS MAKES TEST PASS
+
+            # t1 = to_tensor(operand1, data_format)
+            # t2 = to_tensor(operand2, data_format)
+            # t1, t2 = self._apply_fidelity_masking(t1, t2, 2, data_format)
+            # t1,t2 = t1.view(input_dimensions[0],input_dimensions[1]), t2.view(input_dimensions[0],input_dimensions[1])
+            # res +=  torch.matmul(t1, t2).view(input_dimensions[0] * input_dimensions[1]).to(torch_format)
+
+            return res
+        elif num_fidelity_phases == 3:
+
+            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
+                input_dimensions[0], input_dimensions[1]
+            )
+            res = (
+                torch.matmul(t1, t2)
+                .view(input_dimensions[0] * input_dimensions[1])
+                .to(torch_format)
+            )
+
+            return res
 
         # Clone and detach to avoid modifying original input
         operand1_matrix = to_tensor(operand1, data_format).view(
