@@ -57,7 +57,7 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize(
     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
 )
-def test_unary_datacopy(testname, formats, dest_acc):
+def test_unary_datacopy(testname, formats, dest_acc, test_logger):
 
     input_dimensions = [64, 64]
 
@@ -91,4 +91,4 @@ def test_unary_datacopy(testname, formats, dest_acc):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format, test_logger)

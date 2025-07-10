@@ -18,6 +18,7 @@ from helpers.format_arg_mapping import (
 )
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
+from helpers.logging_config import get_current_test_logger
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -105,6 +106,7 @@ param_ids = generate_param_ids(all_params)
 )
 def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
     arch = get_chip_architecture()
+    test_logger = get_current_test_logger()
 
     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
         if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
@@ -162,4 +164,4 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format, test_logger)
