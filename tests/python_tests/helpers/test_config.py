@@ -94,6 +94,10 @@ def generate_build_header(
     header_content.append(f"#define TRUNCATE_16_BIT {truncate_to_16_bit}")
 
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
+    # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
+    # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor 
+    # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
+    # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration 
     fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
     header_content.append(f"#define L1_to_L1_ITERATIONS {str(fused_L1_to_L1)}")
 

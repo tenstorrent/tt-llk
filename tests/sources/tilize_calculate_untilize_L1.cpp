@@ -30,13 +30,13 @@ volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>
 void run_kernel()
 {
     int run = 0; // first L1-to-L1 run, we access the first set of formats in our array
-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(fused_formats[run].unpack_src, fused_formats[run].unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats[run].unpack_src, formats[run].unpack_dst, FACE_R_DIM, 0, 4);
 
-    _llk_unpack_tilize_init_(fused_formats[run].unpack_src, fused_formats[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, fused_formats[run].unpack_src, 1, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_init_(formats[run].unpack_src, formats[run].unpack_dst, 1, FACE_R_DIM, false);
+    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats[run].unpack_src, 1, FACE_R_DIM, 4, false);
 
-    _llk_unpack_tilize_init_(fused_formats[run].unpack_src, fused_formats[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, fused_formats[run].unpack_src, 1, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_init_(formats[run].unpack_src, formats[run].unpack_dst, 1, FACE_R_DIM, false);
+    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, formats[run].unpack_src, 1, FACE_R_DIM, 4, false);
 
     /*
     In this test we fuse two LLK pipeline runs, one is to unpack untilized buffers/operands from L1 (39-45) and pack them in tilized format(130-145).
@@ -59,7 +59,7 @@ void run_kernel()
 
     run = 1; // second L1-to-L1 run, we access the second set of formats in our array
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-        fused_formats[run].unpack_src, fused_formats[run].unpack_src, fused_formats[run].unpack_dst, fused_formats[run].unpack_dst, FACE_R_DIM, 0, 4);
+        formats[run].unpack_src, formats[run].unpack_src, formats[run].unpack_dst, formats[run].unpack_dst, FACE_R_DIM, 0, 4);
     _llk_unpack_AB_init_<>();
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
 }
@@ -87,23 +87,23 @@ void run_kernel()
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
-        0, 0, 4, fused_formats[run].math);
+        0, 0, 4, formats[run].math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, fused_formats[run].math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats[run].math);
 #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(fused_formats[run].math, fused_formats[run].math);
+    _llk_math_hw_configure_<false, false>(formats[run].math, formats[run].math);
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-        operand_A_dst_index, fused_formats[run].math, fused_formats[run].math);
+        operand_A_dst_index, formats[run].math, formats[run].math);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-        operand_B_dst_index, fused_formats[run].math, fused_formats[run].math);
+        operand_B_dst_index, formats[run].math, formats[run].math);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     run = 1; // second L1-to-L1 run, we access the second set of formats in our array
@@ -133,12 +133,12 @@ void run_kernel()
     int run                                 = 0;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(fused_formats[run].pack_src, fused_formats[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(fused_formats[run].pack_dst);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats[run].pack_src, formats[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(fused_formats[run].pack_src, fused_formats[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(fused_formats[run].pack_dst);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats[run].pack_src, formats[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
 
@@ -154,8 +154,8 @@ void run_kernel()
                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
     run = 1;                                   // second L1-to-L1 run, we access the second set of formats in our array
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(fused_formats[run].pack_src, fused_formats[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, !TILIZE>(fused_formats[run].pack_dst);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(formats[run].pack_src, formats[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, !TILIZE>(formats[run].pack_dst);
 #endif
 
     _llk_packer_wait_for_math_done_();

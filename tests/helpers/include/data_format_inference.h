@@ -102,7 +102,7 @@ constexpr FormatConfig get_data_formats(DataFormat unpack_in, DataFormat unpack_
  * Uses the global constexpr:
  *   - UNPACKING_TO_DEST: Indicates whether unpacking targets the destination register.
  */
-template <DataFormat INPUT>
+template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC>
 constexpr DataFormat infer_unpack_out()
 {
     if constexpr (INPUT == DataFormat::Float32 && !UNPACKING_TO_DEST)
@@ -113,9 +113,9 @@ constexpr DataFormat infer_unpack_out()
         // When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
         // Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
         // which preserves the 8-bit exponent and as much mantissa precision as fits. If our dst regoster is 16-bit we directly truncate to 16-bit format
-        if (is_fp32_dest_acc_en){
-            return DataFormat::Tf32
-        } else if (is_exponentB(output) || output == DataFormat::Float32)
+        if (FP32_ACC){
+            return DataFormat::Tf32;
+        } else if (is_exponentB(OUTPUT) || OUTPUT == DataFormat::Float32)
         {
             return DataFormat::Float16_b; // If output Float32 or Float16_b
         }
@@ -177,15 +177,14 @@ constexpr DataFormat infer_pack_in()
         // allowing the packer to handle the conversion successfully.
         return DataFormat::Float32;
     }
-    else
-    {
-        // For all other cases:
-        // - If dest register stores 32-bit data (FP32_ACC = true), packer input format can be set to desired output format,
-        //   as gasket can convert Float32 to any format (except Float16_A).
-        // - If destination registers do not store 32-bit data, gasket cannot convert,
-        //   so the packer input format will be same as dest regsiter format.
-        return FP32_ACC ? OUTPUT : INPUT;
-    }
+    
+    // For all other cases:
+    // - If dest register stores 32-bit data (FP32_ACC = true), packer input format can be set to desired output format,
+    //   as gasket can convert Float32 to any format (except Float16_A).
+    // - If destination registers do not store 32-bit data, gasket cannot convert,
+    //   so the packer input format will be same as dest regsiter format.
+    return FP32_ACC ? OUTPUT : INPUT;
+    
 }
 
 template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC>
@@ -196,7 +195,7 @@ constexpr FormatConfig infer_data_formats()
     constexpr DataFormat pack_out  = OUTPUT; // The final desired output format after packing (format in L1 after leaving the pipeline)
 
     // Determine the intermediate formats
-    constexpr DataFormat unpack_out = infer_unpack_out<INPUT>(); // output format for Unpacker, desired format in src register(s)
+    constexpr DataFormat unpack_out = infer_unpack_out<INPUT, OUTPUT, FP32_ACC>(); // output format for Unpacker, desired format in src register(s)
     constexpr DataFormat math =
         unpack_out; // The data format used for mathematical computations, desired format in dest register (typically matches unpack_out)
     constexpr DataFormat pack_in =
