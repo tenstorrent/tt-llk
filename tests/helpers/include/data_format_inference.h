@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <utility>
 
 #include "build.h"
 #include "tensix_types.h"
@@ -113,14 +114,15 @@ constexpr DataFormat infer_unpack_out()
         // When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
         // Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
         // which preserves the 8-bit exponent and as much mantissa precision as fits. If our dst regoster is 16-bit we directly truncate to 16-bit format
-        if (FP32_ACC){
+        if (FP32_ACC)
+        {
             return DataFormat::Tf32;
-        } else if (is_exponentB(OUTPUT) || OUTPUT == DataFormat::Float32)
+        }
+        else if (is_exponentB(OUTPUT) || OUTPUT == DataFormat::Float32)
         {
             return DataFormat::Float16_b; // If output Float32 or Float16_b
         }
         return DataFormat::Float16; // Tilize to Float16
-        
     }
     // For all other cases, we can keep the format the same in L1 and src register or dest register
     return INPUT;
@@ -177,14 +179,13 @@ constexpr DataFormat infer_pack_in()
         // allowing the packer to handle the conversion successfully.
         return DataFormat::Float32;
     }
-    
+
     // For all other cases:
     // - If dest register stores 32-bit data (FP32_ACC = true), packer input format can be set to desired output format,
     //   as gasket can convert Float32 to any format (except Float16_A).
     // - If destination registers do not store 32-bit data, gasket cannot convert,
     //   so the packer input format will be same as dest regsiter format.
     return FP32_ACC ? OUTPUT : INPUT;
-    
 }
 
 template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC>
@@ -200,7 +201,7 @@ constexpr FormatConfig infer_data_formats()
         unpack_out; // The data format used for mathematical computations, desired format in dest register (typically matches unpack_out)
     constexpr DataFormat pack_in =
         infer_pack_in<INPUT, OUTPUT, unpack_out, FP32_ACC>(); // input to the packing stage, determines what gasket can convert from dest register
-                                                  // potentially different from unpack_out and pack_out depending on FP32 accumulation
+                                                              // potentially different from unpack_out and pack_out depending on FP32 accumulation
 
     // Return a FormatConfig struct capturing all the inferred formats needed for this stage
     return get_data_formats(unpack_in, unpack_out, math, pack_in, pack_out);
@@ -220,12 +221,10 @@ constexpr FormatConfig infer_data_formats()
  *
  * @return constexpr std::array<FormatConfig, N> Array of FormatConfig for each iteration.
  */
-template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC, int N, size_t... Is>
-constexpr std::array<FormatConfig, N> build_data_formats(std::index_sequence<Is...>)
+template <size_t N, size_t... Is>
+constexpr std::array<FormatConfig, N> build_data_formats(std::index_sequence<Is...>, const FormatConfig& intermediate_config, const FormatConfig& final_config)
 {
-    return {{// For intermediate iterations, output is reused as input for the next stage, so format remains unchanged and data is not packed out of the
-             // pipeline. For the last iteration, output is packed out of the pipeline.
-             (Is < N - 1 ? infer_data_formats<INPUT, INPUT, FP32_ACC>() : infer_data_formats<INPUT, OUTPUT, FP32_ACC>())...}};
+    return {{(Is < N - 1 ? intermediate_config : final_config)...}};
 }
 
 /**
@@ -245,7 +244,8 @@ constexpr std::array<FormatConfig, N> build_data_formats(std::index_sequence<Is.
 template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC, size_t N>
 constexpr std::array<FormatConfig, N> data_formats()
 {
-    // Generate array of FormatConfig entries for each L1-L1 pipeline stage,
-    // preserving the execution order using an index sequence from 0 to N-1
-    return build_data_formats<INPUT, OUTPUT, FP32_ACC, N>(std::make_index_sequence<N> {});
+    constexpr auto intermediate_config = infer_data_formats<INPUT, INPUT, FP32_ACC>();
+    constexpr auto final_config        = infer_data_formats<INPUT, OUTPUT, FP32_ACC>();
+
+    return build_data_formats<N>(std::make_index_sequence<N> {}, intermediate_config, final_config);
 }

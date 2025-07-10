@@ -22,11 +22,14 @@ uint32_t math_sync_tile_dst_index = 0;
 void run_kernel()
 {
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_B[i]), 0, formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+            L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+            L1_ADDRESS(buffer_B[i]), 0, formats.unpack_src, formats.unpack_dst);
     }
 }
 

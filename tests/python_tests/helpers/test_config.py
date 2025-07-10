@@ -85,19 +85,11 @@ def generate_build_header(
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
     header_content.append(f"#define UNPACKING_TO_DEST {unpack_to_dest}")
 
-    # Tilize / Untilize / Sfpu doesn't work on Tf32 unpacked datums: We unpack 32 bit input to src registers in 16 bit format
-    test_name = test_config.get("testname", "").lower()
-    if "tilize" in test_name or "sfpu" in test_name:
-        truncate_to_16_bit = str(True).lower()
-    else:
-        truncate_to_16_bit = str(False).lower()
-    header_content.append(f"#define TRUNCATE_16_BIT {truncate_to_16_bit}")
-
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
-    # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor 
+    # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
     # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
-    # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration 
+    # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration
     fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
     header_content.append(f"#define L1_to_L1_ITERATIONS {str(fused_L1_to_L1)}")
 
