@@ -117,6 +117,9 @@ class UnarySFPUGolden:
             MathOperation.Silu: self._silu,
             MathOperation.Gelu: self._gelu,
             MathOperation.Neg: self._neg,
+            MathOperation.Elu: self._elu,
+            MathOperation.Exp: self._exp,
+            MathOperation.Exp2: self._exp2,
         }
         self.data_format = None
 
@@ -189,6 +192,30 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.silu(input_tensor).item()
+
+    def _elu(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.elu(input_tensor, alpha=1.0).item()
+
+    def _exp(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.exp(input_tensor).item()
+
+    def _exp2(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.exp2(input_tensor).item()
 
     def _neg(self, x):
         return -x

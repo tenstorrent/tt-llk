@@ -33,7 +33,7 @@ supported_float_formats = [
     DataFormat.Float32,
     DataFormat.Float16,
     DataFormat.Float16_b,
-    DataFormat.Bfp8_b,
+    # DataFormat.Bfp8_b,
 ]
 supported_int_formats = [DataFormat.Int32]
 
@@ -66,6 +66,9 @@ float_ops = [
     MathOperation.Silu,
     MathOperation.Gelu,
     MathOperation.Neg,
+    MathOperation.Elu,
+    MathOperation.Exp,
+    MathOperation.Exp2,
 ]
 
 int_ops = [
