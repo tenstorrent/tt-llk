@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ckernel_ops.h"
+#include "ckernel_sfpu_converter.h"
 #include "ckernel_sfpu_load_config.h"
 
 namespace ckernel::sfpu
