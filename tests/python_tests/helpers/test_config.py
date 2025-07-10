@@ -87,7 +87,9 @@ def generate_build_header(
     header_content.append(f"#define UNPACKING_TO_DEST {unpack_to_dest}")
 
     # Datacopy type : srcA to dst or srcB to dst
-    data_copy_type = test_config.get("data_copy_type", DataCopyType.A2D)
+    data_copy_type = str(test_config.get("data_copy_type", DataCopyType.A2D)).split(
+        ".", 1
+    )[1]
     header_content.append(f"#define DATA_COPY_TYPE {data_copy_type}")
 
     # Math fidelity & Approximation mode

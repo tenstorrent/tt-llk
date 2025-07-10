@@ -18,18 +18,26 @@ uint32_t math_sync_tile_dst_index = 0;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
+#include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 
 void run_kernel()
 {
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
-
+    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_A_OUT);
+    _llk_unpack_AB_init_<>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
+        _llk_unpack_AB_<BroadcastType::NONE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
+
+    // _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+    // _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+
+    // for (int i = 0; i < TILE_CNT; ++i)
+    // {
+    //     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    // }
 }
 
 #endif

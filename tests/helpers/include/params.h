@@ -42,6 +42,8 @@ constexpr bool dest_acc_en_input =
 
 constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 
+constexpr DataCopyType data_copy_type = static_cast<DataCopyType>(DATA_COPY_TYPE);
+
 #if DATA_FORMAT_INFERENCE_MODEL
 constexpr bool is_fp32_dest_acc_en =
     dest_acc_en_input || is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
