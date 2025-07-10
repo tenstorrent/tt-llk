@@ -34,6 +34,8 @@ def check_bfp8_b(operand: list) -> list:
                     operand[index] = 0.0
 
     return operand
+
+
 def calculate_farc_part(mantissa_value):
     fract_value = 0.0
     for i in range(len(mantissa_value)):
