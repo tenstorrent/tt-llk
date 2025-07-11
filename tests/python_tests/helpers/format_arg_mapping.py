@@ -29,30 +29,75 @@ class MathOperation(Enum):
     It's a good choice for things like state machines, categories, or settings where values should not be changed or duplicated.
     """
 
-    Elwadd = "ELTWISE_BINARY_ADD"
-    Elwsub = "ELTWISE_BINARY_SUB"
-    Elwmul = "ELTWISE_BINARY_MUL"
-    Abs = "SFPU_OP_ABS"
-    Sqrt = "SFPU_OP_SQRT"
-    Square = "SFPU_OP_SQUARE"
-    Log = "SFPU_OP_LOG"
-    Sin = "SFPU_OP_SINE"
-    Cos = "SFPU_OP_COSINE"
-    Reciprocal = "SFPU_OP_RECIPROCAL"
-    Celu = "SFPU_OP_CELU"
-    ReduceColumn = "REDUCE_COL_OPERATION"
-    ReduceRow = "REDUCE_ROW_OPERATION"
-    ReduceScalar = "REDUCE_SCALAR_OPERATION"
-    SfpuElwadd = "SFPU_ELWADD"
-    SfpuElwsub = "SFPU_ELWSUB"
-    SfpuElwmul = "SFPU_ELWMUL"
-    SfpuXlogy = "SFPU_OP_XLOGY"
-    SfpuElwRightShift = "SFPU_OP_RSHFT"
-    SfpuElwLeftShift = "SFPU_OP_LSHFT"
-    SfpuElwLogicalRightShift = "SFPU_OP_LOGICAL_RSHFT"
-    Silu = "SFPU_OP_SILU"
-    Gelu = "SFPU_OP_GELU"
-    Neg = "SFPU_OP_NEG"
+    # FPU binary operations
+    Elwadd = "ELWADD"
+    Elwsub = "ELWSUB"
+    Elwmul = "ELWMUL"
+
+    # SFPU unary operations
+    Abs = "abs"
+    Sqrt = "sqrt"
+    Square = "square"
+    Log = "log"
+    Sin = "sine"
+    Cos = "cosine"
+    Reciprocal = "reciprocal"
+    Celu = "celu"
+    Silu = "silu"
+    Gelu = "gelu"
+    Neg = "neg"
+
+    # SFPU binary operations
+    SfpuElwadd = "ADD"
+    SfpuElwsub = "SUB"
+    SfpuElwmul = "MUL"
+    SfpuXlogy = "XLOGY"
+    SfpuElwRightShift = "RSHFT"
+    SfpuElwLeftShift = "LSHFT"
+    SfpuElwLogicalRightShift = "LOGICAL_RSHFT"
+
+    # Reduce operations
+    ReduceColumn = "REDUCE_COL"
+    ReduceRow = "REDUCE_ROW_"
+    ReduceScalar = "REDUCE_SCALAR"
+
+
+# Operation type sets for easy categorization
+SFPU_UNARY_OPERATIONS = {
+    MathOperation.Abs,
+    MathOperation.Sqrt,
+    MathOperation.Square,
+    MathOperation.Log,
+    MathOperation.Sin,
+    MathOperation.Cos,
+    MathOperation.Reciprocal,
+    MathOperation.Celu,
+    MathOperation.Silu,
+    MathOperation.Gelu,
+    MathOperation.Neg,
+}
+
+SFPU_BINARY_OPERATIONS = {
+    MathOperation.SfpuElwadd,
+    MathOperation.SfpuElwsub,
+    MathOperation.SfpuElwmul,
+    MathOperation.SfpuXlogy,
+    MathOperation.SfpuElwRightShift,
+    MathOperation.SfpuElwLeftShift,
+    MathOperation.SfpuElwLogicalRightShift,
+}
+
+FPU_BINARY_OPERATIONS = {
+    MathOperation.Elwadd,
+    MathOperation.Elwsub,
+    MathOperation.Elwmul,
+}
+
+REDUCE_OPERATIONS = {
+    MathOperation.ReduceColumn,
+    MathOperation.ReduceRow,
+    MathOperation.ReduceScalar,
+}
 
 
 class ReduceDimension(Enum):

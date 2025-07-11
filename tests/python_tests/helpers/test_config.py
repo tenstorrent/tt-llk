@@ -11,6 +11,10 @@ from ttexalens.tt_exalens_lib import (
 
 from .device import run_elf_files, wait_for_tensix_operations_finished
 from .format_arg_mapping import (
+    FPU_BINARY_OPERATIONS,
+    REDUCE_OPERATIONS,
+    SFPU_BINARY_OPERATIONS,
+    SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
     L1BufferLocations,
@@ -29,61 +33,21 @@ class ProfilerBuild(Enum):
     No = "false"
 
 
-# Mapping from MathOperation enum values to SfpuType values for unary operations
-SFPU_UNARY_OPERATION_MAP = {
-    MathOperation.Neg: "neg",
-    MathOperation.Sqrt: "sqrt",
-    MathOperation.Log: "log",
-    MathOperation.Square: "square",
-    MathOperation.Sin: "sine",
-    MathOperation.Cos: "cosine",
-    MathOperation.Abs: "abs",
-    MathOperation.Reciprocal: "reciprocal",
-    MathOperation.Celu: "celu",
-    MathOperation.Silu: "silu",
-    MathOperation.Gelu: "gelu",
-}
-
-# Mapping from MathOperation enum values to BinaryOp values for binary operations
-SFPU_BINARY_OPERATION_MAP = {
-    MathOperation.SfpuElwadd: "ADD",
-    MathOperation.SfpuElwsub: "SUB",
-    MathOperation.SfpuElwmul: "MUL",
-    MathOperation.SfpuXlogy: "XLOGY",
-    MathOperation.SfpuElwRightShift: "RSHFT",
-    MathOperation.SfpuElwLeftShift: "LSHFT",
-    MathOperation.SfpuElwLogicalRightShift: "LOGICAL_RSHFT",
-}
-
-# Mapping from MathOperation enum values to EltwiseBinaryType values for eltwise binary operations
-ELTWISE_BINARY_OPERATION_MAP = {
-    MathOperation.Elwadd: "ELWADD",
-    MathOperation.Elwsub: "ELWSUB",
-    MathOperation.Elwmul: "ELWMUL",
-    # Note: ELWDIV and ELWLESS are not currently in MathOperation enum but keeping for completeness
-    # MathOperation.Elwdiv: "ELWDIV",  # TO BE IMPLEMENTED IN LLKs
-    # MathOperation.Elwless: "ELWLESS",  # TO BE IMPLEMENTED IN LLKs
-}
-
-
-def _generate_operation_constants(mathop):
+def _generate_operation_constants(mathop: MathOperation) -> list[str]:
     """Generate the appropriate operation constants based on the math operation type."""
     constants = []
 
-    if mathop in SFPU_UNARY_OPERATION_MAP:
-        sfpu_type = SFPU_UNARY_OPERATION_MAP[mathop]
+    if mathop in SFPU_UNARY_OPERATIONS:
         constants.append(
-            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{sfpu_type};"
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.value};"
         )
-    elif mathop in SFPU_BINARY_OPERATION_MAP:
-        binary_op = SFPU_BINARY_OPERATION_MAP[mathop]
+    elif mathop in SFPU_BINARY_OPERATIONS:
         constants.append(
-            f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{binary_op};"
+            f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.value};"
         )
-    elif mathop in ELTWISE_BINARY_OPERATION_MAP:
-        eltwise_op = ELTWISE_BINARY_OPERATION_MAP[mathop]
+    elif mathop in FPU_BINARY_OPERATIONS:
         constants.append(
-            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{eltwise_op};"
+            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.value};"
         )
 
     return constants
@@ -199,11 +163,7 @@ def generate_build_header(
         header_content.extend(_generate_operation_constants(mathop))
 
         # Handle reduce operations
-        if mathop in [
-            MathOperation.ReduceColumn,
-            MathOperation.ReduceRow,
-            MathOperation.ReduceScalar,
-        ]:
+        if mathop in REDUCE_OPERATIONS:
             header_content.append(
                 f"#define REDUCE_DIM {test_config.get('reduce_dim', ReduceDimension.No).value}"
             )
