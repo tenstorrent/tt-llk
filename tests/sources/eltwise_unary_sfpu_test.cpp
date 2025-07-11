@@ -97,6 +97,16 @@ void call_sfpu_operation(SfpuType operation, DataFormat MATH_FORMAT)
                 ckernel::sfpu::_calculate_negative_<APPROX_MODE, iterations>();
             }
             break;
+        case SfpuType::fill:
+            if (MATH_FORMAT == DataFormat::Int32)
+            {
+                ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, iterations>(5);
+            }
+            else
+            {
+                ckernel::sfpu::_calculate_fill_<APPROX_MODE, iterations>(5.0f);
+            }
+            break;
         default:
             return;
     }
