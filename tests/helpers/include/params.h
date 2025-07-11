@@ -124,6 +124,9 @@ constexpr auto SFPU_OPERATION = SfpuType::celu;
 #ifdef SFPU_OP_SILU
 constexpr auto SFPU_OPERATION = SfpuType::silu;
 #endif
+#ifdef SFPU_OP_HARDSIGMOID
+constexpr auto SFPU_OPERATION = SfpuType::hardsigmoid;
+#endif
 #ifdef SFPU_OP_GELU
 constexpr auto SFPU_OPERATION = SfpuType::gelu;
 #endif

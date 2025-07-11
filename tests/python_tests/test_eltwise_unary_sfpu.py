@@ -64,6 +64,7 @@ float_ops = [
     MathOperation.Square,
     MathOperation.Celu,
     MathOperation.Silu,
+    MathOperation.Hardsigmoid,
     MathOperation.Gelu,
     MathOperation.Neg,
 ]
