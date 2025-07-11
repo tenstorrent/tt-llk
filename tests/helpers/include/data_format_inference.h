@@ -140,7 +140,14 @@ constexpr DataFormat infer_unpack_out()
 template <DataFormat INPUT, DataFormat OUTPUT, DataFormat unpack_out, bool FP32_ACC>
 constexpr DataFormat infer_pack_in()
 {
-    if constexpr (INPUT == DataFormat::Float32 && !UNPACKING_TO_DEST)
+    if constexpr (is_wormhole && FP32_ACC && OUTPUT == DataFormat::Float16)
+    {
+        // On wormhole architecture, data stored as Float32 in dest register,
+        // gasket cannot convert Float32 ->Float16_A, so it leaves the data as Float32,
+        // allowing the packer to handle the conversion successfully.
+        return DataFormat::Float32;
+    }
+    else if constexpr (INPUT == DataFormat::Float32 && !UNPACKING_TO_DEST)
     {
         // When input is Float32 in L1 and we are unpacking the input tensor to source registers (not directly to dest registers)
         if constexpr (FP32_ACC || is_exponentB(OUTPUT))
@@ -171,13 +178,6 @@ constexpr DataFormat infer_pack_in()
         // For wormhole architecture, gasket cannot perform this conversion and packer takes input Float32 (from dest register) converting to Float16_A.
         // For blackhole architecture, gasket able to convert Float32 to Float16_A before packing (reduces work on packer).
         return is_wormhole ? DataFormat::Float32 : OUTPUT;
-    }
-    else if constexpr (is_wormhole && FP32_ACC && OUTPUT == DataFormat::Float16)
-    {
-        // On wormhole architecture, data stored as Float32 in dest register,
-        // gasket cannot convert Float32 ->Float16_A, so it leaves the data as Float32,
-        // allowing the packer to handle the conversion successfully.
-        return DataFormat::Float32;
     }
 
     // For all other cases:
