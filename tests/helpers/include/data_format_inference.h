@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <type_traits>
 #include <utility>
 
 #include "build.h"
@@ -86,11 +87,11 @@ constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output
 constexpr FormatConfig get_data_formats(DataFormat unpack_in, DataFormat unpack_out, DataFormat math, DataFormat pack_in, DataFormat pack_out)
 {
     return {
-        static_cast<uint32_t>(unpack_in),
-        static_cast<uint32_t>(unpack_out),
-        static_cast<uint32_t>(math),
-        static_cast<uint32_t>(pack_in),
-        static_cast<uint32_t>(pack_out)};
+        static_cast<std::underlying_type_t<DataFormat>>(unpack_in),
+        static_cast<std::underlying_type_t<DataFormat>>(unpack_out),
+        static_cast<std::underlying_type_t<DataFormat>>(math),
+        static_cast<std::underlying_type_t<DataFormat>>(pack_in),
+        static_cast<std::underlying_type_t<DataFormat>>(pack_out)};
 }
 
 /**
@@ -114,11 +115,11 @@ constexpr DataFormat infer_unpack_out()
         // When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
         // Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
         // which preserves the 8-bit exponent and as much mantissa precision as fits. If our dst regoster is 16-bit we directly truncate to 16-bit format
-        if (FP32_ACC)
+        if constexpr (FP32_ACC)
         {
             return DataFormat::Tf32;
         }
-        else if (is_exponentB(OUTPUT) || OUTPUT == DataFormat::Float32)
+        else if constexpr (is_exponentB(OUTPUT) || OUTPUT == DataFormat::Float32)
         {
             return DataFormat::Float16_b; // If output Float32 or Float16_b
         }
