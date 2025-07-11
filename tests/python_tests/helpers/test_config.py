@@ -72,7 +72,9 @@ def _generate_operation_constants(mathop):
 
     if mathop in SFPU_UNARY_OPERATION_MAP:
         sfpu_type = SFPU_UNARY_OPERATION_MAP[mathop]
-        constants.append(f"constexpr auto SFPU_OPERATION = SfpuType::{sfpu_type};")
+        constants.append(
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{sfpu_type};"
+        )
     elif mathop in SFPU_BINARY_OPERATION_MAP:
         binary_op = SFPU_BINARY_OPERATION_MAP[mathop]
         constants.append(
