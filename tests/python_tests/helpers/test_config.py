@@ -39,15 +39,15 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
 
     if mathop in SFPU_UNARY_OPERATIONS:
         constants.append(
-            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.value};"
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_name};"
         )
     elif mathop in SFPU_BINARY_OPERATIONS:
         constants.append(
-            f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.value};"
+            f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.cpp_name};"
         )
     elif mathop in FPU_BINARY_OPERATIONS:
         constants.append(
-            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.value};"
+            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.cpp_name};"
         )
 
     return constants
