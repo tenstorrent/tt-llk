@@ -51,6 +51,7 @@ class MathOperation(Enum):
     SfpuElwLeftShift = "SFPU_OP_LSHFT"
     SfpuElwLogicalRightShift = "SFPU_OP_LOGICAL_RSHFT"
     Silu = "SFPU_OP_SILU"
+    Hardsigmoid = "SFPU_OP_HARDSIGMOID"
     Gelu = "SFPU_OP_GELU"
     Neg = "SFPU_OP_NEG"
 

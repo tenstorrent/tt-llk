@@ -83,6 +83,10 @@ void call_sfpu_operation(SfpuType operation, DataFormat MATH_FORMAT)
         case SfpuType::silu:
             ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
             break;
+        case SfpuType::hardsigmoid:
+            ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
+            break;
         case SfpuType::gelu:
             ckernel::sfpu::_init_gelu_<APPROX_MODE>();
             ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();

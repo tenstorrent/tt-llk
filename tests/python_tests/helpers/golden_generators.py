@@ -115,6 +115,7 @@ class UnarySFPUGolden:
             MathOperation.Square: self._square,
             MathOperation.Celu: self._celu,
             MathOperation.Silu: self._silu,
+            MathOperation.Hardsigmoid: self._hardsigmoid,
             MathOperation.Gelu: self._gelu,
             MathOperation.Neg: self._neg,
         }
@@ -189,6 +190,14 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.silu(input_tensor).item()
+
+    def _hardsigmoid(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.hardsigmoid(input_tensor).item()
 
     def _neg(self, x):
         return -x
