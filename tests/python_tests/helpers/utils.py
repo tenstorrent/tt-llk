@@ -1,11 +1,14 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from __future__ import annotations
+
 import subprocess
 from collections import namedtuple
 
 import numpy as np
 import torch
+from loguru import logger
 
 from .format_arg_mapping import format_dict
 from .format_config import DataFormat, FormatConfig
@@ -21,23 +24,23 @@ def print_faces(operand1):
 
     # Print the first set with proper alignment
     for i in range(16):
-        print(
+        logger.debug(
             " ".join(f"{x:6.2f}" for x in f0[i].tolist()),
             " | ",
             " ".join(f"{x:6.2f}" for x in f1[i].tolist()),
         )
 
-    print("-" * 250)
+    logger.debug("-" * 250)
 
     # Print the second set with proper alignment
     for i in range(16):
-        print(
+        logger.debug(
             " ".join(f"{x:6.2f}" for x in f2[i].tolist()),
             " | ",
             " ".join(f"{x:6.2f}" for x in f3[i].tolist()),
         )
 
-    print("\n" * 3)
+    logger.debug("\n" * 3)
 
 
 def run_shell_command(command: str, cwd: str | None = None):
@@ -160,6 +163,7 @@ def passed_test(
     golden_tensor,
     res_tensor,
     output_data_format: DataFormat = DataFormat.Float16_b,
+    test_logger: Logger = None,
     L1_to_L1_iterations: int = 1,
 ):
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
@@ -198,11 +202,12 @@ def passed_test(
     if not is_within_tolerance:
         # Find all indices where values differ
         diff_indices = torch.where(~is_valid)[0]
-        print(f"Found {len(diff_indices)} differences:")
-        for idx in diff_indices:
-            print(
-                f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
-            )
+        if test_logger:
+            test_logger.error(f"Found {len(diff_indices)} differences:")
+            for idx in diff_indices:
+                test_logger.error(
+                    f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
+                )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
     target_pcc = 0.99
@@ -212,5 +217,6 @@ def passed_test(
     #     values with less percision (Bfp8_b) and drops below 99% in that case
     if output_data_format == DataFormat.Bfp8_b:
         target_pcc = pow(0.99, L1_to_L1_iterations)
-    print("PCC:", pcc)
+    if test_logger:
+        test_logger.debug("PCC:", pcc)
     return is_within_tolerance and (pcc > target_pcc)
