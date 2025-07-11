@@ -139,7 +139,7 @@ def generate_build_header(
 
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
-    dest_acc_enabled = dest_acc == DestAccumulation.Yes or dest_acc == "DEST_ACC"
+    dest_acc_enabled = dest_acc == DestAccumulation.Yes
     header_content.append(
         f"constexpr bool dest_acc_en_input = {str(dest_acc_enabled).lower()};"
     )
