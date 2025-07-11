@@ -121,11 +121,11 @@ void run_kernel()
             i, MATH_FORMAT, MATH_FORMAT);
 
         // calculation of sfpu operation on dest
-        _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
+        _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
         // calling sfpu function from ckernel
         // this part is where parametrization of operation takes part
-        call_sfpu_operation(SFPU_OPERATION, static_cast<DataFormat>(MATH_FORMAT));
+        call_sfpu_operation(SFPU_UNARY_OPERATION, static_cast<DataFormat>(MATH_FORMAT));
 
         _llk_math_eltwise_unary_sfpu_done_();
     }
