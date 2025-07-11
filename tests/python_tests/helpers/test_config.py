@@ -11,6 +11,10 @@ from ttexalens.tt_exalens_lib import (
 
 from .device import run_elf_files, wait_for_tensix_operations_finished
 from .format_arg_mapping import (
+    FPU_BINARY_OPERATIONS,
+    REDUCE_OPERATIONS,
+    SFPU_BINARY_OPERATIONS,
+    SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
     L1BufferLocations,
@@ -27,6 +31,26 @@ from .utils import run_shell_command
 class ProfilerBuild(Enum):
     Yes = "true"
     No = "false"
+
+
+def _generate_operation_constants(mathop: MathOperation) -> list[str]:
+    """Generate the appropriate operation constants based on the math operation type."""
+    constants = []
+
+    if mathop in SFPU_UNARY_OPERATIONS:
+        constants.append(
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_name};"
+        )
+    elif mathop in SFPU_BINARY_OPERATIONS:
+        constants.append(
+            f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.cpp_name};"
+        )
+    elif mathop in FPU_BINARY_OPERATIONS:
+        constants.append(
+            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.cpp_name};"
+        )
+
+    return constants
 
 
 def generate_build_header(
@@ -61,12 +85,15 @@ def generate_build_header(
         "// SPDX-License-Identifier: Apache-2.0",
         "// AUTO-GENERATED CONFIGURATION HEADER. DO NOT EDIT MANUALLY!",
         "",
+        "#pragma once",
+        "",
         "#include <type_traits>",
         "",
+        '#include "llk_defs.h"',
+        '#include "llk_sfpu_types.h"',
         '#include "perf.h"',
         '#include "tensix_types.h"',
         "",
-        "#pragma once",
         "",
         "// Basic configuration",
         "#define TILE_SIZE_CNT 0x1000",
@@ -78,8 +105,10 @@ def generate_build_header(
 
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
-    if dest_acc == DestAccumulation.Yes or dest_acc == "DEST_ACC":
-        header_content.append("#define DEST_ACC")
+    dest_acc_enabled = dest_acc == DestAccumulation.Yes
+    header_content.append(
+        f"constexpr bool dest_acc_en_input = {str(dest_acc_enabled).lower()};"
+    )
 
     # Unpack to dest
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
@@ -122,14 +151,11 @@ def generate_build_header(
     # Math operation configuration
     mathop = test_config.get("mathop", "no_mathop")
     if mathop != "no_mathop":
-        header_content.extend(
-            ["", "// Math operation configuration", f"#define {mathop.value}"]
-        )
-        if mathop in [
-            MathOperation.ReduceColumn,
-            MathOperation.ReduceRow,
-            MathOperation.ReduceScalar,
-        ]:
+        header_content.extend(["", "// Math operation configuration"])
+        header_content.extend(_generate_operation_constants(mathop))
+
+        # Handle reduce operations
+        if mathop in REDUCE_OPERATIONS:
             header_content.append(
                 f"#define REDUCE_DIM {test_config.get('reduce_dim', ReduceDimension.No).value}"
             )
