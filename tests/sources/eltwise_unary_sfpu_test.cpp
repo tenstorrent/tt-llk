@@ -90,7 +90,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();
             break;
         case SfpuType::neg:
-            if (math_format == static_cast<uint32_t>(DataFormat::Int32))
+            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
             {
                 ckernel::sfpu::_calculate_negative_int_<APPROX_MODE, iterations>();
             }
