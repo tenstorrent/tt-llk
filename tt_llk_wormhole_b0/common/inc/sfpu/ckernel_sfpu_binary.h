@@ -75,14 +75,69 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_(sfpi::vFloat base, sf
     
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
     
+    
     return y;
 }
 
+inline sfpi::vInt _float_to_int32_fast_(sfpi::vFloat in)
+{
+    sfpi::vInt result;
+    sfpi::vInt exp = exexp(in); // extract exponent
+    v_if (exp < 0)
+    {
+        result = 0;
+    }
+    v_elseif (exp > 30) // overflow occurs above this range
+    {
+        // set to int32 max value in case of overflow
+        result = std::numeric_limits<int32_t>::max();
+    }
+    v_else
+    {
+        // extract mantissa
+        sfpi::vInt man = exman8(in);
+        // shift the mantissa by (23-exponent) to the right
+        sfpi::vInt shift = exp - 23; // 23 is number of mantissa in float32
+        man              = shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
+
+
+        result = man;
+    }
+    v_endif;
+    return result;
+}
 
 sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_alt0_(sfpi::vFloat base, sfpi::vFloat pow) {
 
     // Normalize base to calculation range
     sfpi::vFloat x = sfpi::setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
+
+
+    // Check valid base range
+    sfpi::vInt pow_int       = sfpi::float_to_int16(pow, 0); // int16 should be plenty, since large powers will approach 0/Inf
+    sfpi::vFloat pow_rounded = sfpi::int32_to_float(pow_int, 0);
+
+    sfpi::vFloat sign = sfpi::vConst1;
+    v_if (base < 0.0f)
+    { // negative base
+        // Check for integer power
+        v_if (pow_rounded == pow)
+        {
+            // if pow is odd integer, set result to negative
+            v_if (pow_int & 0x1)
+            {
+                sign = sfpi::vConstNeg1;
+            }
+            v_endif;
+        }
+        v_else
+        {
+            sign = std::numeric_limits<float>::quiet_NaN();
+        }
+        v_endif;
+    }
+    v_endif;
+    x *= sign;
 
     // 3rd order polynomial approx - determined using rminimax over [1,2]
     sfpi::vFloat series_result = x * (x * (x * 0x2.44734p-4f - 0xd.e712ap-4f) + 0x2.4f5388p+0f) - 0x1.952992p+0f;
@@ -104,20 +159,19 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_alt0_(sfpi::vFloat bas
 
 
     sfpi::vFloat zff = pow * log2_result;
-    v_if (zff < sfpi::vFloat(-127.f)) { // -126.99999237060546875
-        zff = sfpi::vFloat(-127.f);
+    const sfpi::vFloat low_threshold = sfpi::vConstFloatPrgm2;
+    v_if (zff < low_threshold) { // -126.99999237060546875
+        zff = low_threshold;
     }
     v_endif;
-
-    // zff = zff * sfpi::vFloat(8388608); // could be done by addexp or equivalent ?
 
     zff = addexp(zff, 23); // * 2**23 (Mn)
 
     // log2_result = sfpi::vFloat(26591258.22649899f);
 
-    sfpi::vFloat vOneF32 = sfpi::vConst1;
+    // sfpi::vFloat vOneF32 = sfpi::vConst1;
     // sfpi::vInt z = _float_to_int32_(zff) + sfpi::reinterpret<sfpi::vInt>(vOneF32); // (bias + x * log2(a)) * N_m // TODO: Problem with negative values 
-    sfpi::vInt z = _float_to_int32_(zff + sfpi::vFloat(0x3f800000)); // (bias + x * log2(a)) * N_m
+    sfpi::vInt z = _float_to_int32_fast_(zff + sfpi::vFloat(0x3f800000)); // (bias + x * log2(a)) * N_m
 
 
     sfpi::vInt zii = exexp(sfpi::reinterpret<sfpi::vFloat>(z)); // & 0x7f800000; 
@@ -127,13 +181,23 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_alt0_(sfpi::vFloat bas
     sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(0xf94ee7) + zif);
     sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(0x560) + zif);
     d2 = d1 * d2;
-    zif = _float_to_int32_(d2 * d3);
+    zif = _float_to_int32_fast_(d2 * d3);
     
+
+
+
+
     // zii |= zif; // restore exponent
     zii = sfpi::reinterpret<sfpi::vInt>(sfpi::setexp(sfpi::reinterpret<sfpi::vFloat>(zif), 127U + zii));
 
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
     
+
+    y *= sign;
+
+
+    // y = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(y, 0));
+
     return y;
 }
 
@@ -271,6 +335,7 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
         {
             // for (uint32_t i = 0; i < 100'000; i++) {
                 result = _calculate_sfpu_binary_power_21f_alt0_(in0, in1);
+                // result = _calculate_sfpu_binary_power_(in0, in1);
             // }
         }
         else if constexpr (BINOP == BinaryOp::XLOGY)
@@ -296,10 +361,15 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
 template <bool APPROXIMATION_MODE /*unused*/, BinaryOp BINOP>
 inline void _sfpu_binary_init_()
 {
-    if constexpr (BINOP == BinaryOp::DIV || BINOP == BinaryOp::POW)
+    if constexpr (BINOP == BinaryOp::DIV)
     {
         // Note: pow_21f version does not call reciprocal, but uses similar fixed-register (1/log(2))
         _init_reciprocal_<APPROXIMATION_MODE>();
+    }
+    else if constexpr (BINOP == BinaryOp::POW)
+    {
+        _init_reciprocal_<APPROXIMATION_MODE>();
+        sfpi::vConstFloatPrgm2 = -127.0f;
     }
     else if constexpr (BINOP == BinaryOp::XLOGY)
     {
