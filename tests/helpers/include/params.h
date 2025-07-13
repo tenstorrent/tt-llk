@@ -10,6 +10,7 @@
 // Include auto-generated build configuration
 #include "build.h"
 #include "ckernel_defs.h"
+#include "ckernel_sfpu.h"
 #include "data_format_inference.h"
 #include "perf.h"
 #include "tensix_types.h"

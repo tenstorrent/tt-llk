@@ -30,14 +30,14 @@ class MathOpType(Enum):
     REDUCE = auto()
 
 
-# Named tuple for operation specification
-OpSpec = namedtuple("OpSpec", ["cpp_name", "operation_type"])
+# Operation specification
+OpSpec = namedtuple("OpSpec", ["cpp_enum_value", "operation_type"])
 
 
 class MathOperation(Enum):
     """
     An enumeration class that holds all the math operations supported by the LLKs.
-    Each enum value is an OpSpec namedtuple containing (cpp_name, operation_type).
+    Each enum value is an OpSpec tuple containing (cpp_enum_value, operation_type).
     Used to avoid hardcoding the operation strings in the test scripts using strings. This avoid typos and future errors.
     MathOperations(Enum) class instances can be compared via unique values.
     When you have a set of related constants and you want to leverage the benefits of enumeration (unique members, comparisons, introspection, etc.).
@@ -73,13 +73,13 @@ class MathOperation(Enum):
 
     # Reduce operations (sorted alphabetically)
     ReduceColumn = OpSpec("REDUCE_COL", MathOpType.REDUCE)
-    ReduceRow = OpSpec("REDUCE_ROW_", MathOpType.REDUCE)
+    ReduceRow = OpSpec("REDUCE_ROW", MathOpType.REDUCE)
     ReduceScalar = OpSpec("REDUCE_SCALAR", MathOpType.REDUCE)
 
     @property
-    def cpp_name(self):
-        """Get the C++ constant for this operation."""
-        return self.value.cpp_name
+    def cpp_enum_value(self):
+        """Get the C++ enum value for this operation."""
+        return self.value.cpp_enum_value
 
     @property
     def operation_type(self):
@@ -100,17 +100,15 @@ REDUCE_OPERATIONS = _get_operations_by_type(MathOpType.REDUCE)
 
 
 class ReduceDimension(Enum):
-    Column = "ReduceDim::REDUCE_COL"
-    Row = "ReduceDim::REDUCE_ROW"
-    Scalar = "ReduceDim::REDUCE_SCALAR"
-    No = " "
+    Column = auto()
+    Row = auto()
+    Scalar = auto()
 
 
 class ReducePool(Enum):
-    Max = "PoolType::MAX"
-    Sum = "PoolType::SUM"
-    Average = "PoolType::AVG"
-    No = " "
+    Max = "MAX"
+    Sum = "SUM"
+    Average = "AVG"
 
 
 class DestAccumulation(Enum):

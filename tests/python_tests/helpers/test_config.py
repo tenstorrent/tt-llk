@@ -39,15 +39,15 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
 
     if mathop in SFPU_UNARY_OPERATIONS:
         constants.append(
-            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_name};"
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_enum_value};"
         )
     elif mathop in SFPU_BINARY_OPERATIONS:
         constants.append(
-            f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.cpp_name};"
+            f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.cpp_enum_value};"
         )
     elif mathop in FPU_BINARY_OPERATIONS:
         constants.append(
-            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.cpp_name};"
+            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.cpp_enum_value};"
         )
 
     return constants
@@ -165,11 +165,13 @@ def generate_build_header(
         # Handle reduce operations
         if mathop in REDUCE_OPERATIONS:
             header_content.append(
-                f"#define REDUCE_DIM {test_config.get('reduce_dim', ReduceDimension.No).value}"
+                f"constexpr auto REDUCE_DIM = ckernel::ReduceDim::{mathop.cpp_enum_value};"
             )
-            header_content.append(
-                f"#define POOL_TYPE {test_config.get('pool_type', ReducePool.No).value}"
-            )
+            pool_type = test_config.get("pool_type", None)
+            if pool_type is not None:
+                header_content.append(
+                    f"constexpr auto POOL_TYPE = ckernel::PoolType::{pool_type.value};"
+                )
 
     tile_cnt = test_config.get("tile_cnt", 1)
 
