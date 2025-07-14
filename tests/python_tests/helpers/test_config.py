@@ -124,7 +124,7 @@ def generate_build_header(
         f"constexpr std::uint32_t MATH_FIDELITY = {test_config.get('math_fidelity', MathFidelity.LoFi).value};"
     )
     header_content.append(
-        f"constexpr bool APPROX_MODE ={test_config.get('approx_mode', ApproximationMode.No).value};"
+        f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
     )
 
     # Data format configuration
@@ -224,8 +224,10 @@ def generate_build_header(
 
     header_content.extend(
         [
+            "#if defined(TEST_KERNEL)",
             f"constexpr uint32_t BLOCK_CT_DIM = {block_ct_dim};",
             f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim};",
+            "#endif",
         ]
     )
 
