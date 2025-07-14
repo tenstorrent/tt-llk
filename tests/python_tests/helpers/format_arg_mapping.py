@@ -158,7 +158,6 @@ class MathFidelity(Enum):
     HiFi2 = 1
     HiFi3 = 2
     HiFi4 = 3
-    Invalid = 4
 
 
 class Mailbox(Enum):

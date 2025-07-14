@@ -28,9 +28,9 @@ from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
+    DataFormat.Bfp8_b,
     DataFormat.Float16,
     DataFormat.Float16_b,
-    DataFormat.Bfp8_b,
     DataFormat.Float32,
 ]
 
@@ -56,7 +56,7 @@ all_params = generate_params(
     ["multiple_tiles_eltwise_test"],
     test_formats,
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    mathop=[MathOperation.Elwmul, MathOperation.Elwsub, MathOperation.Elwadd],
+    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,

@@ -15,27 +15,18 @@ from helpers.format_config import DataFormat
 
 golden_registry = {}
 
+_FIDELITY_MASK_CONFIGURATION = {
+    0: (0x7C0, 0x7F0),
+    1: (0x3E, 0x7F0),
+    2: (0x7C0, 0x0F0),
+    3: (0x3E, 0x0F),
+}
+
 
 def apply_masks(mantissas_1, mantissas_2, math_fidelity_phase):
-    # set masks based on math fidelity phase
-    if math_fidelity_phase == 0:
-        a_mask = 0x7C0
-        b_mask = 0x7F0
-    elif math_fidelity_phase == 1:
-        a_mask = 0x3E
-        b_mask = 0x7F0
-    elif math_fidelity_phase == 2:
-        a_mask = 0x7C0
-        b_mask = 0x0F0
-    elif math_fidelity_phase == 3:
-        a_mask = 0x3E
-        b_mask = 0x0F
-
-    # apply masks to mantissas
-    mantissas_1 = mantissas_1 & a_mask
-    mantissas_2 = mantissas_2 & b_mask
-
-    return mantissas_1, mantissas_2
+    """Apply masks to mantissas based on math fidelity phase."""
+    a_mask, b_mask = _FIDELITY_MASK_CONFIGURATION[math_fidelity_phase]
+    return mantissas_1 & a_mask, mantissas_2 & b_mask
 
 
 def check_bfp8_b(operand: list) -> list:
@@ -58,14 +49,14 @@ def check_bfp8_b(operand: list) -> list:
     return operand
 
 
-def calculate_farc_part(mantissa_value):
-    fract_value = 0.0
-    for i in range(len(mantissa_value)):
-        # If the bit is '1', add the corresponding fractional value to fract_value
-        if mantissa_value[i] == "1":
-            fract_value += 1 / (2 ** (i))
-
-    return fract_value
+def calculate_fractional_part(mantissa_value):
+    fraction_value = 0.0
+    divisor = 1.0  # Start with 2^0 = 1
+    for bit in mantissa_value:
+        if bit == "1":
+            fraction_value += 1 / divisor
+        divisor *= 2
+    return fraction_value
 
 
 def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, mant2):
@@ -85,11 +76,11 @@ def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, 
     mantissa1 = []
     mantissa2 = []
 
-    # Convert mantissa tensor values to binary strings before passing to calculate_farc_part
+    # Convert mantissa tensor values to binary strings before passing to calculate_fractional_part
     for m1 in mant1:
-        mantissa1.append(calculate_farc_part(format(int(m1.item()), "011b")))
+        mantissa1.append(calculate_fractional_part(format(int(m1.item()), "011b")))
     for m2 in mant2:
-        mantissa2.append(calculate_farc_part(format(int(m2.item()), "011b")))
+        mantissa2.append(calculate_fractional_part(format(int(m2.item()), "011b")))
 
     reconstructed1 = ((-1.0) ** sgn1) * (2.0**exponent1) * torch.tensor(mantissa1)
     reconstructed2 = ((-1.0) ** sgn2) * (2.0**exponent2) * torch.tensor(mantissa2)
