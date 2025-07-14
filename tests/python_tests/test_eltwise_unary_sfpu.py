@@ -109,6 +109,9 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
         ):
             pytest.skip(reason="This combination is not supported on BH architecture")
 
+    if formats.input_format == DataFormat.Int32:
+        pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
+
     input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
