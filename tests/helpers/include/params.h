@@ -50,6 +50,3 @@ constexpr auto& formats = formats_array[0];
 constexpr bool is_fp32_dest_acc_en = dest_acc_en_input; // dest_acc doesn't require adjustment; configuration is hard-coded
 constexpr FormatConfig formats     = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH, PACK_IN, PACK_OUT);
 #endif
-#ifdef SFPU_OP_FILL
-constexpr auto SFPU_OPERATION = SfpuType::fill;
-#endif
