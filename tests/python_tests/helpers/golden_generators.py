@@ -472,51 +472,17 @@ class EltwiseBinaryGolden(FidelityMasking):
 
         # If multiply is chosen apply fidelity
         if op == MathOperation.Elwmul:
+            res = None
+            for phase in range(num_fidelity_phases + 1):
+                t1, t2 = self._apply_fidelity_masking(t1, t2, phase, data_format)
+                phase_result = self.ops[op](t1, t2)
 
-            if num_fidelity_phases == 0:
+                if phase == 0:
+                    res = phase_result
+                else:
+                    res += phase_result
 
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-                res = self.ops[op](t1, t2)
-
-                return res
-
-            elif num_fidelity_phases == 1:
-
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-                res = self.ops[op](t1, t2)
-
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
-
-                res += self.ops[op](t1, t2)
-
-                return res
-
-            elif num_fidelity_phases == 2:
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-                res = self.ops[op](t1, t2)
-
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
-                res += self.ops[op](t1, t2)
-
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 2, data_format)
-                res += self.ops[op](t1, t2)
-
-                return res
-            elif num_fidelity_phases == 3:
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-                res = self.ops[op](t1, t2)
-
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
-                res += self.ops[op](t1, t2)
-
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 2, data_format)
-                res += self.ops[op](t1, t2)
-
-                t1, t2 = self._apply_fidelity_masking(t1, t2, 3, data_format)
-                res += self.ops[op](t1, t2)
-
-                return res
-
+            return res
         else:
             return self.ops[op](t1, t2)
 
