@@ -229,14 +229,7 @@ class MatmulGolden(FidelityMasking):
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
 
-        _fildelity_dict = {
-            MathFidelity.LoFi: 0,
-            MathFidelity.HiFi2: 1,
-            MathFidelity.HiFi3: 2,
-            MathFidelity.HiFi4: 3,
-        }
-
-        num_fidelity_phases = _fildelity_dict.get(math_fidelity, 0)
+        num_fidelity_phases = math_fidelity.value
 
         res = 0
 
