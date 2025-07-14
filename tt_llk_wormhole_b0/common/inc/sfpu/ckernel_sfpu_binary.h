@@ -109,35 +109,13 @@ inline sfpi::vInt _float_to_int32_fast_(sfpi::vFloat in)
 
 sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_alt0_(sfpi::vFloat base, sfpi::vFloat pow) {
 
+
+
+
     // Normalize base to calculation range
-    sfpi::vFloat x = sfpi::setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
+    sfpi::vFloat x = setsgn(base, 0); // set base as positive
+    x = sfpi::setexp(x, 127); // set exp to exp bias (put base in range of 1-2)
 
-
-    // Check valid base range
-    sfpi::vInt pow_int       = sfpi::float_to_int16(pow, 0); // int16 should be plenty, since large powers will approach 0/Inf
-    sfpi::vFloat pow_rounded = sfpi::int32_to_float(pow_int, 0);
-
-    sfpi::vFloat sign = sfpi::vConst1;
-    v_if (base < 0.0f)
-    { // negative base
-        // Check for integer power
-        v_if (pow_rounded == pow)
-        {
-            // if pow is odd integer, set result to negative
-            v_if (pow_int & 0x1)
-            {
-                sign = sfpi::vConstNeg1;
-            }
-            v_endif;
-        }
-        v_else
-        {
-            sign = std::numeric_limits<float>::quiet_NaN();
-        }
-        v_endif;
-    }
-    v_endif;
-    x *= sign;
 
     // 3rd order polynomial approx - determined using rminimax over [1,2]
     sfpi::vFloat series_result = x * (x * (x * 0x2.44734p-4f - 0xd.e712ap-4f) + 0x2.4f5388p+0f) - 0x1.952992p+0f;
@@ -183,19 +161,51 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_21f_alt0_(sfpi::vFloat bas
     d2 = d1 * d2;
     zif = _float_to_int32_fast_(d2 * d3);
     
-
-
-
-
     // zii |= zif; // restore exponent
     zii = sfpi::reinterpret<sfpi::vInt>(sfpi::setexp(sfpi::reinterpret<sfpi::vFloat>(zif), 127U + zii));
 
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(zii);
     
+    // Check valid base range
+    sfpi::vInt pow_int       = sfpi::float_to_int16(pow, 0); // int16 should be plenty, since large powers will approach 0/Inf
+    sfpi::vFloat pow_rounded = sfpi::int32_to_float(pow_int, 0);
 
-    y *= sign;
+    v_if (base == 0.f) {
+        v_if (pow < 0.f) {
+            y = std::numeric_limits<float>::quiet_NaN();
+        }
+        v_endif
+    }
+    v_endif
+
+    v_if (base < 0.0f)
+    { // negative base
+        // Check for integer power
+        
+        v_if (pow_rounded == pow)
+        {
+            // if pow is odd integer, set result to negative
+            v_if (pow_int & 0x1)
+            {
+                // if negative base and negative pow then x**y = -(abs(x))**(abs(y))
+                // `sign` will be used at the end
+                y = setsgn(y, 1);
+            }
+            v_endif;
+        }
+        v_else
+        {
+            // multiplication by NaN gives NaN. 
+            // Since we are going to multiply the result by `sign` to handle negative bases, we also use
+            // `sign` to handle NaN results
+            y = std::numeric_limits<float>::quiet_NaN();
+        }
+        v_endif;
+    }
+    v_endif;
 
 
+    // For 
     // y = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(y, 0));
 
     return y;
@@ -333,10 +343,10 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
         }
         else if constexpr (BINOP == BinaryOp::POW)
         {
-            // for (uint32_t i = 0; i < 100'000; i++) {
+            for (uint32_t i = 0; i < 100'000; i++) {
                 result = _calculate_sfpu_binary_power_21f_alt0_(in0, in1);
                 // result = _calculate_sfpu_binary_power_(in0, in1);
-            // }
+            }
         }
         else if constexpr (BINOP == BinaryOp::XLOGY)
         {
