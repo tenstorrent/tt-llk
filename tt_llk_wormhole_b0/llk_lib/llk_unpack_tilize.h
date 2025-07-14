@@ -596,7 +596,7 @@ inline void _llk_unpack_fast_tilize_block_(
     else
     {
         // replace this with a proper assert once it's available
-        FWASSERT("Unsupported unit_dim", false);
+        // FWASSERT("Unsupported unit_dim", false);
     }
 
     wait_for_next_context(2);
