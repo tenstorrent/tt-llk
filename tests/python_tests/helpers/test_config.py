@@ -94,7 +94,7 @@ def generate_build_header(
         "",
         "",
         "// Basic configuration",
-        "#define TILE_SIZE_CNT 0x1000",
+        "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
     ]
 
     # Profiler configuration
@@ -103,14 +103,11 @@ def generate_build_header(
 
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
-    dest_acc_enabled = dest_acc == DestAccumulation.Yes
-    header_content.append(
-        f"constexpr bool dest_acc_en_input = {str(dest_acc_enabled).lower()};"
-    )
+    header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")
 
     # Unpack to dest
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
-    header_content.append(f"#define UNPACKING_TO_DEST {unpack_to_dest}")
+    header_content.append(f"constexpr bool UNPACKING_TO_DEST = {unpack_to_dest};")
 
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
@@ -118,14 +115,16 @@ def generate_build_header(
     # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
     # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration
     fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
-    header_content.append(f"#define L1_to_L1_ITERATIONS {str(fused_L1_to_L1)}")
+    header_content.append(
+        f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
+    )
 
     # Math fidelity & Approximation mode
     header_content.append(
-        f"#define MATH_FIDELITY {test_config.get('math_fidelity', MathFidelity.LoFi).value}"
+        f"constexpr std::uint32_t MATH_FIDELITY = {test_config.get('math_fidelity', MathFidelity.LoFi).value};"
     )
     header_content.append(
-        f"#define APPROX_MODE {test_config.get('approx_mode', ApproximationMode.No).value}"
+        f"constexpr bool APPROX_MODE ={test_config.get('approx_mode', ApproximationMode.No).value};"
     )
 
     # Data format configuration
@@ -176,7 +175,7 @@ def generate_build_header(
     header_content.append("")
     # Multi-tile test configuration
     header_content.append("// Multi-tile test configuration")
-    header_content.append(f"#define TILE_CNT {tile_cnt}")
+    header_content.append(f"constexpr int TILE_CNT = {tile_cnt};")
 
     # Unpack an result buffer addresses arrrays generations
     buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
@@ -223,11 +222,11 @@ def generate_build_header(
     block_ct_dim = input_dimensions[1] // 32
     block_rt_dim = input_dimensions[0] // 32
 
-    header_content.append(
-        "#if defined(TEST_KERNEL)\n"
-        f"constexpr uint32_t BLOCK_CT_DIM = {block_ct_dim}; \n"
-        f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim}; \n"
-        "#endif\n"
+    header_content.extend(
+        [
+            f"constexpr uint32_t BLOCK_CT_DIM = {block_ct_dim};",
+            f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim};",
+        ]
     )
 
     if perf_run_type := test_config.get("perf_run_type"):
