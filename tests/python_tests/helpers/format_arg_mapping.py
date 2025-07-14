@@ -59,6 +59,7 @@ class MathOperation(Enum):
     Abs = OpSpec("abs", MathOpType.SFPU_UNARY)
     Celu = OpSpec("celu", MathOpType.SFPU_UNARY)
     Cos = OpSpec("cosine", MathOpType.SFPU_UNARY)
+    Fill = OpSpec("fill", MathOpType.SFPU_UNARY)
     Gelu = OpSpec("gelu", MathOpType.SFPU_UNARY)
     Log = OpSpec("log", MathOpType.SFPU_UNARY)
     Neg = OpSpec("neg", MathOpType.SFPU_UNARY)
@@ -67,7 +68,6 @@ class MathOperation(Enum):
     Silu = OpSpec("silu", MathOpType.SFPU_UNARY)
     Sqrt = OpSpec("sqrt", MathOpType.SFPU_UNARY)
     Square = OpSpec("square", MathOpType.SFPU_UNARY)
-    Fill = OpSpec("fill", MathOpType.SFPU_UNARY)
 
     # =============================================================================
     # SFPU BINARY OPERATIONS
