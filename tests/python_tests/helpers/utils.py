@@ -163,8 +163,8 @@ def passed_test(
     golden_tensor,
     res_tensor,
     output_data_format: DataFormat = DataFormat.Float16_b,
-    test_logger: Logger = None,
     L1_to_L1_iterations: int = 1,
+    test_logger: Logger = None,
 ):
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
 
