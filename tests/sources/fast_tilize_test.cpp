@@ -66,8 +66,8 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_fast_tilize_hw_configure_<is_fp32_dest_acc_en>(UNPACK_A_IN, UNPACK_A_OUT);
-        _llk_unpack_fast_tilize_init_(UNPACK_A_OUT, BLOCK_CT_DIM);
+        _llk_unpack_fast_tilize_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_fast_tilize_init_(formats.unpack_dst, BLOCK_CT_DIM);
         PROFILER_SYNC();
     }
     {
@@ -89,7 +89,7 @@ void run_kernel()
                     uint32_t tile_index = read_offset + packed_tiles;
                     if (remaining_tiles > 2 * dest_size)
                     {
-                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, UNPACK_A_IN, unit_dim, num_units, BLOCK_CT_DIM);
+                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
                         packed_tiles += dest_size;
                         remaining_tiles -= dest_size;
                     }
@@ -97,7 +97,7 @@ void run_kernel()
                     {
                         uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
                         num_units               = even_remainder / unit_dim;
-                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, UNPACK_A_IN, unit_dim, num_units, BLOCK_CT_DIM);
+                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
                         packed_tiles += even_remainder;
                         remaining_tiles -= even_remainder;
                     }
@@ -106,17 +106,17 @@ void run_kernel()
                         if (remaining_tiles % 2 == 0 || unit_dim == 1)
                         {
                             num_units = remaining_tiles / unit_dim;
-                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, UNPACK_A_IN, unit_dim, num_units, BLOCK_CT_DIM);
+                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
                         }
                         else if (remaining_tiles == 3)
                         {
-                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, UNPACK_A_IN, 3, 1, BLOCK_CT_DIM);
+                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, 3, 1, BLOCK_CT_DIM);
                         }
                         else
                         {
                             num_units = (remaining_tiles - 3) / unit_dim;
-                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, UNPACK_A_IN, unit_dim, num_units, BLOCK_CT_DIM);
-                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index + remaining_tiles - 3, UNPACK_A_IN, 3, 1, BLOCK_CT_DIM);
+                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
+                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index + remaining_tiles - 3, formats.unpack_src, 3, 1, BLOCK_CT_DIM);
                         }
                         packed_tiles += remaining_tiles;
                         remaining_tiles = 0;
@@ -142,8 +142,8 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_(MATH_FORMAT, MATH_FORMAT);
-        _llk_math_fast_tilize_init_(MATH_FORMAT, BLOCK_CT_DIM == 1 ? 1 : 2);
+        _llk_math_hw_configure_(formats.math, formats.math);
+        _llk_math_fast_tilize_init_(formats.math, BLOCK_CT_DIM == 1 ? 1 : 2);
         PROFILER_SYNC();
     }
     {
@@ -164,7 +164,7 @@ void run_kernel()
 
                     if (remaining_tiles > 2 * dest_size)
                     {
-                        _llk_math_fast_tilize_block_(0, MATH_FORMAT, unit_dim, num_units);
+                        _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
                         packed_tiles += dest_size;
                         remaining_tiles -= dest_size;
                     }
@@ -172,7 +172,7 @@ void run_kernel()
                     {
                         uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
                         num_units               = even_remainder / unit_dim;
-                        _llk_math_fast_tilize_block_(0, MATH_FORMAT, unit_dim, num_units);
+                        _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
                         packed_tiles += even_remainder;
                         remaining_tiles -= even_remainder;
                     }
@@ -181,17 +181,17 @@ void run_kernel()
                         if (remaining_tiles % 2 == 0 || unit_dim == 1)
                         {
                             num_units = remaining_tiles / unit_dim;
-                            _llk_math_fast_tilize_block_(0, MATH_FORMAT, unit_dim, num_units);
+                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
                         }
                         else if (remaining_tiles == 3)
                         {
-                            _llk_math_fast_tilize_block_(0, MATH_FORMAT, 3, 1);
+                            _llk_math_fast_tilize_block_(0, formats.math, 3, 1);
                         }
                         else
                         {
                             num_units = (remaining_tiles - 3) / unit_dim;
-                            _llk_math_fast_tilize_block_(0, MATH_FORMAT, unit_dim, num_units);
-                            _llk_math_fast_tilize_block_(remaining_tiles - 3, MATH_FORMAT, 3, 1);
+                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
+                            _llk_math_fast_tilize_block_(remaining_tiles - 3, formats.math, 3, 1);
                         }
                         packed_tiles += remaining_tiles;
                         remaining_tiles = 0;
@@ -204,7 +204,7 @@ void run_kernel()
         PROFILER_SYNC();
     }
 
-    _llk_math_fast_tilize_uninit_<is_fp32_dest_acc_en>(MATH_FORMAT);
+    _llk_math_fast_tilize_uninit_<is_fp32_dest_acc_en>(formats.math);
 }
 
 #endif
@@ -216,12 +216,12 @@ void run_kernel()
 
 void run_kernel()
 {
-    uint32_t use_32bit_dest = UNPACK_A_OUT == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Tf32);
+    uint32_t use_32bit_dest = formats.unpack_dst == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Tf32);
     {
         ZONE_SCOPED("INIT")
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
-        _llk_pack_fast_tilize_hw_configure_<is_fp32_dest_acc_en>(PACK_IN, PACK_OUT);
-        _llk_pack_fast_tilize_init_<DstSync::SyncHalf>(use_32bit_dest, PACK_OUT, BLOCK_CT_DIM == 1 ? 1 : 2);
+        _llk_pack_fast_tilize_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
+        _llk_pack_fast_tilize_init_<DstSync::SyncHalf>(use_32bit_dest, formats.pack_dst, BLOCK_CT_DIM == 1 ? 1 : 2);
         PROFILER_SYNC();
     }
     {
@@ -285,7 +285,7 @@ void run_kernel()
         PROFILER_SYNC();
     }
 
-    _llk_pack_fast_tilize_uninit_<DstSync::SyncHalf, is_fp32_dest_acc_en>(PACK_OUT);
+    _llk_pack_fast_tilize_uninit_<DstSync::SyncHalf, is_fp32_dest_acc_en>(formats.pack_dst);
 }
 
 #endif

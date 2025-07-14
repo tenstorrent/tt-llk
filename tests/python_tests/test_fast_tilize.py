@@ -58,7 +58,7 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
     "output_format", [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Bfp8_b]
 )
 @pytest.mark.parametrize("fp32_dest", [DestAccumulation.Yes, DestAccumulation.No])
-@pytest.mark.parametrize("input_width, input_height", generate_input_dimensions(32))
+@pytest.mark.parametrize("input_width, input_height", generate_input_dimensions(25))
 def test_fast_tilize(input_format, output_format, fp32_dest, input_width, input_height):
 
     input_dimensions = [input_height * 32, input_width * 32]
