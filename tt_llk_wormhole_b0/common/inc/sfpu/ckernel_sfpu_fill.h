@@ -28,18 +28,11 @@ template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_fill_int_(const uint value)
 {
     // SFPU microcode
-    int scalar = value;
-    if (scalar < 0)
-    { // To convert from 2's complement to sign+magnitude
-        scalar  = -scalar;
-        int res = 0x80000000 | (scalar & 0x7FFFFFFF);
-        scalar  = res;
-    }
-    _sfpu_load_imm32_(p_sfpu::LREG1, scalar);
+    _sfpu_load_imm32_(p_sfpu::LREG1, value);
 
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::INT32_2S_COMP, ADDR_MOD_3, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
         sfpi::dst_reg++;
     }
 }
