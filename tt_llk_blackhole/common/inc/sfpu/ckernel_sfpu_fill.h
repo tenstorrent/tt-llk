@@ -25,15 +25,14 @@ inline void _calculate_fill_(const float value)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_fill_int_(const uint value)
+inline void _calculate_fill_int_(const int value)
 {
     // SFPU microcode
-    // Load value param to lreg1 and cast 2's complement to sign + magnitude format
-    _sfpu_load_imm32_(p_sfpu::LREG1, value);
+    sfpi::vInt fill_val = value;
 
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::INT32_2S_COMP, ADDR_MOD_7, 0);
+        sfpi::dst_reg[0] = fill_val;
         sfpi::dst_reg++;
     }
 }
