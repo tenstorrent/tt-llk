@@ -100,7 +100,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             }
             break;
         case SfpuType::fill:
-            if (MATH_FORMAT == DataFormat::Int32)
+            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
             {
                 ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, iterations>(5);
             }
