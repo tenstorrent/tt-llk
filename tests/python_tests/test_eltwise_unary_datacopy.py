@@ -91,4 +91,6 @@ def test_unary_datacopy(testname, formats, dest_acc, test_logger):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format, test_logger)
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format, test_logger=test_logger
+    )
