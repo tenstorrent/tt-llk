@@ -69,7 +69,7 @@ jobs:
       # Step 4: Collect and compress test logs (only on test failure)
       - name: Collect test logs
         shell: bash
-        if: failure() && steps.run_tests.outcome == 'failure'  # Only if tests failed
+        if: always()
         run: |
           cd tests/python_tests/
 
@@ -100,7 +100,7 @@ jobs:
       # Step 5: Upload test logs as artifact (only on test failure)
       - name: Upload test logs
         uses: actions/upload-artifact@v4
-        if: failure() && steps.run_tests.outcome == 'failure' && env.LOG_ARCHIVE_NAME != ''
+        if: always() && env.LOG_ARCHIVE_NAME != ''
         with:
           name: test-logs-${{ env.CHIP_ARCH }}-group${{ matrix.test_group }}-FAILED
           path: tests/python_tests/${{ env.LOG_ARCHIVE_NAME }}
