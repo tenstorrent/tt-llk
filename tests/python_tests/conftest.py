@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import logging
 import os
 import subprocess
 import sys
@@ -178,26 +177,49 @@ def test_logger(request):
     test_name = request.node.name
 
     # Create a test-specific logger context
-    with TestLogContext(test_name, log_level="DEBUG") as test_logger:
+    with TestLogContext(test_name, log_level="INFO") as test_logger:
         yield test_logger
-
-
-def pytest_configure(config):
-    log_file = "pytest_errors.log"
-    # Clear the log file if it exists
-    if os.path.exists(log_file):
-        os.remove(log_file)
-    logging.basicConfig(
-        filename=log_file,
-        level=logging.ERROR,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-    )
 
 
 def pytest_runtest_logreport(report):
     # Capture errors when tests fail
+    test_logger = get_test_logger("test_session")
     if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+        error_msg = f"Test {report.nodeid} failed"
+
+        # Add more details about the failure
+        if hasattr(report, "longrepr") and report.longrepr:
+            # Extract assertion details
+            longrepr_str = str(report.longrepr)
+            lines = longrepr_str.split("\n")
+
+            # Find the assertion line
+            assertion_line = None
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith("assert ") or "AssertionError" in stripped:
+                    assertion_line = stripped
+                    break
+
+            if assertion_line:
+                error_msg += f" - {assertion_line}"
+            else:
+                # Fallback to the first line of the error
+                error_lines = [
+                    line.strip()
+                    for line in lines
+                    if line.strip() and not line.startswith("_")
+                ]
+                if error_lines:
+                    error_msg += f" - {error_lines[0]}"
+
+        test_logger.error(f"{error_msg}\n")
+
+        # Also log detailed failure info if available
+        if hasattr(report, "longrepr") and report.longrepr:
+            test_logger.error(f"Detailed failure information for {report.nodeid}:")
+            test_logger.error(f"{report.longrepr}")
+            test_logger.error("=" * 80)  # Separator between test failures
 
 
 # Modify how the nodeid is generated

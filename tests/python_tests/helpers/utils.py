@@ -218,5 +218,5 @@ def passed_test(
     if output_data_format == DataFormat.Bfp8_b:
         target_pcc = pow(0.99, L1_to_L1_iterations)
     if test_logger:
-        test_logger.debug("PCC:", pcc)
+        test_logger.debug(f"PCC: {pcc}")
     return is_within_tolerance and (pcc > target_pcc)
