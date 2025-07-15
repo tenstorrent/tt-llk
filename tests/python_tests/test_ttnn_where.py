@@ -52,8 +52,8 @@ def torch_equal_nan(a, b):
 
 
 # Provided test cases
-supported_formats = [DataFormat.Float32]
-dtype = torch.float32
+supported_formats = [DataFormat.Float16_b]
+dtype = torch.float32 if supported_formats[0] == DataFormat.Float32 else torch.bfloat16
 
 condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
 condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
@@ -225,13 +225,15 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
 
 
 supported_formats = [DataFormat.Float32]  # , DataFormat.Float16_b]
-dtype = torch.float32
+dtype = torch.float32 if supported_formats[0] == DataFormat.Float32 else torch.bfloat16
 
 test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes],  # DestAccumulation.No],
+    dest_acc=(
+        [DestAccumulation.No] if dtype == torch.bfloat16 else [DestAccumulation.Yes]
+    ),
     mathop=[
         MathOperation.TTNNWhere,
     ],
