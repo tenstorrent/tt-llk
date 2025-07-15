@@ -30,6 +30,8 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
 
 constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 
+constexpr ckernel::DstSync dest_sync = DST_SYNC;
+
 /*DATA FORMAT CONFIGURATION*/
 
 // Given input and output formats, infer the rest of the format configuration

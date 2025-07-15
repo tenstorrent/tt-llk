@@ -17,6 +17,7 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
+    DstSync,
     L1BufferLocations,
     MathFidelity,
     MathOperation,
@@ -108,6 +109,14 @@ def generate_build_header(
     # Unpack to dest
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
     header_content.append(f"constexpr bool UNPACKING_TO_DEST = {unpack_to_dest};")
+
+    # Dest synchronisation mode
+    dest_sync = test_config.get("dest_sync", DstSync.SyncHalf)
+    #header_content.append(f"constexpr int DST_SYNC = {dest_sync.value};")
+    if dest_sync is not None:
+        header_content.append(
+            f"constexpr auto DST_SYNC = ckernel::DstSync::{dest_sync.name};"
+        )
 
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration

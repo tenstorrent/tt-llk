@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 
 from helpers.log_utils import add_to_format_log
 
-from .format_arg_mapping import DestAccumulation
+from .format_arg_mapping import DestAccumulation, DstSync
 from .format_config import (
     DataFormat,
     FormatConfig,
@@ -100,6 +100,7 @@ def generate_params(
     tile_cnt: Optional[int] = None,
     reduce_dim: Optional[List[str]] = None,
     pool_type: Optional[List[str]] = None,
+    dest_sync: Optional[DstSync] = None,
 ) -> List[tuple]:
     """
     Generates a list of parameter combinations for test configurations.
@@ -148,6 +149,7 @@ def generate_params(
                 ("tile_cnt", tile_cnt),
                 ("reduce_dim", reduce_dim),
                 ("pool_type", pool_type),
+                ("dest_sync", dest_sync),
             ]
             if value is not None
         ]
@@ -164,6 +166,7 @@ def generate_params(
             num_tiles,
             dim,
             pool,
+            dest_sync_mode,
         )
         for testname in testnames
         for format_config in format_combos
@@ -174,6 +177,7 @@ def generate_params(
         for num_tiles in [tile_cnt]
         for dim in (reduce_dim if reduce_dim is not None else [None])
         for pool in (pool_type if pool_type is not None else [None])
+        for dest_sync_mode in (dest_sync if dest_sync is not None else [None])
     ]
 
 
@@ -280,6 +284,8 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
             result.append(f"reduce_dim={params[5].name}")
         if params[6]:
             result.append(f"pool_type={params[6].name}")
+        if params[7]:
+            result.append(f"dest_sync={params[7].name}")    
 
         # Join the result list into a single string with appropriate spacing
         return " | ".join(result)
