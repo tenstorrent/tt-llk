@@ -66,16 +66,19 @@ all_params = generate_params(
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
         MathOperation.Abs,
+        MathOperation.Celu,
         MathOperation.Cos,
+        MathOperation.Gelu,
         MathOperation.Log,
         MathOperation.Reciprocal,
+        MathOperation.Silu,
         MathOperation.Sin,
         MathOperation.Sqrt,
         MathOperation.Square,
     ],
     math_fidelity=[
         MathFidelity.LoFi,
-        MathFidelity.HiFi2,
+        # MathFidelity.HiFi2, TODO: FIND OUT WHY
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],

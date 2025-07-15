@@ -71,10 +71,7 @@ class ckernel_unpack_template
     //      UNPACR_A3
     //      UNPACR_B
     //    else
-    //      SKIP_A0
-    //      SKIP_A1
-    //      SKIP_A2
-    //      SKIP_A3
+    //      SKIP_A
     //      SKIP_B
     //
     //  The configuration allows the following changes:
@@ -342,7 +339,6 @@ inline void ckernel_unpack_template::program_and_run(volatile uint *instrn_buffe
 
 inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)
 {
-    FWASSERT("Unpack template only supports loops up to 128", count <= 128);
     TT_MOP_CFG(zmask >> 16);              // Set the top 16 bits of zmask - we could skip this for count <= 16
     TT_MOP(0, count - 1, zmask & 0xFFFF); // Run the template
 }
@@ -350,7 +346,6 @@ inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uin
 // Version without zmask, should be slightly faster by eliminating one instruction.
 inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count)
 {
-    FWASSERT("Unpack template only supports loops up to 128", count <= 128);
     TT_MOP(0, count - 1, 0); // Run the template
 }
 

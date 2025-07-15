@@ -59,6 +59,10 @@ class MathOperation(Enum):
     Abs = OpSpec("abs", MathOpType.SFPU_UNARY)
     Celu = OpSpec("celu", MathOpType.SFPU_UNARY)
     Cos = OpSpec("cosine", MathOpType.SFPU_UNARY)
+    Elu = OpSpec("elu", MathOpType.SFPU_UNARY)
+    Exp = OpSpec("exponential", MathOpType.SFPU_UNARY)
+    Exp2 = OpSpec("exp2", MathOpType.SFPU_UNARY)
+    Fill = OpSpec("fill", MathOpType.SFPU_UNARY)
     Gelu = OpSpec("gelu", MathOpType.SFPU_UNARY)
     Log = OpSpec("log", MathOpType.SFPU_UNARY)
     Neg = OpSpec("neg", MathOpType.SFPU_UNARY)
@@ -156,9 +160,9 @@ class ApproximationMode(Enum):
 
 class MathFidelity(Enum):
     LoFi = 0
-    HiFi2 = 2
-    HiFi3 = 3
-    HiFi4 = 4
+    HiFi2 = 1
+    HiFi3 = 2
+    HiFi4 = 3
 
 
 class Mailbox(Enum):
