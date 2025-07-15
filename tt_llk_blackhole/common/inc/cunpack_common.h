@@ -252,7 +252,6 @@ inline void configure_unpack_AB(
         (unpB_ch1_z_stride << UNP1_ADDR_CTRL_ZW_REG_1_Zstride_SHAMT); // Z and W(not used) stride for dest address (ch1)
 
     // Math ALU_FORMAT_REG
-    t6_mutex_acquire(mutex::REG_RMW);
     uint alu_src_format = (0x0 << ALU_FORMAT_SPEC_REG_SrcA_val_SHAMT);
 
     constexpr uint mask0 = (1 << (ALU_FORMAT_SPEC_REG_Dstacc_override_SHAMT + 1)) - 1;
@@ -308,8 +307,6 @@ inline void configure_unpack_AB(
     {
         cfg_reg_rmw_tensix<THCON_SEC1_REG1_Unp_LF8_4b_exp_RMW>(1);
     }
-
-    t6_mutex_release(mutex::REG_RMW);
 
     // Set tile descriptor
     unpack_tile_descriptor_u tile_descriptor;

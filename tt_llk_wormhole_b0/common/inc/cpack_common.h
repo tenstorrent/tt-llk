@@ -495,8 +495,6 @@ inline void configure_pack(
 
     set_packer_strides(pack_src_format, pack_dst_format);
 
-    t6_mutex_acquire(mutex::REG_RMW);
-
     const uint alu_dst_format = pack_src_format;
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(alu_dst_format);
@@ -508,8 +506,6 @@ inline void configure_pack(
 
     constexpr uint hw_relu_mask = STACC_RELU_ApplyRelu_MASK | STACC_RELU_ReluThreshold_MASK;
     cfg_reg_rmw_tensix<STACC_RELU_ApplyRelu_ADDR32, 0, hw_relu_mask>(hw_relu_config.val[0]);
-
-    t6_mutex_release(mutex::REG_RMW);
 
     set_packer_config<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, num_faces, partial_face);
 

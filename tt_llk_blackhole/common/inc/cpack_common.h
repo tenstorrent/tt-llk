@@ -395,8 +395,6 @@ inline void configure_pack(
 
     set_packer_strides<untilize, tilize>(pack_src_format, pack_dst_format, tile_c_dim);
 
-    t6_mutex_acquire(mutex::REG_RMW);
-
     // Set Fp8 E4M3 mode for packer
     if ((pack_dst_format & 0x1F) == static_cast<DataFormatType>(DataFormat::Fp8_e4m3))
     {
@@ -412,8 +410,6 @@ inline void configure_pack(
 
     constexpr uint hw_relu_mask = STACC_RELU_ApplyRelu_MASK | STACC_RELU_ReluThreshold_MASK;
     cfg_reg_rmw_tensix<STACC_RELU_ApplyRelu_ADDR32, 0, hw_relu_mask>(hw_relu_config.val[0]);
-
-    t6_mutex_release(mutex::REG_RMW);
 
     set_packer_config<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, num_faces, partial_face);
 
