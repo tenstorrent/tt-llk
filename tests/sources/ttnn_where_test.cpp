@@ -25,7 +25,7 @@ constexpr bool disable_src_zero_flag = true;
 
 void run_kernel()
 {
-    std::uint8_t PACK_FMT;
+    uint8_t PACK_FMT;
     if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
     {
         PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32);
@@ -59,11 +59,12 @@ void run_kernel()
 #include "params.h"
 
 using namespace ckernel;
-using namespace ckernel::sfpu;
+
+// using namespace sfpu;
 
 void run_kernel()
 {
-    std::uint8_t PACK_FMT;
+    uint8_t PACK_FMT;
     if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
     {
         PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32);
@@ -73,7 +74,7 @@ void run_kernel()
         PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
     }
 
-// copy srca to dest
+    // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, PACK_FMT);
 #else
@@ -93,14 +94,8 @@ void run_kernel()
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
-    {
-        _calculate_where_fp32<false, 32>();
-    }
-    else
-    {
-        _calculate_where_fp16_b<false, 32>();
-    }
+    // Use the generic _calculate_where_ function
+    ckernel::sfpu::_calculate_where_<false, static_cast<uint8_t>(UNPACK_A_IN)>();
 
     _llk_math_eltwise_ternary_sfpu_done_();
 
