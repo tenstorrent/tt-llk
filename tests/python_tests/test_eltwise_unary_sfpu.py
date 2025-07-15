@@ -67,6 +67,9 @@ float_ops = [
     MathOperation.Gelu,
     MathOperation.Neg,
     MathOperation.Fill,
+    MathOperation.Elu,
+    MathOperation.Exp,
+    MathOperation.Exp2,
 ]
 
 int_ops = [
@@ -111,6 +114,18 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
 
     if formats.input_format == DataFormat.Int32:
         pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
+
+    if (
+        approx_mode == ApproximationMode.Yes
+        and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
+        and (
+            formats.input_format == DataFormat.Bfp8_b
+            or formats.output_format == DataFormat.Bfp8_b
+        )
+    ):
+        pytest.skip(
+            reason="Exp-related operations are not supported for bf8_b format in approximation mode."
+        )
 
     input_dimensions = [64, 64]
 
