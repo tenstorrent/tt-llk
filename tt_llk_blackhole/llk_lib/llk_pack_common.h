@@ -67,9 +67,7 @@ inline void _llk_pack_dest_section_done_()
     // Tell math that it can write again
     _llk_packer_set_math_semaphore_<p_stall::NONE>();
 
-    constexpr bool flip_dest = (Dst == DstSync::SyncHalf);
-
-    if constexpr (flip_dest)
+    if constexpr (Dst == DstSync::SyncHalf)
     {
         flip_packer_dest_offset_id();
         select_packer_dest_registers<Dst>();
