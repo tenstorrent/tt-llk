@@ -52,8 +52,8 @@ def torch_equal_nan(a, b):
 
 
 # Provided test cases
-supported_formats = [DataFormat.Float16_b]
-dtype = torch.bfloat16
+supported_formats = [DataFormat.Float32]
+dtype = torch.float32
 
 condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
 condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
@@ -96,7 +96,9 @@ test_formats = input_output_formats(supported_formats, same=True)
 all_params = generate_params(
     ["ttnn_where_test"],
     test_formats,
-    dest_acc=[DestAccumulation.Yes],  # , DestAccumulation.Yes],
+    dest_acc=(
+        [DestAccumulation.No] if dtype == torch.bfloat16 else [DestAccumulation.Yes]
+    ),
     mathop=[
         MathOperation.TTNNWhere,
     ],
@@ -316,14 +318,4 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     )
 
     assert len(res_tensor) == len(golden_tensor)
-
-    print(
-        "RESULT TENSOR (first 10 elements of 1st row):",
-        res_tensor.view(32, 32)[0, :10],
-    )
-    print(
-        "GOLDEN TENSOR (first 10 elements of 1st row):",
-        golden_tensor.view(32, 32)[0, :10],
-    )
-
     assert torch_equal_nan(golden_tensor, res_tensor)
