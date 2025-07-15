@@ -66,11 +66,8 @@ inline void _llk_pack_dest_section_done_()
         TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, (dest_offset_id) % 2);
     }
 
-    // Note: we should have already stalled math in non-tile dest modes due to clearing
-    constexpr uint32_t WaitRes = p_stall::NONE;
-
     // Tell math that it can write again
-    _llk_packer_set_math_semaphore_<WaitRes>();
+    _llk_packer_set_math_semaphore_<p_stall::NONE>();
 
     constexpr bool flip_dest = (Dst == DstSync::SyncHalf);
 
