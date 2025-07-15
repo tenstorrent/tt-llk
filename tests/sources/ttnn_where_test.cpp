@@ -15,7 +15,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 constexpr bool disable_src_zero_flag = true;
 
-constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32);
+// constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32);
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -25,6 +25,16 @@ constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>
 
 void run_kernel()
 {
+    std::uint8_t PACK_FMT;
+    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    {
+        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32);
+    }
+    else
+    {
+        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
+    }
+
     volatile uint32_t* const buffer_condition = reinterpret_cast<volatile uint32_t*>(0x1a000);
     volatile uint32_t* const buffer_true      = reinterpret_cast<volatile uint32_t*>(0x1b000);
     volatile uint32_t* const buffer_false     = reinterpret_cast<volatile uint32_t*>(0x1c000);
@@ -53,6 +63,16 @@ using namespace ckernel::sfpu;
 
 void run_kernel()
 {
+    std::uint8_t PACK_FMT;
+    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    {
+        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32);
+    }
+    else
+    {
+        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
+    }
+
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, PACK_FMT);
@@ -73,7 +93,7 @@ void run_kernel()
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    if (PACK_FMT == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32))
+    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
     {
         _calculate_where_fp32<false, 32>();
     }
@@ -97,6 +117,16 @@ void run_kernel()
 
 void run_kernel()
 {
+    std::uint8_t PACK_FMT;
+    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    {
+        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32);
+    }
+    else
+    {
+        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
+    }
+
     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1d000);
 
 #ifdef ARCH_BLACKHOLE

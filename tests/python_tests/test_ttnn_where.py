@@ -52,8 +52,8 @@ def torch_equal_nan(a, b):
 
 
 # Provided test cases
-supported_formats = [DataFormat.Float32]
-dtype = torch.float32
+supported_formats = [DataFormat.Float16_b]
+dtype = torch.bfloat16
 
 condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
 condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
