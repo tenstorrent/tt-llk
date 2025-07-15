@@ -46,6 +46,8 @@ jobs:
 
       # Step 3: Run the tests
       - name: Run tests
+        id: run_tests
+        continue-on-error: true  # Continue workflow even if tests fail
         shell: bash
         env:
           TEST_GROUPS: ${{ inputs.test_group }}
@@ -64,10 +66,10 @@ jobs:
                 --override-ini="addopts=-v" --timeout=60 \
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
 
-      # Step 4: Collect and zip test logs
+      # Step 4: Collect and zip test logs (only on test failure)
       - name: Collect test logs
         shell: bash
-        if: always()  # Run even if tests failed
+        if: failure() && steps.run_tests.outcome == 'failure'  # Only if tests failed
         run: |
           cd tests/python_tests/
 
@@ -77,7 +79,7 @@ jobs:
             TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
             ZIP_NAME="test_logs_${CHIP_ARCH}_group${{ matrix.test_group }}_${TIMESTAMP}.zip"
 
-            echo "Found test logs, creating zip: $ZIP_NAME"
+            echo "Tests failed - collecting test logs, creating zip: $ZIP_NAME"
 
             # Create zip with test logs
             zip -r "$ZIP_NAME" test_logs/ -x "*.tmp" "*.lock"
@@ -95,14 +97,14 @@ jobs:
             echo "LOG_ZIP_NAME=" >> $GITHUB_ENV
           fi
 
-      # Step 5: Upload test logs as artifact
+      # Step 5: Upload test logs as artifact (only on test failure)
       - name: Upload test logs
         uses: actions/upload-artifact@v4
-        if: always() && env.LOG_ZIP_NAME != ''  # Only if zip was created
+        if: failure() && steps.run_tests.outcome == 'failure' && env.LOG_ZIP_NAME != ''
         with:
-          name: test-logs-${{ env.CHIP_ARCH }}-group${{ matrix.test_group }}
+          name: test-logs-${{ env.CHIP_ARCH }}-group${{ matrix.test_group }}-FAILED
           path: tests/python_tests/${{ env.LOG_ZIP_NAME }}
-          retention-days: 7  # Keep logs for 7 days
+          retention-days: 14  # Keep failure logs longer (14 days)
           compression-level: 0  # Already compressed
 
       # Step 6: Upload the JUnit report
@@ -121,3 +123,10 @@ jobs:
           report_paths: tests/python_tests/pytest-report-*-${{ matrix.test_group }}.xml
           include_passed: true
           annotate_only: true
+
+      # Step 8: Fail the job if tests failed (after collecting logs)
+      - name: Fail on test failure
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "Tests failed for group ${{ matrix.test_group }} on ${{ env.CHIP_ARCH }}"
+          exit 1
