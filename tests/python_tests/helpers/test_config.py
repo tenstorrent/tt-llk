@@ -31,11 +31,18 @@ class ProfilerBuild(Enum):
     No = "false"
 
 
-def _generate_operation_constants(mathop: MathOperation) -> list[str]:
+def _generate_operation_constants(
+    mathop: MathOperation, sfpu_unary_op: MathOperation = None
+) -> list[str]:
     """Generate the appropriate operation constants based on the math operation type."""
     constants = []
 
-    if mathop in SFPU_UNARY_OPERATIONS:
+    # Generate constant for the main math operation
+    if mathop in FPU_BINARY_OPERATIONS:
+        constants.append(
+            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.cpp_enum_value};"
+        )
+    elif mathop in SFPU_UNARY_OPERATIONS:
         constants.append(
             f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_enum_value};"
         )
@@ -43,9 +50,11 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
         constants.append(
             f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.cpp_enum_value};"
         )
-    elif mathop in FPU_BINARY_OPERATIONS:
+
+    # Generate constant for fused SFPU unary operation (if provided)
+    if sfpu_unary_op and sfpu_unary_op in SFPU_UNARY_OPERATIONS:
         constants.append(
-            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.cpp_enum_value};"
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{sfpu_unary_op.cpp_enum_value};"
         )
 
     return constants
@@ -157,7 +166,8 @@ def generate_build_header(
     mathop = test_config.get("mathop", "no_mathop")
     if mathop != "no_mathop":
         header_content.extend(["", "// Math operation configuration"])
-        header_content.extend(_generate_operation_constants(mathop))
+        sfpu_unary_op = test_config.get("sfpu_unary_op")
+        header_content.extend(_generate_operation_constants(mathop, sfpu_unary_op))
 
         # Handle reduce operations
         if mathop in REDUCE_OPERATIONS:
