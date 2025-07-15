@@ -78,5 +78,14 @@ inline void _llk_math_eltwise_unary_sfpu_init_()
 {
     sfpu::_init_sfpu_config_reg();
     eltwise_unary_sfpu_configure_addrmod<sfpu_op>();
-    math::reset_counters(p_setrwc::SET_ABD_F);
+    // Don't reset fidelity counter for Square operation since it performs multiplication
+    // and should inherit the fidelity setting from the previous matmul operation
+    if constexpr (sfpu_op == SfpuType::square)
+    {
+        math::reset_counters(p_setrwc::SET_ABD); // Reset A, B, D but preserve F (fidelity)
+    }
+    else
+    {
+        math::reset_counters(p_setrwc::SET_ABD_F); // Reset all including fidelity
+    }
 }

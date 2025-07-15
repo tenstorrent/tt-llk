@@ -78,7 +78,7 @@ all_params = generate_params(
     ],
     math_fidelity=[
         MathFidelity.LoFi,
-        # MathFidelity.HiFi2, TODO: FIND OUT WHY
+        MathFidelity.HiFi2,
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
