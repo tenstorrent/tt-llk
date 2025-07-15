@@ -64,7 +64,48 @@ jobs:
                 --override-ini="addopts=-v" --timeout=60 \
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
 
-      # Step 4: Upload the JUnit report
+      # Step 4: Collect and zip test logs
+      - name: Collect test logs
+        shell: bash
+        if: always()  # Run even if tests failed
+        run: |
+          cd tests/python_tests/
+
+          # Check if test_logs directory exists and has files
+          if [ -d "test_logs" ] && [ "$(ls -A test_logs 2>/dev/null)" ]; then
+            # Create timestamp and unique identifier for the zip file
+            TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+            ZIP_NAME="test_logs_${CHIP_ARCH}_group${{ matrix.test_group }}_${TIMESTAMP}.zip"
+
+            echo "Found test logs, creating zip: $ZIP_NAME"
+
+            # Create zip with test logs
+            zip -r "$ZIP_NAME" test_logs/ -x "*.tmp" "*.lock"
+
+            # Get some stats about the logs
+            LOG_COUNT=$(find test_logs -name "*.log" | wc -l)
+            ZIP_SIZE=$(ls -lh "$ZIP_NAME" | awk '{print $5}')
+
+            echo "Zipped $LOG_COUNT log files into $ZIP_NAME (size: $ZIP_SIZE)"
+            echo "LOG_ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+            echo "LOG_COUNT=$LOG_COUNT" >> $GITHUB_ENV
+            echo "ZIP_SIZE=$ZIP_SIZE" >> $GITHUB_ENV
+          else
+            echo "No test logs found in test_logs directory"
+            echo "LOG_ZIP_NAME=" >> $GITHUB_ENV
+          fi
+
+      # Step 5: Upload test logs as artifact
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        if: always() && env.LOG_ZIP_NAME != ''  # Only if zip was created
+        with:
+          name: test-logs-${{ env.CHIP_ARCH }}-group${{ matrix.test_group }}
+          path: tests/python_tests/${{ env.LOG_ZIP_NAME }}
+          retention-days: 7  # Keep logs for 7 days
+          compression-level: 0  # Already compressed
+
+      # Step 6: Upload the JUnit report
       - name: Upload JUnit report
         uses: actions/upload-artifact@v4
         if: always()
@@ -72,7 +113,7 @@ jobs:
           name: junit-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
           path: tests/python_tests/pytest-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.xml
 
-      # Step 5: Publish the test results
+      # Step 7: Publish the test results
       - name: Publish Test Results
         uses: mikepenz/action-junit-report@v5
         if: always()
