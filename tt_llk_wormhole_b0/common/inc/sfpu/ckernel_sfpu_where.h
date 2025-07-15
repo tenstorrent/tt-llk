@@ -83,5 +83,18 @@ inline void _calculate_where_fp32()
     }
 }
 
+template <bool APPROXIMATION_MODE, uint8_t data_format>
+inline void _calculate_where_()
+{
+    if (data_format == 0)
+    {
+        _calculate_where_fp32<APPROXIMATION_MODE>();
+    }
+    else
+    {
+        _calculate_where_fp16_b<APPROXIMATION_MODE>();
+    }
+}
+
 } // namespace sfpu
 } // namespace ckernel
