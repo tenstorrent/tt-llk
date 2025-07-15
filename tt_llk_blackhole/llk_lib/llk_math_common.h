@@ -68,9 +68,6 @@ inline void _llk_math_dest_section_done_()
     }
 #endif
 
-    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
-    constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
-
     set_math_semaphores();
     if constexpr (Dst == DstSync::SyncHalf)
     {
