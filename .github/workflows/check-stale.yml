@@ -3,16 +3,21 @@ name: Close stale issues and PRs
 on:
   schedule:
     - cron: '0 3 * * *'  # Runs daily at 3:00 UTC
+  workflow_dispatch:
 
 jobs:
   stale:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      actions: write
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/stale@v9
         with:
           # Issue settings
-          days-before-stale: 100
+          days-before-stale: 700
           days-before-close: 10
           stale-issue-message: >
             This issue has been automatically marked as stale due to inactivity for 100 days.
