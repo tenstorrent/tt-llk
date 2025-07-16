@@ -230,7 +230,7 @@ def is_dest_acc_needed(format: InputOutputFormat) -> bool:
     If the input-output combination is an outlier that is not supported when dest accumulation is on
     then the data format inference model will turn dest accumulation off for this combination to work.
 
-    We must notify the user that this has happened and cheange the test output to reflect this.
+    We must notify the user that this has happened and change the test output to reflect this.
     """
     return (
         format.input_format in [DataFormat.Bfp8_b, DataFormat.Float16_b]
