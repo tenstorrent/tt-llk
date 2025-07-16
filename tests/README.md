@@ -50,3 +50,9 @@ Replace <test_file_name> with the specific test script you want to execute, e.g.
 ```bash
 pytest
 ```
+
+---
+
+## Additional Documentation
+
+- **[Logging Guide](LOGURU_README.md)** - Learn how to use the pre-configured test logger and control log verbosity
