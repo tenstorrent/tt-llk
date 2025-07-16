@@ -124,4 +124,6 @@ def test_matmul(testname, formats, dest_acc, math_fidelity, test_logger):
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format, test_logger)
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format, test_logger=test_logger
+    )

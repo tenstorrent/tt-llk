@@ -25,9 +25,9 @@ def print_faces(operand1):
     # Print the first set with proper alignment
     for i in range(16):
         logger.debug(
-            " ".join(f"{x:6.2f}" for x in f0[i].tolist()),
-            " | ",
-            " ".join(f"{x:6.2f}" for x in f1[i].tolist()),
+            " ".join(f"{x:6.2f}" for x in f0[i].tolist())
+            + " | "
+            + " ".join(f"{x:6.2f}" for x in f1[i].tolist())
         )
 
     logger.debug("-" * 250)
@@ -35,9 +35,9 @@ def print_faces(operand1):
     # Print the second set with proper alignment
     for i in range(16):
         logger.debug(
-            " ".join(f"{x:6.2f}" for x in f2[i].tolist()),
-            " | ",
-            " ".join(f"{x:6.2f}" for x in f3[i].tolist()),
+            " ".join(f"{x:6.2f}" for x in f2[i].tolist())
+            + " | "
+            + " ".join(f"{x:6.2f}" for x in f3[i].tolist())
         )
 
     logger.debug("\n" * 3)
