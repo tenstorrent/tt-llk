@@ -154,5 +154,5 @@ def test_matmul_and_unary_sfpu(
         test_config.get(
             "L1_to_L1_iterations"  # Needed to calculate accumulated percision loss for fused tests that copy result tensor as input for next runs
         ),
-        test_logger,
+        test_logger=test_logger,
     )
