@@ -176,6 +176,80 @@ def generate_params(
         for pool in (pool_type if pool_type is not None else [None])
     ]
 
+@manage_included_params
+def generate_unpack_A_params(
+    included_params,
+    broadcast_types: Optional[List] = None,
+    disable_src_zero_flags: Optional[List[bool]] = None,
+    is_fp32_dest_acc_flags: Optional[List[bool]] = None,
+    acc_to_dest_flags: Optional[List[bool]] = None,
+    stoch_rounding_types: Optional[List] = None,
+    reuse_dest_types: Optional[List] = None,
+    unpack_to_dest_flags: Optional[List[bool]] = None,
+    transpose_of_faces_values: Optional[List[int]] = None,
+    within_face_16x16_transpose_values: Optional[List[int]] = None,
+    num_faces_values: Optional[List[int]] = None,
+) -> List[tuple]:
+    """
+    Generates parameter combinations for unpack_A specific parameters only.
+    
+    This function creates all possible combinations of unpack_A template and runtime parameters,
+    excluding testnames and formats which are handled separately.
+    
+    Returns:
+        List[tuple]: A list of tuples containing unpack_A parameter combinations
+    """
+    
+    # Build included_params list for ID generation
+    included_params.extend([
+        param for param, value in [
+            ("broadcast_types", broadcast_types),
+            ("disable_src_zero_flags", disable_src_zero_flags),
+            ("is_fp32_dest_acc_flags", is_fp32_dest_acc_flags),
+            ("acc_to_dest_flags", acc_to_dest_flags),
+            ("stoch_rounding_types", stoch_rounding_types),
+            ("reuse_dest_types", reuse_dest_types),
+            ("unpack_to_dest_flags", unpack_to_dest_flags),
+            ("transpose_of_faces_values", transpose_of_faces_values),
+            ("within_face_16x16_transpose_values", within_face_16x16_transpose_values),
+            ("num_faces_values", num_faces_values),
+        ]
+        if value is not None
+    ])
+
+    # Generate all combinations - NO CONSTRAINT FILTERING HERE
+    # (Constraints will be applied in the test file where the enums are defined)
+    combinations = []
+    
+    for broadcast_type in (broadcast_types if broadcast_types is not None else [None]):
+        for disable_src_zero in (disable_src_zero_flags if disable_src_zero_flags is not None else [None]):
+            for is_fp32_dest_acc in (is_fp32_dest_acc_flags if is_fp32_dest_acc_flags is not None else [None]):
+                for acc_to_dest in (acc_to_dest_flags if acc_to_dest_flags is not None else [None]):
+                    for stoch_rounding in (stoch_rounding_types if stoch_rounding_types is not None else [None]):
+                        for reuse_dest in (reuse_dest_types if reuse_dest_types is not None else [None]):
+                            for unpack_to_dest in (unpack_to_dest_flags if unpack_to_dest_flags is not None else [None]):
+                                for transpose_of_faces in (transpose_of_faces_values if transpose_of_faces_values is not None else [None]):
+                                    for within_face_16x16_transpose in (within_face_16x16_transpose_values if within_face_16x16_transpose_values is not None else [None]):
+                                        for num_faces in (num_faces_values if num_faces_values is not None else [None]):
+                                            
+                                            # Create parameter tuple (unpack_A params only)
+                                            param_tuple = (
+                                                broadcast_type,
+                                                disable_src_zero,
+                                                is_fp32_dest_acc,
+                                                acc_to_dest,
+                                                stoch_rounding,
+                                                reuse_dest,
+                                                unpack_to_dest,
+                                                transpose_of_faces,
+                                                within_face_16x16_transpose,
+                                                num_faces,
+                                            )
+                                            
+                                            combinations.append(param_tuple)
+    
+    return combinations
+
 
 @manage_included_params
 def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
