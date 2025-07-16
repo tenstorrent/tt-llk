@@ -102,6 +102,22 @@ else:
 
 ## Best Practices
 
+### Avoid `print()`
+
+In general, you should use `logger` calls instead of `print()` statements. This allows for configurable log levels, structured logging, and directing output to different places (like files or external services) without changing your application code.
+
+❌ **Don't do this:**
+```python
+print("Something happened")
+print(f"Value is {my_variable}")
+```
+
+✅ **Do this instead:**
+```python
+logger.info("Something happened")
+logger.debug("Value is {value}", value=my_variable)
+```
+
 ### String Formatting
 
 ❌ **Don't do this:**
