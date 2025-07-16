@@ -23,12 +23,12 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(TRANSPOSE_OF_FACES, WITHIN_FACE_16X16_TRANSPOSE, FACE_R_DIM, NUM_FACES, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCH_RND_TYPE, disable_src_zero_flag>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, WITHIN_FACE_16X16_TRANSPOSE, NUM_FACES);
+    _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(TRANSPOSE_OF_FACES, WITHIN_FACE_16X16_TRANSPOSE, FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
+    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCH_RND_TYPE, disable_src_zero_flag>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, WITHIN_FACE_16X16_TRANSPOSE, NUM_FACES);
     
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), TRANSPOSE_OF_FACES, UNPACK_A_IN, UNPACK_A_OUT);
+        _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), TRANSPOSE_OF_FACES, formats.unpack_src, formats.unpack_dst);
     }
 }
 
@@ -52,17 +52,17 @@ void run_kernel()
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BROADCAST_TYPE, false, is_int_fpu_en>(0, 0, NUM_FACES, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BROADCAST_TYPE, false, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(0, 0, NUM_FACES, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(
-            i, UNPACK_A_OUT, UNPACK_A_OUT);
+            i, formats.math, formats.math);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -82,12 +82,12 @@ void run_kernel()
     const uint32_t tile_size = 16 * 16 * NUM_FACES;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, tile_size);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, tile_size);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, tile_size);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, tile_size);
 #endif
-    
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
