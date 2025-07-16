@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import logging
 import os
 import sys
 import time
@@ -18,6 +17,7 @@ from ttexalens.tt_exalens_lib import (
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import reset_mailboxes
 from helpers.log_utils import _format_log
+from helpers.logging_config import TestLogContext, get_test_logger, setup_pytest_logging
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 
 
@@ -34,7 +34,17 @@ def reset_mailboxes_fixture():
 
 
 @pytest.fixture(scope="session", autouse=True)
+def setup_logging():
+    """Setup loguru logging for the entire test session."""
+    setup_pytest_logging()
+    test_logger = get_test_logger("test_session")
+    yield
+    test_logger.info("Test session completed")
+
+
+@pytest.fixture(scope="session", autouse=True)
 def download_headers():
+    test_logger = get_test_logger("test_session")
     CHIP_ARCH = get_chip_architecture()
     if CHIP_ARCH not in [ChipArchitecture.WORMHOLE, ChipArchitecture.BLACKHOLE]:
         sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH.value}")
@@ -43,7 +53,7 @@ def download_headers():
     HEADER_DIR = os.path.join(LLK_HOME, "tests", "hw_specific", CHIP_ARCH.value, "inc")
     STAMP_FILE = os.path.join(HEADER_DIR, ".headers_downloaded")
     if os.path.exists(STAMP_FILE):
-        print("Headers already downloaded. Skipping download.")
+        test_logger.info("Headers already downloaded. Skipping download.")
         return
 
     BASE_URL = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}"
@@ -68,7 +78,9 @@ def download_headers():
         RETRIES, RETRY_DELAY = 3, 2
         for attempt in range(1, RETRIES + 1):
             try:
-                print(f"Attempt {attempt}: Downloading {header} from {url}...")
+                test_logger.info(
+                    f"Attempt {attempt}: Downloading {header} from {url}..."
+                )
                 response = requests.get(url, timeout=10)
                 if response.status_code == 200:
                     with open(os.path.join(HEADER_DIR, header), "wb") as f:
@@ -76,18 +88,18 @@ def download_headers():
                     return True
                 elif response.status_code == 429:  # Rate limited
                     retry_after = int(response.headers.get("Retry-After", RETRY_DELAY))
-                    print(f"Rate limited. Waiting {retry_after} seconds...")
+                    test_logger.info(f"Rate limited. Waiting {retry_after} seconds...")
                     time.sleep(retry_after)
                 else:
-                    print(f"HTTP error {response.status_code} for {url}")
+                    test_logger.error(f"HTTP error {response.status_code} for {url}")
                     return False
             except (ConnectionError, Timeout) as e:
-                print(f"Network issue on attempt {attempt}: {e}")
+                test_logger.error(f"Network issue on attempt {attempt}: {e}")
                 if attempt < RETRIES:
                     time.sleep(RETRY_DELAY)
                     RETRY_DELAY *= 2
             except RequestException as e:
-                print(f"Non-retriable error on attempt {attempt}: {e}")
+                test_logger.error(f"Non-retriable error on attempt {attempt}: {e}")
                 return False
         return False
 
@@ -101,10 +113,12 @@ def download_headers():
             if specific_header_url and not download_with_retries(
                 specific_header_url, header
             ):
-                print(f"Failed to download {header} after trying both URLs")
+                test_logger.error(f"Failed to download {header} after trying both URLs")
                 sys.exit(1)
             elif not specific_header_url:
-                print(f"Failed to download {header} after retries from primary URL")
+                test_logger.error(
+                    f"Failed to download {header} after retries from primary URL"
+                )
                 sys.exit(1)
 
     # Create the stamp file to indicate headers are downloaded
@@ -112,22 +126,56 @@ def download_headers():
         f.write("Headers downloaded.\n")
 
 
-def pytest_configure(config):
-    log_file = "pytest_errors.log"
-    # Clear the log file if it exists
-    if os.path.exists(log_file):
-        os.remove(log_file)
-    logging.basicConfig(
-        filename=log_file,
-        level=logging.ERROR,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-    )
+@pytest.fixture(autouse=True)
+def test_logger(request):
+    """Pytest fixture to automatically create per-test loggers for ALL tests."""
+    # Get the full test name including parameters
+    test_name = request.node.name
+
+    # Create a test-specific logger context
+    with TestLogContext(test_name, log_level="INFO") as test_logger:
+        yield test_logger
 
 
 def pytest_runtest_logreport(report):
     # Capture errors when tests fail
+    test_logger = get_test_logger("test_session")
     if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+        error_msg = f"Test {report.nodeid} failed"
+
+        # Add more details about the failure
+        if hasattr(report, "longrepr") and report.longrepr:
+            # Extract assertion details
+            longrepr_str = str(report.longrepr)
+            lines = longrepr_str.split("\n")
+
+            # Find the assertion line
+            assertion_line = None
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith("assert ") or "AssertionError" in stripped:
+                    assertion_line = stripped
+                    break
+
+            if assertion_line:
+                error_msg += f" - {assertion_line}"
+            else:
+                # Fallback to the first line of the error
+                error_lines = [
+                    line.strip()
+                    for line in lines
+                    if line.strip() and not line.startswith("_")
+                ]
+                if error_lines:
+                    error_msg += f" - {error_lines[0]}"
+
+        test_logger.error(f"{error_msg}\n")
+
+        # Also log detailed failure info if available
+        if hasattr(report, "longrepr") and report.longrepr:
+            test_logger.error(f"Detailed failure information for {report.nodeid}:")
+            test_logger.error(f"{report.longrepr}")
+            test_logger.error("=" * 80)  # Separator between test failures
 
 
 # Modify how the nodeid is generated
@@ -167,13 +215,16 @@ def pytest_sessionstart(session):
 
 
 def pytest_sessionfinish(session, exitstatus):
+    test_logger = get_test_logger("test_session")
     BOLD = "\033[1m"
     YELLOW = "\033[93m"
     RESET = "\033[0m"
     if _format_log:
-        print(f"\n\n{BOLD}{YELLOW} Cases Where Dest Accumulation Turned On:{RESET}")
+        test_logger.info(
+            f"\n\n{BOLD}{YELLOW} Cases Where Dest Accumulation Turned On:{RESET}"
+        )
         for input_fmt, output_fmt in _format_log:
-            print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
+            test_logger.warning(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
     test_target = TestTargetConfig()
     if not test_target.run_simulator:
