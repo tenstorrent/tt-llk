@@ -80,22 +80,22 @@ void run_kernel()
 
 void run_kernel()
 {
-    const bool UNTILIIZE = false;
+    const bool UNTILIZE = false;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIIZE>();
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
 
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIIZE>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
