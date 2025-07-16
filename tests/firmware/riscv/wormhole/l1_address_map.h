@@ -121,7 +121,7 @@ struct address_map
     // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
     static constexpr std::uint32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
 
-    // This value must be equal to the sum of all all the subsequent sizes in this section
+    // This value must be equal to the sum of all the subsequent sizes in this section
     static constexpr std::uint32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
     // Queue header below is used for the concurrent performance trace
     static constexpr std::uint32_t PERF_QUEUE_HEADER_SIZE = 16;
