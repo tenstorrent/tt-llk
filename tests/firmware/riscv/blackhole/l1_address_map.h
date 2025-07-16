@@ -67,7 +67,7 @@ struct address_map
     static constexpr std::uint32_t NCRISC_L1_RUNTIME_SECTION_SIZE = 16 * 1024;
     static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE =
         NCRISC_L1_RUNTIME_SECTION_BASE +
-        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
+        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used e.g. TEST_MAILBOX
     static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE =
         NCRISC_L1_RUNTIME_SECTION_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
     static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + 0x40;
