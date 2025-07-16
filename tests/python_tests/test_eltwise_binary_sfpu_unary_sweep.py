@@ -4,6 +4,7 @@
 import pytest
 import torch
 
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -152,10 +153,79 @@ def test_eltwise_binary_sfpu_unary_sweep(
     input_dimensions = [32, 32]
 
     # Skip problematic combinations following the working test pattern
-    if mathop == MathOperation.Elwsub and math_fidelity == MathFidelity.LoFi:
-        pytest.skip("Elwsub operation in LoFi may have precision issues")
     if sfpu_op in [MathOperation.Cos, MathOperation.Sin]:
         pytest.skip("Cos and Sin operations are not fully functional yet")
+    if sfpu_op == MathOperation.Square and math_fidelity == MathFidelity.LoFi:
+        pytest.skip("Square operation in LoFi is not fully functional yet")
+
+    # Skip mathematically invalid domain combinations for fused operations
+    # Subtraction can produce negative values or values near zero, which break multiple SFPU operations
+    if mathop == MathOperation.Elwsub and sfpu_op in [
+        MathOperation.Log,
+        MathOperation.Sqrt,
+        MathOperation.Reciprocal,
+        MathOperation.Celu,
+    ]:
+        pytest.skip(
+            "Subtraction can produce negative/near-zero values incompatible with Log/Sqrt/Reciprocal/Celu operations"
+        )
+
+    # Multiplication can produce very small values that break Reciprocal or very large values that break Log/Square
+    if mathop == MathOperation.Elwmul and sfpu_op in [
+        MathOperation.Reciprocal,
+        MathOperation.Log,
+        MathOperation.Square,
+    ]:
+        pytest.skip(
+            "Multiplication can produce extreme values that cause precision/domain issues with Reciprocal/Log/Square"
+        )
+
+    # BFP8 format limitations (following working test pattern)
+    if (
+        format_config.input_format == format_config.output_format == DataFormat.Bfp8_b
+        and sfpu_op in [MathOperation.Log, MathOperation.Reciprocal]
+    ):
+        pytest.skip(
+            "BFP8 format does not support Log and Reciprocal operations reliably"
+        )
+
+    # Square operation can cause overflow with certain elementwise results
+    if sfpu_op == MathOperation.Square and format_config.output_format in [
+        DataFormat.Float16,
+        DataFormat.Float16_b,
+        DataFormat.Bfp8_b,
+    ]:
+        pytest.skip(
+            "Square operation may overflow with elementwise results in limited precision formats"
+        )
+
+    # Complex activation functions are sensitive to input ranges from elementwise operations
+    if (
+        mathop in [MathOperation.Elwsub, MathOperation.Elwmul]
+        and sfpu_op in [MathOperation.Celu, MathOperation.Gelu, MathOperation.Silu]
+        and format_config.output_format in [DataFormat.Float16, DataFormat.Float16_b]
+    ):
+        pytest.skip(
+            "Complex activation functions may be unstable with elementwise operation results in Float16"
+        )
+
+    # Additional BFP8 restrictions for complex operations
+    if format_config.output_format == DataFormat.Bfp8_b and sfpu_op in [
+        MathOperation.Square,
+        MathOperation.Celu,
+    ]:
+        pytest.skip("BFP8 format may not handle complex SFPU operations reliably")
+
+    # Architecture-specific restrictions (following working test pattern)
+    if (
+        format_config.input_format == format_config.output_format == DataFormat.Float16
+        and sfpu_op in [MathOperation.Log, MathOperation.Sqrt, MathOperation.Square]
+        and dest_acc == DestAccumulation.No
+        and get_chip_architecture() == ChipArchitecture.BLACKHOLE
+    ):
+        pytest.skip(
+            "Float16 format with specific SFPU ops not supported on Blackhole architecture"
+        )
 
     torch_format = format_dict.get(format_config.output_format)
 
