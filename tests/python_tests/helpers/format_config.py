@@ -60,6 +60,14 @@ class DataFormat(Enum):
         """Checks if the data format is a 32-bit type."""
         return self in {DataFormat.Float32, DataFormat.Int32, DataFormat.UInt32}
 
+    def is_exponent_B(self) -> bool:
+        """Checks if the data format is an exponent B format."""
+        return self in {
+            DataFormat.Float16_b,
+            DataFormat.Bfp8_b,
+            DataFormat.Tf32,
+            DataFormat.Float32,
+        }
 class BroadcastType(Enum):
     """
     Enum for broadcast types in LLK kernels.
@@ -92,10 +100,13 @@ class StochRndType(Enum):
             return "None"  # Convert NONE to None for C++
         return self.name
 
+
+
+
 @dataclass
 class FormatConfig:
     """
-    A data class that holds configuration details for formats passed to LLKs.tions).
+    A data class that holds configuration details for formats passed to LLKs
 
     Attributes:
     unpack_A_src (DataFormat): The source format for source register A in the Unpacker, which is the format of our data in L1.
@@ -110,7 +121,7 @@ class FormatConfig:
     same_src_format (bool): If `True`, the formats for source registers A and B will be the same for unpack operations.
     If `False`, source registers A and B have different formats formats must be specified. Defaults to `True`.
 
-    unpack_B_src (Optional[DataFormat]): The source format for source register B in the Unpacker which is the format of our data in L1, used only if `same_src_format=False` i.e when source regosters don't share the same formats we distinguish source register A and B formats.
+    unpack_B_src (Optional[DataFormat]): The source format for source register B in the Unpacker which is the format of our data in L1, used only if `same_src_format=False` i.e when source registers don't share the same formats we distinguish source register A and B formats.
     unpack_B_dst (Optional[DataFormat]): The destination format for source register B in the Unpacker, which is the format of our data in src register used only if `same_src_format=False` i.e when source registers don't share the same formats we distinguish source register A and B formats.
 
     Example:
@@ -252,7 +263,7 @@ def is_dest_acc_needed(format: InputOutputFormat) -> bool:
     If the input-output combination is an outlier that is not supported when dest accumulation is on
     then the data format inference model will turn dest accumulation off for this combination to work.
 
-    We must notify the user that this has happened and cheange the test output to reflect this.
+    We must notify the user that this has happened and change the test output to reflect this.
     """
     return (
         format.input_format in [DataFormat.Bfp8_b, DataFormat.Float16_b]

@@ -106,7 +106,7 @@ typedef union
     dest_rd_ctrl_t f;
 } dest_rd_ctrl_u;
 
-// PACK_EDGE_OFFSET_SEC[0:3] register sutructure
+// PACK_EDGE_OFFSET_SEC[0:3] register structure
 //
 // Lower 16b represent a mask that is applied on a single row of one face on the packer output
 // Higher 16b contain information about which TILE_ROW_SET_MAPPING register is used for each packer (only in PACK_EDGE_OFFSET_SEC0)
@@ -168,14 +168,16 @@ inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_f
                     : (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float16) ? 2
                                                                                                         : 1;
     uint y_stride = FACE_R_DIM * x_stride;
-    uint z_stride = PACK_CNT * FACE_C_DIM * y_stride;
-    uint w_stride = z_stride;
+    uint z_stride = FACE_C_DIM * y_stride;
+    uint w_stride = TILE_NUM_FACES * z_stride;
 
-    TT_SETDMAREG(0, LOWER_HALFWORD((x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT)), 0, LO_16(p_gpr_pack::TMP0));
-    TT_SETDMAREG(0, UPPER_HALFWORD((y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT)), 0, HI_16(p_gpr_pack::TMP0));
+    uint32_t xy_stride = (x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT) | (y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT);
+    uint32_t zw_stride = (z_stride << PCK0_ADDR_CTRL_ZW_REG_0_Zstride_SHAMT) | (w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT);
+    TT_SETDMAREG(0, LOWER_HALFWORD(xy_stride), 0, LO_16(p_gpr_pack::TMP0));
+    TT_SETDMAREG(0, UPPER_HALFWORD(xy_stride), 0, HI_16(p_gpr_pack::TMP0));
     TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK0_ADDR_CTRL_XY_REG_0_Xstride_ADDR32);
-    TT_SETDMAREG(0, LOWER_HALFWORD((w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT)), 0, LO_16(p_gpr_pack::TMP0)); // z-stride not used!
-    TT_SETDMAREG(0, UPPER_HALFWORD((w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT)), 0, HI_16(p_gpr_pack::TMP0));
+    TT_SETDMAREG(0, LOWER_HALFWORD(zw_stride), 0, LO_16(p_gpr_pack::TMP0));
+    TT_SETDMAREG(0, UPPER_HALFWORD(zw_stride), 0, HI_16(p_gpr_pack::TMP0));
     TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK0_ADDR_CTRL_ZW_REG_0_Zstride_ADDR32);
     TTI_NOP;
     TTI_NOP;
@@ -310,10 +312,6 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
             config.f.exp_section_size                              = 1 + 0 + 12;
             cfg[THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 0] = config.val[0];
         }
-        else
-        {
-            FWASSERT("Other data formats not supported", false);
-        }
     }
 
     // Save to GPR for quick data format reconfig
@@ -359,7 +357,7 @@ inline void set_packer_l1_offset(const uint pack_dst_format, const uint face_r_d
 }
 
 template <bool is_fp32_dest_acc_en>
-inline void reconfig_packer_data_format(const uint pack_src_format, const uint pack_dst_format, const uint tile_size, const uint face_r_dim = FACE_R_DIM)
+inline void reconfig_packer_data_format(const uint pack_src_format, const uint pack_dst_format, const uint tile_size = 0, const uint face_r_dim = FACE_R_DIM)
 {
     // Get pointer to registers for current state ID
     volatile uint* cfg = get_cfg_pointer();
@@ -430,10 +428,6 @@ inline void reconfig_packer_data_format(const uint pack_src_format, const uint p
             TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 0 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::EXP2_SEC_SIZE_BFP2);
             TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 0 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::EXP3_SEC_SIZE_BFP2);
         }
-        else
-        {
-            FWASSERT("Other data formats not supported", false);
-        }
     }
     else if ((pack_dst_format == static_cast<DataFormatType>(DataFormat::Lf8)) || ((pack_dst_format & 0xF) == static_cast<DataFormatType>(DataFormat::Int8)))
     {
@@ -485,7 +479,7 @@ template <bool is_fp32_dest_acc_en, bool untilize>
 inline void configure_pack(
     const uint pack_src_format,
     const uint pack_dst_format,
-    const uint tile_size,
+    const uint tile_size    = 0,
     const uint face_r_dim   = FACE_R_DIM,
     const uint num_faces    = 4,
     const bool partial_face = false,
@@ -509,6 +503,14 @@ inline void configure_pack(
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(alu_dst_format);
 
+    // Config RELU
+    relu_config_u hw_relu_config;
+    hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
+    hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
+
+    constexpr uint hw_relu_mask = STACC_RELU_ApplyRelu_MASK | STACC_RELU_ReluThreshold_MASK;
+    cfg_reg_rmw_tensix<STACC_RELU_ApplyRelu_ADDR32, 0, hw_relu_mask>(hw_relu_config.val[0]);
+
     t6_mutex_release(mutex::REG_RMW);
 
     set_packer_config<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, num_faces, partial_face);
@@ -522,7 +524,7 @@ inline void configure_pack(
     pack_counters_u pack_counters;
     pack_counters.val                       = 0;
     pack_counters.f.pack_reads_per_xy_plane = face_r_dim; // Number of reads per face
-                                                          // Used for resetting tile posistion generator for edge masks
+                                                          // Used for resetting tile position generator for edge masks
     for (uint i = 0; i < 4; i++)
     {
         cfg[PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32 + i] = pack_counters.val; // disable auto last generation
@@ -540,16 +542,6 @@ inline void configure_pack(
     regfile[p_gpr_pack::TILE_HEADER + 2] = 0;
     regfile[p_gpr_pack::TILE_HEADER + 3] = 0;
     sync_regfile_write(p_gpr_pack::TILE_HEADER + 3);
-
-    relu_config_u hw_relu_config;
-    // Config RELU
-    uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
-    hw_relu_config.val[0]     = current_relu_val;
-
-    hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
-    hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
-
-    cfg[STACC_RELU_ApplyRelu_ADDR32] = hw_relu_config.val[0];
 
     const uint face_dim = face_r_dim * FACE_C_DIM;
 
@@ -576,7 +568,7 @@ inline void flip_packer_dest_offset_id()
 }
 
 // Flip packer dest register offset to 0 or DEST_REGISTER_HALF_SIZE
-// flip-flopping between two halfs
+// flip-flopping between two halves
 template <DstSync Dst>
 inline void select_packer_dest_registers()
 {
@@ -594,7 +586,7 @@ inline void select_packer_dest_registers()
 
 // Program packer destination addresses from GPRs
 template <PackSelMask PackSel = PACK_ALL>
-inline void program_packer_destination(uint32_t addr)
+inline void program_packer_destination(uint32_t addr, bool restore = true)
 {
     uint32_t new_l1_addr = (1 << 31) | addr;
     TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
@@ -605,7 +597,10 @@ inline void program_packer_destination(uint32_t addr)
 
     TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 0); // pack flush
 
-    TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    if (restore)
+    {
+        TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    }
 }
 
 template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false, uint32_t row_num_datums = TILE_C_DIM>

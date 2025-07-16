@@ -108,7 +108,7 @@ typedef union
     dest_rd_ctrl_t f;
 } dest_rd_ctrl_u;
 
-// PACK_EDGE_OFFSET_SEC[0:3] register sutructure
+// PACK_EDGE_OFFSET_SEC[0:3] register structure
 //
 // Lower 16b represent a mask that is applied on a single row of one face on the packer output
 // Higher 16b contain information about which TILE_ROW_SET_MAPPING register is used for each packer (only in PACK_EDGE_OFFSET_SEC0)
@@ -405,6 +405,14 @@ inline void configure_pack(
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
+    // Config RELU
+    relu_config_u hw_relu_config;
+    hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
+    hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
+
+    constexpr uint hw_relu_mask = STACC_RELU_ApplyRelu_MASK | STACC_RELU_ReluThreshold_MASK;
+    cfg_reg_rmw_tensix<STACC_RELU_ApplyRelu_ADDR32, 0, hw_relu_mask>(hw_relu_config.val[0]);
+
     t6_mutex_release(mutex::REG_RMW);
 
     set_packer_config<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, num_faces, partial_face);
@@ -416,7 +424,7 @@ inline void configure_pack(
     pack_counters_u pack_counters;
     pack_counters.val                       = 0;
     pack_counters.f.pack_reads_per_xy_plane = face_r_dim; // Number of reads per face
-                                                          // Used for resetting tile posistion generator for edge masks
+                                                          // Used for resetting tile position generator for edge masks
     for (uint i = 0; i < 4; i++)
     {
         cfg[PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32 + i] = pack_counters.val; // disable auto last generation
@@ -434,16 +442,6 @@ inline void configure_pack(
     regfile[p_gpr_pack::TILE_HEADER + 2] = 0;
     regfile[p_gpr_pack::TILE_HEADER + 3] = 0;
     sync_regfile_write(p_gpr_pack::TILE_HEADER + 3);
-
-    relu_config_u hw_relu_config;
-    // Config RELU
-    uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
-    hw_relu_config.val[0]     = current_relu_val;
-
-    hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
-    hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
-
-    cfg[STACC_RELU_ApplyRelu_ADDR32] = hw_relu_config.val[0];
 
     // In Blackhole, x_start/x_end must be within 1 row size (i.e. from 0 to 15)
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
@@ -465,7 +463,7 @@ inline void flip_packer_dest_offset_id()
 }
 
 // Flip packer dest register offset to 0 or DEST_REGISTER_HALF_SIZE
-// flip-flopping between two halfs
+// flip-flopping between two halves
 template <DstSync Dst>
 inline void select_packer_dest_registers()
 {

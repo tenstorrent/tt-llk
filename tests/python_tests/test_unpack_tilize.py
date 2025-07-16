@@ -21,7 +21,13 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+supported_formats = [
+    DataFormat.Float16_b,
+    DataFormat.Float16,
+    DataFormat.Float32,
+    DataFormat.Int32,
+    DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
+]  # Included in test only as input format
 
 #   INPUT-OUTPUT FORMAT SWEEP
 #   input_output_formats(supported_formats)
@@ -48,6 +54,13 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
 def test_unpack_tilize(testname, formats):
 
+    if formats.input_format == DataFormat.Bfp8_b:
+        pytest.skip("Unpack Tilize does not support Bfp8_b input format")
+    if (formats.input_format == DataFormat.Int32) ^ (
+        formats.output_format == DataFormat.Int32
+    ):
+        pytest.skip("Unpack Tilize does not support mixing Int32 with other formats")
+
     input_dimensions = [64, 64]
 
     src_A, _, tile_cnt = generate_stimuli(
@@ -67,6 +80,7 @@ def test_unpack_tilize(testname, formats):
         "testname": testname,
         "tile_cnt": tile_cnt,
         "input_dimensions": input_dimensions,
+        "unpack_to_dest": formats.input_format == DataFormat.Int32,
     }
 
     run_test(test_config)

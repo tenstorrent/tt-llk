@@ -33,7 +33,7 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const 
 template <DstSync Dst>
 inline void _llk_math_wait_for_dest_available_()
 {
-    // These liteweight functions for sync with packer imply
+    // These lightweight functions for sync with packer imply
     // no mode change - entire epoch is either double buffer or single buffer
 #ifdef PERF_DUMP
     if constexpr (MATH_PACK_DECOUPLE == 0)
@@ -55,19 +55,11 @@ inline void _llk_math_dest_section_done_()
     }
 #endif
 
-    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
-    constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
-
     set_math_semaphores();
-    if constexpr ((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2))
+    if constexpr (Dst == DstSync::SyncHalf)
     {
         math_sync_tile_dst_index = 0;
         dest_section_flip();
-    }
-    else if constexpr (Dst == DstSync::SyncTile16)
-    {
-        math_sync_tile_dst_index++;
-        math_sync_tile_dst_index &= (DEST_NUM_TILES - 1);
     }
 }
 
@@ -90,31 +82,12 @@ inline void _llk_math_pack_sync_init_()
         reset_dest_offset_id();
         set_dest_section_base<StartZero>();
     }
-    else if constexpr (Dst == DstSync::SyncHalf)
-    {
-        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
-        reset_dest_offset_id();
-        set_dest_section_base<StartZero>();
-    }
-    else if constexpr (Dst == DstSync::SyncTile2)
-    {
-        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
-        reset_dest_offset_id();
-        set_dest_section_base<StartZero>();
-        math_sync_tile_dst_index = 0;
-    }
     else
     {
-        static_assert(Dst == DstSync::SyncTile16);
-
-        constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
-        constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
-        constexpr uint32_t SEM_INIT_MAX         = (DEST_NUM_TILES < 15) ? DEST_NUM_TILES : 15;
-
-        TTI_SEMINIT(SEM_INIT_MAX, 0, p_stall::SEMAPHORE_1);
+        static_assert(Dst == DstSync::SyncHalf);
+        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
         reset_dest_offset_id();
         set_dest_section_base<StartZero>();
-        math_sync_tile_dst_index = 0;
     }
 }
 

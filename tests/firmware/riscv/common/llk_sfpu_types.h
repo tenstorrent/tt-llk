@@ -91,8 +91,10 @@ enum class SfpuType
     fmod,
     ceil,
     unused,
+    neg,
     cumsum,
     fill,
     prelu,
     reshuffle_rows,
+    hardsigmoid,
 };

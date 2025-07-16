@@ -39,7 +39,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
         // Due to bug in Blackhole Tensix (more details in budabackend/#2730) when an event with side effect of clearing DEST zero flags
         // (such as Unpack-to-dest or RISC-to-dest) and a ZEROACC instruction from packer occur in the same cycle,
         // zero flags clearing is dropped.
-        // To mitigate that, we issue additional zero flag clear instruction immediatelly after unpack tile to dest is done.
+        // To mitigate that, we issue additional zero flag clear instruction immediately after unpack tile to dest is done.
         // RISC-to-dest event is not currently used.
 
 #pragma GCC unroll 0
@@ -52,14 +52,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
     }
     else
     {
-        if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
-        {
-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
-        }
-        else
-        {
-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
-        }
+        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
         if constexpr (type == A2D)
         {
@@ -79,10 +72,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             {
                 ckernel_template::run(instrn_buffer);
             }
-        }
-        else
-        {
-            FWASSERT("Unsupported op!", false);
         }
 
         math::clear_dst_reg_addr();
@@ -257,10 +246,6 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
     else if constexpr (type == B2D)
     {
         eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
-    }
-    else
-    {
-        FWASSERT("Unsupported op!", false);
     }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);

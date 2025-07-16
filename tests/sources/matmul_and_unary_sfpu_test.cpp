@@ -7,14 +7,16 @@
 #include <cstdio>
 
 #include "ckernel.h"
+#include "data_format_inference.h"
 #include "llk_defs.h"
+#include "params.h"
 
 // Globals
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 uint32_t tile_size                = 128;
-const int iterations              = 32; // Dependant on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
+const int iterations              = 32; // Dependent on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
 
 volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x17000);
 
@@ -31,7 +33,9 @@ void run_kernel()
     std::uint32_t rt_dim = 1;
     std::uint32_t kt_dim = 1;
 
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT);
+    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+        formats_array[run].unpack_src, formats_array[run].unpack_src, formats_array[run].unpack_dst, formats_array[run].unpack_dst);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, tile_size, tile_size);
 
@@ -39,9 +43,12 @@ void run_kernel()
     t6_semaphore_get<>(semaphore::PACK_DONE);
 
     // Start of second unpack kernel to perform unpack matmul on now tilized input data
-    _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(UNPACK_A_IN, UNPACK_A_OUT, tile_size);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A_tilized), 0, UNPACK_A_IN, UNPACK_A_OUT);
+    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+    _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
+    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+        0, 0, FACE_R_DIM, 4, formats_array[run].unpack_src, formats_array[run].unpack_dst);
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+        L1_ADDRESS(buffer_A_tilized), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst);
 }
 
 #endif
@@ -88,6 +95,10 @@ void call_sfpu_operation(SfpuType operation)
         case SfpuType::square:
             ckernel::sfpu::_calculate_square_<APPROX_MODE, iterations>(iterations);
             break;
+        case SfpuType::hardsigmoid:
+            ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
+            break;
         default:
             return;
     }
@@ -96,32 +107,34 @@ void call_sfpu_operation(SfpuType operation)
 
 void run_kernel()
 {
+    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+    _llk_math_hw_configure_<false, false>(formats_array[run].math, formats_array[run].math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     // Start of second math kernel to perform matmul on now tilized input data
-    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(MATH_FORMAT);
+    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(formats_array[run].math);
     // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, formats_array[run].math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, MATH_FORMAT);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, formats_array[run].math);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-        0, MATH_FORMAT, MATH_FORMAT);
+        0, formats_array[run].math, formats_array[run].math);
 
     // calculation of sfpu operation on dest
-    _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
+    _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
     // calling sfpu function from ckernel
     // this part is where parametrization of operation takes part
-    call_sfpu_operation(SFPU_OPERATION);
+    call_sfpu_operation(SFPU_UNARY_OPERATION);
 
     _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -137,13 +150,14 @@ void run_kernel()
 
 void run_kernel()
 {
+    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats_array[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif
 
@@ -154,12 +168,10 @@ void run_kernel()
     t6_semaphore_post<>(semaphore::PACK_DONE);
 
     // Start of second pack kernel to perform final pack after executing matmul on tilized data
-    _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, tile_size);
-#ifdef PACK_DST_BFP8_B
-    constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
-#endif
+    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+    _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(formats_array[run].pack_src, formats_array[run].pack_dst, tile_size);
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();

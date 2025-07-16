@@ -72,7 +72,6 @@
 #include <cstdint>
 
 #include "ckernel_include.h"
-#include "fw_debug.h"
 
 // #include <cstring>
 #if defined(PERF_DUMP) || DELAY_EN > 0
@@ -95,7 +94,18 @@ constexpr uint KERNEL_COMPLETE    = 1;
 extern volatile uint tt_reg_ptr *reg_base;
 extern volatile uint tt_reg_ptr *pc_buf_base;
 extern volatile uint tt_reg_ptr *regfile;
+#if !defined(INSTRN_BUF_BASE)
+// Once tt_metal's submodule use of tt_llk is updated, this shim can
+// be cleaned up.
+#define INSTRN_BUFFER_TNG
+} // namespace ckernel
+extern volatile uint32_t __instrn_buffer[];
+namespace ckernel
+{
+constexpr volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
+#else // defined(INSTRN_BUF_BASE)
 extern volatile uint tt_reg_ptr *instrn_buffer;
+#endif
 extern volatile uint tt_reg_ptr *mailbox_base[4];
 extern volatile uint tt_reg_ptr *dbg_event_scratch;
 extern volatile uint tt_reg_ptr *trisc_l1_mailbox;
@@ -150,8 +160,7 @@ static constexpr bool is_valid(const T val, const uint8_t wid)
 inline void mmio_register_write(register_space_e space, uint addr, uint data)
 {
     const uint regaddr = (space << 6) | (addr & 0x3F);
-    // FWLOG2("Regaddr: 0x%x, data: 0x%x", regaddr, data);
-    reg_base[regaddr] = data;
+    reg_base[regaddr]  = data;
 }
 
 inline uint8_t semaphore_read(const uint8_t index)
@@ -362,7 +371,7 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, 
     volatile uint tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
     uint32_t cfg_data                  = cfg_regs[addr];
 
-    // Shift and mask wrdata to properly align withn 32-bit DWORD
+    // Shift and mask wrdata to properly align within 32-bit DWORD
     wrdata <<= cfg_shamt;
     wrdata &= cfg_mask;
 
@@ -642,7 +651,7 @@ constexpr static uint TRACK_TDMA                   = 1 << 3;
 constexpr static uint TRACK_TENSIX_INSTRUCTIONS    = 1 << 4;
 constexpr static uint TRACK_ALL                    = 0x1F;
 
-// Uses a template to guarantee compiletime execution (could probably
+// Uses a template to guarantee compile time execution (could probably
 // get away with constexpr but this seems better)
 template <uint bitmask>
 inline void set_ttsync_enables()
@@ -823,7 +832,7 @@ union bstatus_u
 
 inline void init_prng_seed(const uint seed)
 {
-    // The seed for PRNG should at least be initialzied during chip bootup time.
+    // The seed for PRNG should at least be initialized during chip boot-up time.
     volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
 

@@ -71,10 +71,7 @@ class ckernel_unpack_template
     //      UNPACR_A3
     //      UNPACR_B
     //    else
-    //      SKIP_A0
-    //      SKIP_A1
-    //      SKIP_A2
-    //      SKIP_A3
+    //      SKIP_A
     //      SKIP_B
     //
     //  The configuration allows the following changes:
@@ -145,7 +142,7 @@ public:
     // Default B instruction without rarefy
     static constexpr uint DEF_B_instr = TT_OP_UNPACR(1, 0b01, 0, 0, 0, 0, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
-    // Deafult halo A instructions
+    // Default halo A instructions
     static constexpr uint DEF_A0_instr = TT_OP_UNPACR(
         0, 0b00, 0, p_unpacr::TILE0_CFG_CONTEXT, p_unpacr::TILE0_ADDRCNT_CONTEXT, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, p_unpacr::AUTO_INC_CONTEXT, 1, 0, 1);
     static constexpr uint DEF_A1_instr = TT_OP_UNPACR(
@@ -234,7 +231,7 @@ public:
         uint B_instr     = DEF_B_instr,
         uint skipB_instr = DEF_SKIP_B);
 
-    // More abstraction to re-use above templates for kernel to run loop of N instructions
+    // More abstraction to reuse above templates for kernel to run loop of N instructions
     static ckernel_unpack_template loopx1instr(uint instr0, uint skip0 = TT_OP_NOP);
     static ckernel_unpack_template loopx2instr(uint instr0, uint instr1, uint skip0 = TT_OP_NOP, uint skip1 = TT_OP_NOP);
 
@@ -342,7 +339,6 @@ inline void ckernel_unpack_template::program_and_run(volatile uint *instrn_buffe
 
 inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)
 {
-    FWASSERT("Unpack template only supports loops up to 128", count <= 128);
     TT_MOP_CFG(zmask >> 16);              // Set the top 16 bits of zmask - we could skip this for count <= 16
     TT_MOP(0, count - 1, zmask & 0xFFFF); // Run the template
 }
@@ -350,7 +346,6 @@ inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uin
 // Version without zmask, should be slightly faster by eliminating one instruction.
 inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count)
 {
-    FWASSERT("Unpack template only supports loops up to 128", count <= 128);
     TT_MOP(0, count - 1, 0); // Run the template
 }
 
