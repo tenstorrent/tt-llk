@@ -116,7 +116,7 @@ struct address_map
     static constexpr std::uint32_t MAX_SIZE            = 1499136;
     static constexpr std::uint32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
 
-    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
+    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actual local memory address as seen from risc firmware
                                                                      // As part of the init risc firmware will copy local memory data from
                                                                      // l1 locations listed above into internal local memory that starts
                                                                      // at RISC_LOCAL_MEM_BASE address
