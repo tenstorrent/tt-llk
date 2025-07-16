@@ -56,7 +56,9 @@ param_ids = generate_param_ids(all_params)
 def test_pack_untilize(testname, formats):
     if formats.output_format == DataFormat.Bfp8_b:
         pytest.skip("Pack Untilize does not support Bfp8_b format")
-    if (formats.input_format == DataFormat.Int32) ^ (formats.output_format == DataFormat.Int32):
+    if (formats.input_format == DataFormat.Int32) ^ (
+        formats.output_format == DataFormat.Int32
+    ):
         pytest.skip("Pack Untilize does not support mixing Int32 with other formats")
 
     input_dimensions = [32, 128]

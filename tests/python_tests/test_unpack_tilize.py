@@ -56,7 +56,9 @@ def test_unpack_tilize(testname, formats):
 
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip("Unpack Tilize does not support Bfp8_b input format")
-    if (formats.input_format == DataFormat.Int32) ^ (formats.output_format == DataFormat.Int32):
+    if (formats.input_format == DataFormat.Int32) ^ (
+        formats.output_format == DataFormat.Int32
+    ):
         pytest.skip("Unpack Tilize does not support mixing Int32 with other formats")
 
     input_dimensions = [64, 64]
