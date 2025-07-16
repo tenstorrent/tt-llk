@@ -129,7 +129,7 @@ struct address_map
     static constexpr std::uint32_t PERF_RISC_MAILBOX_SIZE = 8;
     // Signal to ncrisc that the performance buffer has been drained.
     static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_SIZE = 4;
-    // Signal to all cores within a chip that the epoch comamnd for all cores has been sent;
+    // Signal to all cores within a chip that the epoch command for all cores has been sent;
     static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
     static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
     static constexpr std::uint32_t PERF_UNUSED_SIZE                     = 24;
