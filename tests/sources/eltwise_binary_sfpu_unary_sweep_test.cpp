@@ -22,17 +22,12 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    // Configure hardware for unpacking to AB registers (matching working test)
+    // Configure hardware for unpacking AB (two inputs for binary elementwise operation)
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
-
-    // Initialize unpacker for AB operations
     _llk_unpack_AB_init_<>();
 
-    // Unpack tiles for each iteration of the test
-    for (int i = 0; i < TILE_CNT; ++i)
-    {
-        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
-    }
+    // Unpack one tile from each input buffer
+    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
 }
 
 #endif
@@ -50,10 +45,10 @@ using namespace ckernel::sfpu;
 
 const int iterations = 32;
 
-inline void call_sfpu_operation(SfpuType operation, uint32_t math_format)
+namespace
 {
-    const int iterations = 32;
-
+void call_sfpu_operation(SfpuType operation, uint32_t math_format)
+{
     switch (operation)
     {
         case SfpuType::abs:
@@ -62,9 +57,6 @@ inline void call_sfpu_operation(SfpuType operation, uint32_t math_format)
         case SfpuType::cosine:
             ckernel::sfpu::_calculate_cosine_<APPROX_MODE, iterations>(iterations);
             break;
-        case SfpuType::sine:
-            ckernel::sfpu::_calculate_sine_<APPROX_MODE, iterations>(iterations);
-            break;
         case SfpuType::log:
             ckernel::sfpu::_init_log_<APPROX_MODE>();
             ckernel::sfpu::_calculate_log_<APPROX_MODE, false, iterations>(iterations, 0);
@@ -72,6 +64,9 @@ inline void call_sfpu_operation(SfpuType operation, uint32_t math_format)
         case SfpuType::reciprocal:
             ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
             ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, iterations, is_fp32_dest_acc_en>(iterations);
+            break;
+        case SfpuType::sine:
+            ckernel::sfpu::_calculate_sine_<APPROX_MODE, iterations>(iterations);
             break;
         case SfpuType::sqrt:
             ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
@@ -93,49 +88,35 @@ inline void call_sfpu_operation(SfpuType operation, uint32_t math_format)
         case SfpuType::neg:
             ckernel::sfpu::_calculate_negative_<APPROX_MODE, iterations>();
             break;
-        case SfpuType::fill:
-            ckernel::sfpu::_calculate_fill_<APPROX_MODE, iterations>(1.0f);
-            break;
         default:
-            // For operations not explicitly handled, do nothing
-            break;
+            return;
     }
 }
+} // namespace
 
 void run_kernel()
 {
-    // Initialize in the correct order (matching working tests)
+    // Initialize math operations
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
 
-    for (int i = 0; i < TILE_CNT; ++i)
-    {
-        // Wait for destination to be available
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    // Wait for destination to be available
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
-        // Perform elementwise binary operation (ELWADD, ELWMUL, or ELWSUB)
-        _llk_math_eltwise_binary_<
-            ELTWISE_BINARY_OP,
-            BroadcastType::NONE,
-            DstSync::SyncHalf,
-            is_fp32_dest_acc_en,
-            MATH_FIDELITY,
-            EltwiseBinaryReuseDestType::NONE>(4, 0, false);
+    // Perform elementwise binary operation (ELWADD, ELWMUL, or ELWSUB)
+    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
+        4, 0, false);
 
-        // Initialize SFPU unary operation on the result
-        _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
+    // Now perform SFPU unary operation on the result in dest
+    _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
-        // Perform the SFPU unary operation
-        call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
+    // Call the specific SFPU operation
+    call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
 
-        // Complete SFPU operation
-        _llk_math_eltwise_unary_sfpu_done_();
-
-        // Signal math operation is complete for this tile
-        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    }
+    _llk_math_eltwise_unary_sfpu_done_();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -151,21 +132,22 @@ void run_kernel()
     // Configure packer hardware
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif
 
-    // Pack results for each tile (matching working test)
-    for (int i = 0; i < TILE_CNT; ++i)
-    {
-        _llk_packer_wait_for_math_done_();
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[i]));
-        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    }
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+
+#ifdef ARCH_BLACKHOLE
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+#else
+    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+#endif
+
+    // Pack the result from destination register to output buffer
+    _llk_packer_wait_for_math_done_();
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif

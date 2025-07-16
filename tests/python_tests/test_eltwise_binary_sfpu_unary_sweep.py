@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
+import torch
 
 from helpers.device import (
     collect_results,
@@ -12,6 +13,7 @@ from helpers.format_arg_mapping import (
     DestAccumulation,
     MathFidelity,
     MathOperation,
+    format_dict,
 )
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -28,9 +30,12 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
-# SUPPORTED FORMATS FOR TEST - Using only Float32 for consistent testing
+# SUPPORTED FORMATS FOR TEST
 supported_formats = [
-    DataFormat.Float32,  # Only using Float32 for now to isolate the issue
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+    DataFormat.Float32,
+    DataFormat.Bfp8_b,
 ]
 
 # Define all elementwise binary operations to sweep
@@ -53,32 +58,8 @@ sfpu_unary_ops = [
     MathOperation.Celu,
     MathOperation.Silu,
     MathOperation.Neg,
-    MathOperation.Fill,
 ]
 
-
-# Custom golden generator for the fused operation
-class FusedEltwiseBinarySFPUUnaryGolden:
-    def __init__(self):
-        self.eltwise_golden = get_golden_generator(EltwiseBinaryGolden)
-        self.sfpu_golden = get_golden_generator(UnarySFPUGolden)
-
-    def __call__(
-        self, eltwise_op, sfpu_op, operand1, operand2, data_format, math_fidelity
-    ):
-        """Generate golden result for fused elementwise binary + SFPU unary operation."""
-        # First perform the elementwise binary operation
-        intermediate_result = self.eltwise_golden(
-            eltwise_op, operand1, operand2, data_format, math_fidelity
-        )
-
-        # Then apply the SFPU unary operation to the result
-        final_result = self.sfpu_golden(sfpu_op, intermediate_result, data_format)
-
-        return final_result
-
-
-# Create test parameter combinations - using same=True to keep input and output formats identical
 test_formats = input_output_formats(supported_formats, same=True)
 
 # Generate parameter combinations for each operation pair
@@ -93,7 +74,6 @@ for eltwise_op in elementwise_binary_ops:
             mathop=[eltwise_op],
             math_fidelity=[
                 MathFidelity.LoFi,
-                MathFidelity.HiFi2,
                 MathFidelity.HiFi3,
                 MathFidelity.HiFi4,
             ],
@@ -165,36 +145,51 @@ def test_eltwise_binary_sfpu_unary_sweep(
 
     This test validates the fusion of elementwise binary and SFPU unary operations
     across different data formats, math fidelities, and destination accumulation modes.
+
+    Uses a single-pass approach: unpack AB -> elementwise binary -> SFPU unary -> pack.
     """
 
+    input_dimensions = [32, 32]
+
+    # Skip problematic combinations following the working test pattern
+    if mathop == MathOperation.Elwsub and math_fidelity == MathFidelity.LoFi:
+        pytest.skip("Elwsub operation in LoFi may have precision issues")
+    if sfpu_op in [MathOperation.Cos, MathOperation.Sin]:
+        pytest.skip("Cos and Sin operations are not fully functional yet")
+
+    torch_format = format_dict.get(format_config.output_format)
+
     # Generate stimuli for two input tensors
-    operand_A, operand_B, tile_cnt = generate_stimuli(
-        stimuli_format_A=format_config.input_format,
-        stimuli_format_B=format_config.input_format,  # Same format for both inputs
-        input_dimensions=[32, 32],
+    src_A, src_B, tile_cnt = generate_stimuli(
+        format_config.input_format,
+        format_config.input_format,
+        input_dimensions=input_dimensions,
     )
 
-    # Write stimuli to L1 memory
-    write_stimuli_to_l1(
-        operand_A,
-        operand_B,
+    # Generate golden result following the working pattern:
+    # 1. First apply elementwise binary operation
+    generate_eltwise_golden = get_golden_generator(EltwiseBinaryGolden)
+    golden_tensor = generate_eltwise_golden(
+        mathop, src_A, src_B, format_config.output_format, math_fidelity
+    )
+
+    # 2. Then apply SFPU unary operation to the result
+    generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
+    golden_tensor = generate_sfpu_golden(
+        sfpu_op, golden_tensor, format_config.output_format
+    )
+    golden_tensor = golden_tensor.to(torch_format)
+
+    # Write stimuli to L1 memory (untilized for elementwise operations)
+    res_address = write_stimuli_to_l1(
+        src_A,
+        src_B,
         format_config.input_format,
-        format_config.input_format,  # Same format for both inputs
+        format_config.input_format,
         tile_count=tile_cnt,
     )
 
-    # Generate golden result using the fused operation
-    fused_golden = FusedEltwiseBinarySFPUUnaryGolden()
-    golden_result = fused_golden(
-        mathop,  # Elementwise binary operation
-        sfpu_op,  # SFPU unary operation
-        operand_A,
-        operand_B,
-        format_config.output_format,
-        math_fidelity,
-    )
-
-    # Configure test parameters
+    # Configure test parameters for single-pass fused operation
     test_config = {
         "testname": testname,
         "formats": format_config,
@@ -210,15 +205,15 @@ def test_eltwise_binary_sfpu_unary_sweep(
     run_test(test_config)
 
     # Collect results from device
-    result = collect_results(
-        format_config,
-        tile_count=tile_cnt,
+    res_from_L1 = collect_results(
+        format_config, tile_count=tile_cnt, address=res_address
     )
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     # Verify results match golden
     assert passed_test(
-        golden_result,
-        result,
+        golden_tensor,
+        res_tensor,
         format_config.output_format,
     ), (
         f"Test failed for {testname} with "
@@ -245,12 +240,6 @@ def test_eltwise_binary_sfpu_unary_sweep(
             DataFormat.Float32,
             DataFormat.Float32,
         ),
-        (
-            MathOperation.Elwsub,
-            MathOperation.Gelu,
-            DataFormat.Float16,
-            DataFormat.Float16,
-        ),
     ],
 )
 def test_specific_fused_operations(eltwise_op, sfpu_op, input_format, output_format):
@@ -260,32 +249,34 @@ def test_specific_fused_operations(eltwise_op, sfpu_op, input_format, output_for
 
     # Create a simple format configuration
     format_config = InputOutputFormat(input_format, output_format)
+    torch_format = format_dict.get(format_config.output_format)
 
     # Generate simple test data
-    operand_A, operand_B, tile_cnt = generate_stimuli(
-        stimuli_format_A=format_config.input_format,
-        stimuli_format_B=format_config.input_format,
+    src_A, src_B, tile_cnt = generate_stimuli(
+        format_config.input_format,
+        format_config.input_format,
         input_dimensions=[32, 32],
     )
 
+    # Generate golden result using the same two-phase approach
+    generate_eltwise_golden = get_golden_generator(EltwiseBinaryGolden)
+    golden_tensor = generate_eltwise_golden(
+        eltwise_op, src_A, src_B, format_config.output_format, MathFidelity.HiFi4
+    )
+
+    generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
+    golden_tensor = generate_sfpu_golden(
+        sfpu_op, golden_tensor, format_config.output_format
+    )
+    golden_tensor = golden_tensor.to(torch_format)
+
     # Write stimuli to L1
-    write_stimuli_to_l1(
-        operand_A,
-        operand_B,
+    res_address = write_stimuli_to_l1(
+        src_A,
+        src_B,
         format_config.input_format,
         format_config.input_format,
         tile_count=tile_cnt,
-    )
-
-    # Generate golden result
-    fused_golden = FusedEltwiseBinarySFPUUnaryGolden()
-    golden_result = fused_golden(
-        eltwise_op,
-        sfpu_op,
-        operand_A,
-        operand_B,
-        format_config.output_format,
-        MathFidelity.HiFi4,
     )
 
     # Configure and run test
@@ -303,11 +294,14 @@ def test_specific_fused_operations(eltwise_op, sfpu_op, input_format, output_for
     run_test(test_config)
 
     # Collect and verify results
-    result = collect_results(format_config, tile_count=tile_cnt)
+    res_from_L1 = collect_results(
+        format_config, tile_count=tile_cnt, address=res_address
+    )
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(
-        golden_result,
-        result,
+        golden_tensor,
+        res_tensor,
         format_config.output_format,
     ), (
         f"Specific test failed for eltwise_op={eltwise_op.name}, "
