@@ -73,7 +73,7 @@ class DataFormat(Enum):
 @dataclass
 class FormatConfig:
     """
-    A data class that holds configuration details for formats passed to LLKs.tions).
+    A data class that holds configuration details for formats passed to LLKs
 
     Attributes:
     unpack_A_src (DataFormat): The source format for source register A in the Unpacker, which is the format of our data in L1.
