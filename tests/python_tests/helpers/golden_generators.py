@@ -361,6 +361,7 @@ class UnarySFPUGolden:
             MathOperation.Elu: self._elu,
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
+            MathOperation.Hardsigmoid: self._hardsigmoid,
         }
         self.data_format = None
 
@@ -484,6 +485,14 @@ class UnarySFPUGolden:
         )
         return input_tensor.fill_(5).item()
 
+    def _hardsigmoid(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.hardsigmoid(input_tensor).item()
+
 
 @register_golden
 class EltwiseBinaryGolden(FidelityMasking):
@@ -569,7 +578,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
         return torch.tensor(result, dtype=format_dict[data_format])
 
-    # Operation methods are cover by Eltwise Binary Golden
+    # Operation methods are covered by Eltwise Binary Golden
     def _xlogy(self, x, y):
         # Unable to model edge cases for Tensix behavior in golden.
         # Tensix shows inconsistent patterns in handling non-finite results for xlogy, depending on the input,

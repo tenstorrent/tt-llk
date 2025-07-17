@@ -16,7 +16,7 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 uint32_t tile_size                = 128;
-const int iterations              = 32; // Dependant on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
+const int iterations              = 32; // Dependent on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
 
 volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x17000);
 
@@ -98,6 +98,10 @@ void call_sfpu_operation(SfpuType operation)
             break;
         case SfpuType::square:
             ckernel::sfpu::_calculate_square_<APPROX_MODE, iterations>(iterations);
+            break;
+        case SfpuType::hardsigmoid:
+            ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
             break;
         default:
             return;
