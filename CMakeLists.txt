@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.18)
 
 project(tt-llk VERSION 1.0.0 LANGUAGES CXX)
 
