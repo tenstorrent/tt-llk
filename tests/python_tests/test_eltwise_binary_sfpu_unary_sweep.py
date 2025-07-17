@@ -9,6 +9,11 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
+from helpers.domain_safe_stimuli import (
+    generate_domain_safe_stimuli,
+    is_combination_domain_safe,
+    should_use_domain_safe_stimuli,
+)
 from helpers.format_arg_mapping import (
     ApproximationMode,
     DestAccumulation,
@@ -41,8 +46,8 @@ supported_formats = [
 
 # Define all elementwise binary operations to sweep
 elementwise_binary_ops = [
-    MathOperation.Elwadd,
-    MathOperation.Elwmul,
+    MathOperation.Elwadd,  # UNCOMMENTED - should work fine
+    MathOperation.Elwmul,  # UNCOMMENTED - should work fine
     MathOperation.Elwsub,
 ]
 
@@ -61,7 +66,7 @@ sfpu_unary_ops = [
     MathOperation.Neg,
 ]
 
-test_formats = input_output_formats(supported_formats, same=True)
+test_formats = input_output_formats(supported_formats, same=False)
 
 # Generate parameter combinations for each operation pair
 test_params = []
@@ -75,6 +80,7 @@ for eltwise_op in elementwise_binary_ops:
             mathop=[eltwise_op],
             math_fidelity=[
                 MathFidelity.LoFi,
+                MathFidelity.HiFi2,
                 MathFidelity.HiFi3,
                 MathFidelity.HiFi4,
             ],
@@ -152,6 +158,12 @@ def test_eltwise_binary_sfpu_unary_sweep(
 
     input_dimensions = [32, 32]
 
+    if (
+        mathop in [MathOperation.Elwadd, MathOperation.Elwsub]
+        and math_fidelity != MathFidelity.LoFi
+    ):
+        pytest.skip("Fidelity doesn't affect elwadd and elwsub")
+
     # Skip problematic combinations following the working test pattern
     if sfpu_op in [MathOperation.Cos, MathOperation.Sin]:
         pytest.skip("Cos and Sin operations are not fully functional yet")
@@ -159,26 +171,31 @@ def test_eltwise_binary_sfpu_unary_sweep(
         pytest.skip("Square operation in LoFi is not fully functional yet")
 
     # Skip mathematically invalid domain combinations for fused operations
-    # Subtraction can produce negative values or values near zero, which break multiple SFPU operations
+    # Some combinations can be made safe with domain-constrained stimuli
     if mathop == MathOperation.Elwsub and sfpu_op in [
-        MathOperation.Log,
-        MathOperation.Sqrt,
-        MathOperation.Reciprocal,
-        MathOperation.Celu,
+        MathOperation.Log,  # Still problematic even with constraints
+        MathOperation.Reciprocal,  # Still problematic even with constraints
+        # MathOperation.Sqrt,       # CAN BE ENABLED with domain-safe stimuli
+        # MathOperation.Celu,       # CAN BE ENABLED with domain-safe stimuli
     ]:
-        pytest.skip(
-            "Subtraction can produce negative/near-zero values incompatible with Log/Sqrt/Reciprocal/Celu operations"
-        )
+        # Check if this combination can be made safe with constrained stimuli
+        if not is_combination_domain_safe(mathop, sfpu_op):
+            pytest.skip(
+                "Subtraction can produce negative/near-zero values incompatible with Log/Reciprocal operations"
+            )
 
     # Multiplication can produce very small values that break Reciprocal or very large values that break Log/Square
+    # Some combinations can be made safe with domain-constrained stimuli
     if mathop == MathOperation.Elwmul and sfpu_op in [
-        MathOperation.Reciprocal,
-        MathOperation.Log,
-        MathOperation.Square,
+        MathOperation.Reciprocal,  # CAN BE ENABLED with domain-safe stimuli
+        MathOperation.Log,  # CAN BE ENABLED with domain-safe stimuli
+        MathOperation.Square,  # CAN BE ENABLED with domain-safe stimuli
     ]:
-        pytest.skip(
-            "Multiplication can produce extreme values that cause precision/domain issues with Reciprocal/Log/Square"
-        )
+        # Check if this combination can be made safe with constrained stimuli
+        if not is_combination_domain_safe(mathop, sfpu_op):
+            pytest.skip(
+                "Multiplication can produce extreme values that cause precision/domain issues with Reciprocal"
+            )
 
     # BFP8 format limitations (following working test pattern)
     if (
@@ -230,11 +247,17 @@ def test_eltwise_binary_sfpu_unary_sweep(
     torch_format = format_dict.get(format_config.output_format)
 
     # Generate stimuli for two input tensors
-    src_A, src_B, tile_cnt = generate_stimuli(
-        format_config.input_format,
-        format_config.input_format,
-        input_dimensions=input_dimensions,
-    )
+    # Use domain-safe stimuli for problematic operation combinations
+    if should_use_domain_safe_stimuli(mathop, sfpu_op, format_config.input_format):
+        src_A, src_B, tile_cnt = generate_domain_safe_stimuli(
+            mathop, sfpu_op, format_config.input_format, input_dimensions
+        )
+    else:
+        src_A, src_B, tile_cnt = generate_stimuli(
+            format_config.input_format,
+            format_config.input_format,
+            input_dimensions=input_dimensions,
+        )
 
     # Generate golden result following the working pattern:
     # 1. First apply elementwise binary operation
