@@ -191,11 +191,11 @@ def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16
     if not is_within_tolerance:
         # Find all indices where values differ
         diff_indices = torch.where(~is_close)[0]
-        print(f"Found {len(diff_indices)} differences:")
-        for idx in diff_indices:
-            print(
-                f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
-            )
+        # print(f"Found {len(diff_indices)} differences:")
+        # for idx in diff_indices:
+        #     print(
+        #         f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
+        #     )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
 

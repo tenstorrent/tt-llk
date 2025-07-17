@@ -63,29 +63,14 @@ void run_kernel()
 
     // CODE FOR REORDERING DATA IN DEST REGISTER FOR DUMPING
 
-    constexpr uint32_t ITERATIONS = 32;
-
-    sfpi::vUInt data;
-    sfpi::vUInt tmp;
+    constexpr uint32_t ITERATIONS = 64;
 
     for (uint32_t i = 0; i < ITERATIONS; i++)
     {
         TTI_SFPLOAD(p_sfpu::LREG2, 3, 0, 0);
-        tmp                       = sfpi::l_reg[LRegs::LReg2];
-        tmp                       = tmp << 16;
-        sfpi::l_reg[LRegs::LReg2] = tmp;
-
-        // Use explicit pack/store to move l_reg to dst_reg, avoiding direct assignment
-        TTI_SFPSTORE(p_sfpu::LREG2, 0, 0, 0);
-
-        TTI_SFPLOAD(p_sfpu::LREG2, 3, 0, 1);
-        tmp                       = sfpi::l_reg[LRegs::LReg2];
-        tmp                       = tmp << 16;
-        sfpi::l_reg[LRegs::LReg2] = tmp;
-
-        TTI_SFPSTORE(p_sfpu::LREG2, 0, 0, 1);
-
-        sfpi::dst_reg++;
+        TTI_SFPSHFT(0x010, p_sfpu::LREG2, p_sfpu::LREG2, 1);
+        TTI_SFPSTORE(p_sfpu::LREG2, 3, 0, 0);
+        TTI_INCRWC(0, 16, 0, 0);
     }
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

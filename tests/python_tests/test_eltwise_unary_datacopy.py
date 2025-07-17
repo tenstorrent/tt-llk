@@ -65,7 +65,9 @@ def test_unary_datacopy(testname, formats, dest_acc):
     )
     # src_A = torch.arange(1, 33, 1 / 32, dtype=torch.float32)
 
-    src_A = torch.ones(1024, dtype=torch.float32) * 1.0052082538604736328125
+    src_A = (
+        torch.ones(1024, dtype=torch.float32) * 1.00572907924652099609375
+    )  # * 1.0052082538604736328125
 
     golden = generate_golden(src_A, formats.output_format)
     res_address = write_stimuli_to_l1(
