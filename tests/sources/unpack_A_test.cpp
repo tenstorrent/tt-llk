@@ -10,7 +10,7 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 
-// Globals wtf is this s**t?
+// Globals
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
