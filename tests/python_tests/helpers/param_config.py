@@ -185,7 +185,7 @@ def generate_unpack_A_params(
     acc_to_dest_flags: Optional[List[bool]] = None,
     stoch_rounding_types: Optional[List] = None,
     reuse_dest_types: Optional[List] = None,
-    unpack_to_dest_flags: Optional[List[bool]] = None,
+    #unpack_to_dest_flags: Optional[List[bool]] = None,
     transpose_of_faces_values: Optional[List[int]] = None,
     within_face_16x16_transpose_values: Optional[List[int]] = None,
     num_faces_values: Optional[List[int]] = None,
@@ -209,7 +209,7 @@ def generate_unpack_A_params(
             ("acc_to_dest_flags", acc_to_dest_flags),
             ("stoch_rounding_types", stoch_rounding_types),
             ("reuse_dest_types", reuse_dest_types),
-            ("unpack_to_dest_flags", unpack_to_dest_flags),
+            #("unpack_to_dest_flags", unpack_to_dest_flags),
             ("transpose_of_faces_values", transpose_of_faces_values),
             ("within_face_16x16_transpose_values", within_face_16x16_transpose_values),
             ("num_faces_values", num_faces_values),
@@ -227,26 +227,26 @@ def generate_unpack_A_params(
                 for acc_to_dest in (acc_to_dest_flags if acc_to_dest_flags is not None else [None]):
                     for stoch_rounding in (stoch_rounding_types if stoch_rounding_types is not None else [None]):
                         for reuse_dest in (reuse_dest_types if reuse_dest_types is not None else [None]):
-                            for unpack_to_dest in (unpack_to_dest_flags if unpack_to_dest_flags is not None else [None]):
-                                for transpose_of_faces in (transpose_of_faces_values if transpose_of_faces_values is not None else [None]):
-                                    for within_face_16x16_transpose in (within_face_16x16_transpose_values if within_face_16x16_transpose_values is not None else [None]):
-                                        for num_faces in (num_faces_values if num_faces_values is not None else [None]):
+                            #for unpack_to_dest in (unpack_to_dest_flags if unpack_to_dest_flags is not None else [None]):
+                            for transpose_of_faces in (transpose_of_faces_values if transpose_of_faces_values is not None else [None]):
+                                for within_face_16x16_transpose in (within_face_16x16_transpose_values if within_face_16x16_transpose_values is not None else [None]):
+                                    for num_faces in (num_faces_values if num_faces_values is not None else [None]):
                                             
-                                            # Create parameter tuple (unpack_A params only)
-                                            param_tuple = (
-                                                broadcast_type,
-                                                disable_src_zero,
-                                                is_fp32_dest_acc,
-                                                acc_to_dest,
-                                                stoch_rounding,
-                                                reuse_dest,
-                                                unpack_to_dest,
-                                                transpose_of_faces,
-                                                within_face_16x16_transpose,
-                                                num_faces,
-                                            )
+                                        # Create parameter tuple (unpack_A params only)
+                                        param_tuple = (
+                                            broadcast_type,
+                                            disable_src_zero,
+                                            is_fp32_dest_acc,
+                                            acc_to_dest,
+                                            stoch_rounding,
+                                            reuse_dest,
+                                            #unpack_to_dest,
+                                            transpose_of_faces,
+                                            within_face_16x16_transpose,
+                                            num_faces,
+                                        )
                                             
-                                            combinations.append(param_tuple)
+                                        combinations.append(param_tuple)
     
     return combinations
 

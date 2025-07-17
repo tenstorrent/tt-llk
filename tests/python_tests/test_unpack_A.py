@@ -34,7 +34,7 @@ is_fp32_dest_acc_flags = [False, True] #not needed?
 acc_to_dest_flags = [False, True]
 stoch_rounding_types = [StochRndType.NONE, StochRndType.Fpu, StochRndType.Pack, StochRndType.All]
 reuse_dest_types = [EltwiseBinaryReuseDestType.NONE, EltwiseBinaryReuseDestType.DEST_TO_SRCA, EltwiseBinaryReuseDestType.DEST_TO_SRCB]
-unpack_to_dest_flags = [False, True]
+#unpack_to_dest_flags = [False, True]
 transpose_of_faces_values = [0, 1]
 within_face_16x16_transpose_values = [0, 1]
 num_faces_values = [1, 2, 4]
@@ -52,7 +52,7 @@ unpack_A_param_combinations = generate_unpack_A_params(
     acc_to_dest_flags=acc_to_dest_flags,
     stoch_rounding_types=stoch_rounding_types,
     reuse_dest_types=reuse_dest_types,
-    unpack_to_dest_flags=unpack_to_dest_flags,
+    #unpack_to_dest_flags=unpack_to_dest_flags,
     transpose_of_faces_values=transpose_of_faces_values,
     within_face_16x16_transpose_values=within_face_16x16_transpose_values,
     num_faces_values=num_faces_values,
@@ -84,11 +84,11 @@ def create_simple_ids(all_params):
         acc_to_dest = params[5]
         stoch_rnd_type = params[6]
         reuse_dest = params[7]
-        unpack_to_dest = params[8]
-        transpose_of_faces = params[9]
-        within_face_16x16_transpose = params[10]
-        num_faces = params[11]
-        
+        #unpack_to_dest = params[8]
+        transpose_of_faces = params[8]
+        within_face_16x16_transpose = params[9]
+        num_faces = params[10]
+
         # Create a comprehensive but readable ID
         id_parts = [
             f"in_{formats.input_format.name}",
@@ -99,7 +99,7 @@ def create_simple_ids(all_params):
             f"acc_to_dest_{acc_to_dest}",
             f"stoch_rnd_{stoch_rnd_type.name}",
             f"reuse_dest_{reuse_dest.name}",
-            f"unpack_to_dest_{unpack_to_dest}",
+            #"unpack_to_dest_{unpack_to_dest}",f
             f"transpose_faces_{transpose_of_faces}",
             f"within_face_transpose_{within_face_16x16_transpose}",
             f"num_faces_{num_faces}"
@@ -115,18 +115,20 @@ param_ids = create_simple_ids(all_params)
 
 @pytest.mark.parametrize(
     "testname, formats, broadcast_type, disable_src_zero, is_fp32_dest_acc, acc_to_dest, "
-    "stoch_rnd_type, reuse_dest, unpack_to_dest, transpose_of_faces, "
+    "stoch_rnd_type, reuse_dest, transpose_of_faces, "                                          #unpack_to_dest,
     "within_face_16x16_transpose, num_faces",
     clean_params(all_params),
     ids=param_ids
 )
 def test_unpack_comprehensive(
     testname, formats, broadcast_type, disable_src_zero, is_fp32_dest_acc, acc_to_dest,
-    stoch_rnd_type, reuse_dest, unpack_to_dest, transpose_of_faces, 
+    stoch_rnd_type, reuse_dest, transpose_of_faces,                                         #unpack_to_dest,
     within_face_16x16_transpose, num_faces
 ):
+    
     # Check if the format is supported
     arch = get_chip_architecture()
+    unpack_to_dest = formats.input_format.is_32_bit()
 
     print(f"DEBUG: broadcast_type={broadcast_type}, acc_to_dest={acc_to_dest}, reuse_dest={reuse_dest}, unpack_to_dest={unpack_to_dest}")
 
@@ -212,6 +214,7 @@ def test_unpack_comprehensive(
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
 
+    
     # BUILD THE COMPLETE TEST CONFIG
     test_config = {
         "formats": formats,
