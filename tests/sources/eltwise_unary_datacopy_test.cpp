@@ -45,6 +45,7 @@ const bool is_int_fpu_en = false;
 #include "sfpi.h"
 
 using namespace ckernel;
+using namespace sfpi;
 
 void run_kernel()
 {
@@ -62,19 +63,27 @@ void run_kernel()
 
     // CODE FOR REORDERING DATA IN DEST REGISTER FOR DUMPING
 
-    constexpr uint32_t tile_size  = 32;
     constexpr uint32_t ITERATIONS = 32;
+
+    sfpi::vUInt data;
+    sfpi::vUInt tmp;
 
     for (uint32_t i = 0; i < ITERATIONS; i++)
     {
-        sfpi::vUInt data = sfpi::dst_reg[0];          // Read 32 bits from source register
-        sfpi::dst_reg[0] = (data & 0x0000FFFF) << 16; // Lower 16 bits
+        TTI_SFPLOAD(p_sfpu::LREG2, 3, 0, 0);
+        tmp                       = sfpi::l_reg[LRegs::LReg2];
+        tmp                       = tmp << 16;
+        sfpi::l_reg[LRegs::LReg2] = tmp;
 
-        // lower 16 bits in place where they can be raad
+        // Use explicit pack/store to move l_reg to dst_reg, avoiding direct assignment
+        TTI_SFPSTORE(p_sfpu::LREG2, 0, 0, 0);
 
-        sfpi::dst_reg[0] = data;
+        TTI_SFPLOAD(p_sfpu::LREG2, 3, 0, 1);
+        tmp                       = sfpi::l_reg[LRegs::LReg2];
+        tmp                       = tmp << 16;
+        sfpi::l_reg[LRegs::LReg2] = tmp;
 
-        // upper 16 bits cam be read normally
+        TTI_SFPSTORE(p_sfpu::LREG2, 0, 0, 1);
 
         sfpi::dst_reg++;
     }

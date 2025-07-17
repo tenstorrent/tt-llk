@@ -63,7 +63,9 @@ def test_unary_datacopy(testname, formats, dest_acc):
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format
     )
-    src_A = torch.arange(1, 33, 1 / 32, dtype=torch.float32)
+    # src_A = torch.arange(1, 33, 1 / 32, dtype=torch.float32)
+
+    src_A = torch.ones(1024, dtype=torch.float32) * 1.0052082538604736328125
 
     golden = generate_golden(src_A, formats.output_format)
     res_address = write_stimuli_to_l1(
@@ -102,5 +104,10 @@ def test_unary_datacopy(testname, formats, dest_acc):
     result_hex = to_hex_matrix(res_tensor)
     for i in range(32):
         print(" ".join(f"0x{result_hex[i, j].item():08x}" for j in range(32)))
+
+    print("\n\nReal layout (hex, 64x16): \n\n")
+    real_layout = res_tensor.view(64, 16).cpu().to(torch.float32).view(torch.uint32)
+    for i in range(64):
+        print(" ".join(f"0x{real_layout[i, j].item():08x}" for j in range(16)))
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
