@@ -1,0 +1,94 @@
+@PACKAGE_INIT@
+
+# tt-llk CMake package configuration file
+
+include(CMakeFindDependencyMacro)
+
+# Define the available architectures
+set(TT_LLK_ARCHITECTURES "wormhole_b0" "blackhole")
+
+# Include the targets file
+include("${CMAKE_CURRENT_LIST_DIR}/tt-llk-targets.cmake")
+
+# Set up architecture-specific variables
+set(TT_LLK_WORMHOLE_B0_FOUND TRUE)
+set(TT_LLK_BLACKHOLE_FOUND TRUE)
+
+# Function to check if target exists
+function(tt_llk_check_target target_name)
+    if(NOT TARGET ${target_name})
+        set(${target_name}_FOUND FALSE PARENT_SCOPE)
+        if(tt-llk_FIND_REQUIRED_${target_name})
+            message(FATAL_ERROR "Required tt-llk target ${target_name} not found")
+        endif()
+    endif()
+endfunction()
+
+# Check targets
+tt_llk_check_target(tt-llk::wormhole_b0)
+tt_llk_check_target(tt-llk::blackhole)
+
+# Handle COMPONENTS
+if(tt-llk_FIND_COMPONENTS)
+    foreach(component ${tt-llk_FIND_COMPONENTS})
+        string(TOLOWER ${component} component_lower)
+        if(component_lower STREQUAL "wormhole_b0" OR component_lower STREQUAL "wormhole-b0")
+            if(NOT TARGET tt-llk::wormhole_b0)
+                set(tt-llk_${component}_FOUND FALSE)
+                if(tt-llk_FIND_REQUIRED_${component})
+                    message(FATAL_ERROR "Required component ${component} not found")
+                endif()
+            else()
+                set(tt-llk_${component}_FOUND TRUE)
+            endif()
+        elseif(component_lower STREQUAL "blackhole")
+            if(NOT TARGET tt-llk::blackhole)
+                set(tt-llk_${component}_FOUND FALSE)
+                if(tt-llk_FIND_REQUIRED_${component})
+                    message(FATAL_ERROR "Required component ${component} not found")
+                endif()
+            else()
+                set(tt-llk_${component}_FOUND TRUE)
+            endif()
+        else()
+            message(WARNING "Unknown tt-llk component: ${component}")
+            set(tt-llk_${component}_FOUND FALSE)
+        endif()
+    endforeach()
+endif()
+
+# Provide legacy support for old variable names (if any)
+set(TT_LLK_INCLUDE_DIRS "")
+if(TARGET tt-llk::wormhole_b0)
+    get_target_property(wormhole_includes tt-llk::wormhole_b0 INTERFACE_INCLUDE_DIRECTORIES)
+    if(wormhole_includes)
+        list(APPEND TT_LLK_INCLUDE_DIRS ${wormhole_includes})
+    endif()
+endif()
+
+if(TARGET tt-llk::blackhole)
+    get_target_property(blackhole_includes tt-llk::blackhole INTERFACE_INCLUDE_DIRECTORIES)
+    if(blackhole_includes)
+        list(APPEND TT_LLK_INCLUDE_DIRS ${blackhole_includes})
+    endif()
+endif()
+
+# Remove duplicates
+if(TT_LLK_INCLUDE_DIRS)
+    list(REMOVE_DUPLICATES TT_LLK_INCLUDE_DIRS)
+endif()
+
+# Set found flag
+set(tt-llk_FOUND TRUE)
+
+# Print information about what was found
+if(NOT tt-llk_FIND_QUIETLY)
+    message(STATUS "Found tt-llk version @PROJECT_VERSION@")
+    message(STATUS "Available targets:")
+    if(TARGET tt-llk::wormhole_b0)
+        message(STATUS "  tt-llk::wormhole_b0")
+    endif()
+    if(TARGET tt-llk::blackhole)
+        message(STATUS "  tt-llk::blackhole")
+    endif()
+endif()
