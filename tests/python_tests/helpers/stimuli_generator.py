@@ -71,6 +71,8 @@ def generate_stimuli(
         face_a, face_b = generate_random_face_ab(
             stimuli_format_A, stimuli_format_B, const_face, const_value_A, const_value_B
         )
+        face_a = face_a.t()
+        face_b = face_b.t()
         srcA.extend(face_a.tolist())
         srcB.extend(face_b.tolist())
 

@@ -94,7 +94,7 @@ inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_d
     if constexpr (untilize)
     {
         const uint face_r_offset = ((face_r_dim == 1) || narrow_tile || diagonal) ? FACE_R_DIM : (face_r_dim >> 1);
-        if constexpr (FaceLayout == ColMajor)
+        if constexpr (FaceLayout == DstTileFaceLayout::ColMajor)
         {
             // Packer0 :  0,32,  1,33 ...  7, 39
             // Packer1 :  8,40,  9,41 ... 15, 47
@@ -147,7 +147,7 @@ inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_d
     }
     else
     {
-        if constexpr (FaceLayout == ColMajor)
+        if constexpr (FaceLayout == DstTileFaceLayout::ColMajor)
         {
             TT_SETDMAREG(0, 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
             TT_SETDMAREG(0, 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
@@ -173,7 +173,7 @@ inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_d
     select_packer_dest_registers<Dst>();
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, DstTileFaceLayout FaceLayout = RowMajor, bool untilize = false>
+template <DstSync Dst, bool is_fp32_dest_acc_en, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool untilize = false>
 inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
 {
     tensix_sync();

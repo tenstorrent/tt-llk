@@ -51,7 +51,7 @@ inline void _llk_pack_configure_addrmod_()
         .set(ADDR_MOD_2);
 }
 
-template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
+template <bool untilize = false, bool zero_output = false, bool write_tile_header = true>
 inline void _llk_pack_mop_config_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -59,8 +59,6 @@ inline void _llk_pack_mop_config_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
-
     const uint PACKCNT              = (partial_face && IS_BFP_FORMAT(pack_dst_format)) ? 1 : num_faces;
     constexpr uint MEGAROW          = 1;
     constexpr uint ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
@@ -106,11 +104,7 @@ inline void _llk_pack_mop_config_(
     }
 }
 
-template <
-    bool is_fp32_dest_acc_en,
-    bool is_tile_dim_reconfig_en = false,
-    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
-    bool write_tile_header       = true>
+template <bool is_fp32_dest_acc_en, bool is_tile_dim_reconfig_en = false, bool write_tile_header = true>
 inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -124,7 +118,7 @@ inline void _llk_pack_reconfig_data_format_(
 
     if constexpr (is_tile_dim_reconfig_en)
     {
-        _llk_pack_mop_config_<false, false, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+        _llk_pack_mop_config_<false, false, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
     }
 }
 
@@ -217,7 +211,7 @@ inline void _llk_pack_reduce_hw_configure_(
     }
 }
 
-template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
+template <bool untilize = false, bool zero_output = false, bool write_tile_header = true>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -227,7 +221,7 @@ inline void _llk_pack_init_(
 {
     _llk_pack_configure_addrmod_<untilize>();
 
-    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_mop_config_<untilize, zero_output, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>

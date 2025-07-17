@@ -96,11 +96,11 @@ void call_sfpu_operation(SfpuType operation)
 
 void run_kernel()
 {
-    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
+    _llk_math_matmul_init_<MATH_FIDELITY>();
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+    _llk_math_matmul_<MATH_FIDELITY>(0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     // Start of second math kernel to perform matmul on now tilized input data
@@ -139,11 +139,11 @@ void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_init_<false, false, false, false>(PACK_OUT);
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+    _llk_pack_init_<false, false, false>(PACK_OUT);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif
 
@@ -159,10 +159,10 @@ void run_kernel()
     constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
 #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+    _llk_pack_init_<false, false, false>(PACK_OUT);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
 #endif

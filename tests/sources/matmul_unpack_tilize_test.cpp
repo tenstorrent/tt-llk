@@ -92,9 +92,9 @@ void run_kernel()
     // Start of second math kernel to perform matmul on now tilized input data
     _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(MATH_FORMAT); // have to reconfigure math kernel data formats if they change in this run
     _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en, false>(MATH_FORMAT);
-    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
+    _llk_math_matmul_init_<MATH_FIDELITY>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+    _llk_math_matmul_<MATH_FIDELITY>(0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -117,11 +117,11 @@ void run_kernel()
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(PACK_OUT);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_init_<UNTILIZE, false, false, TILIZE>(PACK_OUT);
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+    _llk_pack_init_<UNTILIZE, false, false>(PACK_OUT);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
 
@@ -143,7 +143,7 @@ void run_kernel()
         tile_size); // need to reconfigure data formats for next pack, also calls set_packer_strides to readjust strides after pack tilizing
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
+    _llk_pack_init_<false, false, false, false>(PACK_OUT);
 #endif
 
     _llk_packer_wait_for_math_done_();
