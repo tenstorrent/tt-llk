@@ -37,7 +37,7 @@ function(create_architecture_target arch_name arch_dir)
         INTERFACE
             FILE_SET jit_api
             TYPE HEADERS
-            BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
+            BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${arch_dir}
             FILES ${ARCH_HEADERS}
     )
 
