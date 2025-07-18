@@ -22,7 +22,7 @@ from helpers.param_config import (
     input_output_formats,
 )
 # SUPPORTED FORMATS FOR TEST
-supported_formats = [s
+supported_formats = [
     DataFormat.Float32,
     DataFormat.Float16,
     DataFormat.Float16_b,
