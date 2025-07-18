@@ -134,7 +134,7 @@ To set up pre-commit on your local machine, follow these steps:
    pre-commit run --all-files
    ```
 
-### Clangd Setup for IDE Integration
+### `clangd` setup for IDE Integration
 
 This project uses `clangd` to provide language server features like code completion, navigation, and live error checking. Follow these steps to set it up correctly:
 
@@ -156,8 +156,8 @@ This project uses `clangd` to provide language server features like code complet
     ./setup_clangd.sh blackhole
     ```
 
-4.  **Restart Your Editor**:
-    After completing the setup, restart your editor or the `clangd` server for the changes to take effect. The `.clangd` file in the repository root will automatically tell the extension to use the `compile_flags.txt` you generated.
+4.  **Reload file**:
+    After completing the setup, you might have to reload the file in the editor. That is not always the case.
 
 ### Spell Checking with `codespell`
 
