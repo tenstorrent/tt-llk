@@ -26,10 +26,12 @@ esac
 
 ROOT_DIR=$(git rev-parse --show-toplevel)
 
-cat > compile_flags.txt <<EOF
+cat > "$ROOT_DIR/compile_flags.txt" <<EOF
 -D$ARCH_DEFINE
 -DTENSIX_FIRMWARE
 -std=c++17
+-nostdinc++
+-nostdinc
 
 -DLLK_TRISC_UNPACK
 -DLLK_TRISC_MATH
