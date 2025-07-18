@@ -61,6 +61,7 @@ float_ops = [
     MathOperation.Reciprocal,
     MathOperation.Sin,
     MathOperation.Sqrt,
+    MathOperation.Rsqrt,
     MathOperation.Square,
     MathOperation.Celu,
     MathOperation.Silu,
