@@ -40,15 +40,14 @@ cat > "$ROOT_DIR/compile_flags.txt" <<EOF
 -I$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include
 -I$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include/c++/12.4.0
 -I$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include/c++/12.4.0/riscv32-tt-elf
--I$ROOT_DIR/firmware/riscv/common
--I$ROOT_DIR/firmware/riscv/$CHIP_ARCH
+-I$ROOT_DIR/tests/sfpi/include
+-I$ROOT_DIR/tests/firmware/riscv/common
+-I$ROOT_DIR/tests/firmware/riscv/$CHIP_ARCH
 -I$ROOT_DIR/tests/hw_specific/$CHIP_ARCH/inc
 -I$ROOT_DIR/$ARCH_LLK_ROOT/common/inc
 -I$ROOT_DIR/$ARCH_LLK_ROOT/common/inc/sfpu
 -I$ROOT_DIR/$ARCH_LLK_ROOT/llk_lib
--I$ROOT_DIR/tests/sfpi/include
 -I$ROOT_DIR/tests/helpers/include
--I$ROOT_DIR/tests/firmware/riscv/common
 EOF
 
 (pkill clangd && clangd >/dev/null 2>&1 &) || true  # restart clang if it's running
