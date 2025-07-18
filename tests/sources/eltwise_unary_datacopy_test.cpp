@@ -41,6 +41,7 @@ const bool is_int_fpu_en = false;
 
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
+#include "llk_math_eltwise_unary_sfpu.h"
 #include "params.h"
 #include "sfpi.h"
 
@@ -63,14 +64,21 @@ void run_kernel()
 
     // CODE FOR REORDERING DATA IN DEST REGISTER FOR DUMPING
 
-    constexpr uint32_t ITERATIONS = 64;
+    constexpr uint32_t ITERATIONS = 32;
+
+    eltwise_unary_sfpu_configure_addrmod<SfpuType::abs>();
 
     for (uint32_t i = 0; i < ITERATIONS; i++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG2, 3, 0, 0);
+        TTI_SFPLOAD(p_sfpu::LREG2, 3, 7, 0);
+        TTI_SFPMOV(0, p_sfpu::LREG2, p_sfpu::LREG3, 2);
         TTI_SFPSHFT(0x010, p_sfpu::LREG2, p_sfpu::LREG2, 1);
-        TTI_SFPSTORE(p_sfpu::LREG2, 3, 0, 0);
-        TTI_INCRWC(0, 16, 0, 0);
+        TTI_SFPSTORE(p_sfpu::LREG2, 3, 7, 0);
+
+        // place to halt and read from dest
+
+        TTI_SFPSTORE(p_sfpu::LREG3, 3, 7, 0);
+        TTI_INCRWC(0, 2, 0, 0);
     }
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
