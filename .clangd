@@ -1,3 +1,3 @@
 CompileFlags:
-  Add: [-std=c++17, -xc++]
+  Add: [-std=c++17, -xc++, -ferror-limit=100]
   CompilationDatabase: .

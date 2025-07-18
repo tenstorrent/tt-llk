@@ -29,6 +29,7 @@ ROOT_DIR=$(git rev-parse --show-toplevel)
 cat > "$ROOT_DIR/compile_flags.txt" <<EOF
 -D$ARCH_DEFINE
 -DTENSIX_FIRMWARE
+-DCOMPILE_FOR_TRISC
 -std=c++17
 -nostdinc++
 -nostdinc
@@ -37,10 +38,16 @@ cat > "$ROOT_DIR/compile_flags.txt" <<EOF
 -DLLK_TRISC_MATH
 -DLLK_TRISC_PACK
 
--I$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include
--I$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include/c++/12.4.0
--I$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include/c++/12.4.0/riscv32-tt-elf
--I$ROOT_DIR/tests/sfpi/include
+-isystem
+$ROOT_DIR/tests/sfpi/compiler/lib/gcc/riscv32-tt-elf/12.4.0/include/
+-isystem
+$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include
+-isystem
+$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include/c++/12.4.0
+-isystem
+$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include/c++/12.4.0/riscv32-tt-elf
+-isystem
+$ROOT_DIR/tests/sfpi/include
 -I$ROOT_DIR/tests/firmware/riscv/common
 -I$ROOT_DIR/tests/firmware/riscv/$CHIP_ARCH
 -I$ROOT_DIR/tests/hw_specific/$CHIP_ARCH/inc
