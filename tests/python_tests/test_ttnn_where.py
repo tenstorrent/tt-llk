@@ -18,7 +18,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.pack import pack_bfp16, pack_fp32
+from helpers.pack import pack_bfp8_b, pack_bfp16, pack_fp32
 from helpers.param_config import (
     clean_params,
     generate_param_ids,
@@ -168,10 +168,16 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         pack_function_A = pack_fp32
         pack_function_B = pack_fp32
         pack_function_C = pack_fp32
-    else:
+    elif formats.input_format == DataFormat.Float16_b:
         pack_function_A = pack_bfp16
         pack_function_B = pack_bfp16
         pack_function_C = pack_bfp16
+    elif formats.input_format == DataFormat.Bfp8_b:
+        pack_function_A = pack_bfp8_b
+        pack_function_B = pack_bfp8_b
+        pack_function_C = pack_bfp8_b
+    else:
+        raise ValueError(f"Unsupported input format: {formats.input_format}")
 
     golden = generate_golden(src_A, src_B, src_C)
     write_to_device(core_loc, buffer_A_address, pack_function_A(src_A))
@@ -224,7 +230,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
     assert torch_equal_nan(golden_tensor, res_tensor)
 
 
-supported_formats = [DataFormat.Float32]  # , DataFormat.Float16_b]
+supported_formats = [DataFormat.Bfp8_b]  # , DataFormat.Float16_b]
 dtype = torch.float32 if supported_formats[0] == DataFormat.Float32 else torch.bfloat16
 
 test_formats = input_output_formats(supported_formats, same=True)
@@ -271,10 +277,16 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
         pack_function_A = pack_fp32
         pack_function_B = pack_fp32
         pack_function_C = pack_fp32
-    else:
+    elif formats.input_format == DataFormat.Float16_b:
         pack_function_A = pack_bfp16
         pack_function_B = pack_bfp16
         pack_function_C = pack_bfp16
+    elif formats.input_format == DataFormat.Bfp8_b:
+        pack_function_A = pack_bfp8_b
+        pack_function_B = pack_bfp8_b
+        pack_function_C = pack_bfp8_b
+    else:
+        raise ValueError(f"Unsupported input format: {formats.input_format}")
 
     golden = generate_golden(C, T, F)
     write_to_device(core_loc, buffer_A_address, pack_function_A(C))
@@ -320,4 +332,13 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     )
 
     assert len(res_tensor) == len(golden_tensor)
+
+    print(
+        "RESULT TENSOR (first 10 elements of 1st row):", res_tensor.view(32, 32)[0, :10]
+    )
+    print(
+        "GOLDEN TENSOR (first 10 elements of 1st row):",
+        golden_tensor.view(32, 32)[0, :10],
+    )
+
     assert torch_equal_nan(golden_tensor, res_tensor)
