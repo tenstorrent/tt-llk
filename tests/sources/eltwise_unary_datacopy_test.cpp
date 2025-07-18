@@ -66,7 +66,17 @@ void run_kernel()
 
     constexpr uint32_t ITERATIONS = 32;
 
-    eltwise_unary_sfpu_configure_addrmod<SfpuType::abs>();
+    // eltwise_unary_sfpu_configure_addrmod<SfpuType::abs>();
+
+    /*
+    744c:	c8540002          	ttsetc16	21,0
+    7450:	c8780002          	ttsetc16	30,0
+    7454:	c8dc0002          	ttsetc16	55,0
+    */
+
+    TTI_SETC16(21, 0);
+    TTI_SETC16(30, 0);
+    TTI_SETC16(55, 0);
 
     for (uint32_t i = 0; i < ITERATIONS; i++)
     {
