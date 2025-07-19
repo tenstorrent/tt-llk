@@ -3,13 +3,9 @@
 
 import logging
 import os
-import sys
-import time
 from pathlib import Path
 
 import pytest
-import requests
-from requests.exceptions import ConnectionError, RequestException, Timeout
 from ttexalens import tt_exalens_init
 from ttexalens.tt_exalens_lib import (
     arc_msg,
@@ -33,85 +29,6 @@ def reset_mailboxes_fixture():
     yield
 
 
-@pytest.fixture(scope="session", autouse=True)
-def download_headers():
-    CHIP_ARCH = get_chip_architecture()
-    if CHIP_ARCH not in [ChipArchitecture.WORMHOLE, ChipArchitecture.BLACKHOLE]:
-        sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH.value}")
-
-    LLK_HOME = os.environ.get("LLK_HOME")
-    HEADER_DIR = os.path.join(LLK_HOME, "tests", "hw_specific", CHIP_ARCH.value, "inc")
-    STAMP_FILE = os.path.join(HEADER_DIR, ".headers_downloaded")
-    if os.path.exists(STAMP_FILE):
-        print("Headers already downloaded. Skipping download.")
-        return
-
-    BASE_URL = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}"
-    WORMHOLE_SPECIFIC_URL = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}/wormhole_b0_defines"
-    HEADERS = [
-        "cfg_defines.h",
-        "dev_mem_map.h",
-        "tensix.h",
-        "tensix_types.h",
-    ]
-
-    # Create the header directory if it doesn't exist
-    os.makedirs(HEADER_DIR, exist_ok=True)
-
-    # Determine the specific URL based on CHIP_ARCH
-    specific_url = (
-        WORMHOLE_SPECIFIC_URL if CHIP_ARCH == ChipArchitecture.WORMHOLE else None
-    )
-
-    # Download headers
-    def download_with_retries(url, header):
-        RETRIES, RETRY_DELAY = 3, 2
-        for attempt in range(1, RETRIES + 1):
-            try:
-                print(f"Attempt {attempt}: Downloading {header} from {url}...")
-                response = requests.get(url, timeout=10)
-                if response.status_code == 200:
-                    with open(os.path.join(HEADER_DIR, header), "wb") as f:
-                        f.write(response.content)
-                    return True
-                elif response.status_code == 429:  # Rate limited
-                    retry_after = int(response.headers.get("Retry-After", RETRY_DELAY))
-                    print(f"Rate limited. Waiting {retry_after} seconds...")
-                    time.sleep(retry_after)
-                else:
-                    print(f"HTTP error {response.status_code} for {url}")
-                    return False
-            except (ConnectionError, Timeout) as e:
-                print(f"Network issue on attempt {attempt}: {e}")
-                if attempt < RETRIES:
-                    time.sleep(RETRY_DELAY)
-                    RETRY_DELAY *= 2
-            except RequestException as e:
-                print(f"Non-retryable error on attempt {attempt}: {e}")
-                return False
-        return False
-
-    for header in HEADERS:
-        header_url = f"{BASE_URL}/{header}"
-        specific_header_url = f"{specific_url}/{header}" if specific_url else None
-
-        # Try primary URL
-        if not download_with_retries(header_url, header):
-            # Fallback to specific URL
-            if specific_header_url and not download_with_retries(
-                specific_header_url, header
-            ):
-                print(f"Failed to download {header} after trying both URLs")
-                sys.exit(1)
-            elif not specific_header_url:
-                print(f"Failed to download {header} after retries from primary URL")
-                sys.exit(1)
-
-    # Create the stamp file to indicate headers are downloaded
-    with open(STAMP_FILE, "w") as f:
-        f.write("Headers downloaded.\n")
-
-
 def pytest_configure(config):
     log_file = "pytest_errors.log"
     # Clear the log file if it exists
@@ -122,6 +39,14 @@ def pytest_configure(config):
         level=logging.ERROR,
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
+
+    initialize_test_target_from_pytest(config)
+    test_target = TestTargetConfig()
+
+    if test_target.run_simulator:
+        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+    else:
+        tt_exalens_init.init_ttexalens()
 
 
 def pytest_runtest_logreport(report):
@@ -208,17 +133,6 @@ def pytest_addoption(parser):
         default=5555,
         help="Integer number of the server port.",
     )
-
-
-# Use simulator or silicon to run tests depending on the given command line options
-def pytest_configure(config):
-    initialize_test_target_from_pytest(config)
-    test_target = TestTargetConfig()
-
-    if test_target.run_simulator:
-        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
-    else:
-        tt_exalens_init.init_ttexalens()
 
 
 # Skip decorators for specific architectures

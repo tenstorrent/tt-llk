@@ -26,6 +26,9 @@ esac
 
 ROOT_DIR=$(git rev-parse --show-toplevel)
 
+# Download sfpi and hardware-specific headers
+source $ROOT_DIR/tests/setup_testing_env.sh
+
 cat > "$ROOT_DIR/compile_flags.txt" <<EOF
 -D$ARCH_DEFINE
 -DTENSIX_FIRMWARE
