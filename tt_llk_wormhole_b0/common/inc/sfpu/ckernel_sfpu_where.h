@@ -10,6 +10,7 @@ namespace ckernel::sfpu
 {
 
 /*
+
 Expects following input in Dst register:
 Index 0 ( Tile 0 ) -> condition tensor
 Index 32 ( Tile 1 ) -> true tensor
@@ -22,10 +23,7 @@ inline void _calculate_where_fp16_b_()
 {
     constexpr uint dst_tile_size = 32;
 
-    sfpi::vFloat output_tensor = 0;
-    sfpi::vFloat true_tensor   = 0;
-    sfpi::vFloat false_tensor  = 0;
-    sfpi::vFloat cond          = sfpi::dst_reg[0];
+    sfpi::vFloat cond = sfpi::dst_reg[0];
 
     for (int i = 0; i < ITERATIONS; i++)
     {
