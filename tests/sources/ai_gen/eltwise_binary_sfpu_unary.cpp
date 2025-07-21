@@ -97,26 +97,26 @@ void call_sfpu_operation(SfpuType operation)
 void run_kernel()
 {
     // Initialize math operations
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
 
     // Wait for destination to be available
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    _llk_math_wait_for_dest_available_<DST_SYNC>();
 
     // Perform elementwise binary operation (ELWADD, ELWMUL, or ELWSUB)
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
+    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DST_SYNC, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
         4, 0, false);
 
     // Now perform SFPU unary operation on the result in dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+    _llk_math_eltwise_unary_sfpu_start_<DST_SYNC>(0);
 
     // Call the specific SFPU operation
     call_sfpu_operation(SFPU_UNARY_OPERATION);
 
     _llk_math_eltwise_unary_sfpu_done_();
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -139,15 +139,15 @@ void run_kernel()
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DST_SYNC, false, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     // Pack the result from destination register to output buffer
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
 }
 
 #endif
