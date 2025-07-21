@@ -54,5 +54,4 @@ inline void _calculate_where_()
     _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
 }
 
-} // namespace sfpu
-} // namespace ckernel
+} // namespace ckernel::sfpu
