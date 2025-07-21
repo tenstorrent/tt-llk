@@ -27,6 +27,7 @@ class MathOpType(Enum):
     SFPU_UNARY = auto()
     SFPU_BINARY = auto()
     SFPU_TERNARY = auto()
+
     FPU_BINARY = auto()
     REDUCE = auto()
 
