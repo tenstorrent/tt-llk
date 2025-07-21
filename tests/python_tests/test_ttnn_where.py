@@ -43,7 +43,7 @@ def generate_golden(operand1, true_value, false_value):
     ).flatten()
 
 
-# Helper check functiion
+# Helper check function
 def torch_equal_nan(a, b):
     # return torch.all(
     #     torch.isclose(a, b, rtol=1e-2, atol=1e-5) | (torch.isnan(a) & torch.isnan(b))
