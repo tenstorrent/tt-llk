@@ -8,7 +8,7 @@
 #include "llk_sfpu_types.h"
 
 template <bool APPROXIMATE, class F, class... ARGS>
-inline void llk_math_eltwise_ternary_sfpu_params(
+inline void _llk_math_eltwise_ternary_sfpu_params_(
     F&& sfpu_func, uint dst_index0, uint dst_index1, uint dst_index2, int vector_mode = (int)VectorMode::RC, ARGS&&... args)
 {
     // Compute minimum destination index
