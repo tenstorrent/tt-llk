@@ -6,7 +6,11 @@
 
 #include <cstdint>
 
-constexpr std::uint32_t INSTRN_BUF_BASE = 0xFFE40000;
+#ifdef INSTRN_BUF_BASE
+#undef INSTRN_BUF_BASE
+#endif
+
+#define INSTRN_BUF_BASE 0xFFE40000
 
 namespace ckernel
 {
