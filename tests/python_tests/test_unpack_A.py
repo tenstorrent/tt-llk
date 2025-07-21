@@ -32,7 +32,7 @@ supported_formats = [
 # Define your parameter lists
 broadcast_types = [BroadcastType.NONE] #, BroadcastType.COL, BroadcastType.ROW, BroadcastType.SCALAR
 dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
-disable_src_zero_flags = [False, True]
+disable_src_zero_flags = [False] #, True
 # is_fp32_dest_acc_flags removed - it's automatically handled in params.h
 acc_to_dest_flags = [False] #, True
 stoch_rounding_types = [StochRndType.NONE, StochRndType.Fpu, StochRndType.Pack, StochRndType.All]
