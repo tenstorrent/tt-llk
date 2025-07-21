@@ -25,8 +25,8 @@ class MathOpType(Enum):
     """Enum for different types of math operations."""
 
     SFPU_UNARY = auto()
-    SFPU_TERNARY = auto()
     SFPU_BINARY = auto()
+    SFPU_TERNARY = auto()
     FPU_BINARY = auto()
     REDUCE = auto()
 
