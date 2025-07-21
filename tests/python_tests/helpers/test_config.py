@@ -199,6 +199,17 @@ def generate_build_header(
                     f"constexpr auto POOL_TYPE = ckernel::PoolType::{pool_type.value};"
                 )
 
+    # Optional extra unary operation (used when both a binary and unary op
+    # need to be present in the same kernel, e.g. binary-eltwise followed by
+    # SFPU unary).  If 'unary_op' exists and differs from the main mathop,
+    # append its constant as well.
+    unary_extra = test_config.get("unary_op", None)
+    if unary_extra is not None and unary_extra != mathop:
+        header_content.extend(["", "// Additional SFPU unary operation"])
+        header_content.append(
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{unary_extra.cpp_enum_value};"
+        )
+
     tile_cnt = test_config.get("tile_cnt", 1)
 
     header_content.append("")

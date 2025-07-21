@@ -6,8 +6,11 @@
 
 #include <cstdint>
 
-#include "risc_attribs.h"
-#include "tensix.h"
+#ifdef INSTRN_BUF_BASE
+#undef INSTRN_BUF_BASE
+#endif
+
+#define INSTRN_BUF_BASE 0xFFE40000
 
 namespace ckernel
 {
