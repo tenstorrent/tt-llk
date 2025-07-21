@@ -143,6 +143,8 @@ def _stringify_params(params):
             parts.append(f"{name}.output={value.output}")
         elif isinstance(value, str):
             parts.append(f'{name}="{value}"')
+        elif hasattr(value, "repr"):
+            parts.append(f"{name}={value.repr()}")
         else:
             parts.append(f"{name}={str(value)}")
 
