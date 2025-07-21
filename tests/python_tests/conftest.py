@@ -52,7 +52,6 @@ def download_headers():
         "cfg_defines.h",
         "dev_mem_map.h",
         "tensix.h",
-        "tensix_dev_map.h",
         "tensix_types.h",
     ]
 
