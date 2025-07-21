@@ -5,7 +5,6 @@
 import pytest
 import torch
 
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -79,7 +78,7 @@ all_params = generate_params(
     ],
     math_fidelity=[
         MathFidelity.LoFi,
-        # MathFidelity.HiFi2, TODO: FIND OUT WHY
+        MathFidelity.HiFi2,  # TODO: FIND OUT WHY
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
@@ -100,21 +99,9 @@ def test_matmul_and_unary_sfpu(
 
     if mathop in [MathOperation.Cos, MathOperation.Sin]:
         pytest.skip("Cos and Sin operations are not fully functional yet")
-    if mathop == MathOperation.Square and math_fidelity == MathFidelity.LoFi:
-        pytest.skip("Square operation in LoFi is not fully functional yet")
-    if (
-        formats.input_format == formats.output_format == DataFormat.Float16
-        and mathop
-        in [
-            MathOperation.Log,
-            MathOperation.Sqrt,
-            MathOperation.Square,
-            MathOperation.Hardsigmoid,
-        ]
-        and dest_acc == DestAccumulation.No
-        and get_chip_architecture() == ChipArchitecture.BLACKHOLE
-    ):
-        pytest.skip("BFP8 does not support Log and Reciprocal operations")
+
+    if mathop == MathOperation.Square and math_fidelity == MathFidelity.HiFi2:
+        pytest.skip("Square operation in HiFi2 is not fully functional yet")
 
     torch_format = format_dict.get(formats.output_format)
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -128,7 +115,9 @@ def test_matmul_and_unary_sfpu(
     golden_tensor = tilize(golden_tensor, formats.output_format)
 
     generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
-    golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
+    golden_tensor = generate_sfpu_golden(
+        mathop, golden_tensor, formats.output_format, math_fidelity
+    )
     golden_tensor = golden_tensor.to(torch_format)
 
     res_address = write_stimuli_to_l1(
