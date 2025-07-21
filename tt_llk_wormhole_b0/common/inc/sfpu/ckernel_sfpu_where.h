@@ -6,9 +6,7 @@
 
 #include "sfpi.h"
 
-namespace ckernel
-{
-namespace sfpu
+namespace ckernel::sfpu
 {
 
 /*
@@ -19,8 +17,8 @@ Index 64 ( Tile 2 ) -> false tensor
 
 */
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 32>
-inline void _calculate_where_fp16_b()
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_where_fp16_b_()
 {
     constexpr uint dst_tile_size = 32;
 
@@ -52,8 +50,8 @@ inline void _calculate_where_fp16_b()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 32>
-inline void _calculate_where_fp32()
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_where_fp32_()
 {
     constexpr uint dst_tile_size = 32;
 
@@ -88,13 +86,12 @@ inline void _calculate_where_()
 {
     if (data_format == 0)
     {
-        _calculate_where_fp32<APPROXIMATION_MODE>();
+        _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
     }
     else
     {
-        _calculate_where_fp16_b<APPROXIMATION_MODE>();
+        _calculate_where_fp16_b_<APPROXIMATION_MODE, 32>();
     }
 }
 
-} // namespace sfpu
-} // namespace ckernel
+} // namespace ckernel::sfpu
