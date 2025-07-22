@@ -346,6 +346,9 @@ class UnarySFPUGolden:
     def __init__(self):
         self.ops = {
             MathOperation.Abs: self._abs,
+            MathOperation.Atanh: self._atanh,
+            MathOperation.Asinh: self._asinh,
+            MathOperation.Acosh: self._acosh,
             MathOperation.Cos: self._cos,
             MathOperation.Log: self._log,
             MathOperation.Reciprocal: self._reciprocal,
@@ -385,11 +388,28 @@ class UnarySFPUGolden:
         if self.data_format.is_exponent_B():
             return expected
         else:  # self.data_format == DataFormat.Float16:
-            return float("NaN")
+            return float("nan")
 
     # Operation methods
     def _abs(self, x):
         return abs(x)
+
+    def _atanh(self, x):
+        if x < -1.0 or x > 1.0:
+            return float("nan")
+        if x == -1.0:
+            return float("-inf")
+        if x == 1.0:
+            return float("inf")
+        return math.atanh(x)
+
+    def _asinh(self, x):
+        return math.asinh(x)
+
+    def _acosh(self, x):
+        if x < 1.0:
+            return float("nan")
+        return math.acosh(x)
 
     def _cos(self, x):
         return math.cos(x)

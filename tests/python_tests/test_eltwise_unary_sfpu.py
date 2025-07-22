@@ -56,6 +56,9 @@ supported_int_formats = [DataFormat.Int32]
 
 float_ops = [
     MathOperation.Abs,
+    MathOperation.Atanh,
+    MathOperation.Asinh,
+    MathOperation.Acosh,
     MathOperation.Cos,
     MathOperation.Log,
     MathOperation.Reciprocal,
