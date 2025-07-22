@@ -14,7 +14,7 @@ namespace sfpu
 {
 
 // See: Kokosiński, Z., Gepner, P., Moroz, L. et al.
-// Fast and accurate approximation algorithms for computing floating point square root. Numer Algor (2024).
+// Fast and accurate approximation algorithms for computing floating point square root. Numerical Algorithms (2024).
 // https://doi.org/10.1007/s11075-024-01932-7
 
 // Computes the square root or reciprocal square root of a positive floating point value x.
