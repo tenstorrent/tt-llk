@@ -30,7 +30,8 @@ volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>
 void run_kernel()
 {
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
-    _llk_unpack_tilize_hw_configure_<fp32_dest_accumulation, StochRndType::None>(formats_array[run].unpack_src, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_tilize_hw_configure_<fp32_dest_accumulation, StochRndType::None>(
+        formats_array[run].unpack_src, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, 1, FACE_R_DIM, 4, false);
@@ -109,8 +110,13 @@ void run_kernel()
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, fp32_dest_accumulation, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
-        4, res_dst_index, false);
+    _llk_math_eltwise_binary_<
+        ELTWISE_BINARY_OP,
+        BroadcastType::NONE,
+        DstSync::SyncHalf,
+        fp32_dest_accumulation,
+        MATH_FIDELITY,
+        EltwiseBinaryReuseDestType::NONE>(4, res_dst_index, false);
     _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
 }
 
@@ -148,8 +154,8 @@ void run_kernel()
 
     _llk_packer_wait_for_math_done_();
     _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, UNTILIZE>(operand_B_dst_index, L1_ADDRESS(buffer_B_tilized));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>(); // Packer will execute _llk_pack_dest_section_done_ function which ensures the write
-                                                                            // to L1 is fully is complete.
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>(); // Packer will execute _llk_pack_dest_section_done_ function which ensures the
+                                                                               // write to L1 is fully is complete.
     t6_semaphore_post<>(semaphore::PACK_DONE); // The packer signals to the unpacker that it has finished writing to L1 by posting (incrementing) the semaphore.
                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
     run = 1;                                   // second L1-to-L1 run, we access the second set of formats_array in our array

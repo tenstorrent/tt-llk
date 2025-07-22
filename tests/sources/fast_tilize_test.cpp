@@ -80,7 +80,7 @@ void run_kernel()
 
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = (fp32_dest_accumulation == DestAccumulation::Enable)  ? 4 : 8;
+                uint32_t dest_size       = (fp32_dest_accumulation == DestAccumulation::Enable) ? 4 : 8;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 
@@ -154,7 +154,7 @@ void run_kernel()
             {
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = (fp32_dest_accumulation == DestAccumulation::Enable)  ? 4 : 8;
+                uint32_t dest_size       = (fp32_dest_accumulation == DestAccumulation::Enable) ? 4 : 8;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 
@@ -234,7 +234,7 @@ void run_kernel()
 
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = (fp32_dest_accumulation == DestAccumulation::Enable)  ? 4 : 8;
+                uint32_t dest_size       = (fp32_dest_accumulation == DestAccumulation::Enable) ? 4 : 8;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 

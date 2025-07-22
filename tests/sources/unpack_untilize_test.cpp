@@ -59,7 +59,8 @@ void run_kernel()
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, fp32_dest_accumulation, BroadcastType::NONE, false>(i, formats.math, formats.math);
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, fp32_dest_accumulation, BroadcastType::NONE, false>(
+            i, formats.math, formats.math);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
 }
