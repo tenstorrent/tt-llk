@@ -472,7 +472,7 @@ inline void _llk_pack_mop_config_(
 }
 
 template <
-    bool is_fp32_dest_acc_en,
+    DestAccumulation fp32_dest_accumulation,
     bool is_tile_dim_reconfig_en = false,
     DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
     bool write_tile_header       = true>
@@ -486,7 +486,7 @@ inline void _llk_pack_reconfig_data_format_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim);
+    reconfig_packer_data_format<fp32_dest_accumulation>(pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim);
 
     if constexpr (is_tile_dim_reconfig_en)
     {
@@ -494,7 +494,7 @@ inline void _llk_pack_reconfig_data_format_(
     }
 }
 
-template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
+template <DestAccumulation fp32_dest_accumulation, bool untilize = false, bool tilize = false>
 inline void _llk_pack_hw_configure_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -506,11 +506,11 @@ inline void _llk_pack_hw_configure_(
     const bool narrow_tile          = false,
     const std::uint32_t relu_config = 0)
 {
-    configure_pack<is_fp32_dest_acc_en, untilize, tilize>(
+    configure_pack<fp32_dest_accumulation, untilize, tilize>(
         pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, relu_config);
 }
 
-template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, bool untilize = false>
+template <PoolType type, ReduceDim dim, DestAccumulation fp32_dest_accumulation, bool untilize = false>
 inline void _llk_pack_reduce_hw_configure_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -522,7 +522,7 @@ inline void _llk_pack_reduce_hw_configure_(
     const bool narrow_tile          = false,
     const std::uint32_t relu_config = 0)
 {
-    configure_pack<is_fp32_dest_acc_en, untilize, false>(
+    configure_pack<fp32_dest_accumulation, untilize, false>(
         pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, relu_config);
 
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
@@ -593,7 +593,7 @@ inline void _llk_pack_init_(
         pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
+template <DstSync Dst, DestAccumulation fp32_dest_accumulation, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);

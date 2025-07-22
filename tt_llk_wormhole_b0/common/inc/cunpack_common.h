@@ -384,7 +384,7 @@ inline void configure_unpack_AB(
 
     /*
     // Workaround for HW bug (fp32 dest and movd2a/b is used with srcA/B configured with 5-bit exponent)
-    if ((fp32_dest_accumulation == ckernel::DestAccumulation::Enable)  && (exp_width == 0)) {
+    if ((fp32_dest_accumulation == DestAccumulation::Enable)  && (exp_width == 0)) {
         reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1<<11); // Set debug feature disable bit 11
                                                                // workaround for bug tenstorrent/budabackend#1372
     }

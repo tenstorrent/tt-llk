@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
+#include "llk_defs.h"
 #include "llk_math_common.h"
 
 using namespace ckernel;
@@ -31,7 +32,7 @@ inline void transpose_dest_configure_mop();
 // We may want to revisit these template parameters, and perhaps the
 // transpose_dest API generally as it's not currently widely used:
 // https://github.com/tenstorrent/tt-llk/issues/290
-template <bool is_fp32_dest_acc_en, bool transpose_of_faces = true, bool is_32bit = false>
+template <DestAccumulation fp32_dest_accumulation, bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
@@ -45,7 +46,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-        if constexpr (is_fp32_dest_acc_en)
+        if constexpr (fp32_dest_accumulation == DestAccumulation::Enable)
         {
             // Needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
@@ -60,7 +61,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
             // 4x 32b face transpositions.
             ckernel_unpack_template::run(instrn_buffer, 4, 0);
         }
-        if constexpr (is_fp32_dest_acc_en)
+        if constexpr (fp32_dest_accumulation == DestAccumulation::Enable)
         {
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
         }

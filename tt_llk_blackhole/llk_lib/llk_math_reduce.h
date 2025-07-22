@@ -11,6 +11,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
+#include "llk_defs.h"
 #include "llk_math_common.h"
 
 using namespace ckernel;
@@ -21,7 +22,13 @@ inline void reduce_configure_addrmod();
 template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop();
 
-template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool is_int_fpu_en = false, bool fp32_transpose = false>
+template <
+    PoolType type,
+    ReduceDim dim,
+    DestAccumulation fp32_dest_accumulation,
+    int MATH_FIDELITY_DESC = 0,
+    bool is_int_fpu_en     = false,
+    bool fp32_transpose    = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
@@ -115,7 +122,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // we avoid clobbering weights in src B by moving to rows 16 - 31
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
             /*
-            if constexpr (is_fp32_dest_acc_en) {
+            if constexpr (fp32_dest_accumulation == DestAccumulation::Enable) {
                 if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                     TTI_SFPLOAD(0, 0, 3, 0);
@@ -243,7 +250,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 // Move back to B and transpose
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
                 /*
-                if constexpr (is_fp32_dest_acc_en) {
+                if constexpr (fp32_dest_accumulation == DestAccumulation::Enable) {
                     if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                         TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                         TTI_SFPLOAD(0, 0, 3, 0);
