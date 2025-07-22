@@ -59,7 +59,7 @@ extern volatile uint tt_reg_ptr *regfile;
 extern volatile uint32_t __instrn_buffer[];
 namespace ckernel
 {
-constexpr volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
+constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
 #else // defined(INSTRN_BUF_BASE)
 extern volatile uint tt_reg_ptr *instrn_buffer;
 #endif
