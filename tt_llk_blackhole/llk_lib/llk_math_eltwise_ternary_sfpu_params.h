@@ -14,9 +14,6 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
     // Compute minimum destination index
     uint dst_index = std::min(std::min(dst_index0, dst_index1), dst_index2);
 
-    // Compute max difference among indices to determine offset
-    uint dst_offset = std::max(std::max(dst_index0, dst_index1), dst_index2) - dst_index;
-
     _llk_math_eltwise_ternary_sfpu_start_<DST_SYNC_MODE>(dst_index); // Reuse same sync primitive
 
     if (vector_mode == (int)VectorMode::R)

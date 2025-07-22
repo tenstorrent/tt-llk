@@ -48,9 +48,14 @@ inline void _calculate_where_fp32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, uint8_t data_format>
+template <bool APPROXIMATION_MODE, DataFormat data_format>
 inline void _calculate_where_()
 {
+    // Add a compile-time check to ensure only supported formats are used.
+    static_assert(
+        data_format == DataFormat::Float32 || data_format == DataFormat::Float16_b,
+        "Unsupported data format for _calculate_where_(). Only Float32 and Float16_b are allowed.");
+
     _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
 }
 

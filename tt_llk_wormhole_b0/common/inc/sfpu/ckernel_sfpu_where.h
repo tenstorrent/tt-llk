@@ -21,7 +21,8 @@ Index 64 ( Tile 2 ) -> false tensor
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_where_fp16_b_()
 {
-    constexpr uint dst_tile_size = 32;
+    constexpr uint dst_tile_size_rows = 64;
+    constexpr uint instr_mod          = 6; // load and store fp16_b numbers as uint16
 
     sfpi::vFloat cond = sfpi::dst_reg[0];
 
@@ -32,17 +33,17 @@ inline void _calculate_where_fp16_b_()
         v_if (cond == 0.0f)
         {
             // output_tensor = false_tensor;
-            TTI_SFPLOAD(p_sfpu::LREG3, 6, 0, 128);
+            TTI_SFPLOAD(p_sfpu::LREG3, instr_mod, 0, 2 * dst_tile_size_rows);
         }
         v_else
         {
             // output_tensor = true_tensor;
-            TTI_SFPLOAD(p_sfpu::LREG3, 6, 0, 64);
+            TTI_SFPLOAD(p_sfpu::LREG3, instr_mod, 0, dst_tile_size_rows);
         }
         v_endif;
 
         // sfpi::dst_reg[0] = output_tensor;
-        TTI_SFPSTORE(p_sfpu::LREG3, 6, 0, 0);
+        TTI_SFPSTORE(p_sfpu::LREG3, instr_mod, 0, 0);
 
         sfpi::dst_reg++;
     }
@@ -79,10 +80,14 @@ inline void _calculate_where_fp32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, uint8_t data_format>
+template <bool APPROXIMATION_MODE, DataFormat data_format>
 inline void _calculate_where_()
 {
-    if (data_format == 0)
+    // Add a compile-time check to ensure only supported formats are used.
+    static_assert(
+        data_format == DataFormat::Float32 || data_format == DataFormat::Float16_b,
+        "Unsupported data format for _calculate_where_(). Only Float32 and Float16_b are allowed.");
+    if constexpr (data_format == DataFormat::Float32)
     {
         _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
     }

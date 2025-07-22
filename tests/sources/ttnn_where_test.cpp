@@ -107,8 +107,21 @@ void run_kernel()
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    // Use the generic _calculate_where_ function
-    ckernel::sfpu::_calculate_where_<false, static_cast<uint8_t>(UNPACK_A_IN)>();
+    // Use the generic _calculate_where_ function with format-specific handling
+    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    {
+        ckernel::sfpu::_calculate_where_<false, DataFormat::Float32>();
+    }
+    else if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b))
+    {
+        ckernel::sfpu::_calculate_where_<false, DataFormat::Float16_b>();
+    }
+    else
+    {
+        // For Bfp8_b and other formats, use Float16_b as fallback since _calculate_where_
+        // only supports Float32 and Float16_b according to the static assertion
+        ckernel::sfpu::_calculate_where_<false, DataFormat::Float16_b>();
+    }
 
     _llk_math_eltwise_ternary_sfpu_done_();
 
