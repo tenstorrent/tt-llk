@@ -45,9 +45,6 @@ def generate_golden(operand1, true_value, false_value):
 
 # Helper check function
 def torch_equal_nan(a, b):
-    # return torch.all(
-    #     torch.isclose(a, b, rtol=1e-2, atol=1e-5) | (torch.isnan(a) & torch.isnan(b))
-    # )
     return torch.all((a == b) | (torch.isnan(a) & torch.isnan(b)))
 
 
@@ -114,17 +111,6 @@ param_ids = generate_param_ids(all_params)
 @pytest.mark.parametrize(
     "test_tensors",
     [
-        # [
-        #     torch.randint(0, 2, (32, 32), dtype=torch.bfloat16)
-        #     .flatten()
-        #     .to(torch.bfloat16),
-        #     torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
-        #     .flatten()
-        #     .to(torch.bfloat16),
-        #     torch.randint(-10, 10, (32, 32), dtype=torch.bfloat16)
-        #     .flatten()
-        #     .to(torch.bfloat16),
-        # ],  # random test case
         [
             extend_tensor(condition.bool(), length=1024, dtype=dtype),
             extend_tensor(true_values, length=1024, dtype=dtype),
@@ -218,13 +204,6 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
             in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
             else torch.bfloat16
         ),
-    )
-    print(
-        "RESULT TENSOR (first 10 elements of 1st row):", res_tensor.view(32, 32)[0, :10]
-    )
-    print(
-        "GOLDEN TENSOR (first 10 elements of 1st row):",
-        golden_tensor.view(32, 32)[0, :10],
     )
 
     assert torch_equal_nan(golden_tensor, res_tensor)
@@ -332,13 +311,4 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
     )
 
     assert len(res_tensor) == len(golden_tensor)
-
-    print(
-        "RESULT TENSOR (first 10 elements of 1st row):", res_tensor.view(32, 32)[0, :10]
-    )
-    print(
-        "GOLDEN TENSOR (first 10 elements of 1st row):",
-        golden_tensor.view(32, 32)[0, :10],
-    )
-
     assert torch_equal_nan(golden_tensor, res_tensor)
