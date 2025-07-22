@@ -48,58 +48,86 @@ def torch_equal_nan(a, b):
     return torch.all((a == b) | (torch.isnan(a) & torch.isnan(b)))
 
 
-# Provided test cases
-supported_formats = [DataFormat.Float16_b]
-dtype = torch.float32 if supported_formats[0] == DataFormat.Float32 else torch.bfloat16
-
-condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
-condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
-condition_all_zeros = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dtype)
-
-# true and false value tensors
-true_values = torch.tensor(
-    [
-        1.0,
-        float("nan"),
-        3.0,
-        float("inf"),
-        -float("inf"),
-        -1.0,
-        0.0,
-        -0.0,
-        42.49,
-        -92.42,
-    ],
-    dtype=dtype,
-)
-false_values = torch.tensor(
-    [
-        -1.0,
-        999.9,
-        float("nan"),
-        -float("inf"),
-        float("inf"),
-        1.0,
-        -0.0,
-        0.0,
-        -3.14,
-        7.84,
-    ],
-    dtype=dtype,
-)
+# SUPPORTED FORMATS FOR TEST - allow sweeping through multiple formats
+supported_formats = [
+    DataFormat.Float16_b,
+    DataFormat.Float32,
+]
 
 
+def get_dtype_for_format(data_format):
+    """Get appropriate torch dtype for the given DataFormat"""
+    return format_dict[data_format]
+
+
+def get_dest_acc_for_format(data_format):
+    """Get appropriate dest_acc options for the given DataFormat"""
+    if data_format == DataFormat.Float32:
+        return [DestAccumulation.Yes]  # Float32 requires dest_acc=Yes
+    elif data_format == DataFormat.Float16_b:
+        return [DestAccumulation.No]  # Float16_b only allows dest_acc=No
+    else:
+        return [DestAccumulation.No, DestAccumulation.Yes]  # Other formats can use both
+
+
+def create_test_tensors(data_format):
+    """Create test tensors with appropriate dtype for the given format"""
+    dtype = get_dtype_for_format(data_format)
+
+    condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
+    condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
+    condition_all_zeros = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dtype)
+
+    # true and false value tensors
+    true_values = torch.tensor(
+        [
+            1.0,
+            float("nan"),
+            3.0,
+            float("inf"),
+            -float("inf"),
+            -1.0,
+            0.0,
+            -0.0,
+            42.49,
+            -92.42,
+        ],
+        dtype=dtype,
+    )
+    false_values = torch.tensor(
+        [
+            -1.0,
+            999.9,
+            float("nan"),
+            -float("inf"),
+            float("inf"),
+            1.0,
+            -0.0,
+            0.0,
+            -3.14,
+            7.84,
+        ],
+        dtype=dtype,
+    )
+
+    return condition, condition_all_ones, condition_all_zeros, true_values, false_values
+
+
+# Generate parameter combinations that dynamically include appropriate dest_acc for each format
+# Use same=True to ensure input and output formats are identical (no mixing)
 test_formats = input_output_formats(supported_formats, same=True)
-all_params = generate_params(
-    ["ttnn_where_test"],
-    test_formats,
-    dest_acc=(
-        [DestAccumulation.No] if dtype == torch.bfloat16 else [DestAccumulation.Yes]
-    ),
-    mathop=[
-        MathOperation.TTNNWhere,
-    ],
-)
+all_params = []
+for fmt in test_formats:
+    dest_acc_options = get_dest_acc_for_format(fmt.input_format)
+    # Use generate_params to create properly formatted parameter tuples
+    params = generate_params(
+        ["ttnn_where_test"],
+        [fmt],
+        dest_acc=dest_acc_options,
+        mathop=[MathOperation.TTNNWhere],
+    )
+    all_params.extend(params)
+
 param_ids = generate_param_ids(all_params)
 
 
@@ -108,32 +136,29 @@ param_ids = generate_param_ids(all_params)
     clean_params(all_params),
     ids=param_ids,
 )
-@pytest.mark.parametrize(
-    "test_tensors",
-    [
-        [
-            extend_tensor(condition.bool(), length=1024, dtype=dtype),
-            extend_tensor(true_values, length=1024, dtype=dtype),
-            extend_tensor(false_values, length=1024, dtype=dtype),
-        ],  # provided test case
-        [
-            extend_tensor(condition_all_ones.bool(), length=1024, dtype=dtype),
-            extend_tensor(true_values, length=1024, dtype=dtype),
-            extend_tensor(false_values, length=1024, dtype=dtype),
-        ],  # provided test case
-        [
-            extend_tensor(condition_all_zeros.bool(), length=1024, dtype=dtype),
-            extend_tensor(true_values, length=1024, dtype=dtype),
-            extend_tensor(false_values, length=1024, dtype=dtype),
-        ],  # provided test case
-    ],
-)
-def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
+@pytest.mark.parametrize("test_case", ["mixed", "all_ones", "all_zeros"])
+def test_ttnn_where(testname, formats, dest_acc, mathop, test_case):
 
-    src_A, src_B, src_C = test_tensors
+    # Generate tensors dynamically based on current input format
+    condition, condition_all_ones, condition_all_zeros, true_values, false_values = (
+        create_test_tensors(formats.input_format)
+    )
+    dtype = get_dtype_for_format(formats.input_format)
+
+    # Select test case
+    if test_case == "mixed":
+        test_condition = condition
+    elif test_case == "all_ones":
+        test_condition = condition_all_ones
+    else:  # all_zeros
+        test_condition = condition_all_zeros
+
+    # Create test tensors with appropriate dtype for current format
+    src_A = extend_tensor(test_condition.bool(), length=1024, dtype=dtype)
+    src_B = extend_tensor(true_values, length=1024, dtype=dtype)
+    src_C = extend_tensor(false_values, length=1024, dtype=dtype)
 
     # Skipping test combinations that are not supported
-
     if (
         formats.output_format == DataFormat.Float32
         or formats.input_format == DataFormat.Float32
@@ -141,9 +166,6 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
         pytest.skip(
             "Skipping test for Float32 input format with NO dest_acc, as it is not supported."
         )
-
-    if src_A.dtype != format_dict[formats.input_format]:
-        pytest.skip()
 
     core_loc = "0,0"
     buffer_A_address = 0x1A000
@@ -209,36 +231,39 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
     assert torch_equal_nan(golden_tensor, res_tensor)
 
 
-supported_formats = [DataFormat.Float16_b]
-dtype = torch.float32 if supported_formats[0] == DataFormat.Float32 else torch.bfloat16
+# MCW test with dynamic format sweeping like main test
+# Use same input/output format - no mixing
+test_formats_mcw = input_output_formats(supported_formats, same=True)
+all_params_mcw = []
+for fmt in test_formats_mcw:
+    dest_acc_options = get_dest_acc_for_format(fmt.input_format)
+    # Use generate_params to create properly formatted parameter tuples
+    params = generate_params(
+        ["ttnn_where_test"],
+        [fmt],
+        dest_acc=dest_acc_options,
+        mathop=[MathOperation.TTNNWhere],
+    )
+    all_params_mcw.extend(params)
 
-test_formats = input_output_formats(supported_formats, same=True)
-all_params = generate_params(
-    ["ttnn_where_test"],
-    test_formats,
-    dest_acc=(
-        [DestAccumulation.No] if dtype == torch.bfloat16 else [DestAccumulation.Yes]
-    ),
-    mathop=[
-        MathOperation.TTNNWhere,
-    ],
-)
-param_ids = generate_param_ids(all_params)
+param_ids_mcw = generate_param_ids(all_params_mcw)
 
 
 @pytest.mark.parametrize(
     "testname, formats, dest_acc, mathop",
-    clean_params(all_params),
-    ids=param_ids,
+    clean_params(all_params_mcw),
+    ids=param_ids_mcw,
 )
 @pytest.mark.parametrize("h", [32])
 @pytest.mark.parametrize("w", [32])
 def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
+    # Generate dtype dynamically based on current input format
+    dtype = get_dtype_for_format(formats.input_format)
+
     C = torch.arange(h * w, dtype=dtype)
-    C = (C % 2).float()  # Alternates 0, 1, 0, 1, ...
+    C = (C % 2).to(dtype)  # Alternates 0, 1, 0, 1, ... with correct dtype
     C = C.reshape(1, 1, h, w)
     C = C.expand(1, 1, h, w)  # Broadcast to (n, c, h, w)
-    C = C.to(dtype=dtype)
     T = torch.ones(1, 1, h, w, dtype=dtype) * 2
     F = torch.ones(1, 1, h, w, dtype=dtype) * 11
     golden = torch.where(C != 0, T, F)
