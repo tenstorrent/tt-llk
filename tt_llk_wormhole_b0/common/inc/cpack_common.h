@@ -183,7 +183,7 @@ inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_f
     TTI_NOP;
 }
 
-template <bool is_fp32_dest_acc_en>
+template <DestAccumulation fp32_dest_accumulation>
 inline void set_packer_config(const uint pack_src_format, const uint pack_dst_format, const uint num_faces = 4, const bool partial_face = false)
 {
     // Get pointer to registers for current state ID
@@ -207,7 +207,7 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     config.f.pack_per_xy_plane = 1;
 
     // Workaround for bug in HW: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
+    if constexpr ((fp32_dest_accumulation == DestAccumulation::Enable))
     {
         if (IS_A_FORMAT(pack_dst_format))
         {
@@ -261,8 +261,8 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
                          pack_src_format == static_cast<DataFormatType>(DataFormat::Float32);
     bool is_int8_format = pack_src_format == static_cast<DataFormatType>(DataFormat::Int8) || pack_src_format == static_cast<DataFormatType>(DataFormat::UInt8);
 
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || is_fp32_dest_acc_en;
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(is_fp32_dest_acc_en || is_32b_format) && is_int8_format;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || (fp32_dest_accumulation == DestAccumulation::Enable);
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !((fp32_dest_accumulation == DestAccumulation::Enable) || is_32b_format) && is_int8_format;
 
     if (pack_dst_format == static_cast<DataFormatType>(DataFormat::UInt8))
     {
@@ -270,7 +270,7 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     }
 
     // Round to 10 bit mantissa from fp32 dest
-    if (is_fp32_dest_acc_en && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
+    if ((fp32_dest_accumulation == DestAccumulation::Enable) && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -356,7 +356,7 @@ inline void set_packer_l1_offset(const uint pack_dst_format, const uint face_r_d
     TTI_REG2FLOP(2, 0, 0, 0, THCON_SEC1_REG8_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_LO);
 }
 
-template <bool is_fp32_dest_acc_en>
+template <DestAccumulation fp32_dest_accumulation>
 inline void reconfig_packer_data_format(const uint pack_src_format, const uint pack_dst_format, const uint tile_size = 0, const uint face_r_dim = FACE_R_DIM)
 {
     // Get pointer to registers for current state ID
@@ -383,15 +383,15 @@ inline void reconfig_packer_data_format(const uint pack_src_format, const uint p
                          pack_src_format == static_cast<DataFormatType>(DataFormat::Float32);
     bool is_int8_format = pack_src_format == static_cast<DataFormatType>(DataFormat::Int8) || pack_src_format == static_cast<DataFormatType>(DataFormat::UInt8);
 
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || is_fp32_dest_acc_en;
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(is_fp32_dest_acc_en || is_32b_format) && is_int8_format;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || (fp32_dest_accumulation == DestAccumulation::Enable);
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !((fp32_dest_accumulation == DestAccumulation::Enable) || is_32b_format) && is_int8_format;
 
     if (pack_dst_format == static_cast<DataFormatType>(DataFormat::UInt8))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_unsigned = 1;
     }
     // Round to 10 bit mantissa from fp32 dest
-    if (is_fp32_dest_acc_en && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
+    if ((fp32_dest_accumulation == DestAccumulation::Enable) && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -443,7 +443,7 @@ inline void reconfig_packer_data_format(const uint pack_src_format, const uint p
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
     // Workaround for HW bug: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
+    if constexpr (fp32_dest_accumulation == DestAccumulation::Enable)
     {
         if (IS_BFP_A_FORMAT(pack_dst_format))
         {
@@ -475,7 +475,7 @@ inline void reconfig_packer_data_format(const uint pack_src_format, const uint p
     set_packer_strides(pack_src_format, pack_dst_format);
 }
 
-template <bool is_fp32_dest_acc_en, bool untilize>
+template <DestAccumulation fp32_dest_accumulation, bool untilize>
 inline void configure_pack(
     const uint pack_src_format,
     const uint pack_dst_format,
@@ -513,7 +513,7 @@ inline void configure_pack(
 
     t6_mutex_release(mutex::REG_RMW);
 
-    set_packer_config<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, num_faces, partial_face);
+    set_packer_config<fp32_dest_accumulation>(pack_src_format, pack_dst_format, num_faces, partial_face);
 
     set_packer_l1_offset(pack_dst_format, face_r_dim);
 

@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include "ckernel.h"
+#include "llk_defs.h"
 #include "ckernel_globals.h"
 
 namespace ckernel::unpacker
@@ -202,7 +203,12 @@ inline void enable_int8_fpu_math()
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, ALU_ACC_CTRL_INT8_math_enabled_MASK>(alu_payload.val);
 }
 
-template <bool is_fp32_dest_acc_en, bool row_pool = false, bool fpu_srnd_en = false, bool pack_srnd_en = false, bool disable_src_zero_flag = false>
+template <
+    DestAccumulation fp32_dest_accumulation,
+    bool row_pool              = false,
+    bool fpu_srnd_en           = false,
+    bool pack_srnd_en          = false,
+    bool disable_src_zero_flag = false>
 inline void configure_unpack_AB(
     const uint unpA_src_format,
     const uint unpB_src_format,
@@ -251,7 +257,7 @@ inline void configure_unpack_AB(
 
     alu_config_u alu_payload = {.val = 0};
 
-    uint32_t fp32_dest_acc_en  = (is_fp32_dest_acc_en) ? (1) : (0);
+    uint32_t fp32_dest_acc_en  = (fp32_dest_accumulation == DestAccumulation::Enable) ? (1) : (0);
     uint32_t int8_math_enabled = ((uint)(unpA_dst_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(unpB_dst_format & 0xF) == (uint)DataFormat::Int8) ||
                                  ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
 
@@ -378,7 +384,7 @@ inline void configure_unpack_AB(
 
     /*
     // Workaround for HW bug (fp32 dest and movd2a/b is used with srcA/B configured with 5-bit exponent)
-    if (is_fp32_dest_acc_en && (exp_width == 0)) {
+    if ((fp32_dest_accumulation == ckernel::DestAccumulation::Enable)  && (exp_width == 0)) {
         reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1<<11); // Set debug feature disable bit 11
                                                                // workaround for bug tenstorrent/budabackend#1372
     }

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -51,8 +52,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     return setexp(result, new_exp);
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
-inline void _calculate_reciprocal_(const int iterations)
+template <bool APPROXIMATION_MODE, int ITERATIONS, DestAccumulation fp32_dest_accumulation inline void _calculate_reciprocal_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
@@ -67,7 +67,7 @@ inline void _calculate_reciprocal_(const int iterations)
         }
         v_endif;
 
-        if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+        if constexpr ((fp32_dest_accumulation == DestAccumulation::Enable) || APPROXIMATION_MODE)
         {
             sfpi::dst_reg[0] = out;
         }
