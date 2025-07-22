@@ -203,7 +203,7 @@ inline void _calculate_atanh_()
         {
             sfpi::vFloat num = sfpi::vConst1 + inp;
             sfpi::vFloat den = sfpi::vConst1 - inp;
-            sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(den);
+            sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE>(den);
             tmp              = sfpi::setsgn(tmp, den);
             if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
             {
