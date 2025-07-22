@@ -69,7 +69,7 @@ inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_d
     select_packer_dest_registers<Dst>();
 }
 
-template <DstSync Dst,  DestAccumulation fp32_dest_accumulation, DstTileFaceLayout FaceLayout = RowMajor>
+template <DstSync Dst, DestAccumulation fp32_dest_accumulation, DstTileFaceLayout FaceLayout = RowMajor>
 inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
 {
     tensix_sync();

@@ -8,8 +8,8 @@
 #include <cstdint>
 
 #include "ckernel.h"
-#include "llk_defs.h"
 #include "ckernel_globals.h"
+#include "llk_defs.h"
 
 namespace ckernel::unpacker
 {
