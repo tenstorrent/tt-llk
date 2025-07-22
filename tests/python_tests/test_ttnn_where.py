@@ -209,7 +209,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_tensors):
     assert torch_equal_nan(golden_tensor, res_tensor)
 
 
-supported_formats = [DataFormat.Bfp8_b]  # , DataFormat.Float16_b]
+supported_formats = [DataFormat.Float16_b]
 dtype = torch.float32 if supported_formats[0] == DataFormat.Float32 else torch.bfloat16
 
 test_formats = input_output_formats(supported_formats, same=True)

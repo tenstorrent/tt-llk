@@ -16,8 +16,6 @@ uint32_t math_sync_tile_dst_index = 0;
 
 constexpr bool disable_src_zero_flag = true;
 
-// constexpr std::uint8_t PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32);
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -26,18 +24,21 @@ constexpr bool disable_src_zero_flag = true;
 
 void run_kernel()
 {
+    using DataFormatUT = std::underlying_type_t<DataFormat>;
+    auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };
+
     uint8_t UNPACK_FMT;
-    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    if (UNPACK_A_IN == to_ufmt(DataFormat::Float32))
     {
-        UNPACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32);
+        UNPACK_FMT = to_ufmt(DataFormat::Float32);
     }
-    else if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Bfp8_b))
+    else if (UNPACK_A_IN == to_ufmt(DataFormat::Bfp8_b))
     {
-        UNPACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Bfp8_b);
+        UNPACK_FMT = to_ufmt(DataFormat::Bfp8_b);
     }
     else
     {
-        UNPACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
+        UNPACK_FMT = to_ufmt(DataFormat::UInt16);
     }
 
     volatile uint32_t* const buffer_condition = reinterpret_cast<volatile uint32_t*>(0x1a000);
@@ -49,8 +50,6 @@ void run_kernel()
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_condition), 0, UNPACK_FMT, UNPACK_FMT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_true), 0, UNPACK_FMT, UNPACK_FMT);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_false), 0, UNPACK_FMT, UNPACK_FMT);
-
-    // _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(6, 5 , 16 * 16 * 4);
 }
 
 #endif
@@ -71,18 +70,21 @@ using namespace ckernel;
 
 void run_kernel()
 {
+    using DataFormatUT = std::underlying_type_t<DataFormat>;
+    auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };
+
     uint8_t MATH_FMT;
-    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    if (UNPACK_A_IN == to_ufmt(DataFormat::Float32))
     {
-        MATH_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32);
+        MATH_FMT = to_ufmt(DataFormat::Float32);
     }
-    else if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Bfp8_b))
+    else if (UNPACK_A_IN == to_ufmt(DataFormat::Bfp8_b))
     {
-        MATH_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Bfp8_b);
+        MATH_FMT = to_ufmt(DataFormat::Bfp8_b);
     }
     else
     {
-        MATH_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
+        MATH_FMT = to_ufmt(DataFormat::UInt16);
     }
 
     // copy srca to dest
@@ -101,27 +103,11 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         2, MATH_FMT, MATH_FMT); // buffer false
 
-    // dbg_thread_halt<ThreadId::MathThreadId>();
-
     // calculation of sfpu operation on dest
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    // Use the generic _calculate_where_ function with format-specific handling
-    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
-    {
-        ckernel::sfpu::_calculate_where_<false, DataFormat::Float32>();
-    }
-    else if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b))
-    {
-        ckernel::sfpu::_calculate_where_<false, DataFormat::Float16_b>();
-    }
-    else
-    {
-        // For Bfp8_b and other formats, use Float16_b as fallback since _calculate_where_
-        // only supports Float32 and Float16_b according to the static assertion
-        ckernel::sfpu::_calculate_where_<false, DataFormat::Float16_b>();
-    }
+    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>(UNPACK_A_IN)>();
 
     _llk_math_eltwise_ternary_sfpu_done_();
 
@@ -138,18 +124,21 @@ void run_kernel()
 
 void run_kernel()
 {
+    using DataFormatUT = std::underlying_type_t<DataFormat>;
+    auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };
+
     std::uint8_t PACK_FMT;
-    if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32))
+    if (UNPACK_A_IN == to_ufmt(DataFormat::Float32))
     {
-        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32);
+        PACK_FMT = to_ufmt(DataFormat::Float32);
     }
-    else if (UNPACK_A_IN == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Bfp8_b))
+    else if (UNPACK_A_IN == to_ufmt(DataFormat::Bfp8_b))
     {
-        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Bfp8_b);
+        PACK_FMT = to_ufmt(DataFormat::Bfp8_b);
     }
     else
     {
-        PACK_FMT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt16);
+        PACK_FMT = to_ufmt(DataFormat::UInt16);
     }
 
     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1d000);
