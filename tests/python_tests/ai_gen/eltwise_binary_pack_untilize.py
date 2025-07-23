@@ -132,20 +132,32 @@ def test_sweep_test(config):
             src_A = src_A.abs()
             src_B = src_B.abs()
 
-    # Golden pipeline: binary FPU → unary SFPU → untilize
+    # ------------------------------------------------------------------
+    # Generate golden reference. If the destination accumulation is enabled
+    # we want the *internal* arithmetic (binary + unary stages) to happen in
+    # full 32-bit precision and only truncate once at the very end – this
+    # mirrors what the Tensix does when the "dest_acc" flag is set.
+    # ------------------------------------------------------------------
+
+    compute_format = (
+        DataFormat.Float32
+        if dest_acc == DestAccumulation.Yes
+        else formats.output_format
+    )
 
     bin_golden_fn = get_golden_generator(EltwiseBinaryGolden)
-    binary_out = bin_golden_fn(
-        mathop, src_A, src_B, formats.output_format, math_fidelity
-    )
+    binary_out = bin_golden_fn(mathop, src_A, src_B, compute_format, math_fidelity)
 
     unary_golden_fn = get_golden_generator(UnarySFPUGolden)
-    unary_out = unary_golden_fn(
-        unary_op, binary_out, formats.output_format, math_fidelity
-    )
+    unary_out = unary_golden_fn(unary_op, binary_out, compute_format, math_fidelity)
 
+    # Untilize always packs to the *output* format that the kernel produces
     untilize_golden_fn = get_golden_generator(UntilizeGolden)
-    golden_tensor = untilize_golden_fn(unary_out, formats.output_format, [32, 32])
+    golden_tensor = untilize_golden_fn(
+        unary_out.to(format_dict[formats.output_format]),
+        formats.output_format,
+        [32, 32],
+    )
 
     # Load stimuli into device
     res_address = write_stimuli_to_l1(
