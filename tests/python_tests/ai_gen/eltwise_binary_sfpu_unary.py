@@ -34,10 +34,10 @@ from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST - following the same pattern as other tests
 supported_formats = [
-    # DataFormat.Float16_b,  # Most widely used
-    # DataFormat.Float16,    # Standard FP16
-    DataFormat.Bfp8_b,  # Commonly tested for efficiency
-    # DataFormat.Float32,    # High precision
+    DataFormat.Float16_b,  # Most widely used
+    DataFormat.Float16,  # Standard FP16
+    # DataFormat.Bfp8_b,  # Commonly tested for efficiency
+    DataFormat.Float32,  # High precision
 ]
 
 # BINARY OPERATIONS TO TEST
