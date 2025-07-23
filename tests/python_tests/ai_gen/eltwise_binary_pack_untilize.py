@@ -112,10 +112,25 @@ def test_sweep_test(config):
 
     input_dimensions = [32, 32]
 
-    # Stimuli generation (single tile → tile_cnt == 1)
+    # Stimuli generation
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
+
+    # If unary op is Sqrt, ensure binary result will be non-negative to avoid NaNs/​Infs
+    if unary_op == MathOperation.Sqrt:
+        if mathop == MathOperation.Elwsub:
+            # Make src_A >= src_B element-wise
+            src_B = src_B.abs()
+            src_A = src_B + src_A.abs()
+        elif mathop == MathOperation.Elwadd:
+            # Ensure positive by taking abs
+            src_A = src_A.abs()
+            src_B = src_B.abs()
+        elif mathop == MathOperation.Elwmul:
+            # Multiplication of any signed numbers could be negative; force operands positive
+            src_A = src_A.abs()
+            src_B = src_B.abs()
 
     # Golden pipeline: binary FPU → unary SFPU → untilize
 
