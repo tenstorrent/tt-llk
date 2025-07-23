@@ -59,11 +59,11 @@ download_headers() {
 
     for header in "${headers[@]}"; do
         local download_url="${base_url}/${header}"
-        if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$download_url" >/dev/null 2>&1; then
+        if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
             if [[ -n "$specific_url" ]]; then
                 local fallback_url="${specific_url}/${header}"
                 echo "Could not find ${header} at ${download_url}, trying ${fallback_url}..."
-                if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$fallback_url"; then
+                if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$fallback_url" > /dev/null; then
                     echo "ERROR: Failed to download ${header} from both primary and fallback URLs." >&2
                     exit 1
                 fi
@@ -171,7 +171,7 @@ main() {
     rm -rf "${SCRIPT_DIR}/sfpi"
     # The -f flag is already included in the $tar_flags variable.
     # Passing it again was causing the error.
-    if ! tar ${tar_flags} "$download_file" -C "${SCRIPT_DIR}"; then
+    if ! tar "${tar_flags}" "$download_file" -C "${SCRIPT_DIR}"; then
         echo "ERROR: Failed to extract SFPI release from $download_file" >&2
         exit 1
     fi

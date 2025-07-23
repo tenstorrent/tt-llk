@@ -90,8 +90,8 @@ setup_testing_environment() {
         exit 1
     fi
 
-    if ! source "$setup_script"; then
-        echo "ERROR: Failed to source setup_testing_env.sh" >&2
+    if ! bash "$setup_script"; then
+        echo "ERROR: Failed to execute setup_testing_env.sh" >&2
         exit 1
     fi
 
