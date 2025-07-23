@@ -10,6 +10,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import (
     DestAccumulation,
+    DstSync,
     MathFidelity,
     MathOperation,
     format_dict,
@@ -52,6 +53,8 @@ unary_ops = [
     MathOperation.Square,
 ]
 
+dst_sync_options = [DstSync.SyncHalf, DstSync.SyncFull]
+
 # Generate format combinations (same input/output) and add a few mixed cases
 _test_formats = input_output_formats(supported_formats, same=True)
 
@@ -62,12 +65,14 @@ all_params = [
         "dest_acc": dest_acc,
         "mathop": bin_op,
         "unary_op": un_op,
+        "dst_sync": dst_sync,
         "math_fidelity": fidelity,
     }
     for fmt in _test_formats
     for dest_acc in [DestAccumulation.Yes, DestAccumulation.No]
     for bin_op in binary_ops
     for un_op in unary_ops
+    for dst_sync in dst_sync_options
     for fidelity in [
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
@@ -77,7 +82,7 @@ all_params = [
 ]
 
 param_ids = [
-    f"bin={p['mathop'].name}|un={p['unary_op'].name}|fmt={p['formats'].input_format.name}->{p['formats'].output_format.name}|acc={p['dest_acc'].name}|fid={p['math_fidelity'].name}"
+    f"bin={p['mathop'].name}|un={p['unary_op'].name}|fmt={p['formats'].input_format.name}->{p['formats'].output_format.name}|acc={p['dest_acc'].name}|sync={p['dst_sync'].name}|fid={p['math_fidelity'].name}"
     for p in all_params
 ]
 
@@ -97,6 +102,7 @@ def test_sweep_test(config):
     mathop = config["mathop"]  # binary op
     unary_op = config["unary_op"]
     dest_acc = config["dest_acc"]
+    dst_sync = config["dst_sync"]
     math_fidelity = config["math_fidelity"]
 
     # Skip unsupported output Bfp8_b
@@ -132,32 +138,20 @@ def test_sweep_test(config):
             src_A = src_A.abs()
             src_B = src_B.abs()
 
-    # ------------------------------------------------------------------
-    # Generate golden reference. If the destination accumulation is enabled
-    # we want the *internal* arithmetic (binary + unary stages) to happen in
-    # full 32-bit precision and only truncate once at the very end – this
-    # mirrors what the Tensix does when the "dest_acc" flag is set.
-    # ------------------------------------------------------------------
-
-    compute_format = (
-        DataFormat.Float32
-        if dest_acc == DestAccumulation.Yes
-        else formats.output_format
-    )
+    # Golden pipeline: binary FPU → unary SFPU → untilize
 
     bin_golden_fn = get_golden_generator(EltwiseBinaryGolden)
-    binary_out = bin_golden_fn(mathop, src_A, src_B, compute_format, math_fidelity)
+    binary_out = bin_golden_fn(
+        mathop, src_A, src_B, formats.output_format, math_fidelity
+    )
 
     unary_golden_fn = get_golden_generator(UnarySFPUGolden)
-    unary_out = unary_golden_fn(unary_op, binary_out, compute_format, math_fidelity)
-
-    # Untilize always packs to the *output* format that the kernel produces
-    untilize_golden_fn = get_golden_generator(UntilizeGolden)
-    golden_tensor = untilize_golden_fn(
-        unary_out.to(format_dict[formats.output_format]),
-        formats.output_format,
-        [32, 32],
+    unary_out = unary_golden_fn(
+        unary_op, binary_out, formats.output_format, math_fidelity
     )
+
+    untilize_golden_fn = get_golden_generator(UntilizeGolden)
+    golden_tensor = untilize_golden_fn(unary_out, formats.output_format, [32, 32])
 
     # Load stimuli into device
     res_address = write_stimuli_to_l1(
@@ -176,6 +170,7 @@ def test_sweep_test(config):
         "dest_acc": dest_acc,
         "mathop": mathop,
         "unary_op": unary_op,
+        "dst_sync": dst_sync,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
         "unpack_to_dest": unpack_to_dest,

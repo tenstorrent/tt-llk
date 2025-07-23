@@ -15,10 +15,9 @@ uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
 // Constants for packer configuration
-const uint32_t ct_dim       = 1; // Only one column tile (32×32 tensor)
-const bool UNTILIZE         = true;
-const uint32_t tile_size    = 16 * 16 * 4; // bytes per face
-const ckernel::DstSync sync = ckernel::DstSync::SyncHalf;
+const uint32_t ct_dim    = 1; // Only one column tile (32×32 tensor)
+const bool UNTILIZE      = true;
+const uint32_t tile_size = 16 * 16 * 4; // bytes per face
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -49,18 +48,19 @@ void run_kernel()
 
 void run_kernel()
 {
-    _llk_math_pack_sync_init_<sync, is_fp32_dest_acc_en>();
+    _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
     // Binary element-wise (FPU)
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
 
-    _llk_math_wait_for_dest_available_<sync>();
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, sync, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(4, 0, false);
+    _llk_math_wait_for_dest_available_<DST_SYNC>();
+    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DST_SYNC, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
+        4, 0, false);
 
     // SFPU unary on result in dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-    _llk_math_eltwise_unary_sfpu_start_<sync>(0);
+    _llk_math_eltwise_unary_sfpu_start_<DST_SYNC>(0);
 
     constexpr int iterations = 32;
 
@@ -86,7 +86,7 @@ void run_kernel()
     call_sfpu_operation(SFPU_UNARY_OPERATION);
 
     _llk_math_eltwise_unary_sfpu_done_();
-    _llk_math_dest_section_done_<sync, is_fp32_dest_acc_en>();
+    _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
 }
 
 #endif // LLK_TRISC_MATH
@@ -101,17 +101,17 @@ void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, tile_size);
-    _llk_pack_dest_init_<sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
     _llk_pack_untilize_init_<ct_dim>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, tile_size);
-    _llk_pack_dest_init_<sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
     _llk_pack_untilize_init_<ct_dim>(formats.pack_dst, FACE_R_DIM, 4);
 #endif
 
     _llk_packer_wait_for_math_done_();
     _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
-    _llk_pack_dest_section_done_<sync, is_fp32_dest_acc_en>();
+    _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
 }
 
 #endif // LLK_TRISC_PACK
