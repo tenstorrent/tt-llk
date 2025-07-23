@@ -128,9 +128,7 @@ def generate_params(**kwargs: any) -> List[tuple]:
                     checked_formats_and_dest_acc[key] = True
 
     wrap_list = lambda x: [x] if not isinstance(x, list) else x
-
-    params = [param for param in kwargs.keys() if kwargs[param] is not None]
-    arguments = [wrap_list(kwargs[param]) for param in params]
+    arguments = [wrap_list(value) for value in kwargs.values() if value is not None]
 
     return product(*arguments)
 

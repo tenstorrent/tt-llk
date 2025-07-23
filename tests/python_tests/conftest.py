@@ -152,9 +152,14 @@ def _stringify_params(params):
 
 
 def pytest_runtest_logreport(report):
-    if report.when == "call":  # We are interested in the 'call' phase
-        if hasattr(report.item, "callspec"):
-            print(f"\nParameters: {_stringify_params(report.item.callspec.params)}")
+    if report.when != "call":
+        return
+
+    callspec = getattr(report.item, "callspec", None)
+    if callspec is None:
+        return
+
+    print(f"\nParameters: {_stringify_params(callspec.params)}")
 
 
 @pytest.hookimpl(hookwrapper=True)
