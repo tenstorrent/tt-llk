@@ -31,7 +31,7 @@ def check_hardware_headers():
     arch_name = chip_arch.value.lower()  # Convert enum to string
 
     # Get the project root (LLK_HOME)
-    llk_home = Path(os.environ.get("LLK_HOME", Path(__file__).resolve().parents[2]))
+    llk_home = Path(os.environ.get("LLK_HOME"))
     header_dir = llk_home / "tests" / "hw_specific" / arch_name / "inc"
 
     required_headers = [
