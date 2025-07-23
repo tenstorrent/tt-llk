@@ -148,14 +148,24 @@ def _stringify_params(params):
         else:
             parts.append(f"{name}={str(value)}")
 
-    return " | ".join(parts)
+    return f"[{' | '.join(parts)}]"
 
 
-def pytest_runtest_protocol(item, nextitem):
-    if hasattr(item, "callspec"):
-        # Construct the new nodeid for parametrized tests
-        test_name = item.name.split("[")[0]
-        item.name = f"{test_name}[{_stringify_params(item.callspec.params)}]"
+def pytest_runtest_logreport(report):
+    if report.when == "call":  # We are interested in the 'call' phase
+        if hasattr(report.item, "callspec"):
+            print(f"\nParameters: {_stringify_params(report.item.callspec.params)}")
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # Execute all other hooks to obtain the report object
+    outcome = yield
+    report = outcome.get_result()
+
+    # Attach the item to the report so it's available in logreport
+    report.item = item
+    return report
 
 
 def pytest_sessionstart(session):
