@@ -77,6 +77,7 @@ void run_kernel()
     TTI_SETC16(21, 0);
     TTI_SETC16(30, 0);
     TTI_SETC16(55, 0);
+    TTI_SETRWC(0, 0, 2, 0, 0, 2)
 
     for (uint32_t i = 0; i < ITERATIONS; i++)
     {
