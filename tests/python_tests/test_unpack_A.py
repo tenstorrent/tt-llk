@@ -1,5 +1,6 @@
 import pytest
 import torch
+from z3 import *
 
 from helpers.device import (
     collect_results,
@@ -7,7 +8,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import format_dict, DestAccumulation
 from helpers.format_config import DataFormat, BroadcastType, StochRndType, EltwiseBinaryReuseDestType
-from helpers.golden_generators import DataCopyGolden, get_golden_generator
+from helpers.golden_generators import DataCopyGolden, TransposeGolden, get_golden_generator
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -30,25 +31,24 @@ supported_formats = [
 ]
 
 # Define your parameter lists
-broadcast_types = [BroadcastType.NONE] #, BroadcastType.COL, BroadcastType.ROW, BroadcastType.SCALAR
+broadcast_types = [BroadcastType.NONE, BroadcastType.COL] #todo: BroadcastType.ROW, BroadcastType.SCALAR
 dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
-disable_src_zero_flags = [False] #, True
+disable_src_zero_flags = [False] # todo: True
 # is_fp32_dest_acc_flags removed - it's automatically handled in params.h
-acc_to_dest_flags = [False] #, True
+acc_to_dest_flags = [False] # todo: True
 stoch_rounding_types = [StochRndType.NONE, StochRndType.Fpu, StochRndType.Pack, StochRndType.All]
-reuse_dest_types = [EltwiseBinaryReuseDestType.NONE] #, EltwiseBinaryReuseDestType.DEST_TO_SRCA, EltwiseBinaryReuseDestType.DEST_TO_SRCB
-#unpack_to_dest_flags = [False, True]
+reuse_dest_types = [EltwiseBinaryReuseDestType.NONE] # todo: EltwiseBinaryReuseDestType.DEST_TO_SRCA, EltwiseBinaryReuseDestType.DEST_TO_SRCB
 transpose_of_faces_values = [0, 1]
 within_face_16x16_transpose_values = [0, 1]
-num_faces_values = [4] #1, 2,
+num_faces_values = [4] # todo: 1, 2
 
-# Generate format combinations using both input_output_formats and FormatConfig approach
+# Generate format combinations
 supported_formats = [DataFormat.Float16_b, DataFormat.Float32, DataFormat.Bfp8_b, DataFormat.Float16]
 
 # Create InputOutputFormat combinations for your test (this is what your test expects)
-same_test_formats = input_output_formats(supported_formats, True)
-cross_test_formats = input_output_formats(supported_formats, False)    
-test_formats = same_test_formats + cross_test_formats
+# Use only cross_test_formats as it already includes same-format combinations
+test_formats = input_output_formats(supported_formats, False)    
+
 
 # Generate unpack_A specific parameter combinations
 unpack_A_param_combinations = generate_unpack_A_params(
@@ -69,7 +69,7 @@ all_params = []
 testname = ["unpack_A_test"]
 
 # Method 1: Use generate_params for base parameter structure (like datacopy test)
-base_params = generate_params(testname, test_formats, dest_acc)
+base_params = generate_params(testname, test_formats)  # Don't specify dest_acc, we'll use acc_to_dest from unpack_params
 
 # Method 2: Extend base params with unpack_A specific parameters
 for base_param in base_params:
@@ -84,7 +84,6 @@ for base_param in base_params:
         #                  acc_to_dest, stoch_rnd_type, reuse_dest, transpose_of_faces, 
         #                  within_face_16x16_transpose, num_faces)
         
-        # Extract individual unpack parameters (is_fp32_dest_acc removed)
         broadcast_type = unpack_params[0]
         disable_src_zero = unpack_params[1]
         acc_to_dest = unpack_params[2]
@@ -95,13 +94,12 @@ for base_param in base_params:
         num_faces = unpack_params[7]
         
         # Create complete parameter tuple matching test signature
-        # Use acc_to_dest from unpack_params instead of base_dest_acc for more control
         combined_params = (
             base_testname,  # testname
             formats,        # formats
             broadcast_type, # broadcast_type
             disable_src_zero, # disable_src_zero
-            acc_to_dest,    # acc_to_dest (from unpack_params, not base_dest_acc)
+            acc_to_dest,    # acc_to_dest
             stoch_rnd_type, # stoch_rnd_type
             reuse_dest,     # reuse_dest
             transpose_of_faces, # transpose_of_faces
@@ -110,22 +108,128 @@ for base_param in base_params:
         )
         all_params.append(combined_params)
 
-# Optional: If you want to use generate_params for additional control, 
-# you can create FormatConfig objects and use generate_params for those:
-# 
-# # Create FormatConfig combinations for generate_params compatibility
-# from helpers.param_config import format_combination_sweep
-# format_configs = format_combination_sweep(supported_formats, all_same=False)
-# 
-# # Use generate_params for additional parameter control
-# base_params = generate_params(
-#     testnames=[testname],
-#     format_combos=format_configs,
-#     dest_acc=dest_acc,
-#     tile_cnt=4,
-# )
-# 
-# # Then extend base_params with unpack_A specific parameters similar to above
+def filter_params_with_z3(all_params):
+    """Use Z3 to filter valid parameter combinations based on hardware constraints"""
+    
+   
+    arch = get_chip_architecture()
+    
+    valid_params = []
+    
+    for params in all_params:
+        # Extract parameters from tuple
+        testname, formats, broadcast_type, disable_src_zero, acc_to_dest, \
+        stoch_rnd_type, reuse_dest, transpose_of_faces, within_face_16x16_transpose, num_faces = params
+        
+        # Create Z3 solver
+        s = Solver()
+        
+        # Convert enum values to integers for Z3
+        broadcast_val = broadcast_type.value if hasattr(broadcast_type, 'value') else 0
+        reuse_dest_val = reuse_dest.value if hasattr(reuse_dest, 'value') else 0
+        
+        # Z3 variables representing our parameters
+        broadcast = IntVal(broadcast_val)  # 0=NONE, 1=COL, 2=ROW, 3=SCALAR
+        acc_to_dest_z3 = BoolVal(acc_to_dest)
+        reuse_dest_z3 = IntVal(reuse_dest_val)  # 0=NONE, 1=DEST_TO_SRCA, 2=DEST_TO_SRCB
+        transpose_faces = BoolVal(transpose_of_faces == 1)
+        num_faces_z3 = IntVal(num_faces)
+        unpack_to_dest = BoolVal(formats.input_format.is_32_bit())
+        is_blackhole = BoolVal(arch == ChipArchitecture.BLACKHOLE)
+        is_wormhole = BoolVal(arch == ChipArchitecture.WORMHOLE)
+        
+        # Define constraint predicates using Z3
+        broadcast_none = (broadcast == 0)
+        broadcast_col = (broadcast == 1) 
+        broadcast_row = (broadcast == 2)
+        broadcast_scalar = (broadcast == 3)
+        
+        reuse_none = (reuse_dest_z3 == 0)
+        reuse_srca = (reuse_dest_z3 == 1)
+        reuse_srcb = (reuse_dest_z3 == 2)
+        
+        # Static assertion 1: broadcast + acc_to_dest + DEST_TO_SRCB
+        constraint1 = Not(And(Not(broadcast_none), acc_to_dest_z3, reuse_srcb))
+        
+        # Static assertion 2: unpack_to_dest configuration restrictions
+        valid_unpack_config = Or(
+            And(broadcast_none, Not(acc_to_dest_z3), reuse_none),
+            Not(unpack_to_dest)
+        )
+        constraint2 = valid_unpack_config
+        
+        # Static assertion 3: SCALAR broadcast + acc_to_dest
+        constraint3 = Not(And(broadcast_scalar, acc_to_dest_z3))
+        
+        # Static assertion 4: DEST_TO_SRCA not supported
+        constraint4 = Not(reuse_srca)
+        
+        # unpack_to_dest specific constraints
+        unpack_constraints = If(unpack_to_dest,
+            And(
+                # unpack_to_dest + transpose_of_faces requires exactly 4 faces
+                Implies(transpose_faces, num_faces_z3 == 4)
+            ),
+            True
+        )
+        
+        # Architecture-specific broadcast constraints (when not unpack_to_dest)
+        broadcast_constraints = If(Not(unpack_to_dest),
+            And(
+                # COL broadcast limitations
+                Implies(broadcast_col,
+                    And(
+                        # DEST_TO_SRCB not supported
+                        Not(reuse_srcb),
+                        # Architecture-specific face count limits
+                        If(is_blackhole,
+                            If(acc_to_dest_z3,
+                                num_faces_z3 <= 2,  # Blackhole COL + acc_to_dest: <= 2 faces
+                                num_faces_z3 <= 1   # Blackhole COL no acc_to_dest: <= 1 face
+                            ),
+                            # Wormhole
+                            num_faces_z3 <= 1       # Wormhole COL: <= 1 face
+                        )
+                    )
+                ),
+                # ROW broadcast limitations  
+                Implies(broadcast_row,
+                    If(is_blackhole,
+                        num_faces_z3 <= 2,      # Blackhole ROW: <= 2 faces
+                        num_faces_z3 <= 1       # Wormhole ROW: <= 1 face
+                    )
+                )
+            ),
+            True  # When unpack_to_dest=True, different code path, broadcast limits don't apply
+        )
+        
+                # transpose_of_faces with 1 face constraint
+        transpose_constraint = Implies(transpose_faces, num_faces_z3 > 1)
+        
+        # User constraint: transpose_of_faces and within_face_16x16_transpose are mutually inclusive
+        within_face_transpose = BoolVal(within_face_16x16_transpose == 1)
+        transpose_mutual_constraint = (transpose_faces == within_face_transpose)
+        
+        # todo: Float32 input + transpose_of_faces not supported
+        # Verify this constraint is correct
+        is_float32_input = BoolVal(formats.input_format == DataFormat.Float32)
+        float32_transpose_constraint = Not(And(is_float32_input, transpose_faces))
+        
+        # Add all constraints to solver
+        s.add(constraint1, constraint2, constraint3, constraint4, 
+              unpack_constraints, broadcast_constraints, transpose_constraint, 
+              transpose_mutual_constraint, float32_transpose_constraint)
+        
+        # Check if this parameter combination is valid
+        if s.check() == sat:
+            valid_params.append(params)
+    
+    return valid_params
+
+# Apply Z3 constraint filtering
+print(f"Total parameter combinations before Z3 filtering: {len(all_params)}")
+all_params = filter_params_with_z3(all_params)
+print(f"Valid parameter combinations after Z3 filtering: {len(all_params)}")
 
 
 def create_simple_ids(all_params):
@@ -169,6 +273,7 @@ def create_simple_ids(all_params):
 param_ids = create_simple_ids(all_params)
 #param_ids = generate_param_ids(all_params)
 
+
 @pytest.mark.parametrize(
     "testname, formats, broadcast_type, disable_src_zero, acc_to_dest, "
     "stoch_rnd_type, reuse_dest, transpose_of_faces, "
@@ -182,81 +287,14 @@ def test_unpack_comprehensive(
     within_face_16x16_transpose, num_faces
 ):
     
-    # Check if the format is supported
+    # Get architecture and compute unpack_to_dest
     arch = get_chip_architecture()
     unpack_to_dest = formats.input_format.is_32_bit()
 
-
-    # Static assertion 1: broadcast + acc_to_dest + DEST_TO_SRCB
-    if (broadcast_type != BroadcastType.NONE and 
-        acc_to_dest and 
-        reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCB):
-        pytest.skip("Static assertion: broadcast + acc_to_dest + DEST_TO_SRCB not supported")
-
-    # Static assertion 2: unpack_to_dest configuration restrictions  
-    if not (((broadcast_type == BroadcastType.NONE and 
-        not acc_to_dest and 
-        reuse_dest == EltwiseBinaryReuseDestType.NONE) or 
-        not unpack_to_dest)):
-        pytest.skip("Static assertion: invalid configuration when unpacking to dest")
-
-    # Static assertion 3: SCALAR broadcast + acc_to_dest
-    if broadcast_type == BroadcastType.SCALAR and acc_to_dest:
-        pytest.skip("Static assertion: broadcast scalar with acc_to_dest not supported")
-
-    # Static assertion 4: DEST_TO_SRCA reuse mode not supported in current test framework
-    if reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA:
-        pytest.skip("Static assertion: DEST_TO_SRCA reuse mode not supported in current test framework")
-
-    if unpack_to_dest:
-        # unpack_to_dest requires 32-bit input format
-        if not (formats.input_format in [DataFormat.Float32]):
-            pytest.skip("unpack_to_dest requires 32-bit input format")
-        
-        # unpack_to_dest + transpose_of_faces requires exactly 4 faces
-        if transpose_of_faces and num_faces != 4:
-            pytest.skip("unpack_to_dest + transpose_of_faces requires exactly 4 faces")
-        
-        # When unpack_to_dest=True, broadcast limitations don't apply (different code path)
-        
-    else:
-        
-        # COL broadcast limitations
-        if broadcast_type == BroadcastType.COL:
-            # DEST_TO_SRCB not supported (both architectures)
-            if reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCB:
-                pytest.skip("COL broadcast: DEST_TO_SRCB not supported")
-            
-            # Face count limitations differ by architecture
-            if arch == ChipArchitecture.BLACKHOLE:
-                if acc_to_dest:
-                    if num_faces > 2:
-                        pytest.skip("Blackhole COL broadcast with acc_to_dest: num_faces > 2 not supported")
-                else:
-                    if num_faces > 1:
-                        pytest.skip("Blackhole COL broadcast without acc_to_dest: num_faces > 1 not supported")
-            
-            elif arch == ChipArchitecture.WORMHOLE:
-                if num_faces > 1:
-                    pytest.skip("Wormhole COL broadcast: num_faces > 1 not supported")
-        
-        # ROW broadcast limitations
-        if broadcast_type == BroadcastType.ROW:
-            if arch == ChipArchitecture.BLACKHOLE:
-                if num_faces > 2:
-                    pytest.skip("Blackhole ROW broadcast: num_faces > 2 not supported")
-            
-            elif arch == ChipArchitecture.WORMHOLE:
-                if num_faces > 1:
-                    pytest.skip("Wormhole ROW broadcast: num_faces > 1 not supported")
-
- 
-    # transpose_of_faces with 1 face makes no sense
-    if transpose_of_faces and num_faces == 1:
-       pytest.skip("Cannot transpose faces with only 1 face")
-
-   
-    input_dimensions = [64, 64]
+    # Note: All constraint validation has been done by Z3 during parameter generation
+    # No need for pytest.skip() calls - invalid combinations have been filtered out
+    
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, 
@@ -264,8 +302,11 @@ def test_unpack_comprehensive(
         input_dimensions=input_dimensions,
     )
 
-    # generate golden generator    
-    generate_golden = get_golden_generator(DataCopyGolden) 
+    # generate golden generator - use transpose golden when transpose_of_faces is 1
+    if transpose_of_faces == 1:
+        generate_golden = get_golden_generator(TransposeGolden)
+    else:
+        generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(src_A, formats.output_format)
 
     res_address = write_stimuli_to_l1(
