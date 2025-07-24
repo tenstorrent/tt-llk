@@ -5,6 +5,7 @@ import math
 import torch
 
 from helpers.format_arg_mapping import (
+    DestAccumulation,
     MathFidelity,
     MathOperation,
     ReduceDimension,
@@ -35,18 +36,28 @@ def check_bfp8_b(operand: list) -> list:
     # tensor = unpack_bfp8_b(tensor_bytes)
     # return tensor
 
-    not_finite = [1.7014118346046923e38, float("inf"), float("-inf"), float("nan")]
+    not_finite = [1.7014118346046923e38, float("inf"), float("-inf")]
     for i in range(len(operand)):
-        if operand[i] in not_finite:
+        if operand[i] in not_finite or math.isnan(operand[i]):
             # Zero out the entire row of 16 elements
             inf_index = i
             for col in range(16):
                 row = inf_index // 16
                 index = row * 16 + col
-                if operand[index] not in not_finite:
+                if not (operand[index] in not_finite or math.isnan(operand[index])):
                     operand[index] = 0.0
 
     return operand
+
+
+def convert_nan_to_inf(operand: list, data_format) -> list:
+    if data_format in [DataFormat.Float16_b, DataFormat.Float32]:
+        return
+    inf_value = float("inf") if data_format != DataFormat.Float16 else 131008.0
+    print(data_format, inf_value)
+    for i in range(len(operand)):
+        if math.isnan(operand[i]):
+            operand[i] = inf_value
 
 
 def calculate_fractional_part(mantissa_value):
@@ -366,15 +377,44 @@ class UnarySFPUGolden:
             MathOperation.Hardsigmoid: self._hardsigmoid,
         }
         self.data_format = None
+        self.dest_acc = DestAccumulation.No
 
-    def __call__(self, operation, operand1, data_format):
+    def __call__(self, operation, operand1, data_format, dest_acc, input_format):
         self.data_format = data_format
+        self.dest_acc = dest_acc
+
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
-        tensor = to_tensor(operand1, self.data_format)
+
+        print("before truncation", operand1[178])
+        if self.dest_acc == DestAccumulation.No:
+            if input_format == DataFormat.Float32:
+                if data_format == DataFormat.Float16:
+                    tensor = to_tensor((operand1.view(torch.int32) & 0xffffe000).view(torch.float32), DataFormat.Float16)
+                else:
+                    tensor = to_tensor((operand1.view(torch.int32) & 0xffff0000).view(torch.float32), DataFormat.Float16_b)
+            else:
+                if data_format == DataFormat.Float32:
+                    tensor = to_tensor(operand1, input_format)
+                else:
+                    tensor = to_tensor(operand1, data_format)
+        else:
+            print("dest acc en", self.dest_acc)
+            tensor = to_tensor(operand1, DataFormat.Float32)
+
+        print("input", tensor[178])
         result = [self.ops[operation](x) for x in tensor.tolist()]
+        print("result", result[178])
+
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
+
+        if self.dest_acc == DestAccumulation.No:
+            print("doing conversion nan to inf", result[178], input_format)
+            convert_nan_to_inf(result, input_format)
+            print("done conversion nan to inf", result[178], input_format)
+            print("torch conversion nan to inf", torch.tensor(result, dtype=format_dict[data_format])[178], input_format)
+
         return torch.tensor(result, dtype=format_dict[data_format])
 
     # Helper functions
@@ -385,6 +425,7 @@ class UnarySFPUGolden:
             float: Infinite number
             Depending on our format we either return NaN or +/- inf.
         """
+        return expected
         if self.data_format.is_exponent_B():
             return expected
         else:  # self.data_format == DataFormat.Float16:
@@ -398,9 +439,9 @@ class UnarySFPUGolden:
         if x < -1.0 or x > 1.0:
             return float("nan")
         if x == -1.0:
-            return float("-inf")
+            return self.handle_infinite_numbers(float("-inf"))
         if x == 1.0:
-            return float("inf")
+            return self.handle_infinite_numbers(float("inf"))
         return math.atanh(x)
 
     def _asinh(self, x):
