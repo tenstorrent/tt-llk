@@ -145,4 +145,10 @@ enum InstrModLoadStore
     HI16_ONLY     = 15
 };
 
+enum class DestAccumulation
+{
+    Disable = 0,
+    Enable  = 1,
+};
+
 } // namespace ckernel

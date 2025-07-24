@@ -36,7 +36,7 @@ void run_kernel()
         tile_size = 256;
     }
 
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+    _llk_unpack_AB_matmul_hw_configure_<fp32_dest_accumulation, StochRndType::None>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 0, 4, 4, tile_size, tile_size);
     _llk_unpack_AB_matmul_init_<>(0, ct_dim, rt_dim, kt_dim, FACE_R_DIM, FACE_R_DIM);
     for (uint32_t j = 0; j < kt_dim; j++)
@@ -73,7 +73,7 @@ void run_kernel()
     std::uint32_t kt_dim = BLOCK_CT_DIM; // for square matrices, kt_dim == ct_dim
 
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, ct_dim, rt_dim, kt_dim);
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, fp32_dest_accumulation>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < kt_dim; j++)
@@ -81,7 +81,7 @@ void run_kernel()
         _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, 0, ct_dim, rt_dim, kt_dim);
     }
 
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
 }
 
 #endif
@@ -95,21 +95,21 @@ void run_kernel()
 void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<fp32_dest_accumulation, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<fp32_dest_accumulation, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_packer_wait_for_math_done_();
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
 }
 
 #endif

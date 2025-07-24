@@ -23,7 +23,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_A_hw_configure_<fp32_dest_accumulation, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
 
@@ -67,7 +67,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             break;
         case SfpuType::reciprocal:
             ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, iterations, is_fp32_dest_acc_en>(iterations);
+            ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, iterations, fp32_dest_accumulation>(iterations);
             break;
         case SfpuType::sine:
             ckernel::sfpu::_calculate_sine_<APPROX_MODE, iterations>(iterations);
@@ -136,17 +136,17 @@ void run_kernel()
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, false, false>(0, 0, 4, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, false>(0, 0, 4, formats.math);
 #endif
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, fp32_dest_accumulation>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, fp32_dest_accumulation, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
 
         // calculation of sfpu operation on dest
@@ -159,7 +159,7 @@ void run_kernel()
         _llk_math_eltwise_unary_sfpu_done_();
     }
 
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
 }
 
 #endif
@@ -173,15 +173,15 @@ void run_kernel()
 void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<fp32_dest_accumulation, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<fp32_dest_accumulation, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
 #else
     _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
 #endif
@@ -189,9 +189,9 @@ void run_kernel()
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
 }
 
 #endif

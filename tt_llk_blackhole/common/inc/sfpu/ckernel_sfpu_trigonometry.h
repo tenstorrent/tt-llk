@@ -8,6 +8,7 @@
 
 #include "ckernel_sfpu_log.h"
 #include "ckernel_sfpu_sqrt.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -182,7 +183,7 @@ inline void _calculate_asinh_()
 }
 
 // atanh[x] = 0.5 * ln((1 + x) / (1 - x))
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestAccumulation fp32_dest_accumulation, int ITERATIONS>
 inline void _calculate_atanh_()
 {
     // SFPU microcode
@@ -205,7 +206,7 @@ inline void _calculate_atanh_()
             sfpi::vFloat den = sfpi::vConst1 - inp;
             sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(den);
             tmp              = sfpi::setsgn(tmp, den);
-            if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+            if constexpr (fp32_dest_accumulation == DestAccumulation::Enable || APPROXIMATION_MODE)
             {
                 den = tmp;
             }

@@ -154,4 +154,10 @@ enum InstrModCast
     INT_SIGN_MAGN_TO_INT32_2S_COMP = 3
 };
 
+enum class DestAccumulation
+{
+    Disable = 0,
+    Enable  = 1,
+};
+
 } // namespace ckernel

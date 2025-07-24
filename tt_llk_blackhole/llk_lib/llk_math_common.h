@@ -10,6 +10,7 @@
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
 #include "cmath_common.h"
+#include "llk_defs.h"
 
 using namespace ckernel::math;
 
@@ -48,7 +49,7 @@ inline void _llk_math_wait_for_dest_available_()
     math_dest_wait();
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en>
+template <DstSync Dst, DestAccumulation fp32_dest_accumulation>
 inline void _llk_math_dest_section_done_()
 {
     set_math_semaphores();
@@ -59,7 +60,7 @@ inline void _llk_math_dest_section_done_()
     }
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en>
+template <DstSync Dst, DestAccumulation fp32_dest_accumulation>
 inline void _llk_math_pack_sync_init_()
 {
     tensix_sync();
@@ -115,36 +116,36 @@ inline void _llk_math_debug_dump_seek_(std::uint8_t offset)
 
 // Following functions do not need to program ALU_FORMAT_SPEC_REG0_SrcA/ALU_FORMAT_SPEC_REG1_SrcB
 // for blackhole since ALU format is inferred
-template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
+template <DestAccumulation fp32_dest_accumulation, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_format)
 {
     if constexpr (to_from_int8)
     {
-        static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
+        static_assert(fp32_dest_accumulation == DestAccumulation::Enable, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
         uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srca_data_format == (uint)DataFormat::Int32);
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
     }
 }
 
-template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
+template <DestAccumulation fp32_dest_accumulation, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_format)
 {
     if constexpr (to_from_int8)
     {
-        static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
+        static_assert(fp32_dest_accumulation == DestAccumulation::Enable, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
         uint int8_math_enabled = ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
     }
 }
 
-template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
+template <DestAccumulation fp32_dest_accumulation, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
     if constexpr (to_from_int8)
     {
-        static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
+        static_assert(fp32_dest_accumulation == DestAccumulation::Enable, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
         uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
                                  ((uint)srca_data_format == (uint)DataFormat::Int32) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
