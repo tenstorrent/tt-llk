@@ -152,35 +152,55 @@ def generate_unpack_A_params(
     acc_to_dest_flags: Optional[List[bool]] = None,
     stoch_rounding_types: Optional[List] = None,
     reuse_dest_types: Optional[List] = None,
-    #unpack_to_dest_flags: Optional[List[bool]] = None,
+    # unpack_to_dest_flags: Optional[List[bool]] = None,
     transpose_of_faces_values: Optional[List[int]] = None,
     within_face_16x16_transpose_values: Optional[List[int]] = None,
     num_faces_values: Optional[List[int]] = None,
 ) -> List[tuple]:
     """
     Generates parameter combinations for unpack_A specific parameters only.
-    
+
     This function creates all possible combinations of unpack_A template and runtime parameters,
     excluding testnames and formats which are handled separately.
-    
+
     Returns:
         List[tuple]: A list of tuples containing unpack_A parameter combinations
     """
-    
+
     # Generate all combinations - NO CONSTRAINT FILTERING HERE
     # (Constraints will be applied in the test file where the enums are defined)
     combinations = []
-    
-    for broadcast_type in (broadcast_types if broadcast_types is not None else [None]):
-        for disable_src_zero in (disable_src_zero_flags if disable_src_zero_flags is not None else [None]):
-            for acc_to_dest in (acc_to_dest_flags if acc_to_dest_flags is not None else [None]):
-                for stoch_rounding in (stoch_rounding_types if stoch_rounding_types is not None else [None]):
-                    for reuse_dest in (reuse_dest_types if reuse_dest_types is not None else [None]):
-                        #for unpack_to_dest in (unpack_to_dest_flags if unpack_to_dest_flags is not None else [None]):
-                        for transpose_of_faces in (transpose_of_faces_values if transpose_of_faces_values is not None else [None]):
-                            for within_face_16x16_transpose in (within_face_16x16_transpose_values if within_face_16x16_transpose_values is not None else [None]):
-                                for num_faces in (num_faces_values if num_faces_values is not None else [None]):
-                                        
+
+    for broadcast_type in broadcast_types if broadcast_types is not None else [None]:
+        for disable_src_zero in (
+            disable_src_zero_flags if disable_src_zero_flags is not None else [None]
+        ):
+            for acc_to_dest in (
+                acc_to_dest_flags if acc_to_dest_flags is not None else [None]
+            ):
+                for stoch_rounding in (
+                    stoch_rounding_types if stoch_rounding_types is not None else [None]
+                ):
+                    for reuse_dest in (
+                        reuse_dest_types if reuse_dest_types is not None else [None]
+                    ):
+                        # for unpack_to_dest in (unpack_to_dest_flags if unpack_to_dest_flags is not None else [None]):
+                        for transpose_of_faces in (
+                            transpose_of_faces_values
+                            if transpose_of_faces_values is not None
+                            else [None]
+                        ):
+                            for within_face_16x16_transpose in (
+                                within_face_16x16_transpose_values
+                                if within_face_16x16_transpose_values is not None
+                                else [None]
+                            ):
+                                for num_faces in (
+                                    num_faces_values
+                                    if num_faces_values is not None
+                                    else [None]
+                                ):
+
                                     # Create parameter tuple (unpack_A params only)
                                     param_tuple = (
                                         broadcast_type,
@@ -188,14 +208,14 @@ def generate_unpack_A_params(
                                         acc_to_dest,
                                         stoch_rounding,
                                         reuse_dest,
-                                        #unpack_to_dest,
+                                        # unpack_to_dest,
                                         transpose_of_faces,
                                         within_face_16x16_transpose,
                                         num_faces,
                                     )
-                                        
+
                                     combinations.append(param_tuple)
-    
+
     return combinations
 
 
@@ -223,6 +243,7 @@ def generate_param_ids(all_params: List[tuple]) -> List[str]:
     Returns:
     List[str]: A list of formatted strings representing parameter combinations.
     """
+
     def format_combination(params):
         """Format a single parameter combination into a readable string."""
         if len(params) < 5:
