@@ -69,15 +69,13 @@ all_params = []
 testname = ["unpack_A_test"]
 
 # Method 1: Use generate_params for base parameter structure (like datacopy test)
-base_params = generate_params(testname, test_formats)  # Don't specify dest_acc, we'll use acc_to_dest from unpack_params
+base_params = list(generate_params(testnames=testname, formats=test_formats))  # Convert itertools.product to list
 
 # Method 2: Extend base params with unpack_A specific parameters
 for base_param in base_params:
-    # base_param = (testname, format_config, acc_mode, approx, math, fidelity, num_tiles, dim, pool)
-    # We only care about the first 3: testname, formats, dest_acc
+    # base_param = (testname, format_config) - new format from main branch
     base_testname = base_param[0]
-    formats = base_param[1] 
-    base_dest_acc = base_param[2]
+    formats = base_param[1]
     
     for unpack_params in unpack_A_param_combinations:
         # unpack_params = (broadcast_type, disable_src_zero, 

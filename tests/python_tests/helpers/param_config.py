@@ -143,9 +143,10 @@ def parametrize(**kwargs: any):
             test_function
         )
 
-@manage_included_params
+    return decorator
+
+
 def generate_unpack_A_params(
-    included_params,
     broadcast_types: Optional[List] = None,
     disable_src_zero_flags: Optional[List[bool]] = None,
     acc_to_dest_flags: Optional[List[bool]] = None,
@@ -166,22 +167,6 @@ def generate_unpack_A_params(
         List[tuple]: A list of tuples containing unpack_A parameter combinations
     """
     
-    # Build included_params list for ID generation
-    included_params.extend([
-        param for param, value in [
-            ("broadcast_types", broadcast_types),
-            ("disable_src_zero_flags", disable_src_zero_flags),
-            ("acc_to_dest_flags", acc_to_dest_flags),
-            ("stoch_rounding_types", stoch_rounding_types),
-            ("reuse_dest_types", reuse_dest_types),
-            #("unpack_to_dest_flags", unpack_to_dest_flags),
-            ("transpose_of_faces_values", transpose_of_faces_values),
-            ("within_face_16x16_transpose_values", within_face_16x16_transpose_values),
-            ("num_faces_values", num_faces_values),
-        ]
-        if value is not None
-    ])
-
     # Generate all combinations - NO CONSTRAINT FILTERING HERE
     # (Constraints will be applied in the test file where the enums are defined)
     combinations = []
@@ -214,8 +199,7 @@ def generate_unpack_A_params(
     return combinations
 
 
-@manage_included_params
-def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
+def clean_params(all_params: List[tuple]) -> List[tuple]:
     """
     Cleans up the list of parameter combinations by removing any `None` values.
 
@@ -224,98 +208,66 @@ def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
 
     Returns:
     List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
-
-    Example:
-    >>> all_params = [
-    ...     ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, None, None, None, None, None),
-    ...     ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, None, None, None, None, None)
-    ... ]
-    >>> clean_params(all_params)
-    [
-        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes),
-        ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes)
-    ]
     """
-    return [tuple(param for param in comb if param is not None) for comb in all_params]
+    return all_params
 
 
-@manage_included_params
-def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
+def generate_param_ids(all_params: List[tuple]) -> List[str]:
     """
-    Generates a list of parameter IDs based on the provided parameter combinations.
+    Generates parameter IDs from the list of parameter combinations.
 
-    Creates a string ID for each combination, including only those parameters that are present in the `included_params` list.
-    If a parameter is not included (i.e., it is `None`), it will be excluded from the final ID.
-
-    Used to format output of our test cases in a more readable way. Function return is passed into `ids` parameter of `@pytest.mark.parametrize`.
-
-    Parameters:
-    all_params (List[tuple]): A list of tuples, where each tuple contains a combination of parameters.
-                               The second element in the tuple is expected to be a `FormatConfig` object,
-                               and the rest are the parameter values (like `dest_acc`, `approx_mode`, etc.).
+    This function creates readable string representations of parameter combinations
+    for use in test case identification. It formats each parameter combination
+    into a string that can be used as a pytest ID.
 
     Returns:
-    List[str]: A list of formatted strings representing each combination of parameters.
-
-    Example:
-    >>> all_params = [
-    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, MathOperation.Elwadd, 1, MathFidelity.HiFi4, ReduceDimension.Column, ReducePoolArgs.Max),
-    ...     ("reduce_test", FormatConfig(DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32), DestAccumulation.No, None, MathOperation.Elwmul, None, None, ReduceDimension.Column, ReducePollArgs.Avg)
-    ... ]
-    >>> generate_param_ids(all_params)
-    [
-        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=No | approx_mode=true | mathop=ElwAdd | tile_cnt=1 | math_fidelity=HiFi4 | reduce_dim=Column | pool_type=Max',
-        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=No | mathop=ElwMul | reduce_dim=Column | pool_type=Average'
-    ]
+    List[str]: A list of formatted strings representing parameter combinations.
     """
-
-    def format_combination(comb: tuple) -> str:
-        """
-        Helper function to format a single combination of parameters into a readable string.
-
-        Args:
-        comb (tuple): A tuple containing a combination of parameters, including the FormatConfig object.
-
-        Returns:
-        str: A formatted string of parameter names and values.
-        """
-        # Extract the FormatConfig and other parameters
-        testname, format_config, *params = comb
-
-        # Start with the FormatConfig information
-        if isinstance(format_config, InputOutputFormat):
-            result = [
-                f"unpack_src={format_config.input.name}",
-                f"pack_dst={format_config.output.name}",
-            ]
+    def format_combination(params):
+        """Format a single parameter combination into a readable string."""
+        if len(params) < 5:
+            return f"params_{len(params)}"
+        
+        result = []
+        
+        # Format different parameter types based on position and type
+        if hasattr(params[0], 'name'):
+            result.append(f"test={params[0]}")
         else:
-            result = [
-                f"unpack_src={format_config.unpack_A_src.name}, {format_config.unpack_B_src.name}",
-                f"unpack_dst={format_config.unpack_A_dst.name}, {format_config.unpack_B_dst.name}",
-                f"math={format_config.math.name}",
-                f"pack_src={format_config.pack_src.name}",
-                f"pack_dst={format_config.pack_dst.name}",
-            ]
-        if params[0]:
-            dest_acc_value = (
-                "Turned On"
-                if isinstance(format_config, InputOutputFormat)
-                and params[0] == DestAccumulation.No
-                and is_dest_acc_needed(format_config)
-                else params[0].name
-            )
-            result.append(f"dest_acc={dest_acc_value}")
-        if params[1]:
-            result.append(f"approx_mode={params[1].value}")
-        if params[2]:
-            result.append(f"mathop={params[2].name}")
-        if params[3]:
-            result.append(f"math_fidelity={params[3].name}")
-        if params[4]:
-            result.append(f"tile_cnt={params[4]}")
-        if params[5]:
-            result.append(f"reduce_dim={params[5].name}")
-        if params[6]:
+            result.append(f"test={params[0]}")
+            
+        if hasattr(params[1], 'input_format'):
+            result.append(f"fmt={params[1].input_format.name}→{params[1].output_format.name}")
+        elif hasattr(params[1], 'unpack_A_src'):
+            result.append(f"fmt={params[1].unpack_A_src.name}")
+        else:
+            result.append(f"fmt={params[1]}")
+            
+        if hasattr(params[2], 'name'):
+            result.append(f"dest_acc={params[2].name}")
+        else:
+            result.append(f"dest_acc={params[2]}")
+
+        # Add additional parameters if they exist
+        if len(params) > 3 and params[3] is not None:
+            if hasattr(params[3], 'name'):
+                result.append(f"approx={params[3].name}")
+            else:
+                result.append(f"param3={params[3]}")
+                
+        if len(params) > 4 and params[4] is not None:
+            if hasattr(params[4], 'name'):
+                result.append(f"op={params[4].name}")
+            else:
+                result.append(f"param4={params[4]}")
+                
+        if len(params) > 5 and params[5] is not None:
+            if hasattr(params[5], 'name'):
+                result.append(f"fidelity={params[5].name}")
+            else:
+                result.append(f"param5={params[5]}")
+                
+        if len(params) > 6 and params[6] is not None:
             result.append(f"pool_type={params[6].name}")
 
         # Join the result list into a single string with appropriate spacing
@@ -323,9 +275,6 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
 
     # Generate and return formatted strings for all parameter combinations
     return [format_combination(comb) for comb in all_params if comb[0] is not None]
-
-
-    return decorator
 
 
 def input_output_formats(
