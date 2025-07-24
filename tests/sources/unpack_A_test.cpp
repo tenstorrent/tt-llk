@@ -23,12 +23,15 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(TRANSPOSE_OF_FACES, WITHIN_FACE_16X16_TRANSPOSE, FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCH_RND_TYPE, disable_src_zero_flag>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, WITHIN_FACE_16X16_TRANSPOSE, NUM_FACES);
-    
+    _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
+        TRANSPOSE_OF_FACES, WITHIN_FACE_16X16_TRANSPOSE, FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
+    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCH_RND_TYPE, disable_src_zero_flag>(
+        formats.unpack_src, formats.unpack_dst, FACE_R_DIM, WITHIN_FACE_16X16_TRANSPOSE, NUM_FACES);
+
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), TRANSPOSE_OF_FACES, formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
+            L1_ADDRESS(buffer_A[i]), TRANSPOSE_OF_FACES, formats.unpack_src, formats.unpack_dst);
     }
 }
 
@@ -77,7 +80,6 @@ void run_kernel()
 
 void run_kernel()
 {
-
     // Use proper tile size calculation based on NUM_FACES
     const uint32_t tile_size = 16 * 16 * NUM_FACES;
 

@@ -119,27 +119,30 @@ def generate_build_header(
         f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
     )
 
-     # Broadcast type
+    # Broadcast type
     if "broadcast_type" in test_config:
         broadcast_type = test_config["broadcast_type"]
-        if hasattr(broadcast_type, 'name'):
-            header_content.append(f"#define BROADCAST_TYPE BroadcastType::{broadcast_type.name}")
+        if hasattr(broadcast_type, "name"):
+            header_content.append(
+                f"#define BROADCAST_TYPE BroadcastType::{broadcast_type.name}"
+            )
         else:
             header_content.append(f"#define BROADCAST_TYPE {broadcast_type}")
-    
+
     # Accumulate to dest
     if "acc_to_dest" in test_config:
         acc_to_dest = str(test_config["acc_to_dest"]).lower()
         header_content.append(f"#define ACC_TO_DEST {acc_to_dest}")
-    
+
     # Reuse destination type
     if "reuse_dest" in test_config:
         reuse_dest = test_config["reuse_dest"]
-        if hasattr(reuse_dest, 'name'):
-            header_content.append(f"#define REUSE_DEST_TYPE EltwiseBinaryReuseDestType::{reuse_dest.name}")
+        if hasattr(reuse_dest, "name"):
+            header_content.append(
+                f"#define REUSE_DEST_TYPE EltwiseBinaryReuseDestType::{reuse_dest.name}"
+            )
         else:
             header_content.append(f"#define REUSE_DEST_TYPE {reuse_dest}")
-    
     # Added for unpack test
     # if "stoch_rnd_type" in test_config:
     #     stoch_rnd_type = test_config["stoch_rnd_type"]
@@ -149,31 +152,34 @@ def generate_build_header(
     #         header_content.append(f"#define STOCH_RND_TYPE {stoch_rnd_type}")
     if "stoch_rnd_type" in test_config:
         stoch_rnd_type = test_config["stoch_rnd_type"]
-        if hasattr(stoch_rnd_type, 'name'):
+        if hasattr(stoch_rnd_type, "name"):
             # It's an enum object - use .name but convert NONE to None
             name = "None" if stoch_rnd_type.name == "NONE" else stoch_rnd_type.name
             header_content.append(f"#define STOCH_RND_TYPE StochRndType::{name}")
         else:
             # It's already a string
-            header_content.append(f"#define STOCH_RND_TYPE StochRndType::{stoch_rnd_type}")
-
+            header_content.append(
+                f"#define STOCH_RND_TYPE StochRndType::{stoch_rnd_type}"
+            )
 
     # if "is_fp32_dest_acc_en" in test_config:
     #     is_fp32_dest_acc_en = str(test_config["is_fp32_dest_acc_en"]).lower()
     #     header_content.append(f"#define IS_FP32_DEST_ACC_EN {is_fp32_dest_acc_en}")
-    
+
     if "disable_src_zero_flag" in test_config:
         disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
         header_content.append(f"#define disable_src_zero_flag {disable_src_zero_flag}")
-    
+
     if "transpose_of_faces" in test_config:
         transpose_of_faces = test_config["transpose_of_faces"]
         header_content.append(f"#define TRANSPOSE_OF_FACES {transpose_of_faces}")
-    
+
     if "within_face_16x16_transpose" in test_config:
         within_face_16x16_transpose = test_config["within_face_16x16_transpose"]
-        header_content.append(f"#define WITHIN_FACE_16X16_TRANSPOSE {within_face_16x16_transpose}")
-    
+        header_content.append(
+            f"#define WITHIN_FACE_16X16_TRANSPOSE {within_face_16x16_transpose}"
+        )
+
     if "num_faces" in test_config:
         num_faces = test_config["num_faces"]
         header_content.append(f"#define NUM_FACES {num_faces}")

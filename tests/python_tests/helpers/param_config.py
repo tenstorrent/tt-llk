@@ -250,44 +250,46 @@ def generate_param_ids(all_params: List[tuple]) -> List[str]:
             return f"params_{len(params)}"
         
         result = []
-        
+
         # Format different parameter types based on position and type
-        if hasattr(params[0], 'name'):
+        if hasattr(params[0], "name"):
             result.append(f"test={params[0]}")
         else:
             result.append(f"test={params[0]}")
-            
-        if hasattr(params[1], 'input_format'):
-            result.append(f"fmt={params[1].input_format.name}→{params[1].output_format.name}")
-        elif hasattr(params[1], 'unpack_A_src'):
+
+        if hasattr(params[1], "input_format"):
+            result.append(
+                f"fmt={params[1].input_format.name}→{params[1].output_format.name}"
+            )
+        elif hasattr(params[1], "unpack_A_src"):
             result.append(f"fmt={params[1].unpack_A_src.name}")
         else:
             result.append(f"fmt={params[1]}")
-            
-        if hasattr(params[2], 'name'):
+
+        if hasattr(params[2], "name"):
             result.append(f"dest_acc={params[2].name}")
         else:
             result.append(f"dest_acc={params[2]}")
 
         # Add additional parameters if they exist
         if len(params) > 3 and params[3] is not None:
-            if hasattr(params[3], 'name'):
+            if hasattr(params[3], "name"):
                 result.append(f"approx={params[3].name}")
             else:
                 result.append(f"param3={params[3]}")
-                
+
         if len(params) > 4 and params[4] is not None:
-            if hasattr(params[4], 'name'):
+            if hasattr(params[4], "name"):
                 result.append(f"op={params[4].name}")
             else:
                 result.append(f"param4={params[4]}")
-                
+
         if len(params) > 5 and params[5] is not None:
-            if hasattr(params[5], 'name'):
+            if hasattr(params[5], "name"):
                 result.append(f"fidelity={params[5].name}")
             else:
                 result.append(f"param5={params[5]}")
-                
+
         if len(params) > 6 and params[6] is not None:
             result.append(f"pool_type={params[6].name}")
 
