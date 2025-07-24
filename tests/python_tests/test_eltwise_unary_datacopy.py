@@ -31,7 +31,7 @@ from helpers.utils import passed_test
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
 )
-def test_unary_datacopy(test_name, formats, dest_acc):
+def test_unary_datacopy(test_name, test_logger, formats, dest_acc):
 
     input_dimensions = [64, 64]
 
@@ -65,4 +65,6 @@ def test_unary_datacopy(test_name, formats, dest_acc):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format, test_logger=test_logger
+    )

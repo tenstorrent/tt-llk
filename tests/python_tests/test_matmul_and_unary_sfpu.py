@@ -67,7 +67,7 @@ from helpers.utils import passed_test
     ],
 )
 def test_matmul_and_unary_sfpu(
-    test_name, formats, mathop, approx_mode, dest_acc, math_fidelity
+    test_name, test_logger, formats, mathop, approx_mode, dest_acc, math_fidelity
 ):
     input_dimensions = [32, 32]
 
@@ -134,4 +134,5 @@ def test_matmul_and_unary_sfpu(
         test_config.get(
             "L1_to_L1_iterations"  # Needed to calculate accumulated precision loss for fused tests that copy result tensor as input for next runs
         ),
+        test_logger=test_logger,
     )

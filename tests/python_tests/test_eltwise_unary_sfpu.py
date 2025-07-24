@@ -58,7 +58,9 @@ from helpers.utils import passed_test
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
+def test_eltwise_unary_sfpu_float(
+    test_name, test_logger, formats, approx_mode, mathop, dest_acc
+):
     arch = get_chip_architecture()
 
     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
@@ -79,7 +81,7 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
             reason="Exp-related operations are not supported for bf8_b format in approximation mode."
         )
 
-    eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
+    eltwise_unary_sfpu(test_name, test_logger, formats, dest_acc, approx_mode, mathop)
 
 
 @parametrize(
@@ -92,14 +94,16 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
     ],
     dest_acc=[DestAccumulation.Yes],
 )
-def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_acc):
+def test_eltwise_unary_sfpu_int(
+    test_name, test_logger, formats, approx_mode, mathop, dest_acc
+):
     if formats.input_format == DataFormat.Int32:
         pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
 
-    eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
+    eltwise_unary_sfpu(test_name, test_logger, formats, dest_acc, approx_mode, mathop)
 
 
-def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
+def eltwise_unary_sfpu(test_name, test_logger, formats, dest_acc, approx_mode, mathop):
     input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -138,4 +142,6 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format, test_logger=test_logger
+    )

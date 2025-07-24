@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import logging
 import os
 from pathlib import Path
 
@@ -15,6 +14,7 @@ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import reset_mailboxes
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
+from helpers.logging_config import TestLogContext, get_test_logger, setup_pytest_logging
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 
 
@@ -26,7 +26,6 @@ def init_llk_home():
 
 def check_hardware_headers():
     """Check if hardware-specific headers have been downloaded for the current architecture."""
-
     # Get the chip architecture
     chip_arch = get_chip_architecture()
     arch_name = chip_arch.value.lower()  # Convert enum to string
@@ -73,24 +72,32 @@ def check_hardware_headers():
     print(f"✓ Hardware-specific headers for {arch_name} are present")
 
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_logging():
+    """Setup loguru logging for the entire test session."""
+    setup_pytest_logging()
+    test_logger = get_test_logger("test_session")
+    yield
+    test_logger.info("Test session completed")
+
+
 @pytest.fixture(autouse=True)
 def reset_mailboxes_fixture():
     reset_mailboxes()
     yield
 
 
-def pytest_configure(config):
-    log_file = "pytest_errors.log"
-    # Clear the log file if it exists
-    if os.path.exists(log_file):
-        os.remove(log_file)
-    logging.basicConfig(
-        filename=log_file,
-        level=logging.ERROR,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-    )
+@pytest.fixture(autouse=True)
+def test_logger(request):
+    """Pytest fixture to automatically create per-test loggers for ALL tests."""
+    # Get the full test name including parameters
+    test_name = request.node.name
 
-    initialize_test_target_from_pytest(config)
+    # Create a test-specific logger context
+    with TestLogContext(test_name, log_level="INFO") as test_logger:
+        yield test_logger
+
+    initialize_test_target_from_pytest(request.config)
     test_target = TestTargetConfig()
 
     if test_target.run_simulator:
@@ -101,8 +108,43 @@ def pytest_configure(config):
 
 def pytest_runtest_logreport(report):
     # Capture errors when tests fail
+    test_logger = get_test_logger("test_session")
     if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+        error_msg = f"Test {report.nodeid} failed"
+
+        # Add more details about the failure
+        if hasattr(report, "longrepr") and report.longrepr:
+            # Extract assertion details
+            longrepr_str = str(report.longrepr)
+            lines = longrepr_str.split("\n")
+
+            # Find the assertion line
+            assertion_line = None
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith("assert ") or "AssertionError" in stripped:
+                    assertion_line = stripped
+                    break
+
+            if assertion_line:
+                error_msg += f" - {assertion_line}"
+            else:
+                # Fallback to the first line of the error
+                error_lines = [
+                    line.strip()
+                    for line in lines
+                    if line.strip() and not line.startswith("_")
+                ]
+                if error_lines:
+                    error_msg += f" - {error_lines[0]}"
+
+        test_logger.error(f"{error_msg}\n")
+
+        # Also log detailed failure info if available
+        if hasattr(report, "longrepr") and report.longrepr:
+            test_logger.error(f"Detailed failure information for {report.nodeid}:")
+            test_logger.error(f"{report.longrepr}")
+            test_logger.error("=" * 80)  # Separator between test failures
 
 
 def _stringify_params(params):
@@ -160,13 +202,16 @@ def pytest_sessionstart(session):
 
 
 def pytest_sessionfinish(session, exitstatus):
+    test_logger = get_test_logger("test_session")
     BOLD = "\033[1m"
     YELLOW = "\033[93m"
     RESET = "\033[0m"
     if _format_log:
-        print(f"\n\n{BOLD}{YELLOW} Cases Where Dest Accumulation Turned On:{RESET}")
+        test_logger.info(
+            f"\n\n{BOLD}{YELLOW} Cases Where Dest Accumulation Turned On:{RESET}"
+        )
         for input_fmt, output_fmt in _format_log:
-            print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
+            test_logger.warning(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
     test_target = TestTargetConfig()
     if not test_target.run_simulator:
