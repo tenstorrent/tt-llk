@@ -97,7 +97,7 @@ def test_logger(request):
     with TestLogContext(test_name, log_level="INFO") as test_logger:
         yield test_logger
 
-    initialize_test_target_from_pytest(config)
+    initialize_test_target_from_pytest(request.config)
     test_target = TestTargetConfig()
 
     if test_target.run_simulator:
