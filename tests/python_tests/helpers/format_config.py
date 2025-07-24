@@ -68,39 +68,44 @@ class DataFormat(Enum):
             DataFormat.Tf32,
             DataFormat.Float32,
         }
+
+
 class BroadcastType(Enum):
     """
     Enum for broadcast types in LLK kernels.
     """
+
     NONE = 0
     COL = 1
     ROW = 2
     SCALAR = 3
 
+
 class EltwiseBinaryReuseDestType(Enum):
     """
     Enum for destination reuse types in elementwise binary ops.
     """
+
     NONE = 0
     DEST_TO_SRCA = 1
     DEST_TO_SRCB = 2
+
 
 class StochRndType(Enum):
     """
     Enum for stochastic rounding types.
     """
+
     NONE = 0
     Fpu = 1
     Pack = 2
-    All = 0xf
+    All = 0xF
 
     def __str__(self):
         """Custom string conversion for C++ template generation"""
         if self.name == "NONE":
             return "None"  # Convert NONE to None for C++
         return self.name
-
-
 
 
 @dataclass

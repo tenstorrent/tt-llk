@@ -346,11 +346,11 @@ class TransposeGolden:
     def __call__(self, operand1, data_format):
         """
         Transpose golden generator that transposes the 32x32 tile data.
-        
+
         Args:
             operand1: Input tensor with 1024 elements representing a 32x32 tile in faces format
             data_format: Target data format for the output
-            
+
         Returns:
             Transposed tensor in the same faces format
         """
