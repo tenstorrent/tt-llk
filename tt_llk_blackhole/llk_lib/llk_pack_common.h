@@ -15,21 +15,10 @@
 using namespace ckernel;
 using namespace ckernel::packer;
 
-#ifdef PERF_DUMP
-#include "ckernel_perf_api.h"
-#endif
-
 // wait until math is done and has produced something to pack
 inline void _llk_packer_wait_for_math_done_()
 {
-#ifdef PERF_DUMP
-    if constexpr (MATH_PACK_DECOUPLE == 0)
-    {
-        TTI_SEMWAIT(p_stall::STALL_TDMA, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_ZERO);
-    }
-#else
     TTI_SEMWAIT(p_stall::STALL_TDMA, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_ZERO);
-#endif
 }
 
 // Tell math that it can write again
@@ -45,39 +34,22 @@ inline void _llk_packer_set_math_semaphore_()
 template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_pack_dest_section_done_()
 {
-#ifdef PERF_DUMP
-    if constexpr (MATH_PACK_DECOUPLE)
+    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
+
+    if constexpr (Dst == DstSync::SyncFull)
     {
-        return;
+        TT_ZEROACC(p_zeroacc::CLR_ALL, is_fp32_dest_acc_en, 0, ADDR_MOD_1, 0);
     }
-#endif
-
-    constexpr bool clear_dest = (Dst != DstSync::SyncTile16);
-
-    if constexpr (clear_dest)
+    else
     {
-        TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
-
-        if constexpr (Dst == DstSync::SyncFull)
-        {
-            TT_ZEROACC(p_zeroacc::CLR_ALL, is_fp32_dest_acc_en, 0, ADDR_MOD_1, 0);
-        }
-        else
-        {
-            static_assert((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
-            TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
-        }
+        static_assert(Dst == DstSync::SyncHalf);
+        TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
     }
-
-    // Note: we should have already stalled math in non-tile dest modes due to clearing
-    constexpr uint32_t WaitRes = (Dst == DstSync::SyncTile16) ? (p_stall::PACK) : (p_stall::NONE);
 
     // Tell math that it can write again
-    _llk_packer_set_math_semaphore_<WaitRes>();
+    _llk_packer_set_math_semaphore_<p_stall::NONE>();
 
-    constexpr bool flip_dest = ((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
-
-    if constexpr (flip_dest)
+    if constexpr (Dst == DstSync::SyncHalf)
     {
         flip_packer_dest_offset_id();
         select_packer_dest_registers<Dst>();

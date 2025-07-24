@@ -23,23 +23,13 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
 {
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
-#if SKIP_UNP == 1
-#else
         math_unpack_to_dest_math_ready();
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32, true>(dst_index);
         math::math_unpack_to_dest_tile_ready();
-#endif
     }
     else
     {
-        if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
-        {
-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
-        }
-        else
-        {
-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
-        }
+        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
         if constexpr (type == A2D)
         {

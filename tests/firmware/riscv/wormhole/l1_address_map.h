@@ -53,7 +53,7 @@ struct address_map
     static constexpr std::uint32_t NCRISC_LOCAL_MEM_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE - NCRISC_LOCAL_MEM_SIZE; // Copy of the local memory
     static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE =
         NCRISC_FIRMWARE_BASE +
-        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
+        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used e.g. TEST_MAILBOX
     static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE =
         NCRISC_FIRMWARE_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
     static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_FIRMWARE_BASE + 0x40;
@@ -79,7 +79,7 @@ struct address_map
     static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
     static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
     static_assert(TRISC0_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
-    static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+    static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
     static_assert(TRISC2_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
     static_assert(EPOCH_RUNTIME_CONFIG_BASE % NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
     static_assert(OVERLAY_BLOB_BASE % NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
@@ -110,7 +110,7 @@ struct address_map
     static constexpr std::uint32_t MAX_SIZE            = 1499136;
     static constexpr std::uint32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
 
-    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
+    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actual local memory address as seen from risc firmware
                                                                      // As part of the init risc firmware will copy local memory data from
                                                                      // l1 locations listed above into internal local memory that starts
                                                                      // at RISC_LOCAL_MEM_BASE address
@@ -121,7 +121,7 @@ struct address_map
     // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
     static constexpr std::uint32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
 
-    // This value must be equal to the sum of all all the subsequent sizes in this section
+    // This value must be equal to the sum of all the subsequent sizes in this section
     static constexpr std::uint32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
     // Queue header below is used for the concurrent performance trace
     static constexpr std::uint32_t PERF_QUEUE_HEADER_SIZE = 16;
@@ -129,7 +129,7 @@ struct address_map
     static constexpr std::uint32_t PERF_RISC_MAILBOX_SIZE = 8;
     // Signal to ncrisc that the performance buffer has been drained.
     static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_SIZE = 4;
-    // Signal to all cores within a chip that the epoch comamnd for all cores has been sent;
+    // Signal to all cores within a chip that the epoch command for all cores has been sent;
     static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
     static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
     static constexpr std::uint32_t PERF_UNUSED_SIZE                     = 24;

@@ -2,13 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import sys
-import time
 from pathlib import Path
 
 import pytest
-import requests
-from requests.exceptions import ConnectionError, RequestException, Timeout
 from ttexalens import tt_exalens_init
 from ttexalens.tt_exalens_lib import (
     arc_msg,
@@ -16,6 +12,7 @@ from ttexalens.tt_exalens_lib import (
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import reset_mailboxes
+from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.logging_config import TestLogContext, get_test_logger, setup_pytest_logging
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
@@ -27,10 +24,52 @@ def init_llk_home():
     os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
 
 
-@pytest.fixture(autouse=True)
-def reset_mailboxes_fixture():
-    reset_mailboxes()
-    yield
+def check_hardware_headers():
+    """Check if hardware-specific headers have been downloaded for the current architecture."""
+    # Get the chip architecture
+    chip_arch = get_chip_architecture()
+    arch_name = chip_arch.value.lower()  # Convert enum to string
+
+    # Get the project root (LLK_HOME)
+    llk_home = Path(os.environ.get("LLK_HOME"))
+    header_dir = llk_home / "tests" / "hw_specific" / arch_name / "inc"
+
+    required_headers = [
+        "cfg_defines.h",
+        "dev_mem_map.h",
+        "tensix.h",
+        "tensix_dev_map.h",
+        "tensix_types.h",
+    ]
+
+    # Check if header directory exists
+    if not header_dir.exists():
+        pytest.exit(
+            f"ERROR: Hardware-specific header directory not found: {header_dir}\n\n"
+            f"SOLUTION: Run the setup script to download required headers:\n"
+            f"  cd {llk_home}/tests\n"
+            f"  ./setup_testing_env.sh\n",
+            returncode=1,
+        )
+
+    # Check for required headers
+    missing_headers = []
+    for header in required_headers:
+        if not (header_dir / header).exists():
+            missing_headers.append(header)
+
+    if missing_headers:
+        pytest.exit(
+            f"ERROR: Missing required hardware headers for {arch_name}:\n"
+            + "\n".join(f"  {header}" for header in missing_headers)
+            + "\n\n"
+            f"SOLUTION: Run the setup script to download missing headers:\n"
+            f"  cd {llk_home}/tests\n"
+            f"  ./setup_testing_env.sh\n",
+            returncode=1,
+        )
+
+    print(f"✓ Hardware-specific headers for {arch_name} are present")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -39,91 +78,13 @@ def setup_logging():
     setup_pytest_logging()
     test_logger = get_test_logger("test_session")
     yield
-    test_logger.info("Test session completed")
+    test_logger.info("Test session completed")    
 
 
-@pytest.fixture(scope="session", autouse=True)
-def download_headers():
-    test_logger = get_test_logger("test_session")
-    CHIP_ARCH = get_chip_architecture()
-    if CHIP_ARCH not in [ChipArchitecture.WORMHOLE, ChipArchitecture.BLACKHOLE]:
-        sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH.value}")
-
-    LLK_HOME = os.environ.get("LLK_HOME")
-    HEADER_DIR = os.path.join(LLK_HOME, "tests", "hw_specific", CHIP_ARCH.value, "inc")
-    STAMP_FILE = os.path.join(HEADER_DIR, ".headers_downloaded")
-    if os.path.exists(STAMP_FILE):
-        test_logger.info("Headers already downloaded. Skipping download.")
-        return
-
-    BASE_URL = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}"
-    WORMHOLE_SPECIFIC_URL = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}/wormhole_b0_defines"
-    HEADERS = [
-        "cfg_defines.h",
-        "dev_mem_map.h",
-        "tensix.h",
-        "tensix_types.h",
-    ]
-
-    # Create the header directory if it doesn't exist
-    os.makedirs(HEADER_DIR, exist_ok=True)
-
-    # Determine the specific URL based on CHIP_ARCH
-    specific_url = (
-        WORMHOLE_SPECIFIC_URL if CHIP_ARCH == ChipArchitecture.WORMHOLE else None
-    )
-
-    # Download headers
-    def download_with_retries(url, header):
-        RETRIES, RETRY_DELAY = 3, 2
-        for attempt in range(1, RETRIES + 1):
-            try:
-                test_logger.info(
-                    f"Attempt {attempt}: Downloading {header} from {url}..."
-                )
-                response = requests.get(url, timeout=10)
-                if response.status_code == 200:
-                    with open(os.path.join(HEADER_DIR, header), "wb") as f:
-                        f.write(response.content)
-                    return True
-                elif response.status_code == 429:  # Rate limited
-                    retry_after = int(response.headers.get("Retry-After", RETRY_DELAY))
-                    test_logger.info(f"Rate limited. Waiting {retry_after} seconds...")
-                    time.sleep(retry_after)
-                else:
-                    test_logger.error(f"HTTP error {response.status_code} for {url}")
-                    return False
-            except (ConnectionError, Timeout) as e:
-                test_logger.error(f"Network issue on attempt {attempt}: {e}")
-                if attempt < RETRIES:
-                    time.sleep(RETRY_DELAY)
-                    RETRY_DELAY *= 2
-            except RequestException as e:
-                test_logger.error(f"Non-retriable error on attempt {attempt}: {e}")
-                return False
-        return False
-
-    for header in HEADERS:
-        header_url = f"{BASE_URL}/{header}"
-        specific_header_url = f"{specific_url}/{header}" if specific_url else None
-
-        # Try primary URL
-        if not download_with_retries(header_url, header):
-            # Fallback to specific URL
-            if specific_header_url and not download_with_retries(
-                specific_header_url, header
-            ):
-                test_logger.error(f"Failed to download {header} after trying both URLs")
-                sys.exit(1)
-            elif not specific_header_url:
-                test_logger.error(
-                    f"Failed to download {header} after retries from primary URL"
-                )
-                sys.exit(1)
-
-    # Create the stamp file to indicate headers are downloaded
-    with open(STAMP_FILE, "w") as f:
-        f.write("Headers downloaded.\n")
+@pytest.fixture(autouse=True)
+def reset_mailboxes_fixture():
+    reset_mailboxes()
+    yield
 
 
 @pytest.fixture(autouse=True)
@@ -135,6 +96,14 @@ def test_logger(request):
     # Create a test-specific logger context
     with TestLogContext(test_name, log_level="INFO") as test_logger:
         yield test_logger
+
+    initialize_test_target_from_pytest(config)
+    test_target = TestTargetConfig()
+
+    if test_target.run_simulator:
+        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+    else:
+        tt_exalens_init.init_ttexalens()
 
 
 def pytest_runtest_logreport(report):
@@ -178,35 +147,53 @@ def pytest_runtest_logreport(report):
             test_logger.error("=" * 80)  # Separator between test failures
 
 
-# Modify how the nodeid is generated
-def pytest_collection_modifyitems(items):
-    for item in items:
-        # Modify the test item to hide the function name and only show parameters
-        # item.nodeid is immutable, so we should modify how the test is represented
-        if "::" in item.nodeid and "[" in item.nodeid:
-            file_part, params_part = item.nodeid.split("::", 1)
-            param_only = params_part.split("[", 1)[1]  # Extract parameters
-            item._nodeid = f"{file_part}[{param_only}]"
+def _stringify_params(params):
+    parts = []
+    for name, value in params.items():
+        # todo: handle FormatConfig?
+        if name == "test_name":
+            continue
+        elif isinstance(value, InputOutputFormat):
+            parts.append(f"{name}.input={value.input}")
+            parts.append(f"{name}.output={value.output}")
+        elif isinstance(value, str):
+            parts.append(f'{name}="{value}"')
+        elif hasattr(value, "repr"):
+            parts.append(f"{name}={value.repr()}")
+        else:
+            parts.append(f"{name}={str(value)}")
+
+    return f"[{' | '.join(parts)}]"
 
 
-def pytest_runtest_protocol(item, nextitem):
-    """
-    This hook can modify the test item before it's executed.
-    We're going to set the test function name to an empty string.
-    """
-    # Modify the nodeid to show only the parameters, not the function name
-    if "::" in item.nodeid and "[" in item.nodeid:
-        _, param_part = item.nodeid.split("::", 1)
-        param_only = param_part.split("[", 1)[1]  # Extract parameters
-        item.name = f"[{param_only}]"
+def pytest_runtest_logreport(report):
+    if report.when != "call":
+        return
 
-    # Continue the test execution as usual
-    return None
+    callspec = getattr(report.item, "callspec", None)
+    if callspec is None:
+        return
+
+    print(f"\nParameters: {_stringify_params(callspec.params)}")
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # Execute all other hooks to obtain the report object
+    outcome = yield
+    report = outcome.get_result()
+
+    # Attach the item to the report so it's available in logreport
+    report.item = item
+    return report
 
 
 def pytest_sessionstart(session):
     # Default LLK_HOME environment variable
     init_llk_home()
+
+    # Check if hardware-specific headers are present
+    check_hardware_headers()
 
     test_target = TestTargetConfig()
     if not test_target.run_simulator:
@@ -259,17 +246,6 @@ def pytest_addoption(parser):
         default=5555,
         help="Integer number of the server port.",
     )
-
-
-# Use simulator or silicon to run tests depending on the given command line options
-def pytest_configure(config):
-    initialize_test_target_from_pytest(config)
-    test_target = TestTargetConfig()
-
-    if test_target.run_simulator:
-        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
-    else:
-        tt_exalens_init.init_ttexalens()
 
 
 # Skip decorators for specific architectures

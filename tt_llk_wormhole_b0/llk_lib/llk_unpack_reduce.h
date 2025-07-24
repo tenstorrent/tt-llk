@@ -19,17 +19,10 @@ using namespace ckernel::unpacker;
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_mop_config_(const std::uint32_t num_faces)
 {
-#if SKIP_UNP == 1
-    static constexpr uint unpack_srca = TT_OP_NOP;
-#else
-    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-#endif
+    static constexpr uint unpack_srca     = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_zerosrca = TT_OP_UNPACR_NOP(p_unpacr_nop::UNP0, p_unpacr_nop::UNP_ZEROSRC);
-#if SKIP_UNP == 1
-    static constexpr uint unpack_srcb = TT_OP_NOP;
-#else
-    static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-#endif
+    static constexpr uint unpack_srcb     = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
     const uint32_t outerloop     = num_faces;
     constexpr uint32_t innerloop = 1;
     ckernel_template tmp(outerloop, innerloop, unpack_zerosrca, unpack_srca);
@@ -69,7 +62,7 @@ inline void _llk_unpack_reduce_hw_configure_(
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0, const std::uint32_t num_faces = 4)
 {
-    // REDUCE_ROW requires transpose itself; additionaly, within_face_16x16_transpose flag could require transpose;
+    // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
     // if we have the flag set with REDUCE_ROW, we don't need to do anything
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
 
@@ -115,8 +108,4 @@ inline void _llk_unpack_reduce_(const std::uint32_t address)
 
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
-
-#ifdef PERF_DUMP
-    first_unpack_recorded = true;
-#endif
 }

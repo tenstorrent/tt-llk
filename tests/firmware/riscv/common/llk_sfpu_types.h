@@ -96,4 +96,6 @@ enum class SfpuType
     fill,
     prelu,
     reshuffle_rows,
+    hardsigmoid,
+    where,
 };
