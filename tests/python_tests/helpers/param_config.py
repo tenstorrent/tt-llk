@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
-from typing import List, Optional, Tuple
+from itertools import product
+from typing import List, Optional, Tuple, TypedDict
+
+import pytest
 
 from helpers.log_utils import add_to_format_log
 
@@ -16,18 +19,7 @@ from .format_config import (
 checked_formats_and_dest_acc = {}
 
 
-def manage_included_params(func):
-    def wrapper(*args, **kwargs):
-        if not hasattr(wrapper, "included_params"):
-            wrapper.included_params = []
-        return func(wrapper.included_params, *args, **kwargs)
-
-    return wrapper
-
-
-@manage_included_params
 def format_combination_sweep(
-    included_params,
     formats: List[DataFormat],
     all_same: bool,
     same_src_reg_format: bool = True,
@@ -88,19 +80,19 @@ def format_combination_sweep(
     ]
 
 
-@manage_included_params
-def generate_params(
-    included_params,
-    testnames: List[str],
-    format_combos: List[FormatConfig],
-    dest_acc: Optional[DestAccumulation] = None,
-    approx_mode: Optional[List[str]] = None,
-    mathop: Optional[List[str]] = None,
-    math_fidelity: Optional[List[int]] = None,
-    tile_cnt: Optional[int] = None,
-    reduce_dim: Optional[List[str]] = None,
-    pool_type: Optional[List[str]] = None,
-) -> List[tuple]:
+class TestParamsConfig(TypedDict):
+    test_name: str
+    formats: Optional[List[FormatConfig]] = None
+    dest_acc: Optional[DestAccumulation] = None
+    approx_mode: Optional[List[str]] = None
+    mathop: Optional[List[str]] = None
+    math_fidelity: Optional[List[int]] = None
+    tile_count: Optional[int] = None
+    reduce_dim: Optional[List[str]] = None
+    pool_type: Optional[List[str]] = None
+
+
+def generate_params(**kwargs: any) -> List[tuple]:
     """
     Generates a list of parameter combinations for test configurations.
 
@@ -120,11 +112,12 @@ def generate_params(
         ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.No, None, None, None, None, None)
     ]
     """
+
+    format_combos = kwargs.get("formats", [])
+    dest_acc = kwargs.get("dest_acc", [])
+
     for combo in format_combos:
         if not isinstance(combo, InputOutputFormat):
-            continue
-
-        if dest_acc is None:
             continue
 
         for acc in dest_acc:
@@ -134,47 +127,21 @@ def generate_params(
                     add_to_format_log(combo.input_format, combo.output_format)
                     checked_formats_and_dest_acc[key] = True
 
-    # Build a list of parameter names (`included_params`) that are non-None.
-    # This allows later code in generate_param_ids(...) to conditionally include
-    # only the parameters that were actually provided (not None) when generating the ID.
-    included_params.extend(
-        [
-            param
-            for param, value in [
-                ("dest_acc", dest_acc),
-                ("approx_mode", approx_mode),
-                ("mathop", mathop),
-                ("math_fidelity", math_fidelity),
-                ("tile_cnt", tile_cnt),
-                ("reduce_dim", reduce_dim),
-                ("pool_type", pool_type),
-            ]
-            if value is not None
-        ]
-    )
+    wrap_list = lambda x: [x] if not isinstance(x, list) else x
+    arguments = [wrap_list(value) for value in kwargs.values() if value is not None]
 
-    return [
-        (
-            testname,
-            format_config,
-            acc_mode,
-            approx,
-            math,
-            fidelity,
-            num_tiles,
-            dim,
-            pool,
+    return product(*arguments)
+
+
+def parametrize(**kwargs: any):
+    parameters = kwargs.keys()
+    parameters_string = ",".join(parameters)
+    parameter_values = generate_params(**kwargs)
+
+    def decorator(test_function):
+        return pytest.mark.parametrize(parameters_string, parameter_values)(
+            test_function
         )
-        for testname in testnames
-        for format_config in format_combos
-        for acc_mode in (dest_acc if dest_acc is not None else [None])
-        for approx in (approx_mode if approx_mode is not None else [None])
-        for math in (mathop if mathop is not None else [None])
-        for fidelity in (math_fidelity if math_fidelity is not None else [None])
-        for num_tiles in [tile_cnt]
-        for dim in (reduce_dim if reduce_dim is not None else [None])
-        for pool in (pool_type if pool_type is not None else [None])
-    ]
 
 @manage_included_params
 def generate_unpack_A_params(
@@ -356,6 +323,9 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
 
     # Generate and return formatted strings for all parameter combinations
     return [format_combination(comb) for comb in all_params if comb[0] is not None]
+
+
+    return decorator
 
 
 def input_output_formats(

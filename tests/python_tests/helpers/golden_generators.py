@@ -342,6 +342,60 @@ class DataCopyGolden:
 
 
 @register_golden
+class TransposeGolden:
+    def __call__(self, operand1, data_format):
+        """
+        Transpose golden generator that transposes the 32x32 tile data.
+        
+        Args:
+            operand1: Input tensor with 1024 elements representing a 32x32 tile in faces format
+            data_format: Target data format for the output
+            
+        Returns:
+            Transposed tensor in the same faces format
+        """
+        torch_format = format_dict[data_format]
+        
+        # Convert to the target format first
+        tensor = torch.tensor(operand1, dtype=torch_format)
+        
+        # Ensure we have exactly 1024 elements (32x32 tile)
+        if tensor.numel() != 1024:
+            raise ValueError(f"Expected 1024 elements for transpose, got {tensor.numel()}")
+        
+        # Extract faces from the input tensor (faces format)
+        f0 = tensor[:256].view(16, 16)      # top-left
+        f1 = tensor[256:512].view(16, 16)   # top-right  
+        f2 = tensor[512:768].view(16, 16)   # bottom-left
+        f3 = tensor[768:].view(16, 16)      # bottom-right
+        
+        # Reconstruct the full 32x32 matrix from faces
+        top_half = torch.cat((f0, f1), dim=1)      # concatenate f0 and f1 horizontally
+        bottom_half = torch.cat((f2, f3), dim=1)   # concatenate f2 and f3 horizontally
+        full_matrix = torch.cat((top_half, bottom_half), dim=0)  # concatenate vertically
+        
+        # Transpose the full 32x32 matrix
+        transposed_matrix = full_matrix.T
+        
+        # Convert transposed matrix back to faces format
+        # Split back into quadrants
+        f0_t = transposed_matrix[:16, :16]      # top-left of transposed
+        f1_t = transposed_matrix[:16, 16:32]    # top-right of transposed
+        f2_t = transposed_matrix[16:32, :16]    # bottom-left of transposed  
+        f3_t = transposed_matrix[16:32, 16:32]  # bottom-right of transposed
+        
+        # Flatten and concatenate in faces order
+        result = torch.cat((
+            f0_t.flatten(),
+            f1_t.flatten(), 
+            f2_t.flatten(),
+            f3_t.flatten()
+        ))
+        
+        return result
+
+
+@register_golden
 class UnarySFPUGolden:
     def __init__(self):
         self.ops = {
