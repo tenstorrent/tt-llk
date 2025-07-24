@@ -18,7 +18,6 @@ from helpers.format_arg_mapping import (
 )
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
-from helpers.logging_config import get_current_test_logger
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -59,7 +58,9 @@ from helpers.utils import passed_test
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_eltwise_unary_sfpu_float(test_name, test_logger, formats, approx_mode, mathop, dest_acc):
+def test_eltwise_unary_sfpu_float(
+    test_name, test_logger, formats, approx_mode, mathop, dest_acc
+):
     arch = get_chip_architecture()
 
     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
@@ -93,7 +94,9 @@ def test_eltwise_unary_sfpu_float(test_name, test_logger, formats, approx_mode, 
     ],
     dest_acc=[DestAccumulation.Yes],
 )
-def test_eltwise_unary_sfpu_int(test_name, test_logger, formats, approx_mode, mathop, dest_acc):
+def test_eltwise_unary_sfpu_int(
+    test_name, test_logger, formats, approx_mode, mathop, dest_acc
+):
     if formats.input_format == DataFormat.Int32:
         pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
 
