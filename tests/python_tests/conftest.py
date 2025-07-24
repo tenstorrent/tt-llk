@@ -78,7 +78,7 @@ def setup_logging():
     setup_pytest_logging()
     test_logger = get_test_logger("test_session")
     yield
-    test_logger.info("Test session completed")    
+    test_logger.info("Test session completed")
 
 
 @pytest.fixture(autouse=True)
