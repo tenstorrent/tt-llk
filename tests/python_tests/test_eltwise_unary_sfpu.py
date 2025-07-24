@@ -61,7 +61,6 @@ from helpers.utils import passed_test
 )
 def test_eltwise_unary_sfpu_float(test_name, test_logger, formats, approx_mode, mathop, dest_acc):
     arch = get_chip_architecture()
-    test_logger = get_current_test_logger()
 
     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
         if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
