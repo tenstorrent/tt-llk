@@ -248,7 +248,7 @@ def generate_param_ids(all_params: List[tuple]) -> List[str]:
         """Format a single parameter combination into a readable string."""
         if len(params) < 5:
             return f"params_{len(params)}"
-        
+
         result = []
 
         # Format different parameter types based on position and type
