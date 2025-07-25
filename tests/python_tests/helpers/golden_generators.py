@@ -389,23 +389,16 @@ class UnarySFPUGolden:
         else:
             dst_format = DataFormat.Float16_b
 
-        if self.dest_acc == DestAccumulation.No:
-            # dst is in 16-bit mode
-            if input_format == DataFormat.Float32:
-                # 32-bit input: truncation may occur when unpacked to dst
-                if dst_format == DataFormat.Float16:
-                    # truncate to float16
-                    tensor = to_tensor((operand1.view(torch.int32) & 0xffffe000).view(torch.float32), dst_format)
-                else:
-                    # truncate to float16_b
-                    tensor = to_tensor((operand1.view(torch.int32) & 0xffff0000).view(torch.float32), dst_format)
+        if self.dest_acc == DestAccumulation.No and input_format == DataFormat.Float32:
+            # dst in 16-bit mode and 32-bit input: truncation may occur when unpacked to dst
+            if dst_format == DataFormat.Float16:
+                # truncate to float16
+                operand1 = (operand1.view(torch.int32) & 0xffffe000).view(torch.float32)
             else:
-                # non-32-bit input
-                tensor = to_tensor(operand1, dst_format)
-        else:
-            # dst is in 32-bit mode; all inputs converted to float32
-            tensor = to_tensor(operand1, dst_format)
+                # truncate to float16_b
+                operand1 = (operand1.view(torch.int32) & 0xffff0000).view(torch.float32)
 
+        tensor = to_tensor(operand1, dst_format)
         result = [self.ops[operation](x) for x in tensor.tolist()]
 
         if self.data_format == DataFormat.Bfp8_b:
