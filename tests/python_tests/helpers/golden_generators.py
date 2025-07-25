@@ -36,13 +36,12 @@ def check_bfp8_b(operand: list) -> list:
     # tensor = unpack_bfp8_b(tensor_bytes)
     # return tensor
 
-    not_finite = [1.7014118346046923e38, float("inf"), float("-inf")]
-    for i in range(len(operand)):
-        if operand[i] in not_finite or math.isnan(operand[i]):
+    not_finite = [1.7014118346046923e38, math.inf, -math.inf]
+    for i, x in enumerate(operand):
+        if x in not_finite or math.isnan(x):
             # Zero out the entire row of 16 elements
-            inf_index = i
             for col in range(16):
-                row = inf_index // 16
+                row = i // 16
                 index = row * 16 + col
                 if not (operand[index] in not_finite or math.isnan(operand[index])):
                     operand[index] = 0.0
@@ -51,15 +50,11 @@ def check_bfp8_b(operand: list) -> list:
 
 
 def convert_nan_to_inf(operand: list) -> list:
-    for i in range(len(operand)):
-        if math.isnan(operand[i]):
-            operand[i] = float("inf")
+    return [math.inf if math.isnan(x) else x for x in operand]
 
 
-def convert_inf(operand: list, inf_value: float) -> list:
-    for i in range(len(operand)):
-        if operand[i] == float("inf"):
-            operand[i] = inf_value
+def convert_inf_to_value(operand: list, inf_value: float) -> list:
+    return [inf_value if x == math.inf else x for x in operand]
 
 
 def calculate_fractional_part(mantissa_value):
@@ -421,19 +416,17 @@ class UnarySFPUGolden:
                 pass
             # otherwise, nans are converted to `inf` or a special value
             case _:
-                convert_nan_to_inf(result)
+                result = convert_nan_to_inf(result)
 
         # depending on `data_format`, `inf` values may get converted when unpacked to L1.
-        inf_value = float("inf")
         if dst_format == DataFormat.Float16:
             match data_format:
                 case DataFormat.Float16_b:
-                    inf_value = 130560.0
+                    result = convert_inf_to_value(result, 130560.0)
                 case DataFormat.Float32:
-                    inf_value = 131008.0
+                    result = convert_inf_to_value(result, 131008.0)
                 case DataFormat.Bfp8_b:
-                    inf_value = 130048.0
-        convert_inf(result, inf_value)
+                    result = convert_inf_to_value(result, 130048.0)
 
         return torch.tensor(result, dtype=format_dict[data_format])
 
@@ -448,7 +441,7 @@ class UnarySFPUGolden:
         if self.data_format.is_exponent_B():
             return expected
         else:  # self.data_format == DataFormat.Float16:
-            return float("nan")
+            return math.nan
 
     # Operation methods
     def _abs(self, x):
@@ -456,11 +449,11 @@ class UnarySFPUGolden:
 
     def _atanh(self, x):
         if x < -1.0 or x > 1.0:
-            return float("nan")
+            return math.nan
         if x == -1.0:
-            return self.handle_infinite_numbers(float("-inf"))
+            return self.handle_infinite_numbers(-math.inf)
         if x == 1.0:
-            return self.handle_infinite_numbers(float("inf"))
+            return self.handle_infinite_numbers(math.inf)
         return math.atanh(x)
 
     def _asinh(self, x):
@@ -468,7 +461,7 @@ class UnarySFPUGolden:
 
     def _acosh(self, x):
         if x < 1.0:
-            return float("nan")
+            return math.nan
         return math.acosh(x)
 
     def _cos(self, x):
@@ -476,7 +469,7 @@ class UnarySFPUGolden:
 
     def _log(self, x):
         if x == 0.0:
-            return self.handle_infinite_numbers(float("-inf"))
+            return self.handle_infinite_numbers(-math.inf)
         return math.log(x)
 
     def _reciprocal(self, x):
@@ -490,12 +483,12 @@ class UnarySFPUGolden:
 
     def _sqrt(self, x):
         if x < 0.0:
-            return self.handle_infinite_numbers(float("nan"))
+            return math.nan
         return math.sqrt(x)
 
     def _square(self, x):
         if not math.isfinite(x * x):
-            return self.handle_infinite_numbers(float("inf"))
+            return self.handle_infinite_numbers(math.inf)
         return x * x
 
     def _celu(self, x):
