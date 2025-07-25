@@ -384,44 +384,51 @@ class UnarySFPUGolden:
 
         if self.dest_acc == DestAccumulation.Yes:
             dst_format = DataFormat.Float32
-        elif data_format in [DataFormat.Float16] or input_format in [DataFormat.Float16]:
+        elif DataFormat.Float16 in (input_format, data_format):
             dst_format = DataFormat.Float16
         else:
             dst_format = DataFormat.Float16_b
 
-        #print(f"input_format={input_format}, dst_format={dst_format}, data_format={data_format}")
-        #print("before truncation", operand1[1261])
         if self.dest_acc == DestAccumulation.No:
+            # dst is in 16-bit mode
             if input_format == DataFormat.Float32:
-                if data_format == DataFormat.Float16:
-                    tensor = to_tensor((operand1.view(torch.int32) & 0xffffe000).view(torch.float32), DataFormat.Float16)
+                # 32-bit input: truncation may occur when unpacked to dst
+                if dst_format == DataFormat.Float16:
+                    # truncate to float16
+                    tensor = to_tensor((operand1.view(torch.int32) & 0xffffe000).view(torch.float32), dst_format)
                 else:
-                    tensor = to_tensor((operand1.view(torch.int32) & 0xffff0000).view(torch.float32), DataFormat.Float16_b)
+                    # truncate to float16_b
+                    tensor = to_tensor((operand1.view(torch.int32) & 0xffff0000).view(torch.float32), dst_format)
             else:
-                if data_format == DataFormat.Float32:
-                    tensor = to_tensor(operand1, input_format)
-                else:
-                    tensor = to_tensor(operand1, dst_format)
+                # non-32-bit input
+                tensor = to_tensor(operand1, dst_format)
         else:
-            tensor = to_tensor(operand1, DataFormat.Float32)
+            # dst is in 32-bit mode; all inputs converted to float32
+            tensor = to_tensor(operand1, dst_format)
 
-        #print("input", tensor[1261])
         result = [self.ops[operation](x) for x in tensor.tolist()]
-        #print("result", result[1261])
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
 
         inf_value = float("inf")
-        if dst_format == DataFormat.Float16 and data_format in [DataFormat.Float16_b]:
-            inf_value = 130560.0
-        if dst_format == DataFormat.Float16 and data_format in [DataFormat.Float32]:
-            inf_value = 131008.0
-        if dst_format == DataFormat.Float16 and data_format in [DataFormat.Bfp8_b]:
-            inf_value = 130048.0
-        if not (dst_format in [DataFormat.Float16, DataFormat.Float32] and data_format == DataFormat.Float16) and not (dst_format == DataFormat.Float32 and data_format == DataFormat.Float32):
-            convert_nan_to_inf(result, inf_value)
-        #print("torch conversion nan to inf", torch.tensor(result, dtype=format_dict[data_format])[1261], input_format)
+        if dst_format == DataFormat.Float16:
+            match data_format:
+                case DataFormat.Float16_b:
+                    inf_value = 130560.0
+                case DataFormat.Float32:
+                    inf_value = 131008.0
+                case DataFormat.Bfp8_b:
+                    inf_value = 130048.0
+        match (dst_format, data_format):
+            case (DataFormat.Float16, DataFormat.Float16):
+                pass
+            case (DataFormat.Float32, DataFormat.Float16):
+                pass
+            case (DataFormat.Float32, DataFormat.Float32):
+                pass
+            case _:
+                convert_nan_to_inf(result, inf_value)
 
         return torch.tensor(result, dtype=format_dict[data_format])
 
