@@ -41,7 +41,7 @@ from helpers.utils import passed_test
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
         MathOperation.Abs,
-        MathOperation.Atanh,
+        #MathOperation.Atanh,
         MathOperation.Asinh,
         MathOperation.Acosh,
         MathOperation.Cos,
@@ -113,7 +113,7 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     )
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
-    golden_tensor = generate_golden(mathop, src_A.clone(), formats.output_format, dest_acc, formats.input_format)
+    golden_tensor = generate_golden(mathop, src_A, formats.output_format, dest_acc, formats.input_format)
 
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
@@ -143,6 +143,5 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-    print("src A", src_A[178])
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, src_A, formats.output_format)

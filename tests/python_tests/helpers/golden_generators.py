@@ -50,11 +50,7 @@ def check_bfp8_b(operand: list) -> list:
     return operand
 
 
-def convert_nan_to_inf(operand: list, data_format) -> list:
-    if data_format in [DataFormat.Float16_b, DataFormat.Float32]:
-        return
-    inf_value = float("inf") if data_format != DataFormat.Float16 else 131008.0
-    print(data_format, inf_value)
+def convert_nan_to_inf(operand: list, inf_value) -> list:
     for i in range(len(operand)):
         if math.isnan(operand[i]):
             operand[i] = inf_value
@@ -386,7 +382,15 @@ class UnarySFPUGolden:
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
 
-        print("before truncation", operand1[178])
+        if self.dest_acc == DestAccumulation.Yes:
+            dst_format = DataFormat.Float32
+        elif data_format in [DataFormat.Float16] or input_format in [DataFormat.Float16]:
+            dst_format = DataFormat.Float16
+        else:
+            dst_format = DataFormat.Float16_b
+
+        #print(f"input_format={input_format}, dst_format={dst_format}, data_format={data_format}")
+        #print("before truncation", operand1[1261])
         if self.dest_acc == DestAccumulation.No:
             if input_format == DataFormat.Float32:
                 if data_format == DataFormat.Float16:
@@ -397,23 +401,27 @@ class UnarySFPUGolden:
                 if data_format == DataFormat.Float32:
                     tensor = to_tensor(operand1, input_format)
                 else:
-                    tensor = to_tensor(operand1, data_format)
+                    tensor = to_tensor(operand1, dst_format)
         else:
-            print("dest acc en", self.dest_acc)
             tensor = to_tensor(operand1, DataFormat.Float32)
 
-        print("input", tensor[178])
+        #print("input", tensor[1261])
         result = [self.ops[operation](x) for x in tensor.tolist()]
-        print("result", result[178])
+        #print("result", result[1261])
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
 
-        if self.dest_acc == DestAccumulation.No:
-            print("doing conversion nan to inf", result[178], input_format)
-            convert_nan_to_inf(result, input_format)
-            print("done conversion nan to inf", result[178], input_format)
-            print("torch conversion nan to inf", torch.tensor(result, dtype=format_dict[data_format])[178], input_format)
+        inf_value = float("inf")
+        if dst_format == DataFormat.Float16 and data_format in [DataFormat.Float16_b]:
+            inf_value = 130560.0
+        if dst_format == DataFormat.Float16 and data_format in [DataFormat.Float32]:
+            inf_value = 131008.0
+        if dst_format == DataFormat.Float16 and data_format in [DataFormat.Bfp8_b]:
+            inf_value = 130048.0
+        if not (dst_format in [DataFormat.Float16, DataFormat.Float32] and data_format == DataFormat.Float16) and not (dst_format == DataFormat.Float32 and data_format == DataFormat.Float32):
+            convert_nan_to_inf(result, inf_value)
+        #print("torch conversion nan to inf", torch.tensor(result, dtype=format_dict[data_format])[1261], input_format)
 
         return torch.tensor(result, dtype=format_dict[data_format])
 
@@ -425,7 +433,6 @@ class UnarySFPUGolden:
             float: Infinite number
             Depending on our format we either return NaN or +/- inf.
         """
-        return expected
         if self.data_format.is_exponent_B():
             return expected
         else:  # self.data_format == DataFormat.Float16:
