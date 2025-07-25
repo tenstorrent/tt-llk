@@ -38,7 +38,7 @@ def report_fixture():
     unpack_transpose_faces=[False, True],
     unpack_transpose_within_face=[False, True],
 )
-def test_perf_eltwise_binary_fpu(
+def test_perf_unpack_transpose(
     report_fixture,
     test_name,
     formats,
