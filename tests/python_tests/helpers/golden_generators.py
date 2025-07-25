@@ -364,8 +364,11 @@ class UnarySFPUGolden:
         }
         self.data_format = None
 
-    def __call__(self, operation, operand1, data_format):
+    def __call__(
+        self, operation, operand1, data_format, math_fidelity=MathFidelity.LoFi
+    ):
         self.data_format = data_format
+        self._math_fidelity = math_fidelity
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
         tensor = to_tensor(operand1, self.data_format)
@@ -414,9 +417,16 @@ class UnarySFPUGolden:
         return math.sqrt(x)
 
     def _square(self, x):
-        if not math.isfinite(x * x):
+        # High-precision square, then cast back once – mirrors dest-acc
+        x32 = (
+            x if isinstance(x, torch.Tensor) else torch.tensor(x, dtype=torch.float32)
+        ).to(torch.float32)
+        res32 = x32 * x32
+
+        if not torch.isfinite(res32):
             return self.handle_infinite_numbers(float("inf"))
-        return x * x
+
+        return res32.to(format_dict[self.data_format]).item()
 
     def _celu(self, x):
         input_tensor = (
@@ -539,7 +549,8 @@ class EltwiseBinaryGolden(FidelityMasking):
         return t1 - t2
 
     def _mul(self, t1, t2):
-        return t1 * t2
+        # Compute in float32 for better fidelity, then cast back to original dtype.
+        return (t1.to(torch.float32) * t2.to(torch.float32)).to(t1.dtype)
 
 
 @register_golden
