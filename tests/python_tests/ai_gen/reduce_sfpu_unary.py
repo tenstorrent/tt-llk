@@ -22,7 +22,6 @@ from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_arg_mapping import (
     ApproximationMode,
     DestAccumulation,
-    DstSync,
     MathFidelity,
     MathOperation,
     ReduceDimension,
@@ -37,6 +36,7 @@ from helpers.golden_generators import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import ProfilerBuild, run_test
+from helpers.tilize_untilize import untilize
 from helpers.utils import passed_test
 
 # -----------------------------------------------------------------------------
@@ -48,18 +48,18 @@ formats_under_test = [InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16
 
 # Sweep across all reduce dimensions and pool types that HW supports
 reduce_dims = [
-    ReduceDimension.Row,
     ReduceDimension.Column,
     ReduceDimension.Scalar,
+    ReduceDimension.Row,
 ]
 
-pool_types = [ReducePool.Sum]
+pool_types = [ReducePool.Sum, ReducePool.Max, ReducePool.Average]
 
 # A small subset of frequently used SFPU unary ops – easy to validate
 unary_ops = [
     MathOperation.Abs,
-    # MathOperation.Sqrt,
-    # MathOperation.Square,
+    MathOperation.Sqrt,
+    MathOperation.Square,
 ]
 
 # Assemble full parameter list
@@ -163,7 +163,6 @@ def test_reduce_sfpu_unary(config):
         "unary_op": unary_op,
         "reduce_dim": reduce_dim,
         "pool_type": pool_type,
-        "dst_sync": DstSync.SyncFull,
         "math_fidelity": MathFidelity.LoFi,
         "tile_cnt": tile_cnt,
         "input_dimensions": input_dimensions,
@@ -181,6 +180,7 @@ def test_reduce_sfpu_unary(config):
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[fmt.output_format])
+    res_tensor = untilize(res_tensor, fmt.output_format)
 
     # Extract the leftmost column (first column) from both tensors, reshape to 1x32, and print
     print("res_tensor leftmost column:", res_tensor.view(32, 32)[:, 0].view(1, 32))
