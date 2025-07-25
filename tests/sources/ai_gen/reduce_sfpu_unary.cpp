@@ -143,6 +143,7 @@ void run_kernel()
     constexpr uint32_t math_fid = 4;
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fid>(within_face_16x16_transpose);
     _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, fp32_transpose>(0);
+    _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 
     //------------------------------------------------------------------
     // 2) SFPU unary directly on the reduced result in dest regs
@@ -165,10 +166,10 @@ void run_kernel()
 
 #include "llk_pack.h"
 #include "llk_pack_common.h"
+#include "params.h"
 
 void run_kernel()
 {
-    // Initialise packer state machine first (required before enabling HW)
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
@@ -177,11 +178,10 @@ void run_kernel()
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
-    // Apply reduction mask AFTER hw_config so mask bits correspond to current cfg
     _llk_pack_reduce_mask_config_<false, REDUCE_DIM>();
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncFull, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
     _llk_pack_dest_init_<DstSync::SyncFull, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif
@@ -193,4 +193,4 @@ void run_kernel()
     _llk_pack_reduce_mask_clear_();
 }
 
-#endif // LLK_TRISC_PACK
+#endif
