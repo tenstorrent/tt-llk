@@ -41,7 +41,7 @@ from helpers.utils import passed_test
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
         MathOperation.Abs,
-        #MathOperation.Atanh,
+        MathOperation.Atanh,
         MathOperation.Asinh,
         MathOperation.Acosh,
         MathOperation.Cos,

@@ -50,9 +50,15 @@ def check_bfp8_b(operand: list) -> list:
     return operand
 
 
-def convert_nan_to_inf(operand: list, inf_value) -> list:
+def convert_nan_to_inf(operand: list) -> list:
     for i in range(len(operand)):
         if math.isnan(operand[i]):
+            operand[i] = float("inf")
+
+
+def convert_inf(operand: list, inf_value: float) -> list:
+    for i in range(len(operand)):
+        if operand[i] == float("inf"):
             operand[i] = inf_value
 
 
@@ -405,18 +411,6 @@ class UnarySFPUGolden:
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
 
-        # depending on (dst_format, data_format), writing `nan` to dst may
-        # result in `inf`; and when followed by packing to L1, may result in
-        # the special values below.
-        inf_value = float("inf")
-        if dst_format == DataFormat.Float16:
-            match data_format:
-                case DataFormat.Float16_b:
-                    inf_value = 130560.0
-                case DataFormat.Float32:
-                    inf_value = 131008.0
-                case DataFormat.Bfp8_b:
-                    inf_value = 130048.0
         match (dst_format, data_format):
             # in the following cases, nans are preserved
             case (DataFormat.Float16, DataFormat.Float16):
@@ -427,7 +421,19 @@ class UnarySFPUGolden:
                 pass
             # otherwise, nans are converted to `inf` or a special value
             case _:
-                convert_nan_to_inf(result, inf_value)
+                convert_nan_to_inf(result)
+
+        # depending on `data_format`, `inf` values may get converted when unpacked to L1.
+        inf_value = float("inf")
+        if dst_format == DataFormat.Float16:
+            match data_format:
+                case DataFormat.Float16_b:
+                    inf_value = 130560.0
+                case DataFormat.Float32:
+                    inf_value = 131008.0
+                case DataFormat.Bfp8_b:
+                    inf_value = 130048.0
+        convert_inf(result, inf_value)
 
         return torch.tensor(result, dtype=format_dict[data_format])
 
