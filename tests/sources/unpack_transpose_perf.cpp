@@ -27,7 +27,7 @@ void run_kernel()
 
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, true>(
+        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, false>(
             formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, TILE_NUM_FACES);
         _llk_unpack_A_init_<>(UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
         ckernel::tensix_sync(); // -> perf
