@@ -4,7 +4,7 @@
 
 import pytest
 import torch
-from z3 import *
+from z3 import And, BoolVal, If, Implies, IntVal, Not, Or, Solver, sat
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
@@ -32,6 +32,7 @@ from helpers.param_config import (
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
+
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
     DataFormat.Float32,
@@ -133,6 +134,7 @@ for base_param in base_params:
         )
         all_params.append(combined_params)
 
+
 def filter_params_with_z3(all_params):
     """Use Z3 to filter valid parameter combinations based on hardware constraints"""
 
@@ -161,7 +163,7 @@ def filter_params_with_z3(all_params):
         # Convert enum values to integers for Z3
         broadcast_val = broadcast_type.value if hasattr(broadcast_type, "value") else 0
         reuse_dest_val = reuse_dest.value if hasattr(reuse_dest, "value") else 0
-        
+
         # Z3 variables representing our parameters
         broadcast = IntVal(broadcast_val)  # 0=NONE, 1=COL, 2=ROW, 3=SCALAR
         acc_to_dest_z3 = BoolVal(acc_to_dest)
@@ -171,7 +173,7 @@ def filter_params_with_z3(all_params):
         unpack_to_dest = BoolVal(formats.input_format.is_32_bit())
         is_blackhole = BoolVal(arch == ChipArchitecture.BLACKHOLE)
         is_wormhole = BoolVal(arch == ChipArchitecture.WORMHOLE)
-        
+
         # Define constraint predicates using Z3
         broadcast_none = broadcast == 0
         broadcast_col = broadcast == 1
@@ -181,10 +183,10 @@ def filter_params_with_z3(all_params):
         reuse_none = reuse_dest_z3 == 0
         reuse_srca = reuse_dest_z3 == 1
         reuse_srcb = reuse_dest_z3 == 2
-        
+
         # Static assertion 1: broadcast + acc_to_dest + DEST_TO_SRCB
         constraint1 = Not(And(Not(broadcast_none), acc_to_dest_z3, reuse_srcb))
-        
+
         # Static assertion 2: unpack_to_dest configuration restrictions
         valid_unpack_config = Or(
             And(broadcast_none, Not(acc_to_dest_z3), reuse_none), Not(unpack_to_dest)
@@ -206,7 +208,7 @@ def filter_params_with_z3(all_params):
             ),
             True,
         )
-        
+
         # Architecture-specific broadcast constraints (when not unpack_to_dest)
         broadcast_constraints = If(
             Not(unpack_to_dest),
@@ -244,7 +246,7 @@ def filter_params_with_z3(all_params):
             ),
             True,  # When unpack_to_dest=True, different code path, broadcast limits don't apply
         )
-        
+
         # transpose_of_faces with 1 face constraint
         transpose_constraint = Implies(transpose_faces, num_faces_z3 > 1)
 
@@ -275,6 +277,7 @@ def filter_params_with_z3(all_params):
             valid_params.append(params)
 
     return valid_params
+
 
 # Apply Z3 constraint filtering
 print(f"Total parameter combinations before Z3 filtering: {len(all_params)}")
@@ -319,6 +322,7 @@ def create_simple_ids(all_params):
         ids.append(id_str)
 
     return ids
+
 
 param_ids = create_simple_ids(all_params)
 # param_ids = generate_param_ids(all_params)
