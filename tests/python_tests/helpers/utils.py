@@ -159,7 +159,6 @@ def get_tolerance(output_data_format):
 def passed_test(
     golden_tensor,
     res_tensor,
-    input_tensor,
     output_data_format: DataFormat = DataFormat.Float16_b,
     L1_to_L1_iterations: int = 1,
 ):
@@ -202,7 +201,7 @@ def passed_test(
         print(f"Found {len(diff_indices)} differences:")
         for idx in diff_indices:
             print(
-                f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}, input={input_tensor[idx]}"
+                f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}"
             )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)

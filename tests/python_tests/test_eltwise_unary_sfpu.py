@@ -144,4 +144,4 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, src_A, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
