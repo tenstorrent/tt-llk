@@ -41,7 +41,7 @@ supported_formats = [
     DataFormat.Bfp8_b,
 ]
 
-# Define your parameter lists
+# Define parameter lists
 broadcast_types = [
     BroadcastType.NONE,
     BroadcastType.COL,
@@ -63,15 +63,7 @@ transpose_of_faces_values = [0, 1]
 within_face_16x16_transpose_values = [0, 1]
 num_faces_values = [4]  # todo: 1, 2
 
-# Generate format combinations
-supported_formats = [
-    DataFormat.Float16_b,
-    DataFormat.Float32,
-    DataFormat.Bfp8_b,
-    DataFormat.Float16,
-]
 
-# Create InputOutputFormat combinations for your test (this is what your test expects)
 # Use only cross_test_formats as it already includes same-format combinations
 test_formats = input_output_formats(supported_formats, False)
 
@@ -94,12 +86,12 @@ unpack_A_param_combinations = generate_unpack_A_params(
 all_params = []
 testname = ["unpack_A_test"]
 
-# Method 1: Use generate_params for base parameter structure (like datacopy test)
+# Use generate_params for base parameter structure (like datacopy test)
 base_params = list(
     generate_params(testnames=testname, formats=test_formats)
 )  # Convert itertools.product to list
 
-# Method 2: Extend base params with unpack_A specific parameters
+# Extend base params with unpack_A specific parameters
 for base_param in base_params:
     # base_param = (testname, format_config) - new format from main branch
     base_testname = base_param[0]
@@ -244,7 +236,7 @@ def filter_params_with_z3(all_params):
                     ),
                 ),
             ),
-            True,  # When unpack_to_dest=True, different code path, broadcast limits don't apply
+            True,
         )
 
         # transpose_of_faces with 1 face constraint
@@ -255,7 +247,7 @@ def filter_params_with_z3(all_params):
         transpose_mutual_constraint = transpose_faces == within_face_transpose
 
         # todo: Float32 input + transpose_of_faces not supported
-        # Verify this constraint is correct
+        # Verify if this constraint is correct
         is_float32_input = BoolVal(formats.input_format == DataFormat.Float32)
         float32_transpose_constraint = Not(And(is_float32_input, transpose_faces))
 
