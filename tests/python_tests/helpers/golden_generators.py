@@ -382,6 +382,7 @@ class UnarySFPUGolden:
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
 
+        # determine the data format for dst
         if self.dest_acc == DestAccumulation.Yes:
             dst_format = DataFormat.Float32
         elif DataFormat.Float16 in (input_format, data_format):
@@ -404,6 +405,9 @@ class UnarySFPUGolden:
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
 
+        # depending on (dst_format, data_format), writing `nan` to dst may
+        # result in `inf`; and when followed by packing to L1, may result in
+        # the special values below.
         inf_value = float("inf")
         if dst_format == DataFormat.Float16:
             match data_format:
@@ -414,12 +418,14 @@ class UnarySFPUGolden:
                 case DataFormat.Bfp8_b:
                     inf_value = 130048.0
         match (dst_format, data_format):
+            # in the following cases, nans are preserved
             case (DataFormat.Float16, DataFormat.Float16):
                 pass
             case (DataFormat.Float32, DataFormat.Float16):
                 pass
             case (DataFormat.Float32, DataFormat.Float32):
                 pass
+            # otherwise, nans are converted to `inf` or a special value
             case _:
                 convert_nan_to_inf(result, inf_value)
 
