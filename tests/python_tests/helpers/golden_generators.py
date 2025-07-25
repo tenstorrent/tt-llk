@@ -400,10 +400,10 @@ class UnarySFPUGolden:
             # dst in 16-bit mode and 32-bit input: truncation may occur when unpacked to dst
             if dst_format == DataFormat.Float16:
                 # truncate to float16
-                operand1 = (operand1.view(torch.int32) & 0xffffe000).view(torch.float32)
+                operand1 = (operand1.view(torch.int32) & 0xFFFFE000).view(torch.float32)
             else:
                 # truncate to float16_b
-                operand1 = (operand1.view(torch.int32) & 0xffff0000).view(torch.float32)
+                operand1 = (operand1.view(torch.int32) & 0xFFFF0000).view(torch.float32)
 
         tensor = to_tensor(operand1, dst_format)
         result = [self.ops[operation](x) for x in tensor.tolist()]

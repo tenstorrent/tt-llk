@@ -5,7 +5,6 @@
 import pytest
 import torch
 
-from helpers.pack import pack_fp32
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
@@ -113,7 +112,9 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     )
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
-    golden_tensor = generate_golden(mathop, src_A, formats.output_format, dest_acc, formats.input_format)
+    golden_tensor = generate_golden(
+        mathop, src_A, formats.output_format, dest_acc, formats.input_format
+    )
 
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
