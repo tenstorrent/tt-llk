@@ -15,7 +15,7 @@ from helpers.perf import (
     update_report,
 )
 
-TEST_NAME = "unpack_transpose_perf"
+TEST_NAME = "math_transpose_perf"
 
 
 report = PerfReport()
@@ -36,33 +36,31 @@ def report_fixture():
         [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Int32],
     ),
     unpack_transpose_faces=[False, True],
-    unpack_transpose_within_face=[False, True],
+    math_transpose_faces=[False, True],
 )
-def test_perf_unpack_transpose(
+def test_perf_math_transpose(
     report_fixture,
     test_name,
     formats,
     unpack_transpose_faces,
-    unpack_transpose_within_face,
+    math_transpose_faces,
 ):
 
-    if formats.input == DataFormat.Int32 and unpack_transpose_within_face:
-        pytest.skip("Unpack within face not supported for Int32")
-
-    if not unpack_transpose_faces and not unpack_transpose_within_face:
+    if not math_transpose_faces and not formats.input_format.is_32_bit():
         pytest.skip(
-            "Skipping test for unpack_transpose_faces=False and unpack_transpose_within_face=False"
+            "Unsupported config transpose_of_faces = false and is_32bit = false"
         )
+
+    if unpack_transpose_faces and math_transpose_faces:
+        pytest.skip("Skip transposing faces twice")
 
     test_config = {
         "testname": test_name,
         "formats": formats,
         "tile_cnt": 16,
         "unpack_transpose_faces": unpack_transpose_faces,
-        "unpack_transpose_within_face": unpack_transpose_within_face,
+        "math_transpose_faces": math_transpose_faces,
     }
 
-    results = perf_benchmark(
-        test_config, run_types=[PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE]
-    )
+    results = perf_benchmark(test_config, run_types=[PerfRunType.L1_TO_L1])
     update_report(report, test_config, results)
