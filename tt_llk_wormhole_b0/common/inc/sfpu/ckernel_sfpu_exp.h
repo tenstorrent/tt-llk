@@ -6,7 +6,6 @@
 
 #include <limits>
 
-#include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
@@ -407,9 +406,8 @@ inline void _init_exponential_()
     }
     else
     {
-        sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
-        sfpi::vConstFloatPrgm1 = 2.0f;
-        sfpi::vConstFloatPrgm2 = 0.863281f;
+        // Initialisation for use of _sfpu_reciprocal_<false> in _calculate_exponential_<APPROXIMATION_MODE=false>.
+        _init_reciprocal_<false>();
     }
 }
 
