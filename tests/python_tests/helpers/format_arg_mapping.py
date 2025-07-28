@@ -198,6 +198,10 @@ class MathFidelity(Enum):
     HiFi3 = 2
     HiFi4 = 3
 
+class NumFaces(Enum):
+    NumFaces1 = 1
+    NumFaces2 = 2
+    NumFaces4 = 4
 
 class Mailbox(Enum):
     Unpacker = 0x19FFC
