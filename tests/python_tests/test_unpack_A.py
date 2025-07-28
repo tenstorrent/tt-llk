@@ -246,11 +246,6 @@ def filter_params_with_z3(all_params):
         within_face_transpose = BoolVal(within_face_16x16_transpose == 1)
         transpose_mutual_constraint = transpose_faces == within_face_transpose
 
-        # todo: Float32 input + transpose_of_faces not supported
-        # Verify if this constraint is correct
-        # is_float32_input = BoolVal(formats.input_format == DataFormat.Float32)
-        # float32_transpose_constraint = Not(And(is_float32_input, transpose_faces))
-
         # Add all constraints to solver
         s.add(
             constraint1,
@@ -381,8 +376,8 @@ def test_unpack_comprehensive(
         "dest_acc": DestAccumulation.Yes if acc_to_dest else DestAccumulation.No,
         # "is_fp32_dest_acc_en": is_fp32_dest_acc,
         "disable_src_zero_flag": disable_src_zero,
-        "transpose_of_faces": transpose_of_faces,
-        "within_face_16x16_transpose": within_face_16x16_transpose,
+        "unpack_transpose_faces": transpose_of_faces,
+        "unpack_transpose_within_face": within_face_16x16_transpose,
         "num_faces": num_faces,
     }
 

@@ -159,13 +159,7 @@ def generate_build_header(
             )
         else:
             header_content.append(f"#define REUSE_DEST_TYPE {reuse_dest}")
-    # Added for unpack test
-    # if "stoch_rnd_type" in test_config:
-    #     stoch_rnd_type = test_config["stoch_rnd_type"]
-    #     if hasattr(stoch_rnd_type, 'name'):
-    #         header_content.append(f"#define STOCH_RND_TYPE StochRndType::{stoch_rnd_type.name}")
-    #     else:
-    #         header_content.append(f"#define STOCH_RND_TYPE {stoch_rnd_type}")
+
     if "stoch_rnd_type" in test_config:
         stoch_rnd_type = test_config["stoch_rnd_type"]
         if hasattr(stoch_rnd_type, "name"):
@@ -178,23 +172,13 @@ def generate_build_header(
                 f"#define STOCH_RND_TYPE StochRndType::{stoch_rnd_type}"
             )
 
-    # if "is_fp32_dest_acc_en" in test_config:
-    #     is_fp32_dest_acc_en = str(test_config["is_fp32_dest_acc_en"]).lower()
-    #     header_content.append(f"#define IS_FP32_DEST_ACC_EN {is_fp32_dest_acc_en}")
+
 
     if "disable_src_zero_flag" in test_config:
         disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
         header_content.append(f"#define disable_src_zero_flag {disable_src_zero_flag}")
 
-    if "transpose_of_faces" in test_config:
-        transpose_of_faces = test_config["transpose_of_faces"]
-        header_content.append(f"#define TRANSPOSE_OF_FACES {transpose_of_faces}")
 
-    if "within_face_16x16_transpose" in test_config:
-        within_face_16x16_transpose = test_config["within_face_16x16_transpose"]
-        header_content.append(
-            f"#define WITHIN_FACE_16X16_TRANSPOSE {within_face_16x16_transpose}"
-        )
 
     if "num_faces" in test_config:
         num_faces = test_config["num_faces"]

@@ -146,77 +146,57 @@ def parametrize(**kwargs: any):
     return decorator
 
 
-def generate_unpack_A_params(
-    broadcast_types: Optional[List] = None,
-    disable_src_zero_flags: Optional[List[bool]] = None,
-    acc_to_dest_flags: Optional[List[bool]] = None,
-    stoch_rounding_types: Optional[List] = None,
-    reuse_dest_types: Optional[List] = None,
-    # unpack_to_dest_flags: Optional[List[bool]] = None,
-    transpose_of_faces_values: Optional[List[int]] = None,
-    within_face_16x16_transpose_values: Optional[List[int]] = None,
-    num_faces_values: Optional[List[int]] = None,
-) -> List[tuple]:
+def generate_unpack_A_params(**kwargs) -> List[tuple]:
     """
     Generates parameter combinations for unpack_A specific parameters only.
+    
+    Modern implementation using itertools.product instead of nested loops.
+    Maintains backward compatibility with the original function signature.
 
-    This function creates all possible combinations of unpack_A template and runtime parameters,
-    excluding testnames and formats which are handled separately.
+    Args:
+        **kwargs: Parameter lists for unpack_A specific parameters:
+            - broadcast_types: List of BroadcastType values
+            - disable_src_zero_flags: List of bool values  
+            - acc_to_dest_flags: List of bool values
+            - stoch_rounding_types: List of StochRndType values
+            - reuse_dest_types: List of EltwiseBinaryReuseDestType values
+            - transpose_of_faces_values: List of int values (0, 1)
+            - within_face_16x16_transpose_values: List of int values (0, 1)
+            - num_faces_values: List of int values
 
     Returns:
         List[tuple]: A list of tuples containing unpack_A parameter combinations
+                    in order: (broadcast_type, disable_src_zero, acc_to_dest, 
+                              stoch_rounding, reuse_dest, transpose_of_faces,
+                              within_face_16x16_transpose, num_faces)
     """
-
-    # Generate all combinations - NO CONSTRAINT FILTERING HERE
-    # (Constraints will be applied in the test file where the enums are defined)
-    combinations = []
-
-    for broadcast_type in broadcast_types if broadcast_types is not None else [None]:
-        for disable_src_zero in (
-            disable_src_zero_flags if disable_src_zero_flags is not None else [None]
-        ):
-            for acc_to_dest in (
-                acc_to_dest_flags if acc_to_dest_flags is not None else [None]
-            ):
-                for stoch_rounding in (
-                    stoch_rounding_types if stoch_rounding_types is not None else [None]
-                ):
-                    for reuse_dest in (
-                        reuse_dest_types if reuse_dest_types is not None else [None]
-                    ):
-                        # for unpack_to_dest in (unpack_to_dest_flags if unpack_to_dest_flags is not None else [None]):
-                        for transpose_of_faces in (
-                            transpose_of_faces_values
-                            if transpose_of_faces_values is not None
-                            else [None]
-                        ):
-                            for within_face_16x16_transpose in (
-                                within_face_16x16_transpose_values
-                                if within_face_16x16_transpose_values is not None
-                                else [None]
-                            ):
-                                for num_faces in (
-                                    num_faces_values
-                                    if num_faces_values is not None
-                                    else [None]
-                                ):
-
-                                    # Create parameter tuple (unpack_A params only)
-                                    param_tuple = (
-                                        broadcast_type,
-                                        disable_src_zero,
-                                        acc_to_dest,
-                                        stoch_rounding,
-                                        reuse_dest,
-                                        # unpack_to_dest,
-                                        transpose_of_faces,
-                                        within_face_16x16_transpose,
-                                        num_faces,
-                                    )
-
-                                    combinations.append(param_tuple)
-
-    return combinations
+    
+    # Define parameter order to ensure consistent tuple structure
+    param_order = [
+        'broadcast_types',
+        'disable_src_zero_flags', 
+        'acc_to_dest_flags',
+        'stoch_rounding_types',
+        'reuse_dest_types',
+        'transpose_of_faces_values',
+        'within_face_16x16_transpose_values',
+        'num_faces_values'
+    ]
+    
+    # Convert single values to lists and handle None values
+    wrap_list = lambda x: [x] if not isinstance(x, list) else x
+    
+    # Extract parameters in correct order, defaulting to [None] for missing ones
+    arguments = []
+    for param_name in param_order:
+        param_value = kwargs.get(param_name, [None])
+        if param_value is not None:
+            arguments.append(wrap_list(param_value))
+        else:
+            arguments.append([None])
+    
+    # Generate all combinations using itertools.product
+    return list(product(*arguments))
 
 
 def clean_params(all_params: List[tuple]) -> List[tuple]:
