@@ -248,8 +248,8 @@ def filter_params_with_z3(all_params):
 
         # todo: Float32 input + transpose_of_faces not supported
         # Verify if this constraint is correct
-        is_float32_input = BoolVal(formats.input_format == DataFormat.Float32)
-        float32_transpose_constraint = Not(And(is_float32_input, transpose_faces))
+        # is_float32_input = BoolVal(formats.input_format == DataFormat.Float32)
+        # float32_transpose_constraint = Not(And(is_float32_input, transpose_faces))
 
         # Add all constraints to solver
         s.add(
@@ -261,7 +261,7 @@ def filter_params_with_z3(all_params):
             broadcast_constraints,
             transpose_constraint,
             transpose_mutual_constraint,
-            float32_transpose_constraint,
+            # float32_transpose_constraint,
         )
 
         # Check if this parameter combination is valid
@@ -342,7 +342,7 @@ def test_unpack_comprehensive(
 
     # Get architecture and compute unpack_to_dest
     arch = get_chip_architecture()
-    unpack_to_dest = formats.input_format.is_32_bit()
+    unpack_to_dest = formats.input_format.is_32_bit() and acc_to_dest
 
     # Note: All constraint validation has been done by Z3 during parameter generation
     # No need for pytest.skip() calls - invalid combinations have been filtered out
