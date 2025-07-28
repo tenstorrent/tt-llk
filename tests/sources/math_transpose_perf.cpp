@@ -30,8 +30,10 @@ void run_kernel()
 
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, false>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, false, TILE_NUM_FACES);
-        _llk_unpack_A_init_<>(UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, unpack_to_dest>(
+            formats.unpack_src, formats.unpack_dst, FACE_R_DIM, false, TILE_NUM_FACES);
+        _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+            UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
         ckernel::tensix_sync(); // -> perf
     }
 
@@ -39,7 +41,8 @@ void run_kernel()
         ZONE_SCOPED("TILE_LOOP")
         for (uint32_t tile = 0; tile < TILE_CNT; tile++)
         {
-            _llk_unpack_A_<>(L1_ADDRESS(src_a + (tile % 8) * 0x1000), UNPACK_TRANSPOSE_FACES, formats.unpack_src, formats.unpack_dst);
+            _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+                L1_ADDRESS(src_a + (tile % 8) * 0x1000), UNPACK_TRANSPOSE_FACES, formats.unpack_src, formats.unpack_dst);
             _llk_unpack_set_srcb_dummy_valid_();
         }
         ckernel::tensix_sync(); // -> perf
@@ -56,8 +59,7 @@ void run_kernel()
 
 void run_kernel()
 {
-    constexpr bool is_32bit =
-        formats.math == (uint32_t)DataFormat::Int32 || formats.math == (uint32_t)DataFormat::UInt32 || formats.math == (uint32_t)DataFormat::Float32;
+    constexpr bool is32 = is_32bit((DataFormat)formats.math);
 
     {
         ZONE_SCOPED("INIT")
@@ -71,6 +73,7 @@ void run_kernel()
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
             UNPACK_TRANSPOSE_FACES, false, TILE_NUM_FACES, formats.math);
 #endif
+        _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
 
         ckernel::tensix_sync(); // -> perf
     }
@@ -84,9 +87,7 @@ void run_kernel()
 
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 0, formats.math, formats.math);
-
-            _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is_32bit>();
-            _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is_32bit>(0);
+            _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is32>(0);
 
             _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         }
