@@ -30,6 +30,8 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
 
 constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 
+constexpr int num_of_faces = num_faces;
+
 /*DATA FORMAT CONFIGURATION*/
 
 // Given input and output formats, infer the rest of the format configuration
