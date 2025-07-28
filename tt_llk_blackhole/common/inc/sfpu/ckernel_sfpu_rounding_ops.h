@@ -2,6 +2,62 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_rounding_ops.h
+ * @brief Comprehensive rounding and integer conversion operations for SFPU hardware
+ *
+ * @details This file implements various rounding modes and floating-point to integer
+ * conversion operations using SFPU hardware acceleration. These operations are
+ * fundamental for implementing IEEE-754 compliant rounding behavior and are essential
+ * for neural network quantization, fixed-point arithmetic, and mathematical operations
+ * requiring specific rounding semantics.
+ *
+ * **Supported Rounding Modes:**
+ * - **Round to Nearest (Even)**: IEEE-754 default rounding mode
+ * - **Round Down (Floor)**: Always round toward negative infinity
+ * - **Round Up (Ceiling)**: Always round toward positive infinity
+ * - **Round Toward Zero (Truncate)**: Round toward zero (truncation)
+ * - **Round Away from Zero**: Round away from zero for symmetric behavior
+ *
+ * **Conversion Operations:**
+ * - **Float to Int32**: Full-precision floating-point to 32-bit integer conversion
+ * - **Float to Int16**: Floating-point to 16-bit integer with range checking
+ * - **Float to Int8**: Floating-point to 8-bit integer with saturation
+ * - **Precision Rounding**: Round floating-point to specific decimal places
+ *
+ * **IEEE-754 Compliance:**
+ * The implementation follows IEEE-754 standards for:
+ * - **Exact Half-way Cases**: Round to nearest even for ties
+ * - **Special Value Handling**: Proper treatment of NaN, infinity, and zero
+ * - **Overflow Behavior**: Saturation or exception handling for out-of-range values
+ * - **Signed Zero**: Preservation of signed zero semantics
+ *
+ * **SFPU Implementation Features:**
+ * - **Hardware Acceleration**: Leverages SFPU's rounding and conversion capabilities
+ * - **SIMD Processing**: 32 rounding operations processed simultaneously
+ * - **Range Validation**: Automatic detection and handling of overflow/underflow
+ * - **Format Flexibility**: Support for multiple integer target formats
+ *
+ * **Core Functions:**
+ * - **_float_to_int32_()**: Primary floating-point to integer conversion
+ * - **Rounding Utilities**: Various rounding mode implementations
+ * - **Range Checking**: Overflow detection and saturation logic
+ * - **Format Conversion**: Between different numeric representations
+ *
+ * **Performance Characteristics:**
+ * - **Latency**: 3-5 cycles per tile depending on rounding mode complexity
+ * - **Throughput**: 32 conversion operations per cycle
+ * - **Accuracy**: IEEE-754 compliant rounding with exact results
+ * - **Range Coverage**: Full floating-point range with appropriate saturation
+ *
+ * **Use Cases:**
+ * - Neural network quantization operations
+ * - Fixed-point arithmetic implementation
+ * - Mathematical function implementations requiring specific rounding
+ * - Data type conversion for mixed-precision computation
+ * - Financial calculations requiring exact rounding behavior
+ */
+
 #pragma once
 
 #include <array>

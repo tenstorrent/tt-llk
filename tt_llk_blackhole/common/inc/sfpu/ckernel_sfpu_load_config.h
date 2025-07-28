@@ -2,6 +2,50 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_load_config.h
+ * @brief SFPU configuration loading utilities for hardware setup
+ *
+ * @details This file provides utility functions for loading configuration values
+ * and constants into SFPU registers. These utilities are essential for setting up
+ * SFPU operations that require specific constants, coefficients, or configuration
+ * parameters that cannot be efficiently encoded as immediate values.
+ *
+ * **Primary Function: _sfpu_load_imm32_**
+ * Loads a full 32-bit immediate value into an SFPU register using a two-instruction
+ * sequence to handle the 16-bit immediate limitation of individual SFPU instructions.
+ *
+ * **Implementation Strategy:**
+ * The function splits 32-bit values into high and low 16-bit components:
+ * 1. **Lower 16 bits**: Loaded using instruction modifier 10 (preserves upper bits)
+ * 2. **Upper 16 bits**: Loaded using instruction modifier 8 (preserves lower bits)
+ * 3. **Atomic Operation**: Ensures complete 32-bit value is loaded correctly
+ *
+ * **SFPU Instruction Details:**
+ * - **TT_SFPLOADI with mod 10**: Writes lower 16 bits, preserves upper 16 bits
+ * - **TT_SFPLOADI with mod 8**: Writes upper 16 bits, preserves lower 16 bits
+ * - **Sequential Execution**: Two instructions combine to load full 32-bit value
+ *
+ * **Use Cases:**
+ * - Loading polynomial coefficients for approximation functions
+ * - Setting up lookup table parameters and scaling factors
+ * - Configuring mathematical constants for complex operations
+ * - Initializing SFPU registers with runtime-computed values
+ *
+ * **Performance Characteristics:**
+ * - **Latency**: 2 SFPU instruction cycles for complete 32-bit load
+ * - **Throughput**: Can load multiple 32-bit values in parallel to different registers
+ * - **Precision**: Full 32-bit precision maintained throughout loading process
+ * - **Efficiency**: Minimal instruction overhead for complex value loading
+ *
+ * **Integration with SFPU Functions:**
+ * This utility is used throughout SFPU mathematical functions for:
+ * - Mathematical constant initialization
+ * - Runtime coefficient loading
+ * - Configuration parameter setup
+ * - Lookup table preparation
+ */
+
 #pragma once
 
 #include "ckernel_ops.h"

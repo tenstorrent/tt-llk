@@ -2,6 +2,51 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_converter.h
+ * @brief Type conversion utilities for SFPU data type handling
+ *
+ * @details This file provides essential type conversion utilities for SFPU operations,
+ * particularly for reinterpreting bit patterns between different data types without
+ * changing the underlying binary representation. These utilities are fundamental
+ * for implementing SFPU functions that need to manipulate IEEE-754 floating-point
+ * bit fields or convert between integer and floating-point representations.
+ *
+ * **Core Functionality:**
+ * The primary purpose is to provide safe, efficient type reinterpretation that:
+ * - Preserves exact bit patterns during conversion
+ * - Avoids undefined behavior from improper type casting
+ * - Enables manipulation of IEEE-754 floating-point fields
+ * - Supports mixed-type SFPU operations
+ *
+ * **Type Punning Safety:**
+ * The implementation uses proper C++ techniques for type reinterpretation:
+ * - Union-based type punning for well-defined behavior
+ * - Avoids pointer-based casting that can cause undefined behavior
+ * - Maintains alignment and size requirements
+ * - Compiler-optimized for zero runtime overhead
+ *
+ * **IEEE-754 Manipulation:**
+ * These utilities enable direct manipulation of floating-point representation:
+ * - **Sign Bit**: Access and modify sign bit directly
+ * - **Exponent Field**: Manipulate exponent for scaling operations
+ * - **Mantissa Field**: Access mantissa for precision operations
+ * - **Special Values**: Handle NaN, infinity, and denormal values
+ *
+ * **SFPU Integration:**
+ * These converters are used throughout SFPU functions for:
+ * - Implementing bit manipulation algorithms
+ * - Converting between arithmetic and bitwise operations
+ * - Accessing IEEE-754 components for range reduction
+ * - Optimizing special value handling
+ *
+ * **Performance Characteristics:**
+ * - **Zero Runtime Cost**: All conversions optimized away by compiler
+ * - **Inline Operations**: Header-only implementation for maximum efficiency
+ * - **Type Safety**: Compile-time type checking with runtime performance
+ * - **Bit-Exact**: Preserves exact bit patterns without modification
+ */
+
 #pragma once
 
 #include <cstdint>

@@ -2,6 +2,60 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file cpack_common.h
+ * @brief Thread 2 (Pack) execution utilities for Wormhole B0 Tensix output operations
+ *
+ * @details This header provides comprehensive utilities and data structures for Thread 2 (Pack)
+ * in the Wormhole B0 Tensix engine. The Pack thread is responsible for efficiently moving
+ * computed results from DEST registers back to L1 SRAM, completing the compute pipeline
+ * and enabling data consumption by subsequent operations or inter-core communication.
+ *
+ * **Wormhole B0 Pack Thread Architecture:**
+ * Thread 2 manages the final stage of the compute pipeline:
+ * - **Data Source**: DEST register file (1024×16 datums in 16-bit mode, 512×16 in 32-bit mode)
+ * - **Data Destination**: Multi-bank L1 SRAM (16B words, round-robin arbitration)
+ * - **Coordination**: Synchronized with Thread 1 (Math) via semaphores and double buffering
+ * - **Format Support**: Comprehensive data format conversion and compression capabilities
+ * - **Performance**: Optimized for balanced throughput matching math computation rates
+ *
+ * **Multi-Packer Architecture:**
+ * Wormhole B0 features multiple packer units for flexible output handling:
+ * - **4 Packer Units**: Independent packer engines (PACK_CNT = 4) for parallel operation
+ * - **Flexible Assignment**: Packers can target different L1 regions or data formats
+ * - **Load Balancing**: Distribute packing workload across multiple units
+ * - **Format Specialization**: Different packers optimized for specific data formats
+ *
+ * **Data Format and Compression:**
+ * Advanced format conversion and compression capabilities:
+ * - **Format Conversion**: Hardware-accelerated conversion from DEST format to target formats
+ * - **Floating-Point**: FP32, FP16A/B, BF16, TF32 with precision control
+ * - **Block Floating-Point**: BFP8, BFP4, BFP2 compression with shared exponents
+ * - **Integer**: INT8/16/32, UINT8/16 with sign-magnitude format handling
+ * - **Lossless Compression**: Hardware-accelerated compression for memory bandwidth optimization
+ * - **Precision Control**: Configurable rounding modes and precision reduction
+ *
+ * **DEST Register Coordination:**
+ * Sophisticated coordination with Thread 1 (Math) for efficient data flow:
+ * - **Double Buffering**: DEST register dual-bank design enables concurrent math/pack
+ * - **Base Address Control**: Independent base address configuration for math vs. pack access
+ * - **Semaphore Synchronization**: Hardware semaphores coordinate DEST register usage
+ * - **Pipeline Efficiency**: Overlapped execution maintains high compute utilization
+ *
+ * **Performance Optimization:**
+ * - **Memory Bandwidth**: Optimized for L1 SRAM bank interleaving and access patterns
+ * - **Compression Ratios**: Hardware compression reduces memory footprint and bandwidth
+ * - **Format Conversion**: Zero-overhead format conversion during data movement
+ * - **Parallel Processing**: Multiple packers enable high aggregate throughput
+ * - **Address Generation**: Sophisticated addressing for complex tensor layouts
+ *
+ * **Thread Synchronization:**
+ * - **Math→Pack Coordination**: Semaphore-based coordination ensures data availability
+ * - **DEST Register Management**: Controlled access to shared DEST register resources
+ * - **Pipeline Flow**: Maintains balanced throughput through complete Unpack→Math→Pack pipeline
+ * - **Inter-Core Communication**: Coordination with NOC for multi-core data distribution
+ */
+
 #pragma once
 
 #include <array>
@@ -15,8 +69,18 @@
 
 namespace ckernel::packer
 {
+/**
+ * @brief Type alias for underlying data format enumeration
+ * @details Provides type-safe access to the underlying integer type
+ * of the DataFormat enumeration for efficient format handling.
+ */
 using DataFormatType = std::underlying_type_t<DataFormat>;
 
+/**
+ * @brief Number of independent packer units in Wormhole B0
+ * @details Wormhole B0 features 4 independent packer engines for
+ * parallel output processing and optimal memory bandwidth utilization.
+ */
 constexpr uint32_t PACK_CNT    = 4;
 constexpr uint32_t NUM_PACKERS = 4; // Number of packers
 

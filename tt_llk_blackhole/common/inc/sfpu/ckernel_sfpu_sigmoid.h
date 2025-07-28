@@ -2,6 +2,45 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_sigmoid.h
+ * @brief Sigmoid activation function implementation for SFPU hardware
+ *
+ * @details This file implements the sigmoid activation function using SFPU hardware
+ * acceleration with lookup table optimization for high performance. The sigmoid
+ * function is a fundamental activation function in neural networks, providing
+ * smooth, bounded output in the range (0, 1).
+ *
+ * **Mathematical Definition:**
+ * - **Sigmoid**: f(x) = 1 / (1 + e^(-x))
+ * - **Output Range**: (0, 1) with smooth S-shaped curve
+ * - **Properties**: Differentiable, monotonic, bounded
+ *
+ * **SFPU Implementation Strategy:**
+ * The implementation uses lookup tables for optimized computation:
+ * 1. **Input Range Analysis**: Determine optimal lookup table range
+ * 2. **LUT Interpolation**: Use SFPU's FP16 6-entry lookup tables
+ * 3. **Range Extrapolation**: Handle values outside LUT range analytically
+ * 4. **Precision Optimization**: Balance speed vs. accuracy based on mode
+ *
+ * **Lookup Table Approach:**
+ * - **SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1**: Hardware-accelerated table lookup
+ * - **Linear Interpolation**: Between table entries for smooth results
+ * - **Range Handling**: Special logic for extreme values (±∞ → 0/1)
+ *
+ * **Template Parameters:**
+ * - **APPROXIMATION_MODE**: Controls speed vs. accuracy trade-off
+ *   - `true`: Fast approximation with reduced precision
+ *   - `false`: High precision with additional computation
+ * - **ITERATIONS**: Number of SFPU iteration steps for batch processing
+ *
+ * **Performance Characteristics:**
+ * - **Latency**: 4-6 cycles per tile depending on approximation mode
+ * - **Throughput**: 32 elements processed per cycle
+ * - **Accuracy**: Configurable precision based on template parameters
+ * - **Memory**: Efficient use of SFPU lookup table resources
+ */
+
 #pragma once
 
 #include "ckernel_sfpu_load_config.h"

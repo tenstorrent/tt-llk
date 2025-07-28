@@ -2,6 +2,76 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_cumsum.h
+ * @brief Cumulative sum (prefix sum) implementation for SFPU hardware
+ *
+ * @details This file implements cumulative sum operations using SFPU hardware
+ * acceleration with support for multiple axes and efficient parallel computation.
+ * Cumulative sum is a fundamental operation used in many algorithms including
+ * attention mechanisms, sequence processing, and numerical integration.
+ *
+ * **Cumulative Sum Operation:**
+ * - **Definition**: output[i] = Σ(input[0] to input[i])
+ * - **Sequential Dependency**: Each output depends on all previous inputs
+ * - **Multiple Axes**: Support for cumulative sum along different tensor dimensions
+ * - **Numerical Stability**: Careful handling of floating-point accumulation
+ *
+ * **Mathematical Examples:**
+ * ```
+ * Input:  [1, 2, 3, 4, 5]
+ * Output: [1, 3, 6, 10, 15]
+ * 
+ * 2D Example (axis=1):
+ * Input:  [[1, 2, 3],     Output: [[1, 3, 6],
+ *          [4, 5, 6]]              [4, 9, 15]]
+ * ```
+ *
+ * **SFPU Implementation Challenges:**
+ * - **SIMD Parallelism**: Adapting sequential operation to parallel hardware
+ * - **Data Dependencies**: Managing sequential dependencies in vector processing
+ * - **Memory Access**: Efficient accumulation across tile boundaries
+ * - **Precision Maintenance**: Preventing accumulation error growth
+ *
+ * **Algorithm Strategies:**
+ * 1. **Parallel Prefix Sum**: Using parallel algorithms for SIMD efficiency
+ * 2. **Segmented Operations**: Breaking computation into SIMD-friendly segments
+ * 3. **Carry Propagation**: Managing accumulated values across vector boundaries
+ * 4. **Hierarchical Processing**: Multi-level accumulation for large data
+ *
+ * **SFPU Implementation:**
+ * 1. **Input Loading**: Load tensor data with appropriate addressing
+ * 2. **Vector Processing**: Apply parallel prefix sum algorithms
+ * 3. **Accumulation**: Maintain running sum across processing boundaries
+ * 4. **Carry Handling**: Propagate accumulated values between tiles
+ * 5. **Result Storage**: Store cumulative results with proper indexing
+ *
+ * **Axis Support:**
+ * - **Axis Selection**: Cumulative sum along specified tensor dimension
+ * - **Memory Layout**: Optimized access patterns for different axes
+ * - **Stride Handling**: Efficient processing for non-contiguous data
+ * - **Multi-dimensional**: Support for tensors of various dimensionality
+ *
+ * **Numerical Considerations:**
+ * - **Floating-Point Accuracy**: Minimizing accumulated rounding errors
+ * - **Overflow Prevention**: Handling potential overflow in long sequences
+ * - **Precision Modes**: Support for different floating-point precisions
+ * - **Stability Techniques**: Kahan summation for improved accuracy
+ *
+ * **Performance Characteristics:**
+ * - **Latency**: 8-12 cycles per tile depending on axis and data layout
+ * - **Throughput**: Optimized for sequential dependency constraints
+ * - **Memory Access**: Efficient patterns for different cumsum axes
+ * - **Scalability**: Performance scaling with tensor size and dimensionality
+ *
+ * **Use Cases:**
+ * - Attention mechanism computations in transformers
+ * - Sequence processing and time series analysis
+ * - Numerical integration and mathematical simulations
+ * - Computer graphics and image processing algorithms
+ * - Probability distribution function computation
+ */
+
 #pragma once
 
 #include "ckernel_addrmod.h"

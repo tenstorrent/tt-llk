@@ -2,22 +2,89 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_gpr_map.h
+ * @brief General Purpose Register allocation for Wormhole B0 Tensix 3-thread architecture
+ *
+ * @details This header defines the allocation and usage of General Purpose Registers (GPRs)
+ * across the Wormhole B0 Tensix engine's 3-thread execution model. GPRs serve as fast local
+ * storage for frequently accessed values, configuration parameters, and intermediate calculations
+ * specific to each thread's specialized role in the compute pipeline.
+ *
+ * **Wormhole B0 GPR Architecture:**
+ * Each Tensix thread has access to its own set of GPRs for thread-specific operations:
+ * - **Thread 0 (Unpack)**: GPRs for unpacker configuration, L1→register data movement
+ * - **Thread 1 (Math)**: GPRs for compute configuration, SFPU parameters, math operations
+ * - **Thread 2 (Pack)**: GPRs for packer configuration, register→L1 data movement
+ * - **Common GPRs**: Shared registers for debug, synchronization, and global state
+ *
+ * **GPR Access Characteristics:**
+ * - **Multi-Client Access**: Accessible by TRISC processors, THCON EXU, and CFG EXU
+ * - **Arbitration**: Hardware arbitration ensures conflict-free access across clients
+ * - **Variable Latency**: Port conflicts may cause variable instruction completion times
+ * - **Shared Resource**: Coordinated allocation prevents register conflicts between uses
+ *
+ * **GPR Usage Patterns:**
+ * 1. **Configuration Passing**: Transfer settings from software to hardware units
+ * 2. **Instruction Arguments**: Parameters for Tensix arithmetic and data movement instructions
+ * 3. **L1 Access Arguments**: Address and control parameters for LOADIND/STOREIND operations
+ * 4. **MMIO Interface**: Arguments for accessing RISC-V MMIO registers via THCON
+ * 5. **Intermediate Storage**: Temporary values during complex computation sequences
+ *
+ * **Performance Considerations:**
+ * - **Access Latency**: ~1-2 cycles depending on arbitration and port availability
+ * - **Thread Coordination**: Explicit barriers required for dependencies between threads
+ * - **Resource Management**: Careful allocation prevents conflicts in multi-threaded execution
+ * - **Local Memory Alternative**: TRISC local memory provides lower latency for frequent access
+ */
+
 #pragma once
 
 // Hand-coded parameter encoding for various GPR mappings
 namespace ckernel
 {
 
-// Common GPR mapping across all threads
+/**
+ * @brief Common GPR allocation shared across all Tensix threads
+ * @details Defines standard GPR usage patterns that are consistent across
+ * Unpack, Math, and Pack threads for debugging, synchronization, and global state management.
+ */
 struct p_gpr
 {
-    constexpr static uint ZERO         = 0; // Always stores 0
-    constexpr static uint DBG_RESERVED = 1; // Reserved for future use
-    constexpr static uint DBG_MSG      = 2; // Firmware debug message
-    constexpr static uint DBG_CKID     = 3; // Ckernel ID
+    /**
+     * @brief Constant zero register
+     * @details Always contains value 0, used for initializations and as a
+     * source operand when zero values are needed in computations.
+     */
+    constexpr static uint ZERO         = 0;
+    
+    /**
+     * @brief Reserved register for future debug functionality
+     * @details Reserved for potential future debugging features and
+     * development tools integration.
+     */
+    constexpr static uint DBG_RESERVED = 1;
+    
+    /**
+     * @brief Firmware debug message register
+     * @details Stores debug message identifiers or pointers for firmware
+     * debugging and diagnostic information exchange.
+     */
+    constexpr static uint DBG_MSG      = 2;
+    
+    /**
+     * @brief Compute kernel identifier register
+     * @details Contains the current compute kernel ID for tracking and
+     * debugging purposes across the 3-thread execution pipeline.
+     */
+    constexpr static uint DBG_CKID     = 3;
 };
 
-// Unpack GPR thread
+/**
+ * @brief Unpack thread (Thread 0) specific GPR allocation
+ * @details Defines GPR usage for the Unpack thread, which handles L1→register
+ * data movement and preparation for Math thread consumption.
+ */
 struct p_gpr_unpack
 {
     constexpr static uint OPERAND_BASE_ADDR       = 4;      // Operand base address used by zero buffer function

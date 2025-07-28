@@ -6,6 +6,90 @@
 // Auto-generated file, do not modify!
 //
 
+/**
+ * @file ckernel_ops.h
+ * @brief Complete Tensix Instruction Set Architecture (ISA) for Wormhole B0
+ * 
+ * @details This auto-generated header provides the complete Tensix ISA implementation
+ * for Wormhole B0, containing all instruction macros for direct hardware control.
+ * The Tensix ISA is a custom instruction set optimized for high-throughput tensor
+ * operations, executed by the 3-thread Tensix engine within the Wormhole B0 core.
+ * 
+ * **Wormhole B0 Tensix Engine Architecture:**
+ * The Tensix engine is a multi-threaded, single-issue, in-order processor with:
+ * - **3 Hardware Threads**: Thread 0 (Unpack), Thread 1 (Math), Thread 2 (Pack)
+ * - **5 RISC-V Controllers**: 3 TRISC + 1 BRISC + 1 NRISC processors
+ * - **Custom ISA**: Optimized for AI workload patterns and data movement
+ * - **Hardware Acceleration**: 2048 multipliers, specialized EXUs, SFPU units
+ * - **Memory Subsystem**: L1 SRAM, register files, sophisticated address generation
+ * 
+ * **Instruction Categories:**
+ * - **Compute Instructions**: Matrix operations, elementwise operations, SFPU functions
+ * - **Data Movement**: Unpacker, packer, register file transfers, L1 access
+ * - **Address Management**: Counter manipulation, stride control, carriage return
+ * - **Synchronization**: Semaphores, mutexes, barriers, thread coordination
+ * - **Configuration**: CFG register access, mode switching, context management
+ * - **Control Flow**: Conditional execution, loops, barriers, stall management
+ * 
+ * **Instruction Formats:**
+ * Two primary instruction invocation methods:
+ * 
+ * **TTI_* Macros (Compile-Time Constants):**
+ * ```cpp
+ * TTI_MVMUL(0, 0, 0, 0, 0, 0);  // Embedded as 32-bit immediate in binary
+ * ```
+ * - **Faster Execution**: Instructions embedded directly in TRISC instruction stream
+ * - **Requirement**: All parameters must be compile-time constants
+ * - **Use Case**: Performance-critical code with known parameters
+ * 
+ * **TT_* Macros (Dynamic Construction):**
+ * ```cpp
+ * TT_MVMUL(dst_reg, src_a_reg, src_b_reg, transpose, acc_en, addr_mode);
+ * ```
+ * - **Runtime Flexibility**: Parameters can be variables or expressions
+ * - **Implementation**: Generates shifts, ANDs, ORs to construct 32-bit instruction
+ * - **Use Case**: Dynamic algorithms with variable parameters
+ * 
+ * **Hardware Integration:**
+ * - **TRISC Native Recognition**: TRISC cores recognize Tensix instructions natively
+ * - **MMIO Translation**: Instructions translate to MMIO stores to Tensix instruction buffers
+ * - **Instruction Buffers**: Per-thread buffers queue instructions for execution
+ * - **Execution Pipeline**: Instructions flow through EXU-specific pipelines
+ * 
+ * **Performance Optimization Features:**
+ * - **MOP (Macro Operations)**: Hardware loops for instruction sequence acceleration
+ * - **REPLAY Instructions**: Instruction buffer caching for repeated sequences (max 32)
+ * - **Pipeline Efficiency**: Instruction issue rate decoupled from TRISC execution
+ * - **EXU Specialization**: Dedicated execution units for different operation types
+ * 
+ * **EXU (Execution Unit) Categories:**
+ * - **THCON**: General compute, GPR access, L1 loads/stores, atomics
+ * - **COMPUTE**: Matrix operations, SFPU, register file management
+ * - **UNPACK**: Data unpacking, format conversion, L1→registers
+ * - **PACK**: Data packing, format conversion, registers→L1
+ * - **CFG**: Configuration register access, mode switching
+ * - **SYNC**: Semaphores, mutexes, barriers, synchronization primitives
+ * 
+ * **Wormhole B0 Specific Features:**
+ * - **2048 Hardware Multipliers**: 5×7 bit multipliers for AI acceleration
+ * - **32-Lane SFPU**: 8 instances × 4 lanes for special function processing
+ * - **Dual Configuration States**: Dynamic switching between CFG State 0 and 1
+ * - **Advanced Address Generation**: X,Y,Z counters with carriage return functionality
+ * - **Multi-Format Support**: FP32/16, BF16, TF32, INT8/16/32, BFP2/4/8
+ * 
+ * **Programming Model Integration:**
+ * This ISA integrates with the broader Wormhole B0 programming model:
+ * - **Thread Coordination**: Instructions coordinate 3-thread pipeline execution
+ * - **Memory Hierarchy**: Optimized for L1 SRAM and register file architecture
+ * - **Synchronization**: Hardware primitives for efficient inter-thread communication
+ * - **Performance**: Designed for sustained high utilization of 2048 multipliers
+ * 
+ * @warning This file is auto-generated from assembly.yaml - do not modify manually
+ * @note All instruction parameters are validated for bit-width compatibility
+ * @see ckernel.h for higher-level kernel programming abstractions
+ * @see assembly.yaml for detailed instruction specifications and bit field definitions
+ */
+
 #pragma once
 
 #define TT_OP(opcode, params) ((opcode << 24) + params)

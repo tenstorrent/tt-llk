@@ -2,6 +2,62 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_add_int.h
+ * @brief Integer addition operations for SFPU hardware
+ *
+ * @details This file implements element-wise integer addition using SFPU hardware
+ * acceleration with comprehensive support for multiple integer formats and
+ * representation modes. The implementation provides efficient 32-lane SIMD
+ * integer addition operations optimized for quantized neural networks and
+ * mixed-precision computation workloads.
+ *
+ * **Mathematical Operation:**
+ * - **Element-wise Addition**: result[i] = operand_A[i] + operand_B[i]
+ * - **SIMD Processing**: 32 integer additions performed simultaneously
+ * - **Overflow Handling**: Proper integer overflow semantics
+ * - **Sign Preservation**: Correct handling of signed integer arithmetic
+ *
+ * **Integer Format Support:**
+ * The implementation supports multiple integer representations:
+ * - **Two's Complement**: Standard signed integer representation
+ * - **Sign-Magnitude**: Separate sign and magnitude representation
+ * - **Format Conversion**: Automatic conversion between representation modes
+ * - **Configurable Width**: Support for different integer bit widths
+ *
+ * **Template Parameters:**
+ * - **APPROXIMATION_MODE**: Precision control (not applicable for exact integer ops)
+ * - **ITERATIONS**: Number of tiles to process in batched operation
+ * - **INSTRUCTION_MODE**: Load/store instruction format selection
+ * - **SIGN_MAGNITUDE_FORMAT**: Choose between sign-magnitude and two's complement
+ *
+ * **SFPU Implementation:**
+ * 1. **Operand Loading**: Load integer operands A and B with format-specific handling
+ * 2. **Addition**: Execute 32-lane SIMD integer addition using SFPU arithmetic units
+ * 3. **Overflow Detection**: Monitor and handle integer overflow conditions
+ * 4. **Format Conversion**: Convert between representation formats as needed
+ * 5. **Result Storage**: Store addition results with appropriate format encoding
+ *
+ * **Performance Characteristics:**
+ * - **Latency**: 2-4 cycles per tile depending on format conversions
+ * - **Throughput**: 32 integer additions per cycle
+ * - **Precision**: Exact integer arithmetic with proper overflow handling
+ * - **Memory Efficiency**: Optimized data movement patterns
+ *
+ * **Hardware Integration:**
+ * - **Address Modes**: Support for various addressing patterns via `ckernel_addrmod.h`
+ * - **Instruction Control**: Integration with Tensix instruction set via `ckernel_ops.h`
+ * - **Format Handling**: Automatic format detection and conversion
+ * - **Pipeline Optimization**: Efficient SFPU pipeline utilization
+ *
+ * **Use Cases:**
+ * - Neural network quantized operations and accumulation
+ * - Index arithmetic for tensor addressing and manipulation
+ * - Integer-based mathematical kernels and algorithms
+ * - Mixed-precision computation supporting integer data paths
+ * - Accumulator operations in digital signal processing
+ */
+
 #pragma once
 
 #include <type_traits>

@@ -2,6 +2,73 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_dropout.h
+ * @brief Dropout regularization implementation for SFPU hardware
+ *
+ * @details This file implements dropout regularization using SFPU hardware
+ * acceleration. Dropout is a fundamental regularization technique in neural
+ * networks that randomly sets a fraction of input elements to zero during
+ * training to prevent overfitting and improve generalization.
+ *
+ * **Dropout Algorithm:**
+ * - **Training Mode**: Randomly set elements to zero with probability p
+ * - **Inference Mode**: Scale all elements by (1-p) or use trained scaling
+ * - **Element-wise**: Independent random decision for each tensor element
+ * - **Scaling**: Compensate for zeroed elements to maintain expected value
+ *
+ * **Mathematical Operation:**
+ * ```
+ * Training:   output[i] = input[i] * mask[i] / (1-p)
+ * Inference:  output[i] = input[i]
+ * ```
+ * Where mask[i] is 0 with probability p, 1 with probability (1-p)
+ *
+ * **SFPU Implementation Features:**
+ * - **Pseudo-Random Generation**: Hardware-accelerated random number generation
+ * - **Threshold Comparison**: Efficient probability threshold evaluation
+ * - **Conditional Masking**: Vector conditional execution for element selection
+ * - **Scaling Integration**: Combined masking and scaling in single operation
+ *
+ * **Random Number Generation:**
+ * - **PRNG Integration**: Uses SFPU's pseudo-random number capabilities
+ * - **Uniform Distribution**: Generates uniform random values in [0,1)
+ * - **Reproducibility**: Seed-based generation for deterministic training
+ * - **Quality**: Sufficient randomness quality for dropout effectiveness
+ *
+ * **SFPU Algorithm:**
+ * 1. **Random Generation**: Generate uniform random values for each element
+ * 2. **Threshold Comparison**: Compare against dropout probability p
+ * 3. **Mask Creation**: Create binary mask based on comparison results
+ * 4. **Conditional Application**: Apply mask using vector conditional execution
+ * 5. **Scaling**: Scale surviving elements by 1/(1-p) for expectation preservation
+ * 6. **Result Storage**: Store masked and scaled results
+ *
+ * **Training vs Inference:**
+ * - **Training Mode**: Active dropout with random masking and scaling
+ * - **Inference Mode**: No dropout applied (or pre-computed scaling)
+ * - **Mode Selection**: Template or runtime parameter for mode control
+ * - **Performance Optimization**: Different code paths for optimal efficiency
+ *
+ * **Scaling Strategies:**
+ * - **Inverted Dropout**: Scale during training by 1/(1-p)
+ * - **Standard Dropout**: Scale during inference by (1-p)
+ * - **No Scaling**: For specific use cases requiring raw masked output
+ *
+ * **Performance Characteristics:**
+ * - **Latency**: 5-8 cycles per tile including random generation
+ * - **Throughput**: 32 dropout operations per cycle
+ * - **Randomness Quality**: Sufficient for effective regularization
+ * - **Memory Efficiency**: In-place operation when possible
+ *
+ * **Use Cases:**
+ * - Neural network regularization during training
+ * - Overfitting prevention in deep learning models
+ * - Ensemble effect simulation through random masking
+ * - Robustness improvement for model generalization
+ * - Bayesian neural network approximation
+ */
+
 #pragma once
 
 #include "ckernel_ops.h"

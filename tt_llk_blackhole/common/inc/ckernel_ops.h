@@ -2,6 +2,59 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_ops.h
+ * @brief Auto-generated Tensix instruction definitions and macros
+ *
+ * @details This file contains comprehensive macro definitions for all Tensix hardware
+ * instructions used in compute kernels. It provides a low-level interface for direct
+ * hardware instruction generation, bridging the gap between high-level kernel code
+ * and the underlying Tensix instruction set architecture.
+ *
+ * **⚠️ AUTO-GENERATED FILE - DO NOT MODIFY DIRECTLY!**
+ *
+ * **Instruction Categories:**
+ * - **Data Movement**: Memory operations, register transfers, DMA operations
+ * - **Mathematical Operations**: SFPU instructions, matrix operations, pooling
+ * - **Synchronization**: Semaphores, mutexes, barriers, memory ordering
+ * - **Control Flow**: Conditional execution, loops, branching
+ * - **Configuration**: Register setup, addressing modes, format configuration
+ * - **Debug & Profiling**: Performance counters, trace generation, debug support
+ *
+ * **Macro Patterns:**
+ * Each instruction follows a consistent pattern with three macro variants:
+ * - `TT_OP_INSTR(...)`: Raw opcode generation with parameter encoding
+ * - `TT_INSTR_VALID(...)`: Parameter validation for debug builds
+ * - `TT_INSTR(...)`: Buffered instruction (writes to `instrn_buffer[0]`)
+ * - `TTI_INSTR(...)`: Immediate instruction (executes via `.ttinsn` inline assembly)
+ *
+ * **Parameter Encoding:**
+ * Instructions use bit-field encoding to pack multiple parameters into 32-bit words:
+ * ```cpp
+ * #define TT_OP_EXAMPLE(param1, param2, param3) \
+ *     TT_OP(0xNN, (((param1) << 16) + ((param2) << 8) + ((param3) << 0)))
+ * ```
+ *
+ * **Usage Context:**
+ * - **Kernel Development**: Low-level optimization and hardware-specific operations
+ * - **LLK Implementation**: Building blocks for Low-Level Kernel library functions
+ * - **Performance Tuning**: Direct hardware control for maximum efficiency
+ * - **Hardware Debugging**: Precise instruction control for debugging and validation
+ *
+ * **Safety Notes:**
+ * - All parameters must be validated using `ckernel::is_valid()` functions
+ * - Incorrect parameter values can cause undefined hardware behavior
+ * - Use higher-level LLK functions when possible for safety and portability
+ * - This interface bypasses most software safety checks
+ *
+ * **Hardware Integration:**
+ * These macros generate native Tensix instructions that execute directly on:
+ * - RISC-V baby cores (T0, T1, T2) for compute operations
+ * - SFPU (Special Function Processing Unit) for mathematical functions
+ * - Matrix and Vector units for linear algebra operations
+ * - Memory hierarchy and NOC (Network on Chip) for data movement
+ */
+
 //
 // Auto-generated file, do not modify!
 //

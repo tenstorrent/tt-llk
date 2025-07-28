@@ -2,6 +2,58 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file cunpack_common.h
+ * @brief Thread 0 (Unpack) execution utilities for Wormhole B0 Tensix data movement
+ *
+ * @details This header provides essential utilities and data structures for Thread 0 (Unpack)
+ * in the Wormhole B0 Tensix engine. The Unpack thread is responsible for efficiently moving
+ * data from L1 SRAM to the SRCA and SRCB register files, preparing operands for consumption
+ * by Thread 1 (Math). This thread is critical for maintaining high utilization of the
+ * 2048 hardware multipliers by ensuring continuous data availability.
+ *
+ * **Wormhole B0 Unpack Thread Architecture:**
+ * Thread 0 manages the first stage of the compute pipeline:
+ * - **Data Source**: Multi-bank L1 SRAM (16B words, round-robin arbitration)
+ * - **Data Destinations**: SRCA register file (64×16 datums) and SRCB register file (64×16 datums)
+ * - **Bandwidth**: 64B/clock per unpacker, 80B/clock combined when both active
+ * - **Synchronization**: Hardware-embedded sync with Thread 1 (Math) for pipeline efficiency
+ * - **Address Generation**: Sophisticated X,Y,Z counters with stride and carriage return
+ *
+ * **Dual Unpacker System:**
+ * Wormhole B0 features two independent unpacker engines:
+ * - **Unpacker 0**: Feeds SRCA register file for operand A data
+ * - **Unpacker 1**: Feeds SRCB register file for operand B data
+ * - **Parallel Operation**: Both unpackers can operate simultaneously for maximum throughput
+ * - **Independent Configuration**: Separate configuration contexts for optimal flexibility
+ *
+ * **Data Format Processing:**
+ * Comprehensive support for AI workload data formats:
+ * - **Floating-Point**: FP32, FP16A/B, BF16, TF32 with format conversion
+ * - **Block Floating-Point**: BFP8, BFP4, BFP2 (shared exponent per 16 values)
+ * - **Integer**: INT8/16/32, UINT8/16 with sign-magnitude handling
+ * - **Custom Formats**: Configurable exponent/mantissa widths for specialized applications
+ * - **Format Conversion**: Hardware-accelerated conversion to 19-bit register file format
+ *
+ * **Performance Characteristics:**
+ * - **Peak Bandwidth**: 64B/clock per unpacker (128B/clock total theoretical)
+ * - **Practical Bandwidth**: 80B/clock combined due to shared L1 ports
+ * - **Latency**: 8 clock cycles for 16×16 FP16 tile (512B ÷ 64B/clock)
+ * - **Optimization**: Larger transfer chunks amortize instruction overhead
+ * - **Address Patterns**: Optimized for L1 bank interleaving and stride access
+ *
+ * **Hardware Synchronization:**
+ * - **Double Buffering**: Dual register banks enable continuous operation
+ * - **Data Valid Signals**: Hardware handshaking between unpack and math operations
+ * - **Write Ready Protocol**: Automatic flow control prevents data overflow
+ * - **Thread Coordination**: Embedded sync eliminates software synchronization overhead
+ *
+ * **Configuration Management:**
+ * - **Tile Descriptors**: Compact 2-dword descriptions for data layout and format
+ * - **Multiple Contexts**: Support for rapid context switching and configuration reuse
+ * - **Dynamic Reconfiguration**: Runtime format and addressing pattern changes
+ */
+
 #pragma once
 
 #include <array>
@@ -12,9 +64,26 @@
 
 namespace ckernel::unpacker
 {
-constexpr uint32_t TILE_DESC_SIZE = 2; // Unpacker descriptor size in dwords
-constexpr uint32_t CONFIG_SIZE    = 2; // Unpacker configuration size in dwords
-constexpr uint32_t NUM_UNPACKERS  = 2; // Number of unpackers
+/**
+ * @brief Unpacker tile descriptor size in double-words
+ * @details Each tile descriptor requires 2 double-words to fully specify
+ * the data layout, format, and addressing information for efficient unpacking.
+ */
+constexpr uint32_t TILE_DESC_SIZE = 2;
+
+/**
+ * @brief Unpacker configuration context size in double-words  
+ * @details Configuration contexts require 2 double-words to store
+ * the complete unpacker state for rapid context switching.
+ */
+constexpr uint32_t CONFIG_SIZE    = 2;
+
+/**
+ * @brief Number of independent unpacker engines in Wormhole B0
+ * @details Wormhole B0 features 2 unpacker engines: Unpacker 0 (→SRCA) and Unpacker 1 (→SRCB)
+ * for parallel data movement and maximum compute engine utilization.
+ */
+constexpr uint32_t NUM_UNPACKERS  = 2;
 
 // Unpack tile descriptor
 typedef struct

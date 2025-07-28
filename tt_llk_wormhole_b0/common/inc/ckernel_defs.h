@@ -2,6 +2,43 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_defs.h
+ * @brief Core definitions and constants for Wormhole B0 Tensix compute kernel framework
+ *
+ * @details This header provides fundamental type definitions, enumeration constants,
+ * and utility functions specifically tailored for the Wormhole B0 Tensix architecture.
+ * These definitions enable efficient programming of the advanced multi-threaded Tensix
+ * engine with its specialized compute units and memory hierarchy.
+ *
+ * **Wormhole B0 Tensix Specifications:**
+ * - **Compute Engine**: 2048 hardware multipliers (5×7 bit) with fidelity phase control
+ * - **Register Architecture**: 
+ *   - SRCA/SRCB: 64×16 datums (19-bit containers)
+ *   - DEST: 1024×16 datums (16-bit mode) or 512×16 datums (32-bit mode)
+ * - **Thread Model**: 3 specialized threads (Unpack, Math, Pack) with hardware sync
+ * - **Memory System**: Multi-bank L1 SRAM (16B words) with round-robin arbitration
+ *
+ * **Data Format Support:**
+ * Wormhole B0 supports extensive data format variety for AI workload optimization:
+ * - **Floating-Point**: FP32, FP16 (A/B variants), BF16, TF32
+ * - **Block Floating-Point**: BFP8, BFP4, BFP2 (shared exponent per 16 values)
+ * - **Integer**: INT8/16/32, UINT8/16 (sign-magnitude representation)
+ * - **Custom Formats**: Configurable exponent (5/8-bit) and mantissa (1-23 bit) widths
+ *
+ * **Hardware Optimization Features:**
+ * - **Fidelity Phases**: 4 phases providing full precision for all supported formats
+ * - **Address Generation**: Sophisticated counter systems with stride and carriage return
+ * - **Configuration Management**: Dual CFG states for dynamic reconfiguration
+ * - **SFPU Integration**: 8×4 = 32-lane SIMD special function processing
+ *
+ * **Performance Characteristics:**
+ * - **Peak Throughput**: Optimized for matrix multiplication and convolution workloads
+ * - **Memory Bandwidth**: High-bandwidth paths between L1, register files, and compute units
+ * - **Instruction Issue**: Hardware MOPs and REPLAY for maximum instruction throughput
+ * - **Pipeline Efficiency**: Balanced 3-thread design for sustained high utilization
+ */
+
 #pragma once
 
 #include <cstdint>

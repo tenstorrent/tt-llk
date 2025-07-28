@@ -2,6 +2,45 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel.h
+ * @brief Primary compute kernel framework interface for Wormhole B0 Tensix architecture
+ *
+ * @details This header provides the core compute kernel framework for the Wormhole B0
+ * Tensix processor, offering essential utilities for hardware interaction, synchronization,
+ * configuration management, and high-performance tensor computation. The framework is
+ * specifically optimized for the Wormhole B0's advanced multi-threaded architecture.
+ *
+ * **Wormhole B0 Architecture Overview:**
+ * - **Tensix Core**: Highly specialized processor for tensor mathematical operations
+ * - **5 RISC-V Processors**: 3 TRISC (compute control) + 1 BRISC + 1 NRISC (data movement)
+ * - **3-Thread Tensix Engine**: Multi-threaded, single-issue, in-order processor
+ *   - Thread 0 (TRISC0): Unpack operations (L1 → src registers)
+ *   - Thread 1 (TRISC1): Math operations (src → compute → dst registers)
+ *   - Thread 2 (TRISC2): Pack operations (dst registers → L1)
+ * - **Compute FPU**: 2048 hardware multipliers (5×7 bit), register files, SFPU
+ * - **L1 SRAM**: Multi-bank shared memory with round-robin arbitration
+ *
+ * **Math Engine Specifications:**
+ * - **Hardware Multipliers**: 2048 units (5×7 bit width) for AI workload optimization
+ * - **Fidelity Phases**: Multiple phases for precision vs. performance trade-offs
+ * - **Register Files**: SRCA/SRCB (64×16 datums, 19-bit), DEST (1024×16 or 512×16)
+ * - **Data Formats**: Support for FP32, FP16, BF16, TF32, INT8/16/32, BFP formats
+ * - **SFPU**: 8 instances × 4 lanes = 32-lane SIMD for special functions
+ *
+ * **Performance Optimization Features:**
+ * - **MOPs (Macro Operations)**: Hardware-accelerated instruction sequence execution
+ * - **REPLAY Instructions**: 32-instruction buffer for high-throughput loops
+ * - **Double Buffering**: DEST register dual-bank design for concurrent math/pack
+ * - **Hardware Synchronization**: Embedded sync between unpack/compute/pack stages
+ *
+ * **Programming Model:**
+ * - **TRISC Instructions**: Native Tensix instruction embedding via TTI_/TT_ macros
+ * - **Configuration States**: Dual CFG states (0/1) for dynamic reconfiguration
+ * - **Synchronization Primitives**: Semaphores, mutexes, barriers for thread coordination
+ * - **Address Generation**: Advanced counter mechanisms with stride and CR support
+ */
+
 #pragma once
 
 #include "ckernel_instr_params.h"
@@ -11,8 +50,19 @@
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
 
-// Compiler hint that a branch is unlikely to be taken
+/**
+ * @brief Compiler hint that a branch is unlikely to be taken
+ * @details Provides optimization hint to the compiler for better branch prediction
+ * and instruction cache utilization in performance-critical Tensix kernel code.
+ */
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
+
+/**
+ * @brief Compiler directive for loop unrolling optimization
+ * @details Instructs the compiler to unroll loops by the specified factor,
+ * improving performance by reducing loop overhead and enabling better
+ * instruction-level parallelism in Tensix operations.
+ */
 #define UNROLL_LOOP(factor) GCC unroll factor
 
 #ifndef EN_DEST_DOUBLE_BUFFERING

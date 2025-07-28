@@ -2,6 +2,60 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_template.h
+ * @brief Template utilities for efficient kernel loop generation and optimization
+ *
+ * @details This file provides template classes and utilities for generating optimized
+ * loop structures in compute kernels. It focuses on Memory Operation Processor (MOP)
+ * loop optimization, which is critical for achieving peak performance in Tensix
+ * compute operations.
+ *
+ * **MOP Loop Architecture:**
+ * The Memory Operation Processor enables hardware-accelerated loop execution with
+ * minimal CPU overhead. This template system provides structured generation of
+ * nested loops with configurable operation sequences and special handling for
+ * boundary conditions.
+ *
+ * **Loop Structure Pattern:**
+ * ```
+ * LOOP_OUTER: <OUTER_LOOP_COUNT>
+ *   START_OP
+ *   LOOP_INNER: <INNER_LOOP_COUNT>
+ *     LOOP_OP0
+ *     LOOP_OP1
+ *   END_LOOP_INNER
+ *   END_OP0
+ *   END_OP1
+ * END_LOOP_OUTER
+ * ```
+ *
+ * **Key Features:**
+ * - **Nested Loop Support**: Configurable outer and inner loop structures
+ * - **Operation Sequencing**: Flexible arrangement of start, loop, and end operations
+ * - **Boundary Optimization**: Special instruction handling for last iterations
+ * - **Hardware Acceleration**: Direct integration with MOP for minimal overhead
+ * - **Template-Based**: Compile-time optimization for performance-critical paths
+ *
+ * **Performance Benefits:**
+ * - **Zero-Overhead Loops**: Hardware-accelerated iteration with no CPU cycles
+ * - **Pipeline Optimization**: Structured operation sequencing for optimal throughput
+ * - **Boundary Handling**: Efficient edge case processing without conditional overhead
+ * - **Memory Access Patterns**: Optimized addressing for cache and memory efficiency
+ *
+ * **Use Cases:**
+ * - **Matrix Operations**: Tile-based linear algebra with optimized data movement
+ * - **Convolution Kernels**: Multi-dimensional data processing with nested iterations
+ * - **Data Movement**: Bulk transfer operations with configurable patterns
+ * - **Format Conversion**: Batch processing of data type conversions
+ *
+ * **Hardware Integration:**
+ * - **MOP Engine**: Direct programming of Memory Operation Processor
+ * - **Instruction Scheduling**: Optimal ordering for hardware pipeline efficiency
+ * - **Resource Management**: Efficient utilization of compute and memory resources
+ * - **Synchronization**: Integration with thread coordination mechanisms
+ */
+
 #pragma once
 
 #include "ckernel.h"
@@ -9,38 +63,75 @@
 namespace ckernel
 {
 
+/**
+ * @class ckernel_template
+ * @brief Memory Operation Processor (MOP) loop template for hardware-accelerated iteration
+ *
+ * @details This class provides a structured approach to generating optimized nested
+ * loops using the Tensix Memory Operation Processor. It manages the complex interaction
+ * between outer and inner loops with configurable operations and special boundary
+ * condition handling for maximum performance.
+ *
+ * **Loop Architecture:**
+ * The template generates a two-level nested loop structure with the following pattern:
+ * ```
+ * LOOP_OUTER: <OUTER_LOOP_COUNT>
+ *   START_OP
+ *   LOOP_INNER: <INNER_LOOP_COUNT>
+ *     LOOP_OP0
+ *     LOOP_OP1
+ *   END_LOOP_INNER
+ *   END_OP0
+ *   END_OP1
+ * END_LOOP_OUTER
+ * ```
+ *
+ * **Boundary Condition Optimization:**
+ * The template provides sophisticated handling for loop boundaries:
+ * - **Last Inner Iteration**: Special instruction substitution for inner loop completion
+ * - **Last Outer Iteration**: Special instruction substitution for outer loop completion
+ * - **Combined Boundaries**: When outer loop length = 1, optimized handling of coincident boundaries
+ *
+ * **Instruction Substitution Logic:**
+ * ```cpp
+ * if (last_inner_loop_iter && last_outer_loop_iter) 
+ *     m_loop_op1 = m_loop0_last_instr;  // Both loops ending
+ * else if (last_inner_loop_iter)                    
+ *     m_loop_op1 = m_loop1_last_instr;  // Only inner loop ending
+ * else                                             
+ *     m_loop_op1 = m_loop_op1;          // Normal iteration
+ * ```
+ *
+ * **Performance Benefits:**
+ * - **Hardware Acceleration**: Direct MOP integration for zero-overhead loops
+ * - **Pipeline Efficiency**: Optimal instruction scheduling for maximum throughput
+ * - **Boundary Optimization**: Eliminates conditional branching overhead
+ * - **Resource Utilization**: Efficient use of compute and memory resources
+ */
 class ckernel_template
 {
-    // Here is the basic outline of a MOP loop and the definition of the
-    // variables used.
-    // LOOP_OUTER: <OUTER_LOOP_COUNT>
-    //   START_OP
-    //   LOOP_INNER: <INNER_LOOP_COUNT>
-    //     LOOP_OP0
-    //     LOOP_OP1
-    //   END_LOOP_INNER
-    //   END_OP0
-    //   END_OP1
-    // END_LOOP_OUTER
-
-    const uint m_outer_loop_len;
-    const uint m_inner_loop_len;
-    uint m_loop_op0;
-    uint m_loop_op1;
-    uint m_end_op0, m_end_op1, m_start_op0;
-    uint m_loop0_last_instr; // In the last iteration of the outer loop, this instruction replaces the inner loop instruction, if constructed with one inner
-                             // loop instruction or the second inner loop instruction, if constructed with two inner loop instructions (see below example).
-    uint m_loop1_last_instr; // In the last iteration of the inner loop, this instruction replaces the inner loop instruction, if constructed with one inner
-                             // loop instruction or the second inner loop instruction, if constructed with two inner loop instructions (see below example).
-
-    // Note: The last iteration of inner loop will also be the last iteration of the outer loop when outer loop length = 1.
-    // This means that in this case, last_inner_loop_instr will be replaced by the last_outer_loop_instr
-    // NOTE:
-    // This is how m_loop0_last_instr and m_loop1_last_instr are executed:
-    //
-    // if(last_inner_loop_iter && last_outer_loop_iter) m_loop_op1 = m_loop0_last_instr;
-    // else if(last_inner_loop_iter)                    m_loop_op1 = m_loop1_last_instr;
-    // else                                             m_loop_op1 = m_loop_op1;
+    const uint m_outer_loop_len;  ///< Number of outer loop iterations
+    const uint m_inner_loop_len;  ///< Number of inner loop iterations
+    
+    uint m_loop_op0;              ///< First operation in inner loop body
+    uint m_loop_op1;              ///< Second operation in inner loop body
+    uint m_end_op0;               ///< First operation after inner loop
+    uint m_end_op1;               ///< Second operation after inner loop  
+    uint m_start_op0;             ///< Operation before inner loop begins
+    
+    /** 
+     * @brief Special instruction for last outer loop iteration
+     * @details In the last iteration of the outer loop, this instruction replaces
+     * the normal inner loop instruction, enabling optimized boundary handling
+     */
+    uint m_loop0_last_instr;
+    
+    /** 
+     * @brief Special instruction for last inner loop iteration
+     * @details In the last iteration of the inner loop, this instruction replaces
+     * the normal inner loop instruction, enabling optimized boundary handling
+     */
+    uint m_loop1_last_instr;
 
 public:
     ckernel_template() = delete;

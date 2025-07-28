@@ -2,6 +2,55 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file cunpack_common.h
+ * @brief Common utilities and data structures for the Unpack thread execution
+ *
+ * @details This file provides fundamental data structures, configuration definitions,
+ * and utility functions for the Unpack execution thread in the compute kernel framework.
+ * The Unpack thread is responsible for data input processing, format conversion, and
+ * feeding data to the Math thread for computation.
+ *
+ * **Unpack Thread Architecture:**
+ * The Unpack thread operates as one of three specialized execution threads:
+ * - **Primary Responsibility**: Input data processing and format conversion
+ * - **Data Flow**: L1 Memory → Unpack Processing → Math Thread Input
+ * - **Key Operations**: Data decompression, format conversion, tile organization
+ * - **Hardware Integration**: Direct interface with Tensix data movement units
+ *
+ * **Core Functionality:**
+ * - **Tile Descriptors**: Define input data layout, format, and dimensions
+ * - **Configuration Management**: Runtime setup of unpacking parameters
+ * - **Format Conversion**: Support for multiple data formats (FP32, FP16, BF16, INT8, etc.)
+ * - **Data Compression**: Handling of compressed tile formats (BFP8, BFP4, BFP2)
+ * - **Memory Management**: Efficient data movement from L1 to compute pipeline
+ *
+ * **Data Format Support:**
+ * - **Floating Point**: FP32, FP16A, FP16B, BF16 with IEEE-754 compliance
+ * - **Integer**: INT32, INT16, INT8 with sign/magnitude and two's complement
+ * - **Block Floating Point**: BFP8, BFP4, BFP2 with shared exponents
+ * - **Custom Formats**: Lf8, Fp8_e4m3 for specialized ML workloads
+ *
+ * **Performance Characteristics:**
+ * - **High Throughput**: Optimized for continuous data streaming
+ * - **Low Latency**: Minimal buffering for real-time processing
+ * - **Parallel Processing**: Multiple unpacker units for concurrent operation
+ * - **Memory Bandwidth**: Efficient utilization of L1 memory bandwidth
+ *
+ * **Thread Coordination:**
+ * The Unpack thread coordinates with other threads through:
+ * - **Semaphores**: Synchronization with Math and Pack threads
+ * - **FIFO Buffers**: Streaming data to Math thread input
+ * - **Configuration Sharing**: Runtime parameter coordination
+ * - **Memory Barriers**: Ensuring data consistency across threads
+ *
+ * **Hardware Integration:**
+ * - **Tensix Data Movement**: Direct hardware acceleration for data transfer
+ * - **Format Converters**: Hardware-accelerated format conversion units
+ * - **Compression Units**: Hardware decompression for BFP formats
+ * - **Address Generators**: Efficient memory access pattern generation
+ */
+
 #pragma once
 
 #include <array>
@@ -10,33 +59,80 @@
 #include "ckernel.h"
 #include "ckernel_globals.h"
 
+/**
+ * @namespace ckernel::unpacker
+ * @brief Unpack thread utilities and data structures
+ *
+ * @details This namespace contains all functionality related to the Unpack execution
+ * thread, including tile descriptors, configuration structures, and utility functions
+ * for input data processing and format conversion.
+ */
 namespace ckernel::unpacker
 {
-constexpr uint32_t TILE_DESC_SIZE = 2; // Unpacker descriptor size in dwords
-constexpr uint32_t CONFIG_SIZE    = 2; // Unpacker configuration size in dwords
-constexpr uint32_t NUM_UNPACKERS  = 2; // Number of unpackers
+/** @brief Unpacker descriptor size in 32-bit words */
+constexpr uint32_t TILE_DESC_SIZE = 2;
 
-// Unpack tile descriptor
+/** @brief Unpacker configuration size in 32-bit words */
+constexpr uint32_t CONFIG_SIZE = 2;
+
+/** @brief Number of parallel unpacker units available */
+constexpr uint32_t NUM_UNPACKERS = 2;
+
+/**
+ * @struct unpack_tile_descriptor_t
+ * @brief Comprehensive tile descriptor for input data layout and format specification
+ *
+ * @details This structure defines the complete layout and format information for
+ * input tiles processed by the Unpack thread. It provides hardware with all
+ * necessary information to correctly interpret and process incoming data.
+ *
+ * **Bit Field Layout (128 bits total):**
+ * - **Word 0**: Input format, compression, blob organization, X dimension
+ * - **Word 1**: Y and Z dimensions for multi-dimensional tiles
+ * - **Word 2**: W dimension and blob starting position (low bits)
+ * - **Word 3**: Blob starting position (high bits) and digest information
+ *
+ * **Data Format Encoding:**
+ * The `in_data_format` field supports various formats:
+ * - **0x0**: FP32 (32-bit IEEE floating point)
+ * - **0x1**: FP16A (16-bit floating point, format A)
+ * - **0x2**: FP16B (16-bit floating point, format B)
+ * - **0x3**: BF16 (16-bit brain floating point)
+ * - **0x4-0x7**: Integer formats (INT32, INT16, INT8)
+ * - **0x8-0xB**: Block floating point (BFP8, BFP4, BFP2)
+ * - **0xC-0xF**: Specialized formats (Lf8, Fp8_e4m3)
+ *
+ * **Compression Support:**
+ * The `uncompressed` flag controls hardware decompression:
+ * - **1**: Data is uncompressed, direct processing
+ * - **0**: Data is compressed, hardware decompression required
+ *
+ * **Multi-Dimensional Layout:**
+ * Supports 4D tensor layout with configurable dimensions:
+ * - **X, Y**: Primary spatial dimensions (up to 64K each)
+ * - **Z, W**: Channel/batch dimensions for complex data organization
+ * - **Blobs**: Configurable data chunking for efficient processing
+ */
 typedef struct
 {
     // word 0
-    uint32_t in_data_format     : 4;
-    uint32_t uncompressed       : 1;
-    uint32_t reserved_0         : 3;
-    uint32_t blobs_per_xy_plane : 4;
-    uint32_t reserved_1         : 4;
-    uint32_t x_dim              : 16;
+    uint32_t in_data_format     : 4;  ///< Input data format (FP32, FP16, BF16, etc.)
+    uint32_t uncompressed       : 1;  ///< Compression flag (1=uncompressed, 0=compressed)
+    uint32_t reserved_0         : 3;  ///< Reserved bits for future use
+    uint32_t blobs_per_xy_plane : 4;  ///< Number of data blobs per XY plane
+    uint32_t reserved_1         : 4;  ///< Reserved bits for future use
+    uint32_t x_dim              : 16; ///< X dimension size (0-65535)
     // word 1
-    uint32_t y_dim : 16;
-    uint32_t z_dim : 16;
+    uint32_t y_dim : 16; ///< Y dimension size (0-65535)
+    uint32_t z_dim : 16; ///< Z dimension size (0-65535)
     // word 2
-    uint32_t w_dim            : 16;
-    uint32_t blobs_y_start_lo : 16;
+    uint32_t w_dim            : 16; ///< W dimension size (0-65535)
+    uint32_t blobs_y_start_lo : 16; ///< Blob Y starting position (low 16 bits)
     // word 3
-    uint32_t blobs_y_start_hi : 16;
-    uint32_t digest_type      : 8; // Not used
-    uint32_t digest_size      : 8; // Not used
-} unpack_tile_descriptor_t;        // Unpack configuration
+    uint32_t blobs_y_start_hi : 16; ///< Blob Y starting position (high 16 bits)
+    uint32_t digest_type      : 8;  ///< Digest type (reserved, not used)
+    uint32_t digest_size      : 8;  ///< Digest size (reserved, not used)
+} unpack_tile_descriptor_t;
 
 static_assert(sizeof(unpack_tile_descriptor_t) == (sizeof(uint32_t) * 4));
 

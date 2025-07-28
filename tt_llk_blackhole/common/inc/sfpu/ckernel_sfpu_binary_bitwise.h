@@ -2,6 +2,64 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_binary_bitwise.h
+ * @brief Binary bitwise operations for SFPU hardware
+ *
+ * @details This file implements comprehensive binary bitwise operations using SFPU
+ * hardware acceleration. These operations provide efficient bit-level manipulation
+ * capabilities across 32-lane SIMD data, supporting fundamental logical operations
+ * that are essential for various computational tasks including cryptography, hashing,
+ * and bit manipulation algorithms.
+ *
+ * **Supported Bitwise Operations:**
+ * - **AND**: Bitwise logical AND (a & b)
+ * - **OR**: Bitwise logical OR (a | b)  
+ * - **XOR**: Bitwise exclusive OR (a ^ b)
+ * - **NOT**: Bitwise logical NOT (~a)
+ * - **NAND**: Bitwise NOT AND (~(a & b))
+ * - **NOR**: Bitwise NOT OR (~(a | b))
+ *
+ * **Operation Characteristics:**
+ * - **Element-wise**: Independent bitwise operations across SIMD lanes
+ * - **Bit-parallel**: All 32 bits processed simultaneously per element
+ * - **Type-agnostic**: Works with integer and floating-point bit patterns
+ * - **SIMD Efficiency**: 32 elements processed per cycle
+ *
+ * **Implementation Architecture:**
+ * The implementation uses enumeration-based dispatch for operation selection:
+ * 1. **Operation Enumeration**: Type-safe operation selection
+ * 2. **Template Dispatch**: Compile-time optimization based on operation type
+ * 3. **SFPU Execution**: Hardware-accelerated bitwise computation
+ * 4. **Format Handling**: Proper bit interpretation for different data types
+ *
+ * **Template Parameters:**
+ * - **APPROXIMATION_MODE**: Precision control (not applicable for exact bit ops)
+ * - **ITERATIONS**: Number of tiles to process in batched operation
+ * - **INSTRUCTION_MODE**: Load/store instruction format selection
+ * - **SIGN_MAGNITUDE_FORMAT**: Integer representation format handling
+ *
+ * **SFPU Integration:**
+ * - **Bit Manipulation**: Direct hardware support for bitwise operations
+ * - **Vector Processing**: Parallel execution across all SIMD lanes
+ * - **Format Flexibility**: Support for multiple data representation formats
+ * - **Pipeline Efficiency**: Optimized instruction scheduling for throughput
+ *
+ * **Performance Characteristics:**
+ * - **Latency**: 2-3 cycles per tile for most bitwise operations
+ * - **Throughput**: 32 bitwise operations per cycle
+ * - **Precision**: Exact bit-level operations with no approximation
+ * - **Resource Usage**: Efficient utilization of SFPU logical units
+ *
+ * **Use Cases:**
+ * - Cryptographic operations and hash functions
+ * - Bit manipulation for data encoding/decoding
+ * - Boolean algebra implementation
+ * - Masking and filtering operations
+ * - Custom data format manipulation
+ * - Bitwise neural network operations
+ */
+
 #pragma once
 
 #include <type_traits>

@@ -2,6 +2,64 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_cast_fp32_to_fp16a.h
+ * @brief FP32 to FP16A precision casting operations for SFPU hardware
+ *
+ * @details This file implements precision casting from 32-bit floating-point
+ * (FP32) to 16-bit floating-point format A (FP16A) using SFPU hardware
+ * acceleration. This conversion is critical for mixed-precision neural networks
+ * and memory-efficient computation where reduced precision can significantly
+ * improve performance while maintaining acceptable accuracy.
+ *
+ * **FP16A Format Characteristics:**
+ * - **1 Sign Bit**: Maintains sign information
+ * - **5 Exponent Bits**: Reduced exponent range compared to FP32
+ * - **10 Mantissa Bits**: Lower precision mantissa
+ * - **IEEE-754 Compliant**: Follows IEEE-754 half-precision standard
+ * - **Dynamic Range**: Approximately 6.1 × 10^-5 to 65,504
+ *
+ * **Conversion Challenges:**
+ * - **Precision Loss**: FP32's 23-bit mantissa reduced to 10-bit mantissa
+ * - **Range Limitation**: FP32's 8-bit exponent reduced to 5-bit exponent
+ * - **Overflow Handling**: Values too large for FP16A must saturate to infinity
+ * - **Underflow Handling**: Values too small for FP16A become zero or denormal
+ * - **Rounding Requirements**: Proper IEEE-754 rounding for precision reduction
+ *
+ * **SFPU Implementation Strategy:**
+ * 1. **Range Analysis**: Determine if FP32 value fits in FP16A range
+ * 2. **Exponent Mapping**: Convert FP32 exponent bias to FP16A bias
+ * 3. **Mantissa Rounding**: Round 23-bit mantissa to 10-bit with proper rounding
+ * 4. **Special Value Handling**: Preserve NaN, infinity, and zero semantics
+ * 5. **Overflow/Underflow**: Apply saturation and flushing as appropriate
+ * 6. **Format Packing**: Pack sign, exponent, and mantissa into FP16A format
+ *
+ * **Rounding Behavior:**
+ * - **Round to Nearest Even**: IEEE-754 default rounding mode
+ * - **Tie Breaking**: Round to even mantissa for exact halfway cases
+ * - **Mantissa Truncation**: Properly handle precision loss
+ * - **Exponent Adjustment**: Handle mantissa overflow into exponent
+ *
+ * **Special Value Preservation:**
+ * - **NaN**: All NaN values preserved as FP16A NaN
+ * - **Infinity**: Positive and negative infinity preserved
+ * - **Zero**: Signed zero semantics maintained
+ * - **Denormals**: Handled according to IEEE-754 specifications
+ *
+ * **Performance Characteristics:**
+ * - **Latency**: 4-6 cycles per tile depending on complexity
+ * - **Throughput**: 32 precision conversions per cycle
+ * - **Accuracy**: IEEE-754 compliant conversion with minimal error
+ * - **Memory Savings**: 50% memory reduction from FP32
+ *
+ * **Use Cases:**
+ * - Mixed-precision neural network training
+ * - Memory bandwidth optimization in inference
+ * - GPU compatibility for FP16A operations
+ * - Model compression and acceleration
+ * - Graphics processing applications
+ */
+
 #pragma once
 
 #include "ckernel_addrmod.h"

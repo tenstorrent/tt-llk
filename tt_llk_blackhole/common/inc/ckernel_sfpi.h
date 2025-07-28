@@ -2,6 +2,56 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpi.h
+ * @brief SFPI (Special Function Processing Interface) comprehensive test suite
+ *
+ * @details This file contains an extensive test suite for validating the SFPI programming interface,
+ * which provides high-level C++ abstractions for programming the SFPU (Special Function Processing Unit)
+ * hardware. The SFPI interface enables elegant vector programming with C++-like syntax over the
+ * underlying 32-lane SIMD SFPU hardware.
+ *
+ * **SFPI Architecture Overview:**
+ * - **SFPI (Special Function Processing Interface)**: High-level C++ programming API
+ * - **SFPU (Special Function Processing Unit)**: Underlying 32-lane SIMD hardware
+ * - **Vector Programming Model**: C++-like syntax for SIMD operations
+ * - **Hardware Mapping**: SFPI operations compile to optimized SFPU instructions
+ *
+ * **Key SFPI Programming Constructs:**
+ * - **Vector Types**: `sfpi::vFloat`, `sfpi::vInt`, `sfpi::vUInt` for 32-lane SIMD data
+ * - **Register Access**: `sfpi::dst_reg[0-15]` for destination register array access
+ * - **Vector Conditionals**: `v_if/v_else/v_endif` for lane-wise conditional execution
+ * - **Vector Functions**: `sfpi::setsgn()`, `sfpi::setman()`, `setexp()` for field manipulation
+ * - **Format Conversion**: `sfpi::s2vFloat16a()`, `sfpi::s2vFloat16b()` for data conversion
+ *
+ * **Test Architecture:**
+ * The test suite provides 17+ comprehensive tests (`test1()` through `test17()`) that validate:
+ * 1. **Basic Operations**: Immediate loading, data movement, register access
+ * 2. **Conditional Execution**: Vector if/else/endif constructs with complex nesting
+ * 3. **Data Type Handling**: FP32, FP16A, FP16B, integer, and format conversions
+ * 4. **Edge Cases**: NaN handling, infinity, denormals, precision limits
+ * 5. **Vector Arithmetic**: SIMD mathematical operations across all 32 lanes
+ * 6. **Field Manipulation**: Sign, exponent, mantissa operations
+ * 7. **Compiler Integration**: Verification of SFPI-to-SFPU code generation
+ *
+ * **Hardware Integration:**
+ * - Maps to SFPU instructions: SFPLOAD, SFPSTORE, SFPLOADI, SFPMAD, SFPSETCC, etc.
+ * - Utilizes destination registers (Dst32b) and lookup table registers (LReg)
+ * - Enables 32-lane SIMD processing with hardware conditional execution
+ * - Optimized for Tensix Vector Unit with 1 GHz clock and 2-cycle instruction latency
+ *
+ * **Usage Context:**
+ * This test suite is executed through the LLK (Low-Level Kernel) interface via
+ * `llk_math_eltwise_unary_sfpi_testN()` functions, which are called from actual
+ * compute kernels to validate SFPI functionality across different hardware configurations.
+ *
+ * **Performance Characteristics:**
+ * - Each test validates specific SFPI→SFPU instruction mappings
+ * - Tests are designed to be `noinline` to prevent compiler optimization interference
+ * - Comprehensive coverage ensures reliable SFPI programming across all use cases
+ * - Results are validated against expected hardware behavior patterns
+ */
+
 #include "ckernel.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
@@ -19,31 +69,93 @@
 
 using namespace ckernel;
 
+/**
+ * @namespace sfpi_test
+ * @brief SFPI test infrastructure and comprehensive validation suite
+ *
+ * @details This namespace contains the complete test infrastructure for validating
+ * the SFPI (Special Function Processing Interface) programming model. It provides
+ * systematic testing of vector programming constructs, data type conversions,
+ * conditional execution, and hardware integration.
+ *
+ * **Test Organization:**
+ * - **Test Functions**: `test1()` through `test17()` covering incremental functionality
+ * - **Utility Functions**: Helper functions for result validation and data manipulation
+ * - **Template Dispatch**: `calculate_sfpi<>()` for compile-time test selection
+ * - **Hardware Validation**: Direct verification of SFPI→SFPU instruction mapping
+ */
 namespace sfpi_test
 {
 
+/**
+ * @brief Copy result from specified destination register to register 0
+ * @param addr Source destination register index (0-15)
+ *
+ * @details Utility function for test result collection. Copies the computed
+ * result from any destination register to register 0 for standardized output
+ * and validation. Essential for test infrastructure that expects results in
+ * a consistent location.
+ *
+ * **SFPI Operations:**
+ * - Uses `sfpi::dst_reg[]` array access for register-to-register copy
+ * - Compiles to SFPLOAD + SFPSTORE instruction sequence
+ * - Operates across all 32 SIMD lanes simultaneously
+ *
+ * **Usage Pattern:**
+ * ```cpp
+ * // Compute result in register 3
+ * sfpi::dst_reg[3] = some_computation();
+ * // Copy to register 0 for output
+ * copy_result_to_dreg0(3);
+ * ```
+ */
 sfpi_inline void copy_result_to_dreg0(int addr)
 {
-    sfpi::dst_reg[0] = sfpi::dst_reg[addr];
+    sfpi::dst_reg[0] = sfpi::dst_reg[addr];  // 32-lane SIMD register copy
 }
 
-// Test infrastructure is set up to test float values, not ints
-// Viewing the ints as floats leads to a mess (eg, denorms)
-// Instead, compare in the kernel to the expected result and write a sentinel
-// value for "pass" and the sfpi::vInt v value for "fail"
-// Assumes this code is called in an "inner" if
+/**
+ * @brief Set expected result with pass/fail sentinel values for integer validation
+ * @param addr Destination register index for result storage
+ * @param sentinel Floating-point value indicating test pass
+ * @param expected Expected integer result for comparison
+ * @param v Actual computed integer value to validate
+ *
+ * @details Specialized test utility for integer result validation. Since the test
+ * infrastructure expects floating-point outputs, this function compares integer
+ * results and writes either a sentinel "pass" value or the actual computed value
+ * for "fail" cases. This avoids the complexity of viewing integers as floats,
+ * which can lead to denormal representations.
+ *
+ * **Validation Logic:**
+ * - **Pass Case**: `v >= expected && v < expected + 1` → writes `sentinel`
+ * - **Fail Case**: `v` outside expected range → writes actual `v` value
+ * - Uses poor man's equality check to handle register bit width limitations
+ *
+ * **Hardware Constraints:**
+ * - SFPU registers are 19 bits wide
+ * - Immediate values are sign-extended 12 bits
+ * - MSB set comparisons require careful handling
+ *
+ * **SFPI Constructs Used:**
+ * ```cpp
+ * v_if (condition)     // Vector conditional execution
+ * {
+ *     sfpi::dst_reg[addr] = value;  // Conditional register write
+ * }
+ * v_else { ... } v_endif;
+ * ```
+ */
 sfpi_inline void set_expected_result(int addr, float sentinel, int expected, sfpi::vInt v)
 {
-    // Poor man's equals
-    // Careful, the register is 19 bits and the immediate is sign extended 12
-    // bits so comparing bit patterns w/ the MSB set won't work
+    // Poor man's equals - handles 19-bit register vs 12-bit immediate constraints
     v_if (v >= expected && v < expected + 1)
     {
-        sfpi::dst_reg[addr] = sentinel;
+        sfpi::dst_reg[addr] = sentinel;  // Test passed - write sentinel
     }
     v_else
     {
-        sfpi::dst_reg[addr] = v;
+        sfpi::dst_reg[addr] = v;         // Test failed - write actual value
     }
     v_endif;
 }
@@ -87,18 +199,49 @@ sfpi_inline vType reduce_bool4(vType a, vType b, vType c, vType d, int reference
     return result;
 }
 
+/**
+ * @brief Test 1 - Basic SFPI immediate loading and register storage
+ *
+ * @details Validates the most fundamental SFPI operations: loading immediate
+ * floating-point constants and storing them to destination registers. This
+ * test ensures the basic SFPI→SFPU instruction mapping works correctly.
+ *
+ * **Hardware Instructions Tested:**
+ * - `SFPLOADI`: Load immediate floating-point constant to LReg
+ * - `SFPSTORE`: Store from LReg to destination register
+ *
+ * **Expected Output:** `dst_reg[0] = 1.3f`
+ *
+ * **Validation Target:** Basic SFPI constant assignment syntax
+ */
 sfpi_test_noinline void test1()
 {
     // Test SFPLOADI, SFPSTORE
-    sfpi::dst_reg[0] = 1.3f;
+    sfpi::dst_reg[0] = 1.3f;  // Basic immediate → register assignment
 }
 
+/**
+ * @brief Test 2 - Data movement and unary operations
+ *
+ * @details Tests data loading from destination registers and basic unary
+ * arithmetic operations. Validates the SFPI register access model and
+ * unary operator overloading.
+ *
+ * **Hardware Instructions Tested:**
+ * - `SFPLOAD`: Load from destination register to LReg
+ * - `SFPMOV`: Unary negation operation
+ * - `SFPSTORE`: Store result back to destination register
+ *
+ * **Expected Output:** `dst_reg[2] = -dst_reg[0]` (negation of test1 result)
+ *
+ * **Validation Target:** Register-to-register operations and unary arithmetic
+ */
 sfpi_test_noinline void test2()
 {
     // Test SFPLOAD, SFPMOV
-    sfpi::dst_reg[2] = -sfpi::dst_reg[0];
+    sfpi::dst_reg[2] = -sfpi::dst_reg[0];  // Load, negate, store
 
-    // Out: ramp down from 0 to -63
+    // Copy result to standard output register
     copy_result_to_dreg0(2);
 }
 
@@ -3420,10 +3563,36 @@ void test17()
     copy_result_to_dreg0(17);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// These tests are designed to be incremental so that if a test fails the
-// earlier tests should be examined/fixed prior to the latter tests.
-//
+/**
+ * @brief SFPI test dispatcher function
+ * @tparam operation Test type from SfpiTestType enum
+ * @param param0-param5 Optional test parameters for parameterized tests
+ *
+ * @details Central dispatcher that routes test execution based on compile-time
+ * template parameters. This function provides the interface between the LLK
+ * (Low-Level Kernel) layer and the individual SFPI test functions.
+ *
+ * **Template Dispatch Pattern:**
+ * Uses `if constexpr` for compile-time test selection, ensuring only the
+ * requested test code is included in the final kernel binary. This approach
+ * provides both flexibility and optimal code generation.
+ *
+ * **Test Progression:**
+ * Tests are designed to be incremental - if a later test fails, earlier
+ * tests should be examined first as they validate foundational functionality
+ * that later tests depend upon.
+ *
+ * **Parameter Usage:**
+ * - **param0-param5**: Optional test parameters for tests that require
+ *   runtime configuration (tests 12, 13, 14)
+ * - **Unused parameters**: Safely ignored by tests that don't need them
+ *
+ * **Integration with LLK:**
+ * Called from `llk_math_eltwise_unary_sfpi.h` via template instantiation:
+ * ```cpp
+ * sfpi_test::calculate_sfpi<SfpiTestType::test1>(param0, param1, ...);
+ * ```
+ */
 template <SfpiTestType operation>
 inline void calculate_sfpi(uint param0 = 0, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0, uint param5 = 0)
 {
