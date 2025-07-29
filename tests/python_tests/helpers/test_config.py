@@ -138,9 +138,14 @@ def generate_build_header(
     # Broadcast type
     if "broadcast_type" in test_config:
         broadcast_type = test_config["broadcast_type"]
-        if hasattr(broadcast_type, "name"):
+        if hasattr(broadcast_type, "value") and isinstance(broadcast_type.value, str):
+            # Use constexpr auto with proper namespace
             header_content.append(
-                f"#define BROADCAST_TYPE BroadcastType::{broadcast_type.name}"
+                f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
+            )
+        elif hasattr(broadcast_type, "name"):
+            header_content.append(
+                f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.name};"
             )
         else:
             header_content.append(f"#define BROADCAST_TYPE {broadcast_type}")

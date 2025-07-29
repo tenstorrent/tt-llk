@@ -16,7 +16,7 @@ from helpers.format_config import (
     BroadcastType,
     DataFormat,
     EltwiseBinaryReuseDestType,
-    StochRndType,
+    StochasticRoundingType,
 )
 from helpers.golden_generators import (
     DataCopyGolden,
@@ -43,18 +43,18 @@ supported_formats = [
 
 # Define parameter lists
 broadcast_types = [
-    BroadcastType.NONE,
-    BroadcastType.COL,
-]  # todo: BroadcastType.ROW, BroadcastType.SCALAR
+    BroadcastType.None_,
+    BroadcastType.Column,
+]  # todo: BroadcastType.Row, BroadcastType.Scalar
 dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
 disable_src_zero_flags = [False]  # todo: True
 # is_fp32_dest_acc_flags removed - it's automatically handled in params.h
 acc_to_dest_flags = [False]  # todo: True
 stoch_rounding_types = [
-    StochRndType.NONE,
-    StochRndType.Fpu,
-    StochRndType.Pack,
-    StochRndType.All,
+    StochasticRoundingType.NONE,
+    StochasticRoundingType.Fpu,
+    StochasticRoundingType.Pack,
+    StochasticRoundingType.All,
 ]
 reuse_dest_types = [
     EltwiseBinaryReuseDestType.NONE
@@ -153,8 +153,17 @@ def filter_params_with_z3(all_params):
         s = Solver()
 
         # Convert enum values to integers for Z3
-        broadcast_val = broadcast_type.value if hasattr(broadcast_type, "value") else 0
+        # Map BroadcastType string values to integers
+        broadcast_mapping = {"NONE": 0, "COL": 1, "ROW": 2, "SCALAR": 3}
+        if hasattr(broadcast_type, "value") and isinstance(broadcast_type.value, str):
+            broadcast_val = broadcast_mapping.get(broadcast_type.value, 0)
+        else:
+            broadcast_val = (
+                broadcast_type.value if hasattr(broadcast_type, "value") else 0
+            )
+
         reuse_dest_val = reuse_dest.value if hasattr(reuse_dest, "value") else 0
+        stoch_rnd_val = stoch_rnd_type.value if hasattr(stoch_rnd_type, "value") else 0
 
         # Z3 variables representing our parameters
         broadcast = IntVal(broadcast_val)  # 0=NONE, 1=COL, 2=ROW, 3=SCALAR
@@ -246,6 +255,42 @@ def filter_params_with_z3(all_params):
         within_face_transpose = BoolVal(within_face_16x16_transpose == 1)
         transpose_mutual_constraint = transpose_faces == within_face_transpose
 
+        # Exclude specific combinations with Bfp8_b output and exact parameters
+        specific_exclusion_constraint = Not(
+            Or(
+                # Float32->Bfp8_b combination
+                And(
+                    BoolVal(formats.input_format == DataFormat.Float32),
+                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
+                    broadcast_none,  # bcast_NONE
+                    BoolVal(disable_src_zero == False),  # disable_src_zero_False
+                    BoolVal(acc_to_dest == False),  # acc_to_dest_False
+                    BoolVal(stoch_rnd_val == 2),  # stoch_rnd_Pack (Pack = 2)
+                    reuse_none,  # reuse_dest_NONE
+                    BoolVal(transpose_of_faces == 0),  # transpose_faces_0
+                    BoolVal(
+                        within_face_16x16_transpose == 0
+                    ),  # within_face_transpose_0
+                    BoolVal(num_faces == 4),  # num_faces_4
+                ),
+                # Float16_b->Bfp8_b combination
+                And(
+                    BoolVal(formats.input_format == DataFormat.Float16_b),
+                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
+                    broadcast_none,  # bcast_NONE
+                    BoolVal(disable_src_zero == False),  # disable_src_zero_False
+                    BoolVal(acc_to_dest == False),  # acc_to_dest_False
+                    BoolVal(stoch_rnd_val == 2),  # stoch_rnd_Pack (Pack = 2)
+                    reuse_none,  # reuse_dest_NONE
+                    BoolVal(transpose_of_faces == 0),  # transpose_faces_0
+                    BoolVal(
+                        within_face_16x16_transpose == 0
+                    ),  # within_face_transpose_0
+                    BoolVal(num_faces == 4),  # num_faces_4
+                ),
+            )
+        )
+
         # Add all constraints to solver
         s.add(
             constraint1,
@@ -256,6 +301,7 @@ def filter_params_with_z3(all_params):
             broadcast_constraints,
             transpose_constraint,
             transpose_mutual_constraint,
+            specific_exclusion_constraint,
             # float32_transpose_constraint,
         )
 

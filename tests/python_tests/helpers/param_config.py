@@ -158,7 +158,7 @@ def generate_unpack_A_params(**kwargs) -> List[tuple]:
             - broadcast_types: List of BroadcastType values
             - disable_src_zero_flags: List of bool values
             - acc_to_dest_flags: List of bool values
-            - stoch_rounding_types: List of StochRndType values
+            - stoch_rounding_types: List of StochasticRoundingType values
             - reuse_dest_types: List of EltwiseBinaryReuseDestType values
             - transpose_of_faces_values: List of int values (0, 1)
             - within_face_16x16_transpose_values: List of int values (0, 1)

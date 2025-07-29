@@ -75,10 +75,10 @@ class BroadcastType(Enum):
     Enum for broadcast types in LLK kernels.
     """
 
-    NONE = 0
-    COL = 1
-    ROW = 2
-    SCALAR = 3
+    None_ = "NONE"
+    Column = "COL"
+    Row = "ROW"
+    Scalar = "SCALAR"
 
 
 class EltwiseBinaryReuseDestType(Enum):
@@ -91,7 +91,7 @@ class EltwiseBinaryReuseDestType(Enum):
     DEST_TO_SRCB = 2
 
 
-class StochRndType(Enum):
+class StochasticRoundingType(Enum):
     """
     Enum for stochastic rounding types.
     """
