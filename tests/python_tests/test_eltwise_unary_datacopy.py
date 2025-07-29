@@ -30,8 +30,9 @@ from helpers.utils import passed_test
         ]
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    num_faces=[1, 2, 4],
 )
-def test_unary_datacopy(test_name, formats, dest_acc):
+def test_unary_datacopy(test_name, formats, dest_acc, num_faces):
 
     input_dimensions = [64, 64]
 
@@ -42,7 +43,7 @@ def test_unary_datacopy(test_name, formats, dest_acc):
     )
 
     generate_golden = get_golden_generator(DataCopyGolden)
-    golden_tensor = generate_golden(src_A, formats.output_format)
+    golden_tensor = generate_golden(src_A, formats.output_format, num_faces, input_dimensions)
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
@@ -55,6 +56,7 @@ def test_unary_datacopy(test_name, formats, dest_acc):
         "dest_acc": dest_acc,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
+        "num_faces": num_faces,
     }
 
     run_test(test_config)
