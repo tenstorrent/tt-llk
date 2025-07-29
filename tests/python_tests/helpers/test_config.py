@@ -20,7 +20,6 @@ from .format_arg_mapping import (
     L1BufferLocations,
     MathFidelity,
     MathOperation,
-    NumFaces,
     format_tile_sizes,
 )
 from .format_config import FormatConfig, InputOutputFormat
