@@ -81,3 +81,24 @@
  * and low-level interface functions for Wormhole B0 Tensix engine programming.
  */
 #include "tensix.h"
+
+/**
+ * @brief LLK validation utilities for debug-time error checking
+ * @details Optional validation macros that provide runtime parameter checking
+ * in debug builds while compiling to no-ops in release builds.
+ */
+#include "llk_validation.h"
+
+/**
+ * @brief Common LLK utilities and template patterns
+ * @details Shared utilities that reduce code duplication across LLK modules
+ * and provide consistent API patterns for format handling and configuration.
+ */
+#include "llk_common_utils.h"
+
+/**
+ * @brief Instruction parameter validation utilities
+ * @details Provides validation functions for Tensix instruction parameters
+ * that complement the auto-generated instruction macros in ckernel_ops.h.
+ */
+#include "ckernel_instruction_validation.h"

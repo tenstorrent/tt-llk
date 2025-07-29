@@ -217,6 +217,54 @@ inline void _llk_pack_reduce_hw_configure_(
     }
 }
 
+/**
+ * @brief Initialize packer operation for Wormhole B0 Tensix pack thread
+ * 
+ * @details Configures the packer hardware for efficient data movement from DEST
+ * registers to L1 SRAM. This function sets up format conversion, address generation,
+ * and optimization parameters for high-throughput data output operations from the
+ * Tensix compute pipeline.
+ * 
+ * **Data Format Conversion:**
+ * Supports comprehensive format conversion from DEST register format to target L1 format:
+ * - Floating-point: FP32, FP16A/B, BF16, TF32
+ * - Block floating-point: BFP8, BFP4, BFP2 with shared exponents
+ * - Integer: INT8/16/32, UINT8/16 with sign-magnitude representation
+ * 
+ * **Memory Layout Control:**
+ * - FaceLayout: Controls data organization (RowMajor/ColMajor)
+ * - Untilize: Converts tiled data to linear layout for specific algorithms
+ * - Tile headers: Metadata for downstream processing
+ * 
+ * **Performance Features:**
+ * - Zero-overhead format conversion during movement
+ * - Optimal L1 bank interleaving for maximum bandwidth
+ * - Partial face support for non-standard tile sizes
+ * - Narrow tile optimization for reduced memory usage
+ * 
+ * @tparam untilize Convert tiled data to linear layout (default: false)
+ * @tparam zero_output Enable zero output mode for initialization (default: false)
+ * @tparam FaceLayout Memory layout pattern (RowMajor/ColMajor, default: RowMajor)
+ * @tparam write_tile_header Include tile metadata in output (default: true)
+ * 
+ * @param pack_dst_format Target data format in L1 memory (DataFormat enum)
+ * @param face_r_dim Row dimension of tile face (default: FACE_R_DIM)
+ * @param num_faces Number of faces in tile (default: 4)
+ * @param partial_face Enable partial face operation for non-standard sizes
+ * @param narrow_tile Enable narrow tile optimization for memory efficiency
+ * 
+ * @note This function must be called once before any _llk_pack_() operations
+ * @note Format conversion is performed automatically based on pack_dst_format
+ * @note Untilize mode is required for certain downstream algorithms
+ * 
+ * @warning pack_dst_format must be compatible with DEST register data
+ * @warning FaceLayout template parameter affects all subsequent pack operations
+ * @warning Narrow tile mode has specific alignment requirements
+ * 
+ * @see _llk_pack_() for per-tile execution
+ * @see DataFormat enumeration for supported formats
+ * @see DstTileFaceLayout for layout options
+ */
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
@@ -225,6 +273,17 @@ inline void _llk_pack_init_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
+    // Validate template parameters
+    ckernel::utils::validate_face_layout<FaceLayout>();
+    
+    // Validate function parameters
+    LLK_VALIDATE(ckernel::utils::validation::is_valid_data_format(pack_dst_format), 
+                 "invalid pack destination format");
+    LLK_VALIDATE_PARAM_RANGE(face_r_dim, 1, 32, "face row dimension must be 1-32");
+    LLK_VALIDATE_PARAM_RANGE(num_faces, 1, 4, "number of faces must be 1-4");
+    
+    // Use utility to validate tile dimensions
+    ckernel::utils::TileDimensions::validate_tile_dimensions(face_r_dim, 32, num_faces);
     _llk_pack_configure_addrmod_<untilize>();
 
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);

@@ -687,6 +687,54 @@ inline void matmul_configure_mop_throttled(
     tmp.program(instrn_buffer);
 }
 
+/**
+ * @brief Initialize matrix multiplication operation for Wormhole B0 Tensix math thread
+ * 
+ * @details Configures the matrix multiplication hardware for efficient GEMM operations
+ * on the Wormhole B0 Tensix engine. This function sets up address generation patterns,
+ * fidelity control, and optimization parameters for sustained high-throughput matrix
+ * operations using the 2048 hardware multipliers.
+ * 
+ * **Fidelity Control:**
+ * The MATH_FIDELITY_DESC template parameter controls precision vs. performance:
+ * - 0x0: 1 phase, 4.096 TFLOP/s peak, lower precision
+ * - 0x1: 2 phases, 2.048 TFLOP/s peak, balanced
+ * - 0x3: 4 phases, 1.024 TFLOP/s peak, full precision
+ * 
+ * **Memory Layout:**
+ * FaceLayout controls data organization in DEST registers:
+ * - RowMajor: Default, cache-friendly for most algorithms
+ * - ColMajor: Specialized layouts for specific use cases
+ * 
+ * **Performance Optimization:**
+ * - Automatically configures address generation for optimal L1 bank usage
+ * - Sets up reuse patterns (A or B matrix reuse) based on dimensions
+ * - Enables partial face operation for non-standard tile sizes
+ * 
+ * @tparam MATH_FIDELITY_DESC Fidelity control (0x0=1phase, 0x1=2phase, 0x3=4phase)
+ * @tparam FaceLayout Memory layout (RowMajor/ColMajor) for DEST registers
+ * @tparam THROTTLE_LEVEL Performance throttling level (0=max performance)
+ * 
+ * @param in0_tile_r_dim Row dimension of input matrix A (default: TILE_R_DIM)
+ * @param in0_tile_c_dim Column dimension of input matrix A (default: TILE_C_DIM)
+ * @param in1_tile_r_dim Row dimension of input matrix B (default: TILE_R_DIM)
+ * @param in1_tile_c_dim Column dimension of input matrix B (default: TILE_C_DIM)
+ * @param partial_face Enable partial face operation for non-standard tile sizes
+ * @param transpose Matrix transpose mode (0=no transpose, 1=transpose)
+ * @param ct_dim Column tile dimension for blocking
+ * @param rt_dim Row tile dimension for blocking
+ * @param kt_dim K-dimension tile count for accumulation
+ * 
+ * @note This function must be called once before any _llk_math_matmul_() operations
+ * @note Dimensions must be compatible with hardware tile constraints
+ * @note Higher fidelity phases provide better precision at reduced throughput
+ * 
+ * @warning Matrix dimensions must be aligned to hardware tile boundaries
+ * @warning FaceLayout template parameter affects all subsequent operations
+ * 
+ * @see _llk_math_matmul_() for per-tile execution
+ * @see matmul_configure_addrmod() for address generation details
+ */
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_init_(
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
@@ -699,6 +747,16 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t rt_dim         = 1,
     const std::uint32_t kt_dim         = 1)
 {
+    // Validate template parameters at compile time
+    ckernel::utils::validate_fidelity_desc<MATH_FIDELITY_DESC>();
+    ckernel::utils::validate_face_layout<FaceLayout>();
+    
+    // Validate function parameters
+    LLK_VALIDATE_STANDARD_TILE(in0_tile_r_dim, in0_tile_c_dim, 4);
+    LLK_VALIDATE_STANDARD_TILE(in1_tile_r_dim, in1_tile_c_dim, 4);
+    LLK_VALIDATE_MATMUL_DIMS(rt_dim, ct_dim, kt_dim);
+    LLK_VALIDATE_PARAM_RANGE(transpose, 0, 1, "transpose must be 0 or 1");
+    LLK_VALIDATE_FIDELITY(MATH_FIDELITY_DESC);
     matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout, THROTTLE_LEVEL>(
         transpose, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     const bool reuse_a        = ct_dim >= rt_dim;

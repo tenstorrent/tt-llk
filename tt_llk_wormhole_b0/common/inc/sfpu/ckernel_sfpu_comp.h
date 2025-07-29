@@ -2,6 +2,104 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpu_comp.h
+ * @brief SFPU Comparison and Conditional Operations for Wormhole B0
+ *
+ * @details This file implements hardware-accelerated comparison and conditional operations
+ * using the Wormhole B0 SFPU's 32-lane SIMD architecture with dedicated condition code
+ * hardware. The implementation provides element-wise comparison operations, conditional
+ * execution primitives, and logical operations optimized for the SFPU's conditional
+ * processing capabilities.
+ *
+ * **Implemented Operations:**
+ * - **Element-wise Comparisons**: ==, !=, <, <=, >, >= between SFPU vectors
+ * - **Conditional Selection**: Ternary operations (condition ? value_a : value_b)
+ * - **Logical Operations**: AND, OR, NOT operations on condition masks
+ * - **Zero Detection**: Specialized zero/non-zero testing for various data formats
+ * - **Range Checking**: Boundary condition testing and validation
+ *
+ * **Mathematical Operations:**
+ * ```
+ * compare(a, b, op) = condition_mask where op ∈ {==, !=, <, <=, >, >=}
+ * select(mask, a, b) = mask ? a : b (element-wise)
+ * logical_and(mask_a, mask_b) = mask_a ∧ mask_b
+ * logical_or(mask_a, mask_b) = mask_a ∨ mask_b
+ * logical_not(mask) = ¬mask
+ * ```
+ *
+ * **Wormhole B0 SFPU Conditional Architecture:**
+ * - **32-Lane SIMD**: Each lane independently evaluates comparison conditions
+ * - **Condition Code Stack**: Hardware CC stack enables nested conditional execution
+ * - **Per-Lane Control**: Individual lanes can follow different execution paths
+ * - **v_if/v_endif Primitives**: Hardware conditional execution without branching overhead
+ * - **Predication**: Lane-wise enabling/disabling based on condition evaluation
+ *
+ * **Comparison Result Encoding:**
+ * - **Condition Masks**: Boolean results stored as condition code state
+ * - **Value Encoding**: 1.0f for true conditions, 0.0f for false conditions
+ * - **IEEE-754 Compliance**: Proper handling of NaN, ±∞, and special values
+ * - **Format Support**: Works with FP32, FP16, and integer data types
+ *
+ * **Hardware Optimization Features:**
+ * - **Zero Detection**: Specialized FP16 zero testing with `ckernel_sfpu_is_fp16_zero.h`
+ * - **Parallel Comparison**: All 32 lanes execute comparisons simultaneously
+ * - **Conditional Execution**: Hardware prevents unnecessary computation on false lanes
+ * - **Pipeline Efficiency**: Comparison results available immediately for dependent operations
+ *
+ * **Performance Characteristics:**
+ * - **SIMD Throughput**: 32 comparison operations per SFPU cycle
+ * - **Latency**: ~1-2 cycles per comparison (direct hardware support)
+ * - **Conditional Overhead**: Minimal cost for conditional execution
+ * - **Memory Efficiency**: Condition results stored in hardware CC registers
+ *
+ * **Common Usage Patterns:**
+ *
+ * **Element-wise Comparison:**
+ * ```cpp
+ * // Compare two vectors: result = (a > b)
+ * _calculate_comp_<SfpuType::greater_than, false, 8>();
+ * ```
+ *
+ * **Conditional Assignment:**
+ * ```cpp
+ * // Conditional selection: result = mask ? value_a : value_b
+ * _calculate_conditional_select_<false, 8>();
+ * ```
+ *
+ * **Zero Detection:**
+ * ```cpp
+ * // Test for zero values in FP16 data
+ * _calculate_is_fp16_zero_<false, 8>();
+ * ```
+ *
+ * **Neural Network Applications:**
+ * - **Activation Functions**: Conditional logic in ReLU, Leaky ReLU variants
+ * - **Masking Operations**: Attention masks, padding masks in transformers
+ * - **Gradient Clipping**: Conditional gradient scaling based on magnitude
+ * - **Dropout**: Random mask application for regularization
+ * - **Loss Functions**: Conditional loss computation (e.g., margin-based losses)
+ *
+ * **Scientific Computing:**
+ * - **Boundary Conditions**: Domain validation and constraint enforcement
+ * - **Algorithmic Control**: Iterative solver convergence testing
+ * - **Data Filtering**: Outlier detection and removal
+ * - **Statistical Analysis**: Threshold-based classification and binning
+ *
+ * **Special Value Handling:**
+ * - **NaN Propagation**: NaN inputs produce NaN comparison results
+ * - **Infinity Handling**: ±∞ values follow IEEE-754 comparison semantics
+ * - **Zero Variants**: Distinguishes +0.0 and -0.0 when required
+ * - **Subnormal Numbers**: Proper handling of denormalized floating-point values
+ *
+ * **Hardware Dependencies:**
+ * - SFPU condition code hardware and stack management
+ * - Floating-point comparison units with IEEE-754 compliance
+ * - Conditional execution support (v_if/v_endif primitives)
+ * - Zero detection hardware for optimized FP16 testing
+ * - SIMD lane predication and masking capabilities
+ */
+
 #pragma once
 
 #include "ckernel_sfpu_is_fp16_zero.h"
