@@ -202,15 +202,13 @@ def generate_build_header(
     header_content.append("// Multi-tile test configuration")
     header_content.append(f"constexpr int TILE_CNT = {tile_cnt};")
 
-<<<<<<< HEAD
-    # Unpack an result buffer addresses arrays generations
-=======
+
+
     num_faces = test_config.get("num_faces", 8)
-    header_content.append(f"constexpr int num_faces = {num_faces.value};")
+    header_content.append(f"constexpr int num_faces = {num_faces};")
 
 
     # Unpack an result buffer addresses arrrays generations
->>>>>>> f618ed4 (Add num faces as test argument)
     buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
     buffer_B_address = read_word_from_device("0,0", L1BufferLocations.srcB.value)
     result_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
