@@ -228,7 +228,7 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
         dest_acc: Whether destination accumulation is enabled or not.
 
     Prerequisite: Disable flag that clears dest register after packing (in llk_pack_common.h) otherwise you will read garbage values.
-        - For BH in pack_dest_section_done_, comment out this line : TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+        - For BH in pack_dest_section_done_, comment out this line : TT_ZEROACC(p_zeroacc::CLR_HALF, fp32_dest_accumulation, 0, ADDR_MOD_1, (dest_offset_id) % 2);
 
     Note:
         - The destination register is read from the address 0xFFBD8000.

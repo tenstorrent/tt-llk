@@ -26,7 +26,7 @@ constexpr bool row_pool                             = (REDUCE_DIM == ckernel::Re
 
 void run_kernel()
 {
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+    _llk_unpack_AB_hw_configure_<fp32_dest_accumulation, StochRndType::None>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, within_face_16x16_transpose);
     _llk_unpack_AB_init_<>(FACE_R_DIM, 4, false, within_face_16x16_transpose, 0);
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), within_face_16x16_transpose);
@@ -45,12 +45,12 @@ void run_kernel()
     const std::uint32_t math_fid = 4;
     const bool is_int_fpu_en     = false;
     const bool fp32_transpose    = false;
-    _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+    _llk_math_pack_sync_init_<DstSync::SyncFull, fp32_dest_accumulation>();
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     _llk_math_hw_configure_<false, row_pool>(formats.math, formats.math);
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fid>(within_face_16x16_transpose);
-    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, fp32_transpose>(0);
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, fp32_dest_accumulation, math_fid, is_int_fpu_en, fp32_transpose>(0);
+    _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
 }
 
 #endif
@@ -66,22 +66,22 @@ void run_kernel()
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<fp32_dest_accumulation, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<fp32_dest_accumulation, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
     _llk_pack_reduce_mask_config_<false, REDUCE_DIM>();
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncFull, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DstSync::SyncFull, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, false>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
 
     _llk_pack_reduce_mask_clear_();
 }

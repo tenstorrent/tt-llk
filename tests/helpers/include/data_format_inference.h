@@ -68,13 +68,13 @@ constexpr bool is_exponentB(DataFormat format)
  *
  * @param input The input data format in L1.
  * @param output The output data format in L1.
- * @param is_fp32_dest_acc_en Flag indicating if 32-bit destination accumulation is enabled (dest_acc).
+ * @param fp32_dest_accumulation Flag indicating if 32-bit destination accumulation is enabled (dest_acc).
  *
  * @return true if the format combination is an unsupported hardware outlier; false otherwise.
  */
-constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en)
+constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, DestAccumulation fp32_dest_accumulation)
 {
-    return (is_exponentB(input) && output == DataFormat::Float16 && !is_fp32_dest_acc_en);
+    return (is_exponentB(input) && output == DataFormat::Float16 && fp32_dest_accumulation == ckernel::DestAccumulation::Disable);
 }
 
 /**
