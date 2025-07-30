@@ -7,6 +7,7 @@
 #include "build.h"
 #include "ckernel.h"
 #include "ckernel_defs.h"
+#include "data_format_inference.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -59,7 +60,7 @@ void run_kernel()
 
 void run_kernel()
 {
-    constexpr bool is32 = is_32bit((DataFormat)formats.math);
+    constexpr bool is32 = is_32bit_format(static_cast<DataFormat>(formats.math));
 
     {
         ZONE_SCOPED("INIT")

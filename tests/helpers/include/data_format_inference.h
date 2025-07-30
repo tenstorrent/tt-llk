@@ -55,7 +55,7 @@ constexpr bool is_exponentB(DataFormat format)
     return (format == DataFormat::Float16_b || format == DataFormat::Bfp8_b || format == DataFormat::Tf32);
 }
 
-constexpr bool is_32bit(DataFormat format)
+constexpr bool is_32bit_format(DataFormat format)
 {
     return format == DataFormat::Int32 || format == DataFormat::UInt32 || format == DataFormat::Float32;
 }
