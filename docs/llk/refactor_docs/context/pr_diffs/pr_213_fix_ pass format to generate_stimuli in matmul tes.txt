@@ -1,0 +1,25 @@
+PR #213: fix: pass format to generate_stimuli in matmul tests
+URL: https://github.com/tenstorrent/tt-llk/pull/213
+
+File: tests/python_tests/test_matmul.py
+@@ -86,7 +86,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+ )
+ def test_matmul(testname, formats, dest_acc, math_fidelity):
+ 
+-    src_A, src_B = generate_stimuli()
++    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+ 
+     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+     golden_tensor = tilize(golden_tensor, format_dict[formats.input_format])
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -87,7 +87,7 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+ )
+ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
+ 
+-    src_A, src_B = generate_stimuli()
++    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+ 
+     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+     golden_tensor = golden_tensor.to(format_dict[formats.output_format])
+

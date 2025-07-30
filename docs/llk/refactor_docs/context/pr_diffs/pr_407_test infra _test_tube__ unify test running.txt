@@ -1,0 +1,649 @@
+PR #407: test infra :test_tube:: unify test running
+URL: https://github.com/tenstorrent/tt-llk/pull/407
+
+File: tests/helpers/include/profiler.h
+@@ -38,7 +38,11 @@ constexpr std::uint16_t hashString16(const char (&s)[N])
+  * This section will be processed by the host code to construct a mapping
+  * MARKER_ID -> { filename, line, marker } for parsing the profiler buffer.
+  */
+-#define PROFILER_META(full_marker) __attribute__((section(".profiler_meta"), used)) static const char _profiler_meta_##__COUNTER__[] = full_marker;
++// clang-format off
++#define PROFILER_META(full_marker)                          \
++    __attribute__((section(".profiler_meta"), used))        \
++    static const char _profiler_meta_##__COUNTER__[] = full_marker;
++// clang-format on
+ 
+ #if defined(LLK_PROFILER)
+ 
+
+File: tests/python_tests/helpers/perf.py
+@@ -10,7 +10,8 @@
+ from statistics import mean, variance
+ 
+ from helpers.device import run_elf_files, wait_for_tensix_operations_finished
+-from helpers.profiler import Profiler, build_with_profiler
++from helpers.profiler import Profiler
++from helpers.test_config import ProfilerBuild, build_test
+ 
+ 
+ @dataclass
+@@ -127,7 +128,7 @@ def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
+         get_timing = RUN_CONFIGURATIONS[type]
+ 
+         test_config["perf_run_type"] = type
+-        build_with_profiler(test_config)
++        build_test(test_config, profiler_build=ProfilerBuild.Yes)
+ 
+         runs = []
+         for _ in range(run_count):
+
+File: tests/python_tests/helpers/test_config.py
+@@ -1,12 +1,15 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
++import os
+ from enum import Enum
++from pathlib import Path
+ 
+ from ttexalens.tt_exalens_lib import (
+     read_word_from_device,
+ )
+ 
++from .device import run_elf_files, wait_for_tensix_operations_finished
+ from .format_arg_mapping import (
+     ApproximationMode,
+     DestAccumulation,
+@@ -18,6 +21,7 @@
+     format_tile_sizes,
+ )
+ from .format_config import FormatConfig, InputOutputFormat
++from .utils import run_shell_command
+ 
+ 
+ class ProfilerBuild(Enum):
+@@ -214,17 +218,42 @@ def write_build_header(
+ def generate_make_command(
+     test_config,
+     profiler_build: ProfilerBuild = ProfilerBuild.No,
+-    generate_header: bool = True,
+ ):
+-    """Generate make command. Optionally also generate build.h header file."""
+-
+-    if generate_header:
+-        write_build_header(test_config, profiler_build=profiler_build)
+-
++    """Generate make command"""
+     # Simplified make command - only basic build parameters
+     make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} all "
+ 
+     if profiler_build == ProfilerBuild.Yes:
+         make_cmd += "profiler "
+ 
+     return make_cmd
++
++
++def build_test(
++    test_config,
++    profiler_build: ProfilerBuild = ProfilerBuild.No,
++):
++    """Only builds the files required to run a test"""
++
++    root = os.environ.get("LLK_HOME")
++    if not root:
++        raise AssertionError("Environment variable LLK_HOME is not set")
++
++    TESTS_DIR = str((Path(root) / "tests").absolute())
++
++    write_build_header(test_config, profiler_build=profiler_build)
++    make_cmd = generate_make_command(test_config, profiler_build=profiler_build)
++    run_shell_command(make_cmd, cwd=TESTS_DIR)
++
++
++def run_test(
++    test_config,
++    profiler_build: ProfilerBuild = ProfilerBuild.No,
++):
++    """Run the test with the given configuration"""
++
++    build_test(test_config, profiler_build=profiler_build)
++
++    # run test
++    run_elf_files(test_config["testname"])
++    wait_for_tensix_operations_finished()
+
+File: tests/python_tests/helpers/utils.py
+@@ -40,9 +40,10 @@ def print_faces(operand1):
+     print("\n" * 3)
+ 
+ 
+-def run_shell_command(command: str):
++def run_shell_command(command: str, cwd: str | None = None):
+     result = subprocess.run(
+         command,
++        cwd=cwd,
+         shell=True,
+         text=True,
+         stdout=subprocess.DEVNULL,
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import DestAccumulation, format_dict
+@@ -20,8 +18,8 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
+-from helpers.utils import passed_test, run_shell_command
++from helpers.test_config import run_test
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [
+@@ -85,11 +83,8 @@ def test_unary_datacopy(testname, formats, dest_acc):
+         "tile_cnt": tile_cnt,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
+-    run_elf_files(testname)
++    run_test(test_config)
+ 
+-    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -8,8 +8,6 @@
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import (
+@@ -27,8 +25,8 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
+-from helpers.utils import passed_test, run_shell_command
++from helpers.test_config import run_test
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Float32, DataFormat.Float16, DataFormat.Float16_b]
+@@ -112,11 +110,8 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         "tile_cnt": tile_cnt,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
+-    run_elf_files(testname)
++    run_test(test_config)
+ 
+-    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     # res_from_L1 = res_from_L1[:1024]
+     assert len(res_from_L1) == len(golden_tensor)
+
+File: tests/python_tests/test_matmul.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
+@@ -20,9 +18,9 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
++from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize_block
+-from helpers.utils import passed_test, run_shell_command
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [
+@@ -119,12 +117,8 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
+         "input_dimensions": input_dimensions,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
++    run_test(test_config)
+ 
+-    run_elf_files(testname)
+-
+-    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -8,8 +8,6 @@
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import (
+@@ -32,9 +30,9 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
++from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import passed_test, run_shell_command
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
+@@ -134,12 +132,8 @@ def test_matmul_and_unary_sfpu(
+         "mathop": mathop,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
++    run_test(test_config)
+ 
+-    run_elf_files(testname)
+-
+-    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
+@@ -20,9 +18,9 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
++from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import passed_test, run_shell_command
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [
+@@ -97,12 +95,8 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
+         "math_fidelity": math_fidelity,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
++    run_test(test_config)
+ 
+-    run_elf_files(testname)
+-
+-    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+
+File: tests/python_tests/test_matmul_unpack_tilize.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
+@@ -20,9 +18,9 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
++from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import passed_test, run_shell_command
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [
+@@ -95,12 +93,8 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+         "math_fidelity": math_fidelity,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
++    run_test(test_config)
+ 
+-    run_elf_files(testname)
+-
+-    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import (
+@@ -25,8 +23,8 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
+-from helpers.utils import passed_test, run_shell_command
++from helpers.test_config import run_test
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
+@@ -103,11 +101,7 @@ def test_multiple_tiles(
+         "tile_cnt": tile_cnt,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
+-
+-    run_elf_files(testname)
+-    wait_for_tensix_operations_finished()
++    run_test(test_config)
+ 
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import format_dict
+@@ -20,8 +18,8 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
+-from helpers.utils import passed_test, run_shell_command
++from helpers.test_config import run_test
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
+@@ -71,11 +69,7 @@ def test_pack_untilize(testname, formats):
+         "input_dimensions": input_dimensions,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
+-
+-    run_elf_files(testname)
+-    wait_for_tensix_operations_finished()
++    run_test(test_config)
+ 
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+
+File: tests/python_tests/test_profiler_overhead.py
+@@ -4,11 +4,8 @@
+ import pytest
+ 
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+-from helpers.device import (
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+-)
+-from helpers.profiler import Profiler, build_with_profiler
++from helpers.profiler import Profiler
++from helpers.test_config import ProfilerBuild, run_test
+ 
+ 
+ def get_expected_overhead():
+@@ -27,10 +24,7 @@ def test_profiler_overhead():
+         "testname": "profiler_overhead_test",
+     }
+ 
+-    build_with_profiler(test_config)
+-
+-    run_elf_files("profiler_overhead_test")
+-    wait_for_tensix_operations_finished()
++    run_test(test_config, profiler_build=ProfilerBuild.Yes)
+ 
+     runtime = Profiler.get_data(test_config["testname"])
+ 
+
+File: tests/python_tests/test_profiler_primitives.py
+@@ -2,11 +2,8 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ 
+-from helpers.device import (
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+-)
+-from helpers.profiler import Profiler, build_with_profiler
++from helpers.profiler import Profiler
++from helpers.test_config import ProfilerBuild, run_test
+ 
+ 
+ def assert_marker(
+@@ -32,10 +29,7 @@ def test_profiler_primitives():
+         "testname": "profiler_primitives_test",
+     }
+ 
+-    build_with_profiler(test_config)
+-
+-    run_elf_files("profiler_primitives_test")
+-    wait_for_tensix_operations_finished()
++    run_test(test_config, profiler_build=ProfilerBuild.Yes)
+ 
+     runtime = Profiler.get_data(test_config["testname"])
+ 
+
+File: tests/python_tests/test_reduce.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import (
+@@ -26,9 +24,9 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
++from helpers.test_config import run_test
+ from helpers.tilize_untilize import untilize
+-from helpers.utils import passed_test, run_shell_command
++from helpers.utils import passed_test
+ 
+ # Helper dictionary to map reduce dimensions to math operations
+ mathop_mapping = {
+@@ -111,11 +109,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+         "mathop": mathop,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
+-
+-    run_elf_files(testname)
+-    wait_for_tensix_operations_finished()
++    run_test(test_config)
+ 
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -7,8 +7,6 @@
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict
+@@ -21,8 +19,8 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
+-from helpers.utils import passed_test, run_shell_command
++from helpers.test_config import run_test
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_float_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+@@ -107,11 +105,7 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
+         "unpack_to_dest": unpack_to_dest,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
+-
+-    run_elf_files(testname)
+-    wait_for_tensix_operations_finished()
++    run_test(test_config)
+ 
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+ 
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import (
+@@ -25,9 +23,9 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
++from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import passed_test, run_shell_command
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
+@@ -103,11 +101,8 @@ def test_tilize_calculate_untilize_L1(
+         "tile_cnt": tile_cnt,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
++    run_test(test_config)
+ 
+-    run_elf_files(testname)
+-    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -5,8 +5,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import format_dict
+@@ -19,8 +17,8 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
+-from helpers.utils import passed_test, run_shell_command
++from helpers.test_config import run_test
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+@@ -71,11 +69,7 @@ def test_unpack_tilize(testname, formats):
+         "input_dimensions": input_dimensions,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
+-
+-    run_elf_files(testname)
+-    wait_for_tensix_operations_finished()
++    run_test(test_config)
+ 
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -6,8 +6,6 @@
+ 
+ from helpers.device import (
+     collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import format_dict
+@@ -20,8 +18,8 @@
+     input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+-from helpers.test_config import generate_make_command
+-from helpers.utils import passed_test, run_shell_command
++from helpers.test_config import run_test
++from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
+@@ -82,11 +80,8 @@ def test_unpack_untilze(testname, formats):
+         "input_dimensions": input_dimensions,
+     }
+ 
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
++    run_test(test_config)
+ 
+-    run_elf_files(testname)
+-    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+

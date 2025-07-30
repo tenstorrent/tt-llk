@@ -1,0 +1,13 @@
+PR #198: ci: execute workflow on merge to main
+URL: https://github.com/tenstorrent/tt-llk/pull/198
+
+File: .github/workflows/on-pr.yml
+@@ -1,5 +1,7 @@
+ name: 🛠️ PR Pipeline
+ on:
++  push:
++    branches: ["main"]
+   workflow_dispatch:
+   pull_request:
+     types: [opened, synchronize, reopened, ready_for_review]
+

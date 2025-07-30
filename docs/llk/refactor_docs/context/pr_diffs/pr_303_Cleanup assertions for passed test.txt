@@ -1,0 +1,759 @@
+PR #303: Cleanup assertions for passed test
+URL: https://github.com/tenstorrent/tt-llk/pull/303
+
+File: tests/python_tests/helpers/utils.py
+@@ -2,6 +2,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ import subprocess
++from collections import namedtuple
+ 
+ import numpy as np
+ import torch
+@@ -70,56 +71,123 @@ def format_kernel_list(kernels, as_hex=False):
+     return ",".join(formatter(i) for i in kernels)
+ 
+ 
+-def compare_pcc(golden, calculated, pcc=0.99):
+-    golden = torch.Tensor(golden)
+-    calculated = torch.Tensor(calculated)
++def calculate_pcc(golden, input):
++    """Calculate Pearson Correlation Coefficient between two tensors.
+ 
+-    if golden.dtype != calculated.dtype:
+-        calculated = calculated.type(golden.dtype)
++    Handles special cases like NaN/Inf values and returns correlation coefficient.
++    1.0 indicates perfect correlation, 0.0 indicates no correlation.
+ 
+-    if torch.all(torch.isnan(golden)) and torch.all(torch.isnan(calculated)):
+-        # logger.warning("Both tensors are 'nan'")
+-        return True, 1.0
++    Args:
++        golden: Reference tensor
++        input: Tensor to compare against golden
+ 
+-    if torch.all(torch.isnan(golden)) or torch.all(torch.isnan(calculated)):
+-        # logger.error("One tensor is all nan, the other is not.")
+-        return False, 0.0
++    Returns:
++        float: Pearson correlation coefficient
++    """
++    golden = torch.as_tensor(golden)
++    input = torch.as_tensor(input)
++
++    if golden.dtype != input.dtype:
++        input = input.type(golden.dtype)
++
++    # Handle special cases
++    if torch.all(torch.isnan(golden)) and torch.all(torch.isnan(input)):
++        return 1.0
++
++    if torch.all(torch.isnan(golden)) or torch.all(torch.isnan(input)):
++        return 0.0
+ 
+     # Test if either is completely zero
+-    if torch.any(golden.bool()) != torch.any(calculated.bool()):
+-        # logger.error("One tensor is all zero")
+-        return False, 0.0
+-
+-    # For now, mask all infs and nans so that we check the rest... TODO
+-    golden = golden.clone()
+-    golden[
+-        torch.logical_or(
+-            torch.isnan(golden),
+-            torch.logical_or(torch.isinf(golden), torch.isneginf(golden)),
++    if torch.any(golden.bool()) != torch.any(input.bool()):
++        return 0.0
++
++    # Handle exact equality case
++    if torch.equal(golden, input):
++        return 1.0
++
++    # Mask invalid values (nan/inf)
++    def mask_invalid(x):
++        x = x.clone()
++        mask = torch.logical_or(
++            torch.isnan(x), torch.logical_or(torch.isinf(x), torch.isneginf(x))
+         )
+-    ] = 0
+-    calculated = calculated.clone()
+-    calculated[
+-        torch.logical_or(
+-            torch.isnan(calculated),
+-            torch.logical_or(torch.isinf(calculated), torch.isneginf(calculated)),
+-        )
+-    ] = 0
++        x[mask] = 0
++        return x
+ 
+-    if torch.equal(golden, calculated):
+-        return True, 1.0
++    golden = mask_invalid(golden)
++    input = mask_invalid(input)
+ 
++    # Convert bfloat16 to float32 for correlation calculation
+     if golden.dtype == torch.bfloat16:
+         golden = golden.type(torch.float32)
+-        calculated = calculated.type(torch.float32)
+-    cal_pcc = np.min(
++        input = input.type(torch.float32)
++
++    # Calculate correlation
++    pcc_result = np.min(
+         np.ma.corrcoef(
+             np.ma.masked_invalid(torch.squeeze(golden).detach().numpy()).flatten(),
+-            np.ma.masked_invalid(torch.squeeze(calculated).detach().numpy()).flatten(),
++            np.ma.masked_invalid(torch.squeeze(input).detach().numpy()).flatten(),
+         )
+     )
+ 
+-    if isinstance(cal_pcc, np.ma.core.MaskedConstant):
+-        return True, 1.0
++    if isinstance(pcc_result, np.ma.core.MaskedConstant):
++        return 1.0
++
++    return pcc_result
++
++
++def get_tolerance(output_data_format):
++    if output_data_format in [
++        DataFormat.Float16,
++        DataFormat.Float16_b,
++        DataFormat.Float32,
++        DataFormat.Int32,
++    ]:
++        atol = 0.05
++        rtol = 0.05
++    elif output_data_format == DataFormat.Bfp8_b:
++        atol = 0.1
++        rtol = 0.2
++    else:
++        raise ValueError(f"Unsupported output data format: {output_data_format}")
++
++    return atol, rtol
++
++
++def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16_b):
++
++    Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
++
++    def get_tolerance(output_data_format):
++        tolerances = {
++            DataFormat.Float16: Tolerance(atol=0.05, rtol=0.05),
++            DataFormat.Float16_b: Tolerance(atol=0.05, rtol=0.05),
++            DataFormat.Float32: Tolerance(atol=0.05, rtol=0.05),
++            DataFormat.Int32: Tolerance(atol=0.05, rtol=0.05),
++            DataFormat.Bfp8_b: Tolerance(atol=0.1, rtol=0.2),
++        }
++
++        try:
++            return tolerances[output_data_format]
++        except KeyError:
++            raise ValueError(f"Unsupported output data format: {output_data_format}")
++
++    tolerance = get_tolerance(output_data_format)
++
++    is_close = torch.isclose(
++        golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
++    )
++    is_within_tolerance = torch.all(is_close)
++
++    if not is_within_tolerance:
++        # Find all indices where values differ
++        diff_indices = torch.where(~is_close)[0]
++        print(f"Found {len(diff_indices)} differences:")
++        for idx in diff_indices:
++            print(
++                f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
++            )
++
++    pcc = calculate_pcc(res_tensor, golden_tensor)
+ 
+-    return cal_pcc >= pcc, cal_pcc
++    return is_within_tolerance and (pcc > 0.99)
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -20,7 +20,7 @@
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operand1, format):
+@@ -70,11 +70,13 @@ def test_unary_datacopy(testname, formats, dest_acc):
+     golden = generate_golden(src_A, formats.output_format)
+     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+ 
++    unpack_to_dest = formats.input_format == DataFormat.Float32
++
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+-        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
++        "unpack_to_dest": unpack_to_dest,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -85,13 +87,6 @@ def test_unary_datacopy(testname, formats, dest_acc):
+     res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+     assert len(res_from_L1) == len(golden)
+ 
+-    if formats.output_format in format_dict:
+-        atol = 0.05
+-        rtol = 0.1
+-    else:
+-        atol = 0.2
+-        rtol = 0.1
+-
+     golden_tensor = torch.tensor(
+         golden,
+         dtype=(
+@@ -121,10 +116,4 @@ def test_unary_datacopy(testname, formats, dest_acc):
+         ),
+     )
+ 
+-    for i in range(len(golden)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.99
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -28,7 +28,7 @@
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operation, operand1, data_format):
+@@ -163,21 +163,4 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         ),
+     )
+ 
+-    if formats.output_format in [
+-        DataFormat.Float16_b,
+-        DataFormat.Float16,
+-        DataFormat.Float32,
+-    ]:
+-        atol = 0.05
+-        rtol = 0.1
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.05
+-        rtol = 0.1
+-
+-    for i in range(len(golden)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.99
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_fill_dest.py
+@@ -20,7 +20,7 @@
+ )
+ from helpers.stimuli_generator import flatten_list, generate_stimuli
+ from helpers.test_config import generate_make_command
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operations, operand1, operand2, data_format):
+@@ -113,7 +113,7 @@ def test_fill_dest(testname, formats, dest_acc):
+     for address in pack_addresses:
+         res_from_L1.append(
+             collect_results(formats, tensor_size=len(src_A), address=address)
+-        )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
++        )
+     res_from_L1 = flatten_list(res_from_L1)
+ 
+     assert len(res_from_L1) == len(golden)
+@@ -135,20 +135,4 @@ def test_fill_dest(testname, formats, dest_acc):
+         ),
+     )
+ 
+-    if (
+-        formats.output_format == DataFormat.Float16_b
+-        or formats.output_format == DataFormat.Float16
+-    ):
+-        atol = 0.05
+-        rtol = 0.1
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.99
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_matmul.py
+@@ -21,7 +21,7 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operand1, operand2, data_format, math_fidelity):
+@@ -123,16 +123,4 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+ 
+-    atol = 0.1
+-    rtol = 0.05
+-    if formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.98
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -30,7 +30,7 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_matmul_golden(operand1, operand2, data_format, math_fidelity):
+@@ -187,16 +187,4 @@ def test_matmul_and_unary_sfpu(
+         dtype=(torch_format),
+     )
+ 
+-    atol = 0.1
+-    rtol = 0.05
+-    if formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.98
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -22,23 +22,12 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import compare_pcc, run_shell_command
+-
+-torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operand1, operand2, data_format, math_fidelity):
+     torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+ 
+-    if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
+-        for element in operand2:
+-            element = element.to(torch.int32)
+-            element &= 0xFFFE
+-    if math_fidelity == MathFidelity.LoFi:  # LoFi
+-        for element in operand1:
+-            element = element.to(torch.int32)
+-            element &= 0xFFF8
+-
+     operand1_matrix = operand1.view(32, 32).to(torch_format)
+     operand2_matrix = operand2.view(32, 32).to(torch_format)
+ 
+@@ -130,16 +119,4 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+ 
+-    atol = 0.1
+-    rtol = 0.05
+-    if formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.98
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_matmul_unpack_tilize.py
+@@ -21,7 +21,7 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operand1, operand2, data_format, math_fidelity):
+@@ -127,16 +127,4 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+ 
+-    atol = 0.1
+-    rtol = 0.05
+-    if formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.98
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -26,7 +26,7 @@
+ )
+ from helpers.stimuli_generator import flatten_list, generate_stimuli
+ from helpers.test_config import generate_make_command
+-from helpers.utils import compare_pcc, format_kernel_list, run_shell_command
++from helpers.utils import format_kernel_list, passed_test, run_shell_command
+ 
+ 
+ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+@@ -109,21 +109,22 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     ids=param_ids,
+ )
+ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
++
++    if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
++        pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
++
+     pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt.value
+     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt.value)]
+     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
+ 
+     src_A, src_B = generate_stimuli(
+         formats.input_format, formats.input_format, tile_cnt=tile_cnt
+-    )  # , const_face=True, const_value_A=3, const_value_B=2)
++    )
+     golden = generate_golden(mathop, src_A, src_B, formats.output_format, math_fidelity)
+     write_stimuli_to_l1(
+         src_A, src_B, formats.input_format, formats.input_format, "0,0", tile_cnt
+     )
+ 
+-    if mathop != MathOperation.Elwmul:
+-        math_fidelity = MathFidelity.LoFi
+-
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+@@ -170,17 +171,4 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
+         ),
+     )
+ 
+-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
+-        atol = 0.05
+-        rtol = 0.1
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.99
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -21,9 +21,7 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import untilize
+-from helpers.utils import compare_pcc, run_shell_command
+-
+-torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operand1, data_format):
+@@ -76,7 +74,6 @@ def test_pack_untilize(testname, formats):
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+-        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -99,17 +96,4 @@ def test_pack_untilize(testname, formats):
+         ),
+     )
+ 
+-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
+-        atol = 0.1
+-        rtol = 0.05
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.98
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_reduce.py
+@@ -27,7 +27,7 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import untilize
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ # Helper dictionary to map reduce dimensions to math operations
+ mathop_mapping = {
+@@ -171,19 +171,6 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+     )
+     res_tensor = untilize(res_tensor, formats.output_format)
+ 
+-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
+-        atol = 0.015
+-        rtol = 0.015
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+     run_shell_command(f"cd .. && make clean")
+ 
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.99
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -21,7 +21,7 @@
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operation, operand1, operand2, data_format):
+@@ -96,12 +96,14 @@ def test_all(testname, formats, dest_acc, mathop):
+     golden = generate_golden(mathop, src_A, src_B, formats.output_format)
+     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+ 
++    unpack_to_dest = formats.input_format == DataFormat.Float32
++
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+-        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
++        "unpack_to_dest": unpack_to_dest,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -114,17 +116,6 @@ def test_all(testname, formats, dest_acc, mathop):
+ 
+     assert len(res_from_L1) == len(golden)
+ 
+-    if formats.output_format in [
+-        DataFormat.Float16_b,
+-        DataFormat.Float16,
+-        DataFormat.Float32,
+-    ]:
+-        atol = 0.05
+-        rtol = 0.1
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+     golden_tensor = torch.tensor(
+         golden,
+         dtype=(
+@@ -144,10 +135,4 @@ def test_all(testname, formats, dest_acc, mathop):
+         ),
+     )
+ 
+-    for i in range(len(golden)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.99
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -27,7 +27,7 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+@@ -141,7 +141,7 @@ def test_tilize_calculate_untilize_L1(
+ 
+     res_from_L1 = collect_results(
+         formats, tensor_size=len(src_A), address=buffer_dest_address
+-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
++    )
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(
+@@ -153,17 +153,4 @@ def test_tilize_calculate_untilize_L1(
+         ),
+     )
+ 
+-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
+-        atol = 0.1
+-        rtol = 0.05
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.98
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -20,7 +20,7 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import tilize
+-from helpers.utils import compare_pcc, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operand1, data_format):
+@@ -67,7 +67,6 @@ def test_unpack_tilize(testname, formats):
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+-        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -76,9 +75,7 @@ def test_unpack_tilize(testname, formats):
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+ 
+-    res_from_L1 = collect_results(
+-        formats, tensor_size=len(src_A)
+-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
++    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(
+@@ -90,17 +87,4 @@ def test_unpack_tilize(testname, formats):
+         ),
+     )
+ 
+-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
+-        atol = 0.1
+-        rtol = 0.05
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.98
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -21,9 +21,7 @@
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+ from helpers.tilize_untilize import untilize
+-from helpers.utils import compare_pcc, run_shell_command
+-
+-torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
++from helpers.utils import passed_test, run_shell_command
+ 
+ 
+ def generate_golden(operand1, data_format):
+@@ -70,17 +68,14 @@ def test_unpack_untilze(testname, formats):
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+-        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+-    res_from_L1 = collect_results(
+-        formats, tensor_size=len(src_A)
+-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
++    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(
+@@ -92,17 +87,4 @@ def test_unpack_untilze(testname, formats):
+         ),
+     )
+ 
+-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
+-        atol = 0.1
+-        rtol = 0.05
+-    elif formats.output_format == DataFormat.Bfp8_b:
+-        atol = 0.1
+-        rtol = 0.2
+-
+-    for i in range(len(golden_tensor)):
+-        assert torch.isclose(
+-            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+-        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-
+-    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+-    assert pcc > 0.98
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+

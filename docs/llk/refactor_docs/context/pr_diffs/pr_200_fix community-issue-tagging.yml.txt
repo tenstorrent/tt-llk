@@ -1,0 +1,16 @@
+PR #200: fix community-issue-tagging.yml
+URL: https://github.com/tenstorrent/tt-llk/pull/200
+
+File: .github/workflows/community-issue-tagging.yml
+@@ -1,4 +1,4 @@
+-name: "Community Issue / PR Labeling Workflow""
++name: "Community Issue / PR Labeling Workflow"
+ 
+ on:
+   issues:
+@@ -9,4 +9,3 @@ on:
+ jobs:
+   call-central-workflow:
+     uses: tenstorrent/tt-github-actions/.github/workflows/on-community-issue.yml@main
+-
+

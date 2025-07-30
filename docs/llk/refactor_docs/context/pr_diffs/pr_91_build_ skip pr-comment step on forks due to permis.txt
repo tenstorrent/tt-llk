@@ -1,0 +1,14 @@
+PR #91: build: skip pr-comment step on forks due to permission issues
+URL: https://github.com/tenstorrent/tt-llk/pull/91
+
+File: .github/workflows/pre-commit.yml
+@@ -32,6 +32,8 @@ jobs:
+   pr-comment:
+     name: Post comment on PR
+     runs-on: ubuntu-latest
++    # This job will only run if the PR is not from a fork (can't post comments to forks)
++    if: github.event.pull_request.head.repo.full_name == github.repository
+     steps:
+       - name: Check if comment already exists
+         id: check-comment
+

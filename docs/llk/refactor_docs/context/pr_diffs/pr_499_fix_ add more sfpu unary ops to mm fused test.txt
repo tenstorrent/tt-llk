@@ -1,0 +1,18 @@
+PR #499: fix: add more sfpu unary ops to mm fused test
+URL: https://github.com/tenstorrent/tt-llk/pull/499
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -66,9 +66,12 @@
+     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+     mathop=[
+         MathOperation.Abs,
++        MathOperation.Celu,
+         MathOperation.Cos,
++        MathOperation.Gelu,
+         MathOperation.Log,
+         MathOperation.Reciprocal,
++        MathOperation.Silu,
+         MathOperation.Sin,
+         MathOperation.Sqrt,
+         MathOperation.Square,
+

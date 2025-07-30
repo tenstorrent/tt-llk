@@ -1,0 +1,13 @@
+PR #107: Update setup_external_testing_env.sh to remove unused URL
+URL: https://github.com/tenstorrent/tt-llk/pull/107
+
+File: tests/setup_external_testing_env.sh
+@@ -15,7 +15,6 @@ usage() {
+ REUSE=false
+ CLEAN=false
+ TT_SMI_REPO="https://github.com/tenstorrent/tt-smi"
+-SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.6.0/sfpi-release.tgz"
+ 
+ # Parse arguments
+ while [[ "$#" -gt 0 ]]; do
+

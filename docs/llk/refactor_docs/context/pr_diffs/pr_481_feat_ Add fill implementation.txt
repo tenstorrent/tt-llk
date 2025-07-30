@@ -1,0 +1,202 @@
+PR #481: feat: Add fill implementation
+URL: https://github.com/tenstorrent/tt-llk/pull/481
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -59,6 +59,7 @@ class MathOperation(Enum):
+     Abs = OpSpec("abs", MathOpType.SFPU_UNARY)
+     Celu = OpSpec("celu", MathOpType.SFPU_UNARY)
+     Cos = OpSpec("cosine", MathOpType.SFPU_UNARY)
++    Fill = OpSpec("fill", MathOpType.SFPU_UNARY)
+     Gelu = OpSpec("gelu", MathOpType.SFPU_UNARY)
+     Log = OpSpec("log", MathOpType.SFPU_UNARY)
+     Neg = OpSpec("neg", MathOpType.SFPU_UNARY)
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -356,6 +356,7 @@ def __init__(self):
+             MathOperation.Silu: self._silu,
+             MathOperation.Gelu: self._gelu,
+             MathOperation.Neg: self._neg,
++            MathOperation.Fill: self._fill,
+         }
+         self.data_format = None
+ 
+@@ -440,6 +441,14 @@ def _gelu(self, x):
+         )
+         return torch.nn.functional.gelu(input_tensor).item()
+ 
++    def _fill(self, x):
++        input_tensor = (
++            x
++            if isinstance(x, torch.Tensor)
++            else torch.tensor(x, dtype=format_dict[self.data_format])
++        )
++        return input_tensor.fill_(5).item()
++
+ 
+ @register_golden
+ class EltwiseBinaryGolden(FidelityMasking):
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -66,10 +66,12 @@
+     MathOperation.Silu,
+     MathOperation.Gelu,
+     MathOperation.Neg,
++    MathOperation.Fill,
+ ]
+ 
+ int_ops = [
+     MathOperation.Neg,
++    MathOperation.Fill,
+ ]
+ 
+ float_params = generate_params(
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -99,6 +99,16 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
+                 ckernel::sfpu::_calculate_negative_<APPROX_MODE, iterations>();
+             }
+             break;
++        case SfpuType::fill:
++            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
++            {
++                ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, iterations>(5);
++            }
++            else
++            {
++                ckernel::sfpu::_calculate_fill_<APPROX_MODE, iterations>(5.0f);
++            }
++            break;
+         default:
+             return;
+     }
+
+File: tt_llk_blackhole/common/inc/ckernel_sfpu.h
+@@ -22,6 +22,7 @@
+ #include "sfpu/ckernel_sfpu_cumsum.h"
+ #include "sfpu/ckernel_sfpu_dropout.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
++#include "sfpu/ckernel_sfpu_fill.h"
+ #include "sfpu/ckernel_sfpu_gelu.h"
+ #include "sfpu/ckernel_sfpu_hardtanh.h"
+ #include "sfpu/ckernel_sfpu_is_fp16_zero.h"
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_fill.h
+@@ -0,0 +1,52 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel_ops.h"
++#include "ckernel_sfpu_converter.h"
++#include "ckernel_sfpu_load_config.h"
++
++namespace ckernel::sfpu
++{
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_fill_(const float value)
++{
++    // SFPU microcode
++    sfpi::vFloat fill_val = value;
++
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::dst_reg[0] = fill_val;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_fill_int_(const int value)
++{
++    // SFPU microcode
++    sfpi::vInt fill_val = value;
++
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::dst_reg[0] = fill_val;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_fill_bitcast_(const uint32_t value_bit_mask)
++{
++    // SFPU microcode
++    sfpi::vFloat fill_val = Converter::as_float(value_bit_mask);
++
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::dst_reg[0] = fill_val;
++        sfpi::dst_reg++;
++    }
++}
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h
+@@ -22,6 +22,7 @@
+ #include "sfpu/ckernel_sfpu_cumsum.h"
+ #include "sfpu/ckernel_sfpu_dropout.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
++#include "sfpu/ckernel_sfpu_fill.h"
+ #include "sfpu/ckernel_sfpu_gelu.h"
+ #include "sfpu/ckernel_sfpu_hardtanh.h"
+ #include "sfpu/ckernel_sfpu_is_fp16_zero.h"
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_fill.h
+@@ -0,0 +1,52 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel_ops.h"
++#include "ckernel_sfpu_converter.h"
++#include "ckernel_sfpu_load_config.h"
++
++namespace ckernel::sfpu
++{
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_fill_(const float value)
++{
++    // SFPU microcode
++    sfpi::vFloat fill_val = value;
++
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::dst_reg[0] = fill_val;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_fill_int_(const uint value)
++{
++    // SFPU microcode
++    _sfpu_load_imm32_(p_sfpu::LREG1, value);
++
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_fill_bitcast_(const uint32_t value_bit_mask)
++{
++    // SFPU microcode
++    sfpi::vFloat fill_val = Converter::as_float(value_bit_mask);
++
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::dst_reg[0] = fill_val;
++        sfpi::dst_reg++;
++    }
++}
++} // namespace ckernel::sfpu
+

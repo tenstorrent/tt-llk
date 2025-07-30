@@ -1,0 +1,104 @@
+PR #277: ci: publish test results on GH
+URL: https://github.com/tenstorrent/tt-llk/pull/277
+
+File: .github/workflows/on-pr.yml
+@@ -9,9 +9,10 @@ on:
+   merge_group:
+ 
+ permissions:
+-  contents: write
+-  pull-requests: write
++  checks: write
++  contents: read
+   packages: write
++  pull-requests: write
+ 
+ concurrency:
+   # Use github.run_id on main branch (or any protected branch)
+@@ -57,6 +58,33 @@ jobs:
+               github:
+                 - '.github/**'
+ 
++  label-pr:
++    name: "🏷️ Label PR"
++    runs-on: ubuntu-latest
++    needs: detect-changes
++    if: |
++      github.event_name == 'pull_request' &&
++      github.event.pull_request.head.repo.full_name == github.repository
++    steps:
++      - name: Add labels based on changes
++        uses: actions/github-script@v7
++        with:
++          github-token: ${{ secrets.GITHUB_TOKEN }}
++          script: |
++            const labels = [];
++            if ("${{ needs.detect-changes.outputs.blackhole }}" === "true") labels.push("blackhole");
++            if ("${{ needs.detect-changes.outputs.wormhole }}" === "true") labels.push("wormhole");
++            if ("${{ needs.detect-changes.outputs.tests }}" === "true") labels.push("test-infra");
++            if ("${{ needs.detect-changes.outputs.github }}" === "true") labels.push("ci");
++            if (labels.length > 0) {
++              await github.rest.issues.addLabels({
++                owner: context.repo.owner,
++                repo: context.repo.repo,
++                issue_number: context.issue.number,
++                labels
++              });
++            }
++
+   build-images:
+     name: "🐳️ Docker setup"
+     uses: ./.github/workflows/build-images.yml
+
+File: .github/workflows/setup-and-test.yml
+@@ -16,6 +16,9 @@ on:
+         required: true
+         type: string
+ 
++permissions:
++  checks: write
++
+ jobs:
+   setup-and-test:
+     runs-on: ${{ inputs.runs_on }}
+@@ -47,16 +50,32 @@ jobs:
+         env:
+           TEST_GROUPS: ${{ inputs.test_group }}
+         run: |
+-          # Parse the JSON string into an array to get its length
++          CHIP_ARCH=unknown
++          if [[ "${{ inputs.runs_on }}" =~ n150 ]]; then
++            CHIP_ARCH=wormhole
++          elif [[ "${{ inputs.runs_on }}" =~ p150 ]]; then
++            CHIP_ARCH=blackhole
++          fi
++          echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
+           SPLITS=$(echo "$TEST_GROUPS" | jq '. | length')
+           cd tests/python_tests/
+           pytest --splits $SPLITS --group ${{ matrix.test_group }} \
+-                 --override-ini="addopts=-v" --timeout=60 .
++                --override-ini="addopts=-v" --timeout=60 \
++                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+ 
+-      # Step 4: Upload test log as an artifact
+-      - name: Upload logs if tests fail
+-        if: failure()  # Only upload the log if the previous step failed
++      # Step 4: Upload the JUnit report
++      - name: Upload JUnit report
+         uses: actions/upload-artifact@v4
++        if: always()
++        with:
++          name: junit-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
++          path: tests/python_tests/pytest-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.xml
++
++      # Step 5: Publish the test results
++      - name: Publish Test Results
++        uses: mikepenz/action-junit-report@v5
++        if: always()
+         with:
+-          name: test-log
+-          path: tests/python_tests/pytest_errors_${{ matrix.test_group }}.log
++          report_paths: tests/python_tests/pytest-report-*-${{ matrix.test_group }}.xml
++          include_passed: true
++          annotate_only: true
+

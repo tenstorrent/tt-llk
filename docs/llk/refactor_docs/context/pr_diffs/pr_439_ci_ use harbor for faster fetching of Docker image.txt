@@ -1,0 +1,14 @@
+PR #439: ci: use harbor for faster fetching of Docker images
+URL: https://github.com/tenstorrent/tt-llk/pull/439
+
+File: .github/workflows/setup-and-test.yml
+@@ -28,7 +28,7 @@ jobs:
+       matrix:
+         test_group: ${{ fromJSON(inputs.test_group) }}
+     container:
+-      image: ${{ inputs.docker_image }}
++      image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
+       options: "--rm --device /dev/tenstorrent"
+     name: "🦄 Run tests (group ${{ matrix.test_group }}${{ fromJSON(inputs.test_group).length }})"
+     steps:
+

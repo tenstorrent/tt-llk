@@ -1,0 +1,76 @@
+PR #191: ci: run wormhole tests on n300
+URL: https://github.com/tenstorrent/tt-llk/pull/191
+
+File: .github/workflows/on-pr.yml
+@@ -51,8 +51,8 @@ jobs:
+     needs: pre-commit
+     secrets: inherit
+ 
+-  setup-and-test-wormhole:
+-    name: "🌀 Perform checks (Wormhole)"
++  setup-and-test-wormhole-n150:
++    name: "🌀 Perform checks (Wormhole N150)"
+     uses: ./.github/workflows/setup-and-test.yml
+     needs: [build-images, detect-changes]
+     if: ${{ needs.detect-changes.outputs.wormhole == 'true' ||
+@@ -63,6 +63,19 @@ jobs:
+       runs_on: tt-beta-ubuntu-2204-n150-large-stable
+       test_group: "[1, 2, 3, 4, 5]"
+ 
++  setup-and-test-wormhole-n300:
++    name: "🌀 Perform checks (Wormhole N300)"
++    uses: ./.github/workflows/setup-and-test.yml
++    needs: [build-images, detect-changes]
++    if: ${{ needs.detect-changes.outputs.wormhole == 'true' ||
++            needs.detect-changes.outputs.tests == 'true' ||
++            needs.detect-changes.outputs.github == 'true' }}
++    with:
++      docker_image: ${{ needs.build-images.outputs.docker-image }}
++      runs_on: tt-beta-ubuntu-2204-n300-large-stable
++      test_group: "[1, 2, 3, 4, 5]"
++      volume: "/dev/hugepages"
++
+   setup-and-test-blackhole:
+     name: "🕳️ Perform checks (Blackhole)"
+     uses: ./.github/workflows/setup-and-test.yml
+@@ -81,12 +94,13 @@ jobs:
+     needs:
+       - pre-commit
+       - build-images
+-      - setup-and-test-wormhole
++      - setup-and-test-wormhole-n150
++      - setup-and-test-wormhole-n300
+       - setup-and-test-blackhole
+     runs-on: ubuntu-latest
+     steps:
+       - name: Check if the required jobs succeeded or failed
+         uses: re-actors/alls-green@release/v1
+         with:
+           jobs: ${{ toJSON(needs) }}
+-          allowed-skips: setup-and-test-wormhole, setup-and-test-blackhole
++          allowed-skips: setup-and-test-wormhole-n150, setup-and-test-wormhole-n300, setup-and-test-blackhole
+
+File: .github/workflows/setup-and-test.yml
+@@ -15,6 +15,10 @@ on:
+         description: "Array of test groups. Pass the array as a JSON string (e.g., '[1, 2, 3, 4, 5]')"
+         required: true
+         type: string
++      volume:
++        description: "Volumes to mount"
++        required: false
++        type: string
+ 
+ jobs:
+   setup-and-test:
+@@ -26,7 +30,9 @@ jobs:
+         test_group: ${{ fromJSON(inputs.test_group) }}
+     container:
+       image: ${{ inputs.runs_on != 'P150' && 'harbor.ci.tenstorrent.net/' || '' }}${{ inputs.docker_image }}
+-      options: "--rm --device /dev/tenstorrent"
++      options: |
++        --rm --device /dev/tenstorrent
++        ${{ inputs.volumes && format('--volume {}', inputs.volumes) || '' }}
+     name: "🦄 Run tests (group ${{ matrix.test_group }}${{ fromJSON(inputs.test_group).length }})"
+     steps:
+       # Step 1: Checkout the repository
+

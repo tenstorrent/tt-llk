@@ -1,0 +1,1340 @@
+PR #360: Replace TTI_REPLAY with lltt::record, lltt::replay
+URL: https://github.com/tenstorrent/tt-llk/pull/360
+
+File: tests/Makefile
+@@ -40,7 +40,7 @@ OPTIONS_ALL	:= -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
+ OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-rtti -Werror \
+ 				   -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses \
+ 				   -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE \
+-				   $(ARCH_DEFINE)
++				   $(ARCH_DEFINE) -DCOMPILE_FOR_TRISC=
+ OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
+ 
+ INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
+
+File: tt_llk_blackhole/common/inc/ckernel.h
+@@ -10,6 +10,14 @@
+ // MT: This should be dissolved and moved to the appropriate place
+ #include "tensix.h"
+ 
++// This header is included on non-trisc builds, for reasons
++// unknown. lltt is only available on trisc
++#if defined(COMPILE_FOR_TRISC)
++#include <utility>
++
++#include "lltt.h"
++#endif
++
+ // Compiler hint that a branch is unlikely to be taken
+ #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
+ #define UNROLL_LOOP(factor) GCC unroll factor
+@@ -667,34 +675,21 @@ inline void enable_gathering()
+     asm("csrrc zero, 0x7c0, %0" : : "r"(1 << 18));
+ }
+ 
+-// Pass a lambda function (or a regular function pointer) that takes void,
+-// returns void, and issues the instructions you want to load into the
+-// replay buffer. start, len, and exec_while_loading have the same meaning
+-// as they do for the REPLAY instruction, as descired in assembly.yaml.
+-template <uint start, uint len, bool exec_while_loading = false, typename F>
+-inline void load_replay_buf(F fn)
++#if defined(COMPILE_FOR_TRISC)
++// Place instructions into the replay buffer. EXEC is true to execute
++// when loading (default is false). START is where to place in the
++// replay buffer, and LEN is the number of instructions to record
++// (should match the expansion of CALLABLE). CALLABLE is a callable,
++// to which ARGS are forwarded.
++// When we move to c++23 we can use 'using enum lltt::ExecBool;'
++enum ExecBool : bool
+ {
+-    // ENABLE_GATHERING is controlled by JIT build.
+-    // Not enabled by default due to tt-metal#16439.
+-#if defined(ENABLE_GATHERING)
+-    disable_gathering();
+-#endif
+-
+-    // Issue instruction to load replay buffer
+-    TTI_REPLAY(start, len, exec_while_loading, 1);
+-
+-    // Send in the user's desired instructions
+-    fn();
+-
+-#if defined(ENABLE_GATHERING)
+-    enable_gathering();
+-#endif
+-}
++    NoExec,
++    Exec
++};
+ 
+-// Same as above, but used if start/len/exec_while_loading are not known
+-// at compiletime.
+-template <typename F>
+-inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
++template <ExecBool Exec = NoExec, typename Callable, typename... Args>
++[[gnu::always_inline, gnu::flatten]] inline void load_replay_buf(uint start, uint len, Callable &&callable, Args &&...args)
+ {
+     // ENABLE_GATHERING is controlled by JIT build.
+     // Not enabled by default due to tt-metal#16439.
+@@ -703,15 +698,16 @@ inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
+ #endif
+ 
+     // Issue instruction to load replay buffer
+-    TTI_REPLAY(start, len, exec_while_loading, 1);
++    lltt::record<lltt::ExecBool(Exec)>(start, len);
+ 
+     // Send in the user's desired instructions
+-    fn();
++    callable(std::forward<Args>(args)...);
+ 
+ #if defined(ENABLE_GATHERING)
+     enable_gathering();
+ #endif
+ }
++#endif // defined(COMPILE_FOR_TRISC)
+ 
+ enum class CSR : uint16_t
+ {
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_cumsum.h
+@@ -32,7 +32,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(3, 0, ADDR_MOD_7, 2 + 16);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(0, 8, 0, 0);
++    lltt::replay(0, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(0, 0, ADDR_MOD_7, 0);
+@@ -47,7 +47,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(7, 0, ADDR_MOD_7, 6 + 16);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(8, 8, 0, 0);
++    lltt::replay(8, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(4, 0, ADDR_MOD_7, 4);
+@@ -62,7 +62,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(3, 0, ADDR_MOD_7, 10 + 16);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(0, 8, 0, 0);
++    lltt::replay(0, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(0, 0, ADDR_MOD_7, 8);
+@@ -77,7 +77,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(7, 0, ADDR_MOD_7, 14 + 16);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(8, 8, 0, 0);
++    lltt::replay(8, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(4, 0, ADDR_MOD_7, 12);
+@@ -92,7 +92,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(3, 0, ADDR_MOD_7, 2 + 16 + 32);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(0, 8, 0, 0);
++    lltt::replay(0, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(0, 0, ADDR_MOD_7, 0 + 32);
+@@ -107,7 +107,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(7, 0, ADDR_MOD_7, 6 + 16 + 32);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(8, 8, 0, 0);
++    lltt::replay(8, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(4, 0, ADDR_MOD_7, 4 + 32);
+@@ -122,7 +122,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(3, 0, ADDR_MOD_7, 10 + 16 + 32);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(0, 8, 0, 0);
++    lltt::replay(0, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(0, 0, ADDR_MOD_7, 8 + 32);
+@@ -137,7 +137,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(7, 0, ADDR_MOD_7, 14 + 16 + 32);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(8, 8, 0, 0);
++    lltt::replay(8, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(4, 0, ADDR_MOD_7, 12 + 32);
+@@ -149,7 +149,9 @@ inline void _calculate_cumsum_(const bool first)
+ template <bool APPROXIMATION_MODE /*unused*/>
+ inline void _cumsum_init_()
+ {
+-    load_replay_buf<0, 16, 0>(
++    load_replay_buf(
++        0,
++        16,
+         []
+         {
+             TTI_SFPADD(10, 7, 0, 0, 0);
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h
+@@ -9,6 +9,7 @@
+ #include "ckernel_instr_params.h"
+ #include "ckernel_ops.h"
+ #include "ckernel_sfpu_load_config.h"
++#include "lltt.h"
+ #include "sfpi.h"
+ 
+ namespace ckernel
+@@ -138,10 +139,9 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
+ 
+     if (init_replay)
+     {
+-        load_replay_buf(
++        load_replay_buf<Exec>(
+             replay_start,
+             5,
+-            1,
+             []
+             {
+                 // Step 4
+@@ -158,10 +158,10 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
+     }
+     else
+     {
+-        TTI_REPLAY(replay_start, 5, 0, 0);
++        lltt::replay(replay_start, 5);
+     }
+ 
+-    TTI_REPLAY(replay_start, 5, 0, 0);
++    lltt::replay(replay_start, 5);
+ 
+     if (dir == (bool)SortDir::ArgMin)
+     {
+@@ -294,72 +294,72 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
+                             // Groups of 16 datums being sorted at the same time
+                             if (init_load)
+                             {
+-                                load_replay_buf<0, 8, true>([] { bitonic_topk_load16(4, 8); });
++                                load_replay_buf<Exec>(0, 8, [] { bitonic_topk_load16(4, 8); });
+                                 init_load = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(0, 8, 0, 0);
++                                lltt::replay(0, 8);
+                             }
+                             if (init_phase)
+                             {
+-                                load_replay_buf<16, 5, true>([] { bitonic_topk_ph0_st1_to_1(); });
++                                load_replay_buf<Exec>(16, 5, [] { bitonic_topk_ph0_st1_to_1(); });
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(16, 5, 0, 0);
++                                lltt::replay(16, 5);
+                             }
+                             if (init_store)
+                             {
+-                                load_replay_buf<8, 8, true>([] { bitonic_topk_store16<true>(4, 8); });
++                                load_replay_buf<Exec>(8, 8, [] { bitonic_topk_store16<true>(4, 8); });
+                                 init_store = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(8, 8, 0, 0);
++                                lltt::replay(8, 8);
+                             }
+                         }
+                         break;
+                     case 1:
+                         for (int d = 0; d < 4; d++)
+                         {
+                             // Groups of 16 datums being sorted at the same time
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             if (init_phase)
+                             {
+-                                load_replay_buf<16, 6, true>([] { bitonic_topk_ph1_st2_to_1(); });
++                                load_replay_buf<Exec>(16, 6, [] { bitonic_topk_ph1_st2_to_1(); });
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(16, 6, 0, 0);
++                                lltt::replay(16, 6);
+                             }
+-                            TTI_REPLAY(8, 8, 0, 0);
++                            lltt::replay(8, 8);
+                         }
+                         break;
+                     case 2:
+                         for (int d = 0; d < 4; d++)
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             if (init_phase)
+                             {
+-                                load_replay_buf<16, 9, true>([] { bitonic_topk_ph2_st3_to_1(); });
++                                load_replay_buf<Exec>(16, 9, [] { bitonic_topk_ph2_st3_to_1(); });
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(16, 9, 0, 0);
++                                lltt::replay(16, 9);
+                             }
+-                            TTI_REPLAY(8, 8, 0, 0);
++                            lltt::replay(8, 8);
+                         }
+                         break;
+                     case 3:
+                         for (int d = 0; d < 4; d++)
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
+-                            TTI_REPLAY(8, 8, 0, 0);
++                            lltt::replay(8, 8);
+                             dir = !dir;
+                         }
+                         break;
+@@ -412,9 +412,9 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
+                         datums_compared = 0;
+                         while (datums_compared < total_datums_to_compare)
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
+-                            TTI_REPLAY(8, 8, 0, 0);
++                            lltt::replay(8, 8);
+                             datums_compared += 16;
+                             dir = (datums_compared == sorted_seq_length) ? !dir : dir;
+                         }
+@@ -513,7 +513,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             // Groups of 8 datums being sorted at the same time
+                             if (init_rebuild)
+                             {
+-                                load_replay_buf<0, 22, true>(
++                                load_replay_buf<Exec>(
++                                    0,
++                                    22,
+                                     [ld_offset]
+                                     {
+                                         bitonic_topk_load8(0, ld_offset);
+@@ -525,7 +527,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(0, 22, 0, 0);
++                                lltt::replay(0, 22);
+                             }
+                             datums_compared += 16;
+                         }
+@@ -539,7 +541,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             // Groups of 16 datums being sorted at the same time
+                             if (init_rebuild)
+                             {
+-                                load_replay_buf<0, 26, true>(
++                                load_replay_buf<Exec>(
++                                    0,
++                                    26,
+                                     [ld_offset, ld_dist]
+                                     {
+                                         bitonic_topk_load16(ld_offset, ld_dist);
+@@ -554,7 +558,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(0, 26, 0, 0);
++                                lltt::replay(0, 26);
+                             }
+                             datums_compared += 16;
+                         }
+@@ -566,7 +570,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         // Groups of 16 datums being sorted at the same time
+                         if (init_rebuild)
+                         {
+-                            load_replay_buf<0, 29, true>(
++                            load_replay_buf<Exec>(
++                                0,
++                                29,
+                                 [ld_offset]
+                                 {
+                                     bitonic_topk_load16(4, ld_offset);
+@@ -581,7 +587,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         }
+                         else
+                         {
+-                            TTI_REPLAY(0, 29, 0, 0);
++                            lltt::replay(0, 29);
+                         }
+                         datums_compared += 16;
+                     }
+@@ -592,9 +598,11 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         // Groups of 16 datums being sorted at the same time
+                         if (init_rebuild)
+                         {
+-                            load_replay_buf<0, 8, true>([] { bitonic_topk_load16(4, 8); });
++                            load_replay_buf<Exec>(0, 8, [] { bitonic_topk_load16(4, 8); });
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            load_replay_buf<13, 12, true>(
++                            load_replay_buf<Exec>(
++                                13,
++                                12,
+                                 []
+                                 {
+                                     bitonic_topk_store16<true>(4, 8);
+@@ -606,9 +614,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         }
+                         else
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TTI_REPLAY(13, 12, 0, 0);
++                            lltt::replay(13, 12);
+                         }
+                         datums_compared += 16;
+                         dir = !dir;
+@@ -664,15 +672,15 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                     {
+                         if (init_rebuild)
+                         {
+-                            load_replay_buf<0, 8, true>([] { bitonic_topk_load16(4, 8); });
++                            load_replay_buf<Exec>(0, 8, [] { bitonic_topk_load16(4, 8); });
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            load_replay_buf<13, 8, true>([] { bitonic_topk_store16<true>(4, 8); });
++                            load_replay_buf<Exec>(13, 8, [] { bitonic_topk_store16<true>(4, 8); });
+                         }
+                         else
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TTI_REPLAY(13, 8, 0, 0);
++                            lltt::replay(13, 8);
+                         }
+                         datums_compared += 16;
+                         dir = (datums_compared == sorted_seq_length) ? !dir : dir;
+
+File: tt_llk_blackhole/llk_lib/llk_math_matmul.h
+@@ -314,7 +314,6 @@ inline void matmul_configure_mop(
+     load_replay_buf(
+         ckernel::math::replay_buf_offset,
+         replay_buf_len,
+-        false,
+         // Lambda function to load reply buffer
+         [high_fidelity, reuse_a, partial_face, is_in1_32x16, is_in0_16x32, is_in0_32x16, is_in1_16x32, t_dim]
+         {
+@@ -405,7 +404,7 @@ inline void matmul_configure_mop(
+ 
+     // TODO: can we commonize this?
+     constexpr uint inner_loops = high_fidelity ? NUM_FIDELITY_PHASES : 1;
+-    ckernel_template tmp(1 /* outer loop */, inner_loops, TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0));
++    ckernel_template tmp(1 /* outer loop */, inner_loops, lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buf_len));
+ 
+     if constexpr (high_fidelity)
+     {
+@@ -556,7 +555,6 @@ inline void matmul_configure_mop_throttled(
+     load_replay_buf(
+         ckernel::math::replay_buf_offset,
+         replay_buf_len,
+-        false,
+         // Lambda function to load reply buffer
+         [is_in1_32x16, is_in1_16x32, is_in0_32x16, is_in0_16x32]
+         {
+@@ -572,7 +570,7 @@ inline void matmul_configure_mop_throttled(
+     ckernel_template tmp(
+         outer_loops,
+         inner_loops,
+-        TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0),
++        lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buf_len),
+         TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, addr_mod_inner_loop, 0));
+ 
+     if (!is_in1_32x16 && !is_in1_16x32 && !is_in0_32x16 && !is_in0_16x32)
+
+File: tt_llk_blackhole/llk_lib/llk_math_transpose_dest.h
+@@ -99,7 +99,9 @@ inline void transpose_dest_configure_mop()
+ {
+     if (is_32bit)
+     {
+-        load_replay_buf<16, 16, false>(
++        load_replay_buf(
++            16,
++            16,
+             []
+             {
+ #pragma GCC unroll 2
+@@ -143,9 +145,9 @@ inline void transpose_dest_configure_mop()
+         TTI_SFPCONFIG(0x330, 8, 1);
+ 
+         // A 32b face transpose consists of: (movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, movb2d_lo).
+-        uint movd2b_hi        = TT_OP_REPLAY(16, 4, 0, 0);
+-        uint movb2d_hi_d2b_lo = TT_OP_REPLAY(20, 8, 0, 0);
+-        uint movb2d_lo        = TT_OP_REPLAY(28, 4, 0, 0);
++        uint movd2b_hi        = lltt::replay_insn(16, 4);
++        uint movb2d_hi_d2b_lo = lltt::replay_insn(20, 8);
++        uint movb2d_lo        = lltt::replay_insn(28, 4);
+         uint transpose        = TT_OP_TRNSPSRCB;
+ 
+         // Macro 0: SFPLOAD LReg[1], 16 (addr_mod_1); SFPMOV LReg[16],LReg[1]; SFPSTORE LReg[0].
+@@ -164,7 +166,9 @@ inline void transpose_dest_configure_mop()
+     }
+     else
+     {
+-        load_replay_buf<16, 15, false>(
++        load_replay_buf(
++            16,
++            15,
+             []
+             {
+                 // ABCD
+@@ -197,13 +201,13 @@ inline void transpose_dest_configure_mop()
+         // Face 3: 4x MOVD2B, TRNSPSRCB, 4x MOVB2D, dst += 16 (EFGHIJKLM..)
+         // Face 1: 2x MOVA2D (2x dst -= 16) (..NO)
+ 
+-        uint EFGHIJKLM   = TT_OP_REPLAY(20, 9, 0, 0);
+-        uint EFGHI       = TT_OP_REPLAY(20, 5, 0, 0);
+-        uint ABCDEFG     = TT_OP_REPLAY(16, 7, 0, 0);
++        uint EFGHIJKLM   = lltt::replay_insn(20, 9);
++        uint EFGHI       = lltt::replay_insn(20, 5);
++        uint ABCDEFG     = lltt::replay_insn(16, 7);
+         uint P           = TT_OP_MOVD2B(0, 28, ADDR_MOD_2, p_movd2b::MOV_4_ROWS, 12); // dst -= 16
+-        uint IJKL        = TT_OP_REPLAY(24, 4, 0, 0);
++        uint IJKL        = lltt::replay_insn(24, 4);
+         uint Q           = TT_OP_MOVB2D(0, 28, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 12); // dst += 32
+-        uint EFGHIJKLMNO = TT_OP_REPLAY(20, 11, 0, 0);
++        uint EFGHIJKLMNO = lltt::replay_insn(20, 11);
+ 
+         // The following MOP config simply runs the above 7 instructions in order (when executed with zmask 0b10):
+         ckernel_unpack_template tmp(true, true, EFGHIJKLM, EFGHI, ABCDEFG, P, /* skip A */ Q, /* B */ IJKL, /* skip B */ EFGHIJKLMNO);
+
+File: tt_llk_blackhole/llk_lib/llk_pack.h
+@@ -152,7 +152,6 @@ inline void _llk_pack_mop_config_(
+         load_replay_buf(
+             0,
+             replay_buf_len,
+-            false,
+             // Lambda function to set up replay buffer
+             []
+             {
+@@ -361,7 +360,7 @@ inline void _llk_pack_mop_config_(
+         ckernel::ckernel_template tmp(
+             MOP_OUTER_LOOP,
+             MOP_INNER_LOOP,
+-            TT_OP_REPLAY(0, replay_buf_len, 0, 0),
++            lltt::replay_insn(0, replay_buf_len),
+             TT_OP_PACR(
+                 p_pacr::CFG_CTXT_0,
+                 p_pacr::NO_ROW_PAD_ZERO,
+
+File: tt_llk_blackhole/llk_lib/llk_pack_untilize.h
+@@ -94,7 +94,6 @@ inline void _llk_pack_untilize_mop_config_(
+             load_replay_buf(
+                 ckernel::packer::replay_buf_offset,
+                 replay_buf_len,
+-                false,
+                 []
+                 {
+                     // update l1 address
+@@ -105,8 +104,8 @@ inline void _llk_pack_untilize_mop_config_(
+                 });
+ 
+             tmp.set_end_ops(
+-                TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0),                             // inc ch0_y counters
+-                TT_OP_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 0) // update row address
++                TT_OP_INCADCXY(p_setadc::PAC, 0, 0, 1, 0),                            // inc ch0_y counters
++                lltt::replay_insn(ckernel::packer::replay_buf_offset, replay_buf_len) // update row address
+             );
+         }
+         else
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_A.h
+@@ -46,7 +46,7 @@ inline void _llk_unpack_A_mop_config_(
+     static constexpr uint srcb_set_z_2           = TT_OP_NOP;
+     static constexpr uint srcb_clear_z           = TT_OP_NOP;
+     constexpr uint replay_buf_len                = 1;
+-    load_replay_buf<0, 1>([] { TTI_NOP; });
++    load_replay_buf(0, 1, [] { TTI_NOP; });
+ #else
+     static constexpr uint unpack_srca =
+         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+@@ -137,7 +137,9 @@ inline void _llk_unpack_A_mop_config_(
+         {
+ #if SKIP_UNP == 0
+             constexpr uint replay_buf_len = 2;
+-            load_replay_buf<0, replay_buf_len>(
++            load_replay_buf(
++                0,
++                replay_buf_len,
+                 [num_faces]
+                 {
+                     TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+@@ -153,8 +155,8 @@ inline void _llk_unpack_A_mop_config_(
+ #endif
+             const uint32_t outerloop = num_faces < 4 ? 1 : 2;
+             const uint32_t innerloop = num_faces < 2 ? 1 : 2;
+-            ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, replay_buf_len, 0, 0)); // Unpack faces 0/2 && 1/3 to srcA
+-                                                                                               // or 0/1 for 2 face tile
++            ckernel_template tmp(outerloop, innerloop, lltt::replay_insn(0, replay_buf_len)); // Unpack faces 0/2 && 1/3 to srcA
++                                                                                              // or 0/1 for 2 face tile
+             if (num_faces > 2)
+             {
+                 tmp.set_end_op(srca_set_z_1);
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h
+@@ -36,13 +36,12 @@ inline void _llk_unpack_AB_matmul_mop_config_(
+     if (reuse_a)
+     {
+ #if SKIP_UNP == 1
+-        load_replay_buf<0, 1>([] { TTI_NOP; });
++        load_replay_buf(0, 1, [] { TTI_NOP; });
+ #else
+         static_assert(kernel_broadcast_b <= 1, "kernel_broadcast>1 on matmul input 1 is not supported with reuse enabled");
+         load_replay_buf(
+             0,
+             replay_buf_prog_len,
+-            false,
+             // Lambda function to set up replay buffer
+             [unpA_partial_face]
+             {
+@@ -111,13 +110,12 @@ inline void _llk_unpack_AB_matmul_mop_config_(
+     else
+     {
+ #if SKIP_UNP == 1
+-        load_replay_buf<0, 1>([] { TTI_NOP; });
++        load_replay_buf(0, 1, [] { TTI_NOP; });
+ #else
+         static_assert(kernel_broadcast_a <= 1, "kernel_broadcast>1 on matmul input 0 is not supported with reuse enabled");
+         load_replay_buf(
+             0,
+             replay_buf_prog_len,
+-            false,
+             // Lambda function to set up replay buffer
+             [unpB_partial_face]
+             {
+@@ -185,13 +183,13 @@ inline void _llk_unpack_AB_matmul_mop_config_(
+     }
+ 
+     ckernel_unpack_template tmp = ckernel_unpack_template(
+-        false,                                     // src B
+-        false,                                     // halo - just used for 4 unpacks
+-        TT_OP_REPLAY(0, replay_buf_run_len, 0, 0), // runs when context is 0
++        false,                                    // src B
++        false,                                    // halo - just used for 4 unpacks
++        lltt::replay_insn(0, replay_buf_run_len), // runs when context is 0
+         0,
+         0,
+         0,
+-        TT_OP_REPLAY(replay_buf_run_len, replay_buf_run_len, 0, 0), // runs when context is 1
++        lltt::replay_insn(replay_buf_run_len, replay_buf_run_len), // runs when context is 1
+         0,
+         0);
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_tilize.h
+@@ -224,7 +224,6 @@ inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, co
+     load_replay_buf(
+         0,
+         replay_buf_run_len,
+-        false,
+         []
+         {
+             // Unpacks 1x16 row of datums to SrcA
+@@ -243,13 +242,13 @@ inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, co
+         });
+ 
+     ckernel_unpack_template tmp = ckernel_unpack_template(
+-        false,                                      // src B
+-        false,                                      // halo - just used for 4 unpacks
+-        TT_OP_REPLAY(0, replay_buf_half_len, 0, 0), // runs when context is 0
++        false,                                     // src B
++        false,                                     // halo - just used for 4 unpacks
++        lltt::replay_insn(0, replay_buf_half_len), // runs when context is 0
+         0,
+         0,
+         0,
+-        TT_OP_REPLAY(replay_buf_half_len, replay_buf_half_len, 0, 0), // runs when context is 1
++        lltt::replay_insn(replay_buf_half_len, replay_buf_half_len), // runs when context is 1
+         0,
+         0);
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_untilize.h
+@@ -26,7 +26,6 @@ inline void _llk_unpack_untilize_mop_config_()
+     load_replay_buf(
+         0,
+         replay_buf_len,
+-        false,
+         // Lambda function to set up replay buffer
+         []
+         {
+@@ -55,11 +54,11 @@ inline void _llk_unpack_untilize_mop_config_()
+     ckernel_unpack_template tmp = ckernel_unpack_template(
+         true,  // src B
+         false, // halo - just used for 4 unpacks
+-        TT_OP_REPLAY(0, replay_buf_len, 0, 0),
++        lltt::replay_insn(0, replay_buf_len),
+         0,
+         0,
+         0,
+-        TT_OP_REPLAY(0, replay_buf_len, 0, 0),
++        lltt::replay_insn(0, replay_buf_len),
+         load_offset_addr_cntx0,
+         load_offset_addr_cntx1);
+     tmp.program(instrn_buffer);
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_cumsum.h
+@@ -5,6 +5,7 @@
+ #pragma once
+ 
+ #include "ckernel_ops.h"
++#include "lltt.h"
+ #include "sfpi.h"
+ 
+ namespace ckernel
+@@ -31,7 +32,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(3, 0, ADDR_MOD_3, 2 + 16);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(0, 8, 0, 0);
++    lltt::replay(0, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(0, 0, ADDR_MOD_3, 0);
+@@ -46,7 +47,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(7, 0, ADDR_MOD_3, 6 + 16);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(8, 8, 0, 0);
++    lltt::replay(8, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(4, 0, ADDR_MOD_3, 4);
+@@ -61,7 +62,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(3, 0, ADDR_MOD_3, 10 + 16);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(0, 8, 0, 0);
++    lltt::replay(0, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(0, 0, ADDR_MOD_3, 8);
+@@ -76,7 +77,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(7, 0, ADDR_MOD_3, 14 + 16);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(8, 8, 0, 0);
++    lltt::replay(8, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(4, 0, ADDR_MOD_3, 12);
+@@ -91,7 +92,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(3, 0, ADDR_MOD_3, 2 + 16 + 32);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(0, 8, 0, 0);
++    lltt::replay(0, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(0, 0, ADDR_MOD_3, 0 + 32);
+@@ -106,7 +107,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(7, 0, ADDR_MOD_3, 6 + 16 + 32);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(8, 8, 0, 0);
++    lltt::replay(8, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(4, 0, ADDR_MOD_3, 4 + 32);
+@@ -121,7 +122,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(3, 0, ADDR_MOD_3, 10 + 16 + 32);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(0, 8, 0, 0);
++    lltt::replay(0, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(0, 0, ADDR_MOD_3, 8 + 32);
+@@ -136,7 +137,7 @@ inline void _calculate_cumsum_(const bool first)
+     TTI_SFPLOAD(7, 0, ADDR_MOD_3, 14 + 16 + 32);
+ 
+     TTI_SFPTRANSP(0, 0, 0, 0);
+-    TTI_REPLAY(8, 8, 0, 0);
++    lltt::replay(8, 8);
+     TTI_SFPTRANSP(0, 0, 0, 0);
+ 
+     TTI_SFPSTORE(4, 0, ADDR_MOD_3, 12 + 32);
+@@ -148,7 +149,8 @@ inline void _calculate_cumsum_(const bool first)
+ template <bool APPROXIMATION_MODE /*unused*/>
+ inline void _cumsum_init_()
+ {
+-    TTI_REPLAY(0, 16, 0, 1);
++    lltt::record(0, 16);
++    // FIXME: These should all be TT_SFP...
+     TTI_SFPADD(10, 7, 0, 0, 0);
+     TTI_SFPNOP;
+     TTI_SFPADD(10, 0, 1, 1, 0);
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_topk.h
+@@ -9,6 +9,7 @@
+ #include "ckernel_instr_params.h"
+ #include "ckernel_ops.h"
+ #include "ckernel_sfpu_load_config.h"
++#include "lltt.h"
+ #include "sfpi.h"
+ 
+ namespace ckernel
+@@ -138,7 +139,7 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
+ 
+     if (init_replay)
+     {
+-        TTI_REPLAY(replay_start, 5, 1, 1);
++        lltt::record<lltt::Exec>(replay_start, 5);
+ 
+         // Step 4
+         TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
+@@ -154,10 +155,10 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
+     }
+     else
+     {
+-        TTI_REPLAY(replay_start, 5, 0, 0);
++        lltt::replay(replay_start, 5);
+     }
+ 
+-    TTI_REPLAY(replay_start, 5, 0, 0);
++    lltt::replay(replay_start, 5);
+ 
+     if (dir == (bool)SortDir::ArgMin)
+     {
+@@ -290,77 +291,77 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
+                             // Groups of 16 datums being sorted at the same time
+                             if (init_load)
+                             {
+-                                TTI_REPLAY(0, 8, 1, 1);
++                                lltt::record<lltt::Exec>(0, 8);
+                                 bitonic_topk_load16(4, 8);
+                                 init_load = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(0, 8, 0, 0);
++                                lltt::replay(0, 8);
+                             }
+                             if (init_phase)
+                             {
+-                                TTI_REPLAY(16, 5, 1, 1);
++                                lltt::record<lltt::Exec>(16, 5);
+                                 bitonic_topk_ph0_st1_to_1();
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(16, 5, 0, 0);
++                                lltt::replay(16, 5);
+                             }
+                             if (init_store)
+                             {
+-                                TTI_REPLAY(8, 8, 1, 1);
++                                lltt::record<lltt::Exec>(8, 8);
+                                 bitonic_topk_store16<true>(4, 8);
+                                 init_store = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(8, 8, 0, 0);
++                                lltt::replay(8, 8);
+                             }
+                         }
+                         break;
+                     case 1:
+                         for (int d = 0; d < 4; d++)
+                         {
+                             // Groups of 16 datums being sorted at the same time
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             if (init_phase)
+                             {
+-                                TTI_REPLAY(16, 6, 1, 1);
++                                lltt::record<lltt::Exec>(16, 6);
+                                 bitonic_topk_ph1_st2_to_1();
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(16, 6, 0, 0);
++                                lltt::replay(16, 6);
+                             }
+-                            TTI_REPLAY(8, 8, 0, 0);
++                            lltt::replay(8, 8);
+                         }
+                         break;
+                     case 2:
+                         for (int d = 0; d < 4; d++)
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             if (init_phase)
+                             {
+-                                TTI_REPLAY(16, 9, 1, 1);
++                                lltt::record<lltt::Exec>(16, 9);
+                                 bitonic_topk_ph2_st3_to_1();
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(16, 9, 0, 0);
++                                lltt::replay(16, 9);
+                             }
+-                            TTI_REPLAY(8, 8, 0, 0);
++                            lltt::replay(8, 8);
+                         }
+                         break;
+                     case 3:
+                         for (int d = 0; d < 4; d++)
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
+-                            TTI_REPLAY(8, 8, 0, 0);
++                            lltt::replay(8, 8);
+                             dir = !dir;
+                         }
+                         break;
+@@ -413,9 +414,9 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
+                         datums_compared = 0;
+                         while (datums_compared < total_datums_to_compare)
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
+-                            TTI_REPLAY(8, 8, 0, 0);
++                            lltt::replay(8, 8);
+                             datums_compared += 16;
+                             dir = (datums_compared == sorted_seq_length) ? !dir : dir;
+                         }
+@@ -514,7 +515,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             // Groups of 8 datums being sorted at the same time
+                             if (init_rebuild)
+                             {
+-                                TTI_REPLAY(0, 22, 1, 1);
++                                lltt::record<lltt::Exec>(0, 22);
+                                 bitonic_topk_load8(0, ld_offset);
+                                 bitonic_topk_ph1_st2_to_1();
+                                 bitonic_topk_store8(0, ld_offset);
+@@ -523,7 +524,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(0, 22, 0, 0);
++                                lltt::replay(0, 22);
+                             }
+                             datums_compared += 16;
+                         }
+@@ -537,7 +538,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             // Groups of 16 datums being sorted at the same time
+                             if (init_rebuild)
+                             {
+-                                TTI_REPLAY(0, 26, 1, 1);
++                                lltt::record<lltt::Exec>(0, 26);
+                                 bitonic_topk_load16(ld_offset, ld_dist);
+                                 bitonic_topk_ph1_st2_to_1();
+                                 bitonic_topk_store16<true>(ld_offset, ld_dist);
+@@ -549,7 +550,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             }
+                             else
+                             {
+-                                TTI_REPLAY(0, 26, 0, 0);
++                                lltt::replay(0, 26);
+                             }
+                             datums_compared += 16;
+                         }
+@@ -561,7 +562,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         // Groups of 16 datums being sorted at the same time
+                         if (init_rebuild)
+                         {
+-                            TTI_REPLAY(0, 29, 1, 1);
++                            lltt::record<lltt::Exec>(0, 29);
+                             bitonic_topk_load16(4, ld_offset);
+                             bitonic_topk_ph2_st3_to_1();
+                             bitonic_topk_store16<true>(4, ld_offset);
+@@ -573,7 +574,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         }
+                         else
+                         {
+-                            TTI_REPLAY(0, 29, 0, 0);
++                            lltt::replay(0, 29);
+                         }
+                         datums_compared += 16;
+                     }
+@@ -584,10 +585,10 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         // Groups of 16 datums being sorted at the same time
+                         if (init_rebuild)
+                         {
+-                            TTI_REPLAY(0, 8, 1, 1);
++                            lltt::record<lltt::Exec>(0, 8);
+                             bitonic_topk_load16(4, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TTI_REPLAY(13, 12, 1, 1);
++                            lltt::record<lltt::Exec>(13, 12);
+                             bitonic_topk_store16<true>(4, 8);
+                             TTI_INCRWC(0, 8, 0, 0);
+                             TTI_INCRWC(0, 8, 0, 0);
+@@ -596,9 +597,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         }
+                         else
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TTI_REPLAY(13, 12, 0, 0);
++                            lltt::replay(13, 12);
+                         }
+                         datums_compared += 16;
+                         dir = !dir;
+@@ -654,17 +655,17 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                     {
+                         if (init_rebuild)
+                         {
+-                            TTI_REPLAY(0, 8, 1, 1);
++                            lltt::record<lltt::Exec>(0, 8);
+                             bitonic_topk_load16(4, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TTI_REPLAY(13, 8, 1, 1);
++                            lltt::record<lltt::Exec>(13, 8);
+                             bitonic_topk_store16<true>(4, 8);
+                         }
+                         else
+                         {
+-                            TTI_REPLAY(0, 8, 0, 0);
++                            lltt::replay(0, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TTI_REPLAY(13, 8, 0, 0);
++                            lltt::replay(13, 8);
+                         }
+                         datums_compared += 16;
+                         dir = (datums_compared == sorted_seq_length) ? !dir : dir;
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_matmul.h
+@@ -11,6 +11,7 @@
+ #include "ckernel_template.h"
+ #include "cmath_common.h"
+ #include "llk_math_common.h"
++#include "lltt.h"
+ 
+ #ifndef HF
+ #define HF 0
+@@ -338,7 +339,7 @@ inline void matmul_configure_mop(
+     const std::uint32_t replay_buf_len =
+         (is_in0_16x32 && is_in1_32x16) ? 4 : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 16);
+ 
+-    TTI_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 1);
++    lltt::record(ckernel::math::replay_buf_offset, replay_buf_len);
+ 
+     if (is_in1_32x16)
+     {
+@@ -441,7 +442,7 @@ inline void matmul_configure_mop(
+ 
+     // TODO: can we commonize this?
+     constexpr uint inner_loops = high_fidelity ? NUM_FIDELITY_PHASES : 1;
+-    ckernel_template tmp(1 /* outer loop */, inner_loops, TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 0));
++    ckernel_template tmp(1 /* outer loop */, inner_loops, lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buf_len));
+ 
+     if constexpr (high_fidelity)
+     {
+@@ -636,31 +637,31 @@ inline void matmul_configure_mop_throttled(
+         (is_in0_16x32 && is_in1_32x16) ? 4
+                                        : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
+ 
+-    TTI_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 1);
++    lltt::record(ckernel::math::replay_buf_offset, replay_buf_len);
+     if (!is_in1_32x16 && !is_in1_16x32 && !is_in0_32x16 && !is_in0_16x32)
+     {
+         run_throttled_sequence<THROTTLE_LEVEL, high_fidelity>(t_dim, reuse_a);
+     }
+ 
+     constexpr uint outer_loops        = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? NUM_FIDELITY_PHASES : 1);
+     const uint inner_loops            = (!is_in1_16x32) ? 2 : 1;
+-    constexpr uint loop_instruction_0 = (THROTTLE_LEVEL == 5)   ? TT_OP_REPLAY(ckernel::math::replay_buf_offset + 1, 8, 0, 0)
+-                                        : (THROTTLE_LEVEL == 4) ? TT_OP_REPLAY(ckernel::math::replay_buf_offset + 2, 6, 0, 0)
+-                                                                : TT_OP_REPLAY(ckernel::math::replay_buf_offset, replay_buff_len_throttle, 0, 0);
+-    constexpr uint loop_instruction_1 = (THROTTLE_LEVEL == 5)   ? TT_OP_REPLAY(ckernel::math::replay_buf_offset + 9, 4, 0, 0)
+-                                        : (THROTTLE_LEVEL == 4) ? TT_OP_REPLAY(ckernel::math::replay_buf_offset + 8, 4, 0, 0)
++    constexpr uint loop_instruction_0 = (THROTTLE_LEVEL == 5)   ? lltt::replay_insn(ckernel::math::replay_buf_offset + 1, 8)
++                                        : (THROTTLE_LEVEL == 4) ? lltt::replay_insn(ckernel::math::replay_buf_offset + 2, 6)
++                                                                : lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buff_len_throttle);
++    constexpr uint loop_instruction_1 = (THROTTLE_LEVEL == 5)   ? lltt::replay_insn(ckernel::math::replay_buf_offset + 9, 4)
++                                        : (THROTTLE_LEVEL == 4) ? lltt::replay_insn(ckernel::math::replay_buf_offset + 8, 4)
+                                                                 : TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+     ckernel_template tmp(outer_loops, inner_loops, loop_instruction_0, loop_instruction_1);
+ 
+     if constexpr (THROTTLE_LEVEL == 5)
+     {
+-        tmp.set_last_inner_loop_instr(TT_OP_REPLAY(ckernel::math::replay_buf_offset, 4, 0, 0));
+-        tmp.set_last_outer_loop_instr(TT_OP_REPLAY(ckernel::math::replay_buf_offset + 13, 3, 0, 0));
++        tmp.set_last_inner_loop_instr(lltt::replay_insn(ckernel::math::replay_buf_offset, 4));
++        tmp.set_last_outer_loop_instr(lltt::replay_insn(ckernel::math::replay_buf_offset + 13, 3));
+     }
+     else if constexpr (THROTTLE_LEVEL == 4)
+     {
+-        tmp.set_last_inner_loop_instr(TT_OP_REPLAY(ckernel::math::replay_buf_offset, 4, 0, 0));
+-        tmp.set_last_outer_loop_instr(TT_OP_REPLAY(ckernel::math::replay_buf_offset + 12, 4, 0, 0));
++        tmp.set_last_inner_loop_instr(lltt::replay_insn(ckernel::math::replay_buf_offset, 4));
++        tmp.set_last_outer_loop_instr(lltt::replay_insn(ckernel::math::replay_buf_offset + 12, 4));
+     }
+     else
+     {
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_transpose_dest.h
+@@ -13,6 +13,7 @@
+ #include "ckernel_template.h"
+ #include "cmath_common.h"
+ #include "llk_math_common.h"
++#include "lltt.h"
+ 
+ using namespace ckernel;
+ 
+@@ -99,7 +100,7 @@ inline void transpose_dest_configure_mop()
+ {
+     if (is_32bit)
+     {
+-        TTI_REPLAY(16, 16, 0, 1);
++        lltt::record(16, 16);
+ 
+ #pragma GCC unroll 2
+         for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
+@@ -141,9 +142,9 @@ inline void transpose_dest_configure_mop()
+         TTI_SFPCONFIG(0x330, 8, 1);
+ 
+         // A 32b face transpose consists of: (movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, movb2d_lo).
+-        uint movd2b_hi        = TT_OP_REPLAY(16, 4, 0, 0);
+-        uint movb2d_hi_d2b_lo = TT_OP_REPLAY(20, 8, 0, 0);
+-        uint movb2d_lo        = TT_OP_REPLAY(28, 4, 0, 0);
++        uint movd2b_hi        = lltt::replay_insn(16, 4);
++        uint movb2d_hi_d2b_lo = lltt::replay_insn(20, 8);
++        uint movb2d_lo        = lltt::replay_insn(28, 4);
+         uint transpose        = TT_OP_TRNSPSRCB;
+ 
+         // Macro 0: SFPLOAD LReg[1], 16 (addr_mod_1); SFPMOV LReg[16],LReg[1]; SFPSTORE LReg[0].
+@@ -162,7 +163,7 @@ inline void transpose_dest_configure_mop()
+     }
+     else
+     {
+-        TTI_REPLAY(16, 15, 0, 1);
++        lltt::record(16, 15);
+ 
+         // ABCD
+         TTI_MOVB2A(0, ADDR_MOD_1, p_movb2a::MOV_4_ROWS, 16);
+@@ -193,13 +194,13 @@ inline void transpose_dest_configure_mop()
+         // Face 3: 4x MOVD2B, TRNSPSRCB, 4x MOVB2D, dst += 16 (EFGHIJKLM..)
+         // Face 1: 2x MOVA2D (2x dst -= 16) (..NO)
+ 
+-        uint EFGHIJKLM   = TT_OP_REPLAY(20, 9, 0, 0);
+-        uint EFGHI       = TT_OP_REPLAY(20, 5, 0, 0);
+-        uint ABCDEFG     = TT_OP_REPLAY(16, 7, 0, 0);
++        uint EFGHIJKLM   = lltt::replay_insn(20, 9);
++        uint EFGHI       = lltt::replay_insn(20, 5);
++        uint ABCDEFG     = lltt::replay_insn(16, 7);
+         uint P           = TT_OP_MOVD2B(0, 28, ADDR_MOD_2, p_movd2b::MOV_4_ROWS, 12); // dst -= 16
+-        uint IJKL        = TT_OP_REPLAY(24, 4, 0, 0);
++        uint IJKL        = lltt::replay_insn(24, 4);
+         uint Q           = TT_OP_MOVB2D(0, 28, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 12); // dst += 32
+-        uint EFGHIJKLMNO = TT_OP_REPLAY(20, 11, 0, 0);
++        uint EFGHIJKLMNO = lltt::replay_insn(20, 11);
+ 
+         // The following MOP config simply runs the above 7 instructions in order (when executed with zmask 0b10):
+         ckernel_unpack_template tmp(true, true, EFGHIJKLM, EFGHI, ABCDEFG, P, /* skip A */ Q, /* B */ IJKL, /* skip B */ EFGHIJKLMNO);
+
+File: tt_llk_wormhole_b0/llk_lib/llk_pack_untilize.h
+@@ -12,6 +12,8 @@
+ #include "ckernel_template.h"
+ #include "llk_defs.h"
+ #include "llk_pack_common.h"
++#include "lltt.h"
++#include "sfpi.h"
+ 
+ using namespace ckernel;
+ using namespace ckernel::packer;
+@@ -106,7 +108,7 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
+         if (block_ct_dim != full_ct_dim)
+         {
+             const std::uint32_t replay_buf_len = 10;
+-            TTI_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 1);
++            lltt::record(ckernel::packer::replay_buf_offset, replay_buf_len);
+             TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 1, 1); // close block
+             // update l1 address
+             TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+@@ -171,7 +173,7 @@ inline void _llk_pack_untilize_(
+             TTI_ADDRCRXY(p_setadc::PAC, 0, 0, 1, 0, 0b0010); // Read new row in the tile
+             if constexpr (block_ct_dim != full_ct_dim)
+             {
+-                TTI_REPLAY(ckernel::packer::replay_buf_offset, 10, 0, 0); // update row address
++                lltt::replay(ckernel::packer::replay_buf_offset, 10); // update row address
+             }
+         }
+     }
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_A.h
+@@ -12,6 +12,8 @@
+ #include "ckernel_ops.h"
+ #include "ckernel_template.h"
+ #include "cunpack_common.h"
++#include "lltt.h"
++#include "sfpi.h"
+ 
+ using namespace ckernel;
+ using namespace ckernel::unpacker;
+@@ -46,7 +48,7 @@ inline void _llk_unpack_A_mop_config_(
+     static constexpr uint srcb_set_z_2           = TT_OP_NOP;
+     static constexpr uint srcb_clear_z           = TT_OP_NOP;
+     constexpr uint replay_buf_len                = 1;
+-    TTI_REPLAY(0, 1, 0, 1);
++    lltt::record(0, 1);
+     TTI_NOP;
+ #else
+     static constexpr uint unpack_srca =
+@@ -66,13 +68,13 @@ inline void _llk_unpack_A_mop_config_(
+     static constexpr uint srca_set_z_1           = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);  // set srcA ch0_z = 1
+     static constexpr uint srcb_set_z_2           = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2, 0b0001);  // set srcB ch0_z = 2
+     static constexpr uint srcb_clear_z           = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);  // set srcB ch0_z = 0
+-    TTI_REPLAY(0, 4, 0, 1);
++    lltt::record(0, 4);
+     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
+     TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
+     TTI_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+     TTI_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+-    static constexpr uint unpack_srca_zerosrc_set_dvalid = TT_OP_REPLAY(0, 2, 0, 0);
+-    static constexpr uint unpack_srcb_unpack_srcb        = TT_OP_REPLAY(2, 2, 0, 0);
++    static constexpr uint unpack_srca_zerosrc_set_dvalid = lltt::replay_insn(0, 2);
++    static constexpr uint unpack_srcb_unpack_srcb        = lltt::replay_insn(2, 2);
+ #endif
+ 
+     if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format))
+@@ -131,7 +133,7 @@ inline void _llk_unpack_A_mop_config_(
+         {
+ #if SKIP_UNP == 0
+             constexpr uint replay_buf_len = 3;
+-            TTI_REPLAY(4, replay_buf_len, 0, 1);
++            lltt::record(4, replay_buf_len);
+             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
+             if (num_faces > 2)
+@@ -145,8 +147,8 @@ inline void _llk_unpack_A_mop_config_(
+ #endif
+             const uint32_t outerloop = num_faces < 4 ? 1 : 2;
+             const uint32_t innerloop = num_faces < 2 ? 1 : 2;
+-            ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(4, replay_buf_len, 0, 0)); // Unpack faces 0/2 && 1/3 to srcA
+-                                                                                               // or 0/1 for 2 face tile
++            ckernel_template tmp(outerloop, innerloop, lltt::replay_insn(4, replay_buf_len)); // Unpack faces 0/2 && 1/3 to srcA
++                                                                                              // or 0/1 for 2 face tile
+             if (num_faces > 2)
+             {
+                 tmp.set_end_op(srca_set_z_1);
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_AB.h
+@@ -12,6 +12,7 @@
+ #include "ckernel_ops.h"
+ #include "ckernel_template.h"
+ #include "cunpack_common.h"
++#include "lltt.h"
+ 
+ using namespace ckernel;
+ using namespace ckernel::unpacker;
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_AB_matmul.h
+@@ -12,6 +12,8 @@
+ #include "ckernel_ops.h"
+ #include "ckernel_template.h"
+ #include "cunpack_common.h"
++#include "lltt.h"
++#include "sfpi.h"
+ 
+ using namespace ckernel;
+ using namespace ckernel::unpacker;
+@@ -36,11 +38,11 @@ inline void _llk_unpack_AB_matmul_mop_config_(
+     if (reuse_a)
+     {
+ #if SKIP_UNP == 1
+-        TTI_REPLAY(0, 1, 0, 1);
++        lltt::record(0, 1);
+         TTI_NOP;
+ #else
+         static_assert(kernel_broadcast_b <= 1, "kernel_broadcast>1 on matmul input 1 is not supported with reuse enabled!");
+-        TTI_REPLAY(0, replay_buf_prog_len, 0, 1);
++        lltt::record(0, replay_buf_prog_len);
+         if (unpA_partial_face)
+         {
+             TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
+@@ -94,11 +96,11 @@ inline void _llk_unpack_AB_matmul_mop_config_(
+     else
+     {
+ #if SKIP_UNP == 1
+-        TTI_REPLAY(0, 1, 0, 1);
++        lltt::record(0, 1);
+         TTI_NOP;
+ #else
+         static_assert(kernel_broadcast_a <= 1, "kernel_broadcast>1 on matmul input 0 is not supported with reuse enabled!");
+-        TTI_REPLAY(0, replay_buf_prog_len, 0, 1);
++        lltt::record(0, replay_buf_prog_len);
+         if (unpB_partial_face)
+         {
+             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+@@ -151,13 +153,13 @@ inline void _llk_unpack_AB_matmul_mop_config_(
+     }
+ 
+     ckernel_unpack_template tmp = ckernel_unpack_template(
+-        false,                                     // src B
+-        false,                                     // halo - just used for 4 unpacks
+-        TT_OP_REPLAY(0, replay_buf_run_len, 0, 0), // runs when context is 0
++        false,                                    // src B
++        false,                                    // halo - just used for 4 unpacks
++        lltt::replay_insn(0, replay_buf_run_len), // runs when context is 0
+         0,
+         0,
+         0,
+-        TT_OP_REPLAY(replay_buf_run_len, replay_buf_run_len, 0, 0), // runs when context is 1
++        lltt::replay_insn(replay_buf_run_len, replay_buf_run_len), // runs when context is 1
+         0,
+         0);
+ 
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_untilize.h
+@@ -12,6 +12,8 @@
+ #include "ckernel_ops.h"
+ #include "ckernel_template.h"
+ #include "cunpack_common.h"
++#include "lltt.h"
++#include "sfpi.h"
+ 
+ using namespace ckernel;
+ using namespace ckernel::unpacker;
+@@ -23,7 +25,7 @@ using namespace ckernel::unpacker;
+ inline void _llk_unpack_untilize_mop_config_()
+ {
+     constexpr uint replay_buf_len = (SKIP_UNP == 1) ? 1 : 5;
+-    TTI_REPLAY(0, replay_buf_len, 0, 1);
++    lltt::record(0, replay_buf_len);
+ #if SKIP_UNP == 1
+     TTI_NOP;
+     static constexpr uint load_offset_addr_cntx0 = TT_OP_NOP;
+@@ -44,11 +46,11 @@ inline void _llk_unpack_untilize_mop_config_()
+     ckernel_unpack_template tmp = ckernel_unpack_template(
+         true,  // src B
+         false, // halo - just used for 4 unpacks
+-        TT_OP_REPLAY(0, replay_buf_len, 0, 0),
++        lltt::replay_insn(0, replay_buf_len),
+         0,
+         0,
+         0,
+-        TT_OP_REPLAY(0, replay_buf_len, 0, 0),
++        lltt::replay_insn(0, replay_buf_len),
+         load_offset_addr_cntx0,
+         load_offset_addr_cntx1);
+     tmp.program(instrn_buffer);
+

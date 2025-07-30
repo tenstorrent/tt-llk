@@ -1,0 +1,30 @@
+PR #545: Add missing header in BH for where op
+URL: https://github.com/tenstorrent/tt-llk/pull/545
+
+File: tt_llk_blackhole/common/inc/ckernel_sfpu.h
+@@ -51,3 +51,4 @@
+ #include "sfpu/ckernel_sfpu_topk.h"
+ #include "sfpu/ckernel_sfpu_trigonometry.h"
+ #include "sfpu/ckernel_sfpu_typecast.h"
++#include "sfpu/ckernel_sfpu_where.h"
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_ternary_sfpu_params.h
+@@ -5,7 +5,6 @@
+ #pragma once
+ #include <utility>
+ 
+-#include "ckernel_sfpu_where.h"
+ #include "llk_math_eltwise_ternary_sfpu.h"
+ #include "llk_sfpu_types.h"
+ 
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_ternary_sfpu_params.h
+@@ -5,7 +5,6 @@
+ #pragma once
+ #include <utility>
+ 
+-#include "ckernel_sfpu_where.h"
+ #include "llk_math_eltwise_ternary_sfpu.h"
+ #include "llk_sfpu_types.h"
+ 
+

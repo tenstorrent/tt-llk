@@ -1,0 +1,367 @@
+PR #490: Add hardsigmoid implementation
+URL: https://github.com/tenstorrent/tt-llk/pull/490
+
+File: tests/firmware/riscv/common/llk_sfpu_types.h
+@@ -96,4 +96,5 @@ enum class SfpuType
+     fill,
+     prelu,
+     reshuffle_rows,
++    hardsigmoid,
+ };
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -64,6 +64,7 @@ class MathOperation(Enum):
+     Exp2 = OpSpec("exp2", MathOpType.SFPU_UNARY)
+     Fill = OpSpec("fill", MathOpType.SFPU_UNARY)
+     Gelu = OpSpec("gelu", MathOpType.SFPU_UNARY)
++    Hardsigmoid = OpSpec("hardsigmoid", MathOpType.SFPU_UNARY)
+     Log = OpSpec("log", MathOpType.SFPU_UNARY)
+     Neg = OpSpec("neg", MathOpType.SFPU_UNARY)
+     Reciprocal = OpSpec("reciprocal", MathOpType.SFPU_UNARY)
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -360,6 +360,7 @@ def __init__(self):
+             MathOperation.Elu: self._elu,
+             MathOperation.Exp: self._exp,
+             MathOperation.Exp2: self._exp2,
++            MathOperation.Hardsigmoid: self._hardsigmoid,
+         }
+         self.data_format = None
+ 
+@@ -476,6 +477,14 @@ def _fill(self, x):
+         )
+         return input_tensor.fill_(5).item()
+ 
++    def _hardsigmoid(self, x):
++        input_tensor = (
++            x
++            if isinstance(x, torch.Tensor)
++            else torch.tensor(x, dtype=format_dict[self.data_format])
++        )
++        return torch.nn.functional.hardsigmoid(input_tensor).item()
++
+ 
+ @register_golden
+ class EltwiseBinaryGolden(FidelityMasking):
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -70,6 +70,7 @@
+     MathOperation.Elu,
+     MathOperation.Exp,
+     MathOperation.Exp2,
++    MathOperation.Hardsigmoid,
+ ]
+ 
+ int_ops = [
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -69,6 +69,7 @@
+         MathOperation.Celu,
+         MathOperation.Cos,
+         MathOperation.Gelu,
++        MathOperation.Hardsigmoid,
+         MathOperation.Log,
+         MathOperation.Reciprocal,
+         MathOperation.Silu,
+@@ -103,7 +104,13 @@ def test_matmul_and_unary_sfpu(
+         pytest.skip("Square operation in LoFi is not fully functional yet")
+     if (
+         formats.input_format == formats.output_format == DataFormat.Float16
+-        and mathop in [MathOperation.Log, MathOperation.Sqrt, MathOperation.Square]
++        and mathop
++        in [
++            MathOperation.Log,
++            MathOperation.Sqrt,
++            MathOperation.Square,
++            MathOperation.Hardsigmoid,
++        ]
+         and dest_acc == DestAccumulation.No
+         and get_chip_architecture() == ChipArchitecture.BLACKHOLE
+     ):
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -122,6 +122,10 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
+             ckernel::sfpu::_init_exp2_<APPROX_MODE>();
+             ckernel::sfpu::_calculate_exp2_<APPROX_MODE, iterations>();
+             break;
++        case SfpuType::hardsigmoid:
++            ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
++            break;
+         default:
+             return;
+     }
+
+File: tests/sources/matmul_and_unary_sfpu_test.cpp
+@@ -95,6 +95,10 @@ void call_sfpu_operation(SfpuType operation)
+         case SfpuType::square:
+             ckernel::sfpu::_calculate_square_<APPROX_MODE, iterations>(iterations);
+             break;
++        case SfpuType::hardsigmoid:
++            ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
++            break;
+         default:
+             return;
+     }
+
+File: tt_llk_blackhole/common/inc/ckernel_defs.h
+@@ -223,10 +223,11 @@ constexpr static std::uint32_t SCALE_DATUM_SIZE(uint format, uint datum_count)
+ 
+ enum class ActivationType
+ {
+-    Celu     = 0,
+-    Elu      = 1,
+-    Gelu     = 2,
+-    Hardtanh = 3,
++    Celu        = 0,
++    Elu         = 1,
++    Gelu        = 2,
++    Hardtanh    = 3,
++    Hardsigmoid = 4,
+ };
+ 
+ enum class BinaryOp : uint8_t
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_activations.h
+@@ -8,6 +8,7 @@
+ #include "sfpi.h"
+ #include "sfpi_fp16.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
++#include "sfpu/ckernel_sfpu_relu.h"
+ 
+ namespace ckernel::sfpu
+ {
+@@ -41,13 +42,31 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+     }
+ };
+ 
++// Specialization for HARDSIGMOID activation
++template <bool APPROXIMATION_MODE>
++struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Hardsigmoid>
++{
++    static inline void apply(sfpi::vFloat& v)
++    {
++        sfpi::vFloat tmp = (v * sfpi::vConstFloatPrgm0) + sfpi::vConstFloatPrgm1;
++        v                = _relu_max_body_(tmp, 1.0f);
++    }
++};
++
+ // Dispatch wrapper function
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+ inline void apply_activation(sfpi::vFloat& v, float param0, float param1)
+ {
+     ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0, param1);
+ }
+ 
++// Dispatch wrapper function
++template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
++inline void apply_activation(sfpi::vFloat& v)
++{
++    ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v);
++}
++
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
+ inline void _calculate_activation_(float param0, float param1)
+ {
+@@ -61,4 +80,24 @@ inline void _calculate_activation_(float param0, float param1)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS>
++inline void _calculate_activation_()
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v = sfpi::dst_reg[0];
++        apply_activation<APPROXIMATION_MODE, ACTIVATION_TYPE>(v);
++        sfpi::dst_reg[0] = v;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE>
++void _init_hardsigmoid_()
++{
++    sfpi::vConstFloatPrgm0 = 0.1668f;
++    sfpi::vConstFloatPrgm1 = 0.5f;
++}
++
+ } // namespace ckernel::sfpu
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_relu.h
+@@ -35,24 +35,30 @@ inline void _calculate_lrelu_(const int iterations, uint slope)
+     }
+ }
+ 
++sfpi_inline sfpi::vFloat _relu_max_body_(sfpi::vFloat val, sfpi::vFloat threshold)
++{
++    sfpi::vFloat result = val;
++    v_if (result > threshold)
++    {
++        result = threshold;
++    }
++    v_endif;
++    v_if (result < 0.0f)
++    {
++        result = 0.0f;
++    }
++    v_endif;
++    return result;
++}
++
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _relu_max_(const int iterations, uint uint_threshold)
+ {
+     sfpi::vFloat threshold = sfpi::s2vFloat16(uint_threshold, sfpi::s2vFloat16::fp16a);
+     for (int d = 0; d < iterations; d++)
+     {
+-        sfpi::vFloat a = sfpi::dst_reg[0];
+-        v_if (a > threshold)
+-        {
+-            a = threshold;
+-        }
+-        v_endif;
+-        v_if (a < 0.0f)
+-        {
+-            a = 0.0f;
+-        }
+-        v_endif;
+-        sfpi::dst_reg[0] = a;
++        sfpi::vFloat a   = sfpi::dst_reg[0];
++        sfpi::dst_reg[0] = _relu_max_body_(a, threshold);
+         sfpi::dst_reg++;
+     }
+ }
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_defs.h
+@@ -222,10 +222,11 @@ constexpr static std::uint32_t SCALE_DATUM_SIZE(uint format, uint datum_count)
+ 
+ enum class ActivationType
+ {
+-    Celu     = 0,
+-    Elu      = 1,
+-    Gelu     = 2,
+-    Hardtanh = 3,
++    Celu        = 0,
++    Elu         = 1,
++    Gelu        = 2,
++    Hardtanh    = 3,
++    Hardsigmoid = 4,
+ };
+ 
+ enum class BinaryOp : uint8_t
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_activations.h
+@@ -8,6 +8,7 @@
+ #include "sfpi.h"
+ #include "sfpi_fp16.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
++#include "sfpu/ckernel_sfpu_relu.h"
+ 
+ namespace ckernel::sfpu
+ {
+@@ -41,13 +42,31 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+     }
+ };
+ 
++// Specialization for HARDSIGMOID activation
++template <bool APPROXIMATION_MODE>
++struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Hardsigmoid>
++{
++    static inline void apply(sfpi::vFloat& v)
++    {
++        sfpi::vFloat tmp = (v * sfpi::vConstFloatPrgm0) + sfpi::vConstFloatPrgm1;
++        v                = _relu_max_body_(tmp, 1.0f);
++    }
++};
++
+ // Dispatch wrapper function
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+ inline void apply_activation(sfpi::vFloat& v, float param0, float param1)
+ {
+     ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0, param1);
+ }
+ 
++// Dispatch wrapper function
++template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
++inline void apply_activation(sfpi::vFloat& v)
++{
++    ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v);
++}
++
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
+ inline void _calculate_activation_(float param0, float param1)
+ {
+@@ -61,4 +80,24 @@ inline void _calculate_activation_(float param0, float param1)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS>
++inline void _calculate_activation_()
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v = sfpi::dst_reg[0];
++        apply_activation<APPROXIMATION_MODE, ACTIVATION_TYPE>(v);
++        sfpi::dst_reg[0] = v;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE>
++void _init_hardsigmoid_()
++{
++    sfpi::vConstFloatPrgm0 = 0.1668f;
++    sfpi::vConstFloatPrgm1 = 0.5f;
++}
++
+ } // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_relu.h
+@@ -35,24 +35,30 @@ inline void _calculate_lrelu_(const int iterations, uint slope)
+     }
+ }
+ 
++sfpi_inline sfpi::vFloat _relu_max_body_(sfpi::vFloat val, sfpi::vFloat threshold)
++{
++    sfpi::vFloat result = val;
++    v_if (result > threshold)
++    {
++        result = threshold;
++    }
++    v_endif;
++    v_if (result < 0.0f)
++    {
++        result = 0.0f;
++    }
++    v_endif;
++    return result;
++}
++
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _relu_max_(const int iterations, uint uint_threshold)
+ {
+     sfpi::vFloat threshold = sfpi::s2vFloat16(uint_threshold, sfpi::s2vFloat16::fp16a);
+     for (int d = 0; d < iterations; d++)
+     {
+-        sfpi::vFloat a = sfpi::dst_reg[0];
+-        v_if (a > threshold)
+-        {
+-            a = threshold;
+-        }
+-        v_endif;
+-        v_if (a < 0.0f)
+-        {
+-            a = 0.0f;
+-        }
+-        v_endif;
+-        sfpi::dst_reg[0] = a;
++        sfpi::vFloat a   = sfpi::dst_reg[0];
++        sfpi::dst_reg[0] = _relu_max_body_(a, threshold);
+         sfpi::dst_reg++;
+     }
+ }
+

@@ -1,0 +1,176 @@
+PR #54: test: reset card after each test run
+URL: https://github.com/tenstorrent/tt-llk/pull/54
+
+File: tests/Makefile
+@@ -76,7 +76,7 @@ OUTPUT_ELFS = $(BUILD_DIR)/elf
+ .PHONY: all clean
+ 
+ all: $(BUILD_DIR) $(OUTPUT_ELFS) $(OUTPUT_ELFS)/$(testname)_trisc0.elf $(OUTPUT_ELFS)/$(testname)_trisc1.elf $(OUTPUT_ELFS)/$(testname)_trisc2.elf $(OUTPUT_ELFS)/brisc.elf
+-dis: $(BUILD_DIR)/$(testname)_trisc0.dis $(BUILD_DIR)/$(testname)_trisc1.dis $(BUILD_DIR)/$(testname)_trisc2.dis
++dis: $(BUILD_DIR) $(OUTPUT_ELFS) $(BUILD_DIR)/$(testname)_trisc0.dis $(BUILD_DIR)/$(testname)_trisc1.dis $(BUILD_DIR)/$(testname)_trisc2.dis $(BUILD_DIR)/brisc.dis
+ 
+ $(BUILD_DIR)/%.dis :  $(OUTPUT_ELFS)/%.elf
+ 	$(OBJDUMP) -xsD $< > $@
+
+File: tests/helpers/src/trisc.cpp
+@@ -16,23 +16,31 @@
+ 
+ int main()
+ {
+-#ifdef LLK_TRISC_UNPACK
+-    volatile std::uint32_t* mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
++    volatile std::uint64_t* TIMESTAMP_ADDRESS = reinterpret_cast<volatile std::uint64_t*>(0x19000);
++#if defined(LLK_TRISC_UNPACK)
++    const std::uint32_t core_idx          = 0;
++    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
+ #elif defined(LLK_TRISC_MATH)
+-    volatile std::uint32_t* mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
++    const std::uint32_t core_idx          = 1;
++    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
+ #elif defined(LLK_TRISC_PACK)
+-    volatile std::uint32_t* mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
++    const std::uint32_t core_idx          = 2;
++    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
+ #endif
+-    *mailbox = 0x2; // write value different than 1 to mailbox to indicate kernel is running
++    std::uint64_t wall_clock = ckernel::read_wall_clock();
+ 
+-    std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
++    *(TIMESTAMP_ADDRESS + core_idx * 2) = wall_clock;
++    *mailbox                            = 0x2; // write value different than 1 to mailbox to indicate kernel is running
+ 
++    std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
++    *mailbox = 0x3;
+     ckernel::reset_cfg_state_id();
++    *mailbox = 0x4;
+     ckernel::reset_dest_offset_id();
+-    ckernel::tensix_sync();
+-
++    *mailbox = 0x5;
+     run_kernel();
+-
++    *mailbox = 0x6;
++    ckernel::tensix_sync();
+     *mailbox = ckernel::KERNEL_COMPLETE; // 0x1
+ 
+     // Use a volatile variable to prevent the compiler from optimizing away the loop
+
+File: tests/python_tests/conftest.py
+@@ -0,0 +1,15 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++import pytest
++from helpers import HardwareController
++
++
++@pytest.fixture(scope="function", autouse=True)
++def manage_hardware_controller():
++    # Setup: initialize the hardware controller
++    controller = HardwareController()
++    controller.reset_card()
++    yield controller
++
++    # Teardown:
+
+File: tests/python_tests/helpers/__init__.py
+@@ -35,6 +35,8 @@
+     generate_params,
+ )
+ 
++from .hardware_controller import HardwareController
++
+ from .test_config import generate_make_command
+ from .tilize_untilize import tilize, untilize
+ from ttexalens import Verbosity
+
+File: tests/python_tests/helpers/device.py
+@@ -3,9 +3,12 @@
+ 
+ from ttexalens.tt_exalens_lib import (
+     write_to_device,
++    write_words_to_device,
+     read_words_from_device,
+     read_word_from_device,
++    load_elf,
+     run_elf,
++    check_context,
+ )
+ from helpers import *
+ import inspect
+@@ -27,21 +30,29 @@ def collect_results(
+ 
+ 
+ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
+-
+     ELF_LOCATION = "../build/elf/"
+ 
+     if run_brisc:
+         run_elf(f"{ELF_LOCATION}brisc.elf", core_loc, risc_id=0)
+ 
+-    # for i in range(3):
+-    #     run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
++    context = check_context()
++    device = context.devices[0]
++    RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address(
++        "RISCV_DEBUG_REG_SOFT_RESET_0"
++    )
++
++    # Perform soft reset
++    soft_reset = read_word_from_device(core_loc, RISC_DBG_SOFT_RESET0)
++    soft_reset |= 0x7800
++    write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
+ 
+-    # Added because there was a race that caused failure in test_eltwise_unary_datacopy,
+-    # and now cores are run in revese order PACK, MATH, UNOPACK
+-    # Once that issue is reolved with tt-exalens code will be returned to normal for loop
++    # Load ELF files
++    for i in range(3):
++        load_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
+ 
+-    for i in reversed(range(3)):
+-        run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
++    # Clear soft reset
++    soft_reset &= ~0x7800
++    write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
+ 
+ 
+ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile_cnt=1):
+
+File: tests/python_tests/helpers/hardware_controller.py
+@@ -0,0 +1,23 @@
++# SPDX-License-Identifier: Apache-2.0
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++
++from .utils import get_chip_architecture, run_shell_command
++
++
++class HardwareController:
++    """
++    This class is used for issuing reset commands to TT cards.
++    """
++
++    def __init__(self):
++        self.chip_architecture = get_chip_architecture()
++
++    def reset_card(self):
++        if self.chip_architecture == "blackhole":
++            print("Resetting BH card")
++            run_shell_command("tt-smi -r 0")
++        elif self.chip_architecture == "wormhole":
++            print("Resetting WH card")
++            run_shell_command("tt-smi -r 0")
++        else:
++            raise ValueError("Unknown chip architecture")
+
+File: tests/setup_env.sh
+@@ -85,7 +85,7 @@ if [[ "$REUSE" == false ]]; then
+ 
+     # **************** DOWNLOAD & INSTALL SFPI ****************************
+     echo "Downloading SFPI release..."
+-    wget https://github.com/tenstorrent/sfpi/releases/download/v6.4.0-sfpi/sfpi-release.tgz -O sfpi-release.tgz
++    wget https://github.com/tenstorrent/sfpi/releases/download/v6.5.0-sfpi/sfpi-release.tgz -O sfpi-release.tgz
+     if [ ! -f "sfpi-release.tgz" ]; then
+         echo "SFPI release not found!"
+         exit 1
+

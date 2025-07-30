@@ -1,0 +1,23 @@
+PR #193: fix: add missing sfpu_converter.h include
+URL: https://github.com/tenstorrent/tt-llk/pull/193
+
+File: tt_llk_blackhole/common/inc/ckernel_sfpu.h
+@@ -17,6 +17,7 @@
+ #include "sfpu/ckernel_sfpu_cast_fp32_to_fp16a.h"
+ #include "sfpu/ckernel_sfpu_clamp.h"
+ #include "sfpu/ckernel_sfpu_comp.h"
++#include "sfpu/ckernel_sfpu_converter.h"
+ #include "sfpu/ckernel_sfpu_cumsum.h"
+ #include "sfpu/ckernel_sfpu_dropout.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h
+@@ -17,6 +17,7 @@
+ #include "sfpu/ckernel_sfpu_cast_fp32_to_fp16a.h"
+ #include "sfpu/ckernel_sfpu_clamp.h"
+ #include "sfpu/ckernel_sfpu_comp.h"
++#include "sfpu/ckernel_sfpu_converter.h"
+ #include "sfpu/ckernel_sfpu_cumsum.h"
+ #include "sfpu/ckernel_sfpu_dropout.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
+

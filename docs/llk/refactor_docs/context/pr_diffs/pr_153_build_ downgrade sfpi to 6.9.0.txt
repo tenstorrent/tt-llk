@@ -1,0 +1,8 @@
+PR #153: build: downgrade sfpi to 6.9.0
+URL: https://github.com/tenstorrent/tt-llk/pull/153
+
+File: tests/sfpi_version.txt
+@@ -1 +1 @@
+-v6.10.0
++v6.9.0
+

@@ -1,0 +1,25 @@
+PR #264: Copy Blackhole unpack_tilizeA_B changes from latest tt-metal.
+URL: https://github.com/tenstorrent/tt-llk/pull/264
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_tilize.h
+@@ -288,7 +288,7 @@ inline void _llk_unpack_tilizeA_B_init_(
+     _llk_unpack_tilizeA_B_mop_config_<neginf_srcA, reload_srcB, zero_srcA, zero_srcA_reduce>(narrow_tile, num_faces);
+ }
+ 
+-template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false>
++template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
+ inline void _llk_unpack_tilizeA_B_(
+     std::uint32_t unpA_src_format,
+     std::uint32_t face_r_dim,
+@@ -329,6 +329,10 @@ inline void _llk_unpack_tilizeA_B_(
+         {
+             TTI_UNPACR_NOP(SrcA, 0, 0, 0, 0, 0, 0, p_unpacr::UNP_CLRSRC_NEGINF, p_unpacr::UNP_CLRSRC);
+         }
++        else if constexpr (zero_srcA_reduce)
++        {
++            TTI_UNPACR_NOP(SrcA, 0, 0, 0, 0, 0, 0, p_unpacr::UNP_CLRSRC_ZERO, p_unpacr::UNP_CLRSRC);
++        }
+ 
+         // Get tile address
+         if (0 == unp_cfg_context)
+

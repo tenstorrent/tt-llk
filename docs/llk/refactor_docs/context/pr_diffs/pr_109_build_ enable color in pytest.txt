@@ -1,0 +1,15 @@
+PR #109: build: enable color in pytest
+URL: https://github.com/tenstorrent/tt-llk/pull/109
+
+File: .github/workflows/setup-and-test.yml
+@@ -37,6 +37,9 @@ jobs:
+       # Step 3: Run the tests
+       - name: Run tests
+         shell: bash
++        env:
++          TERM: xterm-256color
++          PY_COLORS: 1
+         run: |
+           cd tests/python_tests/
+           pytest --timeout=60 --color=yes --force-sugar .
+

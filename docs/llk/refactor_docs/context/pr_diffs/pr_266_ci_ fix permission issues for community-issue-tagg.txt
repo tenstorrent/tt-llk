@@ -1,0 +1,16 @@
+PR #266: ci: fix permission issues for community-issue-tagging [skip ci]
+URL: https://github.com/tenstorrent/tt-llk/pull/266
+
+File: .github/workflows/community-issue-tagging.yml
+@@ -6,6 +6,10 @@ on:
+   pull_request:
+     types: [opened]
+ 
++permissions:
++  issues: write
++  pull-requests: write
++
+ jobs:
+   call-central-workflow:
+     uses: tenstorrent/tt-github-actions/.github/workflows/on-community-issue.yml@main
+

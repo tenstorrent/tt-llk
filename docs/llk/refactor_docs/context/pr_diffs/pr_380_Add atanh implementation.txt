@@ -1,0 +1,497 @@
+PR #380: Add atanh implementation
+URL: https://github.com/tenstorrent/tt-llk/pull/380
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_log.h
+@@ -70,6 +70,37 @@ sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor)
+     sfpi::dst_reg[0] = result;
+ }
+ 
++sfpi_inline sfpi::vFloat _calculate_log_body_no_init_(sfpi::vFloat base)
++{
++    // Normalize base to calculation range
++    sfpi::vFloat x = setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
++
++    // 3rd order polynomial approx - determined using rminimax over [1,2]
++    sfpi::vFloat series_result = x * (x * (x * 0x2.44734p-4f - 0xd.e712ap-4f) + 0x2.4f5388p+0f) - 0x1.952992p+0f;
++
++    // Convert exponent to float
++    sfpi::vInt exp = exexp(base);
++    v_if (exp < 0)
++    {
++        exp = sfpi::setsgn(~exp + 1, 1);
++    }
++    v_endif;
++    sfpi::vFloat expf = int32_to_float(exp, 0);
++
++    // De-normalize to original range
++    sfpi::vFloat vConstLn2  = 0.692871f;
++    sfpi::vFloat log_result = expf * vConstLn2 + series_result; // exp correction: ln(1+x) + exp*ln(2)
++
++    // Base case when input is 0. ln(0) = -inf
++    v_if (base == 0.0f)
++    {
++        log_result = -std::numeric_limits<float>::infinity();
++    }
++    v_endif;
++
++    return log_result;
++}
++
+ template <bool APPROXIMATION_MODE, bool HAS_BASE_SCALING, int ITERATIONS>
+ inline void _calculate_log_(const int iterations, uint log_base_scale_factor)
+ {
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sqrt.h
+@@ -12,48 +12,58 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS, int RECIPROCAL_ITERATIONS>
+-inline void _calculate_sqrt_(const int iterations)
++template <bool APPROXIMATION_MODE, int RECIPROCAL_ITERATIONS>
++sfpi_inline sfpi::vFloat _calculate_sqrt_body_(sfpi::vFloat val)
+ {
+-#pragma GCC unroll 8
+-    for (int d = 0; d < iterations; d++)
++    sfpi::vFloat result;
++    if constexpr (APPROXIMATION_MODE)
+     {
+-        sfpi::vFloat val = sfpi::dst_reg[0];
++        sfpi::vUInt magic = sfpi::vConstIntPrgm0;
++
++        // sqrt initial approximation
++        //  adjust bias
++        sfpi::vUInt val_s = magic + sfpi::reinterpret<sfpi::vUInt>(val);
+ 
+-        if constexpr (APPROXIMATION_MODE)
++        // approximation of square root
++        val_s >>= 1;
++        result = sfpi::reinterpret<sfpi::vFloat>(val_s);
++    }
++    else
++    {
++        // Recip root method
++        //// Init approx
++        // u.i = SQRT_MAGIC_F - (u.i >> 1);
++        v_if (val != 0.0f)
+         {
+-            sfpi::vUInt magic = sfpi::vConstIntPrgm0;
++            sfpi::vUInt magic   = sfpi::vConstIntPrgm0;
++            sfpi::vFloat approx = sfpi::reinterpret<sfpi::vFloat>(magic - (sfpi::reinterpret<sfpi::vUInt>(val) >> 1));
+ 
+-            // sqrt initial approximation
+-            //  adjust bias
+-            sfpi::vUInt val_s = magic + sfpi::reinterpret<sfpi::vUInt>(val);
++            // Reciproot iterations
++            for (int r = 0; r < RECIPROCAL_ITERATIONS; r++)
++            {
++                // x*r*(1.5f - xhalf*r*r);
++                approx = ((approx * approx) * (val * -0.5f) + 1.5f) * approx;
++            }
+ 
+-            // approximation of square root
+-            val_s >>= 1;
+-            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_s);
++            result = approx * val;
+         }
+-        else
++        v_else
+         {
+-            // Recip root method
+-            //// Init approx
+-            // u.i = SQRT_MAGIC_F - (u.i >> 1);
+-            v_if (val != 0.0f)
+-            {
+-                sfpi::vUInt magic   = sfpi::vConstIntPrgm0;
+-                sfpi::vFloat approx = sfpi::reinterpret<sfpi::vFloat>(magic - (sfpi::reinterpret<sfpi::vUInt>(val) >> 1));
+-
+-                // Reciproot iterations
+-                for (int r = 0; r < RECIPROCAL_ITERATIONS; r++)
+-                {
+-                    // x*r*(1.5f - xhalf*r*r);
+-                    approx = ((approx * approx) * (val * -0.5f) + 1.5f) * approx;
+-                }
+-
+-                sfpi::dst_reg[0] = approx * val;
+-            }
+-            v_endif;
++            result = val;
+         }
++        v_endif;
++    }
++    return result;
++}
+ 
++template <bool APPROXIMATION_MODE, int ITERATIONS, int RECIPROCAL_ITERATIONS>
++inline void _calculate_sqrt_(const int iterations)
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < iterations; d++)
++    {
++        sfpi::vFloat val = sfpi::dst_reg[0];
++        sfpi::dst_reg[0] = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL_ITERATIONS>(val);
+         sfpi::dst_reg++;
+     }
+ }
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h
+@@ -6,6 +6,8 @@
+ 
+ #include <limits>
+ 
++#include "ckernel_sfpu_log.h"
++#include "ckernel_sfpu_sqrt.h"
+ #include "sfpi.h"
+ 
+ namespace ckernel
+@@ -128,17 +130,6 @@ inline void _calculate_cosine_(const int iterations)
+     }
+ }
+ 
+-inline sfpi::vFloat _calculate_sqrt_body_(sfpi::vFloat val)
+-{
+-    sfpi::vFloat magic = sfpi::s2vFloat16b(16256); // 127 << 7
+-    // sqrt initial approximation
+-    // adjust bias
+-    sfpi::vUInt val_s = sfpi::reinterpret<sfpi::vUInt>(magic) + sfpi::reinterpret<sfpi::vUInt>(val);
+-    // approximation of square root
+-    val_s >>= 1;
+-    return sfpi::reinterpret<sfpi::vFloat>(val_s);
+-}
+-
+ // https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Definitions_in_terms_of_logarithms
+ // acosh(x) = log(x + sqrt(x^2 - 1))
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+@@ -160,10 +151,9 @@ inline void _calculate_acosh_()
+         {
+             sfpi::vFloat tmp = inp * inp;
+             tmp              = tmp - sfpi::vConst1;
+-            tmp              = _calculate_sqrt_body_(tmp);
++            tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(tmp);
+             tmp              = tmp + inp;
+-            sfpi::dst_reg[0] = tmp;
+-            _calculate_log_body_<APPROXIMATION_MODE>(0);
++            sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
+         }
+         v_endif;
+         sfpi::dst_reg++;
+@@ -179,9 +169,9 @@ inline void _calculate_asinh_()
+     {
+         sfpi::vFloat inp = sfpi::dst_reg[0];
+         sfpi::vFloat tmp = inp * inp + sfpi::vConst1;
+-        tmp              = _calculate_sqrt_body_(tmp);
+-        sfpi::dst_reg[0] = tmp + sfpi::abs(inp);
+-        _calculate_log_body_<APPROXIMATION_MODE>(0);
++        tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(tmp);
++        inp              = tmp + sfpi::abs(inp);
++        sfpi::dst_reg[0] = _calculate_log_body_no_init_(inp);
+         v_if (inp < sfpi::vConst0)
+         {
+             sfpi::dst_reg[0] = -sfpi::dst_reg[0];
+@@ -191,10 +181,57 @@ inline void _calculate_asinh_()
+     }
+ }
+ 
++// atanh[x] = 0.5 * ln((1 + x) / (1 - x))
++template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
++inline void _calculate_atanh_()
++{
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat inp     = sfpi::dst_reg[0];
++        sfpi::vFloat abs_inp = sfpi::abs(inp);
++        v_if (abs_inp > sfpi::vConst1)
++        {
++            sfpi::dst_reg[0] = std::numeric_limits<float>::quiet_NaN();
++        }
++        v_elseif (abs_inp == sfpi::vConst1)
++        {
++            sfpi::vFloat inf = std::numeric_limits<float>::infinity();
++            sfpi::dst_reg[0] = sfpi::setsgn(inf, inp);
++        }
++        v_else
++        {
++            sfpi::vFloat num = sfpi::vConst1 + inp;
++            sfpi::vFloat den = sfpi::vConst1 - inp;
++            sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(den);
++            tmp              = sfpi::setsgn(tmp, den);
++            if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
++            {
++                den = tmp;
++            }
++            else
++            {
++                den = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
++            }
++            num              = num * den;
++            den              = _calculate_log_body_no_init_(num);
++            sfpi::dst_reg[0] = 0.5f * den;
++        }
++        v_endif;
++        sfpi::dst_reg++;
++    }
++}
++
+ template <bool APPROXIMATION_MODE>
+ void _init_inverse_hyperbolic_()
+ {
+-    _init_log_<APPROXIMATION_MODE>();
++    _init_sqrt_<APPROXIMATION_MODE>();
++}
++
++template <bool APPROXIMATION_MODE>
++void _init_atanh_()
++{
++    _init_reciprocal_<APPROXIMATION_MODE>();
+ }
+ 
+ } // namespace sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_log.h
+@@ -70,6 +70,37 @@ sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor)
+     sfpi::dst_reg[0] = result;
+ }
+ 
++sfpi_inline sfpi::vFloat _calculate_log_body_no_init_(sfpi::vFloat base)
++{
++    // Normalize base to calculation range
++    sfpi::vFloat x = setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
++
++    // 3rd order polynomial approx - determined using rminimax over [1,2]
++    sfpi::vFloat series_result = x * (x * (x * 0x2.44734p-4f - 0xd.e712ap-4f) + 0x2.4f5388p+0f) - 0x1.952992p+0f;
++
++    // Convert exponent to float
++    sfpi::vInt exp = exexp(base);
++    v_if (exp < 0)
++    {
++        exp = sfpi::setsgn(~exp + 1, 1);
++    }
++    v_endif;
++    sfpi::vFloat expf = int32_to_float(exp, 0);
++
++    // De-normalize to original range
++    sfpi::vFloat vConstLn2  = 0.692871f;
++    sfpi::vFloat log_result = expf * vConstLn2 + series_result; // exp correction: ln(1+x) + exp*ln(2)
++
++    // Base case when input is 0. ln(0) = -inf
++    v_if (base == 0.0f)
++    {
++        log_result = -std::numeric_limits<float>::infinity();
++    }
++    v_endif;
++
++    return log_result;
++}
++
+ template <bool APPROXIMATION_MODE, bool HAS_BASE_SCALING, int ITERATIONS>
+ inline void _calculate_log_(const int iterations, uint log_base_scale_factor)
+ {
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_sqrt.h
+@@ -12,48 +12,58 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS, int RECIPROCAL_ITERATIONS>
+-inline void _calculate_sqrt_(const int iterations)
++template <bool APPROXIMATION_MODE, int RECIPROCAL_ITERATIONS>
++sfpi_inline sfpi::vFloat _calculate_sqrt_body_(sfpi::vFloat val)
+ {
+-#pragma GCC unroll 8
+-    for (int d = 0; d < iterations; d++)
++    sfpi::vFloat result;
++    if constexpr (APPROXIMATION_MODE)
+     {
+-        sfpi::vFloat val = sfpi::dst_reg[0];
++        sfpi::vUInt magic = sfpi::vConstIntPrgm0;
++
++        // sqrt initial approximation
++        //  adjust bias
++        sfpi::vUInt val_s = magic + sfpi::reinterpret<sfpi::vUInt>(val);
+ 
+-        if constexpr (APPROXIMATION_MODE)
++        // approximation of square root
++        val_s >>= 1;
++        result = sfpi::reinterpret<sfpi::vFloat>(val_s);
++    }
++    else
++    {
++        // Recip root method
++        //// Init approx
++        // u.i = SQRT_MAGIC_F - (u.i >> 1);
++        v_if (val != 0.0f)
+         {
+-            sfpi::vUInt magic = sfpi::vConstIntPrgm0;
++            sfpi::vUInt magic   = sfpi::vConstIntPrgm0;
++            sfpi::vFloat approx = sfpi::reinterpret<sfpi::vFloat>(magic - (sfpi::reinterpret<sfpi::vUInt>(val) >> 1));
+ 
+-            // sqrt initial approximation
+-            //  adjust bias
+-            sfpi::vUInt val_s = magic + sfpi::reinterpret<sfpi::vUInt>(val);
++            // Reciproot iterations
++            for (int r = 0; r < RECIPROCAL_ITERATIONS; r++)
++            {
++                // x*r*(1.5f - xhalf*r*r);
++                approx = ((approx * approx) * (val * -0.5f) + 1.5f) * approx;
++            }
+ 
+-            // approximation of square root
+-            val_s >>= 1;
+-            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_s);
++            result = approx * val;
+         }
+-        else
++        v_else
+         {
+-            // Recip root method
+-            //// Init approx
+-            // u.i = SQRT_MAGIC_F - (u.i >> 1);
+-            v_if (val != 0.0f)
+-            {
+-                sfpi::vUInt magic   = sfpi::vConstIntPrgm0;
+-                sfpi::vFloat approx = sfpi::reinterpret<sfpi::vFloat>(magic - (sfpi::reinterpret<sfpi::vUInt>(val) >> 1));
+-
+-                // Reciproot iterations
+-                for (int r = 0; r < RECIPROCAL_ITERATIONS; r++)
+-                {
+-                    // x*r*(1.5f - xhalf*r*r);
+-                    approx = ((approx * approx) * (val * -0.5f) + 1.5f) * approx;
+-                }
+-
+-                sfpi::dst_reg[0] = approx * val;
+-            }
+-            v_endif;
++            result = val;
+         }
++        v_endif;
++    }
++    return result;
++}
+ 
++template <bool APPROXIMATION_MODE, int ITERATIONS, int RECIPROCAL_ITERATIONS>
++inline void _calculate_sqrt_(const int iterations)
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < iterations; d++)
++    {
++        sfpi::vFloat val = sfpi::dst_reg[0];
++        sfpi::dst_reg[0] = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL_ITERATIONS>(val);
+         sfpi::dst_reg++;
+     }
+ }
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_trigonometry.h
+@@ -6,6 +6,8 @@
+ 
+ #include <limits>
+ 
++#include "ckernel_sfpu_log.h"
++#include "ckernel_sfpu_sqrt.h"
+ #include "sfpi.h"
+ 
+ namespace ckernel
+@@ -128,17 +130,6 @@ inline void _calculate_cosine_(const int iterations)
+     }
+ }
+ 
+-inline sfpi::vFloat _calculate_sqrt_body_(sfpi::vFloat val)
+-{
+-    sfpi::vFloat magic = sfpi::s2vFloat16b(16256); // 127 << 7
+-    // sqrt initial approximation
+-    // adjust bias
+-    sfpi::vUInt val_s = sfpi::reinterpret<sfpi::vUInt>(magic) + sfpi::reinterpret<sfpi::vUInt>(val);
+-    // approximation of square root
+-    val_s >>= 1;
+-    return sfpi::reinterpret<sfpi::vFloat>(val_s);
+-}
+-
+ // https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Definitions_in_terms_of_logarithms
+ // acosh(x) = log(x + sqrt(x^2 - 1))
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+@@ -160,10 +151,9 @@ inline void _calculate_acosh_()
+         {
+             sfpi::vFloat tmp = inp * inp;
+             tmp              = tmp - sfpi::vConst1;
+-            tmp              = _calculate_sqrt_body_(tmp);
++            tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(tmp);
+             tmp              = tmp + inp;
+-            sfpi::dst_reg[0] = tmp;
+-            _calculate_log_body_<APPROXIMATION_MODE>(0);
++            sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
+         }
+         v_endif;
+         sfpi::dst_reg++;
+@@ -179,9 +169,9 @@ inline void _calculate_asinh_()
+     {
+         sfpi::vFloat inp = sfpi::dst_reg[0];
+         sfpi::vFloat tmp = inp * inp + sfpi::vConst1;
+-        tmp              = _calculate_sqrt_body_(tmp);
+-        sfpi::dst_reg[0] = tmp + sfpi::abs(inp);
+-        _calculate_log_body_<APPROXIMATION_MODE>(0);
++        tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(tmp);
++        tmp              = tmp + sfpi::abs(inp);
++        sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
+         v_if (inp < sfpi::vConst0)
+         {
+             sfpi::dst_reg[0] = -sfpi::dst_reg[0];
+@@ -191,10 +181,57 @@ inline void _calculate_asinh_()
+     }
+ }
+ 
++// atanh[x] = 0.5 * ln((1 + x) / (1 - x))
++template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
++inline void _calculate_atanh_()
++{
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat inp     = sfpi::dst_reg[0];
++        sfpi::vFloat abs_inp = sfpi::abs(inp);
++        v_if (abs_inp > sfpi::vConst1)
++        {
++            sfpi::dst_reg[0] = std::numeric_limits<float>::quiet_NaN();
++        }
++        v_elseif (abs_inp == sfpi::vConst1)
++        {
++            sfpi::vFloat inf = std::numeric_limits<float>::infinity();
++            sfpi::dst_reg[0] = sfpi::setsgn(inf, inp);
++        }
++        v_else
++        {
++            sfpi::vFloat num = sfpi::vConst1 + inp;
++            sfpi::vFloat den = sfpi::vConst1 - inp;
++            sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(den);
++            tmp              = sfpi::setsgn(tmp, den);
++            if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
++            {
++                den = tmp;
++            }
++            else
++            {
++                den = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
++            }
++            num              = num * den;
++            den              = _calculate_log_body_no_init_(num);
++            sfpi::dst_reg[0] = 0.5f * den;
++        }
++        v_endif;
++        sfpi::dst_reg++;
++    }
++}
++
+ template <bool APPROXIMATION_MODE>
+ void _init_inverse_hyperbolic_()
+ {
+-    _init_log_<APPROXIMATION_MODE>();
++    _init_sqrt_<APPROXIMATION_MODE>();
++}
++
++template <bool APPROXIMATION_MODE>
++void _init_atanh_()
++{
++    _init_reciprocal_<APPROXIMATION_MODE>();
+ }
+ 
+ } // namespace sfpu
+

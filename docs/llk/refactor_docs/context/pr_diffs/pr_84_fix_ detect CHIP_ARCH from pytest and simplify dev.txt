@@ -1,0 +1,214 @@
+PR #84: fix: detect CHIP_ARCH from pytest and simplify dev env
+URL: https://github.com/tenstorrent/tt-llk/pull/84
+
+File: .github/workflows/setup-and-test.yml
+@@ -39,7 +39,7 @@ jobs:
+         shell: bash
+         run: |
+           echo "CHIP_ARCH is set to $CHIP_ARCH"
+-          cd tests && ./setup_sfpi.sh
++          cd tests && ./setup_testing_env.sh
+           # Run the tests
+           cd python_tests/
+           pytest --timeout=60 --color=yes --force-sugar .
+
+File: tests/helpers/find_arch.py
+@@ -1,29 +0,0 @@
+-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+-# SPDX-License-Identifier: Apache-2.0
+-
+-import sys
+-
+-
+-def check_strings_in_file(strings, file_path):
+-    try:
+-        with open(file_path, "r") as f:
+-            content = f.read()
+-
+-        for string in strings:
+-            if string in content:
+-                return string.lower()
+-        return "Unsupported architecture."
+-
+-    except FileNotFoundError:
+-        print(f"Error: The file '{file_path}' does not exist.", file=sys.stderr)
+-        return None
+-
+-
+-if __name__ == "__main__":
+-    strings = sys.argv[1:-1]
+-    file_path = sys.argv[-1]
+-
+-    result = check_strings_in_file(strings, file_path)
+-
+-    if result is not None:
+-        print(result)
+
+File: tests/python_tests/conftest.py
+@@ -4,15 +4,44 @@
+ import pytest
+ import os
+ import logging
+-from helpers import HardwareController
++import subprocess
+ 
+ 
+-@pytest.fixture(scope="function", autouse=True)
+-def manage_hardware_controller():
+-    # Setup: initialize the hardware controller
+-    controller = HardwareController()
+-    # controller.reset_card()
+-    yield controller
++@pytest.fixture(scope="session", autouse=True)
++def setup_chip_arch():
++    def detect_architecture(output):
++        if "Blackhole" in output:
++            return "blackhole"
++        elif "Wormhole" in output:
++            return "wormhole"
++        return None
++
++    chip_arch = os.getenv("CHIP_ARCH")
++    if chip_arch:
++        print(f"CHIP_ARCH is already set to {chip_arch}")
++        return
++    try:
++        result = subprocess.run(
++            ["tt-smi", "-ls"],
++            stdout=subprocess.PIPE,
++            stderr=subprocess.PIPE,
++            text=True,
++            check=True,
++        )
++    except FileNotFoundError:
++        print("Error: tt-smi command not found.", file=sys.stderr)
++        sys.exit(1)
++    except subprocess.CalledProcessError as e:
++        print(f"Error: tt-smi failed with error: {e.stderr}", file=sys.stderr)
++        sys.exit(1)
++
++    architecture = detect_architecture(result.stdout)
++    if not architecture:
++        print(
++            "Error: Unable to detect architecture from tt-smi output.", file=sys.stderr
++        )
++        sys.exit(1)
++    os.environ["CHIP_ARCH"] = architecture
+ 
+ 
+ def pytest_configure(config):
+@@ -41,7 +70,7 @@ def pytest_collection_modifyitems(items):
+         if "::" in item.nodeid and "[" in item.nodeid:
+             file_part, params_part = item.nodeid.split("::", 1)
+             param_only = params_part.split("[", 1)[1]  # Extract parameters
+-            item._nodeid = f"{file_part}::[{param_only}"
++            item._nodeid = f"{file_part}[{param_only}]"
+ 
+ 
+ def pytest_runtest_protocol(item, nextitem):
+@@ -53,7 +82,7 @@ def pytest_runtest_protocol(item, nextitem):
+     if "::" in item.nodeid and "[" in item.nodeid:
+         _, param_part = item.nodeid.split("::", 1)
+         param_only = param_part.split("[", 1)[1]  # Extract parameters
+-        item.name = f"[{param_only}"
++        item.name = f"[{param_only}]"
+ 
+     # Continue the test execution as usual
+     return None
+
+File: tests/setup_external_testing_env.sh
+@@ -87,37 +87,13 @@ if [[ "$REUSE" == false ]]; then
+     echo "Installing required Python packages..."
+     pip install -r requirements.txt
+ 
+-    # Detect architecture for chip
+-    echo "Running tt-smi -ls to detect architecture..."
+-    ARCH_DUMP=$(mktemp)
+-    tt-smi -ls > "$ARCH_DUMP"
+-    result=$(python3 helpers/find_arch.py "Wormhole" "Blackhole" "$ARCH_DUMP")
+-    rm -f "$ARCH_DUMP"
+-    echo "Detected architecture: $result"
+-
+-    if [ -z "$result" ]; then
+-        echo "Error: Architecture detection failed!"
+-        exit 1
+-    fi
+-
+-    export CHIP_ARCH="$result"
+-    echo "CHIP_ARCH is: $CHIP_ARCH"
+-
+     # Install tt-exalens
+     echo "Installing tt-exalens..."
+     wget -O ttexalens-0.1.250326+dev.0c4381a-cp38-cp38-linux_x86_64.whl https://github.com/tenstorrent/tt-exalens/releases/download/0.1/ttexalens-0.1.250326+dev.0c4381a-cp38-cp38-linux_x86_64.whl
+     pip install ttexalens-0.1.250326+dev.0c4381a-cp38-cp38-linux_x86_64.whl
+ 
+     # Download and extract SFPI release
+-    if [ ! -f "sfpi-release.tgz" ]; then
+-        echo "Downloading SFPI release..."
+-        wget "$SFPI_RELEASE_URL" -O sfpi-release.tgz
+-    else
+-        echo "SFPI release already downloaded. Skipping."
+-    fi
+-    echo "Extracting SFPI release..."
+-    tar -xzvf sfpi-release.tgz
+-    rm -f sfpi-release.tgz
++    ./setup_testing_env.sh
+ else   # Reuse existing environment setup
+     # Deactivate any active virtual environment
+     if [[ -n "$VIRTUAL_ENV" ]]; then
+@@ -126,22 +102,6 @@ else   # Reuse existing environment setup
+     fi
+     echo "Reusing existing virtual environment setup..."
+     source .venv/bin/activate
+-
+-    echo "Running tt-smi -ls to detect architecture..."
+-    ARCH_DUMP=$(mktemp)
+-    tt-smi -ls > "$ARCH_DUMP"
+-    result=$(python3 helpers/find_arch.py "Wormhole" "Blackhole" "$ARCH_DUMP")
+-    rm -f "$ARCH_DUMP"
+-    echo "Detected architecture: $result"
+-
+-    if [ -z "$result" ]; then
+-        echo "Error: Architecture detection failed!"
+-        exit 1
+-    fi
+-
+-    echo "Setting CHIP_ARCH variable..."
+-    export CHIP_ARCH="$result"
+-    echo "CHIP_ARCH is: $CHIP_ARCH"
+ fi
+ 
+ echo "Setup completed successfully!"
+
+File: tests/setup_sfpi.sh
+@@ -1,11 +0,0 @@
+-#!/usr/bin/env bash
+-# SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
+-#
+-# SPDX-License-Identifier: Apache-2.0
+-
+-set -e
+-
+-SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.7.0/sfpi-release.tgz"
+-wget "$SFPI_RELEASE_URL" -O sfpi-release.tgz
+-tar -xzf sfpi-release.tgz
+-rm sfpi-release.tgz
+
+File: tests/setup_testing_env.sh
+@@ -0,0 +1,15 @@
++#!/usr/bin/env bash
++# SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
++#
++# SPDX-License-Identifier: Apache-2.0
++
++SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.8.0/sfpi-release.tgz"
++
++if [ ! -d "sfpi" ]; then
++    echo "sfpi directory not found. Downloading and extracting SFPI release..."
++    wget "$SFPI_RELEASE_URL" -O sfpi-release.tgz
++    tar -xzf sfpi-release.tgz
++    rm sfpi-release.tgz
++else
++    echo "sfpi directory already exists. Skipping download and extraction."
++fi
+

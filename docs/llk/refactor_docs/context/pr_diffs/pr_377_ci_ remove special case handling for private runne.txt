@@ -1,0 +1,14 @@
+PR #377: ci: remove special case handling for private runner
+URL: https://github.com/tenstorrent/tt-llk/pull/377
+
+File: .github/workflows/setup-and-test.yml
+@@ -28,7 +28,7 @@ jobs:
+       matrix:
+         test_group: ${{ fromJSON(inputs.test_group) }}
+     container:
+-      image: ${{ inputs.runs_on != 'P150' && 'harbor.ci.tenstorrent.net/' || '' }}${{ inputs.docker_image }}
++      image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
+       options: "--rm --device /dev/tenstorrent"
+     name: "🦄 Run tests (group ${{ matrix.test_group }}${{ fromJSON(inputs.test_group).length }})"
+     steps:
+

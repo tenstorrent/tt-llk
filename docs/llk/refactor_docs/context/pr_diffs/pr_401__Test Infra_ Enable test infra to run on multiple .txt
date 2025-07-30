@@ -1,0 +1,1720 @@
+PR #401: [Test Infra] Enable test infra to run on multiple tiles and random tensor input shape (First iteration)
+URL: https://github.com/tenstorrent/tt-llk/pull/401
+
+File: tests/Makefile
+@@ -58,6 +58,8 @@ OPTIONS_COMPILE += $(INCLUDES)
+ 
+ TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
+ 
++TEST_KERNEL_FLAG := -DTEST_KERNEL
++
+ # =========================
+ # Targets
+ # =========================
+@@ -94,7 +96,7 @@ $(SHARED_DIR)/brisc.elf: $(SHARED_DIR)/tmu-crt0.o $(SHARED_DIR)/brisc.o | $(SHAR
+ 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+ 
+ $(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp | $(OBJ_DIR)
+-	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -MMD -MP -MF $(@:.o=.d) -DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
++	$(GXX) $(OPTIONS_ALL)  $(TEST_KERNEL_FLAG) $(OPTIONS_COMPILE) -MMD -MP -MF $(@:.o=.d) -DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
+ 
+ # compiling main for every TRISC core
+ $(SHARED_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp | $(SHARED_DIR)
+
+File: tests/helpers/include/params.h
+@@ -115,17 +115,3 @@ constexpr auto SFPU_OPERATION = SfpuType::reciprocal;
+ #ifdef SFPU_OP_CELU
+ constexpr auto SFPU_OPERATION = SfpuType::celu;
+ #endif
+-
+-inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
+-{
+-    buffer_Dest[0] = reinterpret_cast<volatile uint32_t*>(first);
+-
+-    va_list args;
+-    va_start(args, first);
+-    for (int i = 1; i < n; ++i)
+-    {
+-        int num        = va_arg(args, int);
+-        buffer_Dest[i] = reinterpret_cast<volatile uint32_t*>(num);
+-    }
+-    va_end(args);
+-}
+
+File: tests/python_tests/helpers/device.py
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import inspect
+ import time
+ 
+ from ttexalens.tt_exalens_lib import (
+@@ -14,7 +13,12 @@
+     write_words_to_device,
+ )
+ 
+-from .format_arg_mapping import DestAccumulation, Mailbox
++from .format_arg_mapping import (
++    DestAccumulation,
++    L1BufferLocations,
++    Mailbox,
++    format_tile_sizes,
++)
+ from .format_config import DataFormat, FormatConfig
+ from .pack import (
+     pack_bfp8_b,
+@@ -34,26 +38,26 @@
+     unpack_fp32,
+     unpack_int8,
+     unpack_int32,
++    unpack_res_tiles,
+     unpack_uint8,
+     unpack_uint16,
+     unpack_uint32,
+ )
+-from .utils import calculate_read_byte_count
+ 
+ MAX_READ_BYTE_SIZE_16BIT = 2048
+ 
+ 
+ def collect_results(
+     formats: FormatConfig,
+-    tensor_size: int,
++    tile_count: int,
+     address: int = 0x1C000,
+     core_loc: str = "0,0",
+     sfpu: bool = False,
+ ):
+ 
+-    read_bytes_cnt = calculate_read_byte_count(formats, tensor_size, sfpu)
++    read_bytes_cnt = format_tile_sizes[formats.output_format] * tile_count
+     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
+-    res_from_L1 = get_result_from_device(formats, read_data, sfpu)
++    res_from_L1 = unpack_res_tiles(read_data, formats, tile_count=tile_count, sfpu=sfpu)
+     return res_from_L1
+ 
+ 
+@@ -96,19 +100,35 @@ def write_stimuli_to_l1(
+     stimuli_A_format,
+     stimuli_B_format,
+     core_loc="0,0",
+-    tile_cnt=1,
++    tile_count=1,
+ ):
+ 
+-    BUFFER_SIZE = 4096
+-    TILE_SIZE = 1024
++    TILE_ELEMENTS = 1024
++
++    TILE_SIZE_A = format_tile_sizes.get(stimuli_A_format, 2048)
++    TILE_SIZE_B = format_tile_sizes.get(stimuli_A_format, 2048)
+ 
++    # beginning addresses of srcA, srcB and result buffers in L1
+     buffer_A_address = 0x1A000
+-    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt
++    buffer_B_address = 0x1A000 + TILE_SIZE_A * tile_count
++    result_buffer_address = buffer_B_address + TILE_SIZE_B * tile_count
+ 
+-    for i in range(tile_cnt):
++    write_to_device(
++        core_loc, L1BufferLocations.srcA.value, buffer_A_address.to_bytes(4, "little")
++    )
++    write_to_device(
++        core_loc, L1BufferLocations.srcB.value, buffer_B_address.to_bytes(4, "little")
++    )
++    write_to_device(
++        core_loc,
++        L1BufferLocations.Result.value,
++        result_buffer_address.to_bytes(4, "little"),
++    )
++
++    for i in range(tile_count):
+ 
+-        start_index = TILE_SIZE * i
+-        end_index = start_index + TILE_SIZE
++        start_index = TILE_ELEMENTS * i
++        end_index = start_index + TILE_ELEMENTS
+ 
+         # if end_index > len(buffer_A) or end_index > len(buffer_B):
+         #     raise IndexError("Buffer access out of bounds")
+@@ -134,8 +154,10 @@ def write_stimuli_to_l1(
+         write_to_device(core_loc, buffer_A_address, pack_function_A(buffer_A_tile))
+         write_to_device(core_loc, buffer_B_address, pack_function_B(buffer_B_tile))
+ 
+-        buffer_A_address += BUFFER_SIZE
+-        buffer_B_address += BUFFER_SIZE
++        buffer_A_address += TILE_SIZE_A
++        buffer_B_address += TILE_SIZE_B
++
++    return result_buffer_address  # return address where result will be stored
+ 
+ 
+ def get_result_from_device(
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -87,3 +87,18 @@ class Mailbox(Enum):
+     Unpacker = 0x19FFC
+     Math = 0x19FF8
+     Packer = 0x19FF4
++
++
++format_tile_sizes = {
++    DataFormat.Bfp8_b: 1088,
++    DataFormat.Float16: 2048,
++    DataFormat.Float16_b: 2048,
++    DataFormat.Float32: 4096,
++    DataFormat.Int32: 4096,
++}
++
++
++class L1BufferLocations(Enum):
++    srcA = 0x18FE0
++    srcB = 0x18FE4
++    Result = 0x18FE8
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -52,17 +52,25 @@ def to_tensor(operand, data_format):
+ 
+ @register_golden
+ class MatmulGolden(FidelityMasking):
+-    def __call__(self, operand1, operand2, data_format, math_fidelity):
++    def __call__(
++        self, operand1, operand2, data_format, math_fidelity, input_dimensions=[32, 32]
++    ):
+         torch_format = format_dict[data_format]
+ 
+         self._apply_fidelity_masking(operand1, operand2, math_fidelity)
+ 
+         # Clone and detach to avoid modifying original input
+-        operand1_matrix = to_tensor(operand1, data_format).view(32, 32)
+-        operand2_matrix = to_tensor(operand2, data_format).view(32, 32)
++        operand1_matrix = to_tensor(operand1, data_format).view(
++            input_dimensions[0], input_dimensions[1]
++        )
++        operand2_matrix = to_tensor(operand2, data_format).view(
++            input_dimensions[0], input_dimensions[1]
++        )
+ 
+         return (
+-            torch.matmul(operand1_matrix, operand2_matrix).view(1024).to(torch_format)
++            torch.matmul(operand1_matrix, operand2_matrix)
++            .view(input_dimensions[0] * input_dimensions[1])
++            .to(torch_format)
+         )
+ 
+ 
+@@ -265,17 +273,17 @@ def _apply_pooling(self, tensor, pool_type, dim):
+ 
+ @register_golden
+ class UntilizeGolden:
+-    def __call__(self, operand, data_format):
+-        from helpers.tilize_untilize import untilize
++    def __call__(self, operand, data_format, dimensions=[32, 32]):
++        from helpers.tilize_untilize import untilize_block
+ 
+-        result = untilize(operand, data_format)
++        result = untilize_block(operand, data_format, dimensions=dimensions)
+         return result.flatten()
+ 
+ 
+ @register_golden
+ class TilizeGolden:
+-    def __call__(self, operand, data_format):
+-        from helpers.tilize_untilize import tilize
++    def __call__(self, operand, dimensions, data_format):
++        from helpers.tilize_untilize import tilize_block
+ 
+-        result = tilize(operand, data_format)
++        result = tilize_block(operand, dimensions, data_format)
+         return result.flatten()
+
+File: tests/python_tests/helpers/pack.py
+@@ -11,20 +11,22 @@ def pack_bfp16(torch_tensor):
+     return array.array(
+         "B",
+         b"".join(
+-            struct.pack("<f", value)[2:] for value in torch_tensor
+-        ),  # Take high 2 bytes (MSBs)
++            struct.pack("<f", value.item())[2:] for value in torch_tensor.view(-1)
++        ),
+     ).tolist()
+ 
+ 
+ def pack_fp16(torch_tensor):
+     return array.array(
+-        "B", b"".join(struct.pack("<e", value) for value in torch_tensor)
++        "B",
++        b"".join(struct.pack("<e", value.item()) for value in torch_tensor.view(-1)),
+     ).tolist()
+ 
+ 
+ def pack_fp32(torch_tensor):
+     return array.array(
+-        "B", b"".join(struct.pack("<f", value) for value in torch_tensor)
++        "B",
++        b"".join(struct.pack("<f", value.item()) for value in torch_tensor.view(-1)),
+     ).tolist()
+ 
+ 
+
+File: tests/python_tests/helpers/stimuli_generator.py
+@@ -56,7 +56,7 @@ def generate_random_face_ab(
+ def generate_stimuli(
+     stimuli_format_A=DataFormat.Float16_b,
+     stimuli_format_B=DataFormat.Float16_b,
+-    tile_cnt=1,
++    input_dimensions=[32, 32],
+     const_face=False,
+     const_value_A=1,
+     const_value_B=1,
+@@ -65,6 +65,8 @@ def generate_stimuli(
+     srcA = []
+     srcB = []
+ 
++    tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
++
+     for _ in range(4 * tile_cnt):
+         face_a, face_b = generate_random_face_ab(
+             stimuli_format_A, stimuli_format_B, const_face, const_value_A, const_value_B
+@@ -82,4 +84,8 @@ def generate_stimuli(
+         if stimuli_format_B != DataFormat.Bfp8_b
+         else torch.bfloat16
+     )
+-    return torch.tensor(srcA, dtype=dtype_A), torch.tensor(srcB, dtype=dtype_B)
++    return (
++        torch.tensor(srcA, dtype=dtype_A),
++        torch.tensor(srcB, dtype=dtype_B),
++        tile_cnt,
++    )
+
+File: tests/python_tests/helpers/test_config.py
+@@ -3,13 +3,19 @@
+ 
+ from enum import Enum
+ 
++from ttexalens.tt_exalens_lib import (
++    read_word_from_device,
++)
++
+ from .format_arg_mapping import (
+     ApproximationMode,
+     DestAccumulation,
++    L1BufferLocations,
+     MathFidelity,
+     MathOperation,
+     ReduceDimension,
+     ReducePool,
++    format_tile_sizes,
+ )
+ from .format_config import FormatConfig, InputOutputFormat
+ 
+@@ -127,28 +133,64 @@ def generate_build_header(
+                 f"#define POOL_TYPE {test_config.get('pool_type', ReducePool.No).value}"
+             )
+ 
++    tile_cnt = test_config.get("tile_cnt", 1)
++
+     header_content.append("")
+     # Multi-tile test configuration
+     header_content.append("// Multi-tile test configuration")
+-    header_content.append(f"#define TILE_CNT {test_config.get('tile_cnt', 1)}")
++    header_content.append(f"#define TILE_CNT {tile_cnt}")
+ 
+-    # todo: refactor multiple tiles test to remove this
+-    # Multiple tiles test specific configuration
+-    if test_config.get("testname") == "multiple_tiles_eltwise_test":
+-        header_content.extend(
+-            [
+-                "",
+-                "// Multiple tiles test configuration",
+-                "#define MULTIPLE_OPS",
+-                f"#define KERN_CNT {test_config.get('kern_cnt', 1)}",
+-            ]
+-        )
+-        pack_addr_cnt = test_config.get("pack_addr_cnt")
+-        pack_addrs = test_config.get("pack_addrs")
+-        if pack_addr_cnt is not None:
+-            header_content.append(f"#define PACK_ADDR_CNT {pack_addr_cnt}")
+-        if pack_addrs is not None:
+-            header_content.append(f"#define PACK_ADDRS {pack_addrs}")
++    # Unpack an result buffer addresses arrrays generations
++    buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
++    buffer_B_address = read_word_from_device("0,0", L1BufferLocations.srcB.value)
++    result_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
++
++    buffer_A_array = []
++    buffer_B_array = []
++    buffer_res_array = []
++
++    if formats is not None:
++        for i in range(tile_cnt):
++            buffer_A_array.append(
++                buffer_A_address + i * format_tile_sizes[formats.input_format]
++            )
++            buffer_B_array.append(
++                buffer_B_address + i * format_tile_sizes[formats.input_format]
++            )
++            buffer_res_array.append(
++                result_buffer_address + i * format_tile_sizes[formats.output_format]
++            )
++
++    buffer_A_str = ", ".join(
++        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_A_array
++    )
++    buffer_B_str = ", ".join(
++        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_B_array
++    )
++    buffer_res_str = ", ".join(
++        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})"
++        for addr in buffer_res_array
++    )
++    header_content.append(
++        "#if defined(LLK_TRISC_UNPACK) && defined(TEST_KERNEL)\n"
++        "volatile uint32_t* buffer_A[TILE_CNT] = {" + buffer_A_str + "}; \n"
++        "volatile uint32_t* buffer_B[TILE_CNT] = {" + buffer_B_str + "}; \n"
++        "#endif\n"
++        "#if defined(LLK_TRISC_PACK) && defined(TEST_KERNEL)\n"
++        "volatile uint32_t* buffer_Res[TILE_CNT] = {" + buffer_res_str + "}; \n"
++        "#endif\n"
++    )
++
++    input_dimensions = test_config.get("input_dimensions", [32, 32])
++    block_ct_dim = input_dimensions[1] // 32
++    block_rt_dim = input_dimensions[0] // 32
++
++    header_content.append(
++        "#if defined(TEST_KERNEL)\n"
++        f"constexpr uint32_t BLOCK_CT_DIM = {block_ct_dim}; \n"
++        f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim}; \n"
++        "#endif\n"
++    )
+ 
+     if perf_run_type := test_config.get("perf_run_type"):
+         header_content.append("")
+
+File: tests/python_tests/helpers/tilize_untilize.py
+@@ -7,6 +7,51 @@
+ from .format_config import DataFormat
+ 
+ 
++def tilize_block(input_tensor, dimensions, stimuli_format=DataFormat.Float16_b):
++    if input_tensor.numel() != dimensions[0] * dimensions[1]:
++        raise ValueError(
++            f"Cannot reshape tensor of size {input_tensor.numel()} to shape {dimensions}."
++        )
++
++    input_reshaped = input_tensor.view(dimensions[0], dimensions[1])
++    if input_reshaped.ndim != 2:
++        raise ValueError(
++            f"Expected a 2D tensor for tilize_block, got shape {input_tensor.shape}"
++        )
++
++    rows, cols = input_reshaped.shape
++    if rows % 32 != 0 or cols % 32 != 0:
++        raise ValueError(
++            f"Input tensor dimensions must be divisible by 32. Got shape: {input_tensor.shape}"
++        )
++
++    # Calculate number of blocks in each dimension
++    row_blocks = rows // 32
++    col_blocks = cols // 32
++    total_blocks = row_blocks * col_blocks
++
++    blocked_tensor = input_reshaped.reshape(row_blocks, 32, col_blocks, 32)
++
++    # Permute to get blocks in the right order: (row_blocks, col_blocks, 32, 32)
++    blocked_tensor = blocked_tensor.permute(0, 2, 1, 3)
++
++    # Reshape to get all blocks as sequential entities: (total_blocks, 32, 32)
++    all_blocks = blocked_tensor.reshape(total_blocks, 32, 32)
++
++    flat_blocks = all_blocks.reshape(total_blocks, -1)
++
++    tilized_blocks = torch.stack(
++        [tilize(block, stimuli_format=stimuli_format) for block in flat_blocks]
++    )
++
++    # Reshape tilized blocks back to original dimensions
++    tilized_output = (
++        tilized_blocks.flatten().reshape(rows, cols).to(format_dict[stimuli_format])
++    )
++
++    return tilized_output
++
++
+ def tilize(original_tensor, stimuli_format=DataFormat.Float16_b):
+ 
+     if original_tensor.size(0) != 1024:
+@@ -26,6 +71,11 @@ def tilize(original_tensor, stimuli_format=DataFormat.Float16_b):
+ 
+ def untilize(tilized_tensor, stimuli_format=DataFormat.Float16_b):
+ 
++    if tilized_tensor.size(0) != 1024:
++        raise ValueError(
++            f"Input tensor must have 1024 elements. It has: {len(tilized_tensor)}"
++        )
++
+     tilized_tensor = tilized_tensor.view(-1)
+ 
+     f0 = tilized_tensor[:256].view(16, 16)
+@@ -39,3 +89,45 @@ def untilize(tilized_tensor, stimuli_format=DataFormat.Float16_b):
+     original_tensor = torch.cat((top, bottom), dim=0).view(1024)
+ 
+     return original_tensor.to(dtype=format_dict[stimuli_format])
++
++
++def untilize_block(
++    input_tensor, stimuli_format=DataFormat.Float16_b, dimensions=[32, 32]
++):
++    """Optimized function to untilize blocks of data.
++
++    Args:
++        input_tensor: Input tensor to be untilized
++        stimuli_format: Data format
++        dimensions: Target dimensions for the output
++
++    Returns:
++        Untilized tensor with specified dimensions and data format
++    """
++    if input_tensor.numel() != dimensions[0] * dimensions[1]:
++        raise ValueError(
++            f"Cannot reshape tensor of size {input_tensor.numel()} to shape {dimensions}."
++        )
++
++    # Calculate number of 32x32 tiles
++    rows, cols = dimensions
++    row_blocks = rows // 32
++    col_blocks = cols // 32
++    total_blocks = row_blocks * col_blocks
++
++    if rows % 32 != 0 or cols % 32 != 0:
++        raise ValueError(
++            f"Dimensions must be divisible by 32. Got dimensions: {dimensions}"
++        )
++
++    # Reshape input to have one block per 1024 elements
++    input_reshaped = input_tensor.reshape(total_blocks, 1024)
++
++    untilized_blocks = torch.stack([untilize(block) for block in input_reshaped])
++
++    output = untilized_blocks.reshape(row_blocks, col_blocks, 32, 32)
++
++    # Then permute and reshape to get the final dimensions
++    output = output.permute(0, 2, 1, 3).reshape(rows, cols)
++
++    return output.to(dtype=format_dict[stimuli_format])
+
+File: tests/python_tests/helpers/unpack.py
+@@ -4,15 +4,18 @@
+ # unpack.py
+ 
+ import struct
++from itertools import chain
+ 
+ import torch
+ 
++from .format_arg_mapping import DataFormat, format_dict, format_tile_sizes
+ 
+-def unpack_fp16(packed_list, unpack_src, pack_dst):
++
++def unpack_fp16(packed_list):
+     return [val[0] for val in struct.iter_unpack("<e", bytes(packed_list))]
+ 
+ 
+-def unpack_bfp16(packed_list, unpack_src, pack_dst):
++def unpack_bfp16(packed_list):
+     # Step 1: Promote each 2-byte bfloat16 to 4-byte float32
+     # Place bfloat16 in high 2 bytes (little-endian)
+     padded_bytes = bytearray()
+@@ -85,7 +88,7 @@ def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
+     return bfloat16_values
+ 
+ 
+-def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
++def unpack_bfp8_b(bfp8_block, sfpu=False):
+ 
+     if not sfpu:
+         exponents = bfp8_block[:64]
+@@ -106,3 +109,43 @@ def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
+         bfloat16_values.extend(block_bfloat16_values)
+ 
+     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
++
++
++_UNPACKERS = {
++    DataFormat.Float16: unpack_fp16,
++    DataFormat.Float16_b: unpack_bfp16,
++    DataFormat.Float32: unpack_fp32,
++    DataFormat.Int32: unpack_int32,
++    DataFormat.UInt32: unpack_uint32,
++    DataFormat.UInt16: unpack_uint16,
++    DataFormat.Int8: unpack_int8,
++    DataFormat.UInt8: unpack_uint8,
++}
++
++
++def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False):
++    output_format = formats.output_format
++    tile_size = format_tile_sizes[output_format]
++    output_dtype = format_dict[output_format]
++
++    total_elements_needed = tile_count * tile_size
++    if total_elements_needed > len(packed_list):
++        raise IndexError("Buffer access out of bounds")
++
++    if output_format == DataFormat.Bfp8_b:
++        unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
++    else:
++        unpack_func = _UNPACKERS[output_format]
++
++    all_tiles_data = packed_list[:total_elements_needed]
++
++    reshaped_data = [
++        all_tiles_data[i : i + tile_size]
++        for i in range(0, total_elements_needed, tile_size)
++    ]
++
++    unpacked_data = list(
++        chain.from_iterable(unpack_func(tile_data) for tile_data in reshaped_data)
++    )
++
++    return torch.tensor(unpacked_data, dtype=output_dtype)
+
+File: tests/python_tests/helpers/utils.py
+@@ -7,6 +7,7 @@
+ import numpy as np
+ import torch
+ 
++from .format_arg_mapping import format_dict
+ from .format_config import DataFormat, FormatConfig
+ 
+ torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+@@ -178,6 +179,9 @@ def get_tolerance(output_data_format):
+ 
+     tolerance = get_tolerance(output_data_format)
+ 
++    golden_tensor = golden_tensor.type(format_dict[output_data_format])
++    res_tensor = res_tensor.type(format_dict[output_data_format])
++
+     is_close = torch.isclose(
+         golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
+     )
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -61,27 +61,36 @@
+ )
+ def test_unary_datacopy(testname, formats, dest_acc):
+ 
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
++    input_dimensions = [64, 64]
++
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format,
++        formats.input_format,
++        input_dimensions=input_dimensions,
++    )
+ 
+     generate_golden = get_golden_generator(DataCopyGolden)
+     golden_tensor = generate_golden(src_A, formats.output_format)
+-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
++    )
+ 
+     unpack_to_dest = formats.input_format.is_32_bit()
+ 
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+-        "unpack_to_dest": unpack_to_dest,  # This test does a datacopy and unpacks input into dest register
++        "unpack_to_dest": unpack_to_dest,
++        "tile_cnt": tile_cnt,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+     run_elf_files(testname)
+ 
+     wait_for_tensix_operations_finished()
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     torch_format = format_dict[formats.output_format]
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -90,13 +90,16 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+     ):
+         pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+-    src_A, src_B = generate_stimuli(
+-        formats.input_format,
+-        formats.input_format,
++    input_dimensions = [64, 64]
++
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
+     generate_golden = get_golden_generator(UnarySFPUGolden)
+     golden_tensor = generate_golden(mathop, src_A, formats.output_format)
+-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
++    )
+ 
+     unpack_to_dest = formats.input_format.is_32_bit()
+     test_config = {
+@@ -105,16 +108,17 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+         "approx_mode": approx_mode,
+-        "unpack_to_dest": unpack_to_dest,  # This test does a datacopy and unpacks input into dest register
++        "unpack_to_dest": unpack_to_dest,
++        "tile_cnt": tile_cnt,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+     run_elf_files(testname)
+ 
+     wait_for_tensix_operations_finished()
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+-    res_from_L1 = res_from_L1[:1024]
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
++    # res_from_L1 = res_from_L1[:1024]
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     torch_format = format_dict[formats.output_format]
+
+File: tests/python_tests/test_fill_dest.py
+@@ -1,95 +0,0 @@
+-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+-# SPDX-License-Identifier: Apache-2.0
+-
+-import pytest
+-import torch
+-
+-from helpers.device import (
+-    collect_results,
+-    run_elf_files,
+-    wait_for_tensix_operations_finished,
+-    write_stimuli_to_l1,
+-)
+-from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict
+-from helpers.format_config import DataFormat
+-from helpers.golden_generators import FillDestGolden, get_golden_generator
+-from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+-    input_output_formats,
+-)
+-from helpers.stimuli_generator import flatten_list, generate_stimuli
+-from helpers.test_config import generate_make_command
+-from helpers.utils import passed_test, run_shell_command
+-
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
+-
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats)
+-all_params = generate_params(
+-    ["fill_dest_test"],
+-    test_formats,
+-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+-)
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
+-)
+-def test_fill_dest(testname, formats, dest_acc):
+-
+-    pack_start_address = 0x1C000
+-    pack_addresses = [pack_start_address + 0x1000 * i for i in range(16)]
+-
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+-
+-    generate_golden = get_golden_generator(FillDestGolden)
+-    golden_tensor = generate_golden(
+-        src_A, src_B, formats.output_format, MathOperation.Elwadd
+-    )
+-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+-
+-    test_config = {
+-        "formats": formats,
+-        "testname": testname,
+-        "dest_acc": dest_acc,
+-    }
+-
+-    make_cmd = generate_make_command(test_config)
+-    run_shell_command(f"cd .. && {make_cmd}")
+-
+-    run_elf_files(testname)
+-
+-    wait_for_tensix_operations_finished()
+-    res_from_L1 = []
+-    for address in pack_addresses:
+-        res_from_L1.append(
+-            collect_results(formats, tensor_size=len(src_A), address=address)
+-        )
+-    res_from_L1 = flatten_list(res_from_L1)
+-
+-    assert len(res_from_L1) == len(golden_tensor)
+-
+-    torch_format = format_dict.get(formats.output_format)
+-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+-
+-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_matmul.py
+@@ -21,13 +21,13 @@
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+-from helpers.tilize_untilize import tilize
++from helpers.tilize_untilize import tilize_block
+ from helpers.utils import passed_test, run_shell_command
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [
+-    DataFormat.Float16,
+     DataFormat.Float16_b,
++    DataFormat.Float16,
+     DataFormat.Bfp8_b,
+     DataFormat.Float32,
+ ]
+@@ -71,24 +71,52 @@
+ def test_matmul(testname, formats, dest_acc, math_fidelity):
+     torch_format = format_dict[formats.output_format]
+ 
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
++    input_dimensions = [32, 32]
++
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format,
++        formats.input_format,
++        input_dimensions=input_dimensions,
++        const_face=True,
++        const_value_A=2,
++        const_value_B=2,
++    )
+ 
+     generate_golden = get_golden_generator(MatmulGolden)
+-    golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+-    golden_tensor = tilize(golden_tensor, formats.output_format).to(torch_format)
++    golden_tensor = generate_golden(
++        src_A,
++        src_B,
++        formats.output_format,
++        math_fidelity,
++        input_dimensions=input_dimensions,
++    )
++    golden_tensor = tilize_block(
++        golden_tensor, dimensions=input_dimensions, stimuli_format=formats.output_format
++    ).to(torch_format)
++    golden_tensor = golden_tensor.flatten()
++
++    tilized_A = tilize_block(
++        src_A, dimensions=input_dimensions, stimuli_format=formats.input_format
++    )
++    tilized_B = tilize_block(
++        src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
++    )
+ 
+-    write_stimuli_to_l1(
+-        tilize(src_A, formats.input_format),
+-        tilize(src_B, formats.input_format),
++    res_address = write_stimuli_to_l1(
++        tilized_A.flatten(),
++        tilized_B.flatten(),
+         formats.input_format,
+         formats.input_format,
++        tile_count=tile_cnt,
+     )
+ 
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
++        "tile_cnt": tile_cnt,
++        "input_dimensions": input_dimensions,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -97,7 +125,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
+     run_elf_files(testname)
+ 
+     wait_for_tensix_operations_finished()
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -89,6 +89,9 @@
+ def test_matmul_and_unary_sfpu(
+     testname, formats, dest_acc, approx_mode, mathop, math_fidelity
+ ):
++
++    input_dimensions = [32, 32]
++
+     if mathop in [MathOperation.Cos, MathOperation.Sin]:
+         pytest.skip("Cos and Sin operations are not fully functional yet")
+     if mathop == MathOperation.Square and math_fidelity == MathFidelity.LoFi:
+@@ -102,7 +105,9 @@ def test_matmul_and_unary_sfpu(
+         pytest.skip("BFP8 does not support Log and Reciprocal operations")
+ 
+     torch_format = format_dict.get(formats.output_format)
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format
++    )
+ 
+     generate_matmul_golden = get_golden_generator(MatmulGolden)
+     golden_tensor = generate_matmul_golden(
+@@ -113,7 +118,7 @@ def test_matmul_and_unary_sfpu(
+     golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
+     golden_tensor = golden_tensor.to(torch_format)
+ 
+-    write_stimuli_to_l1(
++    res_address = write_stimuli_to_l1(
+         tilize(src_A, formats.input_format),
+         tilize(src_B, formats.input_format),
+         formats.input_format,
+@@ -135,10 +140,7 @@ def test_matmul_and_unary_sfpu(
+     run_elf_files(testname)
+ 
+     wait_for_tensix_operations_finished()
+-    buffer_dest_address = 0x1E000
+-    res_from_L1 = collect_results(
+-        formats, tensor_size=len(src_A), address=buffer_dest_address
+-    )
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+ 
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -75,16 +75,19 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
+ 
+     torch_format = format_dict[formats.output_format]
+ 
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format
++    )
+ 
+     generate_golden = get_golden_generator(MatmulGolden)
+     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+ 
+-    write_stimuli_to_l1(
++    res_address = write_stimuli_to_l1(
+         tilize(src_A, formats.input_format),
+         tilize(src_B, formats.input_format),
+         formats.input_format,
+         formats.input_format,
++        tile_count=tile_cnt,
+     )
+ 
+     test_config = {
+@@ -100,7 +103,7 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
+     run_elf_files(testname)
+ 
+     wait_for_tensix_operations_finished()
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+
+File: tests/python_tests/test_matmul_unpack_tilize.py
+@@ -71,15 +71,17 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+ 
+     torch_format = format_dict[formats.output_format]
+ 
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format
++    )
+ 
+     generate_golden = get_golden_generator(MatmulGolden)
+     golden_tensor = tilize(
+         generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+     )
+     golden_tensor = golden_tensor.to(torch_format)
+ 
+-    write_stimuli_to_l1(
++    res_address = write_stimuli_to_l1(
+         src_A,
+         src_B,
+         formats.input_format,
+@@ -99,9 +101,7 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+     run_elf_files(testname)
+ 
+     wait_for_tensix_operations_finished()
+-    res_from_L1 = collect_results(
+-        formats, tensor_size=len(src_A), address=buffer_dest_address
+-    )
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -24,9 +24,9 @@
+     generate_params,
+     input_output_formats,
+ )
+-from helpers.stimuli_generator import flatten_list, generate_stimuli
++from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+-from helpers.utils import format_kernel_list, passed_test, run_shell_command
++from helpers.utils import passed_test, run_shell_command
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
+@@ -64,42 +64,43 @@
+ param_ids = generate_param_ids(all_params)
+ 
+ 
+-@pytest.mark.parametrize("tile_cnt", range(1, 4))
++@pytest.mark.parametrize("input_dimensions", [[32, 32], [32, 64], [64, 64]])
+ @pytest.mark.parametrize(
+     "testname, formats, dest_acc, mathop, math_fidelity",
+     clean_params(all_params),
+     ids=param_ids,
+ )
+-def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
++def test_multiple_tiles(
++    testname, formats, dest_acc, mathop, math_fidelity, input_dimensions
++):
+ 
+     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
+ 
+-    pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt
+-    pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
+-    pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
+-
+-    src_A, src_B = generate_stimuli(
+-        formats.input_format, formats.input_format, tile_cnt=tile_cnt
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
+ 
+     generate_golden = get_golden_generator(EltwiseBinaryGolden)
+     golden_tensor = generate_golden(
+         mathop, src_A, src_B, formats.output_format, math_fidelity
+     )
+-    write_stimuli_to_l1(
+-        src_A, src_B, formats.input_format, formats.input_format, "0,0", tile_cnt
++    res_address = write_stimuli_to_l1(
++        src_A,
++        src_B,
++        formats.input_format,
++        formats.input_format,
++        "0,0",
++        tile_count=tile_cnt,
+     )
+ 
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+-        "kern_cnt": tile_cnt,
+-        "pack_addr_cnt": len(pack_addresses),
+-        "pack_addrs": pack_addresses_formatted,
+         "math_fidelity": math_fidelity,
++        "tile_cnt": tile_cnt,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -108,19 +109,10 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+ 
+-    # check resluts from multiple tiles
+-    res_from_L1 = []
+-
+-    for address in pack_addresses:
+-        res_from_L1.append(
+-            collect_results(
+-                formats, tensor_size=len(src_A) // len(pack_addresses), address=address
+-            )
+-        )
+-
+-    res_from_L1 = flatten_list(res_from_L1)
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
++    assert len(res_from_L1) == len(golden_tensor)
+ 
+-    torch_format = format_dict.get(formats.output_format)
++    torch_format = format_dict[formats.output_format]
+     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+ 
+     assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -24,7 +24,7 @@
+ from helpers.utils import passed_test, run_shell_command
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -51,23 +51,24 @@
+ @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+ def test_pack_untilize(testname, formats):
+ 
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+-    src_A = torch.cat(
+-        [
+-            torch.full((256,), i, dtype=format_dict[formats.input_format])
+-            for i in range(1, 5)
+-        ]
++    input_dimensions = [32, 128]
++
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
+-    src_B = torch.full((1024,), 0)
+ 
+     generate_golden = get_golden_generator(UntilizeGolden)
+-    golden_tensor = generate_golden(src_A, formats.output_format)
++    golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
+ 
+-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
++    )
+ 
+     test_config = {
+         "formats": formats,
+         "testname": testname,
++        "tile_cnt": tile_cnt,
++        "input_dimensions": input_dimensions,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -76,7 +77,7 @@ def test_pack_untilize(testname, formats):
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+ 
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+
+File: tests/python_tests/test_reduce.py
+@@ -76,7 +76,11 @@
+ )
+ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+ 
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
++    input_dimensions = [32, 32]
++
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
++    )
+ 
+     if pool_type in [
+         ReducePool.Max,
+@@ -92,7 +96,9 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+ 
+     generate_golden = get_golden_generator(ReduceGolden)
+     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
+-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
++    )
+ 
+     mathop = mathop_mapping[reduce_dim]
+ 
+@@ -111,12 +117,16 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+ 
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+     res_tensor = untilize(res_tensor, formats.output_format)
+ 
+-    run_shell_command(f"cd .. && make clean")
++    # run_shell_command(f"cd .. && make clean") -> TODO: Investigate
++
++    # E           RuntimeError: Build failed: cd .. && make clean
++    # E           rm: cannot remove 'build/elf': Directory not empty
++    # E           make: *** [Makefile:129: clean] Error 1
+ 
+     assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -79,17 +79,23 @@
+ @pytest.mark.parametrize(
+     "testname, formats, dest_acc, mathop", clean_params(all_params), ids=param_ids
+ )
+-def test_all(testname, formats, dest_acc, mathop):
++def test_sfpu_binary(testname, formats, dest_acc, mathop):
++
++    input_dimensions = [32, 32]
+ 
+     chip_arch = get_chip_architecture()
+     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
+         pytest.skip("Not currently supported in tests")
+ 
+-    src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
++    )
+ 
+     generate_golden = get_golden_generator(BinarySFPUGolden)
+     golden_tensor = generate_golden(mathop, src_A, src_B, formats.output_format)
+-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
++    )
+ 
+     unpack_to_dest = formats.input_format.is_32_bit()
+ 
+@@ -107,7 +113,7 @@ def test_all(testname, formats, dest_acc, mathop):
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+ 
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+ 
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -61,51 +61,54 @@
+         MathFidelity.HiFi3,
+         MathFidelity.HiFi4,
+     ],
+-    tile_cnt=1,
+ )
+ param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "testname, formats, dest_acc, mathop, math_fidelity, tile_cnt",
++    "testname, formats, dest_acc, mathop, math_fidelity",
+     clean_params(all_params),
+     ids=param_ids,
+ )
+ def test_tilize_calculate_untilize_L1(
+-    testname, formats, dest_acc, mathop, math_fidelity, tile_cnt
++    testname, formats, dest_acc, mathop, math_fidelity
+ ):
+ 
+-    src_A, src_B = generate_stimuli(
+-        formats.input_format, formats.input_format, tile_cnt
++    input_dimensions = [32, 32]
++
++    src_A, src_B, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
+ 
+     generate_golden = get_golden_generator(EltwiseBinaryGolden)
+     golden_tensor = generate_golden(
+         mathop, tilize(src_A), tilize(src_B), formats.output_format, math_fidelity
+     )
+ 
+-    write_stimuli_to_l1(
+-        src_A, src_B, formats.input_format, formats.input_format, "0,0", tile_cnt
++    res_address = write_stimuli_to_l1(
++        src_A,
++        src_B,
++        formats.input_format,
++        formats.input_format,
++        "0,0",
++        tile_count=tile_cnt,
+     )
+ 
+-    buffer_dest_address = 0x1E000  # Since this test calls LLK pipeline twise, unpacker will read at address in L1 that packer packed to, this address is able to be reaused for two LLK calls
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
+         "mathop": mathop,
++        "tile_cnt": tile_cnt,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+-
+-    res_from_L1 = collect_results(
+-        formats, tensor_size=len(src_A), address=buffer_dest_address
+-    )
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -23,7 +23,7 @@
+ from helpers.utils import passed_test, run_shell_command
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -50,17 +50,25 @@
+ @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+ def test_unpack_tilize(testname, formats):
+ 
+-    src_A, _ = generate_stimuli(formats.input_format, formats.input_format)
+-    src_B = torch.full((1024,), 0)
++    input_dimensions = [64, 64]
++
++    src_A, _, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
++    )
++    src_B = torch.full((1024 * tile_cnt,), 0)
+ 
+     generate_golden = get_golden_generator(TilizeGolden)
+-    golden_tensor = generate_golden(src_A, formats.output_format)
++    golden_tensor = generate_golden(src_A, input_dimensions, formats.output_format)
+ 
+-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
++    )
+ 
+     test_config = {
+         "formats": formats,
+         "testname": testname,
++        "tile_cnt": tile_cnt,
++        "input_dimensions": input_dimensions,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -69,7 +77,7 @@ def test_unpack_tilize(testname, formats):
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+ 
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -51,25 +51,43 @@
+ @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+ def test_unpack_untilze(testname, formats):
+ 
+-    src_A, _ = generate_stimuli(formats.input_format, formats.input_format)
+-    src_B = torch.full((1024,), 0)
++    input_dimensions = [32, 32]
++
++    src_A, _, tile_cnt = generate_stimuli(
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
++    )
++
++    src_B = torch.full((1024 * tile_cnt,), 0)
++
++    src_A = torch.arange(
++        0,
++        input_dimensions[0] * input_dimensions[1] / 256,
++        1 / 256,
++        dtype=format_dict[formats.input_format],
++    )
+ 
+     generate_golden = get_golden_generator(UntilizeGolden)
+-    golden_tensor = generate_golden(src_A, formats.output_format)
++    golden_tensor = generate_golden(
++        src_A, formats.output_format, dimensions=input_dimensions
++    )
+ 
+-    write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
++    )
+ 
+     test_config = {
+         "formats": formats,
+         "testname": testname,
++        "tile_cnt": tile_cnt,
++        "input_dimensions": input_dimensions,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+-    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+
+File: tests/sources/eltwise_unary_datacopy_test.cpp
+@@ -23,11 +23,13 @@ uint32_t math_sync_tile_dst_index = 0;
+ 
+ void run_kernel()
+ {
+-    volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+-
+     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
++
++    for (int i = 0; i < TILE_CNT; ++i)
++    {
++        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
++    }
+ }
+ 
+ #endif
+@@ -57,8 +59,11 @@ void run_kernel()
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+-        0, UNPACK_A_OUT, UNPACK_A_OUT);
++    for (int i = 0; i < TILE_CNT; ++i)
++    {
++        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
++            i, UNPACK_A_OUT, UNPACK_A_OUT);
++    }
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+ 
+@@ -72,10 +77,6 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+-
+-    std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+-
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+ #else
+@@ -91,7 +92,10 @@ void run_kernel()
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Dest));
++    for (int i = 0; i < TILE_CNT; ++i)
++    {
++        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
++    }
+     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+ #endif
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -14,7 +14,6 @@
+ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+ uint32_t math_sync_tile_dst_index = 0;
+-const int iterations              = 32; // Dependant on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
+ 
+ #ifdef LLK_TRISC_UNPACK
+ 
+@@ -24,11 +23,13 @@ const int iterations              = 32; // Dependant on size of input tensor (10
+ 
+ void run_kernel()
+ {
+-    volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+-
+     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_A_IN, UNPACK_A_OUT);
++
++    for (int i = 0; i < TILE_CNT; ++i)
++    {
++        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
++    }
+ }
+ 
+ #endif
+@@ -44,6 +45,8 @@ void run_kernel()
+ using namespace ckernel;
+ using namespace ckernel::sfpu;
+ 
++const int iterations = 32;
++
+ namespace
+ {
+ void call_sfpu_operation(SfpuType operation)
+@@ -93,18 +96,23 @@ void run_kernel()
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+     _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+-        0, MATH_FORMAT, MATH_FORMAT);
+-
+-    // calculation of sfpu operation on dest
+-    _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
+-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+-    // calling sfpu function from ckernel
+-    // this part is where parametrization of operation takes part
+-    call_sfpu_operation(SFPU_OPERATION);
+-
+-    _llk_math_eltwise_unary_sfpu_done_();
++
++    for (int i = 0; i < TILE_CNT; ++i)
++    {
++        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
++        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
++            i, MATH_FORMAT, MATH_FORMAT);
++
++        // calculation of sfpu operation on dest
++        _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
++        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
++        // calling sfpu function from ckernel
++        // this part is where parametrization of operation takes part
++        call_sfpu_operation(SFPU_OPERATION);
++
++        _llk_math_eltwise_unary_sfpu_done_();
++    }
++
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+ 
+@@ -126,10 +134,6 @@ void run_kernel()
+     constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
+ #endif
+ 
+-    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+-
+-    std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+-
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+ #else
+@@ -145,7 +149,10 @@ void run_kernel()
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Dest));
++    for (int i = 0; i < TILE_CNT; ++i)
++    {
++        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
++    }
+     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+ 
+
+File: tests/sources/fill_dest_test.cpp
+@@ -1,97 +0,0 @@
+-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+-//
+-// SPDX-License-Identifier: Apache-2.0
+-
+-#include <cstdint>
+-#include <cstdio>
+-
+-#include "ckernel.h"
+-#include "llk_defs.h"
+-#include "params.h"
+-
+-// Globals
+-uint32_t unp_cfg_context          = 0;
+-uint32_t pack_sync_tile_dst_ptr   = 0;
+-uint32_t math_sync_tile_dst_index = 0;
+-
+-#ifdef LLK_TRISC_UNPACK
+-
+-#include "llk_unpack_AB.h"
+-#include "llk_unpack_common.h"
+-#include "params.h"
+-
+-void run_kernel()
+-{
+-    volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+-    volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
+-
+-    for (uint index = 0; index < 16; index++)
+-    {
+-        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_B_OUT, UNPACK_B_OUT);
+-        _llk_unpack_AB_init_<>();
+-        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B));
+-    }
+-}
+-
+-#endif
+-
+-#ifdef LLK_TRISC_MATH
+-
+-#include "llk_defs.h"
+-#include "llk_math_common.h"
+-#include "llk_math_eltwise_binary.h"
+-#include "params.h"
+-
+-using namespace ckernel;
+-
+-void run_kernel()
+-{
+-    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+-    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWADD, BroadcastType::NONE>(4, 0, 0);
+-
+-    for (auto index = 0; index < 16; ++index)
+-    {
+-        // index is passed ass index of tile in dest
+-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+-        _llk_math_eltwise_binary_<EltwiseBinaryType::ELWADD, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, 0, EltwiseBinaryReuseDestType::NONE>(
+-            4, index, true);
+-    }
+-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-}
+-
+-#endif
+-
+-#ifdef LLK_TRISC_PACK
+-
+-#include "llk_pack.h"
+-#include "llk_pack_common.h"
+-#include "params.h"
+-
+-void run_kernel()
+-{
+-    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+-
+-#ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-#else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-#endif
+-
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+-
+-#ifdef ARCH_BLACKHOLE
+-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+-#else
+-    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+-#endif
+-
+-    for (uint index = 0; index < 16; index++)
+-    {
+-        _llk_packer_wait_for_math_done_();
+-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, ((std::uint32_t)buffer_Dest + 0x1000 * index) / 16 - 1);
+-    }
+-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-}
+-
+-#endif
+
+File: tests/sources/matmul_and_unary_sfpu_test.cpp
+@@ -16,10 +16,7 @@ uint32_t math_sync_tile_dst_index = 0;
+ uint32_t tile_size                = 128;
+ const int iterations              = 32; // Dependant on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
+ 
+-volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+-volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
+-
+-volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x1c000);
++volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x17000);
+ 
+ #ifdef LLK_TRISC_UNPACK
+ 
+@@ -36,7 +33,7 @@ void run_kernel()
+ 
+     _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT);
+     _llk_unpack_AB_matmul_init_<>();
+-    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B), 0, 0, tile_size, tile_size);
++    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, tile_size, tile_size);
+ 
+     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);
+     t6_semaphore_get<>(semaphore::PACK_DONE);
+@@ -140,10 +137,6 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1e000);
+-
+-    std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+-
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
+@@ -175,7 +168,7 @@ void run_kernel()
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Dest));
++    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
+     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+ 
+
+File: tests/sources/matmul_pack_untilize_test.cpp
+@@ -19,11 +19,6 @@ uint32_t face_size                = 128;
+ uint32_t tile_size                = 16 * 16 * 4;
+ const ckernel::DstSync sync       = ckernel::DstSync::SyncHalf;
+ 
+-// Buffers
+-volatile uint32_t* const buffer_A    = reinterpret_cast<volatile uint32_t*>(0x1a000);
+-volatile uint32_t* const buffer_B    = reinterpret_cast<volatile uint32_t*>(0x1b000);
+-volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_AB_matmul.h"
+@@ -33,7 +28,7 @@ void run_kernel()
+ {
+     _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT);
+     _llk_unpack_AB_matmul_init_<>();
+-    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B), 0, 0, face_size, face_size);
++    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, face_size, face_size);
+ }
+ 
+ #endif
+@@ -64,8 +59,6 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    std::fill(buffer_Dest, buffer_Dest + tile_size, 0xdeadbeef);
+-
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(PACK_IN, PACK_OUT, tile_size);
+     _llk_pack_dest_init_<sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+@@ -76,7 +69,7 @@ void run_kernel()
+     _llk_pack_untilize_init_<ct_dim>(PACK_OUT, FACE_R_DIM, 4);
+ #endif
+     _llk_packer_wait_for_math_done_();
+-    _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Dest), PACK_OUT, FACE_R_DIM, 4, 0);
++    _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Res[0]), PACK_OUT, FACE_R_DIM, 4, 0);
+     _llk_pack_dest_section_done_<sync, is_fp32_dest_acc_en>();
+ }
+ 
+

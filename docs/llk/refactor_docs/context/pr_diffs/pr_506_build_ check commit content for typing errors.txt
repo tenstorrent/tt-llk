@@ -1,0 +1,794 @@
+PR #506: build: check commit content for typing errors
+URL: https://github.com/tenstorrent/tt-llk/pull/506
+
+File: .codespellignore
+@@ -0,0 +1,8 @@
++ba
++fo
++ro
++and
++ue
++re
++shft
++dateA
+
+File: .pre-commit-config.yaml
+@@ -44,3 +44,8 @@ repos:
+     - id: check-merge-conflict
+     - id: check-executables-have-shebangs
+     - id: check-docstring-first
++- repo: https://github.com/codespell-project/codespell
++  rev: v2.4.1
++  hooks:
++    - id: codespell
++      args: ["-I", ".codespellignore", "-w"]
+
+File: CONTRIBUTING.md
+@@ -2,19 +2,18 @@
+ 
+ This repository (`tt-llk`) is **consumed by another repository** (`tt-metal`) as a git submodule. The following rules aim to ensure safe and coordinated development across both projects.
+ 
+-
+ ## ✅ General Principles
+ 
+ - This repository is **used as a git submodule** by `tt-metal`.
+ - **Prefer backward compatibility** when possible, but breaking changes are acceptable when properly coordinated.
+ - **Breaking changes must be coordinated** with `tt-metal` maintainers before being merged here.
+ 
+-
+ ## 🔒 Breaking Changes
+ 
+ ### What Is a Breaking Change?
+ 
+ A breaking change is any change that:
++
+ - Removes or alters public APIs, interfaces, or headers.
+ - Changes existing behavior in a non-backward-compatible way.
+ - Adds new build/runtime dependencies.
+@@ -46,22 +45,19 @@ A breaking change is any change that:
+      - **All checks are passing**.
+      - Reviewers from both repositories have approved your changes.
+ 
+-
+ ## 🔁 Submodule Update Guidelines
+ 
+ - Never update the submodule pointer in the `tt-metal` to an **untested** or **unstable** commit.
+ - Submodule updates must reference a **compatible and validated** commit on `main` branch.
+ 
+-
+-
+ ## 🚫 Anti-Patterns
+ 
+ Avoid the following:
++
+ - Merging breaking changes to the submodule **before verifying compatibility**.
+ - Leaving the submodule pointer in a detached or unverified state.
+ - Introducing broad interface changes without notifying the maintainers.
+ 
+-
+ ## 📣 Summary
+ 
+ | Step        | Action                                                                |
+@@ -86,6 +82,7 @@ Beyond submodule coordination, this repository follows standard development prac
+ This project and everyone participating in it is expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please read it to understand the standards of behavior we expect from all contributors and community members.
+ 
+ ## Code Formatting and Style
++
+ This project has adopted C++ formatting and style as defined in `.clang-format`.
+ There are additional requirements such as license headers.
+ 
+@@ -98,7 +95,8 @@ As part of maintaining consistent code formatting across the project, we have in
+ Pre-commit is a framework for managing and maintaining multi-language pre-commit hooks. It helps catch common issues early by running a set of hooks before code is committed, automating tasks like:
+ 
+ - Formatting code (e.g., fixing trailing whitespace, enforcing end-of-file newlines)
+-- Running linters (e.g., `clang-format`, `black`, `flake8`)
++- Running linters (e.g., `clang-format`, `black`, `pylint`)
++- Fixing common spelling mistakes.
+ - Checking for merge conflicts or other common issues.
+ 
+ For more details on pre-commit, you can visit the [official documentation](https://pre-commit.com/).
+@@ -123,13 +121,31 @@ To set up pre-commit on your local machine, follow these steps:
+    ```
+ 
+    This command will configure your local Git to run the defined hooks automatically before each commit.
+-3. **Run Pre-commit Hooks Manually**:
++
++3. **Commit Your Code**:
++   When you run `git commit`, the pre-commit hooks will automatically execute. If any issues are found, the commit will be aborted, and you will see a message indicating what needs to be fixed. Simply correct the issues and re-commit.
++
++   If a hook makes changes to your files (e.g., auto-formatting), you will need to `git add` the modified files before committing again.
++
++4. **Run Pre-commit Hooks Manually (optional)**:
+    You can also run the hooks manually against all files at any time with:
+ 
+    ```bash
+    pre-commit run --all-files
+    ```
+ 
++### Spell Checking with `codespell`
++
++We use `codespell` to automatically fix common spelling errors in our codebase and documentation. It runs on every commit and also checks commit messages for typos.
++
++If `codespell` reports a false positive (a word that is correctly spelled but not in its dictionary), you can add it to our project's ignore list.
++
++**How to Add a Word to the Ignore List:**
++
++1. **Add the word**: The ignore list is located in the `.codespellignore` file in the root of the repository. Add the word you want to ignore to a new line in the file.
++
++2. **Commit the change**: Commit the updated `.codespellignore` file along with your other changes.
++
+ ### Ignoring formatting commits in git blame
+ 
+ In order to ignore specific commits from git blame, we need to configure git to use an ignore file when executing the git blame command.
+
+File: tests/firmware/riscv/blackhole/l1_address_map.h
+@@ -116,7 +116,7 @@ struct address_map
+     static constexpr std::uint32_t MAX_SIZE            = 1499136;
+     static constexpr std::uint32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
+ 
+-    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
++    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actual local memory address as seen from risc firmware
+                                                                      // As part of the init risc firmware will copy local memory data from
+                                                                      // l1 locations listed above into internal local memory that starts
+                                                                      // at RISC_LOCAL_MEM_BASE address
+@@ -136,7 +136,7 @@ struct address_map
+     static constexpr std::uint32_t PERF_RISC_MAILBOX_SIZE = 8;
+     // Signal to ncrisc that the performance buffer has been drained.
+     static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_SIZE = 4;
+-    // Signal to all cores within a chip that the epoch comamnd for all cores has been sent;
++    // Signal to all cores within a chip that the epoch command for all cores has been sent;
+     static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
+     static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
+     static constexpr std::uint32_t PERF_UNUSED_SIZE                     = 24;
+
+File: tests/helpers/include/data_format_inference.h
+@@ -182,7 +182,7 @@ constexpr DataFormat infer_pack_in()
+     // - If dest register stores 32-bit data (FP32_ACC = true), packer input format can be set to desired output format,
+     //   as gasket can convert Float32 to any format (except Float16_A).
+     // - If destination registers do not store 32-bit data, gasket cannot convert,
+-    //   so the packer input format will be same as dest regsiter format.
++    //   so the packer input format will be same as dest register format.
+     return FP32_ACC ? OUTPUT : INPUT;
+ }
+ 
+
+File: tests/helpers/include/dev_mem_map.h
+@@ -41,9 +41,9 @@
+ #define MEM_NCRISC_LOCAL_SIZE (8 * 1024)
+ #define MEM_TRISC_LOCAL_SIZE  (4 * 1024)
+ 
+-// Memory for (dram/l1)_bank_to_noc_xy arrays, size needs to be atleast 2 * NUM_NOCS * (NUM_DRAM_BANKS + NUM_L1_BANKS)
++// Memory for (dram/l1)_bank_to_noc_xy arrays, size needs to be at least 2 * NUM_NOCS * (NUM_DRAM_BANKS + NUM_L1_BANKS)
+ #define MEM_BANK_TO_NOC_XY_SIZE 1024
+-// Memory for bank_to_dram_offset and bank_to_l1_offset arrays, size needs to be atleast 4 * (NUM_DRAM_BANKS + NUM_L1_BANKS)
++// Memory for bank_to_dram_offset and bank_to_l1_offset arrays, size needs to be at least 4 * (NUM_DRAM_BANKS + NUM_L1_BANKS)
+ #define MEM_BANK_OFFSET_SIZE 1024
+ 
+ /////////////
+
+File: tests/helpers/tmu-crt0.S
+@@ -36,7 +36,7 @@ CRT_START:
+   li      t1, 0x4000                   # Load MEM_MOVER_VIEW_IRAM_BASE_ADDR to t1
+   sw      t1, 0(t0)                    # Store the value from t1 into the memory location at t0
+ 
+-  # *RISCV_TDMA_REG_XMOV_SIZE = lenght(.loader_code) >> 4; // RISCV_TDMA_REG_XMOV_SIZE = 0xFFB11008
++  # *RISCV_TDMA_REG_XMOV_SIZE = length(.loader_code) >> 4; // RISCV_TDMA_REG_XMOV_SIZE = 0xFFB11008
+   # li    t0, 0xFFB11008               # Load RISCV_TDMA_REG_XMOV_SIZE to t0
+   lui     t0, 0xFFB11                  # Load upper 20 bits of RISCV_TDMA_REG_XMOV_SIZE to t0
+   addi    t0, t0, 0x008                # Load lower 12 bits of RISCV_TDMA_REG_XMOV_SIZE to t0
+
+File: tests/python_tests/helpers/test_config.py
+@@ -177,7 +177,7 @@ def generate_build_header(
+     header_content.append("// Multi-tile test configuration")
+     header_content.append(f"constexpr int TILE_CNT = {tile_cnt};")
+ 
+-    # Unpack an result buffer addresses arrrays generations
++    # Unpack an result buffer addresses arrays generations
+     buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
+     buffer_B_address = read_word_from_device("0,0", L1BufferLocations.srcB.value)
+     result_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -143,7 +143,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+     unpack_to_dest = (
+         formats.input_format.is_32_bit()
+         and dest_acc
+-        == DestAccumulation.Yes  # If dest_acc is off, we unpack Float32 into 16-bit format in src regsiters (later copied over in dest reg for SFPU op)
++        == DestAccumulation.Yes  # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
+     )
+     test_config = {
+         "formats": formats,
+
+File: tests/sources/matmul_and_unary_sfpu_test.cpp
+@@ -16,7 +16,7 @@ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+ uint32_t math_sync_tile_dst_index = 0;
+ uint32_t tile_size                = 128;
+-const int iterations              = 32; // Dependant on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
++const int iterations              = 32; // Dependent on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
+ 
+ volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x17000);
+ 
+
+File: tests/sources/sfpu_binary_test.cpp
+@@ -101,7 +101,7 @@ void run_kernel()
+ 
+         _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
+ 
+-        // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of firs operand, and
++        // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of first operand, and
+         // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
+ 
+         _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
+
+File: tt_llk_blackhole/common/inc/ckernel.h
+@@ -651,7 +651,7 @@ constexpr static uint TRACK_TDMA                   = 1 << 3;
+ constexpr static uint TRACK_TENSIX_INSTRUCTIONS    = 1 << 4;
+ constexpr static uint TRACK_ALL                    = 0x1F;
+ 
+-// Uses a template to guarantee compiletime execution (could probably
++// Uses a template to guarantee compile time execution (could probably
+ // get away with constexpr but this seems better)
+ template <uint bitmask>
+ inline void set_ttsync_enables()
+@@ -832,7 +832,7 @@ union bstatus_u
+ 
+ inline void init_prng_seed(const uint seed)
+ {
+-    // The seed for PRNG should at least be initialized during chip bootup time.
++    // The seed for PRNG should at least be initialized during chip boot-up time.
+     volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
+     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
+ 
+
+File: tt_llk_blackhole/common/inc/ckernel_sfpi.h
+@@ -29,7 +29,7 @@ sfpi_inline void copy_result_to_dreg0(int addr)
+ 
+ // Test infrastructure is set up to test float values, not ints
+ // Viewing the ints as floats leads to a mess (eg, denorms)
+-// Instead, compare in the kernel to the expected result and write a sentinal
++// Instead, compare in the kernel to the expected result and write a sentinel
+ // value for "pass" and the sfpi::vInt v value for "fail"
+ // Assumes this code is called in an "inner" if
+ sfpi_inline void set_expected_result(int addr, float sentinel, int expected, sfpi::vInt v)
+@@ -105,7 +105,7 @@ sfpi_test_noinline void test2()
+ sfpi_test_noinline void test3()
+ {
+     // Test SFPENCC, SFPSETCC, SFPCOMPC, LOADI, MAD (in conditionals)
+-    // Note: WH complains about the integer tests storing into float formated
++    // Note: WH complains about the integer tests storing into float formatted
+     // sfpi::dst_reg w/ exponent of 0, so some tests use SFPOR to pass the result
+     // through violating the spirit of testing one thing at a time
+ 
+@@ -582,7 +582,7 @@ sfpi_test_noinline void test5()
+     sfpi::vFloat b = 20.0F;
+ 
+     // Note: loading sfpi::dst_reg[0] takes a reg and comparing against a float const
+-    // takes a reg so can't store A, B and C across the condtionals
++    // takes a reg so can't store A, B and C across the conditionals
+ 
+     v_if (sfpi::dst_reg[0] == 12.0F)
+     {
+@@ -1839,23 +1839,23 @@ sfpi_test_noinline void test11()
+     {
+         // Use L0
+         sfpi::vFloat h    = -0.3F;
+-        sfpi::vUInt l2a   = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a   = 0xA010; // Multiply by -0.25, add 0.5
+         h                 = lut_sign(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+     }
+     v_elseif (sfpi::dst_reg[0] == 2.0F)
+     {
+         // Use L0
+         sfpi::vFloat h    = -0.3F;
+-        sfpi::vUInt l2a   = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a   = 0xA010; // Multiply by -0.25, add 0.5
+         h                 = lut(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+     }
+     v_elseif (sfpi::dst_reg[0] == 3.0F)
+     {
+         // Use L0
+         sfpi::vFloat h  = -0.3F;
+-        sfpi::vUInt l2a = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a = 0xA010; // Multiply by -0.25, add 0.5
+         // Test used a bias on Grayskull, not supported on Wormhole
+         h                 = lut_sign(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+@@ -1864,7 +1864,7 @@ sfpi_test_noinline void test11()
+     {
+         // Use L0
+         sfpi::vFloat h  = -0.3F;
+-        sfpi::vUInt l2a = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a = 0xA010; // Multiply by -0.25, add 0.5
+         // Test used a bias on Grayskull, not supported on Wormhole
+         h                 = lut(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+@@ -1873,7 +1873,7 @@ sfpi_test_noinline void test11()
+     {
+         // Use L1
+         sfpi::vFloat h  = 1.0F;
+-        sfpi::vUInt l2a = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a = 0xA010; // Multiply by -0.25, add 0.5
+         // Test used a bias on Grayskull, not supported on Wormhole
+         h                 = lut(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+@@ -1882,7 +1882,7 @@ sfpi_test_noinline void test11()
+     {
+         // Use L2
+         sfpi::vFloat h    = 4.0F;
+-        sfpi::vUInt l2a   = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a   = 0xA010; // Multiply by -0.25, add 0.5
+         h                 = lut_sign(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+     }
+@@ -1895,8 +1895,8 @@ sfpi_test_noinline void test11()
+         l1a = 0;
+ 
+         // These are fakedout w/ emule
+-        TTI_SFPLOADI(0, SFPLOADI_MOD0_USHORT, 0xFF20); // Mulitply by 0.0, add 0.25
+-        TTI_SFPLOADI(1, SFPLOADI_MOD0_USHORT, 0x2010); // Mulitply by 0.25, add 0.5
++        TTI_SFPLOADI(0, SFPLOADI_MOD0_USHORT, 0xFF20); // Multiply by 0.0, add 0.25
++        TTI_SFPLOADI(1, SFPLOADI_MOD0_USHORT, 0x2010); // Multiply by 0.25, add 0.5
+         sfpi::vUInt l0b, l1b;
+         l0b = l_reg[LRegs::LReg0];
+         l1b = l_reg[LRegs::LReg1];
+
+File: tt_llk_blackhole/common/inc/ckernel_template.h
+@@ -153,7 +153,7 @@ class ckernel_unpack_template
+     // Default B instruction without rarefy
+     static constexpr uint DEF_B_instr = TT_OP_UNPACR(1, 0b01, 0, 0, 0, 0, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+ 
+-    // Deafult halo A instructions
++    // Default halo A instructions
+     static constexpr uint DEF_A0_instr = TT_OP_UNPACR(
+         0, 0b00, 0, p_unpacr::TILE0_CFG_CONTEXT, p_unpacr::TILE0_ADDRCNT_CONTEXT, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, p_unpacr::AUTO_INC_CONTEXT, 1, 0, 1);
+     static constexpr uint DEF_A1_instr = TT_OP_UNPACR(
+@@ -242,7 +242,7 @@ class ckernel_unpack_template
+         uint B_instr     = DEF_B_instr,
+         uint skipB_instr = DEF_SKIP_B);
+ 
+-    // More abstraction to re-use above templates for kernel to run loop of N instructions
++    // More abstraction to reuse above templates for kernel to run loop of N instructions
+     static ckernel_unpack_template loopx1instr(uint instr0, uint skip0 = TT_OP_NOP);
+     static ckernel_unpack_template loopx2instr(uint instr0, uint instr1, uint skip0 = TT_OP_NOP, uint skip1 = TT_OP_NOP);
+ 
+
+File: tt_llk_blackhole/common/inc/cpack_common.h
+@@ -424,7 +424,7 @@ inline void configure_pack(
+     pack_counters_u pack_counters;
+     pack_counters.val                       = 0;
+     pack_counters.f.pack_reads_per_xy_plane = face_r_dim; // Number of reads per face
+-                                                          // Used for resetting tile posistion generator for edge masks
++                                                          // Used for resetting tile position generator for edge masks
+     for (uint i = 0; i < 4; i++)
+     {
+         cfg[PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32 + i] = pack_counters.val; // disable auto last generation
+@@ -463,7 +463,7 @@ inline void flip_packer_dest_offset_id()
+ }
+ 
+ // Flip packer dest register offset to 0 or DEST_REGISTER_HALF_SIZE
+-// flip-flopping between two halfs
++// flip-flopping between two halves
+ template <DstSync Dst>
+ inline void select_packer_dest_registers()
+ {
+
+File: tt_llk_blackhole/common/inc/cunpack_common.h
+@@ -319,7 +319,7 @@ inline void configure_unpack_AB(
+     }
+     tile_descriptor.f.in_data_format = (uint)unpA_src_format_masked;
+     tile_descriptor.f.uncompressed   = 1; // Input tile is uncompressed
+-    tile_descriptor.f.x_dim          = 0; // Not used for unpA as value is overriden by per context x_dim set below. Used for unpB
++    tile_descriptor.f.x_dim          = 0; // Not used for unpA as value is overridden by per context x_dim set below. Used for unpB
+     tile_descriptor.f.y_dim          = 1;
+     tile_descriptor.f.z_dim          = unpA_num_faces;
+     // tile_descriptor.f.blobs_per_xy_plane = 0;
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h
+@@ -487,7 +487,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
+ template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
+ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k, const int logk, const int skip_second)
+ {
+-    // init replay buffer for rebuild interation 'm_iter' if uninitialized
++    // init replay buffer for rebuild iteration 'm_iter' if uninitialized
+     bool init_rebuild = (topk_replay_init != m_iter + 1) ? true : false;
+ 
+     uint dst_addr_offset = 0;
+
+File: tt_llk_blackhole/instructions/assembly.yaml
+@@ -1261,7 +1261,7 @@ PACR:
+           start_bit: 2
+           description: " 2'b00 : No modifications to the default PACR behavior \n
+                          2'b01 : PACR context will be captured from RTL flops as opposed  to PACR[CfgContext].\n
+-                                 In addition to this, if this is the last PACR in a tile, the context tracked in the RTL flops will be incremented (4 contexts will be tracked) if PACK_COUNTERS_SEC[0,1,2,3]_auto_ctxt_inc_xys_cnt regs are zero. If PACK_COUNTERS_SEC[0,1,2,3]_auto_ctxt_inc_xys_cnt are non-zero, the tracked context will be incremeted after packing the number of planes programmed in these registers.\n
++                                 In addition to this, if this is the last PACR in a tile, the context tracked in the RTL flops will be incremented (4 contexts will be tracked) if PACK_COUNTERS_SEC[0,1,2,3]_auto_ctxt_inc_xys_cnt regs are zero. If PACK_COUNTERS_SEC[0,1,2,3]_auto_ctxt_inc_xys_cnt are non-zero, the tracked context will be incremented after packing the number of planes programmed in these registers.\n
+                          2'b10 : Resets RTL context flops, but NOP in all other respects\n
+                          2'b11 : Same behavior as of 2'b01 , except that the RTL context flops will not be reset, if those would have been reset for 2'b01 based on current RTL state
+                        "
+@@ -1395,7 +1395,7 @@ PACR_SETREG:
+           start_bit: 23
+           description: "Set to 1 to trigger register write"
+     description: "Set MMIO register through packer pipeline. Max register value is limited to 10-bit (upper bits must be don't care!). 32-bit address is assembled
+-                  as desribed under AddrSel field."
++                  as described under AddrSel field."
+ 
+ UNPACR:
+     op_binary: 0x42
+@@ -1422,7 +1422,7 @@ UNPACR:
+         - name: AutoIncContextID
+           field_type: BIN
+           start_bit: 3
+-          description: "Auto increment config context ID after evey unpack instruction"
++          description: "Auto increment config context ID after every unpack instruction"
+           fcov_point_bool:
+         - name: ZeroWrite2
+           field_type: BIN
+@@ -1605,7 +1605,7 @@ SETDMAREG:
+         - name: SetSignalsMode
+           field_type: BIN
+           start_bit: 7
+-          description: "Sets registers from signals routed into TDMA block rather than from payload immediate bellow. In this mode payload immediate represents a mux control for which 16b signal chunk to feed into selected register"
++          description: "Sets registers from signals routed into TDMA block rather than from payload immediate below. In this mode payload immediate represents a mux control for which 16b signal chunk to feed into selected register"
+           fcov_point_bool:
+         - name: Payload_SigSel
+           field_type: DEC
+@@ -2117,9 +2117,9 @@ ATINCGET:
+         - name: MemHierSel
+           field_type: BIN
+           start_bit: 23
+-          description: "Selects whether transaction is targetting DataRam (0) or L1 (1)"
++          description: "Selects whether transaction is targeting DataRam (0) or L1 (1)"
+           fcov_point_bool:
+-    description: "Atomic increment and get - will read value in targetted memory location and return it to TDMA register and post-increment it atomically with the value pointed by DataRegIndex field"
++    description: "Atomic increment and get - will read value in targeted memory location and return it to TDMA register and post-increment it atomically with the value pointed by DataRegIndex field"
+ 
+ ATINCGETPTR:
+     op_binary: 0x62
+@@ -2161,7 +2161,7 @@ ATINCGETPTR:
+         - name: MemHierSel
+           field_type: BIN
+           start_bit: 23
+-          description: "Selects whether transaction is targetting DataRam (0) or L1 (1)"
++          description: "Selects whether transaction is targeting DataRam (0) or L1 (1)"
+           fcov_point_bool:
+     description: >
+         Atomic increment and get pointer - will access a memory location designated as a FIFO pointer location (contains a 32b read pointer and a 32b write pointer), return the
+@@ -2187,11 +2187,11 @@ ATSWAP:
+         - name: SwapMask
+           field_type: DEC
+           start_bit: 14
+-          description: "Swap mask at 16b granulatiry (8b of mask for 16B words)"
++          description: "Swap mask at 16b granularity (8b of mask for 16B words)"
+         - name: MemHierSel
+           field_type: BIN
+           start_bit: 23
+-          description: "Selects whether transaction is targetting DataRam (0) or L1 (1)"
++          description: "Selects whether transaction is targeting DataRam (0) or L1 (1)"
+           fcov_point_bool:
+     description: "Atomic unconditional SWAP. Swaps selected 16b chunks of memory location with new ones provided on write data bus."
+ 
+@@ -2279,7 +2279,7 @@ STOREIND:
+         - name: MemHierSel
+           field_type: BIN
+           start_bit: 23
+-          description: "Selects whether transaction is targetting source regfile (0) or L1 (1)"
++          description: "Selects whether transaction is targeting source regfile (0) or L1 (1)"
+           fcov_point_bool:
+     description: "Store indirect. Stores data from TDMA register to memory location specified by a combination of base+offset provided in other TDMA registers. Supports auto-increment on offset value."
+ 
+@@ -2372,7 +2372,7 @@ SFPLOADI:
+       - name: imm16
+         field_type: DEC
+         start_bit: 0
+-        description: immedate op
++        description: immediate op
+         fcov_point_bin_interval:
+           bins: [ {name: "bot_half", slice: "0x10000",  interval: ["0x0","0x7FFF"]},
+                   {name: "top_half", slice: "0x10000",  interval: ["0x8000","0xFFFF"]} ]
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_datacopy.h
+@@ -39,7 +39,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
+         // Due to bug in Blackhole Tensix (more details in budabackend/#2730) when an event with side effect of clearing DEST zero flags
+         // (such as Unpack-to-dest or RISC-to-dest) and a ZEROACC instruction from packer occur in the same cycle,
+         // zero flags clearing is dropped.
+-        // To mitigate that, we issue additional zero flag clear instruction immediatelly after unpack tile to dest is done.
++        // To mitigate that, we issue additional zero flag clear instruction immediately after unpack tile to dest is done.
+         // RISC-to-dest event is not currently used.
+ 
+ #pragma GCC unroll 0
+
+File: tt_llk_blackhole/llk_lib/llk_math_matmul.h
+@@ -663,7 +663,7 @@ inline void _llk_math_matmul_(
+                 ckernel_template::run(instrn_buffer);
+             }
+ 
+-            // Clear srcB or srcA at end of re-use (once per u block row)
++            // Clear srcB or srcA at end of reuse (once per u block row)
+             if (rut == (rut_dim - 1))
+             {
+                 if (reuse_a)
+
+File: tt_llk_blackhole/llk_lib/llk_pack_untilize.h
+@@ -80,7 +80,7 @@ inline void _llk_pack_untilize_mop_config_(
+     Since there are two inner loop operations, the instruction set by set_last_inner_loop_instr
+     will replace the second inner loop operation (in the last iteration, call the PACR instruction
+     with the Last bit set to 1 instead of 0 to close the row).
+-    Therefore, by setting the W counter to maxium value (15) as a start operation,
++    Therefore, by setting the W counter to maximum value (15) as a start operation,
+     TT_OP_INCADCZW in the inner loop will set it to 0 in the first iteration of the inner loop.
+     */
+     tmp.set_start_op(TT_OP_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, 15));
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_reduce.h
+@@ -75,7 +75,7 @@ inline void _llk_unpack_reduce_hw_configure_(
+ template <PoolType type, ReduceDim dim>
+ inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0)
+ {
+-    // REDUCE_ROW requires transpose itself; additionaly, within_face_16x16_transpose flag could require transpose;
++    // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
+     // if we have the flag set with REDUCE_ROW, we don't need to do anything
+     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
+ 
+
+File: tt_llk_wormhole_b0/common/inc/ckernel.h
+@@ -623,7 +623,7 @@ inline void serialize_input_loop_end()
+ 
+ inline void init_prng_seed(const uint seed)
+ {
+-    // The seed for PRNG should at least be initialized during chip bootup time.
++    // The seed for PRNG should at least be initialized during chip boot-up time.
+     volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
+     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
+ 
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_sfpi.h
+@@ -29,7 +29,7 @@ sfpi_inline void copy_result_to_dreg0(int addr)
+ 
+ // Test infrastructure is set up to test float values, not ints
+ // Viewing the ints as floats leads to a mess (eg, denorms)
+-// Instead, compare in the kernel to the expected result and write a sentinal
++// Instead, compare in the kernel to the expected result and write a sentinel
+ // value for "pass" and the sfpi::vInt v value for "fail"
+ // Assumes this code is called in an "inner" if
+ sfpi_inline void set_expected_result(int addr, float sentinel, int expected, sfpi::vInt v)
+@@ -105,7 +105,7 @@ sfpi_test_noinline void test2()
+ sfpi_test_noinline void test3()
+ {
+     // Test SFPENCC, SFPSETCC, SFPCOMPC, LOADI, MAD (in conditionals)
+-    // Note: WH complains about the integer tests storing into float formated
++    // Note: WH complains about the integer tests storing into float formatted
+     // sfpi::dst_reg w/ exponent of 0, so some tests use SFPOR to pass the result
+     // through violating the spirit of testing one thing at a time
+ 
+@@ -582,7 +582,7 @@ sfpi_test_noinline void test5()
+     sfpi::vFloat b = 20.0F;
+ 
+     // Note: loading sfpi::dst_reg[0] takes a reg and comparing against a float const
+-    // takes a reg so can't store A, B and C across the condtionals
++    // takes a reg so can't store A, B and C across the conditionals
+ 
+     v_if (sfpi::dst_reg[0] == 12.0F)
+     {
+@@ -1839,23 +1839,23 @@ sfpi_test_noinline void test11()
+     {
+         // Use L0
+         sfpi::vFloat h    = -0.3F;
+-        sfpi::vUInt l2a   = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a   = 0xA010; // Multiply by -0.25, add 0.5
+         h                 = lut_sign(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+     }
+     v_elseif (sfpi::dst_reg[0] == 2.0F)
+     {
+         // Use L0
+         sfpi::vFloat h    = -0.3F;
+-        sfpi::vUInt l2a   = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a   = 0xA010; // Multiply by -0.25, add 0.5
+         h                 = lut(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+     }
+     v_elseif (sfpi::dst_reg[0] == 3.0F)
+     {
+         // Use L0
+         sfpi::vFloat h  = -0.3F;
+-        sfpi::vUInt l2a = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a = 0xA010; // Multiply by -0.25, add 0.5
+         // Test used a bias on Grayskull, not supported on Wormhole
+         h                 = lut_sign(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+@@ -1864,7 +1864,7 @@ sfpi_test_noinline void test11()
+     {
+         // Use L0
+         sfpi::vFloat h  = -0.3F;
+-        sfpi::vUInt l2a = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a = 0xA010; // Multiply by -0.25, add 0.5
+         // Test used a bias on Grayskull, not supported on Wormhole
+         h                 = lut(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+@@ -1873,7 +1873,7 @@ sfpi_test_noinline void test11()
+     {
+         // Use L1
+         sfpi::vFloat h  = 1.0F;
+-        sfpi::vUInt l2a = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a = 0xA010; // Multiply by -0.25, add 0.5
+         // Test used a bias on Grayskull, not supported on Wormhole
+         h                 = lut(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+@@ -1882,7 +1882,7 @@ sfpi_test_noinline void test11()
+     {
+         // Use L2
+         sfpi::vFloat h    = 4.0F;
+-        sfpi::vUInt l2a   = 0xA010; // Mulitply by -0.25, add 0.5
++        sfpi::vUInt l2a   = 0xA010; // Multiply by -0.25, add 0.5
+         h                 = lut_sign(h, l0a, l1a, l2a);
+         sfpi::dst_reg[11] = h;
+     }
+@@ -1895,8 +1895,8 @@ sfpi_test_noinline void test11()
+         l1a = 0;
+ 
+         // These are fakedout w/ emule
+-        TTI_SFPLOADI(0, SFPLOADI_MOD0_USHORT, 0xFF20); // Mulitply by 0.0, add 0.25
+-        TTI_SFPLOADI(1, SFPLOADI_MOD0_USHORT, 0x2010); // Mulitply by 0.25, add 0.5
++        TTI_SFPLOADI(0, SFPLOADI_MOD0_USHORT, 0xFF20); // Multiply by 0.0, add 0.25
++        TTI_SFPLOADI(1, SFPLOADI_MOD0_USHORT, 0x2010); // Multiply by 0.25, add 0.5
+         sfpi::vUInt l0b, l1b;
+         l0b = l_reg[LRegs::LReg0];
+         l1b = l_reg[LRegs::LReg1];
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_template.h
+@@ -142,7 +142,7 @@ class ckernel_unpack_template
+     // Default B instruction without rarefy
+     static constexpr uint DEF_B_instr = TT_OP_UNPACR(1, 0b01, 0, 0, 0, 0, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+ 
+-    // Deafult halo A instructions
++    // Default halo A instructions
+     static constexpr uint DEF_A0_instr = TT_OP_UNPACR(
+         0, 0b00, 0, p_unpacr::TILE0_CFG_CONTEXT, p_unpacr::TILE0_ADDRCNT_CONTEXT, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, p_unpacr::AUTO_INC_CONTEXT, 1, 0, 1);
+     static constexpr uint DEF_A1_instr = TT_OP_UNPACR(
+@@ -231,7 +231,7 @@ class ckernel_unpack_template
+         uint B_instr     = DEF_B_instr,
+         uint skipB_instr = DEF_SKIP_B);
+ 
+-    // More abstraction to re-use above templates for kernel to run loop of N instructions
++    // More abstraction to reuse above templates for kernel to run loop of N instructions
+     static ckernel_unpack_template loopx1instr(uint instr0, uint skip0 = TT_OP_NOP);
+     static ckernel_unpack_template loopx2instr(uint instr0, uint instr1, uint skip0 = TT_OP_NOP, uint skip1 = TT_OP_NOP);
+ 
+
+File: tt_llk_wormhole_b0/common/inc/cpack_common.h
+@@ -524,7 +524,7 @@ inline void configure_pack(
+     pack_counters_u pack_counters;
+     pack_counters.val                       = 0;
+     pack_counters.f.pack_reads_per_xy_plane = face_r_dim; // Number of reads per face
+-                                                          // Used for resetting tile posistion generator for edge masks
++                                                          // Used for resetting tile position generator for edge masks
+     for (uint i = 0; i < 4; i++)
+     {
+         cfg[PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32 + i] = pack_counters.val; // disable auto last generation
+@@ -568,7 +568,7 @@ inline void flip_packer_dest_offset_id()
+ }
+ 
+ // Flip packer dest register offset to 0 or DEST_REGISTER_HALF_SIZE
+-// flip-flopping between two halfs
++// flip-flopping between two halves
+ template <DstSync Dst>
+ inline void select_packer_dest_registers()
+ {
+
+File: tt_llk_wormhole_b0/common/inc/cunpack_common.h
+@@ -303,7 +303,7 @@ inline void configure_unpack_AB(
+     }
+     tile_descriptor.f.in_data_format = (uint)unpA_src_format;
+     tile_descriptor.f.uncompressed   = 1; // Input tile is uncompressed
+-    tile_descriptor.f.x_dim          = 0; // Not used for unpA as value is overriden by per context x_dim set below. Used for unpB
++    tile_descriptor.f.x_dim          = 0; // Not used for unpA as value is overridden by per context x_dim set below. Used for unpB
+     tile_descriptor.f.y_dim          = 1;
+     tile_descriptor.f.z_dim          = unpA_num_faces;
+     // tile_descriptor.f.blobs_per_xy_plane = 0;
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_topk.h
+@@ -489,7 +489,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
+ template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
+ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k, const int logk, const int skip_second)
+ {
+-    // init replay buffer for rebuild interation 'm_iter' if uninitialized
++    // init replay buffer for rebuild iteration 'm_iter' if uninitialized
+     bool init_rebuild = (topk_replay_init != m_iter + 1) ? true : false;
+ 
+     uint dst_addr_offset = 0;
+
+File: tt_llk_wormhole_b0/instructions/assembly.yaml
+@@ -1253,7 +1253,7 @@ PACR_SETREG:
+           start_bit: 23
+           description: "Set to 1 to trigger register write"
+     description: "Set MMIO register through packer pipeline. Max register value is limited to 10-bit (upper bits must be don't care!). 32-bit address is assembled
+-                  as desribed under AddrSel field."
++                  as described under AddrSel field."
+ 
+ UNPACR:
+     op_binary: 0x42
+@@ -1280,7 +1280,7 @@ UNPACR:
+         - name: AutoIncContextID
+           field_type: BIN
+           start_bit: 3
+-          description: "Auto increment config context ID after evey unpack instruction"
++          description: "Auto increment config context ID after every unpack instruction"
+           fcov_point_bool:
+         - name: ZeroWrite2
+           field_type: BIN
+@@ -1404,7 +1404,7 @@ SETDMAREG:
+         - name: SetSignalsMode
+           field_type: BIN
+           start_bit: 7
+-          description: "Sets registers from signals routed into TDMA block rather than from payload immediate bellow. In this mode payload immediate represents a mux control for which 16b signal chunk to feed into selected register"
++          description: "Sets registers from signals routed into TDMA block rather than from payload immediate below. In this mode payload immediate represents a mux control for which 16b signal chunk to feed into selected register"
+           fcov_point_bool:
+         - name: Payload_SigSel
+           field_type: DEC
+@@ -1915,9 +1915,9 @@ ATINCGET:
+         - name: MemHierSel
+           field_type: BIN
+           start_bit: 23
+-          description: "Selects whether transaction is targetting DataRam (0) or L1 (1)"
++          description: "Selects whether transaction is targeting DataRam (0) or L1 (1)"
+           fcov_point_bool:
+-    description: "Atomic increment and get - will read value in targetted memory location and return it to TDMA register and post-increment it atomically with the value pointed by DataRegIndex field"
++    description: "Atomic increment and get - will read value in targeted memory location and return it to TDMA register and post-increment it atomically with the value pointed by DataRegIndex field"
+ 
+ ATINCGETPTR:
+     op_binary: 0x62
+@@ -1959,7 +1959,7 @@ ATINCGETPTR:
+         - name: MemHierSel
+           field_type: BIN
+           start_bit: 23
+-          description: "Selects whether transaction is targetting DataRam (0) or L1 (1)"
++          description: "Selects whether transaction is targeting DataRam (0) or L1 (1)"
+           fcov_point_bool:
+     description: >
+         Atomic increment and get pointer - will access a memory location designated as a FIFO pointer location (contains a 32b read pointer and a 32b write pointer), return the
+@@ -1985,11 +1985,11 @@ ATSWAP:
+         - name: SwapMask
+           field_type: DEC
+           start_bit: 14
+-          description: "Swap mask at 16b granulatiry (8b of mask for 16B words)"
++          description: "Swap mask at 16b granularity (8b of mask for 16B words)"
+         - name: MemHierSel
+           field_type: BIN
+           start_bit: 23
+-          description: "Selects whether transaction is targetting DataRam (0) or L1 (1)"
++          description: "Selects whether transaction is targeting DataRam (0) or L1 (1)"
+           fcov_point_bool:
+     description: "Atomic unconditional SWAP. Swaps selected 16b chunks of memory location with new ones provided on write data bus."
+ 
+@@ -2077,7 +2077,7 @@ STOREIND:
+         - name: MemHierSel
+           field_type: BIN
+           start_bit: 23
+-          description: "Selects whether transaction is targetting source regfile (0) or L1 (1)"
++          description: "Selects whether transaction is targeting source regfile (0) or L1 (1)"
+           fcov_point_bool:
+     description: "Store indirect. Stores data from TDMA register to memory location specified by a combination of base+offset provided in other TDMA registers. Supports auto-increment on offset value."
+ 
+@@ -2169,7 +2169,7 @@ SFPLOADI:
+       - name: imm16
+         field_type: DEC
+         start_bit: 0
+-        description: immedate op
++        description: immediate op
+         fcov_point_bin_interval:
+           bins: [ {name: "bot_half", slice: "0x10000",  interval: ["0x0","0x7FFF"]},
+                   {name: "top_half", slice: "0x10000",  interval: ["0x8000","0xFFFF"]} ]
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_reduce.h
+@@ -69,7 +69,7 @@ inline void _llk_unpack_reduce_hw_configure_(
+ template <PoolType type, ReduceDim dim>
+ inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0, const std::uint32_t num_faces = 4)
+ {
+-    // REDUCE_ROW requires transpose itself; additionaly, within_face_16x16_transpose flag could require transpose;
++    // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
+     // if we have the flag set with REDUCE_ROW, we don't need to do anything
+     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
+ 
+

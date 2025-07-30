@@ -1,0 +1,1718 @@
+PR #412: Fast tilize implementation
+URL: https://github.com/tenstorrent/tt-llk/pull/412
+
+File: tests/helpers/include/data_format_inference.h
+@@ -109,9 +109,6 @@ constexpr DataFormat infer_unpack_out()
+ {
+     if constexpr (INPUT == DataFormat::Float32 && !UNPACKING_TO_DEST)
+     {
+-        // input format is Float32 in L1 and we are unpacking to src registers instead of dest register
+-        // src registers can store 19-bit datums, so we truncate datum to Tf32 perserving 8-bit exponent and as much mantissa as possible
+-
+         // When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
+         // Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
+         // which preserves the 8-bit exponent and as much mantissa precision as fits. If our dst regoster is 16-bit we directly truncate to 16-bit format
+
+File: tests/helpers/include/profiler.h
+@@ -212,6 +212,8 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
+     PROFILER_META(MARKER_FULL(marker)) \
+     llk_profiler::write_timestamp(MARKER_ID(marker), data);
+ 
++#define PROFILER_SYNC() tensix_sync()
++
+ #else
+ 
+ #define ZONE_SCOPED(marker)
+@@ -220,4 +222,6 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
+ 
+ #define TIMESTAMP_DATA(marker, data)
+ 
++#define PROFILER_SYNC()
++
+ #endif
+
+File: tests/python_tests/conftest.py
+@@ -3,7 +3,6 @@
+ 
+ import logging
+ import os
+-import subprocess
+ import sys
+ import time
+ from pathlib import Path
+@@ -14,11 +13,10 @@
+ from ttexalens import tt_exalens_init
+ from ttexalens.tt_exalens_lib import (
+     arc_msg,
+-    write_words_to_device,
+ )
+ 
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+-from helpers.format_arg_mapping import Mailbox
++from helpers.device import reset_mailboxes
+ from helpers.log_utils import _format_log
+ from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
+ 
+@@ -29,57 +27,15 @@ def init_llk_home():
+     os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
+ 
+ 
+-def set_chip_architecture():
+-    def _identify_chip_architecture(output):
+-        if "Blackhole" in output:
+-            return ChipArchitecture.BLACKHOLE
+-        elif "Wormhole" in output:
+-            return ChipArchitecture.WORMHOLE
+-        return None
+-
+-    chip_arch = get_chip_architecture()
+-    if chip_arch:
+-        print(f"CHIP_ARCH is already set to {chip_arch}")
+-        return chip_arch
+-    try:
+-        result = subprocess.run(
+-            ["tt-smi", "-ls"],
+-            stdout=subprocess.PIPE,
+-            stderr=subprocess.PIPE,
+-            text=True,
+-            check=True,
+-        )
+-    except FileNotFoundError:
+-        print("Error: tt-smi command not found.", file=sys.stderr)
+-        sys.exit(1)
+-    except subprocess.CalledProcessError as e:
+-        print(f"Error: tt-smi failed with error: {e.stderr}", file=sys.stderr)
+-        sys.exit(1)
+-
+-    architecture = _identify_chip_architecture(result.stdout)
+-    if not architecture:
+-        print(
+-            "Error: Unable to detect architecture from tt-smi output.", file=sys.stderr
+-        )
+-        sys.exit(1)
+-    os.environ["CHIP_ARCH"] = architecture.value
+-    return architecture
+-
+-
+ @pytest.fixture(autouse=True)
+-def reset_mailboxes():
+-    """Reset all core mailboxes before each test."""
+-    core_loc = "0, 0"
+-    reset_value = 0  # Constant - indicates the TRISC kernel run status
+-    mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
+-    for mailbox in mailboxes:
+-        write_words_to_device(core_loc=core_loc, addr=mailbox.value, data=reset_value)
++def reset_mailboxes_fixture():
++    reset_mailboxes()
+     yield
+ 
+ 
+ @pytest.fixture(scope="session", autouse=True)
+ def download_headers():
+-    CHIP_ARCH = set_chip_architecture()
++    CHIP_ARCH = get_chip_architecture()
+     if CHIP_ARCH not in [ChipArchitecture.WORMHOLE, ChipArchitecture.BLACKHOLE]:
+         sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH.value}")
+ 
+@@ -271,11 +227,11 @@ def pytest_configure(config):
+ # decorate the test with @skip_for_wormhole.
+ 
+ skip_for_wormhole = pytest.mark.skipif(
+-    lambda: get_chip_architecture() == ChipArchitecture.WORMHOLE,
++    get_chip_architecture() == ChipArchitecture.WORMHOLE,
+     reason="Test is not supported on Wormhole architecture",
+ )
+ 
+ skip_for_blackhole = pytest.mark.skipif(
+-    lambda: get_chip_architecture() == ChipArchitecture.BLACKHOLE,
++    get_chip_architecture() == ChipArchitecture.BLACKHOLE,
+     reason="Test is not supported on Blackhole architecture",
+ )
+
+File: tests/python_tests/helpers/chip_architecture.py
+@@ -2,6 +2,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ import os
++import subprocess
+ from enum import Enum
+ 
+ 
+@@ -22,8 +23,40 @@ def from_string(cls, arch_str):
+             raise ValueError(f"Unknown architecture: {arch_str}")
+ 
+ 
++def set_chip_architecture():
++    def _identify_chip_architecture(output):
++        if "Blackhole" in output:
++            return ChipArchitecture.BLACKHOLE
++        elif "Wormhole" in output:
++            return ChipArchitecture.WORMHOLE
++        return None
++
++    try:
++        result = subprocess.run(
++            ["tt-smi", "-ls"],
++            stdout=subprocess.PIPE,
++            stderr=subprocess.PIPE,
++            text=True,
++            check=True,
++        )
++    except FileNotFoundError:
++        raise FileNotFoundError(
++            "tt-smi command not found. Please ensure tt-smi is installed and in PATH."
++        )
++    except subprocess.CalledProcessError as e:
++        raise RuntimeError(f"tt-smi failed with error: {e.stderr}")
++
++    architecture = _identify_chip_architecture(result.stdout)
++    if not architecture:
++        raise RuntimeError(
++            "Unable to detect architecture from tt-smi output. Please verify device is connected and tt-smi is working correctly."
++        )
++    os.environ["CHIP_ARCH"] = architecture.value
++    return architecture
++
++
+ def get_chip_architecture():
+     chip_architecture = os.getenv("CHIP_ARCH")
+     if not chip_architecture:
+-        return None
++        return set_chip_architecture()
+     return ChipArchitecture.from_string(chip_architecture.strip())
+
+File: tests/python_tests/helpers/device.py
+@@ -307,3 +307,12 @@ def wait_for_tensix_operations_finished(core_loc: str = "0,0"):
+     wait_until_tensix_complete(core_loc, Mailbox.Packer)
+     wait_until_tensix_complete(core_loc, Mailbox.Math)
+     wait_until_tensix_complete(core_loc, Mailbox.Unpacker)
++
++
++def reset_mailboxes():
++    """Reset all core mailboxes before each test."""
++    core_loc = "0, 0"
++    reset_value = 0  # Constant - indicates the TRISC kernel run status
++    mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
++    for mailbox in mailboxes:
++        write_words_to_device(core_loc=core_loc, addr=mailbox.value, data=reset_value)
+
+File: tests/python_tests/helpers/perf.py
+@@ -12,7 +12,11 @@
+ 
+ import plotly.graph_objects as go
+ 
+-from helpers.device import run_elf_files, wait_for_tensix_operations_finished
++from helpers.device import (
++    reset_mailboxes,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++)
+ from helpers.profiler import Profiler
+ from helpers.test_config import ProfilerBuild, build_test
+ 
+@@ -137,6 +141,7 @@ def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
+         for _ in range(run_count):
+             run_elf_files(test_config["testname"])
+             wait_for_tensix_operations_finished()
++            reset_mailboxes()
+ 
+             profiler_data = Profiler.get_data(test_config["testname"])
+             perf_data = process_profiler_data(profiler_data)
+
+File: tests/python_tests/perf_fast_tilize.py
+@@ -0,0 +1,101 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++import pytest
++
++from conftest import skip_for_blackhole
++from helpers.device import write_stimuli_to_l1
++from helpers.format_arg_mapping import DestAccumulation
++from helpers.format_config import DataFormat, InputOutputFormat
++from helpers.perf import (
++    PerfReport,
++    PerfRunType,
++    delete_benchmark_dir,
++    dump_report,
++    dump_scatter,
++    perf_benchmark,
++    update_report,
++)
++from helpers.stimuli_generator import generate_stimuli
++
++TEST_NAME = "fast_tilize_test"
++
++
++def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
++    """
++    Generates a list of tuples representing width and height in tiles for input tensors,
++    up to the specified maximum size in tiles.
++    For tilize tensor width is important so all widths from 1 to max_size are generated.
++    In the interest of reducing the number of test cases, instead of generating all possible heights
++    critical subsets of valid heights are generated (three smallest, three largest and three middle heights).
++    Parameters:
++    max_size (int): Maximum number of tiles the resulting tensor can have.
++    Returns:
++    List[tuple[int, int]]: A list of tuples representing the width and height of the input tensor in tiles.
++    """
++    dimensions = []
++    for width in range(1, max_size + 1):
++        max_height = max_size // width
++        heights = [
++            1,
++            2,
++            3,
++            (max_height // 2) - 1,
++            max_height // 2,
++            (max_height // 2) + 1,
++            max_height - 2,
++            max_height - 1,
++            max_height,
++        ]
++        heights = [h for h in heights if h > 0 and h <= max_height]
++        heights = list(set(heights))
++        for height in heights:
++            dimensions.append((width, height))
++    return dimensions
++
++
++report = PerfReport()
++
++
++@pytest.fixture(scope="module")
++def report_fixture():
++    delete_benchmark_dir(TEST_NAME)
++    yield
++    dump_report(TEST_NAME, report)
++    dump_scatter(TEST_NAME, report)
++
++
++@skip_for_blackhole
++@pytest.mark.perf
++@pytest.mark.parametrize("input_format", [DataFormat.Float32, DataFormat.Float16_b])
++@pytest.mark.parametrize(
++    "output_format", [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Bfp8_b]
++)
++@pytest.mark.parametrize("fp32_dest", [DestAccumulation.Yes, DestAccumulation.No])
++@pytest.mark.parametrize("input_width, input_height", generate_input_dimensions(16))
++def test_fast_tilize_perf(
++    report_fixture, input_format, output_format, fp32_dest, input_width, input_height
++):
++
++    input_dimensions = [input_height * 32, input_width * 32]
++
++    src_A, src_B, tile_cnt = generate_stimuli(
++        input_format, input_format, input_dimensions=input_dimensions
++    )
++
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, input_format, input_format, tile_count=tile_cnt
++    )
++
++    formats = InputOutputFormat(input_format, output_format)
++
++    test_config = {
++        "formats": formats,
++        "testname": TEST_NAME,
++        "tile_cnt": input_height * input_width,
++        "input_dimensions": input_dimensions,
++        "dest_acc": fp32_dest,
++    }
++
++    results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], 2)
++    update_report(report, test_config, results)
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -112,6 +112,9 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         ):
+             pytest.skip(reason="This combination is not supported on BH architecture")
+ 
++    if formats.input_format == DataFormat.Int32:
++        pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
++
+     if (
+         approx_mode == ApproximationMode.Yes
+         and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
+
+File: tests/python_tests/test_fast_tilize.py
+@@ -0,0 +1,94 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++import pytest
++import torch
++
++from conftest import skip_for_blackhole
++from helpers.device import (
++    collect_results,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import DestAccumulation, format_dict
++from helpers.format_config import DataFormat, InputOutputFormat
++from helpers.golden_generators import TilizeGolden, get_golden_generator
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import run_test
++from helpers.utils import passed_test
++
++TEST_NAME = "fast_tilize_test"
++
++
++def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
++    """
++    Generates a list of tuples representing width and height in tiles for input tensors,
++    up to the specified maximum size in tiles.
++    For tilize tensor width is important so all widths from 1 to max_size are generated.
++    In the interest of reducing the number of test cases, instead of generating all possible heights
++    critical subsets of valid heights are generated (three smallest, three largest and three middle heights).
++    Parameters:
++    max_size (int): Maximum number of tiles the resulting tensor can have.
++    Returns:
++    List[tuple[int, int]]: A list of tuples representing the width and height of the input tensor in tiles.
++    """
++    dimensions = []
++    for width in range(1, max_size + 1):
++        max_height = max_size // width
++        heights = [
++            1,
++            2,
++            3,
++            (max_height // 2) - 1,
++            max_height // 2,
++            (max_height // 2) + 1,
++            max_height - 2,
++            max_height - 1,
++            max_height,
++        ]
++        heights = [h for h in heights if h > 0 and h <= max_height]
++        heights = list(set(heights))
++        for height in heights:
++            dimensions.append((width, height))
++    return dimensions
++
++
++@skip_for_blackhole
++@pytest.mark.parametrize("input_format", [DataFormat.Float32, DataFormat.Float16_b])
++@pytest.mark.parametrize(
++    "output_format", [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Bfp8_b]
++)
++@pytest.mark.parametrize("fp32_dest", [DestAccumulation.Yes, DestAccumulation.No])
++@pytest.mark.parametrize("input_width, input_height", generate_input_dimensions(25))
++def test_fast_tilize(input_format, output_format, fp32_dest, input_width, input_height):
++
++    input_dimensions = [input_height * 32, input_width * 32]
++
++    src_A, src_B, tile_cnt = generate_stimuli(
++        input_format, input_format, input_dimensions=input_dimensions
++    )
++
++    generate_golden = get_golden_generator(TilizeGolden)
++    golden_tensor = generate_golden(src_A, input_dimensions, output_format)
++
++    res_address = write_stimuli_to_l1(
++        src_A, src_B, input_format, input_format, tile_count=tile_cnt
++    )
++
++    formats = InputOutputFormat(input_format, output_format)
++
++    test_config = {
++        "formats": formats,
++        "testname": TEST_NAME,
++        "tile_cnt": tile_cnt,
++        "input_dimensions": input_dimensions,
++        "dest_acc": fp32_dest,
++    }
++
++    run_test(test_config)
++
++    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
++    assert len(res_from_L1) == len(golden_tensor)
++
++    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[output_format])
++
++    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/sources/fast_tilize_test.cpp
+@@ -0,0 +1,291 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#include <algorithm>
++#include <cstdint>
++#include <cstdio>
++
++#include "ckernel.h"
++#include "llk_defs.h"
++#include "params.h"
++#include "profiler.h"
++
++// Globals
++uint32_t unp_cfg_context          = 0;
++uint32_t pack_sync_tile_dst_ptr   = 0;
++uint32_t math_sync_tile_dst_index = 0;
++
++#if defined(LLK_PROFILER)
++uint32_t loop_factor = 1024;
++#else
++uint32_t loop_factor = 1;
++#endif
++
++#ifdef LLK_TRISC_UNPACK
++
++#include "llk_unpack_common.h"
++#include "llk_unpack_tilize.h"
++
++// the kernel algorithm is the same across all threads, with the only difference being the particular calls made to the llks
++// the high level algorithm is explained here as well as in the metal compute api where it is copied from
++// the kernel tilizes the input tensor of arbitrary shape (divisible by tile dimensions in both axes)
++// tensor shape is defined by BLOCK_RT_DIM and BLOCK_CT_DIM which represent the number of rows and columns of tiles respectively
++// they are calculated as BLOCK_RT_DIM = TENSOR_HEIGHT / TILE_R_DIM and BLOCK_CT_DIM = TENSOR_WIDTH / TILE_C_DIM
++// the first two loops are part of the kernel, providing looping for the performance measurement and calling the high level algorithm for each row of tiles
++// everything inside the "for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)" loop implements the actual high level algorithm as used in the metal compute api
++
++// the goal of the high level algorithm is to break down the BLOCK_CT_DIM of the input tensor into a sequence of llk calls
++// using available unit_dim primitives while maximizing the utilization of the destination buffer
++
++// principle of operation is as follows:
++// BLOCK_CT_DIM == 1: Single call with unit_dim == 1
++// BLOCK_CT_DIM == 2: Single call with unit_dim == 2
++// BLOCK_CT_DIM == 3: Single call with unit_dim == 3
++// BLOCK_CT_DIM > 3 && BLOCK_CT_DIM % 2 == 0: BLOCK_CT_DIM / 2 calls with unit_dim == 2
++// BLOCK_CT_DIM > 3 && BLOCK_CT_DIM % 2 == 1: (BLOCK_CT_DIM - 3) / 2 calls with unit_dim == 2, plus one call with unit_dim == 3
++// it is good to note that only unit_dim == 2 is called multiple times and/or with num_units > 1
++// meaning that unit_dims 1 and 3 will only appear as the last call in the last dest bank
++
++// each iteration of the while loop represents processing of a single dest bank
++// the idea is to process as many tiles as possible in each iteration, except the last two
++// where the aim is to balance the number of tiles processed between the two dest banks to minimize the perf hit
++// depending on the number of remaining tiles, algorithm will decide how many tiles to process
++// if remaining_tiles > 2 * dest_size, there will be at least two more dest banks to process so the algorithm is free to process as much tiles as possible
++// if remaining_tiles > dest_size, there will be at least one more dest bank to process so the algorithm will aim to split the remaining tiles eavenly
++// "even_remainder" is calculated by taking half the tiles and rounding it up to be even as all dest banks except the last only use unit_dim 2
++// for all valid inputs ([5, 8] and [9, 16], depending on the dest_size) the number of tiles processed in the last two dest banks will be within 2 of each other
++// and number of tiles left in the last dest bank will be at least 2
++// in the last iteration there are three distinct cases:
++// if the number of remaining tiles is even or unit_dim == 1, the algorithm will process all remaining tiles in a single call
++// if the number of remaining tiles is 3, the algorithm will process them in a single call with unit_dim == 3
++// if the number of remaining tiles is odd and greater than 3, the algorithm will process all but the last three tiles in a single call with unit_dim == 2
++// followed by a call with unit_dim == 3 for the last three tiles
++
++void run_kernel()
++{
++    {
++        ZONE_SCOPED("INIT")
++        _llk_unpack_fast_tilize_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_dst);
++        _llk_unpack_fast_tilize_init_(formats.unpack_dst, BLOCK_CT_DIM);
++        PROFILER_SYNC();
++    }
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        for (uint32_t loop = 0; loop < loop_factor; loop++)
++        {
++            for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
++            {
++                uint32_t read_offset = i * BLOCK_CT_DIM * TILE_R_DIM;
++
++                uint32_t packed_tiles    = 0;
++                uint32_t remaining_tiles = BLOCK_CT_DIM;
++                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 : 8;
++                uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
++                uint32_t num_units       = dest_size / unit_dim;
++
++                while (packed_tiles < BLOCK_CT_DIM)
++                {
++                    uint32_t tile_index = read_offset + packed_tiles;
++                    if (remaining_tiles > 2 * dest_size)
++                    {
++                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
++                        packed_tiles += dest_size;
++                        remaining_tiles -= dest_size;
++                    }
++                    else if (remaining_tiles > dest_size)
++                    {
++                        uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
++                        num_units               = even_remainder / unit_dim;
++                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
++                        packed_tiles += even_remainder;
++                        remaining_tiles -= even_remainder;
++                    }
++                    else
++                    {
++                        if (remaining_tiles % 2 == 0 || unit_dim == 1)
++                        {
++                            num_units = remaining_tiles / unit_dim;
++                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
++                        }
++                        else if (remaining_tiles == 3)
++                        {
++                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, 3, 1, BLOCK_CT_DIM);
++                        }
++                        else
++                        {
++                            num_units = (remaining_tiles - 3) / unit_dim;
++                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
++                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(buffer_A[0]), tile_index + remaining_tiles - 3, formats.unpack_src, 3, 1, BLOCK_CT_DIM);
++                        }
++                        packed_tiles += remaining_tiles;
++                        remaining_tiles = 0;
++                    }
++                }
++            }
++        }
++        PROFILER_SYNC();
++    }
++
++    _llk_unpack_fast_tilize_uninit_<is_fp32_dest_acc_en>();
++}
++
++#endif
++
++#ifdef LLK_TRISC_MATH
++
++#include "llk_math_common.h"
++#include "llk_math_eltwise_unary_datacopy.h"
++
++void run_kernel()
++{
++    {
++        ZONE_SCOPED("INIT")
++        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        _llk_math_hw_configure_(formats.math, formats.math);
++        _llk_math_fast_tilize_init_(formats.math, BLOCK_CT_DIM == 1 ? 1 : 2);
++        PROFILER_SYNC();
++    }
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        for (uint32_t loop = 0; loop < loop_factor; loop++)
++        {
++            for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
++            {
++                uint32_t packed_tiles    = 0;
++                uint32_t remaining_tiles = BLOCK_CT_DIM;
++                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 : 8;
++                uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
++                uint32_t num_units       = dest_size / unit_dim;
++
++                while (packed_tiles < BLOCK_CT_DIM)
++                {
++                    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
++
++                    if (remaining_tiles > 2 * dest_size)
++                    {
++                        _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
++                        packed_tiles += dest_size;
++                        remaining_tiles -= dest_size;
++                    }
++                    else if (remaining_tiles > dest_size)
++                    {
++                        uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
++                        num_units               = even_remainder / unit_dim;
++                        _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
++                        packed_tiles += even_remainder;
++                        remaining_tiles -= even_remainder;
++                    }
++                    else
++                    {
++                        if (remaining_tiles % 2 == 0 || unit_dim == 1)
++                        {
++                            num_units = remaining_tiles / unit_dim;
++                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
++                        }
++                        else if (remaining_tiles == 3)
++                        {
++                            _llk_math_fast_tilize_block_(0, formats.math, 3, 1);
++                        }
++                        else
++                        {
++                            num_units = (remaining_tiles - 3) / unit_dim;
++                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
++                            _llk_math_fast_tilize_block_(remaining_tiles - 3, formats.math, 3, 1);
++                        }
++                        packed_tiles += remaining_tiles;
++                        remaining_tiles = 0;
++                    }
++
++                    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++                }
++            }
++        }
++        PROFILER_SYNC();
++    }
++
++    _llk_math_fast_tilize_uninit_<is_fp32_dest_acc_en>(formats.math);
++}
++
++#endif
++
++#ifdef LLK_TRISC_PACK
++
++#include "llk_pack.h"
++#include "llk_pack_common.h"
++
++void run_kernel()
++{
++    uint32_t use_32bit_dest = formats.unpack_dst == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Tf32);
++    {
++        ZONE_SCOPED("INIT")
++        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
++        _llk_pack_fast_tilize_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
++        _llk_pack_fast_tilize_init_<DstSync::SyncHalf>(use_32bit_dest, formats.pack_dst, BLOCK_CT_DIM == 1 ? 1 : 2);
++        PROFILER_SYNC();
++    }
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        for (uint32_t loop = 0; loop < loop_factor; loop++)
++        {
++            for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
++            {
++                uint32_t write_offset = i * BLOCK_CT_DIM;
++
++                uint32_t packed_tiles    = 0;
++                uint32_t remaining_tiles = BLOCK_CT_DIM;
++                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 : 8;
++                uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
++                uint32_t num_units       = dest_size / unit_dim;
++
++                while (packed_tiles < BLOCK_CT_DIM)
++                {
++                    _llk_packer_wait_for_math_done_();
++
++                    uint32_t tile_index = write_offset + packed_tiles;
++                    if (remaining_tiles > 2 * dest_size)
++                    {
++                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
++                        packed_tiles += dest_size;
++                        remaining_tiles -= dest_size;
++                    }
++                    else if (remaining_tiles > dest_size)
++                    {
++                        uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
++                        num_units               = even_remainder / unit_dim;
++                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
++                        packed_tiles += even_remainder;
++                        remaining_tiles -= even_remainder;
++                    }
++                    else
++                    {
++                        if (remaining_tiles % 2 == 0 || unit_dim == 1)
++                        {
++                            num_units = remaining_tiles / unit_dim;
++                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
++                        }
++                        else if (remaining_tiles == 3)
++                        {
++                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), 3, 1);
++                        }
++                        else
++                        {
++                            num_units = (remaining_tiles - 3) / unit_dim;
++                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
++                            _llk_pack_fast_tilize_block_(remaining_tiles - 3, L1_ADDRESS(buffer_Res[tile_index + remaining_tiles - 3]), 3, 1);
++                        }
++                        packed_tiles += remaining_tiles;
++                        remaining_tiles = 0;
++                    }
++
++                    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++                }
++            }
++        }
++        PROFILER_SYNC();
++    }
++
++    _llk_pack_fast_tilize_uninit_<DstSync::SyncHalf, is_fp32_dest_acc_en>(formats.pack_dst);
++}
++
++#endif
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_instr_params.h
+@@ -86,6 +86,38 @@ struct p_unpacr
+     constexpr static uint AUTO_INC_CONTEXT      = (1); // Auto increment config context (max value set through unpacker config command)
+ };
+ 
++#define TTI_UNPACR_COMMON(Unpack_block_selection, AddrMode, SetDatValid) \
++    TTI_UNPACR(                                                          \
++        Unpack_block_selection,                                          \
++        AddrMode,                                                        \
++        0 /*CfgContextCntInc*/,                                          \
++        0 /*CfgContextId*/,                                              \
++        0 /*AddrCntContextId*/,                                          \
++        1 /*OvrdThreadId*/,                                              \
++        SetDatValid,                                                     \
++        0 /*srcb_bcast*/,                                                \
++        0 /*ZeroWrite2*/,                                                \
++        0 /*AutoIncContextID*/,                                          \
++        0 /*RowSearch*/,                                                 \
++        0 /*SearchCacheFlush*/,                                          \
++        1 /*Last*/)
++
++#define TT_OP_UNPACR_COMMON(Unpack_block_selection, AddrMode, SetDatValid) \
++    TT_OP_UNPACR(                                                          \
++        Unpack_block_selection,                                            \
++        AddrMode,                                                          \
++        0 /*CfgContextCntInc*/,                                            \
++        0 /*CfgContextId*/,                                                \
++        0 /*AddrCntContextId*/,                                            \
++        1 /*OvrdThreadId*/,                                                \
++        SetDatValid,                                                       \
++        0 /*srcb_bcast*/,                                                  \
++        0 /*ZeroWrite2*/,                                                  \
++        0 /*AutoIncContextID*/,                                            \
++        0 /*RowSearch*/,                                                   \
++        0 /*SearchCacheFlush*/,                                            \
++        1 /*Last*/)
++
+ struct p_unpacr_nop
+ {
+     constexpr static uint UNP_POP = 0b000;
+@@ -110,6 +142,21 @@ struct p_srcb
+     constexpr static uint BACKWARD_PASS = 0x1;
+ };
+ 
++constexpr static uint SETADC_CH0(uint cnt)
++{
++    return cnt;
++}
++
++constexpr static uint SETADC_CH1(uint cnt)
++{
++    return cnt << 2;
++}
++
++constexpr static uint SETADC_CH01(uint cnt)
++{
++    return cnt << 2 | cnt;
++}
++
+ struct p_setadc
+ {
+     constexpr static uint UNP0   = 0b001;
+@@ -124,6 +171,13 @@ struct p_setadc
+     constexpr static uint SET_Z = 2;
+     constexpr static uint SET_W = 3;
+ 
++    constexpr static uint X  = 1;
++    constexpr static uint Y  = 2;
++    constexpr static uint XY = 3;
++    constexpr static uint Z  = 1;
++    constexpr static uint W  = 2;
++    constexpr static uint ZW = 3;
++
+     constexpr static uint CH_0 = 0;
+     constexpr static uint CH_1 = 1;
+ };
+@@ -134,6 +188,10 @@ struct p_pacr
+     constexpr static uint P_ZERO_OUTPUT_ENABLED  = 0x1;
+ };
+ 
++#define TTI_PACR_COMMON(AddrMode, ZeroWrite, PackSel, Flush, Last) TTI_PACR(AddrMode, ZeroWrite, PackSel, 0 /*OvrdThreadId*/, 0 /*Concat*/, Flush, Last)
++
++#define TT_OP_PACR_COMMON(AddrMode, ZeroWrite, PackSel, Flush, Last) TT_OP_PACR(AddrMode, ZeroWrite, PackSel, 0 /*OvrdThreadId*/, 0 /*Concat*/, Flush, Last)
++
+ struct p_ind
+ {
+     constexpr static uint HIER_REGFILE = 0x0;
+@@ -150,6 +208,12 @@ struct p_ind
+     constexpr static uint LD_8bit  = 3;
+ };
+ 
++struct p_mov
++{
++    constexpr static uint DEST_NORM    = 0;
++    constexpr static uint DEST_32B_LOW = 1;
++};
++
+ struct p_mova2d
+ {
+     constexpr static uint MATH_HALO_ROWS = 0x0;
+@@ -369,4 +433,45 @@ struct p_exp
+     constexpr static uint ADJ_EXP = 0xBD3F;
+ };
+ 
++struct p_setdmareg
++{
++    constexpr static uint PAYLOAD_IMMEDIATE   = 0;
++    constexpr static uint PAYLOAD_16BIT       = 0;
++    constexpr static uint PAYLOAD_32BIT       = 1;
++    constexpr static uint PAYLOAD_128BIT      = 2;
++    constexpr static uint PAYLOAD_TILE_HEADER = 3;
++
++    constexpr static uint MODE_IMMEDIATE = 0;
++    constexpr static uint MODE_SIGNAL    = 1;
++};
++
++struct p_mop
++{
++    constexpr static uint MASK_LOOP   = 0;
++    constexpr static uint DOUBLE_LOOP = 1;
++};
++
++struct p_adddmareg
++{
++    constexpr static uint REG_PLUS_REG = 0;
++    constexpr static uint REG_PLUS_IMM = 1;
++};
++
++constexpr static uint REG2FLOP_FLOP_INDEX(uint addr)
++{
++    return addr - THCON_CFGREG_BASE_ADDR32;
++}
++
++struct p_reg2flop
++{
++    constexpr static uint WRITE_16B = 0;
++    constexpr static uint WRITE_4B  = 1;
++    constexpr static uint WRITE_2B  = 2;
++    constexpr static uint WRITE_1B  = 3;
++};
++
++#define TTI_REG2FLOP_COMMON(SizeSel, FlopIndex, RegIndex) TTI_REG2FLOP(SizeSel, 0 /*TargetSel*/, 0 /*ByteOffset*/, 0 /*ContextId*/, FlopIndex, RegIndex)
++
++#define TT_OP_REG2FLOP_COMMON(SizeSel, FlopIndex, RegIndex) TT_OP_REG2FLOP(SizeSel, 0 /*TargetSel*/, 0 /*ByteOffset*/, 0 /*ContextId*/, FlopIndex, RegIndex)
++
+ } // namespace ckernel
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_template.h
+@@ -71,10 +71,7 @@ class ckernel_unpack_template
+     //      UNPACR_A3
+     //      UNPACR_B
+     //    else
+-    //      SKIP_A0
+-    //      SKIP_A1
+-    //      SKIP_A2
+-    //      SKIP_A3
++    //      SKIP_A
+     //      SKIP_B
+     //
+     //  The configuration allows the following changes:
+
+File: tt_llk_wormhole_b0/common/inc/cpack_common.h
+@@ -168,14 +168,16 @@ inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_f
+                     : (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float16) ? 2
+                                                                                                         : 1;
+     uint y_stride = FACE_R_DIM * x_stride;
+-    uint z_stride = PACK_CNT * FACE_C_DIM * y_stride;
+-    uint w_stride = z_stride;
++    uint z_stride = FACE_C_DIM * y_stride;
++    uint w_stride = TILE_NUM_FACES * z_stride;
+ 
+-    TT_SETDMAREG(0, LOWER_HALFWORD((x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT)), 0, LO_16(p_gpr_pack::TMP0));
+-    TT_SETDMAREG(0, UPPER_HALFWORD((y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT)), 0, HI_16(p_gpr_pack::TMP0));
++    uint32_t xy_stride = (x_stride << PCK0_ADDR_CTRL_XY_REG_0_Xstride_SHAMT) | (y_stride << PCK0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT);
++    uint32_t zw_stride = (z_stride << PCK0_ADDR_CTRL_ZW_REG_0_Zstride_SHAMT) | (w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT);
++    TT_SETDMAREG(0, LOWER_HALFWORD(xy_stride), 0, LO_16(p_gpr_pack::TMP0));
++    TT_SETDMAREG(0, UPPER_HALFWORD(xy_stride), 0, HI_16(p_gpr_pack::TMP0));
+     TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK0_ADDR_CTRL_XY_REG_0_Xstride_ADDR32);
+-    TT_SETDMAREG(0, LOWER_HALFWORD((w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT)), 0, LO_16(p_gpr_pack::TMP0)); // z-stride not used!
+-    TT_SETDMAREG(0, UPPER_HALFWORD((w_stride << PCK0_ADDR_CTRL_ZW_REG_0_Wstride_SHAMT)), 0, HI_16(p_gpr_pack::TMP0));
++    TT_SETDMAREG(0, LOWER_HALFWORD(zw_stride), 0, LO_16(p_gpr_pack::TMP0));
++    TT_SETDMAREG(0, UPPER_HALFWORD(zw_stride), 0, HI_16(p_gpr_pack::TMP0));
+     TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, PCK0_ADDR_CTRL_ZW_REG_0_Zstride_ADDR32);
+     TTI_NOP;
+     TTI_NOP;
+@@ -355,7 +357,7 @@ inline void set_packer_l1_offset(const uint pack_dst_format, const uint face_r_d
+ }
+ 
+ template <bool is_fp32_dest_acc_en>
+-inline void reconfig_packer_data_format(const uint pack_src_format, const uint pack_dst_format, const uint tile_size, const uint face_r_dim = FACE_R_DIM)
++inline void reconfig_packer_data_format(const uint pack_src_format, const uint pack_dst_format, const uint tile_size = 0, const uint face_r_dim = FACE_R_DIM)
+ {
+     // Get pointer to registers for current state ID
+     volatile uint* cfg = get_cfg_pointer();
+@@ -477,7 +479,7 @@ template <bool is_fp32_dest_acc_en, bool untilize>
+ inline void configure_pack(
+     const uint pack_src_format,
+     const uint pack_dst_format,
+-    const uint tile_size,
++    const uint tile_size    = 0,
+     const uint face_r_dim   = FACE_R_DIM,
+     const uint num_faces    = 4,
+     const bool partial_face = false,
+@@ -584,7 +586,7 @@ inline void select_packer_dest_registers()
+ 
+ // Program packer destination addresses from GPRs
+ template <PackSelMask PackSel = PACK_ALL>
+-inline void program_packer_destination(uint32_t addr)
++inline void program_packer_destination(uint32_t addr, bool restore = true)
+ {
+     uint32_t new_l1_addr = (1 << 31) | addr;
+     TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
+@@ -595,7 +597,10 @@ inline void program_packer_destination(uint32_t addr)
+ 
+     TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 0); // pack flush
+ 
+-    TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
++    if (restore)
++    {
++        TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
++    }
+ }
+ 
+ template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false, uint32_t row_num_datums = TILE_C_DIM>
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h
+@@ -231,3 +231,217 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
+ 
+     math::reset_counters(p_setrwc::SET_ABD_F);
+ }
++
++/*************************************************************************
++ * LLK MATH FAST TILIZE (Tilize single input using both unpackers and packer)
++ * unit_dim is the number of tiles processed in a single iteration, num_units is the number of units processed in a single call
++ * unit_dim and num_units must match the ones given to the unpacker (all unit_dim usage notes from the unpacker also apply here)
++ * dst_index is the index of the tile inside the destination register to write to
++ * both dest modes are supported (although 32 bit mode is supported by intentionally ignoring it for both math and pack unless src regs are TF32)
++ * only DstSync::SyncHalf is supported
++ * tiles are split across halves of the active dest bank (effectively quarters since DstSync::SyncHalf)
++ * so nothing except fast tilize should be using that dest bank
++ *************************************************************************/
++
++inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
++{
++    // standard addrmod that follows MOVB2D
++    addr_mod_t {
++        .srcb = {.incr = 4},
++        .dest = {.incr = 4},
++    }
++        .set(ADDR_MOD_1);
++
++    // standard addrmod that follows MOVA2D
++    addr_mod_t {
++        .srca = {.incr = 8},
++        .dest = {.incr = 8},
++    }
++        .set(ADDR_MOD_2);
++
++    // next two addrmods are mostly used for jumping to and from the offset for the bottom faces
++    // offset for the bottom faces is always half the number of rows in the dest bank (512 / 2 for 16bit and 256 / 2 for 32bit since DstSync is always Half)
++    uint32_t bottom_face_offset = (unpack_dst_format == (uint)DataFormat::Tf32 ? 256 : 512) / 2;
++    // unit_dim 1 copies 2 faces before jumping so at the moment of the jump dest RWC is
++    // 2*16 (two faces) -  8 (number of rows moved by current instruction)
++    // unit_dim 2 copies 4 faces before jumping so at the moment of the jump dest RWC is
++    // 4*16 (four faces) - 8 (number of rows moved by current instruction)
++    uint8_t unit_dim_1_forward_jump = bottom_face_offset - (1 * (TILE_NUM_FACES / 2) * FACE_R_DIM - 8);
++    uint8_t unit_dim_2_forward_jump = bottom_face_offset - (2 * (TILE_NUM_FACES / 2) * FACE_R_DIM - 8);
++
++    // jumping back to the offset for the next tile is logically -bottom_face_offset if dest RWC is at the correct offset for the bottom faces of the next tile
++    // only catch is the need to compensate for the current instruction, for unit_dim 1 that is MOVA2D while for unit_dim 2 and 3 that is MOVB2D
++    int16_t unit_dim_1_backward_jump = -bottom_face_offset + 8;
++    int16_t unit_dim_2_backward_jump = -bottom_face_offset + 4;
++
++    // this follows MOVA2D in src and jumps to the offset for the bottom faces (for unit_dim 1 and 2, for unit_dim 3 that is handled the other way)
++    addr_mod_t {
++        .srca = {.incr = 8},
++        .dest = {.incr = unit_dim == 1 ? unit_dim_1_forward_jump : unit_dim_2_forward_jump},
++    }
++        .set(ADDR_MOD_3);
++
++    // this jumps back to the offset for the next tile, RWCs for source registers are reset separately when clearing dvalids
++    addr_mod_t {
++        .dest = {.incr = unit_dim == 1 ? unit_dim_1_backward_jump : unit_dim_2_backward_jump},
++    }
++        .set(ADDR_MOD_0);
++}
++
++inline void _llk_math_fast_tilize_mop_config_()
++{
++    ckernel_unpack_template tmp = ckernel_unpack_template(
++        false,
++        false,
++        TT_OP_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0),
++        TT_OP_NOP,
++        TT_OP_NOP,
++        TT_OP_NOP,
++        TT_OP_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0),
++        TT_OP_NOP,
++        TT_OP_NOP);
++
++    tmp.program(instrn_buffer);
++}
++
++inline void _llk_math_fast_tilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
++{
++    // even though MOVA2D and MOVB2D are supposed to ignore ALU_ACC_CTRL_Fp32_enabled some parts still rely on it (not sure why)
++    // it would be easier if they just fully respected ALU_ACC_CTRL_Fp32_enabled but it's a hardware quirk
++    // so in non Tf32 cases, clear it to fully ignore FP32 dest mode
++    // not sure why it doesn't work if CFG_STATE_ID_StateID is not 1
++    if (unpack_dst_format != (uint)DataFormat::Tf32)
++    {
++        TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 1);
++        TTI_NOP;
++        TTI_NOP;
++        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
++    }
++
++    // everything else is quite standard math init
++    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
++
++    math::reset_counters(p_setrwc::SET_ABD_F);
++
++    _llk_math_fast_tilize_addrmod_config_(unpack_dst_format, unit_dim);
++
++    _llk_math_fast_tilize_mop_config_();
++}
++
++template <bool is_fp32_dest_acc_en>
++inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
++{
++    // if ALU_ACC_CTRL_Fp32_enabled was previously cleared, restore it
++    // still not sure why this CFG_STATE_ID_StateID manipulation is needed
++    if (unpack_dst_format != (uint)DataFormat::Tf32)
++    {
++        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(is_fp32_dest_acc_en);
++        TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 0);
++        TTI_NOP;
++        TTI_NOP;
++    }
++}
++
++inline void _llk_math_fast_tilize_block_(
++    const std::uint32_t dst_index, const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim, const std::uint32_t num_units)
++{
++    // split dest and write the top faces in the first half and the bottom faces in the second half (or more precisely quarter, since dest sync half)
++    // make life easier by lying to set_dst_write_addr that tile shape is 32x16 so correct stride is obtained for dst_index
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(dst_index);
++
++    for (uint i = 0; i < num_units; i++)
++    {
++        if (unit_dim == 1)
++        {
++            // srcA has the full tile, copy the top faces first
++            // inside mop:
++            // for (uint j = 0; j < 3; j++)
++            // {
++            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, 3 - 1, 0x0);
++            // finish with the top faces and jump to the offset for the bottom faces
++            TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
++            // copy the bottom faces
++            // inside mop:
++            // for (uint j = 0; j < 3; j++)
++            // {
++            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, 3 - 1, 0x0);
++            // finish with the bottom faces and jump back to the offset for the next tile
++            TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_0, p_mova2d::MOV_8_ROWS, 0);
++            // clear just srcA dvalid since it's the only one set by the unpacker for unit_dim 1 and src RWCs
++            TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB);
++        }
++        else if (unit_dim == 2)
++        {
++            // srcA has the top faces (4 of them), copy them
++            // inside mop:
++            // for (uint j = 0; j < 7; j++)
++            // {
++            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, 7 - 1, 0x0);
++            // finish with the top faces and jump to the offset for the bottom faces
++            TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
++            // srcB has the bottom faces (4 of them), copy them
++            // inside mop:
++            // for (uint j = 0; j < 15; j++)
++            // {
++            //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, 15 - 1, 0xFFFF);
++            // finish with the bottom faces and jump back to the offset for the next tile
++            TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
++            // clear both dvalids and src RWCs
++            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
++        }
++        else if (unit_dim == 3)
++        {
++            // srcA has the top 8 rows of the top faces (6 of them), copy them
++            // inside mop:
++            // for (uint j = 0; j < 6; j++)
++            // {
++            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, 6 - 1, 0x0);
++            // srcB has the bottom 8 rows of the top faces (6 of them), copy them
++            // inside mop:
++            // for (uint j = 0; j < 12; j++)
++            // {
++            //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, 12 - 1, 0xFFFF);
++            // done with the top faces, clear dvalids and src RWCs, next banks contain bottom faces
++            // also clear dest RWC since we use dest offset for forward jump here
++            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
++            // don't have enough address mods to have unit_dim 3 forward jump so dest offset is used here
++            uint32_t top_face_offset = dst_index + i * 3; // copy 3 tiles per iteration
++            // offset to the bottom is the number of tiles that fit into the dest bank
++            // since half size faces are specified, this gets into the correct position in the second half
++            uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == (uint)DataFormat::Tf32 ? 4 : 8);
++            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(bottom_face_offset);
++            // srcA has the top 8 rows of the bottom faces (6 of them), copy them
++            // inside mop:
++            // for (uint j = 0; j < 6; j++)
++            // {
++            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, 6 - 1, 0x0);
++            // srcB has the bottom 8 rows of the bottom faces (6 of them), copy them
++            // inside mop:
++            // for (uint j = 0; j < 11; j++)
++            // {
++            //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, 11 - 1, 0xFFFF);
++            // finish with the bottom faces and jump back to the offset for the next tile
++            TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
++            // clear both dvalids and src RWCs
++            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
++        }
++    }
++
++    math::clear_dst_reg_addr();
++}
+
+File: tt_llk_wormhole_b0/llk_lib/llk_pack.h
+@@ -264,3 +264,270 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
+ }
+ 
+ #include "llk_pack_untilize.h"
++
++/*************************************************************************
++ * LLK PACK FAST TILIZE (Tilize single input using both unpackers and packer)
++ * unit_dim is the number of tiles processed in a single iteration, num_units is the number of units processed in a single call
++ * unit_dim and num_units must match the ones given to the unpacker and math (all unit_dim usage notes from the unpacker also apply here)
++ * tile_index is the index of the tile inside the destination register to read from
++ * address is the 16B address of where to start packing to (usually the start of the tile row)
++ * currently supports only 4 16x16 faces per tile
++ * supported output formats are: FP32, FP16_B, BFP8_B
++ * both dest modes are supported (same usage notes from math apply here)
++ * only DstSync::SyncHalf is supported
++ * tiles are expected to be split into top and bottom faces in separate halves of the active dest bank
++ *************************************************************************/
++
++template <bool is_fp32_dest_acc_en>
++inline void _llk_pack_fast_tilize_hw_configure_(const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format)
++{
++    configure_pack<is_fp32_dest_acc_en, false>(pack_src_format, pack_dst_format);
++}
++
++inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
++{
++    // first two address mods move to the next row, the stride depends on the number of contiguous faces loaded in the single unpacker instruction
++    // for unit_dim 1, that is 2 so the stride is 2, and analogously for unit_dims 2 and 3 its 4 and 6
++    addr_mod_pack_t {
++        .y_src = {.incr = (uint8_t)(unit_dim == 1 ? 2 : 4)},
++    }
++        .set(ADDR_MOD_0);
++
++    addr_mod_pack_t {
++        .y_src = {.incr = 6},
++    }
++        .set(ADDR_MOD_2);
++
++    // this address mod moves to the same face in the next tile
++    // go back to the first row using cr and then move by the number of contiguous faces in the tile (always 2 irrespective of unit_dim)
++    addr_mod_pack_t {
++        .y_src = {.incr = 2, .cr = 1},
++    }
++        .set(ADDR_MOD_1);
++
++    // this address mod moves back to the beginning of the unit and separate instruction will increment the z counter to move to the next unit
++    // unit here refers to the interleaved set of 4 * unit_dim faces (half in the top half of the active dest bank and half in the bottom half)
++    addr_mod_pack_t {
++        .y_src = {.clr = 1},
++    }
++        .set(ADDR_MOD_3);
++}
++
++inline void _llk_pack_fast_tilize_mop_config_(const std::uint32_t unit_dim)
++{
++    // UNPACR instructions are used with unit_dim 1 and 2 and SKIP instructions are used with unit_dim 3
++    ckernel_unpack_template tmp = ckernel_unpack_template(
++        false,
++        false,
++        TT_OP_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0),
++        TT_OP_NOP,
++        TT_OP_NOP,
++        TT_OP_NOP,
++        TT_OP_PACR_COMMON(ADDR_MOD_2, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0),
++        TT_OP_NOP,
++        TT_OP_NOP);
++
++    tmp.program(instrn_buffer);
++}
++
++template <DstSync Dst>
++inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, const std::uint32_t pack_dst_format, const std::uint32_t unit_dim)
++{
++    // instead of using the actual is_fp32_dest_acc_en flag dest 32 bit mode is enabled if unpack_dst_format is TF32
++    // this is due to a hw quirk with MOVA2D and MOVB2D
++    // so clear PCK_DEST_RD_CTRL_Read_32b_data unless unpack_src_format is TF32
++    // unpack src format is not easy to determine here so use an argument that is going to be computed at the higher level
++    if (!use_32bit_dest)
++    {
++        cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(0);
++    }
++
++    // set the address offset to the size of the tile in 16B words
++    uint tile_size = SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM);
++    if (IS_BFP_FORMAT(pack_dst_format))
++    {
++        tile_size += (TILE_C_DIM * TILE_R_DIM) / 16; // one exp byte per 16 datums
++    }
++    tile_size = tile_size >> 4; // convert to 16B words
++    TT_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, tile_size, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
++
++    // since faces are interleaved and the top and bottom faces are in the separate halves of the active dest bank, each packer needs a special offset
++    // difference between 16 bit dest and 32 bit dest is where the half of the active bank is (256 rows vs 128 rows)
++    // stallwait and select_packer_dest_registers just replicate what _llk_init_packer_dest_offset_registers_ does
++    TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
++    if (!use_32bit_dest)
++    {
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x100, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x101, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x100, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x101, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
++    }
++    else
++    {
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x080, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x081, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x080, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
++        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x081, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
++    }
++    select_packer_dest_registers<Dst>();
++
++    // each packer packs a single row per call and in total each packer will pack a single face
++    TTI_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
++
++    _llk_pack_fast_tilize_addrmod_config_(unit_dim);
++
++    _llk_pack_fast_tilize_mop_config_(unit_dim);
++}
++
++template <DstSync Dst, bool is_fp32_dest_acc_en>
++inline void _llk_pack_fast_tilize_uninit_(
++    const std::uint32_t pack_dst_format,
++    const std::uint32_t face_r_dim = FACE_R_DIM,
++    const std::uint32_t num_faces  = 4,
++    const bool partial_face        = false,
++    const bool narrow_tile         = false)
++{
++    // restore PCK_DEST_RD_CTRL_Read_32b_data to the original value
++    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(is_fp32_dest_acc_en);
++
++    // restore default packer dest offsets
++    _llk_init_packer_dest_offset_registers_<Dst, DstTileFaceLayout::RowMajor>();
++
++    // packers pack a whole face by default, restore it
++    TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
++    // reset counters
++    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
++
++    // for some reason short inits avoid the packer init (probably since it is usually the same)
++    // but that means calling it here with reasonable defaults is needed
++    // it just initializes the address mods and mop
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
++}
++
++inline void _llk_pack_fast_tilize_block_(
++    const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t unit_dim, const std::uint32_t num_units)
++{
++    // use false here so that the 31st bit of the address remains set as the offset addresses for the other packers continue to be used
++    // while the address for the first packer is manipulated using ADDDMAREG and REG2FLOP
++    program_packer_destination(address, false);
++
++    // reset counters and set the W counter
++    TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));
++    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
++    // move to the start tile index, instead of using the standard W counter whose stride is a single tile
++    // use the Z counter whose stride is a single face as tiles are split into halves of the active dest bank
++    // so only move 2 faces per tile_index
++    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_Z, tile_index << 1);
++
++    for (uint i = 0; i < num_units; i++)
++    {
++        if (unit_dim == 1)
++        {
++            // pack a single tile
++            // inside mop:
++            // for (uint j = 0; j < 15; j++)
++            // {
++            //     TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
++            TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
++            // move to the next tile in dest (same counter rationale as for tile_index)
++            TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 2); // CH0Z += 2
++            // move to the next tile in L1
++            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
++            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
++            // this pack should behave as a no op aside from the address mod side effect (which is resetting the Y counter to the beginning of the tile)
++            // but it actually provides some kind of a stall required when modifying the L1 base address while the packer is running
++            // and has less performance impact than a PACK PACK STALLWAIT
++            TTI_PACR_COMMON(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
++        }
++        else if (unit_dim == 2)
++        {
++            // pack a single tile
++            // inside mop:
++            // for (uint j = 0; j < 15; j++)
++            // {
++            //     TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
++            TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
++            // move to the next tile in L1
++            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
++            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
++            // same notes for the flush bit as above
++            // address mod here moves to the next tile in the same unit
++            TTI_PACR_COMMON(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
++            // pack a single tile
++            // inside mop:
++            // for (uint j = 0; j < 15; j++)
++            // {
++            //     TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
++            TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
++            // move to the next unit in dest (2 * 2 faces, same thing as tile_index)
++            TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 4); // CH0Z += 4
++            // move to the next tile in L1
++            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
++            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
++            // same notes for the flush bit as above
++            // address mod here resets to the beginning of the unit
++            TTI_PACR_COMMON(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
++        }
++        else if (unit_dim == 3)
++        {
++            // pack a single tile
++            // inside mop:
++            // for (uint j = 0; j < 15; j++)
++            // {
++            //     TTI_PACR_COMMON(ADDR_MOD_2, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0xFFFF);
++            TTI_PACR_COMMON(ADDR_MOD_2, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
++            // move to the next tile in L1
++            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
++            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
++            // same notes for the flush bit as above
++            // address mod here moves to the next tile in the same unit
++            TTI_PACR_COMMON(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
++            // pack a single tile
++            // inside mop:
++            // for (uint j = 0; j < 15; j++)
++            // {
++            //     TTI_PACR_COMMON(ADDR_MOD_2, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0xFFFF);
++            TTI_PACR_COMMON(ADDR_MOD_2, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
++            // move to the next tile in L1
++            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
++            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
++            // same notes for the flush bit as above
++            // address mod here moves to the next tile in the same unit
++            TTI_PACR_COMMON(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
++            // pack a single tile
++            // inside mop:
++            // for (uint j = 0; j < 15; j++)
++            // {
++            //     TTI_PACR_COMMON(ADDR_MOD_2, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0xFFFF);
++            TTI_PACR_COMMON(ADDR_MOD_2, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
++            // move to the next unit in dest (3 * 2 faces, same thing as tile_index)
++            TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 6); // CH0Z += 6
++            // move to the next tile in L1
++            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
++            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
++            // same notes for the flush bit as above
++            // address mod here resets to the beginning of the unit
++            TTI_PACR_COMMON(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
++        }
++    }
++}
+
+File: tt_llk_wormhole_b0/llk_lib/llk_pack_common.h
+@@ -148,25 +148,25 @@ inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_d
+     {
+         if constexpr (FaceLayout == ColMajor)
+         {
+-            TT_SETDMAREG(0, 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
+-            TT_SETDMAREG(0, 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
+-            TT_SETDMAREG(0, 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+-            TT_SETDMAREG(0, 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
+-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
+-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
+-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
++            TTI_SETDMAREG(0, 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
++            TTI_SETDMAREG(0, 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
++            TTI_SETDMAREG(0, 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
++            TTI_SETDMAREG(0, 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
++            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
++            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
++            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
++            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+         }
+         else
+         { // Default to row major layout
+-            TT_SETDMAREG(0, 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
+-            TT_SETDMAREG(0, 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
+-            TT_SETDMAREG(0, 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+-            TT_SETDMAREG(0, 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
+-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
+-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
+-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+-            TT_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
++            TTI_SETDMAREG(0, 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
++            TTI_SETDMAREG(0, 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
++            TTI_SETDMAREG(0, 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
++            TTI_SETDMAREG(0, 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
++            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x00, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
++            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x10, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
++            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x20, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
++            TTI_SETDMAREG(0, DEST_REGISTER_HALF_SIZE + 0x30, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+         }
+     }
+     select_packer_dest_registers<Dst>();
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_tilize.h
+@@ -458,3 +458,225 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
+         THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32,
+         p_gpr_unpack::FACE_DIM_16x16); // GPR preloaded with  16 | (16 << 16)}
+ }
++
++/*************************************************************************
++ * LLK UNPACK FAST TILIZE (Tilize single input using both unpackers and packer)
++ * full_dim is the tensor width in number of tiles
++ * unit_dim is the number of tiles processed in a single iteration, num_units is the number of units processed in a single call
++ * unit_dim is 1 (only if full_dim is 1) or 2 and 3 (for any other full_dim)
++ * each call can process unit_dim * num_units tiles but when unit_dim is 2 or 3 all tiles must be in a single row
++ * changing between unit_dim 1 and 2/3 requires reconfiguration while changing between 2 and 3 does not
++ * base_address is the 16B base address of the start of the tile row
++ * tile_index is the index of the tile inside that row
++ * currently supports only 4 16x16 faces per tile
++ * supported input formats are: FP32 (via FP16 or TF32) or FP16_B
++ *************************************************************************/
++
++template <bool is_fp32_dest_acc_en>
++inline void _llk_unpack_fast_tilize_hw_configure_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
++{
++    configure_unpack_AB<is_fp32_dest_acc_en>(unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format);
++}
++
++inline void _llk_unpack_fast_tilize_mop_config_()
++{
++    // Y moves to the next tile, Z moves to the next row (both ch0 and ch1)
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1 = 0b00'10'00'01;
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_2_CH0Z_0 = 0b00'00'10'00;
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1 = 0b00'11'00'01;
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_3_CH0Z_0 = 0b00'00'11'00;
++
++    // UNPACR instructions are used with unit_dim 2 and SKIP instructions are used with unit_dim 3
++    ckernel_unpack_template tmp = ckernel_unpack_template(
++        true,
++        false,
++        TT_OP_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1, 0),
++        TT_OP_NOP,
++        TT_OP_NOP,
++        TT_OP_NOP,
++        TT_OP_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0),
++        TT_OP_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1, 0),
++        TT_OP_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0));
++
++    tmp.program(instrn_buffer);
++}
++
++inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format, std::uint32_t full_dim)
++{
++    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
++
++    // save the following state that is going to be modified:
++    // tile x, y, and z dims for both unpackers
++    // CH1 Z stride for both unpackers
++    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, UNP0_ADDR_CTRL_ZW_REG_1_Zstride_ADDR32);
++    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
++    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
++    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_3, UNP1_ADDR_CTRL_ZW_REG_1_Zstride_ADDR32);
++    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_TILIZER_STATE_0, THCON_SEC1_REG0_TileDescriptor_ADDR32);
++    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_TILIZER_STATE_1, THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1);
++
++    // set x dim to single tile width, moving across y counter moves to the next tile in row major
++    // set y dim to full dim, moving across z counter moves to the next row in row major
++    // set z dim to single face height, moving across w counter moves to the next face row in row major
++    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, TILE_C_DIM, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_unpack::TMP0));
++    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, TILE_C_DIM, p_setdmareg::MODE_IMMEDIATE, HI_16(p_gpr_unpack::TMP0));
++    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
++    TT_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, full_dim, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_unpack::TMP0));
++    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, FACE_R_DIM, p_setdmareg::MODE_IMMEDIATE, HI_16(p_gpr_unpack::TMP0));
++    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
++
++    TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG0_TileDescriptor_ADDR32);
++    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, TILE_C_DIM, p_setdmareg::MODE_IMMEDIATE, HI_16(p_gpr_unpack::TMP0));
++    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC1_REG0_TileDescriptor_ADDR32);
++    TT_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, full_dim, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_unpack::TMP0));
++    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, FACE_R_DIM, p_setdmareg::MODE_IMMEDIATE, HI_16(p_gpr_unpack::TMP0));
++    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1);
++
++    // for unit_dim 2 or 3 unpacker read sizes are multiples of 32 datums (64 or 96) so CH1 Z stride is set to 32 datums
++    // for unit_dim 1 unpacker reads whole tile per iteration so CH1 counter is not used
++    // why are CH1 strides in bytes?
++    // SCALE_DATUM_SIZE wouldn't work here since it doesn't have a case for TF32
++    uint ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32 ? 4 : 2;
++    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(TILE_C_DIM * ch1_x_stride);
++    cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(TILE_C_DIM * ch1_x_stride);
++
++    _llk_unpack_fast_tilize_mop_config_();
++}
++
++template <bool is_fp32_dest_acc_en>
++inline void _llk_unpack_fast_tilize_uninit_()
++{
++    // restore saved state
++    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, p_cfg::WRCFG_32b, UNP0_ADDR_CTRL_ZW_REG_1_Zstride_ADDR32);
++    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
++    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
++    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_3, p_cfg::WRCFG_32b, UNP1_ADDR_CTRL_ZW_REG_1_Zstride_ADDR32);
++    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_TILIZER_STATE_0, p_cfg::WRCFG_32b, THCON_SEC1_REG0_TileDescriptor_ADDR32);
++    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_TILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1);
++
++    // reset all counters
++    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::XY));
++    TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
++}
++
++inline void _llk_unpack_fast_tilize_block_(
++    const std::uint32_t base_address,
++    const std::uint32_t tile_index,
++    const std::uint32_t unpack_src_format,
++    const std::uint32_t unit_dim,
++    const std::uint32_t num_units,
++    const std::uint32_t full_dim)
++{
++    volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++    uint32_t address = base_address + (SCALE_DATUM_SIZE(unpack_src_format, tile_index * TILE_C_DIM) >> 4); // move by tile width in 16B words
++    // for unit_dim 2 UNPA reads top faces and UNPB reads bottom faces
++    // for unit_dim 3 UNPA reads top 8 rows of top then bottom faces, UNPB reads bottom 8 rows of top then bottom faces
++    uint32_t unpB_row_offset = unit_dim == 2 ? FACE_R_DIM : (FACE_R_DIM / 2);
++    uint32_t unpB_address    = address + (SCALE_DATUM_SIZE(unpack_src_format, full_dim * TILE_C_DIM * unpB_row_offset) >> 4);
++
++    // reset all counters since X start and end are set after this
++    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::XY));
++    TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
++
++    // unit_dim 1 reads the whole tile while unit_dim 2 and 3 read one row from 2 or 3 tiles
++    if (unit_dim == 1)
++    {
++        TTI_SETADCXX(p_setadc::UNP_AB, TILE_R_DIM * TILE_C_DIM - 1, 0x0);
++    }
++    else if (unit_dim == 2)
++    {
++        TTI_SETADCXX(p_setadc::UNP_AB, 2 * TILE_C_DIM - 1, 0x0);
++    }
++    else if (unit_dim == 3)
++    {
++        TTI_SETADCXX(p_setadc::UNP_AB, 3 * TILE_C_DIM - 1, 0x0);
++    }
++    else
++    {
++        // replace this with a proper assert once it's available
++        // FWASSERT("Unsupported unit_dim", false);
++    }
++
++    wait_for_next_context(2);
++
++    if (0 == unp_cfg_context)
++    {
++        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
++        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = unpB_address;
++    }
++    else
++    {
++        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
++        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = unpB_address;
++    }
++
++    semaphore_post(semaphore::UNPACK_SYNC);
++
++    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
++
++    // Y moves to the next tile, Z moves to the next row (both ch0 and ch1)
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1 = 0b00'10'00'01;
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_2_CH0Z_0 = 0b00'00'10'00;
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1 = 0b00'11'00'01;
++    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_3_CH0Z_0 = 0b00'00'11'00;
++
++    for (std::uint32_t i = 0; i < num_units; i++)
++    {
++        if (unit_dim == 1)
++        {
++            // read whole tile contiguously then move two face rows down to the next tile
++            TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 1);
++            TTI_INCADCZW(p_setadc::UNP_A, 0, 0, 2, 0);
++        }
++        else if (unit_dim == 2)
++        {
++            // read top(A)/bottom(B) faces of two tiles in a row (4 faces each), switch bank,
++            // then move to the next two tiles (CH0Y += 2) and back to the top of a tile (CH01Z = 0)
++            // inside mop:
++            // for (std::uint32_t j = 0; j < FACE_R_DIM - 1; j++)
++            // {
++            //     TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1, 0);
++            //     TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
++            TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_2_CH0Z_0, 1);
++            TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_2_CH0Z_0, 1);
++            TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
++        }
++        else if (unit_dim == 3)
++        {
++            // read top 8(A)/bottom 8(B) rows of top faces of three tiles in a row (6 halves of a face each), switch bank,
++            // then move to the bottom faces (CH0W = 1) and back to the top of a face (CH01Z = 0)
++            // inside mop:
++            // for (std::uint32_t j = 0; j < (FACE_R_DIM / 2) - 1; j++)
++            // {
++            //     TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0);
++            //     TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, ((FACE_R_DIM / 2) - 1) - 1, 0xFFFF);
++            TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 1);
++            TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 1);
++            TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 1, 0, SETADC_CH01(p_setadc::ZW));
++
++            // read top 8(A)/bottom 8(B) rows of bottom faces of three tiles in a row (6 halves of a face each), switch bank,
++            // then move to the top faces of the next three tiles (CH0Y += 3) and back to top of a tile (CH01Z = 0, CH0W = 0)
++            // inside mop:
++            // for (std::uint32_t j = 0; j < (FACE_R_DIM / 2) - 1; j++)
++            // {
++            //     TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0);
++            //     TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 0);
++            // }
++            TTI_MOP(p_mop::MASK_LOOP, ((FACE_R_DIM / 2) - 1) - 1, 0xFFFF);
++            TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_3_CH0Z_0, 1);
++            TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_3_CH0Z_0, 1);
++            TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
++        }
++    }
++
++    t6_semaphore_get(semaphore::UNPACK_SYNC);
++
++    switch_config_context(unp_cfg_context);
++}
+

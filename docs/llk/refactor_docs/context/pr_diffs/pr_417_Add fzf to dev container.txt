@@ -1,0 +1,15 @@
+PR #417: Add fzf to dev container
+URL: https://github.com/tenstorrent/tt-llk/pull/417
+
+File: .github/Dockerfile.ird
+@@ -17,7 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
+     python3-venv \
+     python3-pip \
+     clangd \
+-    xxd && \
++    xxd \
++    fzf && \
+     apt-get clean && rm -rf /var/lib/apt/lists/*
+ 
+ # Copy scripts into the image
+

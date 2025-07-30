@@ -1,0 +1,233 @@
+PR #504: Fix various minor typos.
+URL: https://github.com/tenstorrent/tt-llk/pull/504
+
+File: CONTRIBUTING.md
+@@ -114,7 +114,7 @@ To set up pre-commit on your local machine, follow these steps:
+    pip install pre-commit
+    ```
+ 
+-   *Note:* pre-commit is already installed if you are using the python virtual environment.
++   *Note:* pre-commit is already installed if you are using the Python virtual environment.
+ 2. **Install the Git Hook Scripts**:
+    In your local repository, run the following command to install the pre-commit hooks:
+ 
+@@ -132,7 +132,7 @@ To set up pre-commit on your local machine, follow these steps:
+ 
+ ### Ignoring formatting commits in git blame
+ 
+-In order to ignore specific commits from git blame, we need to configure git to use ignore file when executing the git blame command.
++In order to ignore specific commits from git blame, we need to configure git to use an ignore file when executing the git blame command.
+ 
+ ```bash
+ # Set the blame.ignoreRevsFile configuration in your local git config
+
+File: infra/check_copyright_config.yaml
+@@ -28,5 +28,5 @@ DEFAULT:
+   ignore:  # You can also select ignoring files here
+     perform_check: no  # Don't check files from that block
+     include:
+-      - tt_llk_blackhole/hw_speific/
++      - tt_llk_blackhole/hw_specific/
+       - tt_llk_wormhole_b0/hw_specific/
+
+File: tests/Makefile
+@@ -100,7 +100,7 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
+ $(PROFILER_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(PROFILER_DIR)
+ 	$(OBJCOPY) -O binary -j .profiler_meta $< $@
+ 
+-# disasseble unpack.elf, math.elf, pack.elf
++# disassemble unpack.elf, math.elf, pack.elf
+ $(DIS_DIR)/%.S: $(ELF_DIR)/%.elf | $(DIS_DIR)
+ 	$(OBJDUMP) -xsD $< > $@
+ 	$(OBJDUMP) -t $< | sort >> $@
+
+File: tests/firmware/riscv/wormhole/l1_address_map.h
+@@ -110,7 +110,7 @@ struct address_map
+     static constexpr std::uint32_t MAX_SIZE            = 1499136;
+     static constexpr std::uint32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
+ 
+-    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
++    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actual local memory address as seen from risc firmware
+                                                                      // As part of the init risc firmware will copy local memory data from
+                                                                      // l1 locations listed above into internal local memory that starts
+                                                                      // at RISC_LOCAL_MEM_BASE address
+@@ -129,7 +129,7 @@ struct address_map
+     static constexpr std::uint32_t PERF_RISC_MAILBOX_SIZE = 8;
+     // Signal to ncrisc that the performance buffer has been drained.
+     static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_SIZE = 4;
+-    // Signal to all cores within a chip that the epoch comamnd for all cores has been sent;
++    // Signal to all cores within a chip that the epoch command for all cores has been sent;
+     static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
+     static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
+     static constexpr std::uint32_t PERF_UNUSED_SIZE                     = 24;
+
+File: tests/python_tests/helpers/utils.py
+@@ -206,10 +206,10 @@ def get_tolerance(output_data_format):
+ 
+     pcc = calculate_pcc(res_tensor, golden_tensor)
+     target_pcc = 0.99
+-    # Once we iterate L1-L1 more than once the loss in percision is accumulated because the result from the first run is transferred as input to the next run
+-    # We don't have a robust accuracy model to determine exact percision loss from each run and accumulate as such per test, so we use a heuristic
++    # Once we iterate L1-L1 more than once the loss in precision is accumulated because the result from the first run is transferred as input to the next run
++    # We don't have a robust accuracy model to determine exact precision loss from each run and accumulate as such per test, so we use a heuristic
+     #   - This reduction in precision occurs primarily when copying results from the first L1-to-L1 stage, and is further compounded when truncating
+-    #     values with less percision (Bfp8_b) and drops below 99% in that case
++    #     values with less precision (Bfp8_b) and drops below 99% in that case
+     if output_data_format == DataFormat.Bfp8_b:
+         target_pcc = pow(0.99, L1_to_L1_iterations)
+     print("PCC:", pcc)
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -152,6 +152,6 @@ def test_matmul_and_unary_sfpu(
+         res_tensor,
+         formats.output_format,
+         test_config.get(
+-            "L1_to_L1_iterations"  # Needed to calculate accumulated percision loss for fused tests that copy result tensor as input for next runs
++            "L1_to_L1_iterations"  # Needed to calculate accumulated precision loss for fused tests that copy result tensor as input for next runs
+         ),
+     )
+
+File: tests/python_tests/test_matmul_unpack_tilize.py
+@@ -109,6 +109,6 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+         res_tensor,
+         formats.output_format,
+         test_config.get(
+-            "L1_to_L1_iterations"  # Needed to calculate accumulated percision loss for fused tests that copy result tensor as input for next runs
++            "L1_to_L1_iterations"  # Needed to calculate accumulated precision loss for fused tests that copy result tensor as input for next runs
+         ),
+     )
+
+File: tt_llk_blackhole/common/inc/ckernel.h
+@@ -832,7 +832,7 @@ union bstatus_u
+ 
+ inline void init_prng_seed(const uint seed)
+ {
+-    // The seed for PRNG should at least be initialzied during chip bootup time.
++    // The seed for PRNG should at least be initialized during chip bootup time.
+     volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
+     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
+ 
+
+File: tt_llk_blackhole/common/inc/ckernel_addrmod.h
+@@ -98,7 +98,7 @@ struct addr_mod_t
+         return pack_ysrc.val() | (pack_ydst.val() << 6);
+     }
+ 
+-    // List of addresses of src/dest reigsters
++    // List of addresses of src/dest registers
+     constexpr static uint32_t addr_mod_src_reg_addr[] = {
+         ADDR_MOD_AB_SEC0_SrcAIncr_ADDR32,
+         ADDR_MOD_AB_SEC1_SrcAIncr_ADDR32,
+@@ -180,7 +180,7 @@ struct addr_mod_pack_t
+         return y_src.val() | (y_dst.val() << 6) | (z_src.val() << 12) | (z_dst.val() << 14);
+     }
+ 
+-    // List of addresses of src/dest reigsters
++    // List of addresses of src/dest registers
+     constexpr static uint32_t addr_mod_pack_reg_addr[] = {
+         ADDR_MOD_PACK_SEC0_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC1_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC2_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC3_YsrcIncr_ADDR32};
+ 
+
+File: tt_llk_blackhole/common/inc/ckernel_debug.h
+@@ -166,7 +166,7 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr,
+     if (array_id == dbg_array_id::SRCA)
+     {
+         // Save dest row
+-        // WWhen SrcA array is selected we need to copy row from src register into dest to be able to dump data
++        // When SrcA array is selected we need to copy row from src register into dest to be able to dump data
+         // Dump from SrcA array is not supported
+         // Save dest row to SFPU register
+         // Move SrcA into dest row
+
+File: tt_llk_blackhole/common/inc/ckernel_structs.h
+@@ -13,9 +13,9 @@ struct semaphore
+     constexpr static uint32_t MATH_PACK           = 1; // math <-> pack sync on dest register
+     constexpr static uint32_t UNPACK_TO_DEST      = 2; // unpack <-> math sync on unpack to dest
+     constexpr static uint32_t UNPACK_OPERAND_SYNC = 3; // unpack <-> pack, math sync on operand get/release
+-    constexpr static uint32_t PACK_DONE           = 4; // Wait for beinning and end of each pack-iteration. For recording perf events and inserting delay.
++    constexpr static uint32_t PACK_DONE           = 4; // Wait for beginning and end of each pack-iteration. For recording perf events and inserting delay.
+     constexpr static uint32_t UNPACK_SYNC         = 5; // trisc <-> unpack sync on hw kernel
+-    // Wait for beinning and end of each unpack or math iteration. For recording perf events and inserting delay.
++    // Wait for beginning and end of each unpack or math iteration. For recording perf events and inserting delay.
+     // This semaphore should only be used for either unpack or math. Not both at the same time.
+     constexpr static uint32_t UNPACK_MATH_DONE = 6;
+     constexpr static uint32_t MATH_DONE        = 7; // wait for math to finish when unpacking to dest
+
+File: tt_llk_blackhole/llk_lib/llk_math_common.h
+@@ -46,7 +46,7 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const
+ template <DstSync Dst>
+ inline void _llk_math_wait_for_dest_available_()
+ {
+-    // These liteweight functions for sync with packer imply
++    // These lightweight functions for sync with packer imply
+     // no mode change - entire epoch is either double buffer or single buffer
+ #ifdef PERF_DUMP
+     if constexpr (MATH_PACK_DECOUPLE == 0)
+
+File: tt_llk_wormhole_b0/common/inc/ckernel.h
+@@ -623,7 +623,7 @@ inline void serialize_input_loop_end()
+ 
+ inline void init_prng_seed(const uint seed)
+ {
+-    // The seed for PRNG should at least be initialzied during chip bootup time.
++    // The seed for PRNG should at least be initialized during chip bootup time.
+     volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
+     cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
+ 
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_addrmod.h
+@@ -98,7 +98,7 @@ struct addr_mod_t
+         return pack_ysrc.val() | (pack_ydst.val() << 6);
+     }
+ 
+-    // List of addresses of src/dest reigsters
++    // List of addresses of src/dest registers
+     constexpr static uint32_t addr_mod_src_reg_addr[] = {
+         ADDR_MOD_AB_SEC0_SrcAIncr_ADDR32,
+         ADDR_MOD_AB_SEC1_SrcAIncr_ADDR32,
+@@ -180,7 +180,7 @@ struct addr_mod_pack_t
+         return y_src.val() | (y_dst.val() << 6) | (z_src.val() << 12) | (z_dst.val() << 14);
+     }
+ 
+-    // List of addresses of src/dest reigsters
++    // List of addresses of src/dest registers
+     constexpr static uint32_t addr_mod_pack_reg_addr[] = {
+         ADDR_MOD_PACK_SEC0_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC1_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC2_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC3_YsrcIncr_ADDR32};
+ 
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_debug.h
+@@ -165,7 +165,7 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr,
+     if (array_id == dbg_array_id::SRCA)
+     {
+         // Save dest row
+-        // WWhen SrcA array is selected we need to copy row from src register into dest to be able to dump data
++        // When SrcA array is selected we need to copy row from src register into dest to be able to dump data
+         // Dump from SrcA array is not supported
+         // Save dest row to SFPU register
+         // Move SrcA into dest row
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_structs.h
+@@ -13,9 +13,9 @@ struct semaphore
+     constexpr static uint32_t MATH_PACK           = 1; // math <-> pack sync on dest register
+     constexpr static uint32_t UNPACK_TO_DEST      = 2; // unpack <-> math sync on unpack to dest
+     constexpr static uint32_t UNPACK_OPERAND_SYNC = 3; // unpack <-> pack, math sync on operand get/release
+-    constexpr static uint32_t PACK_DONE           = 4; // Wait for beinning and end of each pack-iteration. For recording perf events and inserting delay.
++    constexpr static uint32_t PACK_DONE           = 4; // Wait for beginning and end of each pack-iteration. For recording perf events and inserting delay.
+     constexpr static uint32_t UNPACK_SYNC         = 5; // trisc <-> unpack sync on hw kernel
+-    // Wait for beinning and end of each unpack or math iteration. For recording perf events and inserting delay.
++    // Wait for beginning and end of each unpack or math iteration. For recording perf events and inserting delay.
+     // This semaphore should only be used for either unpack or math. Not both at the same time.
+     constexpr static uint32_t UNPACK_MATH_DONE = 6;
+     constexpr static uint32_t MATH_DONE        = 7; // wait for math to finish when unpacking to dest
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_common.h
+@@ -33,7 +33,7 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const
+ template <DstSync Dst>
+ inline void _llk_math_wait_for_dest_available_()
+ {
+-    // These liteweight functions for sync with packer imply
++    // These lightweight functions for sync with packer imply
+     // no mode change - entire epoch is either double buffer or single buffer
+ #ifdef PERF_DUMP
+     if constexpr (MATH_PACK_DECOUPLE == 0)
+

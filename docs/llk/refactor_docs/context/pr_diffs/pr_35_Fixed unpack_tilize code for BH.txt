@@ -1,0 +1,623 @@
+PR #35: Fixed unpack_tilize code for BH
+URL: https://github.com/tenstorrent/tt-llk/pull/35
+
+File: tests/helpers/include/ckernel_helper.h
+@@ -10,7 +10,6 @@ namespace ckernel
+ volatile std::uint32_t tt_reg_ptr *pc_buf_base     = reinterpret_cast<volatile std::uint32_t *>(PC_BUF_BASE);
+ volatile std::uint32_t tt_reg_ptr *instrn_buffer   = reinterpret_cast<volatile std::uint32_t *>(INSTRN_BUF_BASE);
+ volatile std::uint32_t tt_reg_ptr *regfile         = reinterpret_cast<volatile std::uint32_t *>(REGFILE_BASE);
+-volatile std::uint32_t tt_l1_ptr *trisc_l1_mailbox = reinterpret_cast<volatile std::uint32_t tt_l1_ptr *>(0x1d000);
+ volatile std::uint32_t tt_reg_ptr *mailbox_base[4] = {
+     reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX0_BASE),
+     reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX1_BASE),
+
+File: tests/helpers/src/brisc.cpp
+@@ -2,51 +2,37 @@
+ //
+ // SPDX-License-Identifier: Apache-2.0
+ 
++#include <cstdint>
++
+ #include "ckernel_instr_params.h"
+ #include "ckernel_ops.h"
+ #include "ckernel_structs.h"
+ #include "dev_mem_map.h"
+ #include "risc_attribs.h"
+ #include "tensix.h"
+ 
+-using namespace ckernel;
+-
+-constexpr std::uint32_t RISCV_IC_BRISC_MASK     = 0x1;
+-constexpr std::uint32_t RISCV_IC_NCRISC_MASK    = 0x10;
+-constexpr std::uint32_t RISCV_IC_TRISC0_MASK    = 0x2;
+-constexpr std::uint32_t RISCV_IC_TRISC1_MASK    = 0x4;
+-constexpr std::uint32_t RISCV_IC_TRISC2_MASK    = 0x8;
+-constexpr std::uint32_t RISCV_IC_TRISC_ALL_MASK = RISCV_IC_TRISC0_MASK | RISCV_IC_TRISC1_MASK | RISCV_IC_TRISC2_MASK;
+-
+-inline void initialize_tensix_semaphores()
+-{
+-    TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
+-    TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
+-}
+-
+ void device_setup()
+ {
+     volatile tt_reg_ptr std::uint32_t* cfg_regs = reinterpret_cast<std::uint32_t*>(TENSIX_CFG_BASE);
+ 
+ #ifdef ARCH_BLACKHOLE
+-    *((std::uint32_t volatile*)RISCV_DEBUG_REG_DEST_CG_CTRL) = 0;
+-#endif
+-
+-#ifdef ARCH_BLACKHOLE
+-    TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, 1, 0);
++    *reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_DEST_CG_CTRL) = 0;
++    TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0, 1, 0);
+ #else
+-    TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0);
++    TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0);
+ #endif
+ 
+     // Enable CC stack
+     TTI_SFPENCC(3, 0, 0, 10);
+     TTI_NOP;
+ 
+     // Set default sfpu constant register state
+-    TTI_SFPLOADI(p_sfpu::LREG0, 0xA, 0xbf80); // -1.0f -> LREG0
+-    TTI_SFPCONFIG(0, 11, 0);                  // LREG0 -> LREG11
++    TTI_SFPLOADI(ckernel::p_sfpu::LREG0, 0xA, 0xbf80); // -1.0f -> LREG0
++    TTI_SFPCONFIG(0, 11, 0);                           // LREG0 -> LREG11
+ 
+-    initialize_tensix_semaphores();
++    // Initialize tensix semaphores
++    TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
++    TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
+ }
+ 
+ int main()
+
+File: tests/helpers/src/trisc.cpp
+@@ -2,8 +2,7 @@
+ //
+ // SPDX-License-Identifier: Apache-2.0
+ 
+-#include <l1_address_map.h>
+-#include <tensix.h>
++#include <cstdint>
+ 
+ #include "ckernel.h"
+ #include "ckernel_addr_map.h"
+@@ -14,30 +13,30 @@
+ #include "ckernel_helper.h"
+ #include "params.h"
+ 
++int main()
++{
+ #ifdef LLK_TRISC_UNPACK
+-volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FFC);
++    volatile std::uint32_t* mailbox = (volatile std::uint32_t*)(0x19FFC);
+ #elif defined(LLK_TRISC_MATH)
+-volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FF8);
++    volatile std::uint32_t* mailbox = (volatile std::uint32_t*)(0x19FF8);
+ #elif defined(LLK_TRISC_PACK)
+-volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FF4);
++    volatile std::uint32_t* mailbox = (volatile std::uint32_t*)(0x19FF4);
+ #endif
+ 
+-int main()
+-{
+     *mailbox = 0x2; // write value different than 1 to mailbox to indicate kernel is running
+ 
+     for (int i = 0; i < 64; i++)
+     {
+-        regfile[i] = 0;
++        ckernel::regfile[i] = 0;
+     }
+ 
+-    reset_cfg_state_id();
+-    reset_dest_offset_id();
++    ckernel::reset_cfg_state_id();
++    ckernel::reset_dest_offset_id();
++    ckernel::tensix_sync();
+ 
+-    tensix_sync();
+     run_kernel();
+ 
+-    *mailbox = KERNEL_COMPLETE; // 0x1
++    *mailbox = ckernel::KERNEL_COMPLETE; // 0x1
+ 
+     for (;;)
+     {
+
+File: tests/python_tests/helpers/__init__.py
+@@ -20,8 +20,6 @@
+ from .utils import (
+     run_shell_command,
+     calculate_read_words_count,
+-    tilize,
+-    untilize,
+     compare_pcc,
+     format_kernel_list,
+     print_faces,
+@@ -34,6 +32,7 @@
+     assert_tensix_operations_finished,
+ )
+ from .test_config import generate_make_command
++from .tilize_untilize import tilize, untilize
+ from ttexalens import Verbosity
+ 
+ Verbosity.set(Verbosity.ERROR)
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -25,7 +25,9 @@
+     "sqrt": "SFPU_OP_SQRT",
+     "square": "SFPU_OP_SQUARE",
+     "log": "SFPU_OP_LOG",
+-    "reduce": "reduce",
++    "reduce_col": "REDUCE_COL_OPERATION",
++    "reduce_row": "REDUCE_ROW_OPERATION",
++    "reduce_scalar": "REDUCE_SCALAR_OPERATION",
+ }
+ 
+ format_sizes = {
+
+File: tests/python_tests/helpers/stimuli_generator.py
+@@ -13,11 +13,10 @@ def generate_random_face(stimuli_format="Float16_b", const_value=1, const_face=F
+ 
+     if stimuli_format in ["Float16_b", "Float16", "Float32"]:
+ 
+-        # srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 2 # because of log
+         if const_face:
+             srcA_face = torch.ones(256, dtype=format_dict[stimuli_format]) * const_value
+         else:  # random for both faces
+-            srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) * 9.5 + 0.5
++            srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) + 0.1
+ 
+     elif stimuli_format == "Bfp8_b":
+ 
+
+File: tests/python_tests/helpers/test_config.py
+@@ -31,8 +31,8 @@ def generate_make_command(test_config):
+ 
+     if mathop != "no_mathop":
+         if isinstance(mathop, str):  # single tile option
+-            if mathop == "reduce":
+-                make_cmd += f"mathop={  mathop_args_dict[mathop]} "
++            if mathop in ["reduce_col", "reduce_row", "reduce_scalar"]:
++                make_cmd += f"mathop={mathop} "
+                 make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
+                 make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
+             else:
+
+File: tests/python_tests/helpers/tilize_untilize.py
+@@ -0,0 +1,51 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++import torch
++from .format_arg_mapping import format_dict
++
++
++def tilize(original_tensor, stimuli_format="Float16_b"):
++
++    if original_tensor.size(0) != 1024:
++        raise ValueError("Input tensor must have 1024 elements.")
++
++    matrix = original_tensor.view(32, 32)
++
++    f0 = matrix[:16, :16]
++    f1 = matrix[:16, 16:32]
++    f2 = matrix[16:32, :16]
++    f3 = matrix[16:32, 16:32]
++
++    result = torch.cat((f0.reshape(-1), f1.reshape(-1), f2.reshape(-1), f3.reshape(-1)))
++
++    return result.to(
++        dtype=(
++            format_dict[stimuli_format]
++            if stimuli_format in ["Float16_b", "Float16"]
++            else torch.float32
++        )
++    )
++
++
++def untilize(tilized_tensor, stimuli_format="Float16_b"):
++
++    tilized_tensor = tilized_tensor.view(-1)
++
++    f0 = tilized_tensor[:256].view(16, 16)
++    f1 = tilized_tensor[256:512].view(16, 16)
++    f2 = tilized_tensor[512:768].view(16, 16)
++    f3 = tilized_tensor[768:].view(16, 16)
++
++    top = torch.cat((f0, f1), dim=1)
++    bottom = torch.cat((f2, f3), dim=1)
++
++    original_tensor = torch.cat((top, bottom), dim=0).view(1024)
++
++    return original_tensor.to(
++        dtype=(
++            format_dict[stimuli_format]
++            if stimuli_format in ["Float16_b", "Float16"]
++            else torch.float32
++        )
++    )
+
+File: tests/python_tests/helpers/utils.py
+@@ -56,52 +56,6 @@ def calculate_read_words_count(format, sfpu=False):
+     return format_sizes[format]
+ 
+ 
+-def tilize(original_tensor, stimuli_format="Float16_b"):
+-
+-    if original_tensor.size(0) != 1024:
+-        raise ValueError("Input tensor must have 1024 elements.")
+-
+-    matrix = original_tensor.view(32, 32)
+-
+-    f0 = matrix[:16, :16]
+-    f1 = matrix[:16, 16:32]
+-    f2 = matrix[16:32, :16]
+-    f3 = matrix[16:32, 16:32]
+-
+-    result = torch.cat((f0.reshape(-1), f1.reshape(-1), f2.reshape(-1), f3.reshape(-1)))
+-
+-    return result.to(
+-        dtype=(
+-            format_dict[stimuli_format]
+-            if stimuli_format in ["Float16_b", "Float16"]
+-            else torch.float32
+-        )
+-    )
+-
+-
+-def untilize(tilized_tensor, stimuli_format="Float16_b"):
+-
+-    tilized_tensor = tilized_tensor.view(-1)
+-
+-    f0 = tilized_tensor[:256].view(16, 16)
+-    f1 = tilized_tensor[256:512].view(16, 16)
+-    f2 = tilized_tensor[512:768].view(16, 16)
+-    f3 = tilized_tensor[768:].view(16, 16)
+-
+-    top = torch.cat((f0, f1), dim=1)
+-    bottom = torch.cat((f2, f3), dim=1)
+-
+-    original_tensor = torch.cat((top, bottom), dim=0).view(1024)
+-
+-    return original_tensor.to(
+-        dtype=(
+-            format_dict[stimuli_format]
+-            if stimuli_format in ["Float16_b", "Float16"]
+-            else torch.float32
+-        )
+-    )
+-
+-
+ def reverse_endian_chunk(input_list, chunk_size=4):
+     output_list = []
+     for j in range(0, len(input_list), chunk_size):
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -46,7 +46,7 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+     for mathop in range(1, 4)
+     for tile_cnt in range(1, 4)
+-    for format in ["Bfp8_b", "Float16", "Bfp8_b"]
++    for format in ["Float16_b", "Float16", "Bfp8_b"]
+     for dest_acc in ["", "DEST_ACC"]
+     for testname in ["multiple_tiles_eltwise_test"]
+     for math_fidelity in [0, 2, 3, 4]
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -27,6 +27,9 @@ def generate_golden(operand1, data_format):
+ def test_pack_untilize(format, testname):
+ 
+     src_A, src_B = generate_stimuli(format)
++    src_A = torch.cat(
++        [torch.full((256,), i, dtype=format_dict[format]) for i in range(1, 5)]
++    )
+     src_B = torch.full((1024,), 0)
+ 
+     golden_tensor = generate_golden(src_A, format)
+
+File: tests/python_tests/test_reduce.py
+@@ -60,10 +60,10 @@ def apply_pooling(tensor, pool_type, dim):
+ 
+ param_combinations = [
+     (reduce_dim, pool_type, format, dest_acc, testname)
+-    for reduce_dim in ["reduce_col", "reduce_row", "reduce_scalar"]
+-    for pool_type in ["max", "avg", "sum"]
++    for reduce_dim in ["reduce_col"]
++    for pool_type in ["max", "sum", "avg"]
+     for format in ["Float16_b", "Float16"]
+-    for dest_acc in [""]  # , "DEST_ACC"]
++    for dest_acc in [""]
+     for testname in ["reduce_test"]
+ ]
+ 
+@@ -82,12 +82,6 @@ def apply_pooling(tensor, pool_type, dim):
+ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+ 
+     src_A, src_B = generate_stimuli(format)
+-    # src_A = torch.cat([
+-    #     torch.full((256,), 1, dtype=format_dict[format]),
+-    #     torch.full((256,), 2, dtype=format_dict[format]),
+-    #     torch.full((256,), 3, dtype=format_dict[format]),
+-    #     torch.full((256,), 4, dtype=format_dict[format])
+-    # ])
+ 
+     if pool_type in ["max", "sum"]:  # result in srcA should be divided by 1
+         src_B = torch.full((1024,), 1)
+@@ -108,7 +102,7 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+         "dest_acc": dest_acc,
+         "reduce_dim": reduce_dim,
+         "pool_type": pool_type,
+-        "mathop": "reduce",
++        "mathop": reduce_dim,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -49,9 +49,9 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+ 
+ param_combinations = [
+     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+-    for mathop in ["elwadd"]  # , "elwsub", "elwmul"]
++    for mathop in ["elwadd", "elwsub", "elwmul"]
+     for tile_cnt in range(1, 2)
+-    for format in ["Float16_b"]  # , "Float16"]
++    for format in ["Float16_b", "Float16"]
+     for dest_acc in [""]  # , "DEST_ACC"]
+     for testname in ["tilize_calculate_untilize_L1"]
+     for math_fidelity in [4]  # [0,2,3,4]
+@@ -72,25 +72,7 @@ def test_tilize_calculate_untilize_L1(
+     format, testname, tile_cnt, mathop, dest_acc, math_fidelity
+ ):
+ 
+-    # src_A, src_B = generate_stimuli(format,tile_cnt)#,sfpu=False,const_face=True,const_value_A=1,const_value_B=2)
+-    # src_A, src_B = generate_stimuli(format,tile_cnt,sfpu=False,const_face=True,const_value_A=1,const_value_B=2)
+-
+-    src_A = torch.cat(
+-        [
+-            torch.ones(256, dtype=torch.bfloat16),
+-            torch.ones(256, dtype=torch.bfloat16) * 2,
+-            torch.ones(256, dtype=torch.bfloat16) * 3,
+-            torch.ones(256, dtype=torch.bfloat16) * 4,
+-        ]
+-    )
+-    src_B = torch.cat(
+-        [
+-            torch.ones(256, dtype=torch.bfloat16),
+-            torch.ones(256, dtype=torch.bfloat16) * 2,
+-            torch.ones(256, dtype=torch.bfloat16) * 3,
+-            torch.ones(256, dtype=torch.bfloat16) * 4,
+-        ]
+-    )
++    src_A, src_B = generate_stimuli(format, tile_cnt)
+ 
+     golden_tensor = generate_golden(mathop, src_A, src_B, format, math_fidelity)
+     print(golden_tensor.view(32, 32))
+
+File: tests/setup_env.sh
+@@ -85,7 +85,7 @@ if [[ "$REUSE" == false ]]; then
+ 
+     # **************** DOWNLOAD & INSTALL SFPI ****************************
+     echo "Downloading SFPI release..."
+-    wget https://github.com/tenstorrent/sfpi/releases/download/v6.0.0/sfpi-release.tgz -O sfpi-release.tgz
++    wget https://github.com/tenstorrent/sfpi/releases/download/v6.4.0-sfpi/sfpi-release.tgz -O sfpi-release.tgz
+     if [ ! -f "sfpi-release.tgz" ]; then
+         echo "SFPI release not found!"
+         exit 1
+
+File: tests/sources/pack_untilize_test.cpp
+@@ -57,7 +57,7 @@ void run_kernel()
+     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(DATA_FORMAT, DATA_FORMAT);
++    _llk_math_hw_configure_<true, false>(DATA_FORMAT, DATA_FORMAT);
+     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(0, DATA_FORMAT, DATA_FORMAT);
+     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+@@ -82,13 +82,9 @@ void run_kernel()
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
+-#else
+-    _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
+-#endif
+-
+-#ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+ #else
++    _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
+     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, UNTILIZE, is_fp32_dest_acc_en>();
+ #endif
+ 
+
+File: tests/sources/reduce_test.cpp
+@@ -22,7 +22,11 @@ const bool is_fp32_dest_acc_en = true;
+ const bool is_fp32_dest_acc_en = false;
+ #endif
+ 
++#ifdef REDUCE_ROW_OPERATION
+ const std::uint32_t within_face_16x16_transpose = 1;
++#else
++const std::uint32_t within_face_16x16_transpose = 0;
++#endif
+ 
+ #ifdef LLK_TRISC_UNPACK
+ 
+@@ -49,7 +53,7 @@ void run_kernel()
+ #include "llk_math_reduce.h"
+ #include "params.h"
+ 
+-const bool row_pool = true;
++const bool row_pool = false;
+ 
+ void run_kernel()
+ {
+
+File: tests/sources/tilize_calculate_untilize_L1.cpp
+@@ -37,13 +37,15 @@ volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_tilize_hw_configure_<false, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
+-    _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, 1, FACE_R_DIM, false);
++    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
+ 
++    _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, 1, FACE_R_DIM, false);
+     _llk_unpack_tilize_(L1_ADDRESS(buffer_A), 0, DATA_FORMAT, 1, FACE_R_DIM, 4, false);
++
++    _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, 1, FACE_R_DIM, false);
+     _llk_unpack_tilize_(L1_ADDRESS(buffer_B), 0, DATA_FORMAT, 1, FACE_R_DIM, 4, false);
+ 
+-    _llk_unpack_AB_hw_configure_<false, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
++    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
+     _llk_unpack_AB_init_<>();
+     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
+ }
+@@ -65,17 +67,18 @@ void run_kernel()
+     const std::uint32_t operand_A_dst_index = 1;
+     const std::uint32_t operand_B_dst_index = 2;
+     const std::uint32_t res_dst_index       = 0;
+-
+-    _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(DATA_FORMAT, DATA_FORMAT);
++    const bool TILIZE                       = true;
+ 
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, TILIZE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
+ #else
+     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
+ #endif
+ 
++    _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
++    _llk_math_hw_configure_<false, false>(DATA_FORMAT, DATA_FORMAT);
++
+     // copy tilized inputs to dest indexes 0 and 1
+     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, false>(
+@@ -105,25 +108,22 @@ void run_kernel()
+ void run_kernel()
+ {
+     volatile uint32_t* const buffer_Dest    = reinterpret_cast<volatile uint32_t*>(0x1e000);
+-    const bool UNTILIZE                     = false;
+     const std::uint32_t ct_dim              = 1;
+     const std::uint32_t operand_A_dst_index = 1;
+     const std::uint32_t operand_B_dst_index = 2;
+     const std::uint32_t res_dst_index       = 0;
++    const bool UNTILIZE                     = false;
++    const bool TILIZE                       = true;
+ 
+     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en, TILIZE>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(DATA_FORMAT);
++    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+ #else
+     _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
+-#endif
+-
+     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
+-
+-#ifdef ARCH_BLACKHOLE
+-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+-#else
+     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, UNTILIZE, is_fp32_dest_acc_en>();
+ #endif
+ 
+@@ -135,14 +135,16 @@ void run_kernel()
+     _llk_pack_<DstSync::SyncFull, UNTILIZE, is_fp32_dest_acc_en>(operand_B_dst_index, L1_ADDRESS(buffer_B_tilized));
+     _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+ 
++    // Needed to reconfigure pack for regular not tilized pack for BH
++
++#ifdef ARCH_BLACKHOLE
++    _llk_pack_hw_configure_<UNTILIZE, is_fp32_dest_acc_en, !TILIZE>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, !TILIZE>(DATA_FORMAT);
++#endif
++
+     _llk_packer_wait_for_math_done_();
+     _llk_pack_<DstSync::SyncFull, UNTILIZE, is_fp32_dest_acc_en>(res_dst_index, L1_ADDRESS(buffer_Dest));
+     _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+-
+-    // _llk_pack_untilize_init_<ct_dim>(DATA_FORMAT);
+-    // _llk_packer_wait_for_math_done_();
+-    // _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Dest), DATA_FORMAT, FACE_R_DIM, 4, res_dst_index);
+-    // _llk_pack_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
+ }
+ 
+ #endif
+
+File: tests/sources/unpack_tilize_test.cpp
+@@ -13,7 +13,6 @@
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+ volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+-
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+ #else
+@@ -22,7 +21,6 @@ const bool is_fp32_dest_acc_en = false;
+ 
+ #ifdef LLK_TRISC_UNPACK
+ 
+-#include "llk_unpack_A.h"
+ #include "llk_unpack_common.h"
+ #include "llk_unpack_tilize.h"
+ #include "params.h"
+@@ -31,13 +29,15 @@ void run_kernel()
+ {
+     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+ 
+-    _llk_unpack_tilize_hw_configure_<false, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
++    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
+     _llk_unpack_tilize_init_(DATA_FORMAT, DATA_FORMAT, 1, FACE_R_DIM, false);
+     _llk_unpack_tilize_(L1_ADDRESS(buffer_A), 0, DATA_FORMAT, 1, FACE_R_DIM, 4, false);
+ }
+ 
+ #endif
+ 
++const bool TILIZE = true;
++
+ #ifdef LLK_TRISC_MATH
+ 
+ #include "llk_math_common.h"
+@@ -52,7 +52,8 @@ void run_kernel()
+ 
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
++    // set tilize flag to true
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, TILIZE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
+ #else
+     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
+ #endif
+@@ -79,16 +80,12 @@ void run_kernel()
+     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<UNTILIIZE, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<UNTILIIZE, is_fp32_dest_acc_en, TILIZE>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(DATA_FORMAT);
++    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+ #else
+     _llk_pack_hw_configure_<UNTILIIZE, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
+-#endif
+-
+     _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
+-
+-#ifdef ARCH_BLACKHOLE
+-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+-#else
+     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, UNTILIIZE, is_fp32_dest_acc_en>();
+ #endif
+ 
+

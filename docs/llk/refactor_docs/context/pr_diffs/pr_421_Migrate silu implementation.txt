@@ -1,0 +1,213 @@
+PR #421: Migrate silu implementation
+URL: https://github.com/tenstorrent/tt-llk/pull/421
+
+File: tests/helpers/include/params.h
+@@ -118,3 +118,6 @@ constexpr auto SFPU_OPERATION = SfpuType::reciprocal;
+ #ifdef SFPU_OP_CELU
+ constexpr auto SFPU_OPERATION = SfpuType::celu;
+ #endif
++#ifdef SFPU_OP_SILU
++constexpr auto SFPU_OPERATION = SfpuType::silu;
++#endif
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -50,6 +50,7 @@ class MathOperation(Enum):
+     SfpuElwRightShift = "SFPU_OP_RSHFT"
+     SfpuElwLeftShift = "SFPU_OP_LSHFT"
+     SfpuElwLogicalRightShift = "SFPU_OP_LOGICAL_RSHFT"
++    Silu = "SFPU_OP_SILU"
+ 
+ 
+ class ReduceDimension(Enum):
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -93,6 +93,7 @@ def __init__(self):
+             MathOperation.Sqrt: self._sqrt,
+             MathOperation.Square: self._square,
+             MathOperation.Celu: self._celu,
++            MathOperation.Silu: self._silu,
+         }
+         self.data_format = None
+ 
+@@ -134,6 +135,14 @@ def _celu(self, x):
+         )
+         return torch.nn.functional.celu(input_tensor, alpha=1.0).item()
+ 
++    def _silu(self, x):
++        input_tensor = (
++            x
++            if isinstance(x, torch.Tensor)
++            else torch.tensor(x, dtype=format_dict[self.data_format])
++        )
++        return torch.nn.functional.silu(input_tensor).item()
++
+ 
+ @register_golden
+ class EltwiseBinaryGolden(FidelityMasking):
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -63,6 +63,7 @@
+         MathOperation.Sqrt,
+         MathOperation.Square,
+         MathOperation.Celu,
++        MathOperation.Silu,
+     ],
+ )
+ param_ids = generate_param_ids(all_params)
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -80,6 +80,9 @@ void call_sfpu_operation(SfpuType operation)
+         case SfpuType::celu:
+             ckernel::sfpu::_calculate_activation_<APPROX_MODE, ActivationType::Celu, iterations>(10, 1 / 10);
+             break;
++        case SfpuType::silu:
++            ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
++            break;
+         default:
+             return;
+     }
+
+File: tt_llk_blackhole/common/inc/ckernel_sfpu.h
+@@ -38,6 +38,7 @@
+ #include "sfpu/ckernel_sfpu_shift.h"
+ #include "sfpu/ckernel_sfpu_sigmoid.h"
+ #include "sfpu/ckernel_sfpu_sign.h"
++#include "sfpu/ckernel_sfpu_silu.h"
+ #include "sfpu/ckernel_sfpu_sqrt.h"
+ #include "sfpu/ckernel_sfpu_square.h"
+ #include "sfpu/ckernel_sfpu_sub_int.h"
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_silu.h
+@@ -0,0 +1,59 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "sfpi.h"
++
++namespace ckernel::sfpu
++{
++
++template <typename T>
++constexpr T POLYVAL5(T coef4, T coef3, T coef2, T coef1, T coef0, T val)
++{
++    return (((((coef4 * val) + coef3) * val + coef2) * val + coef1) * val + coef0);
++}
++
++inline sfpi::vFloat _sigmoid_piecewise_linear_positive_(sfpi::vFloat val)
++{
++    sfpi::vFloat result = 0.0f;
++    v_if (val >= 5.0f)
++    {
++        result = 1.0f;
++    }
++    v_elseif (val > 1.0f && val < 5.0f)
++    {
++        result = POLYVAL5<sfpi::vFloat>(0.00144462f, -0.01055479f, -0.01203685f, 0.24300185f, 0.50437757f, val);
++    }
++    v_else
++    {
++        result = 0.229f * val + 0.5f; // linear appx as y = 0.229x + 0.5
++    }
++    v_endif;
++    return result;
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_silu_()
++{
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat val = sfpi::dst_reg[0];
++        sfpi::vFloat result;
++        v_if (val < 0.0f)
++        {
++            result = 1.0f - _sigmoid_piecewise_linear_positive_(-val);
++        }
++        v_else
++        {
++            result = _sigmoid_piecewise_linear_positive_(val);
++        }
++        v_endif;
++        sfpi::dst_reg[0] = val * result;
++        sfpi::dst_reg++;
++    }
++}
++
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h
+@@ -39,6 +39,7 @@
+ #include "sfpu/ckernel_sfpu_shift.h"
+ #include "sfpu/ckernel_sfpu_sigmoid.h"
+ #include "sfpu/ckernel_sfpu_sign.h"
++#include "sfpu/ckernel_sfpu_silu.h"
+ #include "sfpu/ckernel_sfpu_sqrt.h"
+ #include "sfpu/ckernel_sfpu_square.h"
+ #include "sfpu/ckernel_sfpu_sub_int.h"
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_silu.h
+@@ -0,0 +1,59 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "sfpi.h"
++
++namespace ckernel::sfpu
++{
++
++template <typename T>
++constexpr T POLYVAL5(T coef4, T coef3, T coef2, T coef1, T coef0, T val)
++{
++    return (((((coef4 * val) + coef3) * val + coef2) * val + coef1) * val + coef0);
++}
++
++inline sfpi::vFloat _sigmoid_piecewise_linear_positive_(sfpi::vFloat val)
++{
++    sfpi::vFloat result = 0.0f;
++    v_if (val >= 5.0f)
++    {
++        result = 1.0f;
++    }
++    v_elseif (val > 1.0f && val < 5.0f)
++    {
++        result = POLYVAL5<sfpi::vFloat>(0.00144462f, -0.01055479f, -0.01203685f, 0.24300185f, 0.50437757f, val);
++    }
++    v_else
++    {
++        result = 0.229f * val + 0.5f; // linear appx as y = 0.229x + 0.5
++    }
++    v_endif;
++    return result;
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_silu_()
++{
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat val = sfpi::dst_reg[0];
++        sfpi::vFloat result;
++        v_if (val < 0.0f)
++        {
++            result = 1.0f - _sigmoid_piecewise_linear_positive_(-val);
++        }
++        v_else
++        {
++            result = _sigmoid_piecewise_linear_positive_(val);
++        }
++        v_endif;
++        sfpi::dst_reg[0] = val * result;
++        sfpi::dst_reg++;
++    }
++}
++
++} // namespace ckernel::sfpu
+

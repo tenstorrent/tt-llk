@@ -1,0 +1,49 @@
+PR #222: Activating Data Format Inference model with Input Output format parametrization Flexibility for same formats 
+URL: https://github.com/tenstorrent/tt-llk/pull/222
+
+File: tests/python_tests/helpers/param_config.py
+@@ -288,7 +288,9 @@ def format_combination(comb: tuple) -> str:
+     return [format_combination(comb) for comb in all_params if comb[0] is not None]
+ 
+ 
+-def input_output_formats(formats: List[DataFormat]) -> List[InputOutputFormat]:
++def input_output_formats(
++    formats: List[DataFormat], same: bool = False
++) -> List[InputOutputFormat]:
+     """
+     Generates a list of InputOutputFormat instances based on the given formats.
+     This function is used to create input-output format combinations for testing.
+@@ -297,6 +299,8 @@ def input_output_formats(formats: List[DataFormat]) -> List[InputOutputFormat]:
+     Returns:
+     List[InputOutputFormat]: A list of InputOutputFormat instances representing the generated format combinations.
+     """
++    if same:
++        return [InputOutputFormat(input, input) for input in formats]
+     return [InputOutputFormat(input, output) for input in formats for output in formats]
+ 
+ 
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -19,9 +19,9 @@
+ from helpers.format_config import DataFormat
+ from helpers.param_config import (
+     clean_params,
+-    format_combination_sweep,
+     generate_param_ids,
+     generate_params,
++    input_output_formats,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import generate_make_command
+@@ -90,9 +90,7 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+ #   SPECIFIC INPUT-OUTPUT COMBINATION
+ #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+ 
+-test_formats = format_combination_sweep(
+-    formats=supported_formats, all_same=True, same_src_reg_format=True
+-)
++test_formats = input_output_formats(supported_formats, same=True)
+ all_params = generate_params(
+     ["tilize_calculate_untilize_L1"],
+     test_formats,
+

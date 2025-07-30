@@ -1,0 +1,747 @@
+PR #469: 24276: Migrate exp related op implementation and tests to llk repo
+URL: https://github.com/tenstorrent/tt-llk/pull/469
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -59,6 +59,9 @@ class MathOperation(Enum):
+     Abs = OpSpec("abs", MathOpType.SFPU_UNARY)
+     Celu = OpSpec("celu", MathOpType.SFPU_UNARY)
+     Cos = OpSpec("cosine", MathOpType.SFPU_UNARY)
++    Elu = OpSpec("elu", MathOpType.SFPU_UNARY)
++    Exp = OpSpec("exponential", MathOpType.SFPU_UNARY)
++    Exp2 = OpSpec("exp2", MathOpType.SFPU_UNARY)
+     Fill = OpSpec("fill", MathOpType.SFPU_UNARY)
+     Gelu = OpSpec("gelu", MathOpType.SFPU_UNARY)
+     Log = OpSpec("log", MathOpType.SFPU_UNARY)
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -357,6 +357,9 @@ def __init__(self):
+             MathOperation.Gelu: self._gelu,
+             MathOperation.Neg: self._neg,
+             MathOperation.Fill: self._fill,
++            MathOperation.Elu: self._elu,
++            MathOperation.Exp: self._exp,
++            MathOperation.Exp2: self._exp2,
+         }
+         self.data_format = None
+ 
+@@ -430,6 +433,30 @@ def _silu(self, x):
+         )
+         return torch.nn.functional.silu(input_tensor).item()
+ 
++    def _elu(self, x):
++        input_tensor = (
++            x
++            if isinstance(x, torch.Tensor)
++            else torch.tensor(x, dtype=format_dict[self.data_format])
++        )
++        return torch.nn.functional.elu(input_tensor, alpha=1.0).item()
++
++    def _exp(self, x):
++        input_tensor = (
++            x
++            if isinstance(x, torch.Tensor)
++            else torch.tensor(x, dtype=format_dict[self.data_format])
++        )
++        return torch.exp(input_tensor).item()
++
++    def _exp2(self, x):
++        input_tensor = (
++            x
++            if isinstance(x, torch.Tensor)
++            else torch.tensor(x, dtype=format_dict[self.data_format])
++        )
++        return torch.exp2(input_tensor).item()
++
+     def _neg(self, x):
+         return -x
+ 
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -67,6 +67,9 @@
+     MathOperation.Gelu,
+     MathOperation.Neg,
+     MathOperation.Fill,
++    MathOperation.Elu,
++    MathOperation.Exp,
++    MathOperation.Exp2,
+ ]
+ 
+ int_ops = [
+@@ -109,6 +112,18 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         ):
+             pytest.skip(reason="This combination is not supported on BH architecture")
+ 
++    if (
++        approx_mode == ApproximationMode.Yes
++        and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
++        and (
++            formats.input_format == DataFormat.Bfp8_b
++            or formats.output_format == DataFormat.Bfp8_b
++        )
++    ):
++        pytest.skip(
++            reason="Exp-related operations are not supported for bf8_b format in approximation mode."
++        )
++
+     input_dimensions = [64, 64]
+ 
+     src_A, src_B, tile_cnt = generate_stimuli(
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -109,6 +109,19 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
+                 ckernel::sfpu::_calculate_fill_<APPROX_MODE, iterations>(5.0f);
+             }
+             break;
++        case SfpuType::elu:
++            ckernel::sfpu::_init_elu_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_elu_<APPROX_MODE, iterations>(1);
++            break;
++        case SfpuType::exponential:
++            ckernel::sfpu::_init_exponential_<APPROX_MODE, false /*fast_mode*/, 0x3F800000 /* exp_base_scale_factor */>();
++            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false /* scale_en */, iterations, false /* fast_approx */, false /* skip_positive_check */>(
++                p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
++            break;
++        case SfpuType::exp2:
++            ckernel::sfpu::_init_exp2_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_exp2_<APPROX_MODE, iterations>();
++            break;
+         default:
+             return;
+     }
+
+File: tt_llk_blackhole/common/inc/ckernel_sfpu.h
+@@ -21,7 +21,9 @@
+ #include "sfpu/ckernel_sfpu_converter.h"
+ #include "sfpu/ckernel_sfpu_cumsum.h"
+ #include "sfpu/ckernel_sfpu_dropout.h"
++#include "sfpu/ckernel_sfpu_elu.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
++#include "sfpu/ckernel_sfpu_exp2.h"
+ #include "sfpu/ckernel_sfpu_fill.h"
+ #include "sfpu/ckernel_sfpu_gelu.h"
+ #include "sfpu/ckernel_sfpu_hardtanh.h"
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_elu.h
+@@ -0,0 +1,49 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel_sfpu_converter.h"
++#include "ckernel_sfpu_exp.h"
++#include "sfpi.h"
++#include "sfpi_fp16.h"
++
++namespace ckernel::sfpu
++{
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_elu_(uint slope)
++{
++    const bool SCALE_EN                  = false; // Elu does not use scale.
++    const bool SKIP_POSITIVE_CHECK       = false; // Elu does not skip positive check.
++    const uint16_t exp_base_scale_factor = p_sfpu::kCONST_1_FP16B;
++
++    sfpi::vFloat s = Converter::as_float(slope);
++#pragma GCC unroll 0
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v = sfpi::dst_reg[0];
++
++        v_if (v < 0.0f)
++        {
++            sfpi::vFloat v_exp = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
++            v                  = s * (v_exp - 1.0f);
++        }
++        v_endif;
++
++        sfpi::dst_reg[0] = v;
++
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE>
++inline void _init_elu_()
++{
++    const uint32_t EXP_BASE_SCALE_FACTOR = 0x3F800000;
++    const bool FAST_APPROX               = false; // Elu does not use fast approximation.
++    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
++}
++
++} // namespace ckernel::sfpu
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h
+@@ -3,16 +3,15 @@
+ // SPDX-License-Identifier: Apache-2.0
+ 
+ #pragma once
++#include <limits>
+ 
+ #include "ckernel_addrmod.h"
+ #include "ckernel_ops.h"
+ #include "ckernel_sfpu_recip.h"
+ #include "sfpi.h"
+ #include "sfpi_fp16.h"
+ 
+-namespace ckernel
+-{
+-namespace sfpu
++namespace ckernel::sfpu
+ {
+ 
+ sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
+@@ -84,8 +83,82 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
+     return out;
+ }
+ 
+-template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK = false>
+-void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0x3F80 /* 1.0f in BF16 */)
++inline sfpi::vFloat _calculate_exponential_approx_(sfpi::vFloat in)
++{
++    // * by 1/ln2 and add convert to 7.3 FxP format
++    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
++    sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
++    sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
++    in                          = in * vConstLn2Recip + c23_73;
++
++    // Remove Exponent of 7 and bias the Mantissa to 127.
++    sfpi::vInt in_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(in);
++
++    // SHL to move integer bits to exponent
++    in_short <<= 10 - p_exp::FRAC_BITS;
++    return sfpi::reinterpret<sfpi::vFloat>(in_short);
++}
++
++template <bool APPROXIMATION_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK>
++inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
++{
++    // This function is used to calculate the exponential of a value in a more accurate manner.
++    sfpi::vFloat result = 0.0f;
++    if constexpr (SCALE_EN)
++    {
++        in = in * sfpi::s2vFloat16b(exp_base_scale_factor);
++    }
++    if constexpr (APPROXIMATION_MODE)
++    {
++        if constexpr (!SKIP_POSITIVE_CHECK)
++        {
++            v_if (in >= 89)
++            {
++                // Algorithm is incorrect for inputs >= 89, so saturate output to infinity.
++                sfpi::vFloat in_inf = std::numeric_limits<float>::infinity();
++                result              = in_inf;
++            }
++            v_elseif (in < -42)
++            {
++                // Algorithm is incorrect for inputs < -42, so saturate output to 0.
++                result = 0.0f;
++            }
++            v_else
++            {
++                result = _calculate_exponential_approx_(in);
++            }
++            v_endif;
++        }
++        else
++        {
++            // SKIP_POSITIVE_CHECK is true, so user is responsible for ensuring inputs are <= 89.
++            v_if (in < -42)
++            {
++                result = 0.0f;
++            }
++            v_else
++            {
++                result = _calculate_exponential_approx_(in);
++            }
++            v_endif;
++        }
++    }
++    else
++    {
++        result = _sfpu_exp_(sfpi::setsgn(in, 0));
++
++        v_if (in < 0)
++        {
++            result = _sfpu_reciprocal_(result);
++        }
++        v_endif;
++    }
++
++    return result;
++}
++
++template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
++void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
+ {
+     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+     {
+@@ -182,84 +255,11 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
+     else
+     {
+         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
+-        for (int d = 0; d < iterations; d++)
++        for (int d = 0; d < ITERATIONS; d++)
+         {
+-            sfpi::vFloat val = sfpi::dst_reg[0];
+-            if constexpr (SCALE_EN)
+-            {
+-                val = val * sfpi::s2vFloat16b(exp_base_scale_factor);
+-            }
+-            if constexpr (APPROXIMATION_MODE)
+-            {
+-                if constexpr (!SKIP_POSITIVE_CHECK)
+-                {
+-                    v_if (val >= 89)
+-                    {
+-                        // Algorithm is incorrect for inputs >= 89, so saturate output to infinity.
+-                        sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
+-                        sfpi::dst_reg[0]     = val_inf;
+-                    }
+-                    v_elseif (val < -42)
+-                    {
+-                        // Algorithm is incorrect for inputs < -42, so saturate output to 0.
+-                        sfpi::dst_reg[0] = 0.0f;
+-                    }
+-                    v_else
+-                    {
+-                        // * by 1/ln2 and add convert to 7.3 FxP format
+-                        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-                        sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+-                        sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+-                        val                         = val * vConstLn2Recip + c23_73;
+-
+-                        // Remove Exponent of 7 and bias the Mantissa to 127.
+-                        sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
+-
+-                        // SHL to move integer bits to exponent
+-                        val_short <<= 10 - p_exp::FRAC_BITS;
+-                        sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
+-                    }
+-                    v_endif;
+-                }
+-                else
+-                {
+-                    // SKIP_POSITIVE_CHECK is true, so user is responsible for ensuring inputs are <= 89.
+-                    v_if (val < -42)
+-                    {
+-                        sfpi::dst_reg[0] = 0.0f;
+-                    }
+-                    v_else
+-                    {
+-                        // * by 1/ln2 and add convert to 7.3 FxP format
+-                        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-                        sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+-                        sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+-                        val                         = val * vConstLn2Recip + c23_73;
+-
+-                        // Remove Exponent of 7 and bias the Mantissa to 127.
+-                        sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
+-
+-                        // SHL to move integer bits to exponent
+-                        val_short <<= 10 - p_exp::FRAC_BITS;
+-                        sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
+-                    }
+-                    v_endif;
+-                }
+-            }
+-            else
+-            {
+-                // Force sign to 0 (make number positive)
+-                sfpi::vFloat result = _sfpu_exp_(sfpi::setsgn(val, 0));
+-
+-                v_if (val < 0)
+-                {
+-                    result = _sfpu_reciprocal_(result);
+-                }
+-                v_endif;
+-
+-                sfpi::dst_reg[0] = result;
+-            }
+-
++            sfpi::vFloat in     = sfpi::dst_reg[0];
++            sfpi::vFloat result = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(in, exp_base_scale_factor);
++            sfpi::dst_reg[0]    = result;
+             sfpi::dst_reg++;
+         }
+     }
+@@ -269,7 +269,7 @@ constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uin
+ constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
+ constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
+ 
+-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000 /* 1.0f in FP32 */>
++template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
+ inline void _init_exponential_()
+ {
+     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+@@ -413,5 +413,4 @@ inline void _init_exponential_()
+     }
+ }
+ 
+-} // namespace sfpu
+-} // namespace ckernel
++} // namespace ckernel::sfpu
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp2.h
+@@ -0,0 +1,41 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel_sfpu_exp.h"
++#include "sfpi.h"
++#include "sfpi_fp16.h"
++
++namespace ckernel::sfpu
++{
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_exp2_()
++{
++    const bool SCALE_EN                  = false; // Exp2 does not use scale.
++    const bool SKIP_POSITIVE_CHECK       = false; // Exp2 does not skip positive check.
++    const uint16_t exp_base_scale_factor = p_sfpu::kCONST_1_FP16B;
++
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v = sfpi::dst_reg[0];
++        // log(2) = 0.6931471805;
++        v = v * 0.6931471805f;
++        // exp = e^(v)
++        sfpi::vFloat exp = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
++        sfpi::dst_reg[0] = exp;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE>
++inline void _init_exp2_()
++{
++    const uint32_t EXP_BASE_SCALE_FACTOR = 0x3F800000;
++    const bool FAST_APPROX               = false; // Exp2 does not use fast approximation.
++    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
++}
++
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h
+@@ -21,7 +21,9 @@
+ #include "sfpu/ckernel_sfpu_converter.h"
+ #include "sfpu/ckernel_sfpu_cumsum.h"
+ #include "sfpu/ckernel_sfpu_dropout.h"
++#include "sfpu/ckernel_sfpu_elu.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
++#include "sfpu/ckernel_sfpu_exp2.h"
+ #include "sfpu/ckernel_sfpu_fill.h"
+ #include "sfpu/ckernel_sfpu_gelu.h"
+ #include "sfpu/ckernel_sfpu_hardtanh.h"
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_elu.h
+@@ -0,0 +1,49 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel_sfpu_converter.h"
++#include "ckernel_sfpu_exp.h"
++#include "sfpi.h"
++#include "sfpi_fp16.h"
++
++namespace ckernel::sfpu
++{
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_elu_(uint slope)
++{
++    const bool SCALE_EN                  = false; // Elu does not use scale.
++    const bool SKIP_POSITIVE_CHECK       = false; // Elu does not skip positive check.
++    const uint16_t exp_base_scale_factor = p_sfpu::kCONST_1_FP16B;
++
++    sfpi::vFloat s = Converter::as_float(slope);
++#pragma GCC unroll 0
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v = sfpi::dst_reg[0];
++
++        v_if (v < 0.0f)
++        {
++            sfpi::vFloat v_exp = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
++            v                  = s * (v_exp - 1.0f);
++        }
++        v_endif;
++
++        sfpi::dst_reg[0] = v;
++
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE>
++inline void _init_elu_()
++{
++    const uint32_t EXP_BASE_SCALE_FACTOR = 0x3F800000;
++    const bool FAST_APPROX               = false; // Elu does not use fast approximation.
++    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
++}
++
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_exp.h
+@@ -4,14 +4,14 @@
+ 
+ #pragma once
+ 
++#include <limits>
++
+ #include "ckernel_sfpu_exp.h"
+ #include "ckernel_sfpu_recip.h"
+ #include "sfpi.h"
+ #include "sfpi_fp16.h"
+ 
+-namespace ckernel
+-{
+-namespace sfpu
++namespace ckernel::sfpu
+ {
+ 
+ sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
+@@ -83,8 +83,82 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
+     return out;
+ }
+ 
+-template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK = false>
+-void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0x3F80 /* 1.0f in BF16 */)
++inline sfpi::vFloat _calculate_exponential_approx_(sfpi::vFloat in)
++{
++    // * by 1/ln2 and add convert to 7.3 FxP format
++    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
++    sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
++    sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
++    in                          = in * vConstLn2Recip + c23_73;
++
++    // Remove Exponent of 7 and bias the Mantissa to 127.
++    sfpi::vInt in_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(in);
++
++    // SHL to move integer bits to exponent
++    in_short <<= 10 - p_exp::FRAC_BITS;
++    return sfpi::reinterpret<sfpi::vFloat>(in_short);
++}
++
++template <bool APPROXIMATION_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK>
++inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
++{
++    // This function is used to calculate the exponential of a value in a more accurate manner.
++    sfpi::vFloat result = 0.0f;
++    if constexpr (SCALE_EN)
++    {
++        in = in * sfpi::s2vFloat16b(exp_base_scale_factor);
++    }
++    if constexpr (APPROXIMATION_MODE)
++    {
++        if constexpr (!SKIP_POSITIVE_CHECK)
++        {
++            v_if (in >= 89)
++            {
++                // Algorithm is incorrect for inputs >= 89, so saturate output to infinity.
++                sfpi::vFloat in_inf = std::numeric_limits<float>::infinity();
++                result              = in_inf;
++            }
++            v_elseif (in < -42)
++            {
++                // Algorithm is incorrect for inputs < -42, so saturate output to 0.
++                result = 0.0f;
++            }
++            v_else
++            {
++                result = _calculate_exponential_approx_(in);
++            }
++            v_endif;
++        }
++        else
++        {
++            // SKIP_POSITIVE_CHECK is true, so user is responsible for ensuring inputs are <= 89.
++            v_if (in < -42)
++            {
++                result = 0.0f;
++            }
++            v_else
++            {
++                result = _calculate_exponential_approx_(in);
++            }
++            v_endif;
++        }
++    }
++    else
++    {
++        result = _sfpu_exp_(sfpi::setsgn(in, 0));
++
++        v_if (in < 0)
++        {
++            result = _sfpu_reciprocal_(result);
++        }
++        v_endif;
++    }
++
++    return result;
++}
++
++template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
++void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
+ {
+     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+     {
+@@ -181,83 +255,11 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
+     else
+     {
+         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
+-        for (int d = 0; d < iterations; d++)
++        for (int d = 0; d < ITERATIONS; d++)
+         {
+-            sfpi::vFloat val = sfpi::dst_reg[0];
+-            if constexpr (SCALE_EN)
+-            {
+-                val = val * sfpi::s2vFloat16b(exp_base_scale_factor);
+-            }
+-            if constexpr (APPROXIMATION_MODE)
+-            {
+-                if constexpr (!SKIP_POSITIVE_CHECK)
+-                {
+-                    v_if (val >= 89)
+-                    {
+-                        // Algorithm is incorrect for inputs >= 89, so saturate output to infinity.
+-                        sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
+-                        sfpi::dst_reg[0]     = val_inf;
+-                    }
+-                    v_elseif (val < -42)
+-                    {
+-                        // Algorithm is incorrect for inputs < -42, so saturate output to 0.
+-                        sfpi::dst_reg[0] = 0.0f;
+-                    }
+-                    v_else
+-                    {
+-                        // * by 1/ln2 and add convert to 7.3 FxP format
+-                        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-                        sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+-                        sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+-                        val                         = val * vConstLn2Recip + c23_73;
+-
+-                        // Remove Exponent of 7 and bias the Mantissa to 127.
+-                        sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
+-
+-                        // SHL to move integer bits to exponent
+-                        val_short <<= 10 - p_exp::FRAC_BITS;
+-                        sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
+-                    }
+-                    v_endif;
+-                }
+-                else
+-                {
+-                    // SKIP_POSITIVE_CHECK is true, so user is responsible for ensuring inputs are <= 89.
+-                    v_if (val < -42)
+-                    {
+-                        sfpi::dst_reg[0] = 0.0f;
+-                    }
+-                    v_else
+-                    {
+-                        // * by 1/ln2 and add convert to 7.3 FxP format
+-                        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-                        sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+-                        sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+-                        val                         = val * vConstLn2Recip + c23_73;
+-
+-                        // Remove Exponent of 7 and bias the Mantissa to 127.
+-                        sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
+-
+-                        // SHL to move integer bits to exponent
+-                        val_short <<= 10 - p_exp::FRAC_BITS;
+-                        sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
+-                    }
+-                    v_endif;
+-                }
+-            }
+-            else
+-            {
+-                sfpi::vFloat result = _sfpu_exp_(sfpi::setsgn(val, 0));
+-
+-                v_if (val < 0)
+-                {
+-                    result = _sfpu_reciprocal_(result);
+-                }
+-                v_endif;
+-
+-                sfpi::dst_reg[0] = result;
+-            }
+-
++            sfpi::vFloat val    = sfpi::dst_reg[0];
++            sfpi::vFloat result = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(val, exp_base_scale_factor);
++            sfpi::dst_reg[0]    = result;
+             sfpi::dst_reg++;
+         }
+     }
+@@ -267,7 +269,7 @@ constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uin
+ constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
+ constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
+ 
+-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000 /* 1.0f in FP32 */>
++template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
+ inline void _init_exponential_()
+ {
+     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+@@ -411,5 +413,4 @@ inline void _init_exponential_()
+     }
+ }
+ 
+-} // namespace sfpu
+-} // namespace ckernel
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_exp2.h
+@@ -0,0 +1,41 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel_sfpu_exp.h"
++#include "sfpi.h"
++#include "sfpi_fp16.h"
++
++namespace ckernel::sfpu
++{
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_exp2_()
++{
++    const bool SCALE_EN                  = false; // Exp2 does not use scale.
++    const bool SKIP_POSITIVE_CHECK       = false; // Exp2 does not skip positive check.
++    const uint16_t exp_base_scale_factor = p_sfpu::kCONST_1_FP16B;
++
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v = sfpi::dst_reg[0];
++        // log(2) = 0.6931471805;
++        v = v * 0.6931471805f;
++        // exp = e^(v)
++        sfpi::vFloat exp = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
++        sfpi::dst_reg[0] = exp;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE>
++inline void _init_exp2_()
++{
++    const uint32_t EXP_BASE_SCALE_FACTOR = 0x3F800000;
++    const bool FAST_APPROX               = false; // Exp2 does not use fast approximation.
++    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
++}
++
++} // namespace ckernel::sfpu
+

@@ -1,0 +1,15 @@
+PR #541: ci: trigger metal bump only if blackhole or wormhole code has been changed
+URL: https://github.com/tenstorrent/tt-llk/pull/541
+
+File: .github/workflows/trigger-tt-metal-bump.yml
+@@ -3,6 +3,9 @@ name: Trigger tt-metal CI
+ on:
+   push:
+     branches: [main]
++    paths:
++      - 'tt_llk_blackhole/**'
++      - 'tt_llk_wormhole_b0/**'
+ 
+ permissions:
+   contents: read
+

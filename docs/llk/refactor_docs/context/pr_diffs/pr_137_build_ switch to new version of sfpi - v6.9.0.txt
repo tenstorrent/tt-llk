@@ -1,0 +1,19 @@
+PR #137: build: switch to new version of sfpi - v6.9.0
+URL: https://github.com/tenstorrent/tt-llk/pull/137
+
+File: tests/setup_testing_env.sh
+@@ -5,7 +5,7 @@
+ 
+ SFPI_VERSION=$(cat sfpi_version.txt)
+ 
+-SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/${SFPI_VERSION}/sfpi-release.tgz"
++SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/${SFPI_VERSION}/sfpi-x86_64-Linux.tgz"
+ 
+ if [ ! -d "sfpi" ]; then
+     echo "sfpi directory not found. Downloading and extracting SFPI ${SFPI_VERSION} release..."
+
+File: tests/sfpi_version.txt
+@@ -1 +1 @@
+-v6.8.0
++v6.9.0
+

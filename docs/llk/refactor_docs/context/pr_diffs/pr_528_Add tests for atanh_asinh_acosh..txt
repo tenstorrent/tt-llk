@@ -1,0 +1,272 @@
+PR #528: Add tests for atanh/asinh/acosh.
+URL: https://github.com/tenstorrent/tt-llk/pull/528
+
+File: tests/firmware/riscv/common/llk_sfpu_types.h
+@@ -98,4 +98,7 @@ enum class SfpuType
+     reshuffle_rows,
+     hardsigmoid,
+     where,
++    atanh,
++    asinh,
++    acosh,
+ };
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -59,6 +59,9 @@ class MathOperation(Enum):
+     # SFPU UNARY OPERATIONS
+     # =============================================================================
+     Abs = OpSpec("abs", MathOpType.SFPU_UNARY)
++    Atanh = OpSpec("atanh", MathOpType.SFPU_UNARY)
++    Asinh = OpSpec("asinh", MathOpType.SFPU_UNARY)
++    Acosh = OpSpec("acosh", MathOpType.SFPU_UNARY)
+     Celu = OpSpec("celu", MathOpType.SFPU_UNARY)
+     Cos = OpSpec("cosine", MathOpType.SFPU_UNARY)
+     Elu = OpSpec("elu", MathOpType.SFPU_UNARY)
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -5,6 +5,7 @@
+ import torch
+ 
+ from helpers.format_arg_mapping import (
++    DestAccumulation,
+     MathFidelity,
+     MathOperation,
+     ReduceDimension,
+@@ -35,20 +36,27 @@ def check_bfp8_b(operand: list) -> list:
+     # tensor = unpack_bfp8_b(tensor_bytes)
+     # return tensor
+ 
+-    not_finite = [1.7014118346046923e38, float("inf"), float("-inf"), float("nan")]
+-    for i in range(len(operand)):
+-        if operand[i] in not_finite:
++    not_finite = [1.7014118346046923e38, math.inf, -math.inf]
++    for i, x in enumerate(operand):
++        if x in not_finite or math.isnan(x):
+             # Zero out the entire row of 16 elements
+-            inf_index = i
+             for col in range(16):
+-                row = inf_index // 16
++                row = i // 16
+                 index = row * 16 + col
+-                if operand[index] not in not_finite:
++                if not (operand[index] in not_finite or math.isnan(operand[index])):
+                     operand[index] = 0.0
+ 
+     return operand
+ 
+ 
++def convert_nan_to_inf(operand: list) -> list:
++    return [math.inf if math.isnan(x) else x for x in operand]
++
++
++def convert_inf_to_value(operand: list, inf_value: float) -> list:
++    return [inf_value if x == math.inf else x for x in operand]
++
++
+ def calculate_fractional_part(mantissa_value):
+     fraction_value = 0.0
+     divisor = 1.0  # Start with 2^0 = 1
+@@ -346,6 +354,9 @@ class UnarySFPUGolden:
+     def __init__(self):
+         self.ops = {
+             MathOperation.Abs: self._abs,
++            MathOperation.Atanh: self._atanh,
++            MathOperation.Asinh: self._asinh,
++            MathOperation.Acosh: self._acosh,
+             MathOperation.Cos: self._cos,
+             MathOperation.Log: self._log,
+             MathOperation.Reciprocal: self._reciprocal,
+@@ -363,15 +374,60 @@ def __init__(self):
+             MathOperation.Hardsigmoid: self._hardsigmoid,
+         }
+         self.data_format = None
++        self.dest_acc = DestAccumulation.No
+ 
+-    def __call__(self, operation, operand1, data_format):
++    def __call__(self, operation, operand1, data_format, dest_acc, input_format):
+         self.data_format = data_format
++        self.dest_acc = dest_acc
++
+         if operation not in self.ops:
+             raise ValueError(f"Unsupported operation: {operation}")
+-        tensor = to_tensor(operand1, self.data_format)
++
++        # determine the data format for dst
++        if self.dest_acc == DestAccumulation.Yes:
++            dst_format = DataFormat.Float32
++        elif DataFormat.Float16 in (input_format, data_format):
++            dst_format = DataFormat.Float16
++        else:
++            dst_format = DataFormat.Float16_b
++
++        if self.dest_acc == DestAccumulation.No and input_format == DataFormat.Float32:
++            # dst in 16-bit mode and 32-bit input: truncation may occur when unpacked to dst
++            if dst_format == DataFormat.Float16:
++                # truncate to float16
++                operand1 = (operand1.view(torch.int32) & 0xFFFFE000).view(torch.float32)
++            else:
++                # truncate to float16_b
++                operand1 = (operand1.view(torch.int32) & 0xFFFF0000).view(torch.float32)
++
++        tensor = to_tensor(operand1, dst_format)
+         result = [self.ops[operation](x) for x in tensor.tolist()]
++
+         if self.data_format == DataFormat.Bfp8_b:
+             check_bfp8_b(result)
++
++        match (dst_format, data_format):
++            # in the following cases, nans are preserved
++            case (DataFormat.Float16, DataFormat.Float16):
++                pass
++            case (DataFormat.Float32, DataFormat.Float16):
++                pass
++            case (DataFormat.Float32, DataFormat.Float32):
++                pass
++            # otherwise, nans are converted to `inf` or a special value
++            case _:
++                result = convert_nan_to_inf(result)
++
++        # depending on `data_format`, `inf` values may get converted when unpacked to L1.
++        if dst_format == DataFormat.Float16:
++            match data_format:
++                case DataFormat.Float16_b:
++                    result = convert_inf_to_value(result, 130560.0)
++                case DataFormat.Float32:
++                    result = convert_inf_to_value(result, 131008.0)
++                case DataFormat.Bfp8_b:
++                    result = convert_inf_to_value(result, 130048.0)
++
+         return torch.tensor(result, dtype=format_dict[data_format])
+ 
+     # Helper functions
+@@ -385,18 +441,35 @@ def handle_infinite_numbers(self, expected: float) -> float:
+         if self.data_format.is_exponent_B():
+             return expected
+         else:  # self.data_format == DataFormat.Float16:
+-            return float("NaN")
++            return math.nan
+ 
+     # Operation methods
+     def _abs(self, x):
+         return abs(x)
+ 
++    def _atanh(self, x):
++        if x < -1.0 or x > 1.0:
++            return math.nan
++        if x == -1.0:
++            return self.handle_infinite_numbers(-math.inf)
++        if x == 1.0:
++            return self.handle_infinite_numbers(math.inf)
++        return math.atanh(x)
++
++    def _asinh(self, x):
++        return math.asinh(x)
++
++    def _acosh(self, x):
++        if x < 1.0:
++            return math.nan
++        return math.acosh(x)
++
+     def _cos(self, x):
+         return math.cos(x)
+ 
+     def _log(self, x):
+         if x == 0.0:
+-            return self.handle_infinite_numbers(float("-inf"))
++            return self.handle_infinite_numbers(-math.inf)
+         return math.log(x)
+ 
+     def _reciprocal(self, x):
+@@ -410,12 +483,12 @@ def _sin(self, x):
+ 
+     def _sqrt(self, x):
+         if x < 0.0:
+-            return self.handle_infinite_numbers(float("nan"))
++            return math.nan
+         return math.sqrt(x)
+ 
+     def _square(self, x):
+         if not math.isfinite(x * x):
+-            return self.handle_infinite_numbers(float("inf"))
++            return self.handle_infinite_numbers(math.inf)
+         return x * x
+ 
+     def _celu(self, x):
+
+File: tests/python_tests/helpers/utils.py
+@@ -201,7 +201,7 @@ def get_tolerance(output_data_format):
+         print(f"Found {len(diff_indices)} differences:")
+         for idx in diff_indices:
+             print(
+-                f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
++                f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}"
+             )
+ 
+     pcc = calculate_pcc(res_tensor, golden_tensor)
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -40,6 +40,9 @@
+     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+     mathop=[
+         MathOperation.Abs,
++        MathOperation.Atanh,
++        MathOperation.Asinh,
++        MathOperation.Acosh,
+         MathOperation.Cos,
+         MathOperation.Log,
+         MathOperation.Reciprocal,
+@@ -100,14 +103,18 @@ def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_ac
+ 
+ 
+ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
++    torch.manual_seed(0)
++    torch.set_printoptions(precision=10)
+     input_dimensions = [64, 64]
+ 
+     src_A, src_B, tile_cnt = generate_stimuli(
+         formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
+ 
+     generate_golden = get_golden_generator(UnarySFPUGolden)
+-    golden_tensor = generate_golden(mathop, src_A, formats.output_format)
++    golden_tensor = generate_golden(
++        mathop, src_A, formats.output_format, dest_acc, formats.input_format
++    )
+ 
+     res_address = write_stimuli_to_l1(
+         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -101,7 +101,9 @@ def test_matmul_and_unary_sfpu(
+     golden_tensor = tilize(golden_tensor, formats.output_format)
+ 
+     generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
+-    golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
++    golden_tensor = generate_sfpu_golden(
++        mathop, golden_tensor, formats.output_format, dest_acc, formats.input_format
++    )
+     golden_tensor = golden_tensor.to(torch_format)
+ 
+     res_address = write_stimuli_to_l1(
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -58,6 +58,18 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
+         case SfpuType::abs:
+             ckernel::sfpu::_calculate_abs_<APPROX_MODE, iterations>(iterations);
+             break;
++        case SfpuType::atanh:
++            ckernel::sfpu::_init_atanh_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_atanh_<APPROX_MODE, is_fp32_dest_acc_en, iterations>();
++            break;
++        case SfpuType::asinh:
++            ckernel::sfpu::_init_inverse_hyperbolic_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_asinh_<APPROX_MODE, iterations>();
++            break;
++        case SfpuType::acosh:
++            ckernel::sfpu::_init_inverse_hyperbolic_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_acosh_<APPROX_MODE, iterations>();
++            break;
+         case SfpuType::cosine:
+             ckernel::sfpu::_calculate_cosine_<APPROX_MODE, iterations>(iterations);
+             break;
+

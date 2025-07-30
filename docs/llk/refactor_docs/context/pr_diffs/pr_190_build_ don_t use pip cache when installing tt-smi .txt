@@ -1,0 +1,174 @@
+PR #190: build: don't use pip cache when installing tt-smi inside Docker image
+URL: https://github.com/tenstorrent/tt-llk/pull/190
+
+File: .github/.dockerignore
+@@ -0,0 +1,7 @@
++/.venv
++/build
++
++# Byte-compiled / optimized / DLL files
++__pycache__/
++*.py[cod]
++*$py.class
+
+File: .github/Dockerfile.base
+@@ -4,8 +4,7 @@ SHELL ["/bin/bash", "-c"]
+ # Set environment variables
+ ENV DEBIAN_FRONTEND=noninteractive
+ 
+-# Install dependencies
+-RUN apt-get update && apt-get install -y \
++RUN apt-get update && apt-get install -y --no-install-recommends \
+     software-properties-common \
+     build-essential \
+     python3-dev \
+@@ -29,6 +28,5 @@ RUN apt-get update && apt-get install -y \
+     curl \
+     jq \
+     gh \
+-    lcov
+-
+-RUN apt-get clean
++    lcov && \
++    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+File: .github/Dockerfile.ird
+@@ -5,7 +5,7 @@ SHELL ["/bin/bash", "-c"]
+ ENV DEBIAN_FRONTEND=noninteractive
+ 
+ # Install dependencies
+-RUN apt-get update && apt-get install -y \
++RUN apt-get update && apt-get install -y --no-install-recommends \
+     ssh \
+     rsync \
+     sudo \
+@@ -17,10 +17,8 @@ RUN apt-get update && apt-get install -y \
+     python3-venv \
+     python3-pip \
+     clangd \
+-    xxd
+-
+-# Clean up
+-RUN apt-get clean
++    xxd && \
++    apt-get clean && rm -rf /var/lib/apt/lists/*
+ 
+ # Copy scripts into the image
+ COPY .github/scripts/ /home/
+
+File: .github/scripts/install-smi.sh
+@@ -6,4 +6,4 @@
+ set -e
+ 
+ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+-pip install git+https://github.com/tenstorrent/tt-smi.git
++pip install --no-cache-dir git+https://github.com/tenstorrent/tt-smi.git
+
+File: tests/python_tests/conftest.py
+@@ -7,6 +7,9 @@
+ import requests
+ import subprocess
+ import sys
++import time
++
++from requests.exceptions import ConnectionError, Timeout, RequestException
+ 
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.log_utils import _format_log
+@@ -82,29 +85,63 @@ def download_headers():
+         sys.exit(1)
+ 
+     # Download headers
++    RETRIES = 3
++    RETRY_DELAY = 2  # seconds
++
++    def download_with_retries(url, header):
++        delay = RETRY_DELAY
++        for attempt in range(1, RETRIES + 1):
++            try:
++                print(f"Attempt {attempt}: Downloading {header} from {url}...")
++                response = requests.get(url, timeout=10)
++
++                # Check for HTTP errors (like 404)
++                if response.status_code == 200:
++                    with open(os.path.join(HEADER_DIR, header), "wb") as f:
++                        f.write(response.content)
++                    return True
++                elif response.status_code == 429:
++                    retry_after = response.headers.get("Retry-After")
++                    if retry_after:
++                        wait_time = int(retry_after)
++                        print(
++                            f"Rate limited. Waiting {wait_time} seconds (from Retry-After header)..."
++                        )
++                    else:
++                        wait_time = delay
++                        print(
++                            f"Rate limited. Waiting {wait_time} seconds (exponential backoff)..."
++                        )
++                        delay *= 2
++                        time.sleep(wait_time)
++                else:
++                    print(f"HTTP error {response.status_code} for {url}")
++                    return False  # don't retry for non-200 responses
++
++            except (ConnectionError, Timeout) as e:
++                print(f"Attempt {attempt} failed due to network issue: {e}")
++                if attempt < RETRIES:
++                    time.sleep(delay)
++                    delay *= 2
++            except RequestException as e:
++                print(f"Non-retriable error on attempt {attempt}: {e}")
++                return False  # Other errors: don't retry
++        return False
++
+     for header in HEADERS:
+         header_url = f"{BASE_URL}/{header}"
+         specific_header_url = f"{specific_url}/{header}" if specific_url else None
+ 
+-        try:
+-            print(f"Downloading {header} from {header_url}...")
+-            response = requests.get(header_url, timeout=10)
+-            response.raise_for_status()
+-            with open(os.path.join(HEADER_DIR, header), "wb") as f:
+-                f.write(response.content)
+-        except requests.RequestException:
+-            if specific_header_url:
+-                try:
+-                    print(f"Retrying {header} from {specific_header_url}...")
+-                    response = requests.get(specific_header_url, timeout=10)
+-                    response.raise_for_status()
+-                    with open(os.path.join(HEADER_DIR, header), "wb") as f:
+-                        f.write(response.content)
+-                except requests.RequestException:
+-                    print(f"Failed to download {header}")
+-                    sys.exit(1)
+-            else:
+-                print(f"Failed to download {header}")
++        # Try primary URL
++        if not download_with_retries(header_url, header):
++            # Fallback to specific URL
++            if specific_header_url and not download_with_retries(
++                specific_header_url, header
++            ):
++                print(f"Failed to download {header} after trying both URLs")
++                sys.exit(1)
++            elif not specific_header_url:
++                print(f"Failed to download {header} after retries from primary URL")
+                 sys.exit(1)
+ 
+     # Create the stamp file to indicate headers are downloaded
+
+File: tests/requirements.txt
+@@ -1,3 +1,4 @@
++numpy==2.2.5
+ pytest-cov==6.1.1
+ pytest-randomly==3.16.0
+ pytest-repeat==0.9.4
+@@ -6,5 +7,3 @@ pytest-sugar==1.0.0
+ pytest-timeout==2.4.0
+ pytest==8.3.5
+ torch==2.7.0
+-torchaudio==2.7.0
+-torchvision==0.22.0
+

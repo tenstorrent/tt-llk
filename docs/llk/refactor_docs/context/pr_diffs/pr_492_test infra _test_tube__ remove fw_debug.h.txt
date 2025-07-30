@@ -1,0 +1,313 @@
+PR #492: test infra :test_tube:: remove fw_debug.h
+URL: https://github.com/tenstorrent/tt-llk/pull/492
+
+File: tests/firmware/riscv/common/fw_debug.h
+@@ -1,8 +0,0 @@
+-// SPDX-FileCopyrightText: © 2023 Tenstorrent Inc.
+-//
+-// SPDX-License-Identifier: Apache-2.0
+-
+-#define FWASSERT(s, p)
+-#define FWLOG0(...) (void)sizeof(__VA_ARGS__)
+-#define FWLOG1(...) (void)sizeof(__VA_ARGS__)
+-#define FWLOG2(...) (void)sizeof(__VA_ARGS__)
+
+File: tt_llk_blackhole/common/inc/ckernel.h
+@@ -72,7 +72,6 @@
+ #include <cstdint>
+ 
+ #include "ckernel_include.h"
+-#include "fw_debug.h"
+ 
+ // #include <cstring>
+ #if defined(PERF_DUMP) || DELAY_EN > 0
+@@ -150,8 +149,7 @@ static constexpr bool is_valid(const T val, const uint8_t wid)
+ inline void mmio_register_write(register_space_e space, uint addr, uint data)
+ {
+     const uint regaddr = (space << 6) | (addr & 0x3F);
+-    // FWLOG2("Regaddr: 0x%x, data: 0x%x", regaddr, data);
+-    reg_base[regaddr] = data;
++    reg_base[regaddr]  = data;
+ }
+ 
+ inline uint8_t semaphore_read(const uint8_t index)
+
+File: tt_llk_blackhole/common/inc/ckernel_template.h
+@@ -368,15 +368,13 @@ inline void ckernel_unpack_template::program_and_run(volatile uint *instrn_buffe
+ 
+ inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)
+ {
+-    FWASSERT("Unpack template only supports loops up to 128", count <= 128);
+     TT_MOP_CFG(zmask >> 16);              // Set the top 16 bits of zmask - we could skip this for count <= 16
+     TT_MOP(0, count - 1, zmask & 0xFFFF); // Run the template
+ }
+ 
+ // Version without zmask, should be slightly faster by eliminating one instruction.
+ inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count)
+ {
+-    FWASSERT("Unpack template only supports loops up to 128", count <= 128);
+     TT_MOP(0, count - 1, 0); // Run the template
+ }
+ 
+
+File: tt_llk_blackhole/common/inc/cmath_common.h
+@@ -47,10 +47,6 @@ inline void reset_counters(const uint setrwc)
+ 
+ inline void incr_counters(const uint incr_a, const uint incr_b, const uint incr_d, const uint incr_cr)
+ {
+-    FWASSERT("Value exceeds RWC_A width of 4 bits", incr_a < 16);
+-    FWASSERT("Value exceeds RWC_B width of 4 bits", incr_b < 16);
+-    FWASSERT("Value exceeds RWC_D width of 4 bits", incr_d < 16);
+-    FWASSERT("Value exceeds RWC_CR width of 4 bits", incr_cr < 16);
+     TT_INCRWC(incr_cr, incr_d, incr_b, incr_a);
+ }
+ 
+@@ -191,7 +187,6 @@ inline void inc_dst_addr()
+ 
+ inline void math_dest_wait()
+ {
+-    FWLOG0("XX math_full_dest_sync()->wait for whole dest available");
+     TTI_SEMWAIT(p_stall::STALL_MATH | p_stall::STALL_SFPU | p_stall::STALL_SYNC, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_MAX);
+ }
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_binary.h
+@@ -262,10 +262,6 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+             }
+         }
+     }
+-    else
+-    {
+-        FWASSERT("Unsupported op!", false);
+-    }
+     math::clear_dst_reg_addr();
+ }
+ 
+@@ -422,10 +418,6 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const
+     {
+         eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
+     }
+-    else
+-    {
+-        FWASSERT("Unsupported op!", false);
+-    }
+ 
+     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_datacopy.h
+@@ -80,10 +80,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
+                 ckernel_template::run(instrn_buffer);
+             }
+         }
+-        else
+-        {
+-            FWASSERT("Unsupported op!", false);
+-        }
+ 
+         math::clear_dst_reg_addr();
+     }
+@@ -258,10 +254,6 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
+     {
+         eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
+     }
+-    else
+-    {
+-        FWASSERT("Unsupported op!", false);
+-    }
+ 
+     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_pack_common.h
+@@ -10,7 +10,6 @@
+ #include "ckernel_defs.h"
+ #include "ckernel_ops.h"
+ #include "cpack_common.h"
+-#include "fw_debug.h"
+ #include "llk_defs.h"
+ 
+ using namespace ckernel;
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_common.h
+@@ -10,7 +10,6 @@
+ #include "ckernel_defs.h"
+ #include "ckernel_ops.h"
+ #include "cunpack_common.h"
+-#include "fw_debug.h"
+ 
+ #ifdef PERF_DUMP
+ #include "ckernel_perf_api.h"
+
+File: tt_llk_wormhole_b0/common/inc/ckernel.h
+@@ -63,7 +63,6 @@
+ #include <cstdint>
+ 
+ #include "ckernel_include.h"
+-#include "fw_debug.h"
+ 
+ // #include <cstring>
+ #if defined(PERF_DUMP) || DELAY_EN > 0
+@@ -141,8 +140,7 @@ static constexpr bool is_valid(const T val, const uint8_t wid)
+ inline void mmio_register_write(register_space_e space, uint addr, uint data)
+ {
+     const uint regaddr = (space << 6) | (addr & 0x3F);
+-    // FWLOG2("Regaddr: 0x%x, data: 0x%x", regaddr, data);
+-    reg_base[regaddr] = data;
++    reg_base[regaddr]  = data;
+ }
+ 
+ inline uint8_t semaphore_read(const uint8_t index)
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_template.h
+@@ -342,15 +342,13 @@ inline void ckernel_unpack_template::program_and_run(volatile uint *instrn_buffe
+ 
+ inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)
+ {
+-    FWASSERT("Unpack template only supports loops up to 128", count <= 128);
+     TT_MOP_CFG(zmask >> 16);              // Set the top 16 bits of zmask - we could skip this for count <= 16
+     TT_MOP(0, count - 1, zmask & 0xFFFF); // Run the template
+ }
+ 
+ // Version without zmask, should be slightly faster by eliminating one instruction.
+ inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count)
+ {
+-    FWASSERT("Unpack template only supports loops up to 128", count <= 128);
+     TT_MOP(0, count - 1, 0); // Run the template
+ }
+ 
+
+File: tt_llk_wormhole_b0/common/inc/cmath_common.h
+@@ -47,10 +47,6 @@ inline void reset_counters(const uint setrwc)
+ 
+ inline void incr_counters(const uint incr_a, const uint incr_b, const uint incr_d, const uint incr_cr)
+ {
+-    FWASSERT("Value exceeds RWC_A width of 4 bits", incr_a < 16);
+-    FWASSERT("Value exceeds RWC_B width of 4 bits", incr_b < 16);
+-    FWASSERT("Value exceeds RWC_D width of 4 bits", incr_d < 16);
+-    FWASSERT("Value exceeds RWC_CR width of 4 bits", incr_cr < 16);
+     TT_INCRWC(incr_cr, incr_d, incr_b, incr_a);
+ }
+ 
+@@ -201,7 +197,6 @@ inline void inc_dst_addr()
+ 
+ inline void math_dest_wait()
+ {
+-    FWLOG0("XX math_full_dest_sync()->wait for whole dest available");
+     TTI_SEMWAIT(p_stall::STALL_MATH | p_stall::STALL_SFPU | p_stall::STALL_SYNC, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_MAX);
+ }
+ 
+
+File: tt_llk_wormhole_b0/common/inc/cpack_common.h
+@@ -310,10 +310,6 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
+             config.f.exp_section_size                              = 1 + 0 + 12;
+             cfg[THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 0] = config.val[0];
+         }
+-        else
+-        {
+-            FWASSERT("Other data formats not supported", false);
+-        }
+     }
+ 
+     // Save to GPR for quick data format reconfig
+@@ -430,10 +426,6 @@ inline void reconfig_packer_data_format(const uint pack_src_format, const uint p
+             TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 0 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::EXP2_SEC_SIZE_BFP2);
+             TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 0 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::EXP3_SEC_SIZE_BFP2);
+         }
+-        else
+-        {
+-            FWASSERT("Other data formats not supported", false);
+-        }
+     }
+     else if ((pack_dst_format == static_cast<DataFormatType>(DataFormat::Lf8)) || ((pack_dst_format & 0xF) == static_cast<DataFormatType>(DataFormat::Int8)))
+     {
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_dropout.h
+@@ -9,8 +9,6 @@
+ #include "ckernel_ops.h"
+ #include "sfpi.h"
+ 
+-// #include "debug/fw_debug.h"
+-
+ namespace ckernel
+ {
+ namespace sfpu
+@@ -23,9 +21,6 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
+ {
+     // SFPU microcode
+ 
+-    // FWLOG1("calculate_dropout() -- probability:%x", probability);
+-    // FWLOG1("calculate_dropout() -- scale:%x", scale);
+-
+     TT_SFPLOADI(p_sfpu::LREG1, 10, scale & 0xFFFF);
+     TT_SFPLOADI(p_sfpu::LREG1, 8, scale >> 16);
+     TT_SFPLOADI(p_sfpu::LREG2, 10, probability & 0xFFFF);
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_binary.h
+@@ -289,10 +289,6 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+             }
+         }
+     }
+-    else
+-    {
+-        FWASSERT("Unsupported op!", false);
+-    }
+     math::clear_dst_reg_addr();
+ }
+ 
+@@ -449,10 +445,6 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const
+     {
+         eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
+     }
+-    else
+-    {
+-        FWASSERT("Unsupported op!", false);
+-    }
+ 
+     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+ 
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h
+@@ -60,10 +60,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
+                 ckernel_template::run(instrn_buffer);
+             }
+         }
+-        else
+-        {
+-            FWASSERT("Unsupported op!", false);
+-        }
+ 
+         math::clear_dst_reg_addr();
+     }
+@@ -230,10 +226,6 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
+     {
+         eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
+     }
+-    else
+-    {
+-        FWASSERT("Unsupported op!", false);
+-    }
+ 
+     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+ 
+
+File: tt_llk_wormhole_b0/llk_lib/llk_pack_common.h
+@@ -10,7 +10,6 @@
+ #include "ckernel_defs.h"
+ #include "ckernel_instr_params.h"
+ #include "cpack_common.h"
+-#include "fw_debug.h"
+ #include "llk_defs.h"
+ 
+ using namespace ckernel;
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h
+@@ -11,7 +11,6 @@
+ #include "ckernel_instr_params.h"
+ #include "ckernel_ops.h"
+ #include "cunpack_common.h"
+-#include "fw_debug.h"
+ 
+ #ifdef PERF_DUMP
+ #include "ckernel_perf_api.h"
+

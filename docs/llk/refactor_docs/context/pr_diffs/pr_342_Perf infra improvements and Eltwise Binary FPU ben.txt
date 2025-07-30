@@ -1,0 +1,660 @@
+PR #342: Perf infra improvements and Eltwise Binary FPU benchmark
+URL: https://github.com/tenstorrent/tt-llk/pull/342
+
+File: .github/workflows/setup-and-test.yml
+@@ -48,6 +48,7 @@ jobs:
+       - name: Run tests
+         shell: bash
+         env:
++          LLK_HOME: ${{ github.workspace }}
+           TEST_GROUPS: ${{ inputs.test_group }}
+         run: |
+           CHIP_ARCH=unknown
+@@ -59,7 +60,8 @@ jobs:
+           echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
+           SPLITS=$(echo "$TEST_GROUPS" | jq '. | length')
+           cd tests/python_tests/
+-          pytest --splits $SPLITS --group ${{ matrix.test_group }} \
++          pytest -m "not perf" \
++                --splits $SPLITS --group ${{ matrix.test_group }} \
+                 --override-ini="addopts=-v" --timeout=60 \
+                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+ 
+
+File: tests/helpers/include/profiler.h
+@@ -8,6 +8,7 @@
+ #include <cstdint>
+ #include <cstring>
+ 
++#include "build.h"
+ #include "ckernel.h"
+ 
+ #define DO_PRAGMA(x) _Pragma(#x)
+@@ -72,14 +73,49 @@ constexpr uint32_t NUM_CORES     = 3;     // TRISC cores: unpack, math, pack
+ constexpr uint32_t BUFFERS_END   = 0x16E000;
+ constexpr uint32_t BUFFERS_START = BUFFERS_END - (NUM_CORES * BUFFER_LENGTH * sizeof(uint32_t));
+ 
+-using buffer_ptr_t = tt_l1_ptr uint32_t (*)[BUFFER_LENGTH];
++constexpr uint32_t BARRIER_END   = BUFFERS_START;
++constexpr uint32_t BARRIER_START = BARRIER_END - (NUM_CORES * sizeof(uint32_t));
+ 
++using barrier_ptr_t = volatile uint32_t (*)[NUM_CORES];
++using buffer_ptr_t  = uint32_t (*)[BUFFER_LENGTH];
++
++extern barrier_ptr_t barrier_ptr;
+ extern buffer_ptr_t buffer;
+ extern uint32_t write_idx;
+ extern uint32_t open_zone_cnt;
+ 
++__attribute__((always_inline)) inline void sync_threads()
++{
++    auto& barrier = *barrier_ptr;
++
++    // wait for all the threads to reset the barrier
++    barrier[TRISC_ID] = 0;
++    for (uint32_t i = 0; i < NUM_CORES; ++i)
++    {
++        if (i == TRISC_ID)
++        {
++            continue;
++        }
++        while (barrier[i] != 0)
++            ;
++    }
++
++    // wait for all the threads to set the barrier
++    barrier[TRISC_ID] = 1;
++    for (uint32_t i = 0; i < NUM_CORES; ++i)
++    {
++        if (i == TRISC_ID)
++        {
++            continue;
++        }
++        while (barrier[i] == 0)
++            ;
++    }
++}
++
+ __attribute__((always_inline)) inline void reset()
+ {
++    barrier_ptr   = reinterpret_cast<barrier_ptr_t>(BARRIER_START);
+     buffer        = reinterpret_cast<buffer_ptr_t>(BUFFERS_START);
+     write_idx     = 0;
+     open_zone_cnt = 0;
+
+File: tests/helpers/src/trisc.cpp
+@@ -12,17 +12,16 @@
+ #include "ckernel_pcbuf.h"
+ // Necessary for ckernel variables
+ #include "ckernel_helper.h"
+-#include "params.h"
+ #include "profiler.h"
+ 
+ #ifdef LLK_PROFILER
+ 
+ namespace llk_profiler
+ {
+-
+-buffer_ptr_t buffer    = reinterpret_cast<buffer_ptr_t>(BUFFERS_START);
+-uint32_t write_idx     = 0;
+-uint32_t open_zone_cnt = 0;
++barrier_ptr_t barrier_ptr = reinterpret_cast<barrier_ptr_t>(BARRIER_START);
++buffer_ptr_t buffer       = reinterpret_cast<buffer_ptr_t>(BUFFERS_START);
++uint32_t write_idx        = 0;
++uint32_t open_zone_cnt    = 0;
+ 
+ } // namespace llk_profiler
+ 
+@@ -52,6 +51,7 @@ int main()
+ 
+ #if defined(LLK_PROFILER)
+     llk_profiler::reset();
++    llk_profiler::sync_threads();
+ #endif
+ 
+     {
+
+File: tests/python_tests/conftest.py
+@@ -14,6 +14,7 @@
+ 
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.log_utils import _format_log
++from helpers.perf import delete_reports
+ 
+ 
+ def set_chip_architecture():
+@@ -53,6 +54,11 @@ def _identify_chip_architecture(output):
+     return architecture
+ 
+ 
++@pytest.fixture(scope="session", autouse=True)
++def delete_perf_reports():
++    delete_reports()
++
++
+ @pytest.fixture(scope="session", autouse=True)
+ def download_headers():
+     CHIP_ARCH = set_chip_architecture()
+
+File: tests/python_tests/helpers/perf.py
+@@ -0,0 +1,192 @@
++# SPDX-License-Identifier: Apache-2.0
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++
++import csv
++import os
++import shutil
++from dataclasses import dataclass
++from enum import Enum
++from pathlib import Path
++from statistics import mean, variance
++
++from helpers.device import run_elf_files, wait_for_tensix_operations_finished
++from helpers.profiler import Profiler, build_with_profiler
++
++
++@dataclass
++class PerfZone:
++    start: int
++    end: int
++    duration: int
++
++
++@dataclass
++class PerfThreadData:
++    init: PerfZone
++    tile_loop: PerfZone
++    kernel: PerfZone
++
++
++@dataclass
++class PerfData:
++    unpack: PerfThreadData
++    math: PerfThreadData
++    pack: PerfThreadData
++
++
++def _parse_thread(thread_data) -> PerfThreadData:
++    zones = {}
++    markers = {"kernel", "init", "tile_loop"}
++
++    for entry in thread_data:
++        marker = entry.full_marker.marker.lower()
++        if marker in markers:
++            zones[marker] = PerfZone(
++                start=entry.start, end=entry.end, duration=entry.duration
++            )
++
++    if len(zones) < len(markers):
++        missing = markers - zones.keys()
++        raise AssertionError(
++            f"Missing zones after perf run: {', '.join(sorted(missing))}"
++        )
++
++    return PerfThreadData(**zones)
++
++
++def process_profiler_data(profiler_data) -> PerfData:
++    return PerfData(
++        unpack=_parse_thread(profiler_data.unpack),
++        math=_parse_thread(profiler_data.math),
++        pack=_parse_thread(profiler_data.pack),
++    )
++
++
++def timing_l1_to_l1(perf_data: PerfData) -> int:
++    """Time to perform the whole operation (compute)"""
++    return (perf_data.pack.tile_loop.end - perf_data.unpack.tile_loop.start,)
++
++
++def timing_unpack(perf_data: PerfData) -> int:
++    return (perf_data.unpack.tile_loop.duration,)
++
++
++def timing_math(perf_data: PerfData) -> int:
++    return (perf_data.math.tile_loop.duration,)
++
++
++def timing_pack(perf_data: PerfData) -> int:
++    return (perf_data.pack.tile_loop.duration,)
++
++
++def timing_l1_congestion(perf_data: PerfData) -> int:
++    return (
++        perf_data.unpack.tile_loop.duration,
++        perf_data.pack.tile_loop.duration,
++    )
++
++
++RUN_COUNT = 8
++
++
++def _build_l1_to_l1(test_config):
++    return build_with_profiler(test_config)
++
++
++def process_runs(runs, test_config):
++    tile_cnt = test_config.get("tile_cnt", 1)
++
++    return tuple(
++        {
++            "mean": mean(column) / tile_cnt,
++            "variance": variance(column) / (tile_cnt * tile_cnt),
++        }
++        for column in zip(*runs)
++    )
++
++
++class PerfRunType(Enum):
++    L1_TO_L1 = 1
++    UNPACK_ISOLATE = 2
++    MATH_ISOLATE = 3
++    PACK_ISOLATE = 4
++    L1_CONGESTION = 5
++
++
++def perf_benchmark(test_config, run_types: list[PerfRunType]):
++    # todo: support all types of runs
++    SUPPORTED_RUNS = {PerfRunType.L1_TO_L1}
++    RUN_CONFIGURATIONS = {
++        PerfRunType.L1_TO_L1: (_build_l1_to_l1, timing_l1_to_l1),
++        # Add new run types here as they're implemented:
++        # PerfRunType.UNPACK_ISOLATE: (_build_unpack_isolate, timing_unpack),
++        # PerfRunType.MATH_ISOLATE: (_build_math_isolate, timing_math),
++        # PerfRunType.PACK_ISOLATE: (_build_pack_isolate, timing_pack),
++        # PerfRunType.L1_CONGESTION: (_build_l1_congestion, timing_l1_congestion),
++    }
++
++    results = {}
++
++    for type in run_types:
++        assert type in SUPPORTED_RUNS, f"ERROR: run_type={type} not implemented"
++        build, get_timing = RUN_CONFIGURATIONS[type]
++
++        profiler_meta = build(test_config)
++
++        runs = []
++        for _ in range(RUN_COUNT):
++            run_elf_files(test_config["testname"])
++            wait_for_tensix_operations_finished()
++
++            profiler_data = Profiler.get_data(profiler_meta)
++            perf_data = process_profiler_data(profiler_data)
++
++            runs.append(get_timing(perf_data))
++
++        results[type] = process_runs(runs, test_config)
++
++    return results
++
++
++def delete_reports():
++    assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
++    root = os.environ["LLK_HOME"]
++
++    path = Path(root) / "perf"
++    print(path)
++
++    if path.exists() and path.is_dir():
++        shutil.rmtree(path)
++
++
++def write_to_report(test_config, run_types, results):
++    assert "LLK_HOME" in os.environ, "Environment variable LLK_HOME is not set"
++    root = os.environ["LLK_HOME"]
++
++    filename = f"{test_config['testname']}.csv"
++    output_path = Path(root) / "perf" / filename
++    output_path.parent.mkdir(parents=True, exist_ok=True)
++
++    exclude = {"testname", "tile_cnt", "formats"}  # fix: include format info
++    sweep_columns = [param for param in test_config.keys() if not param in exclude]
++
++    result_columns = []
++    for run_type in run_types:
++        result_columns.append(f"mean({run_type.name})")
++        result_columns.append(f"variance({run_type.name})")
++
++    row = [test_config[k] for k in sweep_columns]
++    for run_type in run_types:
++        stats = results[run_type]
++        for stat in stats:
++            # fix : multiple stats per run type
++            row.append(stat["mean"])
++            row.append(stat["variance"])
++
++    # Write to CSV
++    first_entry = not os.path.exists(output_path)
++    with open(output_path, "a", newline="") as csvfile:
++        writer = csv.writer(csvfile)
++        if first_entry:
++            writer.writerow(sweep_columns + result_columns)
++        writer.writerow(row)
+
+File: tests/python_tests/helpers/profiler.py
+@@ -58,7 +58,7 @@ def _assert_no_collision(messages, message):
+         raise AssertionError(f'Hash collision between "{message}" and "{existing}"')
+ 
+ 
+-def build_perf_test(test_config):
++def build_with_profiler(test_config):
+     make_cmd = generate_make_command(test_config, ProfilerBuild.Yes)
+     result = run_shell_command(f"cd .. && {make_cmd}")
+ 
+@@ -86,14 +86,21 @@ class ProfilerZoneScoped:
+     duration: int
+ 
+ 
++@dataclass
+ class ProfilerData:
++    unpack: list[ProfilerTimestamp | ProfilerZoneScoped]
++    math: list[ProfilerTimestamp | ProfilerZoneScoped]
++    pack: list[ProfilerTimestamp | ProfilerZoneScoped]
++
++
++class Profiler:
+ 
+     BUFFER_LENGTH = 0x400
+-    THREAD_BUFFER = {
+-        "UNPACK": 0x16B000,
+-        "MATH": 0x16C000,
+-        "PACK": 0x16D000,
+-    }
++    THREAD_BUFFER = [
++        0x16B000,  # Unpack
++        0x16C000,  # Math
++        0x16D000,  # Pack
++    ]
+ 
+     ENTRY_TYPE_SHAMT = 28
+     ENTRY_ID_SHAMT = ENTRY_TYPE_SHAMT - 16
+@@ -178,42 +185,39 @@ def dump_csv(profiler_data, filename: str = "profiler_data.csv") -> None:
+             writer.writerows(rows)
+ 
+     @staticmethod
+-    def get(profiler_meta):
+-        return ProfilerData._parse_buffers(ProfilerData._load_buffers(), profiler_meta)
++    def get_data(profiler_meta) -> ProfilerData:
++        return Profiler._parse_buffers(Profiler._load_buffers(), profiler_meta)
+ 
+     @staticmethod
+     def _load_buffers(core_loc="0,0", word_count=BUFFER_LENGTH):
+         """Load profiler buffers from device memory for each thread."""
+-        return {
+-            thread: read_words_from_device(
++        return [
++            read_words_from_device(
+                 core_loc=core_loc, addr=buffer_address, word_count=word_count
+             )
+-            for thread, buffer_address in ProfilerData.THREAD_BUFFER.items()
+-        }
++            for buffer_address in Profiler.THREAD_BUFFER
++        ]
+ 
+     @staticmethod
+     def _parse_buffers(buffers, profiler_meta):
+-        return {
+-            thread: ProfilerData._parse_thread(words, profiler_meta)
+-            for thread, words in buffers.items()
+-        }
++        return ProfilerData(
++            unpack=Profiler._parse_thread(buffers[0], profiler_meta),
++            math=Profiler._parse_thread(buffers[1], profiler_meta),
++            pack=Profiler._parse_thread(buffers[2], profiler_meta),
++        )
+ 
+     @staticmethod
+     def _parse_thread(words, profiler_meta):
+         thread = []
+         zone_stack = []
+         word_stream = iter(words)
+         for word in word_stream:
+-            if not (word & ProfilerData.ENTRY_EXISTS_BIT):
++            if not (word & Profiler.ENTRY_EXISTS_BIT):
+                 break
+ 
+-            type = (
+-                word & ProfilerData.ENTRY_TYPE_MASK
+-            ) >> ProfilerData.ENTRY_TYPE_SHAMT
++            type = (word & Profiler.ENTRY_TYPE_MASK) >> Profiler.ENTRY_TYPE_SHAMT
+ 
+-            marker_id = (
+-                word & ProfilerData.ENTRY_ID_MASK
+-            ) >> ProfilerData.ENTRY_ID_SHAMT
++            marker_id = (word & Profiler.ENTRY_ID_MASK) >> Profiler.ENTRY_ID_SHAMT
+ 
+             try:
+                 marker = profiler_meta[marker_id]
+@@ -222,25 +226,25 @@ def _parse_thread(words, profiler_meta):
+                     f"Marker with ID {marker_id} not found in profiler metadata"
+                 )
+ 
+-            timestamp_high = word & ProfilerData.ENTRY_TIME_HIGH_MASK
++            timestamp_high = word & Profiler.ENTRY_TIME_HIGH_MASK
+             timestamp_low = next(word_stream)
+             timestamp = (timestamp_high << 32) | timestamp_low
+ 
+-            entry_type = ProfilerData.EntryType(type)
++            entry_type = Profiler.EntryType(type)
+             match entry_type:
+-                case ProfilerData.EntryType.TIMESTAMP:
++                case Profiler.EntryType.TIMESTAMP:
+                     thread.append(ProfilerTimestamp(marker, timestamp))
+ 
+-                case ProfilerData.EntryType.TIMESTAMP_DATA:
++                case Profiler.EntryType.TIMESTAMP_DATA:
+                     data_high = next(word_stream)
+                     data_low = next(word_stream)
+                     data = (data_high << 32) | data_low
+                     thread.append(ProfilerTimestamp(marker, timestamp, data))
+ 
+-                case ProfilerData.EntryType.ZONE_START:
++                case Profiler.EntryType.ZONE_START:
+                     zone_stack.append(timestamp)
+ 
+-                case ProfilerData.EntryType.ZONE_END:
++                case Profiler.EntryType.ZONE_END:
+                     end = timestamp
+                     start = zone_stack.pop()
+                     duration = end - start
+
+File: tests/python_tests/helpers/test_config.py
+@@ -122,6 +122,12 @@ def generate_build_header(
+                 f"#define POOL_TYPE {test_config.get('pool_type', ReducePool.No).value}"
+             )
+ 
++    header_content.append("")
++    # Multi-tile test configuration
++    header_content.append("// Multi-tile test configuration")
++    header_content.append(f"#define TILE_CNT {test_config.get('tile_cnt', 1)}")
++
++    # todo: refactor multiple tiles test to remove this
+     # Multiple tiles test specific configuration
+     if test_config.get("testname") == "multiple_tiles_eltwise_test":
+         header_content.extend(
+
+File: tests/python_tests/perf_eltwise_binary_fpu.py
+@@ -0,0 +1,61 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++import pytest
++
++from helpers.format_arg_mapping import (
++    DestAccumulation,
++    MathFidelity,
++    MathOperation,
++)
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.perf import PerfRunType, perf_benchmark, write_to_report
++
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
++
++test_formats = input_output_formats(supported_formats)
++all_params = generate_params(
++    ["eltwise_binary_fpu_perf"],
++    test_formats,
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
++    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
++    math_fidelity=[
++        MathFidelity.LoFi,
++        MathFidelity.HiFi2,
++        MathFidelity.HiFi3,
++        MathFidelity.HiFi4,
++    ],
++)
++param_ids = generate_param_ids(all_params)
++
++
++@pytest.mark.perf
++@pytest.mark.parametrize(
++    "testname, formats, dest_acc, mathop, math_fidelity",
++    clean_params(all_params),
++    ids=param_ids,
++)
++def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidelity):
++
++    # MathFidelity is only used for Elwmul
++    if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
++        pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
++
++    test_config = {
++        "testname": testname,
++        "tile_cnt": 16,  # currently isn't passed to kernel, should be TILE_CNT
++        "formats": formats,
++        "dest_acc": dest_acc,
++        "mathop": mathop,
++        "math_fidelity": math_fidelity,
++    }
++
++    results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1])
++    write_to_report(test_config, [PerfRunType.L1_TO_L1], results)
+
+File: tests/python_tests/pytest.ini
+@@ -4,7 +4,10 @@ filterwarnings =
+     ignore::DeprecationWarning
+     ignore::FutureWarning
+ addopts = -vvv -s
+-python_files = test_*.py
++python_files =
++    test_*.py
++    perf_*.py
+ python_functions = test
+ markers =
+     long: marks tests as long-running (deselect with '-m "not long"')
++    perf: marks tests as performance benchmarks (deselect with '-m "not perf"')
+
+File: tests/sources/eltwise_binary_fpu_perf.cpp
+@@ -0,0 +1,104 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#include <algorithm>
++#include <cstdint>
++#include <cstdio>
++#include <type_traits>
++
++#include "ckernel.h"
++#include "ckernel_defs.h"
++#include "llk_defs.h"
++#include "params.h"
++#include "profiler.h"
++
++// Globals
++uint32_t unp_cfg_context          = 0;
++uint32_t pack_sync_tile_dst_ptr   = 0;
++uint32_t math_sync_tile_dst_index = 0;
++
++#ifdef LLK_TRISC_UNPACK
++
++#include "llk_unpack_AB.h"
++#include "llk_unpack_common.h"
++
++void run_kernel()
++{
++    volatile uint32_t* const src_a = reinterpret_cast<volatile uint32_t*>(0x1a000);
++    volatile uint32_t* const src_b = reinterpret_cast<volatile uint32_t*>(0x1e000);
++
++    {
++        ZONE_SCOPED("INIT")
++        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, 8, false, 4);
++        _llk_unpack_AB_init_<>(FACE_R_DIM, TILE_NUM_FACES, false, false, dest_acc_en_input);
++        tensix_sync(); // -> perf
++    }
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        {
++            _llk_unpack_AB_<>(L1_ADDRESS(src_a + (tile % 8) * 0x1000), L1_ADDRESS(src_b + (tile % 8) * 0x1000), false);
++        }
++        tensix_sync(); // -> perf
++    }
++}
++
++#endif
++
++#ifdef LLK_TRISC_MATH
++
++#include "llk_math_common.h"
++#include "llk_math_eltwise_binary.h"
++
++void run_kernel()
++{
++    {
++        ZONE_SCOPED("INIT")
++        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        _llk_math_hw_configure_<>(MATH_FORMAT, MATH_FORMAT);
++        _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(TILE_NUM_FACES, false, false);
++        tensix_sync(); // -> perf
++    }
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        {
++            _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
++            _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(TILE_NUM_FACES, 0, false);
++            _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        }
++        tensix_sync(); // -> perf
++    }
++}
++
++#endif
++
++#ifdef LLK_TRISC_PACK
++
++#include "llk_pack.h"
++#include "llk_pack_common.h"
++
++void run_kernel()
++{
++    volatile uint32_t* const dst = reinterpret_cast<volatile uint32_t*>(0x1E000);
++    {
++        ZONE_SCOPED("INIT")
++        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, TILE_WIDTH * TILE_HEIGHT);
++        _llk_pack_init_<>(PACK_OUT);
++        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        tensix_sync(); // -> perf
++    }
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        {
++            _llk_packer_wait_for_math_done_();
++            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
++            _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        }
++        tensix_sync(); // -> perf
++    }
++}
++
++#endif
+

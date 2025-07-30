@@ -1,0 +1,301 @@
+PR #82: [Test Infra] Ensure Tensix Operations Complete Before Reading Results from L1 & Wait for Tensix Completion to Expose Hangs
+URL: https://github.com/tenstorrent/tt-llk/pull/82
+
+File: .gitignore
+@@ -13,3 +13,4 @@ compile_commands.json
+ .vscode/
+ *.log
+ *.csv
++*.whl
+
+File: tests/python_tests/helpers/__init__.py
+@@ -36,7 +36,7 @@
+     run_elf_files,
+     write_stimuli_to_l1,
+     get_result_from_device,
+-    assert_tensix_operations_finished,
++    wait_for_tensix_operations_finished,
+ )
+ from .param_config import (
+     generate_format_combinations,
+
+File: tests/python_tests/helpers/device.py
+@@ -131,23 +131,31 @@ def get_result_from_device(
+         raise ValueError(f"Unsupported format: {formats.pack_dst}")
+ 
+ 
+-def assert_value_with_timeout(core_loc, mailbox_addr, timeout=0, poll_interval=0.1):
+-    end_time = time.time() + timeout
++def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):
++    """
++    Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
+ 
+-    while time.time() < end_time:
+-        if read_word_from_device(core_loc, mailbox_addr) == 1:
+-            return True
+-        time.sleep(poll_interval)
++    Args:
++        core_loc: The location of the core to poll.
++        mailbox_addr: The mailbox address to read from.
++        timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds.
++        max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
++    """
++    start_time = time.time()
++    backoff = 0.1  # Initial backoff time in seconds
+ 
+-    # If the loop finishes without breaking, that means the condition was never true
+-    assert (
+-        read_word_from_device(core_loc, mailbox_addr) == 1
+-    ), f"Value at mailbox {hex(mailbox_addr)} was not 1 after waiting {timeout} seconds."
++    while time.time() - start_time < timeout:
++        if read_word_from_device(core_loc, mailbox_addr.value) == 1:
++            return
+ 
++        time.sleep(backoff)
++        backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
+ 
+-def assert_tensix_operations_finished(core_loc: str = "0,0"):
++    assert False, f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
+ 
+-    tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC]  # L1 Mailbox addresses
+-    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[0])
+-    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[1])
+-    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[2])
++
++def wait_for_tensix_operations_finished(core_loc: str = "0,0"):
++
++    wait_until_tensix_complete(core_loc, Mailbox.Packer)
++    wait_until_tensix_complete(core_loc, Mailbox.Math)
++    wait_until_tensix_complete(core_loc, Mailbox.Unpacker)
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -133,3 +133,9 @@ class TileCount(Enum):
+     Two = 2
+     Three = 3
+     Four = 4
++
++
++class Mailbox(Enum):
++    Unpacker = 0x19FFC
++    Math = 0x19FF8
++    Packer = 0x19FF4
+
+File: tests/python_tests/pytest.ini
+@@ -1,6 +1,8 @@
+ [pytest]
+ filterwarnings =
+     ignore::UserWarning
++    ignore::DeprecationWarning
++    ignore::FutureWarning
+ addopts = -v --tb=no
+ python_files = test_*.py
+ python_functions = test
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -81,15 +81,13 @@ def test_unary_datacopy(testname, formats, dest_acc):
+     run_shell_command(f"cd .. && {make_cmd}")
+     run_elf_files(testname)
+ 
+-    # JUST PASS formats
++    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+-    run_shell_command("cd .. && make clean")
+-
+     assert len(res_from_L1) == len(golden)
+-    assert_tensix_operations_finished()
++    run_shell_command("cd .. && make clean")
+ 
+     if formats.pack_dst in format_dict:
+         atol = 0.05
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -76,14 +76,12 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+     run_shell_command(f"cd .. && {make_cmd}")
+     run_elf_files(testname)
+ 
++    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(
+         formats, sfpu=True
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+-
+-    run_shell_command("cd .. && make clean")
+-
+     assert len(res_from_L1) == len(golden)
+-    assert_tensix_operations_finished()
++    run_shell_command("cd .. && make clean")
+ 
+     golden_tensor = torch.tensor(
+         golden,
+
+File: tests/python_tests/test_fill_dest.py
+@@ -79,16 +79,15 @@ def test_fill_dest(testname, formats, dest_acc):
+ 
+     run_shell_command("cd .. && make clean")
+ 
++    wait_for_tensix_operations_finished()
+     res_from_L1 = []
+-
+     for address in pack_addresses:
+         res_from_L1.append(
+             collect_results(formats, address)
+         )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     res_from_L1 = flatten_list(res_from_L1)
+ 
+     assert len(res_from_L1) == len(golden)
+-    assert_tensix_operations_finished()
+ 
+     golden_tensor = torch.tensor(
+         golden,
+
+File: tests/python_tests/test_matmul.py
+@@ -69,13 +69,12 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
+ 
+     run_elf_files(testname)
+ 
++    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+-    run_shell_command("cd .. && make clean")
+-
+     assert len(res_from_L1) == len(golden_tensor)
+-    assert_tensix_operations_finished()
++    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -106,11 +106,10 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
++    wait_for_tensix_operations_finished()
+ 
+     run_shell_command("cd .. && make clean")
+ 
+-    assert_tensix_operations_finished()
+-
+     # check resluts from multiple tiles
+     res_from_L1 = []
+ 
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -48,14 +48,13 @@ def test_pack_untilize(testname, formats):
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
++    wait_for_tensix_operations_finished()
+ 
+     res_from_L1 = collect_results(
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+-    run_shell_command("cd .. && make clean")
+-
+     assert len(res_from_L1) == len(golden_tensor)
+-    assert_tensix_operations_finished()
++    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_reduce.py
+@@ -110,15 +110,13 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
++    wait_for_tensix_operations_finished()
+ 
+     res_from_L1 = collect_results(
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+-
+-    run_shell_command("cd .. && make clean")
+-
+     assert len(res_from_L1) == len(golden_tensor)
+-    assert_tensix_operations_finished()
++    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -71,6 +71,7 @@ def test_all(testname, formats, dest_acc, mathop):
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
++    wait_for_tensix_operations_finished()
+ 
+     res_from_L1 = collect_results(
+         formats
+@@ -80,8 +81,6 @@ def test_all(testname, formats, dest_acc, mathop):
+ 
+     run_shell_command("cd .. && make clean")
+ 
+-    assert_tensix_operations_finished()
+-
+     if formats.pack_dst in [
+         DataFormat.Float16_b,
+         DataFormat.Float16,
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -95,12 +95,14 @@ def test_tilize_calculate_untilize_L1(
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
++    wait_for_tensix_operations_finished()
+ 
+     res_from_L1 = collect_results(
+         formats, 0x1E000
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     assert len(res_from_L1) == len(golden_tensor)
+-    assert_tensix_operations_finished()
++
++    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -38,15 +38,13 @@ def test_unpack_tilize(testname, formats):
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
++    wait_for_tensix_operations_finished()
+ 
+     res_from_L1 = collect_results(
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+-
+-    run_shell_command("cd .. && make clean")
+-
+     assert len(res_from_L1) == len(golden_tensor)
+-    assert_tensix_operations_finished()
++    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -41,15 +41,12 @@ def test_unpack_untilze(testname, formats):
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
+-
++    wait_for_tensix_operations_finished()
+     res_from_L1 = collect_results(
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+-
+-    run_shell_command("cd .. && make clean")
+-
+     assert len(res_from_L1) == len(golden_tensor)
+-    assert_tensix_operations_finished()
++    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+

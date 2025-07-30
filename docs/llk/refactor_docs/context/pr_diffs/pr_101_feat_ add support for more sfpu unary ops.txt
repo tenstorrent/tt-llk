@@ -1,0 +1,326 @@
+PR #101: feat: add support for more sfpu unary ops
+URL: https://github.com/tenstorrent/tt-llk/pull/101
+
+File: tests/firmware/riscv/common/llk_sfpu_types.h
+@@ -29,7 +29,7 @@ enum class SfpuType
+     clamp,
+     gelu_derivative,
+     dropout,
+-    // abs,
++    abs,
+     sign,
+     max,
+     sine,
+
+File: tests/helpers/include/params.h
+@@ -218,6 +218,18 @@ constexpr auto SFPU_OPERATION = SfpuType::log;
+ #ifdef SFPU_OP_SQUARE
+ constexpr auto SFPU_OPERATION = SfpuType::square;
+ #endif
++#ifdef SFPU_OP_SINE
++constexpr auto SFPU_OPERATION = SfpuType::sine;
++#endif
++#ifdef SFPU_OP_COSINE
++constexpr auto SFPU_OPERATION = SfpuType::cosine;
++#endif
++#ifdef SFPU_OP_ABS
++constexpr auto SFPU_OPERATION = SfpuType::abs;
++#endif
++#ifdef SFPU_OP_RECIPROCAL
++constexpr auto SFPU_OPERATION = SfpuType::reciprocal;
++#endif
+ 
+ inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
+ {
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -82,9 +82,13 @@ class MathOperation(Enum):
+     Elwadd = "ELTWISE_BINARY_ADD"
+     Elwsub = "ELTWISE_BINARY_SUB"
+     Elwmul = "ELTWISE_BINARY_MUL"
++    Abs = "SFPU_OP_ABS"
+     Sqrt = "SFPU_OP_SQRT"
+     Square = "SFPU_OP_SQUARE"
+     Log = "SFPU_OP_LOG"
++    Sin = "SFPU_OP_SINE"
++    Cos = "SFPU_OP_COSINE"
++    Reciprocal = "SFPU_OP_RECIPROCAL"
+     ReduceColumn = "REDUCE_COL_OPERATION"
+     ReduceRow = "REDUCE_ROW_OPERATION"
+     ReduceScalar = "REDUCE_SCALAR_OPERATION"
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -37,9 +37,13 @@ def generate_golden(operation, operand1, data_format):
+         .to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
+     )
+     ops = {
++        MathOperation.Abs: lambda x: abs(x),
++        MathOperation.Cos: lambda x: math.cos(x),
++        MathOperation.Log: lambda x: math.log(x) if x != 0 else float("nan"),
++        MathOperation.Reciprocal: lambda x: 1 / x if x != 0 else float("nan"),
++        MathOperation.Sin: lambda x: math.sin(x),
+         MathOperation.Sqrt: lambda x: math.sqrt(x),
+         MathOperation.Square: lambda x: x * x,
+-        MathOperation.Log: lambda x: math.log(x) if x != 0 else float("nan"),
+     }
+     if operation not in ops:
+         raise ValueError("Unsupported operation!")
+@@ -72,7 +76,15 @@ def generate_golden(operation, operand1, data_format):
+     test_formats,
+     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+-    mathop=[MathOperation.Sqrt, MathOperation.Log, MathOperation.Square],
++    mathop=[
++        MathOperation.Abs,
++        MathOperation.Cos,
++        MathOperation.Log,
++        MathOperation.Reciprocal,
++        MathOperation.Sin,
++        MathOperation.Sqrt,
++        MathOperation.Square,
++    ],
+ )
+ param_ids = generate_param_ids(all_params)
+ 
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -35,9 +35,9 @@ def generate_golden(operation, operand1, operand2, data_format):
+     )
+ 
+     operations = {
+-        "elwadd": tensor1_float + tensor2_float,
+-        "elwsub": tensor1_float - tensor2_float,
+-        "elwmul": tensor1_float * tensor2_float,
++        MathOperation.Elwadd: tensor1_float + tensor2_float,
++        MathOperation.Elwsub: tensor1_float - tensor2_float,
++        MathOperation.Elwmul: tensor1_float * tensor2_float,
+     }
+ 
+     if operation not in operations:
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -48,14 +48,27 @@ void call_sfpu_operation(SfpuType operation)
+ {
+     switch (operation)
+     {
+-        case SfpuType::sqrt:
+-            ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
+-            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, 10>(10);
++        case SfpuType::abs:
++            ckernel::sfpu::_calculate_abs_<APPROX_MODE, 10>(10);
++            break;
++        case SfpuType::cosine:
++            ckernel::sfpu::_calculate_cosine_<APPROX_MODE, 10>();
+             break;
+         case SfpuType::log:
+             ckernel::sfpu::_init_log_<APPROX_MODE>();
+             ckernel::sfpu::_calculate_log_<APPROX_MODE, false, 10>(10, 0);
+             break;
++        case SfpuType::reciprocal:
++            ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, 10, is_fp32_dest_acc_en>(10);
++            break;
++        case SfpuType::sine:
++            ckernel::sfpu::_calculate_sine_<APPROX_MODE, 10>();
++            break;
++        case SfpuType::sqrt:
++            ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, 10>(10);
++            break;
+         case SfpuType::square:
+             ckernel::sfpu::_calculate_square_<APPROX_MODE, 10>(10);
+             break;
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h
+@@ -11,6 +11,30 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
++namespace
++{
++constexpr double FRAC_1_PI = 0.3183098861837907;
++
++template <bool APPROXIMATION_MODE>
++static sfpi::vFloat sfpu_sinpi(sfpi::vFloat x);
++
++template <>
++sfpi_inline sfpi::vFloat sfpu_sinpi<true>(sfpi::vFloat x)
++{
++    sfpi::vFloat xx = x * x;
++
++    return x * ((0x1.29cf02p+1f * xx - 0x1.4954d4p+2f) * xx + 0x1.92149p+1f);
++}
++
++template <>
++sfpi_inline sfpi::vFloat sfpu_sinpi<false>(sfpi::vFloat x)
++{
++    sfpi::vFloat xx = x * x;
++
++    return x * ((((0x1.406628p-4f * xx - 0x9.93f86p-4f) * xx + 0x2.8cd64p+0f) * xx - 0x5.2aef6p+0f) * xx + 0x3.243f6cp+0f);
++}
++} // namespace
++
+ template <bool APPROXIMATION_MODE>
+ sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
+ {
+@@ -72,6 +96,8 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
+     return output;
+ }
+ 
++// Legacy implementation, replaced by newer void _calculate_sine_() which produces more accurate results
++// Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _calculate_sine_(const int iterations)
+ {
+@@ -97,6 +123,8 @@ inline void _calculate_sine_(const int iterations)
+     }
+ }
+ 
++// Legacy implementation, replaced by newer void _calculate_sine_() which produces more accurate results
++// Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _calculate_cosine_(const int iterations)
+ {
+@@ -122,5 +150,47 @@ inline void _calculate_cosine_(const int iterations)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_sine_()
++{
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v     = sfpi::dst_reg[0] * FRAC_1_PI;
++        sfpi::vInt whole_v = float_to_int16(v, 0);
++        v -= int32_to_float(whole_v, 0);
++        v = sfpu_sinpi<APPROXIMATION_MODE>(v);
++
++        v_if (whole_v & 1)
++        {
++            v = -v;
++        }
++        v_endif;
++        sfpi::dst_reg[0] = v;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_cosine_()
++{
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v     = sfpi::dst_reg[0] * FRAC_1_PI + 0.5f;
++        sfpi::vInt whole_v = float_to_int16(v, 0);
++        v -= int32_to_float(whole_v, 0);
++        v = sfpu_sinpi<APPROXIMATION_MODE>(v);
++
++        v_if (whole_v & 1)
++        {
++            v = -v;
++        }
++        v_endif;
++        sfpi::dst_reg[0] = v;
++        sfpi::dst_reg++;
++    }
++}
++
+ } // namespace sfpu
+ } // namespace ckernel
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_trigonometry.h
+@@ -11,6 +11,30 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
++namespace
++{
++constexpr double FRAC_1_PI = 0.3183098861837907;
++
++template <bool APPROXIMATION_MODE>
++static sfpi::vFloat sfpu_sinpi(sfpi::vFloat x);
++
++template <>
++sfpi_inline sfpi::vFloat sfpu_sinpi<true>(sfpi::vFloat x)
++{
++    sfpi::vFloat xx = x * x;
++
++    return x * ((0x1.29cf02p+1f * xx - 0x1.4954d4p+2f) * xx + 0x1.92149p+1f);
++}
++
++template <>
++sfpi_inline sfpi::vFloat sfpu_sinpi<false>(sfpi::vFloat x)
++{
++    sfpi::vFloat xx = x * x;
++
++    return x * ((((0x1.406628p-4f * xx - 0x9.93f86p-4f) * xx + 0x2.8cd64p+0f) * xx - 0x5.2aef6p+0f) * xx + 0x3.243f6cp+0f);
++}
++} // namespace
++
+ template <bool APPROXIMATION_MODE>
+ sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
+ {
+@@ -72,6 +96,8 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
+     return output;
+ }
+ 
++// Legacy implementation, replaced by newer void _calculate_sine_() which produces more accurate results
++// Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _calculate_sine_(const int iterations)
+ {
+@@ -97,6 +123,8 @@ inline void _calculate_sine_(const int iterations)
+     }
+ }
+ 
++// Legacy implementation, replaced by newer void _calculate_sine_() which produces more accurate results
++// Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _calculate_cosine_(const int iterations)
+ {
+@@ -122,5 +150,42 @@ inline void _calculate_cosine_(const int iterations)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_sine_()
++{
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v     = sfpi::dst_reg[0] * FRAC_1_PI;
++        sfpi::vInt whole_v = float_to_int16(v, 0);
++        v -= int32_to_float(whole_v, 0);
++        v = sfpu_sinpi<APPROXIMATION_MODE>(v);
++
++        v_if (whole_v & 1)
++        {
++            v = -v;
++        }
++        v_endif;
++        sfpi::dst_reg[0] = v;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_cosine_()
++{
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v     = sfpi::dst_reg[0] * FRAC_1_PI + 0.5f;
++        sfpi::vInt whole_v = float_to_int16(v, 0);
++        v -= int32_to_float(whole_v, 0);
++        v = sfpu_sinpi<APPROXIMATION_MODE>(v);
++
++        sfpi::dst_reg[0] = v;
++        sfpi::dst_reg++;
++    }
++}
++
+ } // namespace sfpu
+ } // namespace ckernel
+

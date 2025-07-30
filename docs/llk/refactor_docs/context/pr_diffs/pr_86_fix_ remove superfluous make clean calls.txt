@@ -1,0 +1,117 @@
+PR #86: fix: remove superfluous make clean calls
+URL: https://github.com/tenstorrent/tt-llk/pull/86
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -87,7 +87,6 @@ def test_unary_datacopy(testname, formats, dest_acc):
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+     assert len(res_from_L1) == len(golden)
+-    run_shell_command("cd .. && make clean")
+ 
+     if formats.pack_dst in format_dict:
+         atol = 0.05
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -81,7 +81,6 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         formats, sfpu=True
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     assert len(res_from_L1) == len(golden)
+-    run_shell_command("cd .. && make clean")
+ 
+     golden_tensor = torch.tensor(
+         golden,
+
+File: tests/python_tests/test_fill_dest.py
+@@ -77,8 +77,6 @@ def test_fill_dest(testname, formats, dest_acc):
+ 
+     run_elf_files(testname)
+ 
+-    run_shell_command("cd .. && make clean")
+-
+     wait_for_tensix_operations_finished()
+     res_from_L1 = []
+     for address in pack_addresses:
+
+File: tests/python_tests/test_matmul.py
+@@ -74,7 +74,6 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     assert len(res_from_L1) == len(golden_tensor)
+-    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -108,8 +108,6 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
+     run_elf_files(testname)
+     wait_for_tensix_operations_finished()
+ 
+-    run_shell_command("cd .. && make clean")
+-
+     # check resluts from multiple tiles
+     res_from_L1 = []
+ 
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -54,7 +54,6 @@ def test_pack_untilize(testname, formats):
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     assert len(res_from_L1) == len(golden_tensor)
+-    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_reduce.py
+@@ -116,7 +116,6 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     assert len(res_from_L1) == len(golden_tensor)
+-    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -79,8 +79,6 @@ def test_all(testname, formats, dest_acc, mathop):
+ 
+     assert len(res_from_L1) == len(golden)
+ 
+-    run_shell_command("cd .. && make clean")
+-
+     if formats.pack_dst in [
+         DataFormat.Float16_b,
+         DataFormat.Float16,
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -102,8 +102,6 @@ def test_tilize_calculate_untilize_L1(
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+-    run_shell_command("cd .. && make clean")
+-
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -44,7 +44,6 @@ def test_unpack_tilize(testname, formats):
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     assert len(res_from_L1) == len(golden_tensor)
+-    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -46,7 +46,6 @@ def test_unpack_untilze(testname, formats):
+         formats
+     )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     assert len(res_from_L1) == len(golden_tensor)
+-    run_shell_command("cd .. && make clean")
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+

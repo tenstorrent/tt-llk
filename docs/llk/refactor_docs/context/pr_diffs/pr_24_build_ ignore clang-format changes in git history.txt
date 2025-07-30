@@ -1,0 +1,8 @@
+PR #24: build: ignore clang-format changes in git history
+URL: https://github.com/tenstorrent/tt-llk/pull/24
+
+File: .git-blame-ignore-revs
+@@ -0,0 +1,2 @@
++#clang-format & other pre-commit checks
++7e81cb9587bc68598ed07f2d3c2eeeaa1947bb84
+

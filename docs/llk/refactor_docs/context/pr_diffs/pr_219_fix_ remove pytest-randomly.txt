@@ -1,0 +1,12 @@
+PR #219: fix: remove pytest-randomly
+URL: https://github.com/tenstorrent/tt-llk/pull/219
+
+File: tests/requirements.txt
+@@ -1,6 +1,5 @@
+ numpy==2.2.5
+ pytest-cov==6.1.1
+-pytest-randomly==3.16.0
+ pytest-repeat==0.9.4
+ pytest-split==0.10.0
+ pytest-sugar==1.0.0
+

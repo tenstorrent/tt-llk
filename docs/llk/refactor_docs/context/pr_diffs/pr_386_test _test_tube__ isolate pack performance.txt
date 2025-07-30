@@ -1,0 +1,146 @@
+PR #386: test :test_tube:: isolate pack performance
+URL: https://github.com/tenstorrent/tt-llk/pull/386
+
+File: tests/python_tests/helpers/perf.py
+@@ -86,24 +86,6 @@ def timing_l1_congestion(perf_data: PerfData) -> int:
+     )
+ 
+ 
+-RUN_COUNT = 8
+-
+-
+-def _build_l1_to_l1(test_config):
+-    test_config["perf_run_type"] = PerfRunType.L1_TO_L1
+-    return build_with_profiler(test_config)
+-
+-
+-def _build_unpack_isolate(test_config):
+-    test_config["perf_run_type"] = PerfRunType.UNPACK_ISOLATE
+-    return build_with_profiler(test_config)
+-
+-
+-def _build_math_isolate(test_config):
+-    test_config["perf_run_type"] = PerfRunType.MATH_ISOLATE
+-    return build_with_profiler(test_config)
+-
+-
+ def process_runs(runs, test_config):
+     tile_cnt = test_config.get("tile_cnt", 1)
+ 
+@@ -124,25 +106,29 @@ class PerfRunType(Enum):
+     L1_CONGESTION = 5
+ 
+ 
++RUN_COUNT = 8
++
++
+ def perf_benchmark(test_config, run_types: list[PerfRunType]):
+     # todo: support all types of runs
+     RUN_CONFIGURATIONS = {
+-        PerfRunType.L1_TO_L1: (_build_l1_to_l1, timing_l1_to_l1),
+-        PerfRunType.UNPACK_ISOLATE: (_build_unpack_isolate, timing_unpack),
+-        PerfRunType.MATH_ISOLATE: (_build_math_isolate, timing_math),
++        PerfRunType.L1_TO_L1: timing_l1_to_l1,
++        PerfRunType.UNPACK_ISOLATE: timing_unpack,
++        PerfRunType.MATH_ISOLATE: timing_math,
++        PerfRunType.PACK_ISOLATE: timing_pack,
+         # Add new run types here as they're implemented:
+-        # PerfRunType.PACK_ISOLATE: (_build_pack_isolate, timing_pack),
+-        # PerfRunType.L1_CONGESTION: (_build_l1_congestion, timing_l1_congestion),
++        # PerfRunType.L1_CONGESTION: timing_l1_congestion,
+     }
+     SUPPORTED_RUNS = RUN_CONFIGURATIONS.keys()
+ 
+     results = {}
+ 
+     for type in run_types:
+         assert type in SUPPORTED_RUNS, f"ERROR: run_type={type} not implemented"
+-        build, get_timing = RUN_CONFIGURATIONS[type]
++        get_timing = RUN_CONFIGURATIONS[type]
+ 
+-        profiler_meta = build(test_config)
++        test_config["perf_run_type"] = type
++        profiler_meta = build_with_profiler(test_config)
+ 
+         runs = []
+         for _ in range(RUN_COUNT):
+
+File: tests/python_tests/perf_eltwise_binary_fpu.py
+@@ -47,6 +47,7 @@ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidel
+         PerfRunType.L1_TO_L1,
+         PerfRunType.UNPACK_ISOLATE,
+         PerfRunType.MATH_ISOLATE,
++        PerfRunType.PACK_ISOLATE,
+     ]
+ 
+     # MathFidelity is only used for Elwmul
+
+File: tests/sources/eltwise_binary_fpu_perf.cpp
+@@ -37,14 +37,20 @@ void run_kernel()
+     }
+     {
+         ZONE_SCOPED("TILE_LOOP")
+-        if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
++        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
++        {
++            return;
++        }
++        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+         {
+             return _perf_unpack_loop_set_valid<true, true>(TILE_CNT * TILE_NUM_FACES);
+         }
+-
+-        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        else
+         {
+-            _llk_unpack_AB_<>(L1_ADDRESS(src_a + (tile % 8) * 0x1000), L1_ADDRESS(src_b + (tile % 8) * 0x1000), false);
++            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++            {
++                _llk_unpack_AB_<>(L1_ADDRESS(src_a + (tile % 8) * 0x1000), L1_ADDRESS(src_b + (tile % 8) * 0x1000), false);
++            }
+         }
+         tensix_sync(); // -> perf
+     }
+@@ -68,7 +74,11 @@ void run_kernel()
+     }
+     {
+         ZONE_SCOPED("TILE_LOOP")
+-        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
++        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
++        {
++            return;
++        }
++        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
+         {
+             return _perf_math_loop_clear_valid<true, true>(TILE_CNT * TILE_NUM_FACES);
+         }
+@@ -117,14 +127,22 @@ void run_kernel()
+         {
+             return;
+         }
+-
+-        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
+         {
+-            _llk_packer_wait_for_math_done_();
+-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
+-            _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++            {
++                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
++            }
++        }
++        else
++        {
++            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++            {
++                _llk_packer_wait_for_math_done_();
++                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
++                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++            }
+         }
+-
+         tensix_sync(); // -> perf
+     }
+ }
+

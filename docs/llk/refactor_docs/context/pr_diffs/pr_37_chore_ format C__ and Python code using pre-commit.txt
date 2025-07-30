@@ -1,0 +1,3486 @@
+PR #37: chore: format C++ and Python code using pre-commit
+URL: https://github.com/tenstorrent/tt-llk/pull/37
+
+File: tests/firmware/riscv/blackhole/l1_address_map.h
+@@ -8,152 +8,160 @@
+ // Aux variable used to align addresses to platform specific width. BH requires 64B alignment.
+ #define NOC_ADDRESS_ALIGNMENT (64)
+ 
+-namespace l1_mem {
+-
+-struct mailbox_type {
+-  constexpr static int TRISC0 = 0;
+-  constexpr static int TRISC1 = 1;
+-  constexpr static int TRISC2 = 2;
+-  constexpr static int NCRISC = 3;
+-  constexpr static int BRISC  = 4;
++namespace l1_mem
++{
++
++struct mailbox_type
++{
++    constexpr static int TRISC0 = 0;
++    constexpr static int TRISC1 = 1;
++    constexpr static int TRISC2 = 2;
++    constexpr static int NCRISC = 3;
++    constexpr static int BRISC  = 4;
+ };
+ 
+-struct address_map {
+-  // Sizes
+-  static constexpr std::uint32_t FIRMWARE_SIZE = 20 * 1024;          // 20KB = 7KB + 1KB zeros + 12KB perf buffers
+-  static constexpr std::uint32_t L1_BARRIER_SIZE = 0x20; // 32 bytes reserved for L1 Barrier
+-  static constexpr std::uint32_t BRISC_FIRMWARE_SIZE = 7*1024 + 512 + 768; // Taking an extra 768B from perf buffer space
+-  static constexpr std::uint32_t ZEROS_SIZE = 512;
+-  static constexpr std::uint32_t NCRISC_FIRMWARE_SIZE = 32 * 1024;        // 16KB in L0, 16KB in L1
+-  static constexpr std::uint32_t TRISC0_SIZE = 20 * 1024;        // 20KB = 16KB + 4KB local memory
+-  static constexpr std::uint32_t TRISC1_SIZE = 16 * 1024;        // 16KB = 12KB + 4KB local memory
+-  static constexpr std::uint32_t TRISC2_SIZE = 20 * 1024;        // 20KB = 16KB + 4KB local memory
+-  static constexpr std::uint32_t TRISC_LOCAL_MEM_SIZE = 4 * 1024;      //
+-  static constexpr std::uint32_t NCRISC_LOCAL_MEM_SIZE = 4 * 1024;     //
+-  static constexpr std::uint32_t NCRISC_L1_SCRATCH_SIZE = 4 * 1024;     //
+-  static constexpr std::uint32_t NCRISC_L1_CODE_SIZE = 16*1024;      // Size of code block that is L1 resident
+-  static constexpr std::uint32_t NCRISC_IRAM_CODE_SIZE = 16*1024;    // Size of code block that is IRAM resident
+-  static constexpr std::uint32_t NCRISC_DATA_SIZE = 4 * 1024;        // 4KB
+-  static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_SIZE = 128;      //
+-  static constexpr std::uint32_t OVERLAY_BLOB_SIZE = (64 * 1024) - EPOCH_RUNTIME_CONFIG_SIZE;
+-  static constexpr std::uint32_t TILE_HEADER_BUF_SIZE = 32 * 1024;     //
+-  static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_SIZE = 32;
+-  static constexpr std::uint32_t FW_L1_BLOCK_SIZE = FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
+-
+-  // Base addresses
+-  static constexpr std::uint32_t FIRMWARE_BASE = 0;
+-  static constexpr std::uint32_t L1_BARRIER_BASE = 0x16dfc0;
+-  static constexpr std::uint32_t ZEROS_BASE = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE;
+-  static constexpr std::uint32_t NCRISC_FIRMWARE_BASE = FIRMWARE_BASE + FIRMWARE_SIZE;
+-  static constexpr std::uint32_t NCRISC_L1_CODE_BASE =  NCRISC_FIRMWARE_BASE + NCRISC_IRAM_CODE_SIZE;
+-  static constexpr std::uint32_t NCRISC_LOCAL_MEM_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE - NCRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+-
+-  static constexpr std::uint32_t TRISC_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
+-  static constexpr std::uint32_t TRISC0_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
+-  static constexpr std::uint32_t TRISC0_LOCAL_MEM_BASE = TRISC0_BASE + TRISC0_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+-  static constexpr std::uint32_t TRISC1_BASE = TRISC0_BASE + TRISC0_SIZE;
+-  static constexpr std::uint32_t TRISC1_LOCAL_MEM_BASE = TRISC1_BASE + TRISC1_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+-  static constexpr std::uint32_t TRISC2_BASE = TRISC1_BASE + TRISC1_SIZE;
+-  static constexpr std::uint32_t TRISC2_LOCAL_MEM_BASE = TRISC2_BASE + TRISC2_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+-  static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_BASE = TRISC2_BASE + TRISC2_SIZE + TILE_HEADER_BUF_SIZE;
+-  static constexpr std::uint32_t OVERLAY_BLOB_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE;
+-
+-  // MT: For Blackhole, this needs to be moved down at the expense of the data buffer
+-  static constexpr std::uint32_t NCRISC_L1_RUNTIME_SECTION_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE + OVERLAY_BLOB_SIZE;
+-  static constexpr std::uint32_t NCRISC_L1_RUNTIME_SECTION_SIZE = 16*1024;
+-  static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + 0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
+-  static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
+-  static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + 0x40;
+-  static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_SIZE = 8 * 8; // Half of this value must be 32B aligned
+-  static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_ADDR = NCRISC_L1_RUNTIME_SECTION_BASE + NCRISC_L1_SCRATCH_SIZE; // L1 Performance Buffer used by NCRISC
+-  static constexpr std::uint32_t NCRISC_L1_PERF_BUF_BASE = NCRISC_PERF_QUEUE_HEADER_ADDR + NCRISC_PERF_QUEUE_HEADER_SIZE; // L1 Performance Buffer used by NCRISC
+-  static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
+-  static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_1 = 4*1024 - NCRISC_PERF_QUEUE_HEADER_SIZE; // NCRISC performance buffer
+-  static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_BASE = NCRISC_L1_PERF_BUF_BASE + NCRISC_PERF_BUF_SIZE_LEVEL_1; // Epoch Q start in L1.
+-
+-  static constexpr std::uint32_t DATA_BUFFER_SPACE_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + NCRISC_L1_RUNTIME_SECTION_SIZE;
+-
+-  static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(TRISC0_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(TRISC2_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(EPOCH_RUNTIME_CONFIG_BASE % NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(OVERLAY_BLOB_BASE % NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(DATA_BUFFER_SPACE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "DATA_BUFFER_SPACE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(L1_BARRIER_BASE % NOC_ADDRESS_ALIGNMENT == 0, "L1_BARRIER_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  
+-  // Trisc Mailboxes
+-  static constexpr std::uint32_t TRISC_L1_MAILBOX_OFFSET = 4;
+-  static constexpr std::uint32_t BRISC_L1_MAILBOX_OFFSET = 4;
+-  static constexpr std::uint32_t NRISC_L1_MAILBOX_OFFSET = 4;
+-
+-  static constexpr std::uint32_t TRISC0_MAILBOX_BASE = TRISC0_BASE + TRISC_L1_MAILBOX_OFFSET;
+-  static constexpr std::uint32_t TRISC1_MAILBOX_BASE = TRISC1_BASE + TRISC_L1_MAILBOX_OFFSET;
+-  static constexpr std::uint32_t TRISC2_MAILBOX_BASE = TRISC2_BASE + TRISC_L1_MAILBOX_OFFSET;
+-
+-  static constexpr std::uint32_t FW_MAILBOX_BASE         = 32;
+-  static constexpr std::uint32_t DEBUG_MAILBOX_BUF_BASE  = 112;
+-
+-  static constexpr std::uint32_t FW_MAILBOX_BUF_SIZE     = 64;
+-  static constexpr std::uint32_t DEBUG_MAILBOX_BUF_SIZE  = 64; // For each T0/T1/T2/FW
+-
+-  // Upper 2KB of local space is used as debug buffer
+-  static constexpr std::uint32_t DEBUG_BUFFER_SIZE  = 2 * 1024;
+-  static constexpr std::uint32_t TRISC0_DEBUG_BUFFER_BASE  = TRISC0_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
+-  static constexpr std::uint32_t TRISC1_DEBUG_BUFFER_BASE  = TRISC1_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
+-  static constexpr std::uint32_t TRISC2_DEBUG_BUFFER_BASE  = TRISC2_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
+-
+-  static constexpr std::uint32_t MAX_SIZE = 1499136;
+-  static constexpr std::uint32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
+-
+-  static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
+-                                                                   // As part of the init risc firmware will copy local memory data from
+-                                                                   // l1 locations listed above into internal local memory that starts
+-                                                                   // at RISC_LOCAL_MEM_BASE address
+-
+-  static constexpr std::uint32_t NCRISC_IRAM_MEM_BASE = 0xffc00000; // NCRISC instruction RAM base address
+-  static constexpr std::uint32_t NCRISC_HAS_IRAM = 0;
+-
+-  // Perf buffer (FIXME - update once location of the perf data buffer is finalized)
+-  // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
+-  static constexpr std::uint32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
+-
+-  // This value must be equal to the sum of all all the subsequent sizes in this section
+-  static constexpr std::uint32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
+-  // Queue header below is used for the concurrent performance trace
+-  static constexpr std::uint32_t PERF_QUEUE_HEADER_SIZE = 16;
+-  // Input and output overlay decoupling masks
+-  static constexpr std::uint32_t PERF_RISC_MAILBOX_SIZE = 8;
+-  // Signal to ncrisc that the performance buffer has been drained.
+-  static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_SIZE = 4;
+-  // Signal to all cores within a chip that the epoch comamnd for all cores has been sent;
+-  static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
+-  static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
+-  static constexpr std::uint32_t PERF_UNUSED_SIZE = 24;
+-
+-  static constexpr std::uint32_t MATH_PERF_BUF_SIZE = 64;
+-  static constexpr std::uint32_t BRISC_PERF_BUF_SIZE = 640; // Half of this value must be 32B aligned
+-  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
+-  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 = (12 * 1024 - 768)/2 - MATH_PERF_BUF_SIZE/2 - (PERF_TOTAL_SETUP_BUFFER_SIZE)/2 - BRISC_PERF_BUF_SIZE/2;
+-
+-  static constexpr std::uint32_t PERF_QUEUE_HEADER_ADDR = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE + ZEROS_SIZE;
+-  static constexpr std::uint32_t PERF_RISC_MAILBOX_ADDR = PERF_QUEUE_HEADER_ADDR + PERF_QUEUE_HEADER_SIZE;
+-  static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_ADDR = PERF_RISC_MAILBOX_ADDR + PERF_RISC_MAILBOX_SIZE;
+-  static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_ADDR = PERF_RESET_PTR_MAILBOX_ADDR + PERF_RESET_PTR_MAILBOX_SIZE;
+-  static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_ADDR = PERF_ANALYZER_COMMAND_START_PTR_ADDR + PERF_ANALYZER_COMMAND_START_PTR_SIZE;
+-  static constexpr std::uint32_t BRISC_PERF_BUF_BASE_ADDR = PERF_ANALYZER_COMMAND_START_VAL_SIZE + PERF_UNUSED_SIZE + PERF_ANALYZER_COMMAND_START_VAL_ADDR;
+-  static constexpr std::uint32_t MATH_PERF_BUF_BASE_ADDR = BRISC_PERF_BUF_BASE_ADDR + BRISC_PERF_BUF_SIZE;
+-  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_BASE_ADDR = MATH_PERF_BUF_BASE_ADDR + MATH_PERF_BUF_SIZE;
+-  static constexpr std::int32_t PERF_NUM_THREADS = 5;
+-
+-  static constexpr std::uint32_t PERF_QUEUE_PTRS = PERF_QUEUE_HEADER_ADDR;
+-  static constexpr std::uint32_t PERF_THREAD_HEADER = PERF_QUEUE_PTRS + 8;
+-  static constexpr std::uint32_t PERF_WR_PTR_COPY = PERF_QUEUE_PTRS + 12;
+-
+-  static constexpr std::uint32_t WALL_CLOCK_L = 0xFFB121F0;
+-  static constexpr std::uint32_t WALL_CLOCK_H = 0xFFB121F8;
+-
++struct address_map
++{
++    // Sizes
++    static constexpr std::uint32_t FIRMWARE_SIZE             = 20 * 1024;            // 20KB = 7KB + 1KB zeros + 12KB perf buffers
++    static constexpr std::uint32_t L1_BARRIER_SIZE           = 0x20;                 // 32 bytes reserved for L1 Barrier
++    static constexpr std::uint32_t BRISC_FIRMWARE_SIZE       = 7 * 1024 + 512 + 768; // Taking an extra 768B from perf buffer space
++    static constexpr std::uint32_t ZEROS_SIZE                = 512;
++    static constexpr std::uint32_t NCRISC_FIRMWARE_SIZE      = 32 * 1024; // 16KB in L0, 16KB in L1
++    static constexpr std::uint32_t TRISC0_SIZE               = 20 * 1024; // 20KB = 16KB + 4KB local memory
++    static constexpr std::uint32_t TRISC1_SIZE               = 16 * 1024; // 16KB = 12KB + 4KB local memory
++    static constexpr std::uint32_t TRISC2_SIZE               = 20 * 1024; // 20KB = 16KB + 4KB local memory
++    static constexpr std::uint32_t TRISC_LOCAL_MEM_SIZE      = 4 * 1024;  //
++    static constexpr std::uint32_t NCRISC_LOCAL_MEM_SIZE     = 4 * 1024;  //
++    static constexpr std::uint32_t NCRISC_L1_SCRATCH_SIZE    = 4 * 1024;  //
++    static constexpr std::uint32_t NCRISC_L1_CODE_SIZE       = 16 * 1024; // Size of code block that is L1 resident
++    static constexpr std::uint32_t NCRISC_IRAM_CODE_SIZE     = 16 * 1024; // Size of code block that is IRAM resident
++    static constexpr std::uint32_t NCRISC_DATA_SIZE          = 4 * 1024;  // 4KB
++    static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_SIZE = 128;       //
++    static constexpr std::uint32_t OVERLAY_BLOB_SIZE         = (64 * 1024) - EPOCH_RUNTIME_CONFIG_SIZE;
++    static constexpr std::uint32_t TILE_HEADER_BUF_SIZE      = 32 * 1024; //
++    static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_SIZE    = 32;
++    static constexpr std::uint32_t FW_L1_BLOCK_SIZE =
++        FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
++
++    // Base addresses
++    static constexpr std::uint32_t FIRMWARE_BASE         = 0;
++    static constexpr std::uint32_t L1_BARRIER_BASE       = 0x16dfc0;
++    static constexpr std::uint32_t ZEROS_BASE            = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE;
++    static constexpr std::uint32_t NCRISC_FIRMWARE_BASE  = FIRMWARE_BASE + FIRMWARE_SIZE;
++    static constexpr std::uint32_t NCRISC_L1_CODE_BASE   = NCRISC_FIRMWARE_BASE + NCRISC_IRAM_CODE_SIZE;
++    static constexpr std::uint32_t NCRISC_LOCAL_MEM_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE - NCRISC_LOCAL_MEM_SIZE; // Copy of the local memory
++
++    static constexpr std::uint32_t TRISC_BASE                = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
++    static constexpr std::uint32_t TRISC0_BASE               = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
++    static constexpr std::uint32_t TRISC0_LOCAL_MEM_BASE     = TRISC0_BASE + TRISC0_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
++    static constexpr std::uint32_t TRISC1_BASE               = TRISC0_BASE + TRISC0_SIZE;
++    static constexpr std::uint32_t TRISC1_LOCAL_MEM_BASE     = TRISC1_BASE + TRISC1_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
++    static constexpr std::uint32_t TRISC2_BASE               = TRISC1_BASE + TRISC1_SIZE;
++    static constexpr std::uint32_t TRISC2_LOCAL_MEM_BASE     = TRISC2_BASE + TRISC2_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
++    static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_BASE = TRISC2_BASE + TRISC2_SIZE + TILE_HEADER_BUF_SIZE;
++    static constexpr std::uint32_t OVERLAY_BLOB_BASE         = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE;
++
++    // MT: For Blackhole, this needs to be moved down at the expense of the data buffer
++    static constexpr std::uint32_t NCRISC_L1_RUNTIME_SECTION_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE + OVERLAY_BLOB_SIZE;
++    static constexpr std::uint32_t NCRISC_L1_RUNTIME_SECTION_SIZE = 16 * 1024;
++    static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE =
++        NCRISC_L1_RUNTIME_SECTION_BASE +
++        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
++    static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE =
++        NCRISC_L1_RUNTIME_SECTION_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
++    static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + 0x40;
++    static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_SIZE    = 8 * 8; // Half of this value must be 32B aligned
++    static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_ADDR =
++        NCRISC_L1_RUNTIME_SECTION_BASE + NCRISC_L1_SCRATCH_SIZE; // L1 Performance Buffer used by NCRISC
++    static constexpr std::uint32_t NCRISC_L1_PERF_BUF_BASE =
++        NCRISC_PERF_QUEUE_HEADER_ADDR + NCRISC_PERF_QUEUE_HEADER_SIZE;                                      // L1 Performance Buffer used by NCRISC
++    static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_0 = 640;                                      // smaller buffer size for limited logging
++    static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_1 = 4 * 1024 - NCRISC_PERF_QUEUE_HEADER_SIZE; // NCRISC performance buffer
++    static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_BASE       = NCRISC_L1_PERF_BUF_BASE + NCRISC_PERF_BUF_SIZE_LEVEL_1; // Epoch Q start in L1.
++
++    static constexpr std::uint32_t DATA_BUFFER_SPACE_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + NCRISC_L1_RUNTIME_SECTION_SIZE;
++
++    static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(TRISC0_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(TRISC2_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(EPOCH_RUNTIME_CONFIG_BASE % NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(OVERLAY_BLOB_BASE % NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(DATA_BUFFER_SPACE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "DATA_BUFFER_SPACE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(L1_BARRIER_BASE % NOC_ADDRESS_ALIGNMENT == 0, "L1_BARRIER_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++
++    // Trisc Mailboxes
++    static constexpr std::uint32_t TRISC_L1_MAILBOX_OFFSET = 4;
++    static constexpr std::uint32_t BRISC_L1_MAILBOX_OFFSET = 4;
++    static constexpr std::uint32_t NRISC_L1_MAILBOX_OFFSET = 4;
++
++    static constexpr std::uint32_t TRISC0_MAILBOX_BASE = TRISC0_BASE + TRISC_L1_MAILBOX_OFFSET;
++    static constexpr std::uint32_t TRISC1_MAILBOX_BASE = TRISC1_BASE + TRISC_L1_MAILBOX_OFFSET;
++    static constexpr std::uint32_t TRISC2_MAILBOX_BASE = TRISC2_BASE + TRISC_L1_MAILBOX_OFFSET;
++
++    static constexpr std::uint32_t FW_MAILBOX_BASE        = 32;
++    static constexpr std::uint32_t DEBUG_MAILBOX_BUF_BASE = 112;
++
++    static constexpr std::uint32_t FW_MAILBOX_BUF_SIZE    = 64;
++    static constexpr std::uint32_t DEBUG_MAILBOX_BUF_SIZE = 64; // For each T0/T1/T2/FW
++
++    // Upper 2KB of local space is used as debug buffer
++    static constexpr std::uint32_t DEBUG_BUFFER_SIZE        = 2 * 1024;
++    static constexpr std::uint32_t TRISC0_DEBUG_BUFFER_BASE = TRISC0_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
++    static constexpr std::uint32_t TRISC1_DEBUG_BUFFER_BASE = TRISC1_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
++    static constexpr std::uint32_t TRISC2_DEBUG_BUFFER_BASE = TRISC2_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
++
++    static constexpr std::uint32_t MAX_SIZE            = 1499136;
++    static constexpr std::uint32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
++
++    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
++                                                                     // As part of the init risc firmware will copy local memory data from
++                                                                     // l1 locations listed above into internal local memory that starts
++                                                                     // at RISC_LOCAL_MEM_BASE address
++
++    static constexpr std::uint32_t NCRISC_IRAM_MEM_BASE = 0xffc00000; // NCRISC instruction RAM base address
++    static constexpr std::uint32_t NCRISC_HAS_IRAM      = 0;
++
++    // Perf buffer (FIXME - update once location of the perf data buffer is finalized)
++    // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
++    static constexpr std::uint32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
++
++    // This value must be equal to the sum of all all the subsequent sizes in this section
++    static constexpr std::uint32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
++    // Queue header below is used for the concurrent performance trace
++    static constexpr std::uint32_t PERF_QUEUE_HEADER_SIZE = 16;
++    // Input and output overlay decoupling masks
++    static constexpr std::uint32_t PERF_RISC_MAILBOX_SIZE = 8;
++    // Signal to ncrisc that the performance buffer has been drained.
++    static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_SIZE = 4;
++    // Signal to all cores within a chip that the epoch comamnd for all cores has been sent;
++    static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
++    static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
++    static constexpr std::uint32_t PERF_UNUSED_SIZE                     = 24;
++
++    static constexpr std::uint32_t MATH_PERF_BUF_SIZE                = 64;
++    static constexpr std::uint32_t BRISC_PERF_BUF_SIZE               = 640; // Half of this value must be 32B aligned
++    static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
++    static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 =
++        (12 * 1024 - 768) / 2 - MATH_PERF_BUF_SIZE / 2 - (PERF_TOTAL_SETUP_BUFFER_SIZE) / 2 - BRISC_PERF_BUF_SIZE / 2;
++
++    static constexpr std::uint32_t PERF_QUEUE_HEADER_ADDR               = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE + ZEROS_SIZE;
++    static constexpr std::uint32_t PERF_RISC_MAILBOX_ADDR               = PERF_QUEUE_HEADER_ADDR + PERF_QUEUE_HEADER_SIZE;
++    static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_ADDR          = PERF_RISC_MAILBOX_ADDR + PERF_RISC_MAILBOX_SIZE;
++    static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_ADDR = PERF_RESET_PTR_MAILBOX_ADDR + PERF_RESET_PTR_MAILBOX_SIZE;
++    static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_ADDR = PERF_ANALYZER_COMMAND_START_PTR_ADDR + PERF_ANALYZER_COMMAND_START_PTR_SIZE;
++    static constexpr std::uint32_t BRISC_PERF_BUF_BASE_ADDR = PERF_ANALYZER_COMMAND_START_VAL_SIZE + PERF_UNUSED_SIZE + PERF_ANALYZER_COMMAND_START_VAL_ADDR;
++    static constexpr std::uint32_t MATH_PERF_BUF_BASE_ADDR  = BRISC_PERF_BUF_BASE_ADDR + BRISC_PERF_BUF_SIZE;
++    static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_BASE_ADDR = MATH_PERF_BUF_BASE_ADDR + MATH_PERF_BUF_SIZE;
++    static constexpr std::int32_t PERF_NUM_THREADS                = 5;
++
++    static constexpr std::uint32_t PERF_QUEUE_PTRS    = PERF_QUEUE_HEADER_ADDR;
++    static constexpr std::uint32_t PERF_THREAD_HEADER = PERF_QUEUE_PTRS + 8;
++    static constexpr std::uint32_t PERF_WR_PTR_COPY   = PERF_QUEUE_PTRS + 12;
++
++    static constexpr std::uint32_t WALL_CLOCK_L = 0xFFB121F0;
++    static constexpr std::uint32_t WALL_CLOCK_H = 0xFFB121F8;
+ };
+-}  // namespace l1_mem
+-
++} // namespace l1_mem
+
+File: tests/firmware/riscv/common/llk_sfpu_types.h
+@@ -4,7 +4,8 @@
+ 
+ #pragma once
+ 
+-enum class SfpuType {
++enum class SfpuType
++{
+     tanh,
+     hardtanh,
+     gelu,
+@@ -28,7 +29,7 @@ enum class SfpuType {
+     clamp,
+     gelu_derivative,
+     dropout,
+-    //abs,
++    // abs,
+     sign,
+     max,
+     sine,
+
+File: tests/firmware/riscv/common/risc_attribs.h
+@@ -7,15 +7,18 @@
+ 
+ #include <stdint.h>
+ 
+-union tt_uint64_t {
++union tt_uint64_t
++{
+     uint64_t v;
+-    struct {
++
++    struct
++    {
+         uint32_t hi;
+         uint32_t lo;
+     };
+ };
+ 
+-#define tt_l1_ptr __attribute__((rvtt_l1_ptr))
++#define tt_l1_ptr  __attribute__((rvtt_l1_ptr))
+ #define tt_reg_ptr __attribute__((rvtt_reg_ptr))
+ 
+ inline __attribute__((always_inline)) uint64_t tt_l1_load(tt_uint64_t tt_l1_ptr *p)
+@@ -27,7 +30,7 @@ inline __attribute__((always_inline)) uint64_t tt_l1_load(tt_uint64_t tt_l1_ptr
+     return v.v;
+ }
+ 
+-inline __attribute__((always_inline)) uint64_t tt_l1_load(volatile tt_uint64_t * tt_l1_ptr p)
++inline __attribute__((always_inline)) uint64_t tt_l1_load(volatile tt_uint64_t *tt_l1_ptr p)
+ {
+     tt_uint64_t v;
+ 
+@@ -39,9 +42,9 @@ inline __attribute__((always_inline)) uint64_t tt_l1_load(volatile tt_uint64_t *
+ // In certain cases enabling watcher can cause the code size to be too large. Give an option to
+ // disable inlining if we need to.
+ #if defined(WATCHER_NOINLINE)
+-    #define FORCE_INLINE
++#define FORCE_INLINE
+ #else
+-    #define FORCE_INLINE inline __attribute__((always_inline))
++#define FORCE_INLINE inline __attribute__((always_inline))
+ #endif
+ 
+ #endif // _RISC_ATTRIBS_H_
+
+File: tests/firmware/riscv/wormhole/l1_address_map.h
+@@ -8,146 +8,153 @@
+ // Aux variable used to align addresses to platform specific width. WH requires 32B alignment.
+ #define NOC_ADDRESS_ALIGNMENT (32)
+ 
+-namespace l1_mem {
+-
+-struct mailbox_type {
+-  constexpr static int TRISC0 = 0;
+-  constexpr static int TRISC1 = 1;
+-  constexpr static int TRISC2 = 2;
+-  constexpr static int NCRISC = 3;
+-  constexpr static int BRISC  = 4;
++namespace l1_mem
++{
++
++struct mailbox_type
++{
++    constexpr static int TRISC0 = 0;
++    constexpr static int TRISC1 = 1;
++    constexpr static int TRISC2 = 2;
++    constexpr static int NCRISC = 3;
++    constexpr static int BRISC  = 4;
+ };
+ 
+-struct address_map {
+-
+-  // Sizes
+-  static constexpr std::uint32_t FIRMWARE_SIZE = 20 * 1024;          // 20KB = 7KB + 1KB zeros + 12KB perf buffers
+-  static constexpr std::uint32_t L1_BARRIER_SIZE = 0x20; // 32 bytes reserved for L1 Barrier
+-  static constexpr std::uint32_t BRISC_FIRMWARE_SIZE = 7*1024 + 512 + 768; // Taking an extra 768B from perf buffer space
+-  static constexpr std::uint32_t ZEROS_SIZE = 512;
+-  static constexpr std::uint32_t NCRISC_FIRMWARE_SIZE = 32 * 1024;        // 16KB in L0, 16KB in L1
+-  static constexpr std::uint32_t TRISC0_SIZE = 20 * 1024;        // 20KB = 16KB + 4KB local memory
+-  static constexpr std::uint32_t TRISC1_SIZE = 16 * 1024;        // 16KB = 12KB + 4KB local memory
+-  static constexpr std::uint32_t TRISC2_SIZE = 20 * 1024;        // 20KB = 16KB + 4KB local memory
+-  static constexpr std::uint32_t TRISC_LOCAL_MEM_SIZE = 4 * 1024;      //
+-  static constexpr std::uint32_t NCRISC_LOCAL_MEM_SIZE = 4 * 1024;     //
+-  static constexpr std::uint32_t NCRISC_L1_SCRATCH_SIZE = 4 * 1024;     //
+-  static constexpr std::uint32_t NCRISC_L1_CODE_SIZE = 16*1024;      // Size of code block that is L1 resident
+-  static constexpr std::uint32_t NCRISC_IRAM_CODE_SIZE = 16*1024;    // Size of code block that is IRAM resident
+-  static constexpr std::uint32_t NCRISC_DATA_SIZE = 4 * 1024;        // 4KB
+-  static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_SIZE = 128;      //
+-  static constexpr std::uint32_t OVERLAY_BLOB_SIZE = (64 * 1024) - EPOCH_RUNTIME_CONFIG_SIZE;
+-  static constexpr std::uint32_t TILE_HEADER_BUF_SIZE = 32 * 1024;     //
+-  static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_SIZE = 32;
+-  static constexpr std::uint32_t FW_L1_BLOCK_SIZE = FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
+-
+-  // Base addresses
+-  static constexpr std::uint32_t FIRMWARE_BASE = 0;
+-  static constexpr std::uint32_t L1_BARRIER_BASE = 0x16dfc0;
+-  static constexpr std::uint32_t ZEROS_BASE = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE;
+-  static constexpr std::uint32_t NCRISC_FIRMWARE_BASE = FIRMWARE_BASE + FIRMWARE_SIZE;
+-  static constexpr std::uint32_t NCRISC_L1_CODE_BASE =  NCRISC_FIRMWARE_BASE + NCRISC_IRAM_CODE_SIZE;
+-  static constexpr std::uint32_t NCRISC_LOCAL_MEM_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE - NCRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+-  static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE = NCRISC_FIRMWARE_BASE + 0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
+-  static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE = NCRISC_FIRMWARE_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
+-  static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_FIRMWARE_BASE + 0x40;
+-  static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_SIZE = 8 * 8; // Half of this value must be 32B aligned
+-  static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_ADDR = NCRISC_FIRMWARE_BASE + NCRISC_L1_SCRATCH_SIZE; // L1 Performance Buffer used by NCRISC
+-  static constexpr std::uint32_t NCRISC_L1_PERF_BUF_BASE = NCRISC_PERF_QUEUE_HEADER_ADDR + NCRISC_PERF_QUEUE_HEADER_SIZE; // L1 Performance Buffer used by NCRISC
+-  static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
+-  static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_1 = 4*1024 - NCRISC_PERF_QUEUE_HEADER_SIZE; // NCRISC performance buffer
+-  static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_BASE = NCRISC_L1_PERF_BUF_BASE + NCRISC_PERF_BUF_SIZE_LEVEL_1; // Epoch Q start in L1.
+-
+-  static constexpr std::uint32_t TRISC_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
+-  static constexpr std::uint32_t TRISC0_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
+-  static constexpr std::uint32_t TRISC0_LOCAL_MEM_BASE = TRISC0_BASE + TRISC0_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+-  static constexpr std::uint32_t TRISC1_BASE = TRISC0_BASE + TRISC0_SIZE;
+-  static constexpr std::uint32_t TRISC1_LOCAL_MEM_BASE = TRISC1_BASE + TRISC1_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+-  static constexpr std::uint32_t TRISC2_BASE = TRISC1_BASE + TRISC1_SIZE;
+-  static constexpr std::uint32_t TRISC2_LOCAL_MEM_BASE = TRISC2_BASE + TRISC2_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+-  static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_BASE = TRISC2_BASE + TRISC2_SIZE + TILE_HEADER_BUF_SIZE;
+-  static constexpr std::uint32_t OVERLAY_BLOB_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE;
+-  static constexpr std::uint32_t DATA_BUFFER_SPACE_BASE = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE + OVERLAY_BLOB_SIZE;
+-
+-  static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(TRISC0_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(TRISC2_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(EPOCH_RUNTIME_CONFIG_BASE % NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(OVERLAY_BLOB_BASE % NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(DATA_BUFFER_SPACE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "DATA_BUFFER_SPACE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-  static_assert(L1_BARRIER_BASE % NOC_ADDRESS_ALIGNMENT == 0, "L1_BARRIER_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-
+-  // Trisc Mailboxes
+-  static constexpr std::uint32_t TRISC_L1_MAILBOX_OFFSET = 4;
+-  static constexpr std::uint32_t BRISC_L1_MAILBOX_OFFSET = 4;
+-  static constexpr std::uint32_t NRISC_L1_MAILBOX_OFFSET = 4;
+-
+-  static constexpr std::uint32_t TRISC0_MAILBOX_BASE = TRISC0_BASE + TRISC_L1_MAILBOX_OFFSET;
+-  static constexpr std::uint32_t TRISC1_MAILBOX_BASE = TRISC1_BASE + TRISC_L1_MAILBOX_OFFSET;
+-  static constexpr std::uint32_t TRISC2_MAILBOX_BASE = TRISC2_BASE + TRISC_L1_MAILBOX_OFFSET;
+-
+-  static constexpr std::uint32_t FW_MAILBOX_BASE         = 32;
+-  static constexpr std::uint32_t DEBUG_MAILBOX_BUF_BASE  = 112;
+-
+-  static constexpr std::uint32_t FW_MAILBOX_BUF_SIZE     = 64;
+-  static constexpr std::uint32_t DEBUG_MAILBOX_BUF_SIZE  = 64; // For each T0/T1/T2/FW
+-
+-  // Upper 2KB of local space is used as debug buffer
+-  static constexpr std::uint32_t DEBUG_BUFFER_SIZE  = 2 * 1024;
+-  static constexpr std::uint32_t TRISC0_DEBUG_BUFFER_BASE  = TRISC0_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
+-  static constexpr std::uint32_t TRISC1_DEBUG_BUFFER_BASE  = TRISC1_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
+-  static constexpr std::uint32_t TRISC2_DEBUG_BUFFER_BASE  = TRISC2_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
+-
+-  static constexpr std::uint32_t MAX_SIZE = 1499136;
+-  static constexpr std::uint32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
+-
+-  static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
+-                                                                   // As part of the init risc firmware will copy local memory data from
+-                                                                   // l1 locations listed above into internal local memory that starts
+-                                                                   // at RISC_LOCAL_MEM_BASE address
+-
+-  static constexpr std::uint32_t NCRISC_IRAM_MEM_BASE = 0xffc00000; // NCRISC instruction RAM base address
+-
+-  // Perf buffer (FIXME - update once location of the perf data buffer is finalized)
+-  // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
+-  static constexpr std::uint32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
+-
+-  // This value must be equal to the sum of all all the subsequent sizes in this section
+-  static constexpr std::uint32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
+-  // Queue header below is used for the concurrent performance trace
+-  static constexpr std::uint32_t PERF_QUEUE_HEADER_SIZE = 16;
+-  // Input and output overlay decoupling masks
+-  static constexpr std::uint32_t PERF_RISC_MAILBOX_SIZE = 8;
+-  // Signal to ncrisc that the performance buffer has been drained.
+-  static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_SIZE = 4;
+-  // Signal to all cores within a chip that the epoch comamnd for all cores has been sent;
+-  static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
+-  static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
+-  static constexpr std::uint32_t PERF_UNUSED_SIZE = 24;
+-
+-  static constexpr std::uint32_t MATH_PERF_BUF_SIZE = 64;
+-  static constexpr std::uint32_t BRISC_PERF_BUF_SIZE = 640; // Half of this value must be 32B aligned
+-  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
+-  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 = (12 * 1024 - 768)/2 - MATH_PERF_BUF_SIZE/2 - (PERF_TOTAL_SETUP_BUFFER_SIZE)/2 - BRISC_PERF_BUF_SIZE/2;
+-
+-  static constexpr std::uint32_t PERF_QUEUE_HEADER_ADDR = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE + ZEROS_SIZE;
+-  static constexpr std::uint32_t PERF_RISC_MAILBOX_ADDR = PERF_QUEUE_HEADER_ADDR + PERF_QUEUE_HEADER_SIZE;
+-  static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_ADDR = PERF_RISC_MAILBOX_ADDR + PERF_RISC_MAILBOX_SIZE;
+-  static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_ADDR = PERF_RESET_PTR_MAILBOX_ADDR + PERF_RESET_PTR_MAILBOX_SIZE;
+-  static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_ADDR = PERF_ANALYZER_COMMAND_START_PTR_ADDR + PERF_ANALYZER_COMMAND_START_PTR_SIZE;
+-  static constexpr std::uint32_t BRISC_PERF_BUF_BASE_ADDR = PERF_ANALYZER_COMMAND_START_VAL_SIZE + PERF_UNUSED_SIZE + PERF_ANALYZER_COMMAND_START_VAL_ADDR;
+-  static constexpr std::uint32_t MATH_PERF_BUF_BASE_ADDR = BRISC_PERF_BUF_BASE_ADDR + BRISC_PERF_BUF_SIZE;
+-  static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_BASE_ADDR = MATH_PERF_BUF_BASE_ADDR + MATH_PERF_BUF_SIZE;
+-  static constexpr std::int32_t PERF_NUM_THREADS = 5;
+-
+-  static constexpr std::uint32_t PERF_QUEUE_PTRS = PERF_QUEUE_HEADER_ADDR;
+-  static constexpr std::uint32_t PERF_THREAD_HEADER = PERF_QUEUE_PTRS + 8;
+-  static constexpr std::uint32_t PERF_WR_PTR_COPY = PERF_QUEUE_PTRS + 12;
+-
+-  static constexpr std::uint32_t WALL_CLOCK_L = 0xFFB121F0;
+-  static constexpr std::uint32_t WALL_CLOCK_H = 0xFFB121F8;
+-
++struct address_map
++{
++    // Sizes
++    static constexpr std::uint32_t FIRMWARE_SIZE             = 20 * 1024;            // 20KB = 7KB + 1KB zeros + 12KB perf buffers
++    static constexpr std::uint32_t L1_BARRIER_SIZE           = 0x20;                 // 32 bytes reserved for L1 Barrier
++    static constexpr std::uint32_t BRISC_FIRMWARE_SIZE       = 7 * 1024 + 512 + 768; // Taking an extra 768B from perf buffer space
++    static constexpr std::uint32_t ZEROS_SIZE                = 512;
++    static constexpr std::uint32_t NCRISC_FIRMWARE_SIZE      = 32 * 1024; // 16KB in L0, 16KB in L1
++    static constexpr std::uint32_t TRISC0_SIZE               = 20 * 1024; // 20KB = 16KB + 4KB local memory
++    static constexpr std::uint32_t TRISC1_SIZE               = 16 * 1024; // 16KB = 12KB + 4KB local memory
++    static constexpr std::uint32_t TRISC2_SIZE               = 20 * 1024; // 20KB = 16KB + 4KB local memory
++    static constexpr std::uint32_t TRISC_LOCAL_MEM_SIZE      = 4 * 1024;  //
++    static constexpr std::uint32_t NCRISC_LOCAL_MEM_SIZE     = 4 * 1024;  //
++    static constexpr std::uint32_t NCRISC_L1_SCRATCH_SIZE    = 4 * 1024;  //
++    static constexpr std::uint32_t NCRISC_L1_CODE_SIZE       = 16 * 1024; // Size of code block that is L1 resident
++    static constexpr std::uint32_t NCRISC_IRAM_CODE_SIZE     = 16 * 1024; // Size of code block that is IRAM resident
++    static constexpr std::uint32_t NCRISC_DATA_SIZE          = 4 * 1024;  // 4KB
++    static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_SIZE = 128;       //
++    static constexpr std::uint32_t OVERLAY_BLOB_SIZE         = (64 * 1024) - EPOCH_RUNTIME_CONFIG_SIZE;
++    static constexpr std::uint32_t TILE_HEADER_BUF_SIZE      = 32 * 1024; //
++    static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_SIZE    = 32;
++    static constexpr std::uint32_t FW_L1_BLOCK_SIZE =
++        FIRMWARE_SIZE + NCRISC_FIRMWARE_SIZE + TRISC0_SIZE + TRISC1_SIZE + TRISC2_SIZE + OVERLAY_BLOB_SIZE + EPOCH_RUNTIME_CONFIG_SIZE + TILE_HEADER_BUF_SIZE;
++
++    // Base addresses
++    static constexpr std::uint32_t FIRMWARE_BASE         = 0;
++    static constexpr std::uint32_t L1_BARRIER_BASE       = 0x16dfc0;
++    static constexpr std::uint32_t ZEROS_BASE            = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE;
++    static constexpr std::uint32_t NCRISC_FIRMWARE_BASE  = FIRMWARE_BASE + FIRMWARE_SIZE;
++    static constexpr std::uint32_t NCRISC_L1_CODE_BASE   = NCRISC_FIRMWARE_BASE + NCRISC_IRAM_CODE_SIZE;
++    static constexpr std::uint32_t NCRISC_LOCAL_MEM_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE - NCRISC_LOCAL_MEM_SIZE; // Copy of the local memory
++    static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE =
++        NCRISC_FIRMWARE_BASE +
++        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
++    static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE =
++        NCRISC_FIRMWARE_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
++    static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_FIRMWARE_BASE + 0x40;
++    static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_SIZE    = 8 * 8;                                         // Half of this value must be 32B aligned
++    static constexpr std::uint32_t NCRISC_PERF_QUEUE_HEADER_ADDR    = NCRISC_FIRMWARE_BASE + NCRISC_L1_SCRATCH_SIZE; // L1 Performance Buffer used by NCRISC
++    static constexpr std::uint32_t NCRISC_L1_PERF_BUF_BASE =
++        NCRISC_PERF_QUEUE_HEADER_ADDR + NCRISC_PERF_QUEUE_HEADER_SIZE;                                      // L1 Performance Buffer used by NCRISC
++    static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_0 = 640;                                      // smaller buffer size for limited logging
++    static constexpr std::uint32_t NCRISC_PERF_BUF_SIZE_LEVEL_1 = 4 * 1024 - NCRISC_PERF_QUEUE_HEADER_SIZE; // NCRISC performance buffer
++    static constexpr std::uint32_t NCRISC_L1_EPOCH_Q_BASE       = NCRISC_L1_PERF_BUF_BASE + NCRISC_PERF_BUF_SIZE_LEVEL_1; // Epoch Q start in L1.
++
++    static constexpr std::uint32_t TRISC_BASE                = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
++    static constexpr std::uint32_t TRISC0_BASE               = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE;
++    static constexpr std::uint32_t TRISC0_LOCAL_MEM_BASE     = TRISC0_BASE + TRISC0_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
++    static constexpr std::uint32_t TRISC1_BASE               = TRISC0_BASE + TRISC0_SIZE;
++    static constexpr std::uint32_t TRISC1_LOCAL_MEM_BASE     = TRISC1_BASE + TRISC1_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
++    static constexpr std::uint32_t TRISC2_BASE               = TRISC1_BASE + TRISC1_SIZE;
++    static constexpr std::uint32_t TRISC2_LOCAL_MEM_BASE     = TRISC2_BASE + TRISC2_SIZE - TRISC_LOCAL_MEM_SIZE; // Copy of the local memory
++    static constexpr std::uint32_t EPOCH_RUNTIME_CONFIG_BASE = TRISC2_BASE + TRISC2_SIZE + TILE_HEADER_BUF_SIZE;
++    static constexpr std::uint32_t OVERLAY_BLOB_BASE         = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE;
++    static constexpr std::uint32_t DATA_BUFFER_SPACE_BASE    = EPOCH_RUNTIME_CONFIG_BASE + EPOCH_RUNTIME_CONFIG_SIZE + OVERLAY_BLOB_SIZE;
++
++    static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(TRISC0_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(TRISC2_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(EPOCH_RUNTIME_CONFIG_BASE % NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(OVERLAY_BLOB_BASE % NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(DATA_BUFFER_SPACE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "DATA_BUFFER_SPACE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(L1_BARRIER_BASE % NOC_ADDRESS_ALIGNMENT == 0, "L1_BARRIER_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++
++    // Trisc Mailboxes
++    static constexpr std::uint32_t TRISC_L1_MAILBOX_OFFSET = 4;
++    static constexpr std::uint32_t BRISC_L1_MAILBOX_OFFSET = 4;
++    static constexpr std::uint32_t NRISC_L1_MAILBOX_OFFSET = 4;
++
++    static constexpr std::uint32_t TRISC0_MAILBOX_BASE = TRISC0_BASE + TRISC_L1_MAILBOX_OFFSET;
++    static constexpr std::uint32_t TRISC1_MAILBOX_BASE = TRISC1_BASE + TRISC_L1_MAILBOX_OFFSET;
++    static constexpr std::uint32_t TRISC2_MAILBOX_BASE = TRISC2_BASE + TRISC_L1_MAILBOX_OFFSET;
++
++    static constexpr std::uint32_t FW_MAILBOX_BASE        = 32;
++    static constexpr std::uint32_t DEBUG_MAILBOX_BUF_BASE = 112;
++
++    static constexpr std::uint32_t FW_MAILBOX_BUF_SIZE    = 64;
++    static constexpr std::uint32_t DEBUG_MAILBOX_BUF_SIZE = 64; // For each T0/T1/T2/FW
++
++    // Upper 2KB of local space is used as debug buffer
++    static constexpr std::uint32_t DEBUG_BUFFER_SIZE        = 2 * 1024;
++    static constexpr std::uint32_t TRISC0_DEBUG_BUFFER_BASE = TRISC0_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
++    static constexpr std::uint32_t TRISC1_DEBUG_BUFFER_BASE = TRISC1_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
++    static constexpr std::uint32_t TRISC2_DEBUG_BUFFER_BASE = TRISC2_LOCAL_MEM_BASE + DEBUG_BUFFER_SIZE;
++
++    static constexpr std::uint32_t MAX_SIZE            = 1499136;
++    static constexpr std::uint32_t MAX_L1_LOADING_SIZE = 1 * 1024 * 1024;
++
++    static constexpr std::uint32_t RISC_LOCAL_MEM_BASE = 0xffb00000; // Actaul local memory address as seen from risc firmware
++                                                                     // As part of the init risc firmware will copy local memory data from
++                                                                     // l1 locations listed above into internal local memory that starts
++                                                                     // at RISC_LOCAL_MEM_BASE address
++
++    static constexpr std::uint32_t NCRISC_IRAM_MEM_BASE = 0xffc00000; // NCRISC instruction RAM base address
++
++    // Perf buffer (FIXME - update once location of the perf data buffer is finalized)
++    // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
++    static constexpr std::uint32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
++
++    // This value must be equal to the sum of all all the subsequent sizes in this section
++    static constexpr std::uint32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
++    // Queue header below is used for the concurrent performance trace
++    static constexpr std::uint32_t PERF_QUEUE_HEADER_SIZE = 16;
++    // Input and output overlay decoupling masks
++    static constexpr std::uint32_t PERF_RISC_MAILBOX_SIZE = 8;
++    // Signal to ncrisc that the performance buffer has been drained.
++    static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_SIZE = 4;
++    // Signal to all cores within a chip that the epoch comamnd for all cores has been sent;
++    static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_SIZE = 8;
++    static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_SIZE = 4;
++    static constexpr std::uint32_t PERF_UNUSED_SIZE                     = 24;
++
++    static constexpr std::uint32_t MATH_PERF_BUF_SIZE                = 64;
++    static constexpr std::uint32_t BRISC_PERF_BUF_SIZE               = 640; // Half of this value must be 32B aligned
++    static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_0 = 640; // smaller buffer size for limited logging
++    static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 =
++        (12 * 1024 - 768) / 2 - MATH_PERF_BUF_SIZE / 2 - (PERF_TOTAL_SETUP_BUFFER_SIZE) / 2 - BRISC_PERF_BUF_SIZE / 2;
++
++    static constexpr std::uint32_t PERF_QUEUE_HEADER_ADDR               = FIRMWARE_BASE + BRISC_FIRMWARE_SIZE + ZEROS_SIZE;
++    static constexpr std::uint32_t PERF_RISC_MAILBOX_ADDR               = PERF_QUEUE_HEADER_ADDR + PERF_QUEUE_HEADER_SIZE;
++    static constexpr std::uint32_t PERF_RESET_PTR_MAILBOX_ADDR          = PERF_RISC_MAILBOX_ADDR + PERF_RISC_MAILBOX_SIZE;
++    static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_PTR_ADDR = PERF_RESET_PTR_MAILBOX_ADDR + PERF_RESET_PTR_MAILBOX_SIZE;
++    static constexpr std::uint32_t PERF_ANALYZER_COMMAND_START_VAL_ADDR = PERF_ANALYZER_COMMAND_START_PTR_ADDR + PERF_ANALYZER_COMMAND_START_PTR_SIZE;
++    static constexpr std::uint32_t BRISC_PERF_BUF_BASE_ADDR = PERF_ANALYZER_COMMAND_START_VAL_SIZE + PERF_UNUSED_SIZE + PERF_ANALYZER_COMMAND_START_VAL_ADDR;
++    static constexpr std::uint32_t MATH_PERF_BUF_BASE_ADDR  = BRISC_PERF_BUF_BASE_ADDR + BRISC_PERF_BUF_SIZE;
++    static constexpr std::uint32_t UNPACK_PACK_PERF_BUF_BASE_ADDR = MATH_PERF_BUF_BASE_ADDR + MATH_PERF_BUF_SIZE;
++    static constexpr std::int32_t PERF_NUM_THREADS                = 5;
++
++    static constexpr std::uint32_t PERF_QUEUE_PTRS    = PERF_QUEUE_HEADER_ADDR;
++    static constexpr std::uint32_t PERF_THREAD_HEADER = PERF_QUEUE_PTRS + 8;
++    static constexpr std::uint32_t PERF_WR_PTR_COPY   = PERF_QUEUE_PTRS + 12;
++
++    static constexpr std::uint32_t WALL_CLOCK_L = 0xFFB121F0;
++    static constexpr std::uint32_t WALL_CLOCK_H = 0xFFB121F8;
+ };
+-}  // namespace l1_mem
++} // namespace l1_mem
+
+File: tests/helpers/find_arch.py
+@@ -3,16 +3,17 @@
+ 
+ import sys
+ 
++
+ def check_strings_in_file(strings, file_path):
+     try:
+-        with open(file_path, 'r') as f:
++        with open(file_path, "r") as f:
+             content = f.read()
+ 
+         for string in strings:
+             if string in content:
+                 return string.lower()
+         return "Unsupported architecture."
+-    
++
+     except FileNotFoundError:
+         print(f"Error: The file '{file_path}' does not exist.", file=sys.stderr)
+         return None
+@@ -22,7 +23,7 @@ def check_strings_in_file(strings, file_path):
+     strings = sys.argv[1:-1]
+     file_path = sys.argv[-1]
+ 
+-    result = check_strings_in_file(strings,file_path)
++    result = check_strings_in_file(strings, file_path)
+ 
+     if result is not None:
+         print(result)
+
+File: tests/helpers/include/ckernel_helper.h
+@@ -5,20 +5,22 @@
+ #ifndef CKERNEL_HELPER_H
+ #define CKERNEL_HELPER_H
+ 
+-namespace ckernel{
+-	volatile std::uint32_t tt_reg_ptr *pc_buf_base = reinterpret_cast<volatile std::uint32_t *>(PC_BUF_BASE);
+-	volatile std::uint32_t tt_reg_ptr *instrn_buffer = reinterpret_cast<volatile std::uint32_t *>(INSTRN_BUF_BASE);
+-	volatile std::uint32_t tt_reg_ptr *regfile = reinterpret_cast<volatile std::uint32_t *>(REGFILE_BASE);
+-	volatile std::uint32_t tt_l1_ptr * trisc_l1_mailbox = reinterpret_cast<volatile std::uint32_t tt_l1_ptr *>(0x1d000);
+-	volatile std::uint32_t tt_reg_ptr *mailbox_base[4] = {
+-    reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX0_BASE), reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX1_BASE),
+-    reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX2_BASE), reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX3_BASE)};
++namespace ckernel
++{
++volatile std::uint32_t tt_reg_ptr *pc_buf_base     = reinterpret_cast<volatile std::uint32_t *>(PC_BUF_BASE);
++volatile std::uint32_t tt_reg_ptr *instrn_buffer   = reinterpret_cast<volatile std::uint32_t *>(INSTRN_BUF_BASE);
++volatile std::uint32_t tt_reg_ptr *regfile         = reinterpret_cast<volatile std::uint32_t *>(REGFILE_BASE);
++volatile std::uint32_t tt_l1_ptr *trisc_l1_mailbox = reinterpret_cast<volatile std::uint32_t tt_l1_ptr *>(0x1d000);
++volatile std::uint32_t tt_reg_ptr *mailbox_base[4] = {
++    reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX0_BASE),
++    reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX1_BASE),
++    reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX2_BASE),
++    reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX3_BASE)};
+ 
+-	std::uint32_t cfg_state_id __attribute__((section(".bss"))) = 0;  // Flip between 0 and 1 to keep state between kernel calls
+-	std::uint32_t dest_offset_id __attribute__((section(".bss"))) = 0; // Flip between 0 and 1 to keep dest pointer between kernel calls
+-}
++std::uint32_t cfg_state_id __attribute__((section(".bss")))   = 0; // Flip between 0 and 1 to keep state between kernel calls
++std::uint32_t dest_offset_id __attribute__((section(".bss"))) = 0; // Flip between 0 and 1 to keep dest pointer between kernel calls
++} // namespace ckernel
+ 
+ using namespace ckernel;
+ 
+-
+ #endif
+
+File: tests/helpers/include/dev_mem_map.h
+@@ -36,10 +36,10 @@
+ // Top 64K is reserved for syseng
+ #define MEM_ETH_SIZE (512 * 1024 - 64 * 1024)
+ 
+-#define MEM_LOCAL_BASE 0xFFB00000
+-#define MEM_BRISC_LOCAL_SIZE (8 * 1024)
++#define MEM_LOCAL_BASE        0xFFB00000
++#define MEM_BRISC_LOCAL_SIZE  (8 * 1024)
+ #define MEM_NCRISC_LOCAL_SIZE (8 * 1024)
+-#define MEM_TRISC_LOCAL_SIZE (4 * 1024)
++#define MEM_TRISC_LOCAL_SIZE  (4 * 1024)
+ 
+ // Memory for (dram/l1)_bank_to_noc_xy arrays, size needs to be atleast 2 * NUM_NOCS * (NUM_DRAM_BANKS + NUM_L1_BANKS)
+ #define MEM_BANK_TO_NOC_XY_SIZE 1024
+@@ -55,24 +55,24 @@
+ #define MEM_TRISC1_FIRMWARE_SIZE 1536
+ #define MEM_TRISC2_FIRMWARE_SIZE 1536
+ 
+-#define MEM_BRISC_KERNEL_SIZE (24 * 1024)
++#define MEM_BRISC_KERNEL_SIZE  (24 * 1024)
+ #define MEM_NCRISC_KERNEL_SIZE (24 * 1024)
+ #define MEM_TRISC0_KERNEL_SIZE (24 * 1024)
+ #define MEM_TRISC1_KERNEL_SIZE (24 * 1024)
+ #define MEM_TRISC2_KERNEL_SIZE (24 * 1024)
+ 
+ #define MEM_ZEROS_SIZE 512
+ 
+-#define MEM_BOOT_CODE_BASE 0
++#define MEM_BOOT_CODE_BASE          0
+ #define MEM_NOC_ATOMIC_RET_VAL_ADDR 4
+-#define MEM_L1_BARRIER 12
+-#define MEM_MAILBOX_BASE 16
++#define MEM_L1_BARRIER              12
++#define MEM_MAILBOX_BASE            16
+ // Magic size must be big enough to hold dev_msgs_t.  static_asserts will fire if this is too small
+ #define MEM_MAILBOX_SIZE 12256
+-#define MEM_MAILBOX_END (MEM_MAILBOX_BASE + MEM_MAILBOX_SIZE)
+-#define MEM_ZEROS_BASE ((MEM_MAILBOX_END + 31) & ~31)
++#define MEM_MAILBOX_END  (MEM_MAILBOX_BASE + MEM_MAILBOX_SIZE)
++#define MEM_ZEROS_BASE   ((MEM_MAILBOX_END + 31) & ~31)
+ 
+-#define MEM_BRISC_FIRMWARE_BASE (MEM_ZEROS_BASE + MEM_ZEROS_SIZE)
++#define MEM_BRISC_FIRMWARE_BASE  (MEM_ZEROS_BASE + MEM_ZEROS_SIZE)
+ #define MEM_NCRISC_FIRMWARE_BASE (MEM_BRISC_FIRMWARE_BASE + MEM_BRISC_FIRMWARE_SIZE)
+ #define MEM_TRISC0_FIRMWARE_BASE (MEM_NCRISC_FIRMWARE_BASE + MEM_NCRISC_FIRMWARE_SIZE)
+ #define MEM_TRISC1_FIRMWARE_BASE (MEM_TRISC0_FIRMWARE_BASE + MEM_TRISC0_FIRMWARE_SIZE)
+@@ -90,56 +90,56 @@
+ // Initialization relocation L1 memory
+ // Host downloads to these addresses, fw copies to destination
+ // Note: using xmov to copy ncrisc to addresses above 1M hangs the chip
+-#define MEM_BRISC_INIT_LOCAL_L1_BASE_SCRATCH MEM_MAP_END
++#define MEM_BRISC_INIT_LOCAL_L1_BASE_SCRATCH  MEM_MAP_END
+ #define MEM_NCRISC_INIT_LOCAL_L1_BASE_SCRATCH (MEM_BRISC_INIT_LOCAL_L1_BASE_SCRATCH + MEM_BRISC_LOCAL_SIZE)
+ #define MEM_TRISC0_INIT_LOCAL_L1_BASE_SCRATCH (MEM_NCRISC_INIT_LOCAL_L1_BASE_SCRATCH + MEM_NCRISC_LOCAL_SIZE)
+ #define MEM_TRISC1_INIT_LOCAL_L1_BASE_SCRATCH (MEM_TRISC0_INIT_LOCAL_L1_BASE_SCRATCH + MEM_TRISC_LOCAL_SIZE)
+ #define MEM_TRISC2_INIT_LOCAL_L1_BASE_SCRATCH (MEM_TRISC1_INIT_LOCAL_L1_BASE_SCRATCH + MEM_TRISC_LOCAL_SIZE)
+ 
+ #define MEM_BANK_TO_NOC_SCRATCH (MEM_TRISC2_INIT_LOCAL_L1_BASE_SCRATCH + MEM_TRISC_LOCAL_SIZE)
+-#define MEM_BANK_TO_NOC_SIZE (MEM_BANK_TO_NOC_XY_SIZE + MEM_BANK_OFFSET_SIZE)
++#define MEM_BANK_TO_NOC_SIZE    (MEM_BANK_TO_NOC_XY_SIZE + MEM_BANK_OFFSET_SIZE)
+ 
+ /////////////
+ // Stack info
+ // Increasing the stack size comes at the expense of less local memory for globals
+-#define MEM_BRISC_STACK_SIZE 768
++#define MEM_BRISC_STACK_SIZE  768
+ #define MEM_NCRISC_STACK_SIZE 1040
+ #define MEM_TRISC0_STACK_SIZE 320
+ #define MEM_TRISC1_STACK_SIZE 256
+ #define MEM_TRISC2_STACK_SIZE 768
+ 
+-#define MEM_BRISC_STACK_BASE (MEM_LOCAL_BASE + MEM_BRISC_LOCAL_SIZE - MEM_BRISC_STACK_SIZE)
++#define MEM_BRISC_STACK_BASE  (MEM_LOCAL_BASE + MEM_BRISC_LOCAL_SIZE - MEM_BRISC_STACK_SIZE)
+ #define MEM_NCRISC_STACK_BASE (MEM_LOCAL_BASE + MEM_NCRISC_LOCAL_SIZE - MEM_NCRISC_STACK_SIZE)
+ #define MEM_TRISC0_STACK_BASE (MEM_LOCAL_BASE + MEM_TRISC_LOCAL_SIZE - MEM_TRISC0_STACK_SIZE)
+ #define MEM_TRISC1_STACK_BASE (MEM_LOCAL_BASE + MEM_TRISC_LOCAL_SIZE - MEM_TRISC1_STACK_SIZE)
+ #define MEM_TRISC2_STACK_BASE (MEM_LOCAL_BASE + MEM_TRISC_LOCAL_SIZE - MEM_TRISC2_STACK_SIZE)
+ 
+ /////////////
+ // IERISC memory map
+-#define MEM_IERISC_LOCAL_SIZE (8 * 1024)
+-#define MEM_SLAVE_IERISC_LOCAL_SIZE (8 * 1024)
+-#define MEM_IERISC_FIRMWARE_SIZE (24 * 1024)
++#define MEM_IERISC_LOCAL_SIZE          (8 * 1024)
++#define MEM_SLAVE_IERISC_LOCAL_SIZE    (8 * 1024)
++#define MEM_IERISC_FIRMWARE_SIZE       (24 * 1024)
+ #define MEM_SLAVE_IERISC_FIRMWARE_SIZE (24 * 1024)
+-#define MEM_IERISC_RESERVED1 0
+-#define MEM_IERISC_RESERVED1_SIZE 1024
++#define MEM_IERISC_RESERVED1           0
++#define MEM_IERISC_RESERVED1_SIZE      1024
+ // TODO: reduce this when mailbox sizes are core type aware for some members (eg watcher/dprint)
+ // TODO: also, move into gap above in the reserved area
+-#define MEM_IERISC_MAILBOX_BASE (MEM_IERISC_RESERVED1 + MEM_IERISC_RESERVED1_SIZE)
+-#define MEM_IERISC_MAILBOX_SIZE 3344
+-#define MEM_IERISC_MAILBOX_END (MEM_IERISC_MAILBOX_BASE + MEM_IERISC_MAILBOX_SIZE)
+-#define MEM_IERISC_FIRMWARE_BASE (MEM_IERISC_MAILBOX_END)
+-#define MEM_SLAVE_IERISC_FIRMWARE_BASE (MEM_IERISC_FIRMWARE_BASE + MEM_IERISC_FIRMWARE_SIZE)
+-#define MEM_IERISC_MAP_END (MEM_SLAVE_IERISC_FIRMWARE_BASE + MEM_SLAVE_IERISC_FIRMWARE_SIZE)
+-#define MEM_IERISC_KERNEL_SIZE (24 * 1024)
+-#define MEM_IERISC_INIT_LOCAL_L1_BASE_SCRATCH MEM_IERISC_MAP_END
++#define MEM_IERISC_MAILBOX_BASE                     (MEM_IERISC_RESERVED1 + MEM_IERISC_RESERVED1_SIZE)
++#define MEM_IERISC_MAILBOX_SIZE                     3344
++#define MEM_IERISC_MAILBOX_END                      (MEM_IERISC_MAILBOX_BASE + MEM_IERISC_MAILBOX_SIZE)
++#define MEM_IERISC_FIRMWARE_BASE                    (MEM_IERISC_MAILBOX_END)
++#define MEM_SLAVE_IERISC_FIRMWARE_BASE              (MEM_IERISC_FIRMWARE_BASE + MEM_IERISC_FIRMWARE_SIZE)
++#define MEM_IERISC_MAP_END                          (MEM_SLAVE_IERISC_FIRMWARE_BASE + MEM_SLAVE_IERISC_FIRMWARE_SIZE)
++#define MEM_IERISC_KERNEL_SIZE                      (24 * 1024)
++#define MEM_IERISC_INIT_LOCAL_L1_BASE_SCRATCH       MEM_IERISC_MAP_END
+ #define MEM_SLAVE_IERISC_INIT_LOCAL_L1_BASE_SCRATCH (MEM_IERISC_INIT_LOCAL_L1_BASE_SCRATCH + MEM_IERISC_LOCAL_SIZE)
+-#define MEM_IERISC_STACK_SIZE 1024
+-#define MEM_SLAVE_IERISC_STACK_SIZE 1024
+-#define MEM_IERISC_STACK_BASE (MEM_LOCAL_BASE + MEM_IERISC_LOCAL_SIZE - MEM_IERISC_STACK_SIZE)
+-#define MEM_SLAVE_IERISC_STACK_BASE (MEM_LOCAL_BASE + MEM_SLAVE_IERISC_LOCAL_SIZE - MEM_SLAVE_IERISC_STACK_SIZE)
++#define MEM_IERISC_STACK_SIZE                       1024
++#define MEM_SLAVE_IERISC_STACK_SIZE                 1024
++#define MEM_IERISC_STACK_BASE                       (MEM_LOCAL_BASE + MEM_IERISC_LOCAL_SIZE - MEM_IERISC_STACK_SIZE)
++#define MEM_SLAVE_IERISC_STACK_BASE                 (MEM_LOCAL_BASE + MEM_SLAVE_IERISC_LOCAL_SIZE - MEM_SLAVE_IERISC_STACK_SIZE)
+ 
+ #define MEM_IERISC_BANK_TO_NOC_SCRATCH (MEM_SLAVE_IERISC_INIT_LOCAL_L1_BASE_SCRATCH + MEM_SLAVE_IERISC_LOCAL_SIZE)
+-#define MEM_IERISC_BANK_TO_NOC_SIZE (MEM_BANK_TO_NOC_XY_SIZE + MEM_BANK_OFFSET_SIZE)
++#define MEM_IERISC_BANK_TO_NOC_SIZE    (MEM_BANK_TO_NOC_XY_SIZE + MEM_BANK_OFFSET_SIZE)
+ 
+ /////////////
+ // Padding/alignment restriction needed in linker scripts for erisc
+
+File: tests/helpers/include/params.h
+@@ -5,112 +5,118 @@
+ #ifndef PARAMS_H
+ #define PARAMS_H
+ 
+-#include <cstdint>
+ #include <cstdarg>
++#include <cstdint>
+ 
+ #define L1_ADDRESS(buffer) ((reinterpret_cast<uint32_t>(buffer) / 16) - 1)
+-    
++
+ #ifdef LLK_TRISC_UNPACK
+ 
+-    #ifdef FORMAT_FLOAT16_B
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
+-    #endif
+-    #ifdef FORMAT_FLOAT16
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
+-    #endif
+-    #ifdef FORMAT_FLOAT32
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
+-    #endif
+-    #ifdef FORMAT_INT32
+-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
+-    #endif
+-    #ifdef FORMAT_BFP8_B
+-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
+-    #endif
++#ifdef FORMAT_FLOAT16_B
++#define DATA_FORMAT (uint32_t)DataFormat::Float16_b
++#endif
++#ifdef FORMAT_FLOAT16
++#define DATA_FORMAT (uint32_t)DataFormat::Float16
++#endif
++#ifdef FORMAT_FLOAT32
++#define DATA_FORMAT (uint32_t)DataFormat::Float32
++#endif
++#ifdef FORMAT_INT32
++#define DATA_FORMAT (uint32_t)DataFormat::Int32
++#endif
++#ifdef FORMAT_BFP8_B
++#define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b
++#endif
+ 
+ #endif
+ 
+ #ifdef LLK_TRISC_MATH
+ 
+-    #ifdef FORMAT_FLOAT16_B
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
+-    #endif
+-    #ifdef FORMAT_FLOAT16
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
+-    #endif
+-    #ifdef FORMAT_FLOAT32
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
+-    #endif
+-    #ifdef FORMAT_INT32
+-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
+-    #endif
+-    #ifdef FORMAT_BFP8_B
+-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
+-    #endif
+-
+-    #ifdef ELTWISE_BINARY_ADD
+-        #define ELTWISE_BINARY_OP EltwiseBinaryType::ELWADD
+-    #endif
+-    #ifdef ELTWISE_BINARY_SUB
+-        #define ELTWISE_BINARY_OP EltwiseBinaryType::ELWSUB
+-    #endif
+-    #ifdef ELTWISE_BINARY_MUL
+-        #define ELTWISE_BINARY_OP EltwiseBinaryType::ELWMUL
+-    #endif
+-    // TO BE IMPLEMENTED IN LLKs
+-    #ifdef ELTWISE_BINARY_DIV
+-        #define ELTWISE_BINARY_OP EltwiseBinaryType::ELWDIV
+-    #endif
+-    #ifdef ELTWISE_BINARY_LESS
+-        #define ELTWISE_BINARY_OP EltwiseBinaryType::ELWLESS
+-    #endif
+-
+-    // SFPU operation macros
+-
+-    #ifdef SFPU_OP_SQRT
+-        #define SFPU_OPERATION SfpuType::sqrt
+-        #define SFPU_CALLS _init_sqrt_<APPROX_MODE>();_calculate_sqrt_<APPROX_MODE,0,10>(10);
+-    #endif
+-    #ifdef SFPU_OP_LOG
+-        #define SFPU_OPERATION SfpuType::log
+-        #define SFPU_CALLS _init_log_<APPROX_MODE>();_calculate_log_<APPROX_MODE,false,10>(10,0);
+-    #endif
+-    #ifdef SFPU_OP_SQUARE
+-        #define SFPU_OPERATION SfpuType::square
+-        #define SFPU_CALLS _calculate_square_<APPROX_MODE,10>(10);
+-    #endif
++#ifdef FORMAT_FLOAT16_B
++#define DATA_FORMAT (uint32_t)DataFormat::Float16_b
++#endif
++#ifdef FORMAT_FLOAT16
++#define DATA_FORMAT (uint32_t)DataFormat::Float16
++#endif
++#ifdef FORMAT_FLOAT32
++#define DATA_FORMAT (uint32_t)DataFormat::Float32
++#endif
++#ifdef FORMAT_INT32
++#define DATA_FORMAT (uint32_t)DataFormat::Int32
++#endif
++#ifdef FORMAT_BFP8_B
++#define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b
++#endif
++
++#ifdef ELTWISE_BINARY_ADD
++#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWADD
++#endif
++#ifdef ELTWISE_BINARY_SUB
++#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWSUB
++#endif
++#ifdef ELTWISE_BINARY_MUL
++#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWMUL
++#endif
++// TO BE IMPLEMENTED IN LLKs
++#ifdef ELTWISE_BINARY_DIV
++#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWDIV
++#endif
++#ifdef ELTWISE_BINARY_LESS
++#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWLESS
++#endif
++
++// SFPU operation macros
++
++#ifdef SFPU_OP_SQRT
++#define SFPU_OPERATION SfpuType::sqrt
++#define SFPU_CALLS              \
++    _init_sqrt_<APPROX_MODE>(); \
++    _calculate_sqrt_<APPROX_MODE, 0, 10>(10);
++#endif
++#ifdef SFPU_OP_LOG
++#define SFPU_OPERATION SfpuType::log
++#define SFPU_CALLS             \
++    _init_log_<APPROX_MODE>(); \
++    _calculate_log_<APPROX_MODE, false, 10>(10, 0);
++#endif
++#ifdef SFPU_OP_SQUARE
++#define SFPU_OPERATION SfpuType::square
++#define SFPU_CALLS     _calculate_square_<APPROX_MODE, 10>(10);
++#endif
+ 
+ #endif
+ 
+ #ifdef LLK_TRISC_PACK
+-    
+-inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...) {
++
++inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
++{
+     buffer_Dest[0] = (volatile uint32_t*)first;
+ 
+     va_list args;
+     va_start(args, first);
+-    for (int i = 1; i < n; ++i) {
+-        int num = va_arg(args, int);
++    for (int i = 1; i < n; ++i)
++    {
++        int num        = va_arg(args, int);
+         buffer_Dest[i] = (volatile uint32_t*)num;
+     }
+     va_end(args);
+ }
+ 
+-    #ifdef FORMAT_FLOAT16_B
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float16_b
+-    #endif
+-    #ifdef FORMAT_FLOAT16
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float16
+-    #endif
+-    #ifdef FORMAT_FLOAT32
+-        #define DATA_FORMAT (uint32_t)DataFormat::Float32
+-    #endif
+-    #ifdef FORMAT_INT32
+-        #define DATA_FORMAT (uint32_t)DataFormat::Int32
+-    #endif
+-    #ifdef FORMAT_BFP8_B
+-        #define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b 
+-    #endif
++#ifdef FORMAT_FLOAT16_B
++#define DATA_FORMAT (uint32_t)DataFormat::Float16_b
++#endif
++#ifdef FORMAT_FLOAT16
++#define DATA_FORMAT (uint32_t)DataFormat::Float16
++#endif
++#ifdef FORMAT_FLOAT32
++#define DATA_FORMAT (uint32_t)DataFormat::Float32
++#endif
++#ifdef FORMAT_INT32
++#define DATA_FORMAT (uint32_t)DataFormat::Int32
++#endif
++#ifdef FORMAT_BFP8_B
++#define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b
++#endif
+ 
+ #endif
+ 
+
+File: tests/helpers/src/brisc.cpp
+@@ -2,60 +2,61 @@
+ //
+ // SPDX-License-Identifier: Apache-2.0
+ 
+-#include "tensix.h"
+ #include "ckernel_instr_params.h"
+ #include "ckernel_ops.h"
+-#include "risc_attribs.h"
+ #include "ckernel_structs.h"
+ #include "dev_mem_map.h"
++#include "risc_attribs.h"
++#include "tensix.h"
+ 
+ using namespace ckernel;
+ 
+-constexpr std::uint32_t RISCV_IC_BRISC_MASK = 0x1;
+-constexpr std::uint32_t RISCV_IC_NCRISC_MASK = 0x10;
+-constexpr std::uint32_t RISCV_IC_TRISC0_MASK = 0x2;
+-constexpr std::uint32_t RISCV_IC_TRISC1_MASK = 0x4;
+-constexpr std::uint32_t RISCV_IC_TRISC2_MASK = 0x8;
++constexpr std::uint32_t RISCV_IC_BRISC_MASK     = 0x1;
++constexpr std::uint32_t RISCV_IC_NCRISC_MASK    = 0x10;
++constexpr std::uint32_t RISCV_IC_TRISC0_MASK    = 0x2;
++constexpr std::uint32_t RISCV_IC_TRISC1_MASK    = 0x4;
++constexpr std::uint32_t RISCV_IC_TRISC2_MASK    = 0x8;
+ constexpr std::uint32_t RISCV_IC_TRISC_ALL_MASK = RISCV_IC_TRISC0_MASK | RISCV_IC_TRISC1_MASK | RISCV_IC_TRISC2_MASK;
+ 
+-
+-inline void initialize_tensix_semaphores() {
+-
+-    TTI_SEMINIT(1,0,ckernel::semaphore::UNPACK_TO_DEST);
+-    TTI_SEMINIT(1,0,ckernel::semaphore::MATH_DONE);
++inline void initialize_tensix_semaphores()
++{
++    TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
++    TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
+ }
+ 
+-void device_setup() {
+-
++void device_setup()
++{
+     volatile tt_reg_ptr std::uint32_t* cfg_regs = reinterpret_cast<std::uint32_t*>(TENSIX_CFG_BASE);
+ 
+ #ifdef ARCH_BLACKHOLE
+     *((std::uint32_t volatile*)RISCV_DEBUG_REG_DEST_CG_CTRL) = 0;
+ #endif
+ 
+-    #ifdef ARCH_BLACKHOLE
++#ifdef ARCH_BLACKHOLE
+     TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, 1, 0);
+-    #else
++#else
+     TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0);
+-    #endif
++#endif
+ 
+     // Enable CC stack
+-	TTI_SFPENCC(3,0,0,10);
+-	TTI_NOP;
++    TTI_SFPENCC(3, 0, 0, 10);
++    TTI_NOP;
+ 
+     // Set default sfpu constant register state
+-	TTI_SFPLOADI(p_sfpu::LREG0,0xA,0xbf80); // -1.0f -> LREG0
+-	TTI_SFPCONFIG(0, 11, 0); // LREG0 -> LREG11
++    TTI_SFPLOADI(p_sfpu::LREG0, 0xA, 0xbf80); // -1.0f -> LREG0
++    TTI_SFPCONFIG(0, 11, 0);                  // LREG0 -> LREG11
+ 
+     initialize_tensix_semaphores();
+-
+ }
+ 
+-int main() {
++int main()
++{
+     device_setup();
+     // Use a volatile variable to prevent the compiler from optimizing away the loop
+     volatile bool run = true;
+-    
++
+     // Infinite loop
+-    while (run) { }
++    while (run)
++    {
++    }
+ }
+
+File: tests/helpers/src/trisc.cpp
+@@ -2,42 +2,44 @@
+ //
+ // SPDX-License-Identifier: Apache-2.0
+ 
++#include <l1_address_map.h>
++#include <tensix.h>
++
+ #include "ckernel.h"
+ #include "ckernel_addr_map.h"
+-#include "ckernel_pcbuf.h"
+-#include "ckernel_main.h"
+ #include "ckernel_globals.h"
+-#include <l1_address_map.h>
+-#include <tensix.h>
++#include "ckernel_main.h"
++#include "ckernel_pcbuf.h"
+ // Necessary for ckernel variables
+ #include "ckernel_helper.h"
+ #include "params.h"
+ 
+ #ifdef LLK_TRISC_UNPACK
+-	volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FFC);
++volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FFC);
+ #elif defined(LLK_TRISC_MATH)
+-	volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FF8);
++volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FF8);
+ #elif defined(LLK_TRISC_PACK)
+-	volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FF4);
++volatile uint32_t* mailbox = (volatile uint32_t*)(0x19FF4);
+ #endif
+ 
+-
+ int main()
+ {
++    *mailbox = 0x2; // write value different than 1 to mailbox to indicate kernel is running
+ 
+-	*mailbox = 0x2; // write value different than 1 to mailbox to indicate kernel is running
+-
+-	for (int i = 0; i < 64; i++){
+-		regfile[i] = 0;
+-	}
++    for (int i = 0; i < 64; i++)
++    {
++        regfile[i] = 0;
++    }
+ 
+-	reset_cfg_state_id();
+-	reset_dest_offset_id();
++    reset_cfg_state_id();
++    reset_dest_offset_id();
+ 
+-	tensix_sync();
++    tensix_sync();
+     run_kernel();
+ 
+-	*mailbox = KERNEL_COMPLETE; // 0x1
++    *mailbox = KERNEL_COMPLETE; // 0x1
+ 
+-	for(;;){}
++    for (;;)
++    {
++    }
+ }
+
+File: tests/python_tests/helpers/__init__.py
+@@ -1,12 +1,39 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-from .stimuli_generator import flatten_list,generate_stimuli
+-from .format_arg_mapping import format_dict,format_args_dict,mathop_args_dict,format_sizes
+-from .pack import pack_bfp16,pack_fp16,pack_fp32,pack_int32,pack_bfp8_b
+-from .unpack import unpack_fp16,unpack_bfp16,unpack_float32,unpack_int32,unpack_bfp8_b, int_to_bytes_list
+-from .utils import run_shell_command,calculate_read_words_count,tilize,untilize,compare_pcc, format_kernel_list, print_faces
+-from .device import collect_results, run_elf_files, write_stimuli_to_l1, get_result_from_device, assert_tensix_operations_finished
++from .stimuli_generator import flatten_list, generate_stimuli
++from .format_arg_mapping import (
++    format_dict,
++    format_args_dict,
++    mathop_args_dict,
++    format_sizes,
++)
++from .pack import pack_bfp16, pack_fp16, pack_fp32, pack_int32, pack_bfp8_b
++from .unpack import (
++    unpack_fp16,
++    unpack_bfp16,
++    unpack_float32,
++    unpack_int32,
++    unpack_bfp8_b,
++    int_to_bytes_list,
++)
++from .utils import (
++    run_shell_command,
++    calculate_read_words_count,
++    tilize,
++    untilize,
++    compare_pcc,
++    format_kernel_list,
++    print_faces,
++)
++from .device import (
++    collect_results,
++    run_elf_files,
++    write_stimuli_to_l1,
++    get_result_from_device,
++    assert_tensix_operations_finished,
++)
+ from .test_config import generate_make_command
+ from ttexalens import Verbosity
++
+ Verbosity.set(Verbosity.ERROR)
+
+File: tests/python_tests/helpers/device.py
+@@ -1,19 +1,25 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-from ttexalens.tt_exalens_lib import write_to_device, read_words_from_device, read_word_from_device, run_elf
++from ttexalens.tt_exalens_lib import (
++    write_to_device,
++    read_words_from_device,
++    read_word_from_device,
++    run_elf,
++)
+ from helpers import *
+ 
+ 
+-def collect_results(format,address=0x1c000,core_loc = "0,0", sfpu=False):
+-    read_words_cnt = calculate_read_words_count(format,sfpu)
++def collect_results(format, address=0x1C000, core_loc="0,0", sfpu=False):
++    read_words_cnt = calculate_read_words_count(format, sfpu)
+     read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
+     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
+-    res_from_L1 = get_result_from_device(format,read_data_bytes,sfpu)
++    res_from_L1 = get_result_from_device(format, read_data_bytes, sfpu)
+     return res_from_L1
+ 
+-def run_elf_files(testname, core_loc = "0,0", run_brisc=True):
+-    
++
++def run_elf_files(testname, core_loc="0,0", run_brisc=True):
++
+     ELF_LOCATION = "../build/elf/"
+ 
+     if run_brisc:
+@@ -29,13 +35,14 @@ def run_elf_files(testname, core_loc = "0,0", run_brisc=True):
+     for i in range(2, -1, -1):
+         run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
+ 
+-def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc = "0,0", tile_cnt = 1):
++
++def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile_cnt=1):
+ 
+     BUFFER_SIZE = 4096
+     TILE_SIZE = 1024
+ 
+-    buffer_A_address = 0x1a000
+-    buffer_B_address = 0x1a000 + BUFFER_SIZE*tile_cnt
++    buffer_A_address = 0x1A000
++    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt
+ 
+     for i in range(tile_cnt):
+ 
+@@ -53,40 +60,43 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc = "0,0", ti
+             "Float16": pack_fp16,
+             "Float16_b": pack_bfp16,
+             "Float32": pack_fp32,
+-            "Int32": pack_int32
++            "Int32": pack_int32,
+         }
+ 
+         pack_function = packers.get(stimuli_format)
+ 
+         write_to_device(core_loc, buffer_A_address, pack_function(buffer_A_tile))
+         write_to_device(core_loc, buffer_B_address, pack_function(buffer_B_tile))
+-        
++
+         buffer_A_address += BUFFER_SIZE
+         buffer_B_address += BUFFER_SIZE
+-        
+-        
+-def get_result_from_device(format: str, read_data_bytes: bytes, core_loc : str = "0,0", sfpu: bool =False):
++
++
++def get_result_from_device(
++    format: str, read_data_bytes: bytes, core_loc: str = "0,0", sfpu: bool = False
++):
+     # Dictionary of format to unpacking function mappings
+     unpackers = {
+         "Float16": unpack_fp16,
+         "Float16_b": unpack_bfp16,
+         "Float32": unpack_float32,
+-        "Int32": unpack_int32
++        "Int32": unpack_int32,
+     }
+-    
++
+     # Handling "Bfp8_b" format separately with sfpu condition
+     if format == "Bfp8_b":
+         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
+     else:
+         unpack_func = unpackers.get(format)
+-    
++
+     if unpack_func:
+         return unpack_func(read_data_bytes)
+     else:
+         raise ValueError(f"Unsupported format: {format}")
+-    
+-def assert_tensix_operations_finished(core_loc : str= "0,0"):
+-    tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC] # L1 Mailbox addresses
++
++
++def assert_tensix_operations_finished(core_loc: str = "0,0"):
++    tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC]  # L1 Mailbox addresses
+     assert read_word_from_device(core_loc, tensix_L1_mailboxes[0]) == 1
+     assert read_word_from_device(core_loc, tensix_L1_mailboxes[1]) == 1
+     assert read_word_from_device(core_loc, tensix_L1_mailboxes[2]) == 1
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -7,15 +7,15 @@
+     "Float32": torch.float32,
+     "Float16": torch.float16,
+     "Float16_b": torch.bfloat16,
+-    "Int32": torch.int32
++    "Int32": torch.int32,
+ }
+ 
+ format_args_dict = {
+     "Float32": "FORMAT_FLOAT32",
+     "Float16": "FORMAT_FLOAT16",
+     "Float16_b": "FORMAT_FLOAT16_B",
+-    "Bfp8_b" : "FORMAT_BFP8_B",
+-    "Int32": "FORMAT_INT32"
++    "Bfp8_b": "FORMAT_BFP8_B",
++    "Int32": "FORMAT_INT32",
+ }
+ 
+ mathop_args_dict = {
+@@ -25,27 +25,26 @@
+     "sqrt": "SFPU_OP_SQRT",
+     "square": "SFPU_OP_SQUARE",
+     "log": "SFPU_OP_LOG",
+-    "reduce" : "reduce"
+-
++    "reduce": "reduce",
+ }
+ 
+ format_sizes = {
+     "Float16": 512,
+     "Float16_b": 512,
+     "Bfp8_b": 272,
+     "Float32": 1024,
+-    "Int32": 1024
++    "Int32": 1024,
+ }
+ 
+ reduce_dim_args = {
+     "reduce_col": "ReduceDim::REDUCE_COL",
+-    "reduce_row": "ReduceDim::REDUCE_ROW",      
++    "reduce_row": "ReduceDim::REDUCE_ROW",
+     "reduce_scalar": "ReduceDim::REDUCE_SCALAR",
+-    "no_reduce_dim": " "
++    "no_reduce_dim": " ",
+ }
+ 
+ reduce_pool_args = {
+     "max": "PoolType::MAX",
+     "sum": "PoolType::SUM",
+-    "avg": "PoolType::AVG"
++    "avg": "PoolType::AVG",
+ }
+
+File: tests/python_tests/helpers/pack.py
+@@ -6,85 +6,97 @@
+ import torch
+ import struct
+ 
++
+ def flatten_list(sublists):
+     return [item for sublist in sublists for item in sublist]
+ 
++
+ def int_to_bytes_list(n):
+     binary_str = bin(n)[2:].zfill(32)
+-    return [int(binary_str[i:i + 8], 2) for i in range(0, 32, 8)]
++    return [int(binary_str[i : i + 8], 2) for i in range(0, 32, 8)]
++
+ 
+ def float16_to_bytes(value):
+     float16_value = torch.tensor(value, dtype=torch.float16)
+-    packed_bytes = struct.pack('>e', float16_value.item())
++    packed_bytes = struct.pack(">e", float16_value.item())
+     return list(packed_bytes) + [0] * (4 - len(packed_bytes))
+ 
++
+ def bfloat16_to_bytes(number):
+-    number_unpacked = struct.unpack('!I', struct.pack('!f', number))[0]
++    number_unpacked = struct.unpack("!I", struct.pack("!f", number))[0]
+     res_masked = number_unpacked & 0xFFFF0000
+     return int_to_bytes_list(res_masked)
+ 
++
+ def fp32_to_bytes(number):
+-    number_unpacked = struct.unpack('!I', struct.pack('!f', number))[0]
+-    return int_to_bytes_list(number_unpacked)    
++    number_unpacked = struct.unpack("!I", struct.pack("!f", number))[0]
++    return int_to_bytes_list(number_unpacked)
++
+ 
+ def int32_to_bytes(number):
+     number = int(number)
+-    number_unpacked = struct.unpack('!I', struct.pack('!I', number))[0]
+-    return int_to_bytes_list(number_unpacked)    
++    number_unpacked = struct.unpack("!I", struct.pack("!I", number))[0]
++    return int_to_bytes_list(number_unpacked)
++
+ 
+ def bfloat16_to_binary(value):
+     float_value = value.to(torch.float32).item()
+     bfloat16_bytes = bfloat16_to_bytes(float_value)
+     return f"{bfloat16_bytes[0]:08b}{bfloat16_bytes[1]:08b}"
+ 
++
+ def pack_bfp16(torch_tensor):
+     packed_bytes = []
+     for i in range(0, len(torch_tensor), 2):
+         half1 = bfloat16_to_bytes(torch_tensor[i])
+         half2 = bfloat16_to_bytes(torch_tensor[i + 1])
+-        packed_bytes.extend([half1[0:2][::-1], half2[0:2][::-1]][::-1]) 
++        packed_bytes.extend([half1[0:2][::-1], half2[0:2][::-1]][::-1])
+     return flatten_list(packed_bytes)
+ 
++
+ def pack_fp16(torch_tensor):
+     packed_bytes = []
+     for i in range(0, len(torch_tensor), 2):
+         half1 = float16_to_bytes(torch_tensor[i])
+         half2 = float16_to_bytes(torch_tensor[i + 1])
+-        packed_bytes.extend([half1[0:2][::-1], half2[0:2][::-1]][::-1]) 
++        packed_bytes.extend([half1[0:2][::-1], half2[0:2][::-1]][::-1])
+     return flatten_list(packed_bytes)
+ 
++
+ def pack_fp32(torch_tensor):
+     packed_bytes = []
+     for i in range(0, len(torch_tensor)):
+         packed_bytes.append(fp32_to_bytes(torch_tensor[i])[::-1])
+-    return flatten_list(packed_bytes)   
++    return flatten_list(packed_bytes)
++
+ 
+ def pack_int32(torch_tensor):
+     packed_bytes = []
+     for i in range(0, len(torch_tensor)):
+         packed_bytes.append(int32_to_bytes(torch_tensor[i])[::-1])
+-    return flatten_list(packed_bytes)   
++    return flatten_list(packed_bytes)
++
+ 
+ def float_to_bfp8_block(block):
+     exponents = []
+     mantissas = []
+     signs = []
+-    max_exponent = -float('inf')
+-    
++    max_exponent = -float("inf")
++
+     for value in block:
+         binary_str = bfloat16_to_binary(value)
+         sign = binary_str[0]
+-        signs.append(int(sign,2))
++        signs.append(int(sign, 2))
+         exponent = int(binary_str[1:9], 2)
+-        mantissa = binary_str[9:-1] # remove last
+-        mantissa = "1" + mantissa ## add 1
++        mantissa = binary_str[9:-1]  # remove last
++        mantissa = "1" + mantissa  ## add 1
+         exponents.append(exponent)
+         mantissas.append(mantissa)
+         max_exponent = max(max_exponent, exponent)
+-    
++
+     shared_exponent = max_exponent
+ 
+-    mantissas_explicit = [int(mantissa,2) for mantissa in mantissas]
++    mantissas_explicit = [int(mantissa, 2) for mantissa in mantissas]
+ 
+     bfp8_mantissas = []
+     for i in range(len(block)):
+@@ -95,20 +107,24 @@ def float_to_bfp8_block(block):
+ 
+     return shared_exponent, bfp8_mantissas
+ 
++
+ def pack_bfp8_b(tensor, block_size=16):
+ 
+     flattened_tensor = tensor.flatten()
+-    num_blocks = len(flattened_tensor) // block_size 
+-    blocks = [flattened_tensor[i * block_size:(i + 1) * block_size] for i in range(num_blocks)]
+-    
++    num_blocks = len(flattened_tensor) // block_size
++    blocks = [
++        flattened_tensor[i * block_size : (i + 1) * block_size]
++        for i in range(num_blocks)
++    ]
++
+     exponents = []
+     mantissas = []
+-    
++
+     for block in blocks:
+         shared_exponent, bfp8_mantissas = float_to_bfp8_block(block)
+         exponents.append(shared_exponent)
+         mantissas.extend(bfp8_mantissas)
+-    
++
+     bfp8_result = exponents + mantissas
+-    
++
+     return bfp8_result
+
+File: tests/python_tests/helpers/stimuli_generator.py
+@@ -3,57 +3,79 @@
+ 
+ import torch
+ from .format_arg_mapping import format_dict
++
++
+ def flatten_list(sublists):
+     return [item for sublist in sublists for item in sublist]
+ 
+-def generate_random_face(stimuli_format = "Float16_b",const_value = 1,  const_face = False):
+ 
+-    if(stimuli_format in ["Float16_b", "Float16", "Float32"]): 
++def generate_random_face(stimuli_format="Float16_b", const_value=1, const_face=False):
++
++    if stimuli_format in ["Float16_b", "Float16", "Float32"]:
+ 
+-        #srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 2 # because of log
++        # srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) + 2 # because of log
+         if const_face:
+-            srcA_face = torch.ones(256, dtype = format_dict[stimuli_format]) * const_value
+-        else: # random for both faces
+-            srcA_face = torch.rand(256, dtype = format_dict[stimuli_format]) * 9.5 + 0.5
++            srcA_face = torch.ones(256, dtype=format_dict[stimuli_format]) * const_value
++        else:  # random for both faces
++            srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) * 9.5 + 0.5
+ 
+-    elif(stimuli_format == "Bfp8_b"):
++    elif stimuli_format == "Bfp8_b":
+ 
+         size = 256
+-        integer_part = torch.randint(0, 3, (size,))  
+-        fraction = torch.randint(0, 16, (size,)).to(dtype = torch.bfloat16) / 16.0
++        integer_part = torch.randint(0, 3, (size,))
++        fraction = torch.randint(0, 16, (size,)).to(dtype=torch.bfloat16) / 16.0
+         if const_face:
+-            srcA_face = torch.ones(256, dtype = torch.bfloat16) * const_value
++            srcA_face = torch.ones(256, dtype=torch.bfloat16) * const_value
+         else:
+-            srcA_face = integer_part.to(dtype = torch.bfloat16) + fraction
++            srcA_face = integer_part.to(dtype=torch.bfloat16) + fraction
+ 
+-    elif(stimuli_format == "Int32"):
++    elif stimuli_format == "Int32":
+         srcA_face = torch.arange(256)
+ 
+     return srcA_face
+ 
+-def generate_random_face_ab(stimuli_format, const_face = False, const_value_A = 1, const_value_B = 2):
+-    return generate_random_face(stimuli_format,const_value_A,const_face), generate_random_face(stimuli_format,const_value_B,const_face)
+ 
+-def generate_stimuli(stimuli_format = "Float16_b", tile_cnt = 1, sfpu = False, const_face = False, const_value_A = 1, const_value_B = 1):
++def generate_random_face_ab(
++    stimuli_format, const_face=False, const_value_A=1, const_value_B=2
++):
++    return generate_random_face(
++        stimuli_format, const_value_A, const_face
++    ), generate_random_face(stimuli_format, const_value_B, const_face)
++
++
++def generate_stimuli(
++    stimuli_format="Float16_b",
++    tile_cnt=1,
++    sfpu=False,
++    const_face=False,
++    const_value_A=1,
++    const_value_B=1,
++):
+ 
+     srcA = []
+     srcB = []
+ 
+-    for i in range(4*tile_cnt):
+-        face_a, face_b = generate_random_face_ab(stimuli_format, const_face,const_value_A,const_value_B)
++    for i in range(4 * tile_cnt):
++        face_a, face_b = generate_random_face_ab(
++            stimuli_format, const_face, const_value_A, const_value_B
++        )
+         srcA.append(face_a.tolist())
+         srcB.append(face_b.tolist())
+ 
+     srcA = flatten_list(srcA)
+-    srcB = flatten_list(srcB)    
++    srcB = flatten_list(srcB)
+ 
+     if not sfpu:
+         if stimuli_format != "Bfp8_b":
+-            return torch.tensor(srcA, dtype = format_dict[stimuli_format]), torch.tensor(srcB, dtype = format_dict[stimuli_format])
++            return torch.tensor(srcA, dtype=format_dict[stimuli_format]), torch.tensor(
++                srcB, dtype=format_dict[stimuli_format]
++            )
+         else:
+-            return torch.tensor(srcA, dtype = torch.bfloat16), torch.tensor(srcB, dtype = torch.bfloat16)
++            return torch.tensor(srcA, dtype=torch.bfloat16), torch.tensor(
++                srcB, dtype=torch.bfloat16
++            )
+     else:
+-        srcA = generate_random_face(stimuli_format,const_value_A,const_face)
++        srcA = generate_random_face(stimuli_format, const_value_A, const_face)
+         srcB = torch.full((256,), 0)
+-        srcA = torch.cat((srcA, torch.zeros(1024-256)))
+-        return srcA,srcB
++        srcA = torch.cat((srcA, torch.zeros(1024 - 256)))
++        return srcA, srcB
+
+File: tests/python_tests/helpers/test_config.py
+@@ -1,41 +1,47 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-from .format_arg_mapping import format_args_dict,mathop_args_dict, reduce_dim_args, reduce_pool_args
++from .format_arg_mapping import (
++    format_args_dict,
++    mathop_args_dict,
++    reduce_dim_args,
++    reduce_pool_args,
++)
++
+ 
+ def generate_make_command(test_config):
+     make_cmd = f"make --silent --always-make "
+ 
+-    input_format = test_config.get("input_format", "Float16_b") # Flolat16_b is default
++    input_format = test_config.get("input_format", "Float16_b")  # Flolat16_b is default
+     output_format = test_config.get("output_format", "Float16_b")
+     testname = test_config.get("testname")
+-    dest_acc = test_config.get("dest_acc", " ") # default is not 32 bit dest_acc 
++    dest_acc = test_config.get("dest_acc", " ")  # default is not 32 bit dest_acc
++
++    make_cmd += f"format={format_args_dict[output_format]} testname={testname} dest_acc={dest_acc} "  # jsut for now take output_format
+ 
+-    make_cmd += f"format={format_args_dict[output_format]} testname={testname} dest_acc={dest_acc} " # jsut for now take output_format
+-    
+     mathop = test_config.get("mathop", "no_mathop")
+-    approx_mode = test_config.get("approx_mode","false")
+-    math_fidelity = test_config.get("math_fidelity",0)
++    approx_mode = test_config.get("approx_mode", "false")
++    math_fidelity = test_config.get("math_fidelity", 0)
+ 
+     make_cmd += f" math_fidelity={math_fidelity} "
+     make_cmd += f" approx_mode={approx_mode} "
+ 
+-    reduce_dim =  test_config.get("reduce_dim","no_reduce_dim")
+-    pool_type =  test_config.get("pool_type","no_reduce_dim")
++    reduce_dim = test_config.get("reduce_dim", "no_reduce_dim")
++    pool_type = test_config.get("pool_type", "no_reduce_dim")
+ 
+-    if(mathop != "no_mathop"):
+-        if isinstance(mathop,str): # single tile option
+-            if(mathop == "reduce"):
++    if mathop != "no_mathop":
++        if isinstance(mathop, str):  # single tile option
++            if mathop == "reduce":
+                 make_cmd += f"mathop={  mathop_args_dict[mathop]} "
+                 make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
+                 make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
+             else:
+                 make_cmd += f"mathop={  mathop_args_dict[mathop]} "
+-        else: # multiple tiles handles mathop as int
++        else:  # multiple tiles handles mathop as int
+ 
+-            if(mathop == 1):
++            if mathop == 1:
+                 make_cmd += " mathop=ELTWISE_BINARY_ADD "
+-            elif(mathop == 2):
++            elif mathop == 2:
+                 make_cmd += " mathop=ELTWISE_BINARY_SUB "
+             else:
+                 make_cmd += " mathop=ELTWISE_BINARY_MUL "
+@@ -45,7 +51,7 @@ def generate_make_command(test_config):
+             pack_addrs = test_config.get("pack_addrs")
+ 
+             make_cmd += f" kern_cnt={kern_cnt} "
+-            make_cmd += f" pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs}" 
++            make_cmd += f" pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs}"
+ 
+     print(make_cmd)
+ 
+
+File: tests/python_tests/helpers/unpack.py
+@@ -7,69 +7,92 @@
+ import torch
+ from .utils import reverse_endian_chunk
+ 
++
+ def int_to_bytes_list(n):
+     binary_str = bin(n)[2:].zfill(32)
+-    return [int(binary_str[i:i + 8], 2) for i in range(0, 32, 8)]
++    return [int(binary_str[i : i + 8], 2) for i in range(0, 32, 8)]
++
+ 
+ def bytes_to_float16(byte_list):
+     bytes_data = bytes(byte_list[:2])
+-    unpacked_value = struct.unpack('>e', bytes_data)[0]
++    unpacked_value = struct.unpack(">e", bytes_data)[0]
+     return torch.tensor(unpacked_value, dtype=torch.float16)
+ 
++
+ def bytes_to_bfloat16(byte_list):
+     bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
+-    unpacked_value = struct.unpack('>f', bytes_data)[0]
++    unpacked_value = struct.unpack(">f", bytes_data)[0]
+     return torch.tensor(unpacked_value, dtype=torch.float32)
+ 
++
+ def bytes_to_float32(byte_list):
+     bytes_data = bytes(byte_list)
+-    unpacked_value = struct.unpack('>f', bytes_data)[0]
++    unpacked_value = struct.unpack(">f", bytes_data)[0]
+     return torch.tensor(unpacked_value, dtype=torch.float32)
+ 
++
+ def bytes_to_int32(byte_list):
+     bytes_data = bytes(byte_list)
+-    unpacked_value = struct.unpack('>I', bytes_data)[0]
++    unpacked_value = struct.unpack(">I", bytes_data)[0]
+     return torch.tensor(unpacked_value, dtype=torch.int32)
+ 
++
+ def unpack_fp16(packed_list):
+     limited_packed_list = packed_list[:2048]
+-    return [bytes_to_float16(limited_packed_list[i:i + 2]).item() for i in range(0, len(limited_packed_list), 2)]
++    return [
++        bytes_to_float16(limited_packed_list[i : i + 2]).item()
++        for i in range(0, len(limited_packed_list), 2)
++    ]
++
+ 
+ def unpack_bfp16(packed_list):
+     limited_packed_list = packed_list[:2048]
+-    return [bytes_to_bfloat16(limited_packed_list[i:i + 2]).item() for i in range(0, len(limited_packed_list), 2)]
++    return [
++        bytes_to_bfloat16(limited_packed_list[i : i + 2]).item()
++        for i in range(0, len(limited_packed_list), 2)
++    ]
++
+ 
+ def unpack_float32(packed_list):
+-    return [bytes_to_float32(packed_list[i:i + 4]).item() for i in range(0, len(packed_list), 4)]
++    return [
++        bytes_to_float32(packed_list[i : i + 4]).item()
++        for i in range(0, len(packed_list), 4)
++    ]
++
+ 
+ def unpack_int32(packed_list):
+-    return [bytes_to_int32(packed_list[i:i + 4]).item() for i in range(0, len(packed_list), 4)]
++    return [
++        bytes_to_int32(packed_list[i : i + 4]).item()
++        for i in range(0, len(packed_list), 4)
++    ]
++
+ 
+ def bfp8_to_float_block(exponent, bfp8_mantissas):
+     bfloat16_values = []
+     exponent = exponent - 127
+     for mantissa in bfp8_mantissas:
+-        sign_mantissa = str(format(mantissa, '08b'))
+-        sign = int(sign_mantissa[0],2)
+-        mantissa_value =sign_mantissa[1:]
+-        int_part = mantissa_value[:exponent+1]
+-        fract_part = mantissa_value[exponent+1:]
+-
+-        if(len(int_part) != 0):
+-            int_value = int(int_part,2)
++        sign_mantissa = str(format(mantissa, "08b"))
++        sign = int(sign_mantissa[0], 2)
++        mantissa_value = sign_mantissa[1:]
++        int_part = mantissa_value[: exponent + 1]
++        fract_part = mantissa_value[exponent + 1 :]
++
++        if len(int_part) != 0:
++            int_value = int(int_part, 2)
+         else:
+             int_value = 0
+ 
+         fract_value = 0
+         for i in range(len(fract_part)):
+-            if(fract_part[i] == '1'):
+-                fract_value += 1/(2**(i+1))
++            if fract_part[i] == "1":
++                fract_value += 1 / (2 ** (i + 1))
+ 
+-        bfloat16_values.append(((-1)**sign)*(int_value+fract_value))
++        bfloat16_values.append(((-1) ** sign) * (int_value + fract_value))
+ 
+     return bfloat16_values
+ 
+-def unpack_bfp8_b(bfp8_block,sfpu=False):
++
++def unpack_bfp8_b(bfp8_block, sfpu=False):
+ 
+     if not sfpu:
+         exponents = bfp8_block[:64]
+@@ -83,10 +106,10 @@ def unpack_bfp8_b(bfp8_block,sfpu=False):
+     bfloat16_values = []
+     for i in range(len(reversed_exponents)):
+         exponent = reversed_exponents[i]
+-        bfp8_mantissas = mantissas[i * 16:(i + 1) * 16]        
++        bfp8_mantissas = mantissas[i * 16 : (i + 1) * 16]
+         reversed_sign_mantissa = reverse_endian_chunk(bfp8_mantissas)
+ 
+         block_bfloat16_values = bfp8_to_float_block(exponent, reversed_sign_mantissa)
+         bfloat16_values.extend(block_bfloat16_values)
+-    
++
+     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
+
+File: tests/python_tests/helpers/utils.py
+@@ -4,9 +4,10 @@
+ import torch
+ import numpy as np
+ import subprocess
+-from .format_arg_mapping import  format_dict,format_sizes
++from .format_arg_mapping import format_dict, format_sizes
++
++torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+ 
+-torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
+ 
+ def print_faces(operand1):
+     f0 = operand1[:256].view(16, 16)
+@@ -16,39 +17,50 @@ def print_faces(operand1):
+ 
+     # Print the first set with proper alignment
+     for i in range(16):
+-        print(' '.join(f"{x:6.2f}" for x in f0[i].tolist()), " | ", 
+-            ' '.join(f"{x:6.2f}" for x in f1[i].tolist()))
++        print(
++            " ".join(f"{x:6.2f}" for x in f0[i].tolist()),
++            " | ",
++            " ".join(f"{x:6.2f}" for x in f1[i].tolist()),
++        )
+ 
+     print("-" * 250)
+ 
+     # Print the second set with proper alignment
+     for i in range(16):
+-        print(' '.join(f"{x:6.2f}" for x in f2[i].tolist()), " | ", 
+-            ' '.join(f"{x:6.2f}" for x in f3[i].tolist()))
++        print(
++            " ".join(f"{x:6.2f}" for x in f2[i].tolist()),
++            " | ",
++            " ".join(f"{x:6.2f}" for x in f3[i].tolist()),
++        )
++
++    print("\n" * 3)
+ 
+-    print("\n"*3)
+ 
+ def run_shell_command(command: str):
+-    result = subprocess.run(command, shell=True, text=True, capture_output=False,stdout=subprocess.DEVNULL)
++    result = subprocess.run(
++        command, shell=True, text=True, capture_output=False, stdout=subprocess.DEVNULL
++    )
+     if result.returncode != 0:
+         raise RuntimeError(f"Command failed: {command}\n{result.stderr}")
+     return result
+ 
++
+ def calculate_read_words_count(format, sfpu=False):
+ 
+     if format not in format_sizes:
+         raise ValueError(f"Unsupported format: {format}")
+ 
+-    if sfpu: # for now just for 16 bit formats
++    if sfpu:  # for now just for 16 bit formats
+         return 256 if format in ["Float32", "Int32"] else 128
+-    
++
+     return format_sizes[format]
+ 
++
+ def tilize(original_tensor, stimuli_format="Float16_b"):
+ 
+     if original_tensor.size(0) != 1024:
+         raise ValueError("Input tensor must have 1024 elements.")
+-    
++
+     matrix = original_tensor.view(32, 32)
+ 
+     f0 = matrix[:16, :16]
+@@ -58,7 +70,14 @@ def tilize(original_tensor, stimuli_format="Float16_b"):
+ 
+     result = torch.cat((f0.reshape(-1), f1.reshape(-1), f2.reshape(-1), f3.reshape(-1)))
+ 
+-    return result.to(dtype=format_dict[stimuli_format] if stimuli_format in ["Float16_b","Float16"] else torch.float32)
++    return result.to(
++        dtype=(
++            format_dict[stimuli_format]
++            if stimuli_format in ["Float16_b", "Float16"]
++            else torch.float32
++        )
++    )
++
+ 
+ def untilize(tilized_tensor, stimuli_format="Float16_b"):
+ 
+@@ -74,14 +93,22 @@ def untilize(tilized_tensor, stimuli_format="Float16_b"):
+ 
+     original_tensor = torch.cat((top, bottom), dim=0).view(1024)
+ 
+-    return original_tensor.to(dtype=format_dict[stimuli_format] if stimuli_format in ["Float16_b","Float16"] else torch.float32)
++    return original_tensor.to(
++        dtype=(
++            format_dict[stimuli_format]
++            if stimuli_format in ["Float16_b", "Float16"]
++            else torch.float32
++        )
++    )
++
+ 
+-def reverse_endian_chunk(input_list, chunk_size = 4):
++def reverse_endian_chunk(input_list, chunk_size=4):
+     output_list = []
+     for j in range(0, len(input_list), chunk_size):
+-        output_list.extend(input_list[j:j+chunk_size][::-1])
++        output_list.extend(input_list[j : j + chunk_size][::-1])
+     return output_list
+ 
++
+ def format_kernel_list(kernels, as_hex=False):
+     formatted_str = ""
+     for i in kernels:
+@@ -92,6 +119,7 @@ def format_kernel_list(kernels, as_hex=False):
+             formatted_str += str(i) + ","
+     return formatted_str[:-1]  # Remove the trailing comma
+ 
++
+ def compare_pcc(golden, calculated, pcc=0.99):
+     golden = torch.Tensor(golden)
+     calculated = torch.Tensor(calculated)
+@@ -100,16 +128,16 @@ def compare_pcc(golden, calculated, pcc=0.99):
+         calculated = calculated.type(golden.dtype)
+ 
+     if torch.all(torch.isnan(golden)) and torch.all(torch.isnan(calculated)):
+-        #logger.warning("Both tensors are 'nan'")
++        # logger.warning("Both tensors are 'nan'")
+         return True, 1.0
+ 
+     if torch.all(torch.isnan(golden)) or torch.all(torch.isnan(calculated)):
+-        #logger.error("One tensor is all nan, the other is not.")
++        # logger.error("One tensor is all nan, the other is not.")
+         return False, 0.0
+ 
+     # Test if either is completely zero
+     if torch.any(golden.bool()) != torch.any(calculated.bool()):
+-        #logger.error("One tensor is all zero")
++        # logger.error("One tensor is all zero")
+         return False, 0.0
+ 
+     # For now, mask all infs and nans so that we check the rest... TODO
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -5,39 +5,37 @@
+ import torch
+ from helpers import *
+ 
+-def generate_golden(operand1,format):
++
++def generate_golden(operand1, format):
+     return operand1
+ 
++
+ param_combinations = [
+     (format, dest_acc, testname)
+-    for format in ["Float32","Bfp8_b", "Float16_b", "Float16", "Int32"]
++    for format in ["Float32", "Bfp8_b", "Float16_b", "Float16", "Int32"]
+     for dest_acc in ["", "DEST_ACC"]
+     for testname in ["eltwise_unary_datacopy_test"]
+ ]
+ 
+-param_ids = [
+-    f" format={comb[0]} | dest_acc={comb[1]} "
+-    for comb in param_combinations
+-]
++param_ids = [f" format={comb[0]} | dest_acc={comb[1]} " for comb in param_combinations]
++
+ 
+ @pytest.mark.parametrize(
+-    "format, dest_acc, testname",
+-    param_combinations,
+-    ids=param_ids
++    "format, dest_acc, testname", param_combinations, ids=param_ids
+ )
+-
+-
+ def test_unary_datacopy(format, testname, dest_acc):
+ 
+-    if (format == "Float16" and dest_acc == "DEST_ACC"):
+-        pytest.skip(reason = "This combination is not fully implemented in testing")
++    if format == "Float16" and dest_acc == "DEST_ACC":
++        pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+-    if(format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
+-        pytest.skip(reason = "Skipping test for 32 bit wide data without 32 bit accumulation in Dest")
++    if format in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
++        pytest.skip(
++            reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
++        )
+ 
+-    src_A,src_B = generate_stimuli(format)
++    src_A, src_B = generate_stimuli(format)
+     srcB = torch.full((1024,), 0)
+-    golden = generate_golden(src_A,format)
++    golden = generate_golden(src_A, format)
+     write_stimuli_to_l1(src_A, src_B, format)
+ 
+     test_config = {
+@@ -47,7 +45,6 @@ def test_unary_datacopy(format, testname, dest_acc):
+         "dest_acc": dest_acc,
+     }
+ 
+-
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+     run_elf_files(testname)
+@@ -59,18 +56,34 @@ def test_unary_datacopy(format, testname, dest_acc):
+     assert len(res_from_L1) == len(golden)
+     assert_tensix_operations_finished()
+ 
+-    if(format in format_dict):
++    if format in format_dict:
+         atol = 0.05
+         rtol = 0.1
+     else:
+         atol = 0.2
+         rtol = 0.1
+ 
+-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b", "Float32", "Int32"] else torch.bfloat16)
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b", "Float32", "Int32"] else torch.bfloat16)
++    golden_tensor = torch.tensor(
++        golden,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b", "Float32", "Int32"]
++            else torch.bfloat16
++        ),
++    )
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b", "Float32", "Int32"]
++            else torch.bfloat16
++        ),
++    )
+ 
+     for i in range(len(golden)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+-    
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
++
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.99
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -6,12 +6,17 @@
+ import math
+ from helpers import *
+ 
++
+ def generate_golden(operation, operand1, data_format):
+-    tensor1_float = operand1.clone().detach().to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
++    tensor1_float = (
++        operand1.clone()
++        .detach()
++        .to(format_dict[data_format] if data_format != "Bfp8_b" else torch.bfloat16)
++    )
+     ops = {
+         "sqrt": lambda x: math.sqrt(x),
+         "square": lambda x: x * x,
+-        "log": lambda x: math.log(x) if x != 0 else float('nan')
++        "log": lambda x: math.log(x) if x != 0 else float("nan"),
+     }
+     if operation not in ops:
+         raise ValueError("Unsupported operation!")
+@@ -20,33 +25,33 @@ def generate_golden(operation, operand1, data_format):
+ 
+ param_combinations = [
+     (mathop, format, dest_acc, testname, approx_mode)
+-    for mathop in  ["sqrt","log","square"]
+-    for format in ["Float16_b", "Float16","Float32"]
+-    for dest_acc in ["DEST_ACC",""]
++    for mathop in ["sqrt", "log", "square"]
++    for format in ["Float16_b", "Float16", "Float32"]
++    for dest_acc in ["DEST_ACC", ""]
+     for testname in ["eltwise_unary_sfpu_test"]
+-    for approx_mode in ["false","true"]
++    for approx_mode in ["false", "true"]
+ ]
+ 
+ param_ids = [
+     f"mathop={comb[0]} | format={comb[1]} | dest_acc={comb[2]} | approx_mode={comb[4]}"
+     for comb in param_combinations
+ ]
+ 
++
+ @pytest.mark.parametrize(
+-    "mathop, format, dest_acc, testname, approx_mode",
+-    param_combinations,
+-    ids=param_ids
++    "mathop, format, dest_acc, testname, approx_mode", param_combinations, ids=param_ids
+ )
+-
+ def test_eltwise_unary_sfpu(format, mathop, testname, dest_acc, approx_mode):
+ 
+-    if( format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
+-        pytest.skip(reason = "Skipping test for 32 bit wide data without 32 bit accumulation in Dest")
++    if format in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
++        pytest.skip(
++            reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
++        )
+ 
+-    if (format == "Float16" and dest_acc == "DEST_ACC"):
+-        pytest.skip(reason = "This combination is not fully implemented in testing")
++    if format == "Float16" and dest_acc == "DEST_ACC":
++        pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+-    src_A,src_B = generate_stimuli(format,sfpu = True)
++    src_A, src_B = generate_stimuli(format, sfpu=True)
+     golden = generate_golden(mathop, src_A, format)
+     write_stimuli_to_l1(src_A, src_B, format)
+ 
+@@ -59,32 +64,48 @@ def test_eltwise_unary_sfpu(format, mathop, testname, dest_acc, approx_mode):
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+-        "approx_mode": approx_mode
++        "approx_mode": approx_mode,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+     run_elf_files(testname)
+-    
+-    res_from_L1 = collect_results(format,sfpu=True)
++
++    res_from_L1 = collect_results(format, sfpu=True)
+ 
+     run_shell_command("cd .. && make clean")
+ 
+     assert len(res_from_L1) == len(golden)
+     assert_tensix_operations_finished()
+ 
+-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+-
+-    if(format in ["Float16_b","Float16", "Float32"]):
++    golden_tensor = torch.tensor(
++        golden,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
++
++    if format in ["Float16_b", "Float16", "Float32"]:
+         atol = 0.05
+         rtol = 0.1
+     elif format == "Bfp8_b":
+         atol = 0.05
+         rtol = 0.1
+ 
+     for i in range(len(golden)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+ 
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.99
+
+File: tests/python_tests/test_fill_dest.py
+@@ -5,59 +5,64 @@
+ import torch
+ from helpers import *
+ 
++
+ def generate_golden(operations, operand1, operand2, data_format):
+-    tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+-    tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
++    tensor1_float = (
++        operand1.clone()
++        .detach()
++        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++    )
++    tensor2_float = (
++        operand2.clone()
++        .detach()
++        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++    )
+ 
+     res = []
+ 
+     # to se why this encoding look at llk_defs.h -> enum EltwiseBinaryType
+ 
+     for op in operations:
+-        if(op==0):
++        if op == 0:
+             res_tmp = tensor1_float * tensor2_float
+-        elif(op==1):
++        elif op == 1:
+             res_tmp = tensor1_float / tensor2_float
+-        elif(op==2):
++        elif op == 2:
+             res_tmp = tensor1_float + tensor2_float
+-        elif(op==3):
++        elif op == 3:
+             res_tmp = tensor1_float - tensor2_float
+         else:
+             raise ValueError("Unsupported operation!")
+-        
++
+         res.append(res_tmp.tolist())
+-    
++
+     return flatten_list(res)
+ 
++
+ param_combinations = [
+     (format, dest_acc, testname)
+     for format in ["Float16_b", "Float16", "Bfp8_b"]
+     for dest_acc in ["", "DEST_ACC"]
+     for testname in ["fill_dest_test"]
+ ]
+ 
+-param_ids = [
+-    f" format={comb[0]} | dest_acc={comb[1]}"
+-    for comb in param_combinations
+-]
++param_ids = [f" format={comb[0]} | dest_acc={comb[1]}" for comb in param_combinations]
++
+ 
+ @pytest.mark.parametrize(
+-    "format, dest_acc, testname",
+-    param_combinations,
+-    ids=param_ids
++    "format, dest_acc, testname", param_combinations, ids=param_ids
+ )
+-
+ def test_fill_dest(format, testname, dest_acc):
+ 
+-    if (format == "Float16" and dest_acc == "DEST_ACC"):
+-        pytest.skip(reason = "This combination is not fully implemented in testing")
++    if format == "Float16" and dest_acc == "DEST_ACC":
++        pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+-    pack_start_address = 0x1c000
++    pack_start_address = 0x1C000
+     pack_addresses = [pack_start_address + 0x1000 * i for i in range(16)]
+ 
+     src_A, src_B = generate_stimuli(format)
+-    golden = generate_golden([2]*16,src_A,src_B,format)
+-    write_stimuli_to_l1(src_A,src_B,format)
++    golden = generate_golden([2] * 16, src_A, src_B, format)
++    write_stimuli_to_l1(src_A, src_B, format)
+ 
+     test_config = {
+         "input_format": format,
+@@ -76,26 +81,41 @@ def test_fill_dest(format, testname, dest_acc):
+     res_from_L1 = []
+ 
+     for address in pack_addresses:
+-        res_from_L1.append(collect_results(format,address))
+-     
++        res_from_L1.append(collect_results(format, address))
++
+     res_from_L1 = flatten_list(res_from_L1)
+ 
+     assert len(res_from_L1) == len(golden)
+     assert_tensix_operations_finished()
+ 
+-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+-
+-    if(format == "Float16_b" or format == "Float16"):
++    golden_tensor = torch.tensor(
++        golden,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
++
++    if format == "Float16_b" or format == "Float16":
+         atol = 0.05
+         rtol = 0.1
+-    elif(format == "Bfp8_b"):
++    elif format == "Bfp8_b":
+         atol = 0.1
+         rtol = 0.2
+ 
+     for i in range(len(golden)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+ 
+-  
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.99
+
+File: tests/python_tests/test_matmul.py
+@@ -5,6 +5,7 @@
+ import torch
+ from helpers import *
+ 
++
+ def generate_golden(operand1, operand2, data_format, math_fidelity):
+ 
+     if data_format == "Float16_b":
+@@ -17,39 +18,52 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+                 element = element.to(torch.int32)
+                 element &= 0xFFF8
+ 
+-    return torch.matmul(tilize(operand1).view(32, 32), tilize(operand2).view(32, 32)).view(-1)
++    return torch.matmul(
++        tilize(operand1).view(32, 32), tilize(operand2).view(32, 32)
++    ).view(-1)
++
+ 
+ param_combinations = [
+     (format, dest_acc, testname, math_fidelity)
+-    for format in ["Float16_b"]#,"Float16"]
++    for format in ["Float16_b"]  # ,"Float16"]
+     for dest_acc in ["", "DEST_ACC"]
+     for testname in ["matmul_test"]
+-    for math_fidelity in [3,4]
++    for math_fidelity in [3, 4]
+ ]
+ 
+ param_ids = [
+     f" format={comb[0]} | dest_acc={comb[1]} | math_fidelity={comb[3]}"
+     for comb in param_combinations
+ ]
+ 
++
+ @pytest.mark.parametrize(
+-    "format, dest_acc, testname, math_fidelity",
+-    param_combinations,
+-    ids=param_ids
++    "format, dest_acc, testname, math_fidelity", param_combinations, ids=param_ids
+ )
+-
+ def test_matmul(format, testname, dest_acc, math_fidelity):
+ 
+-    #src_A, src_B = generate_stimuli(format,tile_cnt=1,sfpu=False,const_face=True,const_value_A=3,const_value_B=2)  
+-    #src_A, src_B = generate_stimuli(format)
+-
+-    src_A = torch.tensor([torch.rand(1,dtype=format_dict[format]).item()]*256 + [torch.rand(1,dtype=format_dict[format]).item()]*256 + [torch.rand(1,dtype=format_dict[format]).item()]*256 + [torch.rand(1,dtype=format_dict[format]).item()]*256, dtype=torch.bfloat16)
+-    src_B = torch.tensor([torch.rand(1,dtype=format_dict[format]).item()]*256 + [torch.rand(1,dtype=format_dict[format]).item()]*256 + [torch.rand(1,dtype=format_dict[format]).item()]*256 + [torch.rand(1,dtype=format_dict[format]).item()]*256, dtype=torch.bfloat16)
++    # src_A, src_B = generate_stimuli(format,tile_cnt=1,sfpu=False,const_face=True,const_value_A=3,const_value_B=2)
++    # src_A, src_B = generate_stimuli(format)
++
++    src_A = torch.tensor(
++        [torch.rand(1, dtype=format_dict[format]).item()] * 256
++        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
++        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
++        + [torch.rand(1, dtype=format_dict[format]).item()] * 256,
++        dtype=torch.bfloat16,
++    )
++    src_B = torch.tensor(
++        [torch.rand(1, dtype=format_dict[format]).item()] * 256
++        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
++        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
++        + [torch.rand(1, dtype=format_dict[format]).item()] * 256,
++        dtype=torch.bfloat16,
++    )
+ 
+     print(src_A)
+     print(src_B)
+ 
+-    golden_tensor = generate_golden(src_A, src_B, format,math_fidelity)
++    golden_tensor = generate_golden(src_A, src_B, format, math_fidelity)
+ 
+     write_stimuli_to_l1(tilize(src_A), tilize(src_B), format)
+ 
+@@ -58,7 +72,7 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
+         "output_format": format,
+         "testname": testname,
+         "dest_acc": dest_acc,
+-        "math_fidelity" : math_fidelity
++        "math_fidelity": math_fidelity,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -72,17 +86,26 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
+     assert len(res_from_L1) == len(golden_tensor)
+     assert_tensix_operations_finished()
+ 
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
+ 
+-    if(format == "Float16_b" or format == "Float16"):
++    if format == "Float16_b" or format == "Float16":
+         atol = 0.1
+         rtol = 0.05
+-    elif(format == "Bfp8_b"):
++    elif format == "Bfp8_b":
+         atol = 0.1
+         rtol = 0.2
+ 
+     for i in range(len(golden_tensor)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+ 
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.98
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -5,15 +5,20 @@
+ import torch
+ from helpers import *
+ 
+-mathop_map = {  
+-    1: "elwadd",
+-    2: "elwsub",
+-    3: "elwmul"
+-}
++mathop_map = {1: "elwadd", 2: "elwsub", 3: "elwmul"}
+ 
+-def generate_golden(op, operand1, operand2, data_format,math_fidelity):
+-    tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+-    tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
++
++def generate_golden(op, operand1, operand2, data_format, math_fidelity):
++    tensor1_float = (
++        operand1.clone()
++        .detach()
++        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++    )
++    tensor2_float = (
++        operand2.clone()
++        .detach()
++        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++    )
+ 
+     if data_format == "Float16_b":
+         if math_fidelity in [0, 2]:  # LoFi or HiFi2
+@@ -25,65 +30,69 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
+                 element = element.to(torch.int32)
+                 element &= 0xFFF8
+ 
+-    if(op==1):
++    if op == 1:
+         res = tensor1_float + tensor2_float
+-    elif(op==2):
++    elif op == 2:
+         res = tensor1_float - tensor2_float
+-    elif(op==3):
++    elif op == 3:
+         res = tensor1_float * tensor2_float
+     else:
+         raise ValueError("Unsupported operation!")
+-    
++
+     return res.tolist()
+ 
++
+ param_combinations = [
+     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+     for mathop in range(1, 4)
+     for tile_cnt in range(1, 4)
+-    for format in ["Bfp8_b" ,"Float16", "Bfp8_b"]
++    for format in ["Bfp8_b", "Float16", "Bfp8_b"]
+     for dest_acc in ["", "DEST_ACC"]
+     for testname in ["multiple_tiles_eltwise_test"]
+-    for math_fidelity in [0,2,3,4]
++    for math_fidelity in [0, 2, 3, 4]
+ ]
+ 
+ param_ids = [
+     f"mathop={mathop_map[comb[0]]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
+     for comb in param_combinations
+ ]
+ 
++
+ @pytest.mark.parametrize(
+     "mathop, tile_cnt, format, dest_acc, testname, math_fidelity",
+     param_combinations,
+-    ids=param_ids
++    ids=param_ids,
+ )
+ def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
+ 
+     if mathop in range(1, 4) and format == "Float16" and dest_acc == "DEST_ACC":
+-        pytest.skip(reason = "This combination is not fully implemented in testing")
++        pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+     # prepare setup for running kernels
+ 
+-    pack_start_address = 0x1a000 + 2*4096*tile_cnt
++    pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt
+     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
+     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
+ 
+-    src_A, src_B = generate_stimuli(format,tile_cnt = tile_cnt) #, const_face=True, const_value_A=3, const_value_B=2)
+-    golden = generate_golden(mathop,src_A,src_B,format,math_fidelity)
+-    write_stimuli_to_l1(src_A,src_B,format,"0,0",tile_cnt)
++    src_A, src_B = generate_stimuli(
++        format, tile_cnt=tile_cnt
++    )  # , const_face=True, const_value_A=3, const_value_B=2)
++    golden = generate_golden(mathop, src_A, src_B, format, math_fidelity)
++    write_stimuli_to_l1(src_A, src_B, format, "0,0", tile_cnt)
+ 
+     if mathop != 3:
+-        math_fidelity = 0 
++        math_fidelity = 0
+ 
+     test_config = {
+         "input_format": format,
+         "output_format": format,
+         "testname": testname,
+         "dest_acc": dest_acc,
+-        "mathop" : mathop,
+-        "kern_cnt" : tile_cnt,
+-        "pack_addr_cnt" : len(pack_addresses),
+-        "pack_addrs" : pack_addresses_formatted,
+-        "math_fidelity" : math_fidelity
++        "mathop": mathop,
++        "kern_cnt": tile_cnt,
++        "pack_addr_cnt": len(pack_addresses),
++        "pack_addrs": pack_addresses_formatted,
++        "math_fidelity": math_fidelity,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -95,26 +104,42 @@ def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidel
+ 
+     assert_tensix_operations_finished()
+ 
+-    #check resluts from multiple tiles
++    # check resluts from multiple tiles
+     res_from_L1 = []
+ 
+     for address in pack_addresses:
+-        res_from_L1.append(collect_results(format,address))
+-        
+-    res_from_L1 = flatten_list(res_from_L1)
++        res_from_L1.append(collect_results(format, address))
+ 
+-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
++    res_from_L1 = flatten_list(res_from_L1)
+ 
+-    if(format == "Float16_b" or format == "Float16"):
++    golden_tensor = torch.tensor(
++        golden,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
++
++    if format == "Float16_b" or format == "Float16":
+         atol = 0.05
+         rtol = 0.1
+-    elif(format == "Bfp8_b"):
++    elif format == "Bfp8_b":
+         atol = 0.1
+         rtol = 0.2
+ 
+     for i in range(len(golden_tensor)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+-  
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
++
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.99
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -5,35 +5,30 @@
+ import torch
+ from helpers import *
+ 
+-torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
++torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
++
+ 
+ def generate_golden(operand1, data_format):
+-    
+-    A_untilized  = untilize(operand1,data_format)
++
++    A_untilized = untilize(operand1, data_format)
+     return A_untilized.flatten()
+ 
++
+ param_combinations = [
+     (format, testname)
+     for format in ["Float16_b", "Float16"]
+     for testname in ["pack_untilize_test"]
+ ]
+ 
+-param_ids = [
+-    f" format={comb[0]} "
+-    for comb in param_combinations
+-]
++param_ids = [f" format={comb[0]} " for comb in param_combinations]
+ 
+-@pytest.mark.parametrize(
+-    "format,testname",
+-    param_combinations,
+-    ids=param_ids
+-)
+ 
++@pytest.mark.parametrize("format,testname", param_combinations, ids=param_ids)
+ def test_pack_untilize(format, testname):
+ 
+     src_A, src_B = generate_stimuli(format)
+-    src_B = torch.full((1024,),0)
+-    
++    src_B = torch.full((1024,), 0)
++
+     golden_tensor = generate_golden(src_A, format)
+ 
+     write_stimuli_to_l1(src_A, src_B, format)
+@@ -56,17 +51,26 @@ def test_pack_untilize(format, testname):
+     assert len(res_from_L1) == len(golden_tensor)
+     assert_tensix_operations_finished()
+ 
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
+ 
+-    if(format == "Float16_b" or format == "Float16"):
++    if format == "Float16_b" or format == "Float16":
+         atol = 0.1
+         rtol = 0.05
+-    elif(format == "Bfp8_b"):
++    elif format == "Bfp8_b":
+         atol = 0.1
+         rtol = 0.2
+ 
+     for i in range(len(golden_tensor)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+ 
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.98
+
+File: tests/python_tests/test_reduce.py
+@@ -5,8 +5,9 @@
+ import torch
+ from helpers import *
+ 
++
+ def generate_golden(operand1, reduce_dim, pool_type, data_format):
+-    
++
+     result = torch.zeros(1024, dtype=format_dict[data_format]).view(32, 32)
+ 
+     f0 = operand1[:256].view(16, 16)
+@@ -53,15 +54,16 @@ def apply_pooling(tensor, pool_type, dim):
+         pytest.skip("To be implemented")
+ 
+     print(result)
+-    
++
+     return result.view(1024)
+ 
++
+ param_combinations = [
+-    (reduce_dim,pool_type, format, dest_acc, testname)
+-    for reduce_dim in ["reduce_col","reduce_row","reduce_scalar"]
+-    for pool_type in ["max","avg","sum"]
+-    for format in ["Float16_b","Float16"]
+-    for dest_acc in [""]#, "DEST_ACC"]
++    (reduce_dim, pool_type, format, dest_acc, testname)
++    for reduce_dim in ["reduce_col", "reduce_row", "reduce_scalar"]
++    for pool_type in ["max", "avg", "sum"]
++    for format in ["Float16_b", "Float16"]
++    for dest_acc in [""]  # , "DEST_ACC"]
+     for testname in ["reduce_test"]
+ ]
+ 
+@@ -70,15 +72,15 @@ def apply_pooling(tensor, pool_type, dim):
+     for comb in param_combinations
+ ]
+ 
++
+ @pytest.mark.parametrize(
+     "reduce_dim, pool_type, format, dest_acc, testname",
+     param_combinations,
+-    ids=param_ids
++    ids=param_ids,
+ )
+-
+-@pytest.mark.skip(reason = "Not fully implemented")
++@pytest.mark.skip(reason="Not fully implemented")
+ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+-    
++
+     src_A, src_B = generate_stimuli(format)
+     # src_A = torch.cat([
+     #     torch.full((256,), 1, dtype=format_dict[format]),
+@@ -87,14 +89,14 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+     #     torch.full((256,), 4, dtype=format_dict[format])
+     # ])
+ 
+-    if pool_type in ["max", "sum"]: # result in srcA should be divided by 1
+-        src_B = torch.full((1024,), 1) 
+-    else:    
++    if pool_type in ["max", "sum"]:  # result in srcA should be divided by 1
++        src_B = torch.full((1024,), 1)
++    else:
+         # reduce average divides by length of elements in array we reduce
+-        if(reduce_dim in ["reduce_col", "reduce_row"]):
+-            src_B = torch.full((1024,), 1/32)
++        if reduce_dim in ["reduce_col", "reduce_row"]:
++            src_B = torch.full((1024,), 1 / 32)
+         else:
+-            src_B = torch.full((1024,), torch.sqrt(torch.tensor(1/1024)))
++            src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
+ 
+     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, format)
+     write_stimuli_to_l1(src_A, src_B, format)
+@@ -106,7 +108,7 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+         "dest_acc": dest_acc,
+         "reduce_dim": reduce_dim,
+         "pool_type": pool_type,
+-        "mathop" : "reduce"
++        "mathop": "reduce",
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+@@ -121,11 +123,18 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+     assert len(res_from_L1) == len(golden_tensor)
+     assert_tensix_operations_finished()
+ 
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
+     res_tensor = untilize(res_tensor, format)
+ 
+     print("RES IN L1")
+-    print(res_tensor.view(32, 32))  
++    print(res_tensor.view(32, 32))
+ 
+     if format == "Float16_b" or format == "Float16":
+         atol = 0.1
+@@ -135,7 +144,9 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+         rtol = 0.2
+ 
+     for i in range(len(golden_tensor)):
+-        assert torch.isclose(golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+ 
+     _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.98
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -5,24 +5,34 @@
+ import torch
+ from helpers import *
+ 
++
+ def generate_golden(operation, operand1, operand2, data_format):
+-    tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+-    tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+-    
++    tensor1_float = (
++        operand1.clone()
++        .detach()
++        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++    )
++    tensor2_float = (
++        operand2.clone()
++        .detach()
++        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++    )
++
+     operations = {
+         "elwadd": tensor1_float + tensor2_float,
+         "elwsub": tensor1_float - tensor2_float,
+         "elwmul": tensor1_float * tensor2_float,
+     }
+-    
++
+     if operation not in operations:
+         raise ValueError("Unsupported operation!")
+ 
+     return operations[operation].tolist()
+ 
++
+ param_combinations = [
+     (mathop, format, dest_acc, testname)
+-    for mathop in  ["elwadd", "elwsub", "elwmul"]
++    for mathop in ["elwadd", "elwsub", "elwmul"]
+     for format in ["Float32"]
+     for dest_acc in ["DEST_ACC"]
+     for testname in ["sfpu_binary_test"]
+@@ -33,15 +43,13 @@ def generate_golden(operation, operand1, operand2, data_format):
+     for comb in param_combinations
+ ]
+ 
++
+ @pytest.mark.parametrize(
+-    "mathop, format, dest_acc, testname",
+-    param_combinations,
+-    ids=param_ids
++    "mathop, format, dest_acc, testname", param_combinations, ids=param_ids
+ )
+-
+-@pytest.mark.skip(reason = "Not fully implemented")
++@pytest.mark.skip(reason="Not fully implemented")
+ def test_all(format, mathop, testname, dest_acc):
+-    
++
+     src_A, src_B = generate_stimuli(format)
+     golden = generate_golden(mathop, src_A, src_B, format)
+     write_stimuli_to_l1(src_A, src_B, format)
+@@ -51,17 +59,19 @@ def test_all(format, mathop, testname, dest_acc):
+         "output_format": format,
+         "testname": testname,
+         "dest_acc": dest_acc,
+-        "mathop": mathop
++        "mathop": mathop,
+     }
+ 
+-    if( format in ["Float32", "Int32"] and dest_acc!="DEST_ACC"):
+-        pytest.skip("SKipping test for 32 bit wide data without 32 bit accumulation in Dest")
++    if format in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
++        pytest.skip(
++            "SKipping test for 32 bit wide data without 32 bit accumulation in Dest"
++        )
+ 
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
+-    
++
+     res_from_L1 = collect_results(format)
+ 
+     assert len(res_from_L1) == len(golden)
+@@ -70,18 +80,34 @@ def test_all(format, mathop, testname, dest_acc):
+ 
+     assert_tensix_operations_finished()
+ 
+-    if(format in ["Float16_b","Float16", "Float32"]):
++    if format in ["Float16_b", "Float16", "Float32"]:
+         atol = 0.05
+         rtol = 0.1
+-    elif(format == "Bfp8_b"):
++    elif format == "Bfp8_b":
+         atol = 0.1
+         rtol = 0.2
+ 
+-    golden_tensor = torch.tensor(golden, dtype=format_dict[format] if format in ["Float16", "Float16_b","Float32"] else torch.bfloat16)
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b","Float32"] else torch.bfloat16)
++    golden_tensor = torch.tensor(
++        golden,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b", "Float32"]
++            else torch.bfloat16
++        ),
++    )
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b", "Float32"]
++            else torch.bfloat16
++        ),
++    )
+ 
+     for i in range(len(golden)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+ 
+-    _ , pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99) 
++    _, pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.99
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -5,9 +5,18 @@
+ import torch
+ from helpers import *
+ 
+-def generate_golden(op, operand1, operand2, data_format,math_fidelity):
+-    tensor1_float = operand1.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
+-    tensor2_float = operand2.clone().detach().to(format_dict.get(data_format, format_dict["Float16_b"]))
++
++def generate_golden(op, operand1, operand2, data_format, math_fidelity):
++    tensor1_float = (
++        operand1.clone()
++        .detach()
++        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++    )
++    tensor2_float = (
++        operand2.clone()
++        .detach()
++        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++    )
+ 
+     if data_format == "Float16_b":
+         if math_fidelity in [0, 2]:  # LoFi or HiFi2
+@@ -18,101 +27,117 @@ def generate_golden(op, operand1, operand2, data_format,math_fidelity):
+             for element in operand1:
+                 element = element.to(torch.int32)
+                 element &= 0xFFF8
+-    
++
+     # First step is unpack tilize
+     tensor1_float = tilize(tensor1_float, data_format)
+     tensor2_float = tilize(tensor2_float, data_format)
+ 
+     # Second step is to perform the operation
+-    if(op=="elwadd"):
++    if op == "elwadd":
+         res = tensor1_float + tensor2_float
+-    elif(op=="elwsub"):
++    elif op == "elwsub":
+         res = tensor1_float - tensor2_float
+-    elif(op=="elwmul"):
++    elif op == "elwmul":
+         res = tensor1_float * tensor2_float
+     else:
+         raise ValueError("Unsupported operation!")
+-    
+-    #res = untilize(res, data_format)
++
++    # res = untilize(res, data_format)
+ 
+     return res
+ 
++
+ param_combinations = [
+     (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+-    for mathop in ["elwadd"]#, "elwsub", "elwmul"]
++    for mathop in ["elwadd"]  # , "elwsub", "elwmul"]
+     for tile_cnt in range(1, 2)
+-    for format in ["Float16_b"]#, "Float16"]
+-    for dest_acc in [""] #, "DEST_ACC"]
++    for format in ["Float16_b"]  # , "Float16"]
++    for dest_acc in [""]  # , "DEST_ACC"]
+     for testname in ["tilize_calculate_untilize_L1"]
+-    for math_fidelity in  [4] #[0,2,3,4]
++    for math_fidelity in [4]  # [0,2,3,4]
+ ]
+ 
+ param_ids = [
+     f"mathop={comb[0]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
+     for comb in param_combinations
+ ]
+ 
++
+ @pytest.mark.parametrize(
+     "mathop, tile_cnt, format, dest_acc, testname, math_fidelity",
+     param_combinations,
+-    ids=param_ids
++    ids=param_ids,
+ )
+-
+-def test_tilize_calculate_untilize_L1(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
+-
+-    #src_A, src_B = generate_stimuli(format,tile_cnt)#,sfpu=False,const_face=True,const_value_A=1,const_value_B=2)
+-    #src_A, src_B = generate_stimuli(format,tile_cnt,sfpu=False,const_face=True,const_value_A=1,const_value_B=2)
+-
+-    src_A = torch.cat([
+-        torch.ones(256, dtype=torch.bfloat16),
+-        torch.ones(256, dtype=torch.bfloat16) * 2,
+-        torch.ones(256, dtype=torch.bfloat16) * 3,
+-        torch.ones(256, dtype=torch.bfloat16) * 4
+-    ])
+-    src_B = torch.cat([
+-        torch.ones(256, dtype=torch.bfloat16),
+-        torch.ones(256, dtype=torch.bfloat16) * 2,
+-        torch.ones(256, dtype=torch.bfloat16) * 3,
+-        torch.ones(256, dtype=torch.bfloat16) * 4
+-    ])
++def test_tilize_calculate_untilize_L1(
++    format, testname, tile_cnt, mathop, dest_acc, math_fidelity
++):
++
++    # src_A, src_B = generate_stimuli(format,tile_cnt)#,sfpu=False,const_face=True,const_value_A=1,const_value_B=2)
++    # src_A, src_B = generate_stimuli(format,tile_cnt,sfpu=False,const_face=True,const_value_A=1,const_value_B=2)
++
++    src_A = torch.cat(
++        [
++            torch.ones(256, dtype=torch.bfloat16),
++            torch.ones(256, dtype=torch.bfloat16) * 2,
++            torch.ones(256, dtype=torch.bfloat16) * 3,
++            torch.ones(256, dtype=torch.bfloat16) * 4,
++        ]
++    )
++    src_B = torch.cat(
++        [
++            torch.ones(256, dtype=torch.bfloat16),
++            torch.ones(256, dtype=torch.bfloat16) * 2,
++            torch.ones(256, dtype=torch.bfloat16) * 3,
++            torch.ones(256, dtype=torch.bfloat16) * 4,
++        ]
++    )
+ 
+     golden_tensor = generate_golden(mathop, src_A, src_B, format, math_fidelity)
+-    print(golden_tensor.view(32,32))
++    print(golden_tensor.view(32, 32))
+ 
+-    write_stimuli_to_l1(src_A,src_B, format, "0,0", tile_cnt)
++    write_stimuli_to_l1(src_A, src_B, format, "0,0", tile_cnt)
+ 
+     test_config = {
+         "input_format": format,
+         "output_format": format,
+         "testname": testname,
+         "dest_acc": dest_acc,
+-        "math_fidelity" : math_fidelity,
+-        "mathop" : mathop
++        "math_fidelity": math_fidelity,
++        "mathop": mathop,
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format,0x1e000)
++    res_from_L1 = collect_results(format, 0x1E000)
+     run_shell_command("cd .. && make clean")
+ 
+     assert len(res_from_L1) == len(golden_tensor)
+     assert_tensix_operations_finished()
+ 
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
+-    print(res_tensor.view(32,32))
+-
+-    if(format == "Float16_b" or format == "Float16"):
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
++    print(res_tensor.view(32, 32))
++
++    if format == "Float16_b" or format == "Float16":
+         atol = 0.1
+         rtol = 0.05
+-    elif(format == "Bfp8_b"):
++    elif format == "Bfp8_b":
+         atol = 0.1
+         rtol = 0.2
+ 
+     for i in range(len(golden_tensor)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+ 
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.98
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -4,33 +4,28 @@
+ import torch
+ from helpers import *
+ 
++
+ def generate_golden(operand1, data_format):
+-    
+-    A_tilized  = tilize(operand1,data_format)
++
++    A_tilized = tilize(operand1, data_format)
+     return A_tilized.flatten()
+ 
++
+ param_combinations = [
+     (format, testname)
+     for format in ["Float16_b", "Float16"]
+     for testname in ["unpack_tilize_test"]
+ ]
+ 
+-param_ids = [
+-    f" format={comb[0]} "
+-    for comb in param_combinations
+-]
++param_ids = [f" format={comb[0]} " for comb in param_combinations]
+ 
+-@pytest.mark.parametrize(
+-    "format,testname",
+-    param_combinations,
+-    ids=param_ids
+-)
+ 
++@pytest.mark.parametrize("format,testname", param_combinations, ids=param_ids)
+ def test_unpack_tilize(format, testname):
+ 
+     src_A, src_B = generate_stimuli(format)
+-    src_B = torch.full((1024,),0)
+-    
++    src_B = torch.full((1024,), 0)
++
+     golden_tensor = generate_golden(src_A, format)
+ 
+     write_stimuli_to_l1(src_A, src_B, format)
+@@ -53,17 +48,26 @@ def test_unpack_tilize(format, testname):
+     assert len(res_from_L1) == len(golden_tensor)
+     assert_tensix_operations_finished()
+ 
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
+ 
+-    if(format == "Float16_b" or format == "Float16"):
++    if format == "Float16_b" or format == "Float16":
+         atol = 0.1
+         rtol = 0.05
+-    elif(format == "Bfp8_b"):
++    elif format == "Bfp8_b":
+         atol = 0.1
+         rtol = 0.2
+ 
+     for i in range(len(golden_tensor)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+ 
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.98
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -5,35 +5,30 @@
+ import torch
+ from helpers import *
+ 
+-torch.set_printoptions(linewidth=500,sci_mode = False, precision=2,threshold=10000)
++torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
++
+ 
+ def generate_golden(operand1, data_format):
+-    
+-    A_untilized  = untilize(operand1,data_format)
++
++    A_untilized = untilize(operand1, data_format)
+     return A_untilized.flatten()
+ 
++
+ param_combinations = [
+     (format, testname)
+     for format in ["Float16_b", "Float16"]
+     for testname in ["unpack_untilize_test"]
+ ]
+ 
+-param_ids = [
+-    f" format={comb[0]} "
+-    for comb in param_combinations
+-]
++param_ids = [f" format={comb[0]} " for comb in param_combinations]
+ 
+-@pytest.mark.parametrize(
+-    "format,testname",
+-    param_combinations,
+-    ids=param_ids
+-)
+ 
++@pytest.mark.parametrize("format,testname", param_combinations, ids=param_ids)
+ def test_unpack_untilze(format, testname):
+ 
+     src_A, src_B = generate_stimuli(format)
+-    src_B = torch.full((1024,),0)
+-    
++    src_B = torch.full((1024,), 0)
++
+     golden_tensor = generate_golden(src_A, format)
+ 
+     write_stimuli_to_l1(src_A, src_B, format)
+@@ -56,17 +51,26 @@ def test_unpack_untilze(format, testname):
+     assert len(res_from_L1) == len(golden_tensor)
+     assert_tensix_operations_finished()
+ 
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[format] if format in ["Float16", "Float16_b"] else torch.bfloat16)
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[format]
++            if format in ["Float16", "Float16_b"]
++            else torch.bfloat16
++        ),
++    )
+ 
+-    if(format == "Float16_b" or format == "Float16"):
++    if format == "Float16_b" or format == "Float16":
+         atol = 0.1
+         rtol = 0.05
+-    elif(format == "Bfp8_b"):
++    elif format == "Bfp8_b":
+         atol = 0.1
+         rtol = 0.2
+ 
+     for i in range(len(golden_tensor)):
+-        assert torch.isclose(golden_tensor[i],res_tensor[i], rtol = rtol, atol = atol), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
++        assert torch.isclose(
++            golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
++        ), f"Failed at index {i} with values {golden_tensor[i]} and {res_from_L1[i]}"
+ 
+-    _ , pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99) 
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.98
+
+File: tests/sources/eltwise_unary_datacopy_test.cpp
+@@ -3,17 +3,17 @@
+ //
+ // SPDX-License-Identifier: Apache-2.0
+ 
++#include <algorithm>
+ #include <cstdint>
+ #include <cstdio>
+-#include <algorithm>
+ 
+-#include "llk_defs.h"
+ #include "ckernel.h"
++#include "llk_defs.h"
+ 
+ // Globals
+-uint32_t unp_cfg_context = 0;
++uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__ ((section (".text#"))) __attribute__ ((aligned (16)));
++volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+@@ -33,15 +33,13 @@ const bool unpack_to_dest = false;
+ #include "llk_unpack_common.h"
+ #include "params.h"
+ 
+-
+ void run_kernel()
+ {
+     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+ 
+-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, DATA_FORMAT,DATA_FORMAT);
+-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT,DATA_FORMAT,FACE_R_DIM,0,4);
+-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, DATA_FORMAT,DATA_FORMAT);
+-
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, DATA_FORMAT, DATA_FORMAT);
++    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
++    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, DATA_FORMAT, DATA_FORMAT);
+ }
+ 
+ #endif
+@@ -54,29 +52,29 @@ const bool is_int_fpu_en = true;
+ const bool is_int_fpu_en = false;
+ #endif
+ 
+-
+-#include "llk_math_eltwise_unary_datacopy.h"
+ #include "llk_math_common.h"
++#include "llk_math_eltwise_unary_datacopy.h"
+ #include "params.h"
+ 
+ using namespace ckernel;
+ 
+ void run_kernel()
+ {
+-    // copy srca to dest
+-    #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE,false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
+-    #else
++// copy srca to dest
++#ifdef ARCH_BLACKHOLE
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
++#else
+     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
+-    #endif
+-    _llk_math_pack_sync_init_<DstSync::SyncFull,is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false,false>(DATA_FORMAT, DATA_FORMAT);
++#endif
++    _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
++    _llk_math_hw_configure_<false, false>(DATA_FORMAT, DATA_FORMAT);
+     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
+-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(0, DATA_FORMAT, DATA_FORMAT);
+-    _llk_math_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
++    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
++        0, DATA_FORMAT, DATA_FORMAT);
++    _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+ }
+ 
+-#endif 
++#endif
+ 
+ #ifdef LLK_TRISC_PACK
+ 
+@@ -89,24 +87,24 @@ void run_kernel()
+     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+ 
+     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+-    
+-    #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+-    #else
+-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16*16*4);
+-    #endif
++
++#ifdef ARCH_BLACKHOLE
++    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++#else
++    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++#endif
+ 
+     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
+-    
+-    #ifdef ARCH_BLACKHOLE
+-    _llk_pack_dest_init_<DstSync::SyncFull,DstTileFaceLayout::RowMajor,is_fp32_dest_acc_en>();
+-    #else
++
++#ifdef ARCH_BLACKHOLE
++    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
++#else
+     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, false>();
+-    #endif
++#endif
+ 
+     _llk_packer_wait_for_math_done_();
+-    _llk_pack_<DstSync::SyncFull,false, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Dest));
+-    _llk_pack_dest_section_done_<DstSync::SyncFull,is_fp32_dest_acc_en>();
++    _llk_pack_<DstSync::SyncFull, false, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Dest));
++    _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+ }
+ 
+ #endif
+

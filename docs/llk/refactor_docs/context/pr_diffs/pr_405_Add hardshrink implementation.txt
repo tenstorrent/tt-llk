@@ -1,0 +1,165 @@
+PR #405: Add hardshrink implementation
+URL: https://github.com/tenstorrent/tt-llk/pull/405
+
+File: tt_llk_blackhole/common/inc/ckernel_defs.h
+@@ -223,10 +223,11 @@ constexpr static std::uint32_t SCALE_DATUM_SIZE(uint format, uint datum_count)
+ 
+ enum class ActivationType
+ {
+-    Celu     = 0,
+-    Elu      = 1,
+-    Gelu     = 2,
+-    Hardtanh = 3,
++    Celu       = 0,
++    Elu        = 1,
++    Gelu       = 2,
++    Hardtanh   = 3,
++    Hardshrink = 4,
+ };
+ 
+ enum class BinaryOp : uint8_t
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_activations.h
+@@ -7,6 +7,7 @@
+ #include "ckernel_defs.h"
+ #include "sfpi.h"
+ #include "sfpi_fp16.h"
++#include "sfpu/ckernel_sfpu_converter.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
+ 
+ namespace ckernel::sfpu
+@@ -44,13 +45,34 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+     }
+ };
+ 
++// Specialization for HARDSHRINK activation
++template <bool APPROXIMATION_MODE>
++struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Hardshrink>
++{
++    static inline void apply(sfpi::vFloat& v, uint param0)
++    {
++        float ans = Converter::as_float(param0);
++        v_if (sfpi::abs(v) < ans)
++        {
++            v = 0.0f;
++        }
++        v_endif;
++    }
++};
++
+ // Dispatch wrapper function
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+ inline void apply_activation(sfpi::vFloat& v, uint param0, uint param1)
+ {
+     ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0, param1);
+ }
+ 
++template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
++inline void apply_activation(sfpi::vFloat& v, uint param0)
++{
++    ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0);
++}
++
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
+ inline void _calculate_activation_(uint param0, uint param1)
+ {
+@@ -64,4 +86,17 @@ inline void _calculate_activation_(uint param0, uint param1)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS>
++inline void _calculate_activation_(uint param0)
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v = sfpi::dst_reg[0];
++        apply_activation<APPROXIMATION_MODE, ACTIVATION_TYPE>(v, param0);
++        sfpi::dst_reg[0] = v;
++        sfpi::dst_reg++;
++    }
++}
++
+ } // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_defs.h
+@@ -222,10 +222,11 @@ constexpr static std::uint32_t SCALE_DATUM_SIZE(uint format, uint datum_count)
+ 
+ enum class ActivationType
+ {
+-    Celu     = 0,
+-    Elu      = 1,
+-    Gelu     = 2,
+-    Hardtanh = 3,
++    Celu       = 0,
++    Elu        = 1,
++    Gelu       = 2,
++    Hardtanh   = 3,
++    Hardshrink = 4,
+ };
+ 
+ enum class BinaryOp : uint8_t
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_activations.h
+@@ -7,6 +7,7 @@
+ #include "ckernel_defs.h"
+ #include "sfpi.h"
+ #include "sfpi_fp16.h"
++#include "sfpu/ckernel_sfpu_converter.h"
+ #include "sfpu/ckernel_sfpu_exp.h"
+ 
+ namespace ckernel::sfpu
+@@ -44,13 +45,34 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+     }
+ };
+ 
++// Specialization for HARDSHRINK activation
++template <bool APPROXIMATION_MODE>
++struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Hardshrink>
++{
++    static inline void apply(sfpi::vFloat& v, uint param0)
++    {
++        float ans = Converter::as_float(param0);
++        v_if (sfpi::abs(v) < ans)
++        {
++            v = 0.0f;
++        }
++        v_endif;
++    }
++};
++
+ // Dispatch wrapper function
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+ inline void apply_activation(sfpi::vFloat& v, uint param0, uint param1)
+ {
+     ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0, param1);
+ }
+ 
++template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
++inline void apply_activation(sfpi::vFloat& v, uint param0)
++{
++    ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0);
++}
++
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
+ inline void _calculate_activation_(uint param0, uint param1)
+ {
+@@ -64,4 +86,17 @@ inline void _calculate_activation_(uint param0, uint param1)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS>
++inline void _calculate_activation_(uint param0)
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat v = sfpi::dst_reg[0];
++        apply_activation<APPROXIMATION_MODE, ACTIVATION_TYPE>(v, param0);
++        sfpi::dst_reg[0] = v;
++        sfpi::dst_reg++;
++    }
++}
++
+ } // namespace ckernel::sfpu
+

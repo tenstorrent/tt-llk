@@ -1,0 +1,2503 @@
+PR #45: Format Parametrization for Test Infrastructure & Bug Fixes
+URL: https://github.com/tenstorrent/tt-llk/pull/45
+
+File: tests/.gitignore
+@@ -2,4 +2,4 @@ arch.dump
+ sfpi/
+ tt-smi/
+ python_tests/test_tilize_max_pool.py
+-sources/tilize_max_pool_test.cpp
+\ No newline at end of file
++sources/tilize_max_pool_test.cpp
+
+File: tests/Makefile
+@@ -38,12 +38,12 @@ OPTIONS_LINK=-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -no
+ INCLUDES = -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc -I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I../$(ARCH_LLK_ROOT)/hw_specific/inc
+ INCLUDES += -Ifirmware/riscv/common -Ifirmware/riscv/$(CHIP_ARCH)/ -Isfpi/include -Ihelpers/include
+ 
+-FORMAT_ARG:= -D$(format) 
++FORMAT_ARG:=-D$(unpack_src) -D$(unpack_dst) -D$(fpu) -D$(pack_src) -D$(pack_dst)
+ 
+ ifeq ($(mathop),)
+     MATHOP_ARG =
+ else
+-	MATHOP_ARG:= -D$(mathop) -DAPPROX_MODE=$(approx_mode)  -DPOOL_TYPE=$(pool_type) -DREDUCE_DIM=$(reduce_dim) 
++	MATHOP_ARG:= -D$(mathop) -DAPPROX_MODE=$(approx_mode)  -DPOOL_TYPE=$(pool_type) -DREDUCE_DIM=$(reduce_dim)
+ endif
+ 
+ OPTIONS_COMPILE+= -DMATH_FIDELITY=$(math_fidelity)
+@@ -52,17 +52,17 @@ OPTIONS_COMPILE+= -DMATH_FIDELITY=$(math_fidelity)
+ # files to be linked to it
+ ifeq ($(testname), multiple_tiles_eltwise_test)
+ 	MULTIPLE_OPS:=-DMULTIPLE_OPS
+-	OPTIONS_UNPACK:=-DKERN_CNT=$(kern_cnt) 
+-	OPTIONS_MATH:=-DKERN_CNT=$(kern_cnt) 
+-	OPTIONS_PACK:=-DKERN_CNT=$(kern_cnt) 
+-	OPTIONS_PACK+=-DPACK_ADDR_CNT=$(pack_addr_cnt) 
+-	OPTIONS_PACK+=-DPACK_ADDRS=$(pack_addrs) 
++	OPTIONS_UNPACK:=-DKERN_CNT=$(kern_cnt)
++	OPTIONS_MATH:=-DKERN_CNT=$(kern_cnt)
++	OPTIONS_PACK:=-DKERN_CNT=$(kern_cnt)
++	OPTIONS_PACK+=-DPACK_ADDR_CNT=$(pack_addr_cnt)
++	OPTIONS_PACK+=-DPACK_ADDRS=$(pack_addrs)
+ endif
+ 
+ OPTIONS_COMPILE+=$(FORMAT_ARG) $(MATHOP_ARG) -DTILE_SIZE_CNT=0x1000
+ OPTIONS_COMPILE+=$(INCLUDES)
+ 
+-ifeq ($(dest_acc), DEST_ACC) 
++ifeq ($(dest_acc), DEST_ACC)
+ 	OPTIONS_COMPILE+=-DDEST_ACC
+ endif
+ 
+@@ -89,11 +89,11 @@ $(OUTPUT_ELFS): $(BUILD_DIR)
+ 	mkdir -p $@
+ 
+ # Buiding .elf files for every TRISC core
+-$(OUTPUT_ELFS)/$(testname)_trisc0.elf :$(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/main_unpack.o $(BUILD_DIR)/$(testname)_unpack.o 
++$(OUTPUT_ELFS)/$(testname)_trisc0.elf :$(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/main_unpack.o $(BUILD_DIR)/$(testname)_unpack.o
+ 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc0.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+-$(OUTPUT_ELFS)/$(testname)_trisc1.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/main_math.o $(BUILD_DIR)/$(testname)_math.o 
++$(OUTPUT_ELFS)/$(testname)_trisc1.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/main_math.o $(BUILD_DIR)/$(testname)_math.o
+ 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc1.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+-$(OUTPUT_ELFS)/$(testname)_trisc2.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/main_pack.o $(BUILD_DIR)/$(testname)_pack.o 
++$(OUTPUT_ELFS)/$(testname)_trisc2.elf: $(BUILD_DIR)/tmu-crt0.o $(BUILD_DIR)/main_pack.o $(BUILD_DIR)/$(testname)_pack.o
+ 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(CHIP_ARCH).ld -T$(LINKER_SCRIPTS)/trisc2.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+ 
+ # Building brisc.elf for BRISC core
+@@ -114,7 +114,7 @@ $(BUILD_DIR)/main_unpack.o : $(RISCV_SOURCES)/trisc.cpp
+ $(BUILD_DIR)/main_math.o : $(RISCV_SOURCES)/trisc.cpp
+ 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_MATH) $(MULTIPLE_OPS) -DLLK_TRISC_MATH -c -o $@ $<
+ $(BUILD_DIR)/main_pack.o : $(RISCV_SOURCES)/trisc.cpp
+-	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_PACK) $(MULTIPLE_OPS) -DLLK_TRISC_PACK -c -o $@ $<	
++	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(OPTIONS_PACK) $(MULTIPLE_OPS) -DLLK_TRISC_PACK -c -o $@ $<
+ 
+ $(BUILD_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S | $(BUILD_DIR)
+ 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -c -o $@ $<
+
+File: tests/helpers/include/params.h
+@@ -27,22 +27,106 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
+ }
+ } // namespace
+ 
+-#ifdef FORMAT_FLOAT16_B
+-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float16_b);
++#define UNPACK_SRC_CASE(data_format) constexpr auto UNPACK_IN = get_data_format(DataFormat::data_format);
++
++#if defined(UNPACK_SRC_FLOAT16_B)
++UNPACK_SRC_CASE(Float16_b)
++#endif
++#if defined(UNPACK_SRC_FLOAT16)
++UNPACK_SRC_CASE(Float16)
++#endif
++#if defined(UNPACK_SRC_FLOAT32)
++UNPACK_SRC_CASE(Float32)
++#endif
++#if defined(UNPACK_SRC_INT32)
++UNPACK_SRC_CASE(Int32)
++#endif
++#if defined(UNPACK_SRC_BFP8_B)
++UNPACK_SRC_CASE(Bfp8_b)
++#endif
++
++#undef UNPACK_SRC_CASE
++
++#define UNPACK_DST_CASE(data_format) constexpr auto UNPACK_OUT = get_data_format(DataFormat::data_format);
++
++#if defined(UNPACK_DST_FLOAT16_B)
++UNPACK_DST_CASE(Float16_b)
++#endif
++#if defined(UNPACK_DST_FLOAT16)
++UNPACK_DST_CASE(Float16)
++#endif
++#if defined(UNPACK_DST_FLOAT32)
++UNPACK_DST_CASE(Float32)
++#endif
++#if defined(UNPACK_DST_INT32)
++UNPACK_DST_CASE(Int32)
++#endif
++#if defined(UNPACK_DST_BFP8_B)
++UNPACK_DST_CASE(Bfp8_b)
++#endif
++
++#undef UNPACK_DST_CASE
++
++#define PACK_SRC_CASE(data_format) constexpr auto PACK_IN = get_data_format(DataFormat::data_format);
++
++#if defined(PACK_SRC_FLOAT16_B)
++PACK_SRC_CASE(Float16_b)
+ #endif
+-#ifdef FORMAT_FLOAT16
+-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float16);
++#if defined(PACK_SRC_FLOAT16)
++PACK_SRC_CASE(Float16)
+ #endif
+-#ifdef FORMAT_FLOAT32
+-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float32);
++#if defined(PACK_SRC_FLOAT32)
++PACK_SRC_CASE(Float32)
+ #endif
+-#ifdef FORMAT_INT32
+-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Int32);
++#if defined(PACK_SRC_INT32)
++PACK_SRC_CASE(Int32)
+ #endif
+-#ifdef FORMAT_BFP8_B
+-constexpr auto DATA_FORMAT = get_data_format(DataFormat::Bfp8_b);
++#if defined(PACK_SRC_BFP8_B)
++PACK_SRC_CASE(Bfp8_b)
+ #endif
+ 
++#undef PACK_SRC_CASE
++
++#define PACK_DST_CASE(data_format) constexpr auto PACK_OUT = get_data_format(DataFormat::data_format);
++
++#if defined(PACK_DST_FLOAT16_B)
++PACK_DST_CASE(Float16_b)
++#endif
++#if defined(PACK_DST_FLOAT16)
++PACK_DST_CASE(Float16)
++#endif
++#if defined(PACK_DST_FLOAT32)
++PACK_DST_CASE(Float32)
++#endif
++#if defined(PACK_DST_INT32)
++PACK_DST_CASE(Int32)
++#endif
++#if defined(PACK_DST_BFP8_B)
++PACK_DST_CASE(Bfp8_b)
++#endif
++
++#undef PACK_DST_CASE
++
++#define MATH_CASE(data_format) constexpr auto MATH_FORMAT = get_data_format(DataFormat::data_format);
++
++#if defined(MATH_FLOAT16_B)
++MATH_CASE(Float16_b)
++#endif
++#if defined(MATH_FLOAT16)
++MATH_CASE(Float16)
++#endif
++#if defined(MATH_FLOAT32)
++MATH_CASE(Float32)
++#endif
++#if defined(MATH_INT32)
++MATH_CASE(Int32)
++#endif
++#if defined(MATH_BFP8_B)
++MATH_CASE(Bfp8_b)
++#endif
++
++#undef MATH_CASE
++
+ #ifdef ELTWISE_BINARY_ADD
+ constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWADD;
+ #endif
+
+File: tests/helpers/ld/trisc0.ld
+@@ -3,7 +3,7 @@
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  */
+- 
++
+ REGION_ALIAS("REGION_CODE", TRISC0_CODE)
+ REGION_ALIAS("REGION_DATA", TRISC0_LOCAL_DATA_MEM)
+ REGION_ALIAS("REGION_STACK", TRISC0_STACK_MEM)
+
+File: tests/python_tests/Makefile
+@@ -1,5 +1,5 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+-# 
++#
+ #  SPDX-License-Identifier: Apache-2.0
+ 
+ RMDIR := rm -rf
+
+File: tests/python_tests/helpers/__init__.py
+@@ -1,13 +1,9 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
++from .format_config import FormatConfig, DataFormat
+ from .stimuli_generator import flatten_list, generate_stimuli
+-from .format_arg_mapping import (
+-    format_dict,
+-    format_args_dict,
+-    mathop_args_dict,
+-    format_sizes,
+-)
++from .format_arg_mapping import format_dict, mathop_args_dict, format_sizes
+ from .pack import pack_bfp16, pack_fp16, pack_fp32, pack_int32, pack_bfp8_b
+ from .unpack import (
+     unpack_fp16,
+@@ -23,6 +19,7 @@
+     compare_pcc,
+     format_kernel_list,
+     print_faces,
++    get_chip_architecture,
+ )
+ from .device import (
+     collect_results,
+@@ -31,6 +28,13 @@
+     get_result_from_device,
+     assert_tensix_operations_finished,
+ )
++from .param_config import (
++    generate_format_combinations,
++    generate_param_ids,
++    clean_params,
++    generate_params,
++)
++
+ from .test_config import generate_make_command
+ from .tilize_untilize import tilize, untilize
+ from ttexalens import Verbosity
+
+File: tests/python_tests/helpers/device.py
+@@ -8,13 +8,21 @@
+     run_elf,
+ )
+ from helpers import *
++import inspect
++import time
++from helpers.param_config import *
+ 
+ 
+-def collect_results(format, address=0x1C000, core_loc="0,0", sfpu=False):
+-    read_words_cnt = calculate_read_words_count(format, sfpu)
++def collect_results(
++    formats: FormatConfig,
++    address: int = 0x1C000,
++    core_loc: str = "0,0",
++    sfpu: bool = False,
++):
++    read_words_cnt = calculate_read_words_count(formats.pack_dst, sfpu)
+     read_data = read_words_from_device(core_loc, address, word_count=read_words_cnt)
+     read_data_bytes = flatten_list([int_to_bytes_list(data) for data in read_data])
+-    res_from_L1 = get_result_from_device(format, read_data_bytes, sfpu)
++    res_from_L1 = get_result_from_device(formats, read_data_bytes, sfpu)
+     return res_from_L1
+ 
+ 
+@@ -56,11 +64,11 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile
+         buffer_B_tile = buffer_B[start_index:end_index]
+ 
+         packers = {
+-            "Bfp8_b": pack_bfp8_b,
+-            "Float16": pack_fp16,
+-            "Float16_b": pack_bfp16,
+-            "Float32": pack_fp32,
+-            "Int32": pack_int32,
++            DataFormat.Bfp8_b: pack_bfp8_b,
++            DataFormat.Float16: pack_fp16,
++            DataFormat.Float16_b: pack_bfp16,
++            DataFormat.Float32: pack_fp32,
++            DataFormat.Int32: pack_int32,
+         }
+ 
+         pack_function = packers.get(stimuli_format)
+@@ -73,30 +81,54 @@ def write_stimuli_to_l1(buffer_A, buffer_B, stimuli_format, core_loc="0,0", tile
+ 
+ 
+ def get_result_from_device(
+-    format: str, read_data_bytes: bytes, core_loc: str = "0,0", sfpu: bool = False
++    formats: FormatConfig,
++    read_data_bytes: bytes,
++    core_loc: str = "0,0",
++    sfpu: bool = False,
+ ):
+     # Dictionary of format to unpacking function mappings
+     unpackers = {
+-        "Float16": unpack_fp16,
+-        "Float16_b": unpack_bfp16,
+-        "Float32": unpack_float32,
+-        "Int32": unpack_int32,
++        DataFormat.Float16: unpack_fp16,
++        DataFormat.Float16_b: unpack_bfp16,
++        DataFormat.Float32: unpack_float32,
++        DataFormat.Int32: unpack_int32,
+     }
+ 
+     # Handling "Bfp8_b" format separately with sfpu condition
+-    if format == "Bfp8_b":
++    if formats.pack_dst == DataFormat.Bfp8_b:
+         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
+     else:
+-        unpack_func = unpackers.get(format)
++        unpack_func = unpackers.get(formats.pack_dst)
+ 
+     if unpack_func:
+-        return unpack_func(read_data_bytes)
++        num_args = len(inspect.signature(unpack_func).parameters)
++        if num_args > 1:
++            return unpack_func(
++                read_data_bytes, formats.unpack_src, formats.pack_dst
++            )  # Bug patchup in (unpack.py): in case unpack_src is Bfp8_b != pack_dst, L1 must be read in different order to extract correct results
++        else:
++            return unpack_func(read_data_bytes)
+     else:
+-        raise ValueError(f"Unsupported format: {format}")
++        raise ValueError(f"Unsupported format: {formats.pack_dst}")
++
++
++def assert_value_with_timeout(core_loc, mailbox_addr, timeout=0, poll_interval=0.1):
++    end_time = time.time() + timeout
++
++    while time.time() < end_time:
++        if read_word_from_device(core_loc, mailbox_addr) == 1:
++            return True
++        time.sleep(poll_interval)
++
++    # If the loop finishes without breaking, that means the condition was never true
++    assert (
++        read_word_from_device(core_loc, mailbox_addr) == 1
++    ), f"Value at mailbox {hex(mailbox_addr)} was not 1 after waiting {timeout} seconds."
+ 
+ 
+ def assert_tensix_operations_finished(core_loc: str = "0,0"):
++
+     tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC]  # L1 Mailbox addresses
+-    assert read_word_from_device(core_loc, tensix_L1_mailboxes[0]) == 1
+-    assert read_word_from_device(core_loc, tensix_L1_mailboxes[1]) == 1
+-    assert read_word_from_device(core_loc, tensix_L1_mailboxes[2]) == 1
++    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[0])
++    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[1])
++    assert_value_with_timeout(core_loc, tensix_L1_mailboxes[2])
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -2,21 +2,16 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ import torch
++from enum import Enum
++from .format_config import DataFormat
+ 
+ format_dict = {
+-    "Float32": torch.float32,
+-    "Float16": torch.float16,
+-    "Float16_b": torch.bfloat16,
+-    "Int32": torch.int32,
++    DataFormat.Float32: torch.float32,
++    DataFormat.Float16: torch.float16,
++    DataFormat.Float16_b: torch.bfloat16,
++    DataFormat.Int32: torch.int32,
+ }
+ 
+-format_args_dict = {
+-    "Float32": "FORMAT_FLOAT32",
+-    "Float16": "FORMAT_FLOAT16",
+-    "Float16_b": "FORMAT_FLOAT16_B",
+-    "Bfp8_b": "FORMAT_BFP8_B",
+-    "Int32": "FORMAT_INT32",
+-}
+ 
+ mathop_args_dict = {
+     "elwadd": "ELTWISE_BINARY_ADD",
+@@ -30,12 +25,52 @@
+     "reduce_scalar": "REDUCE_SCALAR_OPERATION",
+ }
+ 
++unpack_src_dict = {
++    DataFormat.Float32: "UNPACK_SRC_FLOAT32",
++    DataFormat.Float16: "UNPACK_SRC_FLOAT16",
++    DataFormat.Float16_b: "UNPACK_SRC_FLOAT16_B",
++    DataFormat.Bfp8_b: "UNPACK_SRC_BFP8_B",
++    DataFormat.Int32: "UNPACK_SRC_INT32",
++}
++
++unpack_dst_dict = {
++    DataFormat.Float32: "UNPACK_DST_FLOAT32",
++    DataFormat.Float16: "UNPACK_DST_FLOAT16",
++    DataFormat.Float16_b: "UNPACK_DST_FLOAT16_B",
++    DataFormat.Bfp8_b: "UNPACK_DST_BFP8_B",
++    DataFormat.Int32: "UNPACK_DST_INT32",
++}
++
++math_dict = {
++    DataFormat.Float32: "MATH_FLOAT32",
++    DataFormat.Float16: "MATH_FLOAT16",
++    DataFormat.Float16_b: "MATH_FLOAT16_B",
++    DataFormat.Bfp8_b: "MATH_BFP8_B",
++    DataFormat.Int32: "MATH_INT32",
++}
++
++pack_src_dict = {
++    DataFormat.Float32: "PACK_SRC_FLOAT32",
++    DataFormat.Float16: "PACK_SRC_FLOAT16",
++    DataFormat.Float16_b: "PACK_SRC_FLOAT16_B",
++    DataFormat.Bfp8_b: "PACK_SRC_BFP8_B",
++    DataFormat.Int32: "PACK_SRC_INT32",
++}
++
++pack_dst_dict = {
++    DataFormat.Float32: "PACK_DST_FLOAT32",
++    DataFormat.Float16: "PACK_DST_FLOAT16",
++    DataFormat.Float16_b: "PACK_DST_FLOAT16_B",
++    DataFormat.Bfp8_b: "PACK_DST_BFP8_B",
++    DataFormat.Int32: "PACK_DST_INT32",
++}
++
+ format_sizes = {
+-    "Float16": 512,
+-    "Float16_b": 512,
+-    "Bfp8_b": 272,
+-    "Float32": 1024,
+-    "Int32": 1024,
++    DataFormat.Float32: 1024,
++    DataFormat.Float16: 512,
++    DataFormat.Float16_b: 512,
++    DataFormat.Bfp8_b: 272,
++    DataFormat.Int32: 1024,
+ }
+ 
+ reduce_dim_args = {
+
+File: tests/python_tests/helpers/format_config.py
+@@ -0,0 +1,48 @@
++# SPDX-License-Identifier: Apache-2.0
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++
++from dataclasses import dataclass
++from enum import Enum
++
++
++class DataFormat(Enum):
++    """
++    An enumeration class that holds all the data formats supported by the LLKs.
++    Used to avoid hardcoding the format strings in the test scripts using strings. This avoid typos and future errors.
++    DataFormat(Enum) class instances can be compared via unique values.
++    When you have a set of related constants and you want to leverage the benefits of enumeration (unique members, comparisons, introspection, etc.).
++    It's a good choice for things like state machines, categories, or settings where values should not be changed or duplicated.
++    """
++
++    Float16 = "Float16"
++    Float16_b = "Float16_b"
++    Bfp8_b = "Bfp8_b"
++    Float32 = "Float32"
++    Int32 = "Int32"
++
++
++@dataclass
++class FormatConfig:
++    """
++    A data class that holds configuration details for formats passed to LLKs.
++
++    Attributes:
++    unpack_src (DataFormat): The source format for the Unpacker.
++    unpack_dst (DataFormat): The destination format for the Unpacker.
++    math (DataFormat): The format used for _llk_math_ functions.
++    pack_src (DataFormat): The source format for the Packer.
++    pack_dst (DataFormat): The destination format for the Packer.
++
++    Example:
++    >>> formats = FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float16, math=DataFormat.Float32, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float32)
++    >>> print(formats.unpack_src)
++    DataFormat.Float32
++    >>> print(formats.pack_src)
++    DataFormat.Float16
++    """
++
++    unpack_src: DataFormat
++    unpack_dst: DataFormat
++    math: DataFormat
++    pack_src: DataFormat
++    pack_dst: DataFormat
+
+File: tests/python_tests/helpers/param_config.py
+@@ -0,0 +1,234 @@
++# SPDX-License-Identifier: Apache-2.0
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++from dataclasses import dataclass
++from typing import List, Optional
++from .format_config import FormatConfig, DataFormat
++
++
++def manage_included_params(func):
++    def wrapper(*args, **kwargs):
++        if not hasattr(wrapper, "included_params"):
++            wrapper.included_params = []
++        return func(wrapper.included_params, *args, **kwargs)
++
++    return wrapper
++
++
++@manage_included_params
++def generate_format_combinations(
++    included_params, formats: List[DataFormat], all_same: bool
++) -> List[FormatConfig]:
++    """
++    Generates a list of FormatConfig instances based on the given formats and the 'all_same' flag.
++    This is used for pytesting in order to utilize pytest.mark.parametrize to test different format combinations.
++
++    If the 'all_same' flag is set to True, the function returns combinations where all format attributes are the same.
++    If the 'all_same' flag is set to False, the function returns all possible combinations of formats for each attribute.
++        This is good to use when looking to test on full format flush.
++
++    Parameters:
++    formats (List[DataFormat]): A list of formats that are supported for this test. Combinations are generated based on these formats.
++    all_same (bool): A flag indicating whether to return combinations with all formats being the same
++                     (True) or all possible combinations (False).
++
++    Returns:
++    List[FormatConfig]: A list of FormatConfig instances representing the generated format combinations.
++
++    Example:
++    >>> generate_format_combinations([DataFormat.Float16, DataFormat.Float32], True)
++    [FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float16),
++     FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float32, math=DataFormat.Float32, pack_src=DataFormat.Float32, pack_dst=DataFormat.Float32)]
++
++    >>> generate_format_combinations([DataFormat.Float16, "Float32"], False)
++    [FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float16),
++     FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float32),
++     ...
++     FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float32, math=DataFormat.Float32, pack_src=DataFormat.Float32, pack_dst=DataFormat.Float32)]
++    """
++    if all_same:
++        return [FormatConfig(fmt, fmt, fmt, fmt, fmt) for fmt in formats]
++    return [
++        FormatConfig(unpack_src, unpack_dst, math, pack_src, pack_dst)
++        for unpack_src in formats
++        for unpack_dst in formats
++        for math in formats
++        for pack_src in formats
++        for pack_dst in formats
++    ]
++
++
++@manage_included_params
++def generate_params(
++    included_params,
++    testnames: List[str],
++    format_combos: List[FormatConfig],
++    dest_acc: Optional[List[str]] = None,
++    approx_mode: Optional[List[str]] = None,
++    mathop: Optional[List[str]] = None,
++    math_fidelity: Optional[List[int]] = None,
++    tile_cnt: Optional[List[int]] = None,
++    reduce_dim: Optional[List[str]] = None,
++    pool_type: Optional[List[str]] = None,
++) -> List[tuple]:
++    """
++    Generates a list of parameter combinations for test configurations.
++
++    This function creates all possible combinations of the provided test parameters, including optional ones,
++    while filtering out any None values. The function returns these combinations as tuples, which can be used
++    for setting up tests or experiments.
++
++    Returns:
++    List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
++
++    Example:
++    >>> testnames = ["Test1", "Test2"]
++    >>> format_combos = [FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16)]
++    >>> generate_params(testnames, format_combos, dest_acc=["DEST_ACC"], approx_mode=["Approx1"])
++    [
++        ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "DEST_ACC", "Approx1", None, None, None, None, None),
++        ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "DEST_ACC", "Approx1", None, None, None, None, None)
++    ]
++    """
++
++    # Build a list of parameter names (`included_params`) that are non-None.
++    # This allows later code in generate_param_ids(...) to conditionally include
++    # only the parameters that were actually provided (not None) when generating the ID.
++    included_params.extend(
++        [
++            param
++            for param, value in [
++                ("dest_acc", dest_acc),
++                ("approx_mode", approx_mode),
++                ("mathop", mathop),
++                ("math_fidelity", math_fidelity),
++                ("tile_cnt", tile_cnt),
++                ("reduce_dim", reduce_dim),
++                ("pool_type", pool_type),
++            ]
++            if value is not None
++        ]
++    )
++
++    return [
++        (
++            testname,
++            format_config,
++            acc_mode,
++            approx,
++            math,
++            fidelity,
++            num_tiles,
++            dim,
++            pool,
++        )
++        for testname in testnames
++        for format_config in format_combos
++        for acc_mode in (dest_acc if dest_acc is not None else [None])
++        for approx in (approx_mode if approx_mode is not None else [None])
++        for math in (mathop if mathop is not None else [None])
++        for fidelity in (math_fidelity if math_fidelity is not None else [None])
++        for num_tiles in (tile_cnt if tile_cnt is not None else [None])
++        for dim in (reduce_dim if reduce_dim is not None else [None])
++        for pool in (pool_type if pool_type is not None else [None])
++    ]
++
++
++@manage_included_params
++def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
++    """
++    Cleans up the list of parameter combinations by removing any `None` values.
++
++    This function filters out any `None` values from the provided list of parameter combinations.
++    It is used to clean up the list of parameters before generating parameter IDs for test cases.
++
++    Returns:
++    List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
++
++    Example:
++    >>> all_params = [
++    ...     ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1", None, None, None, None, None),
++    ...     ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1", None, None, None, None, None)
++    ... ]
++    >>> clean_params(all_params)
++    [
++        ("Test1", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1"),
++        ("Test2", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), "Acc1", "Approx1")
++    ]
++    """
++
++    return [tuple(param for param in comb if param is not None) for comb in all_params]
++
++
++@manage_included_params
++def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
++    """
++    Generates a list of parameter IDs based on the provided parameter combinations.
++
++    Creates a string ID for each combination, including only those parameters that are present in the `included_params` list.
++    If a parameter is not included (i.e., it is `None`), it will be excluded from the final ID.
++
++    Used to format output of our test cases in a more readable way. Function return is passed into `ids` parameter of `@pytest.mark.parametrize`.
++
++    Parameters:
++    all_params (List[tuple]): A list of tuples, where each tuple contains a combination of parameters.
++                               The second element in the tuple is expected to be a `FormatConfig` object,
++                               and the rest are the parameter values (like `dest_acc`, `approx_mode`, etc.).
++
++    Returns:
++    List[str]: A list of formatted strings representing each combination of parameters.
++
++    Example:
++    >>> all_params = [
++    ...     ("Test1", FormatConfig("Float16", "Float16", "Float16", "Float16", "Float16"), "Acc1", "Approx1", "Add", 1, 4, "Dim1", "Pool1"),
++    ...     ("Test2", FormatConfig("Float32", "Float32", "Float32", "Float32", "Float32"), "Acc2", None, "Mul", 2, 6, "Dim2", None)
++    ... ]
++    >>> generate_param_ids(all_params)
++    [
++        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=Acc1 | approx_mode=Approx1 | mathop=Add | math_fidelity=1 | tile_cnt=4 | reduce_dim=Dim1 | pool_type=Pool1',
++        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=Acc2 | mathop=Mul | math_fidelity=2 | tile_cnt=6 | reduce_dim=Dim2'
++    ]
++    """
++
++    def format_combination(comb: tuple) -> str:
++        """
++        Helper function to format a single combination of parameters into a readable string.
++
++        Args:
++        comb (tuple): A tuple containing a combination of parameters, including the FormatConfig object.
++
++        Returns:
++        str: A formatted string of parameter names and values.
++        """
++        # Extract the FormatConfig and other parameters
++        testname, format_config, *params = comb
++
++        # Start with the FormatConfig information
++        result = [
++            f"unpack_src={format_config.unpack_src.value}",
++            f"unpack_dst={format_config.unpack_dst.value}",
++            f"math={format_config.math.value}",
++            f"pack_src={format_config.pack_src.value}",
++            f"pack_dst={format_config.pack_dst.value}",
++        ]
++
++        # Include optional parameters based on `included_params`
++        param_names = [
++            ("dest_acc", params[0] if params[0] else None),
++            ("approx_mode", params[1] if params[1] else None),
++            ("mathop", params[2] if params[2] else None),
++            ("math_fidelity", params[3] if params[3] else None),
++            ("tile_cnt", params[4] if params[4] else None),
++            ("reduce_dim", params[5] if params[5] else None),
++            ("pool_type", params[6] if params[6] else None),
++        ]
++
++        # Loop through the parameters and add them to the result if they are not None
++        for param_name, value in param_names:
++            if value is not None and param_name in included_params:
++                result.append(f"| {param_name}={value}")
++
++        # Join the result list into a single string with appropriate spacing
++        return " | ".join(result)
++
++    # Generate and return formatted strings for all parameter combinations
++    return [format_combination(comb) for comb in all_params if comb[0] is not None]
+
+File: tests/python_tests/helpers/stimuli_generator.py
+@@ -3,21 +3,24 @@
+ 
+ import torch
+ from .format_arg_mapping import format_dict
++from .format_config import DataFormat
+ 
+ 
+ def flatten_list(sublists):
+     return [item for sublist in sublists for item in sublist]
+ 
+ 
+-def generate_random_face(stimuli_format="Float16_b", const_value=1, const_face=False):
++def generate_random_face(
++    stimuli_format=DataFormat.Float16_b, const_value=1, const_face=False
++):
+ 
+-    if stimuli_format in ["Float16_b", "Float16", "Float32"]:
++    if stimuli_format in [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32]:
+         if const_face:
+             srcA_face = torch.ones(256, dtype=format_dict[stimuli_format]) * const_value
+         else:  # random for both faces
+             srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) + 0.1
+ 
+-    elif stimuli_format == "Bfp8_b":
++    elif stimuli_format == DataFormat.Bfp8_b:
+         size = 256
+         integer_part = torch.randint(0, 3, (size,))
+         fraction = torch.randint(0, 16, (size,)).to(dtype=torch.bfloat16) / 16.0
+@@ -26,7 +29,7 @@ def generate_random_face(stimuli_format="Float16_b", const_value=1, const_face=F
+         else:
+             srcA_face = integer_part.to(dtype=torch.bfloat16) + fraction
+ 
+-    elif stimuli_format == "Int32":
++    elif stimuli_format == DataFormat.Int32:
+         srcA_face = torch.arange(256)
+ 
+     return srcA_face
+@@ -41,7 +44,7 @@ def generate_random_face_ab(
+ 
+ 
+ def generate_stimuli(
+-    stimuli_format="Float16_b",
++    stimuli_format=DataFormat.Float16_b,
+     tile_cnt=1,
+     sfpu=False,
+     const_face=False,
+@@ -62,7 +65,7 @@ def generate_stimuli(
+     if not sfpu:
+         dtype = (
+             format_dict[stimuli_format]
+-            if stimuli_format != "Bfp8_b"
++            if stimuli_format != DataFormat.Bfp8_b
+             else torch.bfloat16
+         )
+         return torch.tensor(srcA, dtype=dtype), torch.tensor(srcB, dtype=dtype)
+
+File: tests/python_tests/helpers/test_config.py
+@@ -2,7 +2,11 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ from .format_arg_mapping import (
+-    format_args_dict,
++    unpack_src_dict,
++    unpack_dst_dict,
++    pack_src_dict,
++    pack_dst_dict,
++    math_dict,
+     mathop_args_dict,
+     reduce_dim_args,
+     reduce_pool_args,
+@@ -11,14 +15,13 @@
+ 
+ def generate_make_command(test_config):
+     make_cmd = f"make --silent --always-make "
+-
+-    input_format = test_config.get("input_format", "Float16_b")  # Flolat16_b is default
+-    output_format = test_config.get("output_format", "Float16_b")
++    formats = test_config.get("formats")
+     testname = test_config.get("testname")
+     dest_acc = test_config.get("dest_acc", " ")  # default is not 32 bit dest_acc
+ 
+-    make_cmd += f"format={format_args_dict[output_format]} testname={testname} dest_acc={dest_acc} "  # jsut for now take output_format
++    make_cmd += f"unpack_src={unpack_src_dict[formats.unpack_src]} unpack_dst={unpack_dst_dict[formats.unpack_dst]} fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "
+ 
++    make_cmd += f"testname={testname} dest_acc={dest_acc} "
+     mathop = test_config.get("mathop", "no_mathop")
+     approx_mode = test_config.get("approx_mode", "false")
+     math_fidelity = test_config.get("math_fidelity", 0)
+
+File: tests/python_tests/helpers/tilize_untilize.py
+@@ -3,9 +3,10 @@
+ 
+ import torch
+ from .format_arg_mapping import format_dict
++from .format_config import DataFormat
+ 
+ 
+-def tilize(original_tensor, stimuli_format="Float16_b"):
++def tilize(original_tensor, stimuli_format=DataFormat.Float16_b):
+ 
+     if original_tensor.size(0) != 1024:
+         raise ValueError("Input tensor must have 1024 elements.")
+@@ -22,13 +23,13 @@ def tilize(original_tensor, stimuli_format="Float16_b"):
+     return result.to(
+         dtype=(
+             format_dict[stimuli_format]
+-            if stimuli_format in ["Float16_b", "Float16"]
++            if stimuli_format in [DataFormat.Float16_b, DataFormat.Float16]
+             else torch.float32
+         )
+     )
+ 
+ 
+-def untilize(tilized_tensor, stimuli_format="Float16_b"):
++def untilize(tilized_tensor, stimuli_format=DataFormat.Float16_b):
+ 
+     tilized_tensor = tilized_tensor.view(-1)
+ 
+@@ -45,7 +46,7 @@ def untilize(tilized_tensor, stimuli_format="Float16_b"):
+     return original_tensor.to(
+         dtype=(
+             format_dict[stimuli_format]
+-            if stimuli_format in ["Float16_b", "Float16"]
++            if stimuli_format in [DataFormat.Float16_b, DataFormat.Float16]
+             else torch.float32
+         )
+     )
+
+File: tests/python_tests/helpers/unpack.py
+@@ -6,37 +6,58 @@
+ import struct
+ import torch
+ from .utils import reverse_endian_chunk
++from .format_config import DataFormat
+ 
+ 
+ def int_to_bytes_list(n):
+     return [(n >> (24 - i * 8)) & 0xFF for i in range(4)]
+ 
+ 
+-def unpack_fp16(packed_list):
++def unpack_fp16(packed_list, unpack_src, pack_dst):
+     def bytes_to_float16(byte_list):
+         bytes_data = bytes(byte_list[:2])
+         unpacked_value = struct.unpack(">e", bytes_data)[0]
+         return unpacked_value
+ 
+     limited_packed_list = packed_list[:2048]
+-    return [
++    result = [
+         bytes_to_float16(limited_packed_list[i : i + 2])
+         for i in range(0, len(limited_packed_list), 2)
+     ]
+ 
++    # Patch Up! Fixes incorrect reading of numbers in L1:
++    # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
++    # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
++    # This caused the test to fail as the results were correctly computed but read incorrectly.
++    # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
++    if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
++        for i in range(0, len(result), 2):
++            result[i], result[i + 1] = result[i + 1], result[i]
++    return result
++
+ 
+-def unpack_bfp16(packed_list):
++def unpack_bfp16(packed_list, unpack_src, pack_dst):
+     def bytes_to_bfloat16(byte_list):
+         bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
+         unpacked_value = struct.unpack(">f", bytes_data)[0]
+         return unpacked_value
+ 
+     limited_packed_list = packed_list[:2048]
+-    return [
++    result = [
+         bytes_to_bfloat16(limited_packed_list[i : i + 2])
+         for i in range(0, len(limited_packed_list), 2)
+     ]
+ 
++    # Patch Up! Fixes incorrect reading of numbers in L1:
++    # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
++    # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
++    # This caused the test to fail as the results were correctly computed but read incorrectly.
++    # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
++    if unpack_src == DataFormat.Bfp8_b and pack_dst != unpack_src:
++        for i in range(0, len(result), 2):
++            result[i], result[i + 1] = result[i + 1], result[i]
++    return result
++
+ 
+ def unpack_float32(packed_list):
+     def bytes_to_float32(byte_list):
+@@ -60,32 +81,44 @@ def bytes_to_int32(byte_list):
+     ]
+ 
+ 
+-def bfp8_to_float_block(exponent, bfp8_mantissas):
++def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
++    # Bug fix and improvement:
++    # 1. Caching: If the (exponent, mantissa) pair is already processed, the precomputed value is reused.
++    # 2. Sign and Fractional Calculation: The sign bit is extracted, and the fractional part is calculated by iterating
++    #    over the mantissa bits, adding `1 / (2 ** i)` for each '1' bit.
++    # 3. Exponent Scaling: The final value is scaled by `2^exponent` and adjusted by the sign bit.
++    # 4. Efficient Storage: The computed value is stored in `unpacked_bfp8` for future use.
++
+     bfloat16_values = []
+     exponent = exponent - 127
++
+     for mantissa in bfp8_mantissas:
++        if (exponent, mantissa) in unpacked_bfp8:
++            bfloat16_values.append(unpacked_bfp8[(exponent, mantissa)])
++            continue
++
+         sign_mantissa = str(format(mantissa, "08b"))
++        # Extract the sign bit (most significant bit)
+         sign = int(sign_mantissa[0], 2)
++        # Get the remaining bits which represent the fractional part of the mantissa
+         mantissa_value = sign_mantissa[1:]
+-        int_part = mantissa_value[: exponent + 1]
+-        fract_part = mantissa_value[exponent + 1 :]
+-
+-        if len(int_part) != 0:
+-            int_value = int(int_part, 2)
+-        else:
+-            int_value = 0
++        # Changed computation of mantissa to fix , accumulate fractional value
++        fract_value = 0.0
++        for i in range(len(mantissa_value)):
++            # If the bit is '1', add the corresponding fractional value to fract_value
++            if mantissa_value[i] == "1":
++                fract_value += 1 / (2 ** (i))
+ 
+-        fract_value = 0
+-        for i in range(len(fract_part)):
+-            if fract_part[i] == "1":
+-                fract_value += 1 / (2 ** (i + 1))
++        bfloat16_values.append(((-1.0) ** sign) * (2**exponent) * (fract_value))
+ 
+-        bfloat16_values.append(((-1) ** sign) * (int_value + fract_value))
++        unpacked_bfp8[(exponent, mantissa)] = (
++            ((-1.0) ** sign) * (2**exponent) * (fract_value)
++        )
+ 
+     return bfloat16_values
+ 
+ 
+-def unpack_bfp8_b(bfp8_block, sfpu=False):
++def unpack_bfp8_b(bfp8_block, unpack_src, pack_dst, sfpu=False):
+ 
+     if not sfpu:
+         exponents = bfp8_block[:64]
+@@ -95,13 +128,28 @@ def unpack_bfp8_b(bfp8_block, sfpu=False):
+         mantissas = bfp8_block[16:272]
+     reversed_exponents = reverse_endian_chunk(exponents)
+ 
++    unpacked_bfp8 = {}
++
+     bfloat16_values = []
+     for i in range(len(reversed_exponents)):
+         exponent = reversed_exponents[i]
+         bfp8_mantissas = mantissas[i * 16 : (i + 1) * 16]
+         reversed_sign_mantissa = reverse_endian_chunk(bfp8_mantissas)
+-
+-        block_bfloat16_values = bfp8_to_float_block(exponent, reversed_sign_mantissa)
++        block_bfloat16_values = bfp8_to_float_block(
++            exponent, reversed_sign_mantissa, unpacked_bfp8
++        )
+         bfloat16_values.extend(block_bfloat16_values)
+ 
++    # Patch Up! Fixes incorrect reading of numbers in L1:
++    # When input source i.e `unpack_src` is not BFP8_B, but it is packed as BFP8_B then consecutive pairs of numbers are inverted and placed in L1.
++    # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
++    # This caused the test to fail as the results were correctly computed but read from L1 incorrectly.
++    # The loop reinverts the numbers back to their correct positions in order to read them properly and pass the test as expected.
++    if unpack_src != pack_dst:
++        for i in range(0, len(bfloat16_values), 2):
++            bfloat16_values[i], bfloat16_values[i + 1] = (
++                bfloat16_values[i + 1],
++                bfloat16_values[i],
++            )
++
+     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
+
+File: tests/python_tests/helpers/utils.py
+@@ -5,7 +5,8 @@
+ import torch
+ import numpy as np
+ import subprocess
+-from .format_arg_mapping import format_dict, format_sizes
++from .format_arg_mapping import format_sizes
++from .format_config import DataFormat
+ 
+ torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+ 
+@@ -51,7 +52,7 @@ def calculate_read_words_count(format, sfpu=False):
+         raise ValueError(f"Unsupported format: {format}")
+ 
+     if sfpu:  # for now just for 16 bit formats
+-        return 256 if format in ["Float32", "Int32"] else 128
++        return 256 if format in [DataFormat.Float32, DataFormat.Int32] else 128
+ 
+     return format_sizes[format]
+ 
+
+File: tests/python_tests/run_test.sh
+@@ -86,7 +86,7 @@ for i in $(seq 1 "$repeat_count"); do
+     fi
+ 
+     result=$?
+-    
++
+     if [ [$result -eq 0] ]; then
+         ((pass_count++))
+     else
+@@ -97,4 +97,4 @@ done
+ # Print summary
+ echo "Summary:"
+ echo "Passed: $pass_count"
+-echo "Failed: $fail_count"
+\ No newline at end of file
++echo "Failed: $fail_count"
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -1,6 +1,7 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
++import subprocess
+ import pytest
+ import torch
+ from helpers import *
+@@ -10,37 +11,52 @@ def generate_golden(operand1, format):
+     return operand1
+ 
+ 
+-param_combinations = [
+-    (format, dest_acc, testname)
+-    for format in ["Float32", "Bfp8_b", "Float16_b", "Float16", "Int32"]
+-    for dest_acc in ["", "DEST_ACC"]
+-    for testname in ["eltwise_unary_datacopy_test"]
+-]
+-
+-param_ids = [f" format={comb[0]} | dest_acc={comb[1]} " for comb in param_combinations]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    formats=[
++        DataFormat.Float32,
++        DataFormat.Bfp8_b,
++        DataFormat.Float16_b,
++        DataFormat.Float16,
++        DataFormat.Int32,
++    ],
++    all_same=True,
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++dest_acc = ["", "DEST_ACC"]
++testname = ["eltwise_unary_datacopy_test"]
++all_params = generate_params(testname, all_format_combos, dest_acc)
++param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "format, dest_acc, testname", param_combinations, ids=param_ids
++    "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
+ )
+-def test_unary_datacopy(format, testname, dest_acc):
++def test_unary_datacopy(testname, formats, dest_acc):
+ 
+-    if format == "Float16" and dest_acc == "DEST_ACC":
++    if formats.unpack_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
+         pytest.skip(reason="This combination is not fully implemented in testing")
+-
+-    if format in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
++    if (
++        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
++        and dest_acc != "DEST_ACC"
++    ):
+         pytest.skip(
+             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
+         )
+ 
+-    src_A, src_B = generate_stimuli(format)
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
++
++    src_A, src_B = generate_stimuli(formats.unpack_src)
+     srcB = torch.full((1024,), 0)
+-    golden = generate_golden(src_A, format)
+-    write_stimuli_to_l1(src_A, src_B, format)
++    golden = generate_golden(src_A, formats.pack_dst)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+     }
+@@ -49,14 +65,17 @@ def test_unary_datacopy(format, testname, dest_acc):
+     run_shell_command(f"cd .. && {make_cmd}")
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format)
++    # JUST PASS formats
++    res_from_L1 = collect_results(
++        formats
++    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+     run_shell_command("cd .. && make clean")
+ 
+     assert len(res_from_L1) == len(golden)
+     assert_tensix_operations_finished()
+ 
+-    if format in format_dict:
++    if formats.pack_dst in format_dict:
+         atol = 0.05
+         rtol = 0.1
+     else:
+@@ -66,16 +85,28 @@ def test_unary_datacopy(format, testname, dest_acc):
+     golden_tensor = torch.tensor(
+         golden,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b", "Float32", "Int32"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst
++            in [
++                DataFormat.Float16,
++                DataFormat.Float16_b,
++                DataFormat.Float32,
++                DataFormat.Int32,
++            ]
+             else torch.bfloat16
+         ),
+     )
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b", "Float32", "Int32"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst
++            in [
++                DataFormat.Float16,
++                DataFormat.Float16_b,
++                DataFormat.Float32,
++                DataFormat.Int32,
++            ]
+             else torch.bfloat16
+         ),
+     )
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -23,44 +23,52 @@ def generate_golden(operation, operand1, data_format):
+     return [ops[operation](num) for num in tensor1_float.tolist()][:256]
+ 
+ 
+-param_combinations = [
+-    (mathop, format, dest_acc, testname, approx_mode)
+-    for mathop in ["sqrt", "log", "square"]
+-    for format in ["Float16_b", "Float16", "Float32"]
+-    for dest_acc in ["DEST_ACC", ""]
+-    for testname in ["eltwise_unary_sfpu_test"]
+-    for approx_mode in ["false", "true"]
+-]
+-
+-param_ids = [
+-    f"mathop={comb[0]} | format={comb[1]} | dest_acc={comb[2]} | approx_mode={comb[4]}"
+-    for comb in param_combinations
+-]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(
++    ["eltwise_unary_sfpu_test"],
++    all_format_combos,
++    dest_acc=["", "DEST_ACC"],
++    approx_mode=["false", "true"],
++    mathop=["sqrt", "log", "square"],
++)
++param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "mathop, format, dest_acc, testname, approx_mode", param_combinations, ids=param_ids
++    "testname, formats, dest_acc, approx_mode, mathop",
++    clean_params(all_params),
++    ids=param_ids,
+ )
+-def test_eltwise_unary_sfpu(format, mathop, testname, dest_acc, approx_mode):
+-
+-    if format in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
++def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  #
++    if (
++        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
++        and dest_acc != "DEST_ACC"
++    ):
+         pytest.skip(
+             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
+         )
+-
+-    if format == "Float16" and dest_acc == "DEST_ACC":
++    if formats.unpack_src == DataFormat.Float16 and (
++        (dest_acc == "" and get_chip_architecture() == "blackhole")
++        or (dest_acc == "DEST_ACC" and get_chip_architecture() == "wormhole")
++    ):
+         pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+-    src_A, src_B = generate_stimuli(format, sfpu=True)
+-    golden = generate_golden(mathop, src_A, format)
+-    write_stimuli_to_l1(src_A, src_B, format)
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
+ 
+-    print("\n \n SRCA \n \n")
+-    print(src_A.tolist())
++    src_A, src_B = generate_stimuli(formats.unpack_src, sfpu=True)
++    golden = generate_golden(mathop, src_A, formats.pack_dst)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+@@ -71,7 +79,9 @@ def test_eltwise_unary_sfpu(format, mathop, testname, dest_acc, approx_mode):
+     run_shell_command(f"cd .. && {make_cmd}")
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format, sfpu=True)
++    res_from_L1 = collect_results(
++        formats, sfpu=True
++    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+     run_shell_command("cd .. && make clean")
+ 
+@@ -81,24 +91,28 @@ def test_eltwise_unary_sfpu(format, mathop, testname, dest_acc, approx_mode):
+     golden_tensor = torch.tensor(
+         golden,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+ 
+-    if format in ["Float16_b", "Float16", "Float32"]:
++    if formats.pack_dst in [
++        DataFormat.Float16_b,
++        DataFormat.Float16,
++        DataFormat.Float32,
++    ]:
+         atol = 0.05
+         rtol = 0.1
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.05
+         rtol = 0.1
+ 
+
+File: tests/python_tests/test_fill_dest.py
+@@ -10,12 +10,12 @@ def generate_golden(operations, operand1, operand2, data_format):
+     tensor1_float = (
+         operand1.clone()
+         .detach()
+-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
+     )
+     tensor2_float = (
+         operand2.clone()
+         .detach()
+-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
+     )
+ 
+     res = []
+@@ -39,34 +39,40 @@ def generate_golden(operations, operand1, operand2, data_format):
+     return flatten_list(res)
+ 
+ 
+-param_combinations = [
+-    (format, dest_acc, testname)
+-    for format in ["Float16_b", "Float16", "Bfp8_b"]
+-    for dest_acc in ["", "DEST_ACC"]
+-    for testname in ["fill_dest_test"]
+-]
+-
+-param_ids = [f" format={comb[0]} | dest_acc={comb[1]}" for comb in param_combinations]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(
++    ["fill_dest_test"], all_format_combos, dest_acc=["", "DEST_ACC"]
++)
++param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "format, dest_acc, testname", param_combinations, ids=param_ids
++    "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
+ )
+-def test_fill_dest(format, testname, dest_acc):
++def test_fill_dest(testname, formats, dest_acc):
+ 
+-    if format == "Float16" and dest_acc == "DEST_ACC":
++    if formats.unpack_src == DataFormat.Float16 and dest_acc == "DEST_ACC":
+         pytest.skip(reason="This combination is not fully implemented in testing")
+ 
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
++
+     pack_start_address = 0x1C000
+     pack_addresses = [pack_start_address + 0x1000 * i for i in range(16)]
+ 
+-    src_A, src_B = generate_stimuli(format)
+-    golden = generate_golden([2] * 16, src_A, src_B, format)
+-    write_stimuli_to_l1(src_A, src_B, format)
++    src_A, src_B = generate_stimuli(formats.unpack_src)
++    golden = generate_golden([2] * 16, src_A, src_B, formats.pack_dst)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+     }
+@@ -81,8 +87,9 @@ def test_fill_dest(format, testname, dest_acc):
+     res_from_L1 = []
+ 
+     for address in pack_addresses:
+-        res_from_L1.append(collect_results(format, address))
+-
++        res_from_L1.append(
++            collect_results(formats, address)
++        )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     res_from_L1 = flatten_list(res_from_L1)
+ 
+     assert len(res_from_L1) == len(golden)
+@@ -91,24 +98,27 @@ def test_fill_dest(format, testname, dest_acc):
+     golden_tensor = torch.tensor(
+         golden,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+ 
+-    if format == "Float16_b" or format == "Float16":
++    if (
++        formats.pack_dst == DataFormat.Float16_b
++        or formats.pack_dst == DataFormat.Float16
++    ):
+         atol = 0.05
+         rtol = 0.1
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/python_tests/test_matmul.py
+@@ -8,7 +8,7 @@
+ 
+ def generate_golden(operand1, operand2, data_format, math_fidelity):
+ 
+-    if data_format == "Float16_b":
++    if data_format == DataFormat.Float16_b:
+         if math_fidelity in [0, 2]:  # LoFi or HiFi2
+             for element in operand2:
+                 element = element.to(torch.int32)
+@@ -23,53 +23,37 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+     ).view(-1)
+ 
+ 
+-param_combinations = [
+-    (format, dest_acc, testname, math_fidelity)
+-    for format in ["Float16_b"]  # ,"Float16"]
+-    for dest_acc in ["", "DEST_ACC"]
+-    for testname in ["matmul_test"]
+-    for math_fidelity in [3, 4]
+-]
+-
+-param_ids = [
+-    f" format={comb[0]} | dest_acc={comb[1]} | math_fidelity={comb[3]}"
+-    for comb in param_combinations
+-]
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(
++    ["matmul_test"], all_format_combos, dest_acc=["", "DEST_ACC"], math_fidelity=[3, 4]
++)
++param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "format, dest_acc, testname, math_fidelity", param_combinations, ids=param_ids
++    "testname, formats, dest_acc, math_fidelity",
++    clean_params(all_params),
++    ids=param_ids,
+ )
+-def test_matmul(format, testname, dest_acc, math_fidelity):
+-
+-    # src_A, src_B = generate_stimuli(format,tile_cnt=1,sfpu=False,const_face=True,const_value_A=3,const_value_B=2)
+-    # src_A, src_B = generate_stimuli(format)
++def test_matmul(testname, formats, dest_acc, math_fidelity):
+ 
+     src_A = torch.tensor(
+-        [torch.rand(1, dtype=format_dict[format]).item()] * 256
+-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
+-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
+-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256,
++        [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 1024,
+         dtype=torch.bfloat16,
+     )
+     src_B = torch.tensor(
+-        [torch.rand(1, dtype=format_dict[format]).item()] * 256
+-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
+-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256
+-        + [torch.rand(1, dtype=format_dict[format]).item()] * 256,
++        [torch.rand(1, dtype=format_dict[formats.unpack_src]).item()] * 1024,
+         dtype=torch.bfloat16,
+     )
+ 
+-    print(src_A)
+-    print(src_B)
+-
+-    golden_tensor = generate_golden(src_A, src_B, format, math_fidelity)
++    golden_tensor = generate_golden(src_A, src_B, formats.pack_dst, math_fidelity)
+ 
+-    write_stimuli_to_l1(tilize(src_A), tilize(src_B), format)
++    write_stimuli_to_l1(tilize(src_A), tilize(src_B), formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
+@@ -80,7 +64,9 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
+ 
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format)
++    res_from_L1 = collect_results(
++        formats
++    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     run_shell_command("cd .. && make clean")
+ 
+     assert len(res_from_L1) == len(golden_tensor)
+@@ -89,16 +75,16 @@ def test_matmul(format, testname, dest_acc, math_fidelity):
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+ 
+-    if format == "Float16_b" or format == "Float16":
++    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
+         atol = 0.1
+         rtol = 0.05
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -5,22 +5,20 @@
+ import torch
+ from helpers import *
+ 
+-mathop_map = {1: "elwadd", 2: "elwsub", 3: "elwmul"}
+-
+ 
+ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     tensor1_float = (
+         operand1.clone()
+         .detach()
+-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
+     )
+     tensor2_float = (
+         operand2.clone()
+         .detach()
+-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
+     )
+ 
+-    if data_format == "Float16_b":
++    if data_format == DataFormat.Float16_b:
+         if math_fidelity in [0, 2]:  # LoFi or HiFi2
+             for element in operand2:
+                 element = element.to(torch.int32)
+@@ -42,50 +40,57 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     return res.tolist()
+ 
+ 
+-param_combinations = [
+-    (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+-    for mathop in range(1, 4)
+-    for tile_cnt in range(1, 4)
+-    for format in ["Float16_b", "Float16", "Bfp8_b"]
+-    for dest_acc in ["", "DEST_ACC"]
+-    for testname in ["multiple_tiles_eltwise_test"]
+-    for math_fidelity in [0, 2, 3, 4]
+-]
+-
+-param_ids = [
+-    f"mathop={mathop_map[comb[0]]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
+-    for comb in param_combinations
+-]
++mathop_map = {1: "elwadd", 2: "elwsub", 3: "elwmul"}
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(
++    ["multiple_tiles_eltwise_test"],
++    all_format_combos,
++    dest_acc=["", "DEST_ACC"],
++    mathop=range(1, 4),
++    math_fidelity=[0, 2, 3, 4],
++    tile_cnt=range(1, 4),
++)
++param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "mathop, tile_cnt, format, dest_acc, testname, math_fidelity",
+-    param_combinations,
++    "testname, formats, dest_acc, mathop, math_fidelity, tile_cnt",
++    clean_params(all_params),
+     ids=param_ids,
+ )
+-def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidelity):
+-
+-    if mathop in range(1, 4) and format == "Float16" and dest_acc == "DEST_ACC":
++def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
++    if (
++        mathop in range(1, 4)
++        and formats.unpack_src == DataFormat.Float16
++        and dest_acc == "DEST_ACC"
++    ):
+         pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+-    # prepare setup for running kernels
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
+ 
+     pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt
+     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
+     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
+ 
+     src_A, src_B = generate_stimuli(
+-        format, tile_cnt=tile_cnt
++        formats.unpack_src, tile_cnt=tile_cnt
+     )  # , const_face=True, const_value_A=3, const_value_B=2)
+-    golden = generate_golden(mathop, src_A, src_B, format, math_fidelity)
+-    write_stimuli_to_l1(src_A, src_B, format, "0,0", tile_cnt)
++    golden = generate_golden(mathop, src_A, src_B, formats.pack_dst, math_fidelity)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src, "0,0", tile_cnt)
+ 
+     if mathop != 3:
+         math_fidelity = 0
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+@@ -108,31 +113,31 @@ def test_multiple_tiles(format, testname, tile_cnt, mathop, dest_acc, math_fidel
+     res_from_L1 = []
+ 
+     for address in pack_addresses:
+-        res_from_L1.append(collect_results(format, address))
++        res_from_L1.append(collect_results(formats, address))
+ 
+     res_from_L1 = flatten_list(res_from_L1)
+ 
+     golden_tensor = torch.tensor(
+         golden,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+ 
+-    if format == "Float16_b" or format == "Float16":
++    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
+         atol = 0.05
+         rtol = 0.1
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -5,6 +5,7 @@
+ import torch
+ from helpers import *
+ 
++
+ torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+ 
+ 
+@@ -14,31 +15,39 @@ def generate_golden(operand1, data_format):
+     return A_untilized.flatten()
+ 
+ 
+-param_combinations = [
+-    (format, testname)
+-    for format in ["Float16_b", "Float16"]
+-    for testname in ["pack_untilize_test"]
+-]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(["pack_untilize_test"], all_format_combos)
++param_ids = generate_param_ids(all_params)
+ 
+-param_ids = [f" format={comb[0]} " for comb in param_combinations]
+ 
++@pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
++def test_pack_untilize(testname, formats):
+ 
+-@pytest.mark.parametrize("format,testname", param_combinations, ids=param_ids)
+-def test_pack_untilize(format, testname):
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
+ 
+-    src_A, src_B = generate_stimuli(format)
++    src_A, src_B = generate_stimuli(formats.unpack_src)
+     src_A = torch.cat(
+-        [torch.full((256,), i, dtype=format_dict[format]) for i in range(1, 5)]
++        [
++            torch.full((256,), i, dtype=format_dict[formats.unpack_src])
++            for i in range(1, 5)
++        ]
+     )
+     src_B = torch.full((1024,), 0)
+ 
+-    golden_tensor = generate_golden(src_A, format)
++    golden_tensor = generate_golden(src_A, formats.pack_dst)
+ 
+-    write_stimuli_to_l1(src_A, src_B, format)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+     }
+ 
+@@ -47,8 +56,9 @@ def test_pack_untilize(format, testname):
+ 
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format)
+-
++    res_from_L1 = collect_results(
++        formats
++    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+     run_shell_command("cd .. && make clean")
+ 
+     assert len(res_from_L1) == len(golden_tensor)
+@@ -57,16 +67,16 @@ def test_pack_untilize(format, testname):
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+ 
+-    if format == "Float16_b" or format == "Float16":
++    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
+         atol = 0.1
+         rtol = 0.05
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/python_tests/test_reduce.py
+@@ -58,30 +58,36 @@ def apply_pooling(tensor, pool_type, dim):
+     return result.view(1024)
+ 
+ 
+-param_combinations = [
+-    (reduce_dim, pool_type, format, dest_acc, testname)
+-    for reduce_dim in ["reduce_col"]
+-    for pool_type in ["max", "sum", "avg"]
+-    for format in ["Float16_b", "Float16"]
+-    for dest_acc in [""]
+-    for testname in ["reduce_test"]
+-]
+-
+-param_ids = [
+-    f"reduce_dim={comb[0]}  | pool_type={comb[1]} | format={comb[2]} | dest_acc={comb[3]} "
+-    for comb in param_combinations
+-]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(
++    ["reduce_test"],
++    all_format_combos,
++    dest_acc=[""],
++    reduce_dim=["reduce_col"],
++    pool_type=["max", "sum", "avg"],
++)
++param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "reduce_dim, pool_type, format, dest_acc, testname",
+-    param_combinations,
++    "testname, formats, dest_acc, reduce_dim, pool_type",
++    clean_params(all_params),
+     ids=param_ids,
+ )
+ @pytest.mark.skip(reason="Not fully implemented")
+-def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
++def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
++
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
+ 
+-    src_A, src_B = generate_stimuli(format)
++    src_A, src_B = generate_stimuli(formats.unpack_src)
+ 
+     if pool_type in ["max", "sum"]:  # result in srcA should be divided by 1
+         src_B = torch.full((1024,), 1)
+@@ -92,12 +98,11 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+         else:
+             src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
+ 
+-    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, format)
+-    write_stimuli_to_l1(src_A, src_B, format)
++    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.pack_dst)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "reduce_dim": reduce_dim,
+@@ -110,7 +115,9 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+ 
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format)
++    res_from_L1 = collect_results(
++        formats
++    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+     run_shell_command("cd .. && make clean")
+ 
+@@ -120,20 +127,20 @@ def test_reduce(reduce_dim, pool_type, format, testname, dest_acc):
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+-    res_tensor = untilize(res_tensor, format)
++    res_tensor = untilize(res_tensor, formats.pack_dst)
+ 
+     print("RES IN L1")
+     print(res_tensor.view(32, 32))
+ 
+-    if format == "Float16_b" or format == "Float16":
++    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
+         atol = 0.1
+         rtol = 0.05
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -10,12 +10,12 @@ def generate_golden(operation, operand1, operand2, data_format):
+     tensor1_float = (
+         operand1.clone()
+         .detach()
+-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
+     )
+     tensor2_float = (
+         operand2.clone()
+         .detach()
+-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
+     )
+ 
+     operations = {
+@@ -30,76 +30,91 @@ def generate_golden(operation, operand1, operand2, data_format):
+     return operations[operation].tolist()
+ 
+ 
+-param_combinations = [
+-    (mathop, format, dest_acc, testname)
+-    for mathop in ["elwadd", "elwsub", "elwmul"]
+-    for format in ["Float32"]
+-    for dest_acc in ["DEST_ACC"]
+-    for testname in ["sfpu_binary_test"]
+-]
+-
+-param_ids = [
+-    f"mathop={comb[0]} | format={comb[1]} | dest_acc={comb[2]} "
+-    for comb in param_combinations
+-]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float32], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(
++    ["sfpu_binary_test"],
++    all_format_combos,
++    dest_acc=["DEST_ACC"],
++    mathop=["elwadd", "elwsub", "elwmul"],
++)
++param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "mathop, format, dest_acc, testname", param_combinations, ids=param_ids
++    "testname, formats, dest_acc, mathop", clean_params(all_params), ids=param_ids
+ )
+ @pytest.mark.skip(reason="Not fully implemented")
+-def test_all(format, mathop, testname, dest_acc):
++def test_all(testname, formats, dest_acc, mathop):
++    if (
++        formats.unpack_src in [DataFormat.Float32, DataFormat.Int32]
++        and dest_acc != "DEST_ACC"
++    ):
++        pytest.skip(
++            "Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
++        )
+ 
+-    src_A, src_B = generate_stimuli(format)
+-    golden = generate_golden(mathop, src_A, src_B, format)
+-    write_stimuli_to_l1(src_A, src_B, format)
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
++
++    src_A, src_B = generate_stimuli(formats.unpack_src)
++    golden = generate_golden(mathop, src_A, src_B, formats.pack_dst)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+     }
+ 
+-    if format in ["Float32", "Int32"] and dest_acc != "DEST_ACC":
+-        pytest.skip(
+-            "SKipping test for 32 bit wide data without 32 bit accumulation in Dest"
+-        )
+-
+     make_cmd = generate_make_command(test_config)
+     run_shell_command(f"cd .. && {make_cmd}")
+ 
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format)
++    res_from_L1 = collect_results(
++        formats
++    )  # Bug patchup in (unpack.py): passing formats struct to check its unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+     assert len(res_from_L1) == len(golden)
+ 
+     run_shell_command("cd .. && make clean")
+ 
+     assert_tensix_operations_finished()
+ 
+-    if format in ["Float16_b", "Float16", "Float32"]:
++    if formats.pack_dst in [
++        DataFormat.Float16_b,
++        DataFormat.Float16,
++        DataFormat.Float32,
++    ]:
+         atol = 0.05
+         rtol = 0.1
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+     golden_tensor = torch.tensor(
+         golden,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b", "Float32"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst
++            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
+             else torch.bfloat16
+         ),
+     )
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b", "Float32"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst
++            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
+             else torch.bfloat16
+         ),
+     )
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -10,15 +10,15 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     tensor1_float = (
+         operand1.clone()
+         .detach()
+-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
+     )
+     tensor2_float = (
+         operand2.clone()
+         .detach()
+-        .to(format_dict.get(data_format, format_dict["Float16_b"]))
++        .to(format_dict.get(data_format, format_dict[DataFormat.Float16_b]))
+     )
+ 
+-    if data_format == "Float16_b":
++    if data_format == DataFormat.Float16_b:
+         if math_fidelity in [0, 2]:  # LoFi or HiFi2
+             for element in operand2:
+                 element = element.to(torch.int32)
+@@ -47,41 +47,47 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     return res
+ 
+ 
+-param_combinations = [
+-    (mathop, tile_cnt, format, dest_acc, testname, math_fidelity)
+-    for mathop in ["elwadd", "elwsub", "elwmul"]
+-    for tile_cnt in range(1, 2)
+-    for format in ["Float16_b", "Float16"]
+-    for dest_acc in [""]  # , "DEST_ACC"]
+-    for testname in ["tilize_calculate_untilize_L1"]
+-    for math_fidelity in [4]  # [0,2,3,4]
+-]
+-
+-param_ids = [
+-    f"mathop={comb[0]} | tile_cnt={comb[1]} | format={comb[2]} | dest_acc={comb[3]} | math_fidelity={comb[5]}"
+-    for comb in param_combinations
+-]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(
++    ["tilize_calculate_untilize_L1"],
++    all_format_combos,
++    dest_acc=[""],
++    mathop=["elwadd", "elwsub", "elwmul"],
++    math_fidelity=[4],
++    tile_cnt=range(1, 2),
++)
++param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+-    "mathop, tile_cnt, format, dest_acc, testname, math_fidelity",
+-    param_combinations,
++    "testname, formats, dest_acc, mathop, math_fidelity, tile_cnt",
++    clean_params(all_params),
+     ids=param_ids,
+ )
+ def test_tilize_calculate_untilize_L1(
+-    format, testname, tile_cnt, mathop, dest_acc, math_fidelity
++    testname, formats, dest_acc, mathop, math_fidelity, tile_cnt
+ ):
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
+ 
+-    src_A, src_B = generate_stimuli(format, tile_cnt)
++    src_A, src_B = generate_stimuli(formats.unpack_src, tile_cnt)
+ 
+-    golden_tensor = generate_golden(mathop, src_A, src_B, format, math_fidelity)
++    golden_tensor = generate_golden(
++        mathop, src_A, src_B, formats.pack_dst, math_fidelity
++    )
+     print(golden_tensor.view(32, 32))
+ 
+-    write_stimuli_to_l1(src_A, src_B, format, "0,0", tile_cnt)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src, "0,0", tile_cnt)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
+@@ -93,26 +99,27 @@ def test_tilize_calculate_untilize_L1(
+ 
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format, 0x1E000)
+-    run_shell_command("cd .. && make clean")
++    res_from_L1 = collect_results(
++        formats, 0x1E000
++    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+     assert len(res_from_L1) == len(golden_tensor)
+     assert_tensix_operations_finished()
+ 
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+     print(res_tensor.view(32, 32))
+ 
+-    if format == "Float16_b" or format == "Float16":
++    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
+         atol = 0.1
+         rtol = 0.05
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -11,28 +11,33 @@ def generate_golden(operand1, data_format):
+     return A_tilized.flatten()
+ 
+ 
+-param_combinations = [
+-    (format, testname)
+-    for format in ["Float16_b", "Float16"]
+-    for testname in ["unpack_tilize_test"]
+-]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(["unpack_tilize_test"], all_format_combos)
++param_ids = generate_param_ids(all_params)
+ 
+-param_ids = [f" format={comb[0]} " for comb in param_combinations]
+ 
++@pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
++def test_unpack_tilize(testname, formats):
+ 
+-@pytest.mark.parametrize("format,testname", param_combinations, ids=param_ids)
+-def test_unpack_tilize(format, testname):
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
+ 
+-    src_A, src_B = generate_stimuli(format)
++    src_A, src_B = generate_stimuli(formats.unpack_src)
+     src_B = torch.full((1024,), 0)
+ 
+-    golden_tensor = generate_golden(src_A, format)
++    golden_tensor = generate_golden(src_A, formats.pack_dst)
+ 
+-    write_stimuli_to_l1(src_A, src_B, format)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+     }
+ 
+@@ -41,7 +46,9 @@ def test_unpack_tilize(format, testname):
+ 
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format)
++    res_from_L1 = collect_results(
++        formats
++    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+     run_shell_command("cd .. && make clean")
+ 
+@@ -51,16 +58,16 @@ def test_unpack_tilize(format, testname):
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+ 
+-    if format == "Float16_b" or format == "Float16":
++    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
+         atol = 0.1
+         rtol = 0.05
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -14,28 +14,33 @@ def generate_golden(operand1, data_format):
+     return A_untilized.flatten()
+ 
+ 
+-param_combinations = [
+-    (format, testname)
+-    for format in ["Float16_b", "Float16"]
+-    for testname in ["unpack_untilize_test"]
+-]
++full_sweep = False
++all_format_combos = generate_format_combinations(
++    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
++)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++all_params = generate_params(["unpack_untilize_test"], all_format_combos)
++param_ids = generate_param_ids(all_params)
+ 
+-param_ids = [f" format={comb[0]} " for comb in param_combinations]
+ 
++@pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
++def test_unpack_untilze(testname, formats):
+ 
+-@pytest.mark.parametrize("format,testname", param_combinations, ids=param_ids)
+-def test_unpack_untilze(format, testname):
++    #  When running hundreds of tests, failing tests may cause incorrect behavior in subsequent passing tests.
++    #  To ensure accurate results, for now we reset board after each test.
++    #  Fix this: so we only reset after failing tests
++    if full_sweep:
++        run_shell_command(f"cd .. && make clean")
++        run_shell_command(f"tt-smi -r 0")
+ 
+-    src_A, src_B = generate_stimuli(format)
++    src_A, src_B = generate_stimuli(formats.unpack_src)
+     src_B = torch.full((1024,), 0)
+ 
+-    golden_tensor = generate_golden(src_A, format)
++    golden_tensor = generate_golden(src_A, formats.pack_dst)
+ 
+-    write_stimuli_to_l1(src_A, src_B, format)
++    write_stimuli_to_l1(src_A, src_B, formats.unpack_src)
+ 
+     test_config = {
+-        "input_format": format,
+-        "output_format": format,
++        "formats": formats,
+         "testname": testname,
+     }
+ 
+@@ -44,7 +49,9 @@ def test_unpack_untilze(format, testname):
+ 
+     run_elf_files(testname)
+ 
+-    res_from_L1 = collect_results(format)
++    res_from_L1 = collect_results(
++        formats
++    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+ 
+     run_shell_command("cd .. && make clean")
+ 
+@@ -54,16 +61,16 @@ def test_unpack_untilze(format, testname):
+     res_tensor = torch.tensor(
+         res_from_L1,
+         dtype=(
+-            format_dict[format]
+-            if format in ["Float16", "Float16_b"]
++            format_dict[formats.pack_dst]
++            if formats.pack_dst in [DataFormat.Float16, DataFormat.Float16_b]
+             else torch.bfloat16
+         ),
+     )
+ 
+-    if format == "Float16_b" or format == "Float16":
++    if formats.pack_dst in [DataFormat.Float16_b, DataFormat.Float16]:
+         atol = 0.1
+         rtol = 0.05
+-    elif format == "Bfp8_b":
++    elif formats.pack_dst == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/sources/eltwise_unary_datacopy_test.cpp
+@@ -20,7 +20,7 @@ const bool is_fp32_dest_acc_en = true;
+ const bool is_fp32_dest_acc_en = false;
+ #endif
+ 
+-#if defined(FORMAT_INT32) || defined(FORMAT_FLOAT32)
++#if defined(UNPACK_SRC_INT32) || defined(UNPACK_SRC_FLOAT32)
+ const bool unpack_to_dest = true;
+ #else
+ const bool unpack_to_dest = false;
+@@ -36,9 +36,9 @@ void run_kernel()
+ {
+     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+ 
+-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, DATA_FORMAT, DATA_FORMAT);
+-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
+-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, DATA_FORMAT, DATA_FORMAT);
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_IN, UNPACK_OUT);
++    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_IN, UNPACK_OUT, FACE_R_DIM, 0, 4);
++    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_IN, UNPACK_OUT);
+ }
+ 
+ #endif
+@@ -61,15 +61,15 @@ void run_kernel()
+ {
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(DATA_FORMAT, DATA_FORMAT);
++    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
+-        0, DATA_FORMAT, DATA_FORMAT);
++        0, UNPACK_OUT, UNPACK_OUT);
+     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+ }
+ 
+@@ -88,12 +88,12 @@ void run_kernel()
+     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+ #endif
+ 
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -32,9 +32,9 @@ void run_kernel()
+ {
+     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+ 
+-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
+-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, DATA_FORMAT, DATA_FORMAT);
+-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, DATA_FORMAT, DATA_FORMAT);
++    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_IN, UNPACK_OUT, FACE_R_DIM, 0, 4);
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_IN, UNPACK_OUT);
++    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A), 0, UNPACK_IN, UNPACK_OUT);
+ }
+ 
+ #endif
+@@ -77,15 +77,15 @@ void run_kernel()
+ {
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, false>(0, 0, 4, DATA_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, false>(0, 0, 4, MATH_FORMAT);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, false>(0, 0, 4, DATA_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, is_fp32_dest_acc_en, false>(0, 0, 4, MATH_FORMAT);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(DATA_FORMAT, DATA_FORMAT);
++    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncFull, BroadcastType::NONE, is_fp32_dest_acc_en, unpack_to_dest>(
+-        0, DATA_FORMAT, DATA_FORMAT);
++        0, MATH_FORMAT, MATH_FORMAT);
+ 
+     // calculation of sfpu operation on dest
+     _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
+@@ -112,23 +112,21 @@ void run_kernel()
+     // TODO: make it so It can
+     // So for now It is packed as Float16_b
+ 
+-#ifdef FORMAT_BFP8_B
+-    constexpr auto PACK_DEST_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
+-#else
+-    constexpr auto PACK_DEST_FORMAT = DATA_FORMAT;
++#ifdef PACK_DST_BFP8_B
++    constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
+ #endif
+ 
+     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+ 
+     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, PACK_DEST_FORMAT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, PACK_DEST_FORMAT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+ #endif
+ 
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_DEST_FORMAT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+
+File: tests/sources/fill_dest_test.cpp
+@@ -32,7 +32,7 @@ void run_kernel()
+ 
+     for (uint index = 0; index < 16; index++)
+     {
+-        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, DATA_FORMAT, DATA_FORMAT);
++        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_IN, UNPACK_IN, UNPACK_OUT, UNPACK_OUT);
+         _llk_unpack_AB_init_<>();
+         _llk_unpack_AB_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B));
+     }
+@@ -52,7 +52,7 @@ using namespace ckernel;
+ void run_kernel()
+ {
+     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(DATA_FORMAT, DATA_FORMAT);
++    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+     _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWADD, BroadcastType::NONE>(4, 0, 0);
+ 
+     for (auto index = 0; index < 16; ++index)
+@@ -78,12 +78,12 @@ void run_kernel()
+     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+ #endif
+ 
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(DATA_FORMAT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+

@@ -1,0 +1,345 @@
+PR #404: profiler ⌛: refactor how metadata is passed
+URL: https://github.com/tenstorrent/tt-llk/pull/404
+
+File: tests/Makefile
+@@ -13,6 +13,7 @@ SHARED_DIR       := $(BUILD_DIR)/shared
+ TEST_DIR        := $(BUILD_DIR)/tests/$(testname)
+ OBJ_DIR         := $(TEST_DIR)/obj
+ DIS_DIR         := $(TEST_DIR)/dis
++PROFILER_DIR    := $(TEST_DIR)/profiler
+ ELF_DIR         := $(TEST_DIR)/elf
+ 
+ HELPERS         := helpers
+@@ -23,6 +24,7 @@ RMDIR           := rm -rf
+ 
+ GXX             := $(TOOL_PATH)/riscv32-tt-elf-g++
+ OBJDUMP         := $(TOOL_PATH)/riscv32-tt-elf-objdump
++OBJCOPY         := $(TOOL_PATH)/riscv32-tt-elf-objcopy
+ 
+ # =========================
+ # Architecture Selection
+@@ -42,7 +44,7 @@ endif
+ # =========================
+ # Compiler and Linker Flags
+ # =========================
+-OPTIONS_ALL	:= -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
++OPTIONS_ALL	:= -g -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
+ OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-rtti -Werror \
+ 				   -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses \
+ 				   -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE \
+@@ -61,7 +63,7 @@ TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
+ # =========================
+ # Targets
+ # =========================
+-.PHONY: all dis clean
++.PHONY: all dis profiler clean
+ 
+ all: $(ELF_DIR)/unpack.elf \
+ 	 $(ELF_DIR)/math.elf \
+@@ -73,6 +75,9 @@ dis: $(DIS_DIR)/unpack.S \
+ 	 $(DIS_DIR)/pack.S \
+ 	 $(SHARED_DIR)/brisc.S
+ 
++profiler: $(PROFILER_DIR)/unpack.meta.bin \
++	  $(PROFILER_DIR)/math.meta.bin \
++	  $(PROFILER_DIR)/pack.meta.bin
+ # =========================
+ # Build Rules
+ # =========================
+@@ -82,6 +87,9 @@ $(SHARED_DIR)/%.S: $(SHARED_DIR)/%.elf | $(SHARED_DIR)
+ 	$(OBJDUMP) -xsD $< > $@
+ 	$(OBJDUMP) -t $< | sort >> $@
+ 
++$(PROFILER_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(PROFILER_DIR)
++	$(OBJCOPY) -O binary -j .profiler_meta $< $@
++
+ $(DIS_DIR)/%.S: $(ELF_DIR)/%.elf | $(DIS_DIR)
+ 	$(OBJDUMP) -xsD $< > $@
+ 	$(OBJDUMP) -t $< | sort >> $@
+@@ -107,7 +115,7 @@ $(SHARED_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S | $(SHARED_DIR)
+ 	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -MMD -MP -MF $(@:.o=.d) -c -o $@ $<
+ 
+ # required folder structure
+-$(DIS_DIR) $(ELF_DIR) $(OBJ_DIR) $(SHARED_DIR):
++$(PROFILER_DIR) $(DIS_DIR) $(ELF_DIR) $(OBJ_DIR) $(SHARED_DIR):
+ 	mkdir -p $@
+ 
+ # =========================
+
+File: tests/helpers/include/profiler.h
+@@ -11,8 +11,6 @@
+ #include "build.h"
+ #include "ckernel.h"
+ 
+-#define DO_PRAGMA(x) _Pragma(#x)
+-
+ // Logic to convert zone name -> 16bit numeric id
+ #define Stringize(L)       #L
+ #define ExpandStringize(L) Stringize(L)
+@@ -36,6 +34,12 @@ constexpr std::uint16_t hashString16(const char (&s)[N])
+ 
+ #define MARKER_ID(marker) hashString16(MARKER_FULL(marker))
+ 
++/* Push a string containing the full marker into the .profiler_meta section.
++ * This section will be processed by the host code to construct a mapping
++ * MARKER_ID -> { filename, line, marker } for parsing the profiler buffer.
++ */
++#define PROFILER_META(full_marker) __attribute__((section(".profiler_meta"), used)) static const char _profiler_meta_##__COUNTER__[] = full_marker;
++
+ #if defined(LLK_PROFILER)
+ 
+ namespace llk_profiler
+@@ -192,16 +196,16 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
+ 
+ } // namespace llk_profiler
+ 
+-#define ZONE_SCOPED(marker)                 \
+-    DO_PRAGMA(message(MARKER_FULL(marker))) \
++#define ZONE_SCOPED(marker)            \
++    PROFILER_META(MARKER_FULL(marker)) \
+     const auto _zone_scoped_ = llk_profiler::zone_scoped<MARKER_ID(marker)>();
+ 
+-#define TIMESTAMP(marker)                   \
+-    DO_PRAGMA(message(MARKER_FULL(marker))) \
++#define TIMESTAMP(marker)              \
++    PROFILER_META(MARKER_FULL(marker)) \
+     llk_profiler::write_timestamp(MARKER_ID(marker));
+ 
+-#define TIMESTAMP_DATA(marker, data)        \
+-    DO_PRAGMA(message(MARKER_FULL(marker))) \
++#define TIMESTAMP_DATA(marker, data)   \
++    PROFILER_META(MARKER_FULL(marker)) \
+     llk_profiler::write_timestamp(MARKER_ID(marker), data);
+ 
+ #else
+
+File: tests/helpers/ld/sections.ld
+@@ -138,6 +138,7 @@ SECTIONS
+    . += __firmware_stack_size;
+     __stack_top = .;
+   } > REGION_STACK
++  .profiler_meta 0 : { *(.profiler_meta) }
+   .stab 0 : { *(.stab) }
+   .stabstr 0 : { *(.stabstr) }
+   .stab.excl 0 : { *(.stab.excl) }
+
+File: tests/python_tests/helpers/perf.py
+@@ -127,14 +127,14 @@ def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
+         get_timing = RUN_CONFIGURATIONS[type]
+ 
+         test_config["perf_run_type"] = type
+-        profiler_meta = build_with_profiler(test_config)
++        build_with_profiler(test_config)
+ 
+         runs = []
+         for _ in range(run_count):
+             run_elf_files(test_config["testname"])
+             wait_for_tensix_operations_finished()
+ 
+-            profiler_data = Profiler.get_data(profiler_meta)
++            profiler_data = Profiler.get_data(test_config["testname"])
+             perf_data = process_profiler_data(profiler_data)
+ 
+             runs.append(get_timing(perf_data))
+
+File: tests/python_tests/helpers/profiler.py
+@@ -3,6 +3,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ import csv
++import os
+ import re
+ from dataclasses import dataclass
+ from enum import Enum
+@@ -15,19 +16,6 @@
+ from helpers.utils import run_shell_command
+ 
+ 
+-def _hash_profiler_message(s: str) -> int:
+-    hash32 = 2166136261
+-    for c in s.encode("ascii"):
+-        hash32 ^= c
+-        hash32 = (hash32 * 16777619) & 0xFFFFFFFF  # simulate 32-bit unsigned overflow
+-    return (hash32 ^ (hash32 >> 16)) & 0xFFFF  # fold to 16 bits
+-
+-
+-_PROFILER_PATTERN = re.compile(
+-    r"'#pragma message: (?P<full_marker>LLK_PROFILER:(?P<file>[^:]+):(?P<line>\d+):(?P<marker>[^']+))'",
+-)
+-
+-
+ @dataclass
+ class ProfilerFullMarker:
+     marker: str
+@@ -36,39 +24,9 @@ class ProfilerFullMarker:
+     id: int
+ 
+ 
+-def _parse_profiler_message(line: str):
+-    # ex. '#pragma message: LLK_PROFILER:sources/example.cpp:1337:MARKER'
+-    expr = _PROFILER_PATTERN.search(line)
+-    if expr is None:
+-        return None
+-
+-    groups = expr.groupdict()
+-    return ProfilerFullMarker(
+-        marker=groups["marker"],
+-        file=groups["file"],
+-        line=int(groups["line"]),
+-        id=_hash_profiler_message(groups["full_marker"]),
+-    )
+-
+-
+-def _assert_no_collision(messages, message):
+-    """Inserts message if no collisions, raises otherwise"""
+-    existing = messages.get(message.id)
+-    if existing is not None and existing != message:
+-        raise AssertionError(f'Hash collision between "{message}" and "{existing}"')
+-
+-
+ def build_with_profiler(test_config):
+     make_cmd = generate_make_command(test_config, ProfilerBuild.Yes)
+-    result = run_shell_command(f"cd .. && {make_cmd}")
+-
+-    lines = result.stderr.splitlines()
+-    messages = {}
+-    for line in lines:
+-        if message := _parse_profiler_message(line):
+-            _assert_no_collision(messages, message)
+-            messages[message.id] = message
+-    return messages
++    run_shell_command(f"cd .. && {make_cmd}")
+ 
+ 
+ @dataclass
+@@ -95,6 +53,10 @@ class ProfilerData:
+ 
+ class Profiler:
+ 
++    META_PATTERN = re.compile(
++        r"(?P<full_marker>LLK_PROFILER:(?P<file>[^:]+):(?P<line>\d+):(?P<marker>[^']+))",
++    )
++
+     BUFFER_LENGTH = 0x400
+     THREAD_BUFFER = [
+         0x16B000,  # Unpack
+@@ -185,8 +147,67 @@ def dump_csv(profiler_data, filename: str = "profiler_data.csv") -> None:
+             writer.writerows(rows)
+ 
+     @staticmethod
+-    def get_data(profiler_meta) -> ProfilerData:
+-        return Profiler._parse_buffers(Profiler._load_buffers(), profiler_meta)
++    def _hash_meta(s: str) -> int:
++        hash32 = 2166136261
++        for c in s.encode("ascii"):
++            hash32 ^= c
++            hash32 = (
++                hash32 * 16777619
++            ) & 0xFFFFFFFF  # simulate 32-bit unsigned overflow
++        return (hash32 ^ (hash32 >> 16)) & 0xFFFF  # fold to 16 bits
++
++    @staticmethod
++    def _assert_no_collision(messages, message):
++        existing = messages.get(message.id)
++        if existing is not None and existing != message:
++            raise AssertionError(f'Hash collision between "{message}" and "{existing}"')
++
++    @staticmethod
++    def _parse_meta(meta: str):
++        expr = Profiler.META_PATTERN.search(meta)
++        if expr is None:
++            return None
++
++        groups = expr.groupdict()
++        return ProfilerFullMarker(
++            marker=groups["marker"],
++            file=groups["file"],
++            line=int(groups["line"]),
++            id=Profiler._hash_meta(groups["full_marker"]),
++        )
++
++    @staticmethod
++    def _get_meta(testname: str) -> dict[id, ProfilerFullMarker]:
++        root = os.environ.get("LLK_HOME")
++        if not root:
++            raise AssertionError("Environment variable LLK_HOME is not set")
++
++        profiler = Path(root) / "tests" / "build" / "tests" / testname / "profiler"
++
++        files = [
++            profiler / "unpack.meta.bin",
++            profiler / "math.meta.bin",
++            profiler / "pack.meta.bin",
++        ]
++
++        meta = {}
++        for file in files:
++            if not file.exists():
++                continue
++            with open(file, "rb") as f:
++                binary = f.read()
++                strings = [s.decode("ascii") for s in binary.split(b"\0")]
++                for s in strings:
++                    marker = Profiler._parse_meta(s)
++                    if marker:
++                        Profiler._assert_no_collision(meta, marker)
++                        meta[marker.id] = marker
++        return meta
++
++    @staticmethod
++    def get_data(testname: str) -> ProfilerData:
++        meta = Profiler._get_meta(testname)
++        return Profiler._parse_buffers(Profiler._load_buffers(), meta)
+ 
+     @staticmethod
+     def _load_buffers(core_loc="0,0", word_count=BUFFER_LENGTH):
+
+File: tests/python_tests/helpers/test_config.py
+@@ -180,6 +180,9 @@ def generate_make_command(
+         write_build_header(test_config, profiler_build=profiler_build)
+ 
+     # Simplified make command - only basic build parameters
+-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} "
++    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} all "
++
++    if profiler_build == ProfilerBuild.Yes:
++        make_cmd += "profiler "
+ 
+     return make_cmd
+
+File: tests/python_tests/test_profiler_overhead.py
+@@ -27,13 +27,12 @@ def test_profiler_overhead():
+         "testname": "profiler_overhead_test",
+     }
+ 
+-    profiler_meta = build_with_profiler(test_config)
+-    assert profiler_meta is not None, "Profiler metadata should not be None"
++    build_with_profiler(test_config)
+ 
+     run_elf_files("profiler_overhead_test")
+     wait_for_tensix_operations_finished()
+ 
+-    runtime = Profiler.get_data(profiler_meta)
++    runtime = Profiler.get_data(test_config["testname"])
+ 
+     # filter out all zones that dont have marker "OVERHEAD"
+     overhead_zones = [x for x in runtime.unpack if x.full_marker.marker == "OVERHEAD"]
+
+File: tests/python_tests/test_profiler_primitives.py
+@@ -32,13 +32,12 @@ def test_profiler_primitives():
+         "testname": "profiler_primitives_test",
+     }
+ 
+-    profiler_meta = build_with_profiler(test_config)
+-    assert profiler_meta is not None, "Profiler metadata should not be None"
++    build_with_profiler(test_config)
+ 
+     run_elf_files("profiler_primitives_test")
+     wait_for_tensix_operations_finished()
+ 
+-    runtime = Profiler.get_data(profiler_meta)
++    runtime = Profiler.get_data(test_config["testname"])
+ 
+     # ZONE_SCOPED
+     zone = runtime.unpack[0]
+

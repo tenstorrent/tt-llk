@@ -1,0 +1,1022 @@
+PR #520: Add ttnn.where LLK
+URL: https://github.com/tenstorrent/tt-llk/pull/520
+
+File: tests/firmware/riscv/common/llk_sfpu_types.h
+@@ -97,4 +97,5 @@ enum class SfpuType
+     prelu,
+     reshuffle_rows,
+     hardsigmoid,
++    where,
+ };
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -26,6 +26,8 @@ class MathOpType(Enum):
+ 
+     SFPU_UNARY = auto()
+     SFPU_BINARY = auto()
++    SFPU_TERNARY = auto()
++
+     FPU_BINARY = auto()
+     REDUCE = auto()
+ 
+@@ -84,6 +86,13 @@ class MathOperation(Enum):
+     SfpuElwsub = OpSpec("SUB", MathOpType.SFPU_BINARY)
+     SfpuXlogy = OpSpec("XLOGY", MathOpType.SFPU_BINARY)
+ 
++    # =============================================================================
++    # SFPU TERNARY OPERATIONS
++    # =============================================================================
++    SfpuWhere = OpSpec("WHERE", MathOpType.SFPU_TERNARY)
++    # Alias maintained for backward compatibility with older test cases
++    TTNNWhere = SfpuWhere
++
+     # =============================================================================
+     # REDUCE OPERATIONS
+     # =============================================================================
+
+File: tests/python_tests/test_ttnn_where.py
+@@ -0,0 +1,339 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++
++import pytest
++import torch
++from ttexalens.tt_exalens_lib import (
++    write_to_device,
++)
++
++from helpers.device import (
++    collect_results,
++    wait_for_tensix_operations_finished,
++)
++from helpers.format_arg_mapping import (
++    DestAccumulation,
++    MathOperation,
++    format_dict,
++)
++from helpers.format_config import DataFormat
++from helpers.pack import pack_bfp8_b, pack_bfp16, pack_fp32
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.test_config import run_test
++
++
++# Helper function
++def extend_tensor(condition, length=1024, dtype=torch.float32):
++    condition_extended = torch.zeros(length, dtype=dtype)
++    condition_extended[: condition.shape[0]] = condition
++    return condition_extended.flatten()
++
++
++def generate_golden(operand1, true_value, false_value):
++    # operand1, true_value, and false_value are 1D tensors of floats
++    mask = operand1.view(32, 32) != 0
++    return torch.where(
++        mask, true_value.view(32, 32), false_value.view(32, 32)
++    ).flatten()
++
++
++# Helper check function
++def torch_equal_nan(a, b):
++    return torch.all((a == b) | (torch.isnan(a) & torch.isnan(b)))
++
++
++# SUPPORTED FORMATS FOR TEST - allow sweeping through multiple formats
++supported_formats = [
++    DataFormat.Float16_b,
++    DataFormat.Float32,
++]
++
++
++def get_dtype_for_format(data_format):
++    """Get appropriate torch dtype for the given DataFormat"""
++    return format_dict[data_format]
++
++
++def get_dest_acc_for_format(data_format):
++    """Get appropriate dest_acc options for the given DataFormat"""
++    if data_format == DataFormat.Float32:
++        return [DestAccumulation.Yes]  # Float32 requires dest_acc=Yes
++    elif data_format == DataFormat.Float16_b:
++        return [DestAccumulation.No]  # Float16_b only allows dest_acc=No
++    else:
++        return [DestAccumulation.No, DestAccumulation.Yes]  # Other formats can use both
++
++
++def create_test_tensors(data_format):
++    """Create test tensors with appropriate dtype for the given format"""
++    dtype = get_dtype_for_format(data_format)
++
++    condition = torch.tensor([1, 0, -2, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
++    condition_all_ones = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype)
++    condition_all_zeros = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dtype)
++
++    # true and false value tensors
++    true_values = torch.tensor(
++        [
++            1.0,
++            float("nan"),
++            3.0,
++            float("inf"),
++            -float("inf"),
++            -1.0,
++            0.0,
++            -0.0,
++            42.49,
++            -92.42,
++        ],
++        dtype=dtype,
++    )
++    false_values = torch.tensor(
++        [
++            -1.0,
++            999.9,
++            float("nan"),
++            -float("inf"),
++            float("inf"),
++            1.0,
++            -0.0,
++            0.0,
++            -3.14,
++            7.84,
++        ],
++        dtype=dtype,
++    )
++
++    return condition, condition_all_ones, condition_all_zeros, true_values, false_values
++
++
++# Generate parameter combinations that dynamically include appropriate dest_acc for each format
++# Use same=True to ensure input and output formats are identical (no mixing)
++test_formats = input_output_formats(supported_formats, same=True)
++all_params = []
++for fmt in test_formats:
++    dest_acc_options = get_dest_acc_for_format(fmt.input_format)
++    # Use generate_params to create properly formatted parameter tuples
++    params = generate_params(
++        ["ttnn_where_test"],
++        [fmt],
++        dest_acc=dest_acc_options,
++        mathop=[MathOperation.TTNNWhere],
++    )
++    all_params.extend(params)
++
++param_ids = generate_param_ids(all_params)
++
++
++@pytest.mark.parametrize(
++    "testname, formats, dest_acc, mathop",
++    clean_params(all_params),
++    ids=param_ids,
++)
++@pytest.mark.parametrize("test_case", ["mixed", "all_ones", "all_zeros"])
++def test_ttnn_where(testname, formats, dest_acc, mathop, test_case):
++
++    # Generate tensors dynamically based on current input format
++    condition, condition_all_ones, condition_all_zeros, true_values, false_values = (
++        create_test_tensors(formats.input_format)
++    )
++    dtype = get_dtype_for_format(formats.input_format)
++
++    # Select test case
++    if test_case == "mixed":
++        test_condition = condition
++    elif test_case == "all_ones":
++        test_condition = condition_all_ones
++    else:  # all_zeros
++        test_condition = condition_all_zeros
++
++    # Create test tensors with appropriate dtype for current format
++    src_A = extend_tensor(test_condition.bool(), length=1024, dtype=dtype)
++    src_B = extend_tensor(true_values, length=1024, dtype=dtype)
++    src_C = extend_tensor(false_values, length=1024, dtype=dtype)
++
++    # Skipping test combinations that are not supported
++    if (
++        formats.output_format == DataFormat.Float32
++        or formats.input_format == DataFormat.Float32
++    ) and dest_acc == DestAccumulation.No:
++        pytest.skip(
++            "Skipping test for Float32 input format with NO dest_acc, as it is not supported."
++        )
++
++    core_loc = "0,0"
++    buffer_A_address = 0x1A000
++    buffer_B_address = 0x1B000
++    buffer_C_address = 0x1C000
++
++    if formats.input_format == DataFormat.Float32:
++        pack_function_A = pack_fp32
++        pack_function_B = pack_fp32
++        pack_function_C = pack_fp32
++    elif formats.input_format == DataFormat.Float16_b:
++        pack_function_A = pack_bfp16
++        pack_function_B = pack_bfp16
++        pack_function_C = pack_bfp16
++    elif formats.input_format == DataFormat.Bfp8_b:
++        pack_function_A = pack_bfp8_b
++        pack_function_B = pack_bfp8_b
++        pack_function_C = pack_bfp8_b
++    else:
++        raise ValueError(f"Unsupported input format: {formats.input_format}")
++
++    golden = generate_golden(src_A, src_B, src_C)
++    write_to_device(core_loc, buffer_A_address, pack_function_A(src_A))
++    write_to_device(core_loc, buffer_B_address, pack_function_B(src_B))
++    write_to_device(core_loc, buffer_C_address, pack_function_C(src_C))
++
++    unpack_to_dest = formats.input_format.is_32_bit()
++
++    test_config = {
++        "formats": formats,
++        "testname": testname,
++        "dest_acc": dest_acc,
++        "mathop": mathop,
++        "unpack_to_dest": unpack_to_dest,
++    }
++
++    run_test(test_config)
++
++    wait_for_tensix_operations_finished()
++    res_from_L1 = collect_results(formats, tile_count=1, address=0x1D000)
++    res_from_L1 = res_from_L1[:1024]
++    assert len(res_from_L1) == len(golden)
++
++    golden_tensor = torch.tensor(
++        golden,
++        dtype=(
++            format_dict[formats.output_format]
++            if formats.output_format
++            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
++            else torch.bfloat16
++        ),
++    )
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[formats.output_format]
++            if formats.output_format
++            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
++            else torch.bfloat16
++        ),
++    )
++
++    assert torch_equal_nan(golden_tensor, res_tensor)
++
++
++# MCW test with dynamic format sweeping like main test
++# Use same input/output format - no mixing
++test_formats_mcw = input_output_formats(supported_formats, same=True)
++all_params_mcw = []
++for fmt in test_formats_mcw:
++    dest_acc_options = get_dest_acc_for_format(fmt.input_format)
++    # Use generate_params to create properly formatted parameter tuples
++    params = generate_params(
++        ["ttnn_where_test"],
++        [fmt],
++        dest_acc=dest_acc_options,
++        mathop=[MathOperation.TTNNWhere],
++    )
++    all_params_mcw.extend(params)
++
++param_ids_mcw = generate_param_ids(all_params_mcw)
++
++
++@pytest.mark.parametrize(
++    "testname, formats, dest_acc, mathop",
++    clean_params(all_params_mcw),
++    ids=param_ids_mcw,
++)
++@pytest.mark.parametrize("h", [32])
++@pytest.mark.parametrize("w", [32])
++def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
++    # Generate dtype dynamically based on current input format
++    dtype = get_dtype_for_format(formats.input_format)
++
++    C = torch.arange(h * w, dtype=dtype)
++    C = (C % 2).to(dtype)  # Alternates 0, 1, 0, 1, ... with correct dtype
++    C = C.reshape(1, 1, h, w)
++    C = C.expand(1, 1, h, w)  # Broadcast to (n, c, h, w)
++    T = torch.ones(1, 1, h, w, dtype=dtype) * 2
++    F = torch.ones(1, 1, h, w, dtype=dtype) * 11
++    golden = torch.where(C != 0, T, F)
++
++    C = C.flatten().to(format_dict[formats.input_format])
++    T = T.flatten().to(format_dict[formats.input_format])
++    F = F.flatten().to(format_dict[formats.input_format])
++
++    core_loc = "0,0"
++    buffer_A_address = 0x1A000
++    buffer_B_address = 0x1B000
++    buffer_C_address = 0x1C000
++
++    if formats.input_format == DataFormat.Float32:
++        pack_function_A = pack_fp32
++        pack_function_B = pack_fp32
++        pack_function_C = pack_fp32
++    elif formats.input_format == DataFormat.Float16_b:
++        pack_function_A = pack_bfp16
++        pack_function_B = pack_bfp16
++        pack_function_C = pack_bfp16
++    elif formats.input_format == DataFormat.Bfp8_b:
++        pack_function_A = pack_bfp8_b
++        pack_function_B = pack_bfp8_b
++        pack_function_C = pack_bfp8_b
++    else:
++        raise ValueError(f"Unsupported input format: {formats.input_format}")
++
++    golden = generate_golden(C, T, F)
++    write_to_device(core_loc, buffer_A_address, pack_function_A(C))
++    write_to_device(core_loc, buffer_B_address, pack_function_B(T))
++    write_to_device(core_loc, buffer_C_address, pack_function_C(F))
++
++    unpack_to_dest = formats.input_format.is_32_bit()
++
++    test_config = {
++        "formats": formats,
++        "testname": testname,
++        "dest_acc": dest_acc,
++        "unpack_to_dest": unpack_to_dest,
++        "mathop": mathop,
++    }
++
++    run_test(test_config)
++
++    wait_for_tensix_operations_finished()
++    res_from_L1 = collect_results(formats, tile_count=1, address=0x1D000)
++    res_from_L1 = res_from_L1[:1024]
++
++    golden_tensor = torch.tensor(
++        golden,
++        dtype=(
++            format_dict[formats.output_format]
++            if formats.output_format
++            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
++            else torch.bfloat16
++        ),
++    )
++
++    golden_tensor = golden_tensor.flatten()[:1024]  # Ensure it matches the result size
++
++    res_tensor = torch.tensor(
++        res_from_L1,
++        dtype=(
++            format_dict[formats.output_format]
++            if formats.output_format
++            in [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Float32]
++            else torch.bfloat16
++        ),
++    )
++
++    assert len(res_tensor) == len(golden_tensor)
++    assert torch_equal_nan(golden_tensor, res_tensor)
+
+File: tests/sources/ttnn_where_test.cpp
+@@ -0,0 +1,165 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#include <algorithm>
++#include <cstdint>
++
++#include "ckernel.h"
++#include "ckernel_debug.h"
++#include "llk_defs.h"
++
++// Globals
++uint32_t unp_cfg_context          = 0;
++uint32_t pack_sync_tile_dst_ptr   = 0;
++uint32_t math_sync_tile_dst_index = 0;
++
++constexpr bool disable_src_zero_flag = true;
++
++#ifdef LLK_TRISC_UNPACK
++
++#include "llk_unpack_A.h"
++#include "llk_unpack_common.h"
++#include "params.h"
++
++void run_kernel()
++{
++    using DataFormatUT = std::underlying_type_t<DataFormat>;
++    auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };
++
++    uint8_t UNPACK_FMT;
++    if (UNPACK_A_IN == to_ufmt(DataFormat::Float32))
++    {
++        UNPACK_FMT = to_ufmt(DataFormat::Float32);
++    }
++    else if (UNPACK_A_IN == to_ufmt(DataFormat::Bfp8_b))
++    {
++        UNPACK_FMT = to_ufmt(DataFormat::Bfp8_b);
++    }
++    else
++    {
++        UNPACK_FMT = to_ufmt(DataFormat::UInt16);
++    }
++
++    volatile uint32_t* const buffer_condition = reinterpret_cast<volatile uint32_t*>(0x1a000);
++    volatile uint32_t* const buffer_true      = reinterpret_cast<volatile uint32_t*>(0x1b000);
++    volatile uint32_t* const buffer_false     = reinterpret_cast<volatile uint32_t*>(0x1c000);
++
++    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, disable_src_zero_flag>(UNPACK_FMT, UNPACK_FMT, FACE_R_DIM, 0, 4);
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_FMT, UNPACK_FMT);
++    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_condition), 0, UNPACK_FMT, UNPACK_FMT);
++    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_true), 0, UNPACK_FMT, UNPACK_FMT);
++    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_false), 0, UNPACK_FMT, UNPACK_FMT);
++}
++
++#endif
++
++#ifdef LLK_TRISC_MATH
++
++#include "ckernel_sfpu.h"
++#include "ckernel_sfpu_where.h"
++#include "llk_math_common.h"
++#include "llk_math_eltwise_ternary_sfpu.h"
++#include "llk_math_eltwise_unary_datacopy.h"
++#include "llk_math_eltwise_unary_sfpu.h"
++#include "params.h"
++
++using namespace ckernel;
++
++// using namespace sfpu;
++
++void run_kernel()
++{
++    using DataFormatUT = std::underlying_type_t<DataFormat>;
++    auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };
++
++    uint8_t MATH_FMT;
++    if (UNPACK_A_IN == to_ufmt(DataFormat::Float32))
++    {
++        MATH_FMT = to_ufmt(DataFormat::Float32);
++    }
++    else if (UNPACK_A_IN == to_ufmt(DataFormat::Bfp8_b))
++    {
++        MATH_FMT = to_ufmt(DataFormat::Bfp8_b);
++    }
++    else
++    {
++        MATH_FMT = to_ufmt(DataFormat::UInt16);
++    }
++
++    // copy srca to dest
++#ifdef ARCH_BLACKHOLE
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, MATH_FMT);
++#else
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, MATH_FMT);
++#endif
++    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++    _llk_math_hw_configure_<false, false>(MATH_FMT, MATH_FMT);
++    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
++    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
++        0, MATH_FMT, MATH_FMT); // buffer condition
++    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
++        1, MATH_FMT, MATH_FMT); // buffer true
++    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
++        2, MATH_FMT, MATH_FMT); // buffer false
++
++    // calculation of sfpu operation on dest
++    _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
++    _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
++
++    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>(UNPACK_A_IN)>();
++
++    _llk_math_eltwise_ternary_sfpu_done_();
++
++    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++}
++
++#endif
++
++#ifdef LLK_TRISC_PACK
++
++#include "llk_pack.h"
++#include "llk_pack_common.h"
++#include "params.h"
++
++void run_kernel()
++{
++    using DataFormatUT = std::underlying_type_t<DataFormat>;
++    auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };
++
++    std::uint8_t PACK_FMT;
++    if (UNPACK_A_IN == to_ufmt(DataFormat::Float32))
++    {
++        PACK_FMT = to_ufmt(DataFormat::Float32);
++    }
++    else if (UNPACK_A_IN == to_ufmt(DataFormat::Bfp8_b))
++    {
++        PACK_FMT = to_ufmt(DataFormat::Bfp8_b);
++    }
++    else
++    {
++        PACK_FMT = to_ufmt(DataFormat::UInt16);
++    }
++
++    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1d000);
++
++#ifdef ARCH_BLACKHOLE
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_FMT, PACK_FMT, 16 * 16 * 4);
++#else
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_FMT, PACK_FMT, 16 * 16 * 4);
++#endif
++
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_FMT);
++
++#ifdef ARCH_BLACKHOLE
++    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
++#else
++    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
++#endif
++
++    _llk_packer_wait_for_math_done_();
++    _llk_pack_<DstSync::SyncHalf, false, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Dest));
++    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++}
++
++#endif
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_where.h
+@@ -0,0 +1,99 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "llk_defs.h"
++#include "sfpi.h"
++
++namespace ckernel::sfpu
++{
++
++/*
++
++Expects following input in Dst register:
++Index 0 ( Tile 0 ) -> condition tensor
++Index 32 ( Tile 1 ) -> true tensor
++Index 64 ( Tile 2 ) -> false tensor
++
++*/
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_where_fp16_b_()
++{
++    constexpr uint dst_tile_size_rows = 64;
++
++    sfpi::vFloat cond = sfpi::dst_reg[0];
++
++    for (int i = 0; i < ITERATIONS; i++)
++    {
++        cond = sfpi::dst_reg[0];
++
++        v_if (cond == 0.0f)
++        {
++            // output_tensor = false_tensor;
++            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, 2 * dst_tile_size_rows);
++        }
++        v_else
++        {
++            // output_tensor = true_tensor;
++            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, dst_tile_size_rows);
++            v_endif;
++        }
++        // sfpi::dst_reg[0] = output_tensor;
++        TTI_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, 0);
++
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_where_fp32_()
++{
++    constexpr uint dst_tile_size = 32;
++
++    sfpi::vFloat output_tensor = 0;
++    sfpi::vFloat true_tensor   = 0;
++    sfpi::vFloat false_tensor  = 0;
++    sfpi::vFloat cond          = sfpi::dst_reg[0];
++
++    for (int i = 0; i < ITERATIONS; i++)
++    {
++        cond         = sfpi::dst_reg[0];
++        true_tensor  = sfpi::dst_reg[dst_tile_size];
++        false_tensor = sfpi::dst_reg[dst_tile_size * 2];
++
++        v_if (cond != 0.0f)
++        {
++            output_tensor = true_tensor;
++        }
++        v_else
++        {
++            output_tensor = false_tensor;
++        }
++        v_endif;
++
++        sfpi::dst_reg[0] = output_tensor;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, DataFormat data_format>
++inline void _calculate_where_()
++{
++    // Add a compile-time check to ensure only supported formats are used.
++    static_assert(
++        data_format == DataFormat::Float32 || data_format == DataFormat::Float16_b,
++        "Unsupported data format for _calculate_where_(). Only Float32 and Float16_b are allowed.");
++    if constexpr (data_format == DataFormat::Float32)
++    {
++        _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
++    }
++    else
++    {
++        _calculate_where_fp16_b_<APPROXIMATION_MODE, 32>();
++    }
++}
++
++} // namespace ckernel::sfpu
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_ternary_sfpu.h
+@@ -0,0 +1,64 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++#include <type_traits>
++
++#include "ckernel_globals.h"
++#include "ckernel_include.h"
++#include "ckernel_ops.h"
++#include "ckernel_sfpu.h"
++#include "ckernel_template.h"
++#include "cmath_common.h"
++#include "llk_math_common.h"
++#include "llk_sfpu_types.h"
++
++using namespace ckernel;
++
++// local function declarations
++template <SfpuType sfpu_op>
++inline void eltwise_ternary_sfpu_configure_addrmod()
++{
++    addr_mod_t {
++        .srca = {.incr = 0},
++        .srcb = {.incr = 0},
++        .dest = {.incr = 0},
++    }
++        .set(ADDR_MOD_7);
++}
++
++inline void eltwise_ternary_sfpu_configure_mop();
++
++template <DstSync Dst>
++inline void _llk_math_eltwise_ternary_sfpu_start_(const uint dst_index)
++{
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
++    // math::set_addr_mod_base();
++    TTI_SETC16(2, 1); // set addr mod base (use addr mods 4..7) ADDR_MOD_SET_Base_ADDR32 = 2 for wormhole
++
++    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
++}
++
++inline void _llk_math_eltwise_ternary_sfpu_done_()
++{
++    math::clear_dst_reg_addr();
++
++    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::WAIT_SFPU);
++    // math::clear_addr_mod_base();
++    TTI_SETC16(2, 0); // clear addr mod base (use addr mods 0..3)
++}
++
++inline void _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_()
++{
++    math::inc_dst_addr<8>();
++    math::inc_dst_addr<8>();
++}
++
++template <SfpuType sfpu_op>
++inline void _llk_math_eltwise_ternary_sfpu_init_()
++{
++    sfpu::_init_sfpu_config_reg();
++    eltwise_ternary_sfpu_configure_addrmod<sfpu_op>();
++    math::reset_counters(p_setrwc::SET_ABD_F);
++}
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_ternary_sfpu_params.h
+@@ -0,0 +1,62 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++#include "ckernel_sfpu_where.h"
++#include "llk_math_eltwise_ternary_sfpu.h"
++#include "llk_sfpu_types.h"
++
++template <bool APPROXIMATE, class F, class... ARGS>
++inline void _llk_math_eltwise_ternary_sfpu_params_(
++    F&& sfpu_func, uint dst_index0, uint dst_index1, uint dst_index2, int vector_mode = (int)VectorMode::RC, ARGS&&... args)
++{
++    // Compute minimum destination index
++    uint dst_index = std::min(std::min(dst_index0, dst_index1), dst_index2);
++
++    _llk_math_eltwise_ternary_sfpu_start_<DST_SYNC_MODE>(dst_index); // Reuse same sync primitive
++
++    if (vector_mode == (int)VectorMode::R)
++    {
++        // Row vector - Face0 + Face1
++        for (int face = 0; face < 2; face++)
++        {
++            std::forward<F>(sfpu_func)(std::forward<ARGS&&>(args)...);                // Need to replace the above line with this
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // repeat 2x
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++        }
++        // Skip next 2 faces
++        for (int i = 0; i < 4; ++i)
++        {
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++        }
++    }
++    else if (vector_mode == (int)VectorMode::C)
++    {
++        // Column vector - Face0 + Face2
++        for (int face = 0; face < 2; face++)
++        {
++            std::forward<F>(sfpu_func)(std::forward<ARGS&&>(args)...); // Need to replace the above line with this
++            for (int i = 0; i < 4; ++i)
++            {
++                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++            }
++        }
++    }
++    else if (vector_mode == (int)VectorMode::RC)
++    {
++        // All 4 faces
++        for (int face = 0; face < 4; face++)
++        {
++            std::forward<F>(sfpu_func)(std::forward<ARGS&&>(args)...); // Need to replace the above line with this
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++        }
++    }
++    else
++    {
++        // Default: single face pass-through
++        std::forward<F>(sfpu_func)(std::forward<ARGS&&>(args)...); // Need to replace the above line with this
++    }
++    _llk_math_eltwise_ternary_sfpu_done_(); // Finalize
++}
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h
+@@ -52,6 +52,7 @@
+ #include "sfpu/ckernel_sfpu_topk.h"
+ #include "sfpu/ckernel_sfpu_trigonometry.h"
+ #include "sfpu/ckernel_sfpu_typecast.h"
++#include "sfpu/ckernel_sfpu_where.h"
+ 
+ // namespace ckernel
+ // {
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_where.h
+@@ -0,0 +1,99 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "llk_defs.h"
++#include "sfpi.h"
++
++namespace ckernel::sfpu
++{
++
++/*
++
++Expects following input in Dst register:
++Index 0 ( Tile 0 ) -> condition tensor
++Index 32 ( Tile 1 ) -> true tensor
++Index 64 ( Tile 2 ) -> false tensor
++
++*/
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_where_fp16_b_()
++{
++    constexpr uint dst_tile_size_rows = 64;
++
++    sfpi::vFloat cond = sfpi::dst_reg[0];
++
++    for (int i = 0; i < ITERATIONS; i++)
++    {
++        cond = sfpi::dst_reg[0];
++
++        v_if (cond == 0.0f)
++        {
++            // output_tensor = false_tensor;
++            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, 2 * dst_tile_size_rows);
++        }
++        v_else
++        {
++            // output_tensor = true_tensor;
++            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, dst_tile_size_rows);
++            v_endif;
++        }
++        // sfpi::dst_reg[0] = output_tensor;
++        TTI_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, 0);
++
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_where_fp32_()
++{
++    constexpr uint dst_tile_size = 32;
++
++    sfpi::vFloat output_tensor = 0;
++    sfpi::vFloat true_tensor   = 0;
++    sfpi::vFloat false_tensor  = 0;
++    sfpi::vFloat cond          = sfpi::dst_reg[0];
++
++    for (int i = 0; i < ITERATIONS; i++)
++    {
++        cond         = sfpi::dst_reg[0];
++        true_tensor  = sfpi::dst_reg[dst_tile_size];
++        false_tensor = sfpi::dst_reg[dst_tile_size * 2];
++
++        v_if (cond != 0.0f)
++        {
++            output_tensor = true_tensor;
++        }
++        v_else
++        {
++            output_tensor = false_tensor;
++        }
++        v_endif;
++
++        sfpi::dst_reg[0] = output_tensor;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, DataFormat data_format>
++inline void _calculate_where_()
++{
++    // Add a compile-time check to ensure only supported formats are used.
++    static_assert(
++        data_format == DataFormat::Float32 || data_format == DataFormat::Float16_b,
++        "Unsupported data format for _calculate_where_(). Only Float32 and Float16_b are allowed.");
++    if constexpr (data_format == DataFormat::Float32)
++    {
++        _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
++    }
++    else
++    {
++        _calculate_where_fp16_b_<APPROXIMATION_MODE, 32>();
++    }
++}
++
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_ternary_sfpu.h
+@@ -0,0 +1,62 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++#include <type_traits>
++
++#include "ckernel_globals.h"
++#include "ckernel_include.h"
++#include "ckernel_ops.h"
++#include "ckernel_sfpu.h"
++#include "ckernel_template.h"
++#include "cmath_common.h"
++#include "llk_math_common.h"
++#include "llk_sfpu_types.h"
++
++using namespace ckernel;
++
++// local function declarations
++template <SfpuType sfpu_op>
++inline void eltwise_ternary_sfpu_configure_addrmod()
++{
++    addr_mod_t {
++        .srca = {.incr = 0},
++        .srcb = {.incr = 0},
++        .dest = {.incr = 0},
++    }
++        .set(ADDR_MOD_7);
++}
++
++inline void eltwise_ternary_sfpu_configure_mop();
++
++template <DstSync Dst>
++inline void _llk_math_eltwise_ternary_sfpu_start_(const uint dst_index)
++{
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
++
++    math::set_addr_mod_base();
++    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
++}
++
++inline void _llk_math_eltwise_ternary_sfpu_done_()
++{
++    math::clear_dst_reg_addr();
++
++    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::WAIT_SFPU);
++    math::clear_addr_mod_base();
++}
++
++inline void _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_()
++{
++    math::inc_dst_addr<8>();
++    math::inc_dst_addr<8>();
++}
++
++template <SfpuType sfpu_op>
++inline void _llk_math_eltwise_ternary_sfpu_init_()
++{
++    sfpu::_init_sfpu_config_reg();
++    eltwise_ternary_sfpu_configure_addrmod<sfpu_op>();
++    math::reset_counters(p_setrwc::SET_ABD_F);
++}
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_ternary_sfpu_params.h
+@@ -0,0 +1,62 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++#include "ckernel_sfpu_where.h"
++#include "llk_math_eltwise_ternary_sfpu.h"
++#include "llk_sfpu_types.h"
++
++template <bool APPROXIMATE, class F, class... ARGS>
++inline void _llk_math_eltwise_ternary_sfpu_params_(
++    F&& sfpu_func, uint dst_index0, uint dst_index1, uint dst_index2, int vector_mode = (int)VectorMode::RC, ARGS&&... args)
++{
++    // Compute minimum destination index
++    uint dst_index = std::min(std::min(dst_index0, dst_index1), dst_index2);
++
++    _llk_math_eltwise_ternary_sfpu_start_<DST_SYNC_MODE>(dst_index); // Reuse same sync primitive
++
++    if (vector_mode == (int)VectorMode::R)
++    {
++        // Row vector - Face0 + Face1
++        for (int face = 0; face < 2; face++)
++        {
++            std::forward<F>(sfpu_func)(std::forward<ARGS&&>(args)...);                // Need to replace the above line with this
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // repeat 2x
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++        }
++        // Skip next 2 faces
++        for (int i = 0; i < 4; ++i)
++        {
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++        }
++    }
++    else if (vector_mode == (int)VectorMode::C)
++    {
++        // Column vector - Face0 + Face2
++        for (int face = 0; face < 2; face++)
++        {
++            std::forward<F>(sfpu_func)(std::forward<ARGS&&>(args)...); // Need to replace the above line with this
++            for (int i = 0; i < 4; ++i)
++            {
++                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++            }
++        }
++    }
++    else if (vector_mode == (int)VectorMode::RC)
++    {
++        // All 4 faces
++        for (int face = 0; face < 4; face++)
++        {
++            std::forward<F>(sfpu_func)(std::forward<ARGS&&>(args)...); // Need to replace the above line with this
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++        }
++    }
++    else
++    {
++        // Default: single face pass-through
++        std::forward<F>(sfpu_func)(std::forward<ARGS&&>(args)...); // Need to replace the above line with this
++    }
++    _llk_math_eltwise_ternary_sfpu_done_(); // Finalize
++}
+

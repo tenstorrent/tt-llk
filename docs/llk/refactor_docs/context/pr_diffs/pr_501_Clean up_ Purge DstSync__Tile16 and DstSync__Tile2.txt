@@ -1,0 +1,562 @@
+PR #501: Clean up: Purge DstSync::Tile16 and DstSync::Tile2 from the code base
+URL: https://github.com/tenstorrent/tt-llk/pull/501
+
+File: tt_llk_blackhole/llk_lib/llk_defs.h
+@@ -61,10 +61,8 @@ enum class EltwiseBinaryReuseDestType
+ 
+ enum DstSync
+ {
+-    SyncHalf   = 0,
+-    SyncFull   = 1,
+-    SyncTile16 = 2,
+-    SyncTile2  = 3,
++    SyncHalf = 0,
++    SyncFull = 1,
+ };
+ 
+ enum BroadcastType
+
+File: tt_llk_blackhole/llk_lib/llk_math_common.h
+@@ -68,20 +68,12 @@ inline void _llk_math_dest_section_done_()
+     }
+ #endif
+ 
+-    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+-    constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+-
+     set_math_semaphores();
+-    if constexpr ((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2))
++    if constexpr (Dst == DstSync::SyncHalf)
+     {
+         math_sync_tile_dst_index = 0;
+         dest_section_flip();
+     }
+-    else if constexpr (Dst == DstSync::SyncTile16)
+-    {
+-        math_sync_tile_dst_index++;
+-        math_sync_tile_dst_index &= (DEST_NUM_TILES - 1);
+-    }
+ }
+ 
+ template <DstSync Dst, bool is_fp32_dest_acc_en>
+@@ -103,31 +95,12 @@ inline void _llk_math_pack_sync_init_()
+         reset_dest_offset_id();
+         set_dest_section_base<StartZero>();
+     }
+-    else if constexpr (Dst == DstSync::SyncHalf)
+-    {
+-        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
+-        reset_dest_offset_id();
+-        set_dest_section_base<StartZero>();
+-    }
+-    else if constexpr (Dst == DstSync::SyncTile2)
+-    {
+-        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
+-        reset_dest_offset_id();
+-        set_dest_section_base<StartZero>();
+-        math_sync_tile_dst_index = 0;
+-    }
+     else
+     {
+-        static_assert(Dst == DstSync::SyncTile16);
+-
+-        constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+-        constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+-        constexpr uint32_t SEM_INIT_MAX         = (DEST_NUM_TILES < 15) ? DEST_NUM_TILES : 15;
+-
+-        TTI_SEMINIT(SEM_INIT_MAX, 0, p_stall::SEMAPHORE_1);
++        static_assert(Dst == DstSync::SyncHalf);
++        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
+         reset_dest_offset_id();
+         set_dest_section_base<StartZero>();
+-        math_sync_tile_dst_index = 0;
+     }
+ }
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_binary.h
+@@ -42,55 +42,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+     constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
+     constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
+ 
+-    if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-
+-        if constexpr (eltwise_binary_type == ELWMUL)
+-        {
+-            if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+-            {
+-#pragma GCC unroll 0
+-                for (std::uint32_t i = 0; i < 8; i++)
+-                {
+-                    TT_ZEROACC(ZERO_ACC_MODE, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (math_sync_tile_dst_index << 3) + i);
+-                }
+-            }
+-            else
+-            {
+-#pragma GCC unroll 0
+-                for (std::uint32_t i = 0; i < 4; i++)
+-                {
+-                    TT_ZEROACC(ZERO_ACC_MODE, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (math_sync_tile_dst_index << 2) + i);
+-                }
+-            }
+-        }
+-        else if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+-        {
+-            static_assert(
+-                !(binary_reuse_dest != EltwiseBinaryReuseDestType::NONE && (Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2)),
+-                "Dst clear in DstSync::SyncTile16 or DstSync::SyncTile2 dst sync mode is not supported!");
+-            /*
+-            if (clear_dest_acc) {
+-                if constexpr (is_fp32_dest_acc_en) {
+-                    #pragma GCC unroll 0
+-                    for(std::uint32_t i = 0; i < 8; i++) {
+-                        TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, (math_sync_tile_dst_index << 3) + i);
+-                    }
+-                } else {
+-                    #pragma GCC unroll 0
+-                    for(std::uint32_t i = 0; i < 4; i++) {
+-                        TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, (math_sync_tile_dst_index << 2) + i);
+-                    }
+-                }
+-            }
+-            */
+-        }
+-    }
+-    else
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-    }
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+ 
+     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB))
+     {
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_binary_sfpu.h
+@@ -37,14 +37,7 @@ inline void eltwise_binary_sfpu_configure_mop();
+ template <DstSync Dst>
+ inline void _llk_math_eltwise_binary_sfpu_start_(const uint dst_index)
+ {
+-    if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-    }
+-    else
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-    }
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+ }
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_datacopy.h
+@@ -52,14 +52,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
+     }
+     else
+     {
+-        if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-        {
+-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-        }
+-        else
+-        {
+-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-        }
++        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+ 
+         if constexpr (type == A2D)
+         {
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpi.h
+@@ -42,14 +42,7 @@ template <SfpiTestType sfpu_op, DstSync Dst>
+ inline void llk_math_eltwise_unary_sfpi(uint dst_index, uint param0 = 0, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0, uint param5 = 0)
+ {
+     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+-    if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-    }
+-    else
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-    }
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+ 
+     int face = 0;
+     sfpi_test::calculate_sfpi<sfpu_op>(param0, param1, param2, param3, param4, param5);
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_sfpu.h
+@@ -47,14 +47,7 @@ inline void eltwise_unary_sfpu_configure_mop();
+ template <DstSync Dst>
+ inline void _llk_math_eltwise_unary_sfpu_start_(const uint dst_index)
+ {
+-    if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-    }
+-    else
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-    }
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+ }
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_pack.h
+@@ -596,24 +596,7 @@ inline void _llk_pack_init_(
+ template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
+ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
+ {
+-    if constexpr (Dst == DstSync::SyncTile16)
+-    {
+-        constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+-        constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+-        // W-counter points to the next tile in dest
+-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
+-        pack_sync_tile_dst_ptr += 1;
+-        pack_sync_tile_dst_ptr = pack_sync_tile_dst_ptr & (DEST_NUM_TILES - 1);
+-    }
+-    else if constexpr (Dst == DstSync::SyncTile2)
+-    {
+-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
+-        pack_sync_tile_dst_ptr = 0;
+-    }
+-    else
+-    {
+-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+-    }
++    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+ 
+     program_packer_destination(address);
+ 
+
+File: tt_llk_blackhole/llk_lib/llk_pack_common.h
+@@ -52,32 +52,22 @@ inline void _llk_pack_dest_section_done_()
+     }
+ #endif
+ 
+-    constexpr bool clear_dest = (Dst != DstSync::SyncTile16);
++    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
+ 
+-    if constexpr (clear_dest)
++    if constexpr (Dst == DstSync::SyncFull)
+     {
+-        TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
+-
+-        if constexpr (Dst == DstSync::SyncFull)
+-        {
+-            TT_ZEROACC(p_zeroacc::CLR_ALL, is_fp32_dest_acc_en, 0, ADDR_MOD_1, 0);
+-        }
+-        else
+-        {
+-            static_assert((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
+-            TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+-        }
++        TT_ZEROACC(p_zeroacc::CLR_ALL, is_fp32_dest_acc_en, 0, ADDR_MOD_1, 0);
++    }
++    else
++    {
++        static_assert(Dst == DstSync::SyncHalf);
++        TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+     }
+-
+-    // Note: we should have already stalled math in non-tile dest modes due to clearing
+-    constexpr uint32_t WaitRes = (Dst == DstSync::SyncTile16) ? (p_stall::PACK) : (p_stall::NONE);
+ 
+     // Tell math that it can write again
+-    _llk_packer_set_math_semaphore_<WaitRes>();
+-
+-    constexpr bool flip_dest = ((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
++    _llk_packer_set_math_semaphore_<p_stall::NONE>();
+ 
+-    if constexpr (flip_dest)
++    if constexpr (Dst == DstSync::SyncHalf)
+     {
+         flip_packer_dest_offset_id();
+         select_packer_dest_registers<Dst>();
+
+File: tt_llk_wormhole_b0/llk_lib/llk_defs.h
+@@ -61,10 +61,8 @@ enum class EltwiseBinaryReuseDestType
+ 
+ enum DstSync
+ {
+-    SyncHalf   = 0,
+-    SyncFull   = 1,
+-    SyncTile16 = 2,
+-    SyncTile2  = 3,
++    SyncHalf = 0,
++    SyncFull = 1,
+ };
+ 
+ enum BroadcastType
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_common.h
+@@ -55,20 +55,12 @@ inline void _llk_math_dest_section_done_()
+     }
+ #endif
+ 
+-    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+-    constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+-
+     set_math_semaphores();
+-    if constexpr ((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2))
++    if constexpr (Dst == DstSync::SyncHalf)
+     {
+         math_sync_tile_dst_index = 0;
+         dest_section_flip();
+     }
+-    else if constexpr (Dst == DstSync::SyncTile16)
+-    {
+-        math_sync_tile_dst_index++;
+-        math_sync_tile_dst_index &= (DEST_NUM_TILES - 1);
+-    }
+ }
+ 
+ template <DstSync Dst, bool is_fp32_dest_acc_en>
+@@ -90,31 +82,12 @@ inline void _llk_math_pack_sync_init_()
+         reset_dest_offset_id();
+         set_dest_section_base<StartZero>();
+     }
+-    else if constexpr (Dst == DstSync::SyncHalf)
+-    {
+-        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
+-        reset_dest_offset_id();
+-        set_dest_section_base<StartZero>();
+-    }
+-    else if constexpr (Dst == DstSync::SyncTile2)
+-    {
+-        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
+-        reset_dest_offset_id();
+-        set_dest_section_base<StartZero>();
+-        math_sync_tile_dst_index = 0;
+-    }
+     else
+     {
+-        static_assert(Dst == DstSync::SyncTile16);
+-
+-        constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+-        constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+-        constexpr uint32_t SEM_INIT_MAX         = (DEST_NUM_TILES < 15) ? DEST_NUM_TILES : 15;
+-
+-        TTI_SEMINIT(SEM_INIT_MAX, 0, p_stall::SEMAPHORE_1);
++        static_assert(Dst == DstSync::SyncHalf);
++        TTI_SEMINIT(2, 0, p_stall::SEMAPHORE_1);
+         reset_dest_offset_id();
+         set_dest_section_base<StartZero>();
+-        math_sync_tile_dst_index = 0;
+     }
+ }
+ 
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_binary.h
+@@ -42,55 +42,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+     constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
+     constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
+ 
+-    if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-
+-        if constexpr (eltwise_binary_type == ELWMUL)
+-        {
+-            if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+-            {
+-#pragma GCC unroll 0
+-                for (std::uint32_t i = 0; i < 8; i++)
+-                {
+-                    TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, (math_sync_tile_dst_index << 3) + i);
+-                }
+-            }
+-            else
+-            {
+-#pragma GCC unroll 0
+-                for (std::uint32_t i = 0; i < 4; i++)
+-                {
+-                    TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, (math_sync_tile_dst_index << 2) + i);
+-                }
+-            }
+-        }
+-        else if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+-        {
+-            static_assert(
+-                !(binary_reuse_dest != EltwiseBinaryReuseDestType::NONE && (Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2)),
+-                "Dst clear in DstSync::SyncTile16 or DstSync::SyncTile2 dst sync mode is not supported!");
+-            /*
+-            if (clear_dest_acc) {
+-                if constexpr (is_fp32_dest_acc_en) {
+-                    #pragma GCC unroll 0
+-                    for(std::uint32_t i = 0; i < 8; i++) {
+-                        TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, (math_sync_tile_dst_index << 3) + i);
+-                    }
+-                } else {
+-                    #pragma GCC unroll 0
+-                    for(std::uint32_t i = 0; i < 4; i++) {
+-                        TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, (math_sync_tile_dst_index << 2) + i);
+-                    }
+-                }
+-            }
+-            */
+-        }
+-    }
+-    else
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-    }
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+ 
+     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB))
+     {
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_binary_sfpu.h
+@@ -37,14 +37,7 @@ inline void eltwise_binary_sfpu_configure_mop();
+ template <DstSync Dst>
+ inline void _llk_math_eltwise_binary_sfpu_start_(const uint dst_index)
+ {
+-    if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-    }
+-    else
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-    }
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+     math::set_addr_mod_base();
+     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+ }
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h
+@@ -32,14 +32,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
+     }
+     else
+     {
+-        if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-        {
+-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-        }
+-        else
+-        {
+-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-        }
++        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+ 
+         if constexpr (type == A2D)
+         {
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpi.h
+@@ -42,14 +42,7 @@ template <SfpiTestType sfpu_op, DstSync Dst>
+ inline void llk_math_eltwise_unary_sfpi(uint dst_index, uint param0 = 0, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0, uint param5 = 0)
+ {
+     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+-    if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-    }
+-    else
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-    }
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+ 
+     int face = 0;
+     sfpi_test::calculate_sfpi<sfpu_op>(param0, param1, param2, param3, param4, param5);
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpu.h
+@@ -47,14 +47,7 @@ inline void eltwise_unary_sfpu_configure_mop();
+ template <DstSync Dst>
+ inline void _llk_math_eltwise_unary_sfpu_start_(const uint dst_index)
+ {
+-    if constexpr ((Dst == DstSync::SyncTile16) || (Dst == DstSync::SyncTile2))
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(math_sync_tile_dst_index);
+-    }
+-    else
+-    {
+-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+-    }
++    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+     math::set_addr_mod_base();
+     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+ }
+
+File: tt_llk_wormhole_b0/llk_lib/llk_pack.h
+@@ -233,25 +233,7 @@ inline void _llk_pack_init_(
+ template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
+ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
+ {
+-    constexpr uint32_t DEST_NUM_TILES_SHIFT = is_fp32_dest_acc_en ? (1) : (0);
+-    constexpr uint32_t DEST_NUM_TILES       = DEST_NUM_TILES_FP16 >> DEST_NUM_TILES_SHIFT;
+-
+-    if constexpr (Dst == DstSync::SyncTile16)
+-    {
+-        // W-counter points to the next tile in dest
+-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
+-        pack_sync_tile_dst_ptr += 1;
+-        pack_sync_tile_dst_ptr = pack_sync_tile_dst_ptr & (DEST_NUM_TILES - 1);
+-    }
+-    else if constexpr (Dst == DstSync::SyncTile2)
+-    {
+-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, pack_sync_tile_dst_ptr);
+-        pack_sync_tile_dst_ptr = 0;
+-    }
+-    else
+-    {
+-        TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+-    }
++    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+ 
+     program_packer_destination(address);
+ 
+
+File: tt_llk_wormhole_b0/llk_lib/llk_pack_common.h
+@@ -52,34 +52,24 @@ inline void _llk_pack_dest_section_done_()
+     }
+ #endif
+ 
+-    constexpr bool clear_dest = (Dst != DstSync::SyncTile16);
++    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
+ 
+-    if constexpr (clear_dest)
++    if constexpr (Dst == DstSync::SyncFull)
+     {
+-        TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
+-
+-        if constexpr (Dst == DstSync::SyncFull)
+-        {
+-            constexpr uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_ALL_32B : p_zeroacc::CLR_ALL;
+-            TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, 0);
+-        }
+-        else
+-        {
+-            static_assert((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
+-            constexpr uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_HALF_32B : p_zeroacc::CLR_HALF;
+-            TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, (dest_offset_id) % 2);
+-        }
++        constexpr uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_ALL_32B : p_zeroacc::CLR_ALL;
++        TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, 0);
++    }
++    else
++    {
++        static_assert(Dst == DstSync::SyncHalf);
++        constexpr uint32_t CLEAR_MODE = is_fp32_dest_acc_en ? p_zeroacc::CLR_HALF_32B : p_zeroacc::CLR_HALF;
++        TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, (dest_offset_id) % 2);
+     }
+-
+-    // Note: we should have already stalled math in non-tile dest modes due to clearing
+-    constexpr uint32_t WaitRes = (Dst == DstSync::SyncTile16) ? (p_stall::PACK) : (p_stall::NONE);
+ 
+     // Tell math that it can write again
+-    _llk_packer_set_math_semaphore_<WaitRes>();
+-
+-    constexpr bool flip_dest = ((Dst == DstSync::SyncHalf) || (Dst == DstSync::SyncTile2));
++    _llk_packer_set_math_semaphore_<p_stall::NONE>();
+ 
+-    if constexpr (flip_dest)
++    if constexpr (Dst == DstSync::SyncHalf)
+     {
+         flip_packer_dest_offset_id();
+         select_packer_dest_registers<Dst>();
+

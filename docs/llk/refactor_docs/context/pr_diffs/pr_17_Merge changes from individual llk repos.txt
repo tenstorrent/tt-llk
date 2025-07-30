@@ -1,0 +1,1269 @@
+PR #17: Merge changes from individual llk repos
+URL: https://github.com/tenstorrent/tt-llk/pull/17
+
+File: tt_llk_blackhole/common/inc/ckernel_sfpu.h
+@@ -37,6 +37,7 @@
+ #include "sfpu/ckernel_sfpu_sign.h"
+ #include "sfpu/ckernel_sfpu_sqrt.h"
+ #include "sfpu/ckernel_sfpu_square.h"
++#include "sfpu/ckernel_sfpu_sub_int32.h"
+ #include "sfpu/ckernel_sfpu_tanh_derivative.h"
+ #include "sfpu/ckernel_sfpu_tanh.h"
+ #include "sfpu/ckernel_sfpu_topk.h"
+
+File: tt_llk_blackhole/common/inc/cpack_common.h
+@@ -10,10 +10,13 @@
+ #include "ckernel_globals.h"
+ #include "llk_defs.h"
+ 
++#include <array>
++
+ namespace ckernel::packer
+ {
+    constexpr uint replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
+                                        // fist 16 for sfpu, next 16 for fpu
++   constexpr uint32_t NUM_PACKERS = 1; //Number of packers
+ 
+    // Pack config
+    typedef struct {
+@@ -519,4 +522,87 @@ namespace ckernel::packer
+       TTI_STOREIND (1, 0, p_ind::LD_16B, LO_16(0), p_ind::INC_NONE, p_gpr_pack::TILE_HEADER, p_gpr_pack::OUTPUT_ADDR);
+    }
+ 
++   // READERS FOR CONFIG STRUCTS
++
++   inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg) {
++
++      pack_config_u config = {.val = 0};
++   
++      config.val[0] = cfg[reg_addr];
++      config.val[1] = cfg[reg_addr + 1];
++      config.val[2] = cfg[reg_addr + 2];
++
++      return config.f;
++   }
++
++   inline std::array<pack_config_t, NUM_PACKERS> read_pack_config() {
++      std::array<pack_config_t, NUM_PACKERS> config_vec;
++      
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      config_vec[0] = read_pack_config_helper(THCON_SEC0_REG1_Row_start_section_size_ADDR32, cfg);
++
++      return config_vec;
++   }
++
++   inline relu_config_t read_relu_config() {
++
++      relu_config_u config;
++
++      // Get pointer to registers for current state ID
++      volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
++      config.val[0] = cfg[ALU_ACC_CTRL_Zero_Flag_disabled_src_ADDR32];
++
++      return config.r;
++   }
++
++   inline dest_rd_ctrl_t read_dest_rd_ctrl() {
++      dest_rd_ctrl_u dest;
++
++      // Get pointer to registers for current state ID
++      volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
++
++      dest.val = cfg[PCK_DEST_RD_CTRL_Read_32b_data_ADDR32];
++
++      return dest.f;
++   }
++
++   inline pck_edge_offset_t read_pack_edge_offset_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg) {
++
++      pck_edge_offset_u edge = {.val=0};
++
++      edge.val = cfg[reg_addr];
++
++      return edge.f;
++   }
++
++   inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset() {
++      std::array<pck_edge_offset_t, NUM_PACKERS> edge_vec;
++
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      edge_vec[0] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC0_mask_ADDR32, cfg);
++
++      return edge_vec; 
++   }
++
++   inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg) {
++      pack_counters_u counters = {.val=0};
++      counters.val = cfg[reg_addr];
++
++      return counters.f;      
++   }
++
++   inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters() {
++      std::array<pack_counters_t, NUM_PACKERS> config_vec;
++
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      config_vec[0] = read_pack_counters_helper(PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32, cfg);
++
++      return config_vec; 
++   }
+ }
+
+File: tt_llk_blackhole/common/inc/cunpack_common.h
+@@ -8,6 +8,8 @@
+ #include "ckernel.h"
+ #include "ckernel_globals.h"
+ 
++#include <array>
++
+ #ifdef PERF_DUMP
+ #include "perf_res_decouple.h"
+ #endif
+@@ -16,6 +18,7 @@ namespace ckernel::unpacker
+ {
+    constexpr uint32_t TILE_DESC_SIZE = 2; //Unpacker descriptor size in dwords
+    constexpr uint32_t CONFIG_SIZE = 2; //Unpacker configuration size in dwords
++   constexpr uint32_t NUM_UNPACKERS = 2; //Number of unpackers
+ 
+    // Unpack tile descriptor
+    typedef struct {
+@@ -469,4 +472,59 @@ namespace ckernel::unpacker
+ 
+    }
+ 
++  // READERS FOR STRUCTS
++
++   inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg) {
++      unpack_tile_descriptor_u tile_descriptor = {.val = 0};
++
++      tile_descriptor.val[0] = cfg[reg_addr];
++      tile_descriptor.val[1] = cfg[reg_addr + 1];
++      tile_descriptor.val[2] = cfg[reg_addr + 2];
++      tile_descriptor.val[3] = cfg[reg_addr + 3];
++      
++      return tile_descriptor.f;
++   }
++
++   inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_descriptor() {
++      std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec;
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      tile_descriptor_vec[0] = read_unpack_tile_descriptor_helper(THCON_SEC0_REG0_TileDescriptor_ADDR32, cfg);
++      tile_descriptor_vec[1] = read_unpack_tile_descriptor_helper(THCON_SEC1_REG0_TileDescriptor_ADDR32, cfg);
++
++      return tile_descriptor_vec;
++   }
++
++   inline unpack_config_t read_unpack_config_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg) {
++      unpack_config_u config;
++
++      config.val[0] = cfg[reg_addr];
++      config.val[1] = cfg[reg_addr + 1];
++      config.val[2] = cfg[reg_addr + 2];
++      config.val[3] = cfg[reg_addr + 3];
++
++      return config.f;
++   }
++
++   inline std::array<unpack_config_t, NUM_UNPACKERS> read_unpack_config() {
++      std::array<unpack_config_t, NUM_UNPACKERS> config_vec;
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      config_vec[0] = read_unpack_config_helper(THCON_SEC0_REG2_Out_data_format_ADDR32, cfg);
++      config_vec[1] = read_unpack_config_helper(THCON_SEC1_REG2_Out_data_format_ADDR32, cfg);
++
++      return config_vec;
++   }
++
++   inline alu_config_t read_alu_config() {
++      alu_config_u config;
++      volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
++
++      config.val = cfg[ALU_ROUNDING_MODE_Fpu_srnd_en_ADDR32];
++
++      return config.f;
++   }
++
+ }
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h
+@@ -138,7 +138,7 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
+ template <bool APPROXIMATION_MODE /*unused*/, BinaryOp BINOP>
+ inline void _sfpu_binary_init_()
+ {
+-    if constexpr (BINOP == BinaryOp::DIV) {
++    if constexpr (BINOP == BinaryOp::DIV || BINOP == BinaryOp::POW) {
+         _init_reciprocal_<APPROXIMATION_MODE>();
+     }
+ }
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_quant.h
+@@ -17,7 +17,7 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _quant_int32_(const uint dst_offset)
+ {
+     // Operand A is input (fp32)
+@@ -37,12 +37,17 @@ inline void _quant_int32_(const uint dst_offset)
+         // fp32->int8, descale value is zero (LREG_9)
+         TTI_SFP_STOCH_RND(0,0,9,0,0,3);
+         // LREG_0 -> dest as int32
+-        TTI_SFPSTORE(0,4,ADDR_MOD_7,0);
++        if constexpr (SIGN_MAGNITUDE_FORMAT == false) {
++            TTI_SFPCAST(0, 4, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
++            // Required after cast due to a bug in Blackhole RTL.
++            TTI_SFPSETSGN (0, 4, 0, 0);
++        }
++        TTI_SFPSTORE(0, InstrModLoadStore::INT32_2S_COMP, ADDR_MOD_7, 0);
+         dst_reg++;
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _requant_int32_(const uint dst_offset)
+ {
+     // Operand A is input to requant (int32)
+@@ -53,7 +58,12 @@ inline void _requant_int32_(const uint dst_offset)
+     for (int d = 0; d < ITERATIONS; d++)
+     {
+         // operand A - int32
+-        TTI_SFPLOAD(0, 4, ADDR_MOD_7, 0);
++        TTI_SFPLOAD(0, InstrModLoadStore::INT32_2S_COMP, ADDR_MOD_7, 0);
++        if constexpr (SIGN_MAGNITUDE_FORMAT == false) {
++            TTI_SFPCAST(0, 4, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
++            // Required after cast due to a bug in Blackhole RTL.
++            TTI_SFPSETSGN(0, 4, 0, 0);
++        }
+         // operand B - fp32 scaler
+         TT_SFPLOAD(1, 3, ADDR_MOD_7, dst_offset*64);
+         // cast int32->fp32
+@@ -65,12 +75,17 @@ inline void _requant_int32_(const uint dst_offset)
+         // fp32->int8, descale value is zero (LREG_9)
+         TTI_SFP_STOCH_RND(0,0,9,0,0,3);
+         // LREG_0 -> dest as int32
+-        TTI_SFPSTORE(0,4,ADDR_MOD_7,0);
++        if constexpr (SIGN_MAGNITUDE_FORMAT == false) {
++            TTI_SFPCAST(0, 4, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
++            // Required after cast due to a bug in Blackhole RTL.
++            TTI_SFPSETSGN (0, 4, 0, 0);
++        }
++        TTI_SFPSTORE(0, InstrModLoadStore::INT32_2S_COMP, ADDR_MOD_7, 0);
+         dst_reg++;
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _dequant_int32_(const uint dst_offset)
+ {
+     // Operand A[LREG0] is input to dequant (int32)
+@@ -80,7 +95,12 @@ inline void _dequant_int32_(const uint dst_offset)
+     #pragma GCC unroll 8
+     for (int d = 0; d < ITERATIONS; d++) {
+         // operand A - int32
+-        TTI_SFPLOAD(0, 4, ADDR_MOD_7, 0);
++        TTI_SFPLOAD(0, InstrModLoadStore::INT32_2S_COMP, ADDR_MOD_7, 0);
++        if constexpr (SIGN_MAGNITUDE_FORMAT == false) {
++            TTI_SFPCAST(0, 4, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
++            // Required after cast due to a bug in Blackhole RTL.
++            TTI_SFPSETSGN(0, 4, 0, 0);
++        }
+         // operand B - fp32 scaler
+         TT_SFPLOAD(1, 3, ADDR_MOD_7, dst_offset*64);
+         // cast int32->fp32
+@@ -97,6 +117,7 @@ inline void _dequant_int32_(const uint dst_offset)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE /*unused*/>
+ inline void _init_quant_zero_point_(const uint zero_point)
+ {
+     _sfpu_load_imm32_(2,zero_point);
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sub_int32.h
+@@ -0,0 +1,67 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel_defs.h"
++#include "ckernel.h"
++
++#include "sfpi.h"
++
++using namespace sfpi;
++
++namespace ckernel
++{
++namespace sfpu
++{
++
++template <bool APPROXIMATION_MODE, bool SIGN_MAGNITUDE_FORMAT, int ITERATIONS>
++inline void _sub_int32_(const uint dst_offset) {
++    // Operand A is input1 (int32)
++    // Operand B is input2 (int32)
++    // Output is int32
++
++    // Modifies LOAD/STORE to do INT32 sign-magnitude to 2's complement conversion, however
++    // in Blackhole this has no effect and format remains in original format.
++    constexpr auto INSTR_MOD_LOAD_STORE = InstrModLoadStore::INT32_2S_COMP;
++
++    // If LOAD/STORE have the value in INT sign-magnitude format and SFPU needs it as 2's complement.
++    constexpr auto INSTR_MOD_CAST = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
++
++    #pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++) {
++        // operand B - int32
++        TT_SFPLOAD(0 /*lreg*/, INSTR_MOD_LOAD_STORE, ADDR_MOD_7, dst_offset * 64 /*dest_reg_addr */);
++        if constexpr (SIGN_MAGNITUDE_FORMAT) {
++            TTI_SFPCAST(0 /*lreg*/, 2 /*ldest*/, INSTR_MOD_CAST);
++            // Required after cast due to a bug in Blackhole RTL.
++            TTI_SFPSETSGN(0 /* imm */, 2 /*lreg_c*/, 0 /*ldest*/, 0 /*imod*/);
++        }
++
++        // operand A - int32
++        TTI_SFPLOAD(1 /*lreg*/, INSTR_MOD_LOAD_STORE, ADDR_MOD_7, 0);
++        if constexpr (SIGN_MAGNITUDE_FORMAT) {
++            TTI_SFPCAST(1 /*lreg*/, 2 /*ldest*/, INSTR_MOD_CAST);
++            // Required after cast due to a bug in Blackhole RTL.
++            TTI_SFPSETSGN(0 /* imm */, 2 /*lreg_c*/, 1 /*ldest*/ , 0 /*imod*/);
++        }
++
++        // Set instruction modifier to 6 to get B's 2's complement
++        TTI_SFPIADD(0 /*imm*/, 1 /*lreg_c*/, 0 /*lreg_dest*/, 6 /*imod*/);
++        // MAD has a 2-cycle pipeline latency so we need one cycle latency until next instr can consume the result
++        TTI_NOP;
++
++        // LREG_0 -> dest as int32
++        if constexpr (SIGN_MAGNITUDE_FORMAT) {
++            TTI_SFPCAST(0 /*lreg*/, 1 /*ldest*/, INSTR_MOD_CAST);
++            // Required after cast due to a bug in Blackhole RTL.
++            TTI_SFPSETSGN (0 /* imm */, 1 /*lreg_c*/, 0 /*ldest*/, 0 /*imod*/);
++        }
++        TTI_SFPSTORE(0, INSTR_MOD_LOAD_STORE, ADDR_MOD_7, 0);
++        dst_reg++;
++    }
++}
++
++} // namespace sfpu
++} // namespace ckernel
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h
+@@ -388,7 +388,7 @@ inline void _bitonic_topk_phases_steps(
+     topk_replay_init = -1;
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, bool top_min, int ITERATIONS>
+ inline void _bitonic_topk_merge(const int m_iter, const int k)
+ {
+     uint dst_addr_offset = 0;
+@@ -407,7 +407,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
+             while (datums_compared < total_datums_to_compare) {
+                 for (uint ii=0; ii<inner_d; ii++) {
+                     bitonic_topk_load8(dst_offset, ld_dist);
+-                    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
++                    TTI_SFPSWAP(0, top_min ? p_sfpu::LREG1 : p_sfpu::LREG0, top_min ? p_sfpu::LREG0 : p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+                     bitonic_topk_store8(dst_offset, ld_dist);
+                     datums_compared += 8;
+                     if (ii == (inner_d-1)) {
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_datacopy.h
+@@ -58,11 +58,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
+         if constexpr (type == A2D) {
+             ckernel_template::run(instrn_buffer);
+         } else if constexpr (type == B2D) {
+-            if constexpr (src_b_bcast_type == BroadcastType::SCALAR) {
+-                // Manually clear B once mop is done
+-                ckernel_template::run(instrn_buffer);
+-                TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+-            } else if constexpr (src_b_bcast_type == BroadcastType::COL) {
++            if constexpr (src_b_bcast_type == BroadcastType::COL) {
+                 // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
+                 ckernel_template::run(instrn_buffer);
+                 TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+@@ -177,13 +173,15 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
+             innerloop = (total_rows >> 3);
+             broadcast_type = p_movb2d::MOV_8_ROW_BRCST;
+         } else if constexpr (bcast_type == BroadcastType::SCALAR) {
+-            innerloop = (total_rows >> 3);
+-            broadcast_type = p_movb2d::MOV_8_ROW_BRCST_D0_BRCST;
++            // ELTWADD with zeros will be used as a workaround
++            outerloop = 1;
++            innerloop = num_faces * (total_rows >> 3);
++            broadcast_type = p_elwise::SRCB_BCAST_ALL;
+         }
+ 
+         if constexpr (bcast_type == BroadcastType::SCALAR) {
+-            ckernel_template tmp(outerloop, innerloop, TT_OP_MOVB2D(0, 0, addr_mod, broadcast_type, 0));
+-            tmp.set_end_op(TT_OP_SETRWC(0, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));
++            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
++            tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0));
+             tmp.program(instrn_buffer);
+         } else if constexpr (bcast_type == BroadcastType::COL) {
+             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_A.h
+@@ -66,9 +66,9 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+         } else {
+             constexpr uint32_t innerloop = 1;
+             constexpr uint32_t outerloop = 1; //TODO: add support for num_faces, add support for dest to srcB
+-            ckernel_template tmp(outerloop, innerloop, srcb_set_z_2, unpack_srcb);
+-            tmp.set_start_op(unpack_srcb);
+-            tmp.set_end_op(unpack_srca_set_dvalid);
++            ckernel_template tmp(outerloop, innerloop, unpack_srcb, srcb_set_z_2);
++            tmp.set_start_op(unpack_srca_set_dvalid);
++            tmp.set_end_op(unpack_srcb);
+             tmp.program(instrn_buffer);
+         }
+     } else if constexpr (BType == BroadcastType::ROW) {
+@@ -86,9 +86,11 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+         }
+     } else if constexpr (BType == BroadcastType::SCALAR) {
+         static_assert((!acc_to_dest) && "accumulate into dest with broadcast scaler is not supported!");
+-        const uint32_t outerloop = num_faces;
++        const uint32_t outerloop = 1;
+         constexpr uint32_t innerloop = 1;
+         ckernel_template tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
++        // ELWADD used in datacopy due to broadcast bug, use zerosrca regardless of acc_to_dest
++        tmp.set_start_op(unpack_srca_set_dvalid);
+         tmp.program(instrn_buffer);
+     } else {
+         if (transpose_of_faces) {
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_AB_matmul.h
+@@ -20,7 +20,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(const bool transpose, const std::u
+     // in1/inB - loaded to SrcA
+ 
+     const bool reuse_a = ct_dim >= rt_dim;
+-    const std::uint32_t replay_buf_prog_len = (reuse_a && unpA_partial_face) ? 18 : ((!reuse_a && unpB_partial_face) ? 18 : 12);
++    const std::uint32_t replay_buf_prog_len = (reuse_a && unpA_partial_face) ? 12 : ((!reuse_a && unpB_partial_face) ? 12 : 6);
+     const std::uint32_t replay_buf_run_len  = replay_buf_prog_len/2;
+ 
+     if (reuse_a) {
+@@ -43,14 +43,9 @@ inline void _llk_unpack_AB_matmul_mop_config_(const bool transpose, const std::u
+                     }
+                     if constexpr (kernel_broadcast_b==1) {
+                         TTI_NOP;
+-                        TTI_NOP;
+-                        TTI_NOP;
+-                        TTI_NOP;
+                     } else {
+-                        TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_address_ADDR32);
+-                        TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
+-                        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+-                        TTI_WRCFG(p_gpr_unpack::TMP0,0,THCON_SEC0_REG3_Base_address_ADDR32);
++                        // THCON_SEC0_REG3_Base_address_ADDR32 =  THCON_SEC0_REG3_Base_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
++                        TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_address_ADDR32);
+                     }
+                     // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
+                     TTI_NOP;
+@@ -65,14 +60,9 @@ inline void _llk_unpack_AB_matmul_mop_config_(const bool transpose, const std::u
+                     }
+                     if constexpr (kernel_broadcast_b==1) {
+                         TTI_NOP;
+-                        TTI_NOP;
+-                        TTI_NOP;
+-                        TTI_NOP;
+                     } else {
+-                        TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
+-                        TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
+-                        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+-                        TTI_WRCFG(p_gpr_unpack::TMP0,0,THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
++                        // THCON_SEC0_REG3_Base_cntx1_address_ADDR32 =  THCON_SEC0_REG3_Base_cntx1_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
++                        TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
+                     }
+                     // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
+                     TTI_NOP;
+@@ -99,14 +89,9 @@ inline void _llk_unpack_AB_matmul_mop_config_(const bool transpose, const std::u
+                     }
+                     if constexpr (kernel_broadcast_a==1) {
+                         TTI_NOP;
+-                        TTI_NOP;
+-                        TTI_NOP;
+-                        TTI_NOP;
+                     } else {
+-                        TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
+-                        TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP_LO);
+-                        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+-                        TTI_WRCFG(p_gpr_unpack::TMP0,0,THCON_SEC1_REG3_Base_address_ADDR32);
++                        // THCON_SEC1_REG3_Base_address_ADDR32 =  THCON_SEC1_REG3_Base_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
++                        TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC1_REG3_Base_address_ADDR32);
+                     }
+                     // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
+                     TTI_NOP;
+@@ -121,14 +106,9 @@ inline void _llk_unpack_AB_matmul_mop_config_(const bool transpose, const std::u
+                     }
+                     if constexpr (kernel_broadcast_a==1) {
+                         TTI_NOP;
+-                        TTI_NOP;
+-                        TTI_NOP;
+-                        TTI_NOP;
+                     } else {
+-                        TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
+-                        TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP_LO);
+-                        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+-                        TTI_WRCFG(p_gpr_unpack::TMP0,0,THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
++                        // THCON_SEC1_REG3_Base_cntx1_address_ADDR32 =  THCON_SEC1_REG3_Base_cntx1_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
++                        TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
+                     }
+                     // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
+                     TTI_NOP;
+@@ -219,6 +199,16 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(const std
+ 
+     TT_SETDMAREG(0, LOWER_HALFWORD(kt_dim), 0, LO_16(p_gpr_unpack::KT_DIM)); // store kt_dim to gpr for scaling tile size
+ 
++    // Write to scratch cfg register L1 address increment
++    if (reuse_a) {
++        TTI_WRCFG(p_gpr_unpack::TILE_SIZE_A, 0, SCRATCH_SEC0_val_ADDR32);
++    } else {
++        TTI_MULDMAREG(0, p_gpr_unpack::TMP_LO, p_gpr_unpack::TILE_SIZE_B, p_gpr_unpack::KT_DIM);
++        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
++        TTI_WRCFG(p_gpr_unpack::TMP_LO, 0, SCRATCH_SEC0_val_ADDR32);
++    }
++    TTI_NOP;
++
+     _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(transpose != 0, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
+ }
+ 
+@@ -234,10 +224,6 @@ inline void _llk_unpack_AB_matmul_(
+     const bool reuse_a = ct_dim >= rt_dim;
+     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
+ 
+-    if (!reuse_a) {
+-        TTI_MULDMAREG(0, p_gpr_unpack::TMP_LO, p_gpr_unpack::TILE_SIZE_B, p_gpr_unpack::KT_DIM);
+-    }
+-
+     for (uint t = 0; t < t_dim; t++) {
+ 
+         std::uint32_t offset_address_a =tile_size_a*(tile_index_a + (reuse_a ? (t*kt_dim) : (0)));
+
+File: tt_llk_grayskull/common/inc/cpack_common.h
+@@ -10,6 +10,8 @@
+ #include "fw_debug.h"
+ #include "llk_defs.h"
+ 
++#include <array>
++
+ #define TT_OP_SETDMAREG_SHFT(Payload_SigSelSize, Payload_SigSelShft, SetSignalsMode, RegIndex16b) \
+   TT_OP(0x45, (((Payload_SigSelSize) << 22) + ((Payload_SigSelShft)) + ((SetSignalsMode) << 7) + ((RegIndex16b) << 0)))
+ #define TT_SETDMAREG_SHFT(Payload_SigSelSize, Payload_SigSelShft, SetSignalsMode, RegIndex16b) \
+@@ -18,6 +20,7 @@
+ namespace ckernel::packer
+ {
+    constexpr uint32_t PACK_CNT = 4;
++   constexpr uint32_t NUM_PACKERS = 4; //Number of packers
+ 
+    //Pack src format, save src format to make reconfig writes only
+    uint32_t tile_desc_pack_src_format;
+@@ -56,6 +59,39 @@ namespace ckernel::packer
+      pack_config_t f;
+    } pack_config_u;
+ 
++   // Pack counters
++   typedef struct {
++      uint32_t pack_per_xy_plane : 8;
++      uint32_t pack_reads_per_xy_plane : 8;
++      uint32_t pack_xys_per_til : 7;
++      uint32_t pack_yz_transposed : 1;
++      uint32_t pack_per_xy_plane_offset : 8;
++   } pack_counters_t;
++
++   static_assert(sizeof(pack_counters_t) == (sizeof(uint32_t)));
++
++   typedef union {
++      uint32_t val;
++      pack_counters_t f;
++   } pack_counters_u;
++
++      typedef struct {
++      uint32_t mask : 16;
++      uint32_t mode : 1;
++      uint32_t tile_row_set_select_pack0: 2;
++      uint32_t tile_row_set_select_pack1: 2;
++      uint32_t tile_row_set_select_pack2: 2;
++      uint32_t tile_row_set_select_pack3: 2;
++      uint32_t reserved: 7;
++   } pck_edge_offset_t;
++
++   static_assert(sizeof(pck_edge_offset_t) == (sizeof(uint32_t)));
++
++   typedef union {
++      uint32_t val;
++      pck_edge_offset_t f;
++   } pck_edge_offset_u;
++
+    // Set unpacker offsets to 0, except for unpacker 0, channel 1, X, which is the tile X dimension
+    inline void packer_addr_counter_init()
+    {
+@@ -379,4 +415,75 @@ namespace ckernel::packer
+    {
+       TTI_STOREIND (1, 0, p_ind::LD_16B, LO_16(0), p_ind::INC_NONE, p_gpr_pack::TILE_HEADER, p_gpr_pack::OUTPUT_ADDR);
+    }
++
++   // READERS FOR CONFIG STRUCTS
++
++   inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg ) {
++
++      pack_config_u config = {.val = 0};
++   
++      config.val[0] = cfg[reg_addr];
++      config.val[1] = cfg[reg_addr + 1];
++      config.val[2] = cfg[reg_addr + 2];
++      config.val[3] = cfg[reg_addr + 3];
++
++      return config.f;
++   }
++
++   inline std::array<pack_config_t, NUM_PACKERS> read_pack_config() {
++      std::array<pack_config_t, NUM_PACKERS> config_vec;
++      
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      config_vec[0] = read_pack_config_helper(THCON_SEC0_REG1_Row_start_section_size_ADDR32, cfg);
++      config_vec[1] = read_pack_config_helper(THCON_SEC0_REG8_Row_start_section_size_ADDR32, cfg);
++      config_vec[2] = read_pack_config_helper(THCON_SEC1_REG1_Row_start_section_size_ADDR32, cfg);
++      config_vec[3] = read_pack_config_helper(THCON_SEC1_REG8_Row_start_section_size_ADDR32, cfg);
++
++      return config_vec;
++   }
++
++   inline pck_edge_offset_t read_pack_edge_offset_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg) {
++      pck_edge_offset_u edge = {.val=0};
++      edge.val = cfg[reg_addr];
++
++      return edge.f;
++   }
++
++   inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset() {
++      std::array<pck_edge_offset_t, NUM_PACKERS> edge_vec;
++
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      edge_vec[0] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC0_mask_ADDR32, cfg);
++      edge_vec[1] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC1_mask_ADDR32, cfg);
++      edge_vec[2] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC2_mask_ADDR32, cfg);
++      edge_vec[3] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC3_mask_ADDR32, cfg);
++
++      return edge_vec; 
++   }
++
++   inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg) {
++      pack_counters_u counters = {.val=0};
++      counters.val = cfg[reg_addr];
++
++      return counters.f;      
++   }
++
++   inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters() {
++      std::array<pack_counters_t, NUM_PACKERS> counters_vec;
++
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      counters_vec[0] = read_pack_counters_helper(PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32, cfg);
++      counters_vec[1] = read_pack_counters_helper(PACK_COUNTERS_SEC1_pack_per_xy_plane_ADDR32, cfg);
++      counters_vec[2] = read_pack_counters_helper(PACK_COUNTERS_SEC2_pack_per_xy_plane_ADDR32, cfg);
++      counters_vec[3] = read_pack_counters_helper(PACK_COUNTERS_SEC3_pack_per_xy_plane_ADDR32, cfg);
++
++      return counters_vec; 
++   }
++
+ }
+
+File: tt_llk_grayskull/common/inc/cunpack_common.h
+@@ -8,6 +8,8 @@
+ #include "ckernel_globals.h"
+ #include "fw_debug.h"
+ 
++#include <array>
++
+ #ifdef PERF_DUMP
+ #include "perf_res_decouple.h"
+ #endif
+@@ -16,6 +18,7 @@ namespace ckernel::unpacker
+ {
+    constexpr uint32_t TILE_DESC_SIZE = 2; //Unpacker descriptor size in dwords
+    constexpr uint32_t CONFIG_SIZE = 2; //Unpacker configuration size in dwords
++   constexpr uint32_t NUM_UNPACKERS = 2; //Number of unpackers
+ 
+    // Unpack tile descriptor
+    typedef struct {
+@@ -319,4 +322,51 @@ namespace ckernel::unpacker
+       // Clear context ID
+       //reset_config_context();
+     }
++  
++   // READERS FOR CONFIG STRUCTS
++
++   inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg) {
++      unpack_tile_descriptor_u tile_descriptor = {.val = 0};
++
++      tile_descriptor.val[0] = cfg[reg_addr];
++      tile_descriptor.val[1] = cfg[reg_addr + 1];
++      tile_descriptor.val[2] = cfg[reg_addr + 2];
++      tile_descriptor.val[3] = cfg[reg_addr + 3];
++      
++      return tile_descriptor.f;
++   }
++
++   inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_descriptor() {
++      std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec;
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      tile_descriptor_vec[0] = read_unpack_tile_descriptor_helper(THCON_SEC0_REG0_TileDescriptor_ADDR32, cfg);
++      tile_descriptor_vec[1] = read_unpack_tile_descriptor_helper(THCON_SEC1_REG0_TileDescriptor_ADDR32, cfg);
++
++      return tile_descriptor_vec;
++   }
++
++  inline unpack_config_t read_unpack_config_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg) {
++      unpack_config_u config;
++
++      config.val[0] = cfg[reg_addr];
++      config.val[1] = cfg[reg_addr + 1];
++      config.val[2] = cfg[reg_addr + 2];
++      // not used in grayskull
++      //config.val[3] = cfg[reg_addr + 3];
++
++      return config.f;
++   }
++
++   inline std::array<unpack_config_t, NUM_UNPACKERS> read_unpack_config() {
++      std::array<unpack_config_t, NUM_UNPACKERS> config_vec;
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      config_vec[0] = read_unpack_config_helper(THCON_SEC0_REG2_Out_data_format_ADDR32, cfg);
++      config_vec[1] = read_unpack_config_helper(THCON_SEC1_REG2_Out_data_format_ADDR32, cfg);
++
++      return config_vec;
++   }
+ }
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h
+@@ -39,6 +39,7 @@
+ #include "sfpu/ckernel_sfpu_sign.h"
+ #include "sfpu/ckernel_sfpu_sqrt.h"
+ #include "sfpu/ckernel_sfpu_square.h"
++#include "sfpu/ckernel_sfpu_sub_int32.h"
+ #include "sfpu/ckernel_sfpu_tanh_derivative.h"
+ #include "sfpu/ckernel_sfpu_tanh.h"
+ #include "sfpu/ckernel_sfpu_topk.h"
+
+File: tt_llk_wormhole_b0/common/inc/cpack_common.h
+@@ -10,10 +10,12 @@
+ #include "ckernel_globals.h"
+ #include "llk_defs.h"
+ 
++#include <array>
+ 
+ namespace ckernel::packer
+ {
+    constexpr uint32_t PACK_CNT       = 4;
++   constexpr uint32_t NUM_PACKERS = 4; //Number of packers
+ 
+ 
+    constexpr uint PACK_SEL(const uint pack_count)
+@@ -51,6 +53,7 @@ namespace ckernel::packer
+      uint32_t pack_l1_acc_disable_pack_zero_flag : 2;
+      uint32_t reserved_2 : 1;
+      uint32_t exp_threshold : 8;
++
+    } pack_config_t;
+ 
+    static_assert(sizeof(pack_config_t) == (sizeof(uint32_t)*4));
+@@ -632,4 +635,96 @@ namespace ckernel::packer
+       TTI_STOREIND (1, 0, p_ind::LD_16B, LO_16(0), p_ind::INC_NONE, p_gpr_pack::TILE_HEADER, p_gpr_pack::OUTPUT_ADDR);
+    }
+ 
++   // READERS FOR CONFIG STRUCTS
++
++   inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg ) {
++
++      pack_config_u config = {.val = 0};
++   
++      config.val[0] = cfg[reg_addr];
++      config.val[1] = cfg[reg_addr + 1];
++      config.val[2] = cfg[reg_addr + 2];
++      config.val[3] = cfg[reg_addr + 3];
++
++      return config.f;
++   }
++
++   inline std::array<pack_config_t, NUM_PACKERS> read_pack_config() {
++      std::array<pack_config_t, NUM_PACKERS> config_vec;
++
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      config_vec[0] = read_pack_config_helper(THCON_SEC0_REG1_Row_start_section_size_ADDR32, cfg);
++      config_vec[1] = read_pack_config_helper(THCON_SEC0_REG8_Row_start_section_size_ADDR32, cfg);
++      config_vec[2] = read_pack_config_helper(THCON_SEC1_REG1_Row_start_section_size_ADDR32, cfg);
++      config_vec[3] = read_pack_config_helper(THCON_SEC1_REG8_Row_start_section_size_ADDR32, cfg);
++
++      return config_vec;
++   }
++
++   inline relu_config_t read_relu_config() {
++
++      relu_config_u config;
++
++      // Get pointer to registers for current state ID
++      volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
++      config.val[0] = cfg[ALU_ACC_CTRL_Zero_Flag_disabled_src_ADDR32];
++
++      return config.r;
++   }
++
++   inline dest_rd_ctrl_t read_dest_rd_ctrl() {
++      dest_rd_ctrl_u dest;
++
++      // Get pointer to registers for current state ID
++      volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
++
++      dest.val = cfg[PCK_DEST_RD_CTRL_Read_32b_data_ADDR32];
++
++      return dest.f;
++   }
++
++   inline pck_edge_offset_t read_pack_edge_offset_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg) {
++      pck_edge_offset_u edge = {.val=0};
++      edge.val = cfg[reg_addr];
++
++      return edge.f;
++   }
++
++   inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset() {
++      std::array<pck_edge_offset_t, NUM_PACKERS> edge_vec;
++
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      edge_vec[0] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC0_mask_ADDR32, cfg);
++      edge_vec[1] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC1_mask_ADDR32, cfg);
++      edge_vec[2] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC2_mask_ADDR32, cfg);
++      edge_vec[3] = read_pack_edge_offset_helper(PCK_EDGE_OFFSET_SEC3_mask_ADDR32, cfg);
++
++      return edge_vec; 
++   }
++
++   inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg) {
++      pack_counters_u counters = {.val=0};
++      counters.val = cfg[reg_addr];
++
++      return counters.f;      
++   }
++
++   inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters() {
++      std::array<pack_counters_t, NUM_PACKERS> counters_vec;
++
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      counters_vec[0] = read_pack_counters_helper(PACK_COUNTERS_SEC0_pack_per_xy_plane_ADDR32, cfg);
++      counters_vec[1] = read_pack_counters_helper(PACK_COUNTERS_SEC1_pack_per_xy_plane_ADDR32, cfg);
++      counters_vec[2] = read_pack_counters_helper(PACK_COUNTERS_SEC2_pack_per_xy_plane_ADDR32, cfg);
++      counters_vec[3] = read_pack_counters_helper(PACK_COUNTERS_SEC3_pack_per_xy_plane_ADDR32, cfg);
++
++      return counters_vec; 
++   }
++
+ }
+
+File: tt_llk_wormhole_b0/common/inc/cunpack_common.h
+@@ -8,6 +8,8 @@
+ #include "ckernel.h"
+ #include "ckernel_globals.h"
+ 
++#include <array>
++
+ #ifdef PERF_DUMP
+ #include "perf_res_decouple.h"
+ #endif
+@@ -16,6 +18,7 @@ namespace ckernel::unpacker
+ {
+    constexpr uint32_t TILE_DESC_SIZE = 2; //Unpacker descriptor size in dwords
+    constexpr uint32_t CONFIG_SIZE = 2; //Unpacker configuration size in dwords
++   constexpr uint32_t NUM_UNPACKERS = 2; //Number of unpackers
+ 
+    // Unpack tile descriptor
+    typedef struct {
+@@ -450,4 +453,59 @@ namespace ckernel::unpacker
+ 
+    }
+ 
++   // READERS FOR STRUCTS
++
++   inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg) {
++      unpack_tile_descriptor_u tile_descriptor = {.val = 0};
++
++      tile_descriptor.val[0] = cfg[reg_addr];
++      tile_descriptor.val[1] = cfg[reg_addr + 1];
++      tile_descriptor.val[2] = cfg[reg_addr + 2];
++      tile_descriptor.val[3] = cfg[reg_addr + 3];
++      
++      return tile_descriptor.f;
++   }
++
++   inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_descriptor() {
++      std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec;
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      tile_descriptor_vec[0] = read_unpack_tile_descriptor_helper(THCON_SEC0_REG0_TileDescriptor_ADDR32, cfg);
++      tile_descriptor_vec[1] = read_unpack_tile_descriptor_helper(THCON_SEC1_REG0_TileDescriptor_ADDR32, cfg);
++
++      return tile_descriptor_vec;
++   }
++
++   inline unpack_config_t read_unpack_config_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg) {
++      unpack_config_u config;
++
++      config.val[0] = cfg[reg_addr];
++      config.val[1] = cfg[reg_addr + 1];
++      config.val[2] = cfg[reg_addr + 2];
++      config.val[3] = cfg[reg_addr + 3];
++
++      return config.f;
++   }
++
++   inline std::array<unpack_config_t, NUM_UNPACKERS> read_unpack_config() {
++      std::array<unpack_config_t, NUM_UNPACKERS> config_vec;
++      // Get pointer to registers for current state ID 
++      volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
++
++      config_vec[0] = read_unpack_config_helper(THCON_SEC0_REG2_Out_data_format_ADDR32, cfg);
++      config_vec[1] = read_unpack_config_helper(THCON_SEC1_REG2_Out_data_format_ADDR32, cfg);
++
++      return config_vec;
++   }
++
++   inline alu_config_t read_alu_config() {
++      alu_config_u config;
++      volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
++
++      config.val = cfg[ALU_ROUNDING_MODE_Fpu_srnd_en_ADDR32];
++
++      return config.f;
++   }
++
+ }
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_binary.h
+@@ -138,7 +138,7 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
+ template <bool APPROXIMATION_MODE /*unused*/, BinaryOp BINOP>
+ inline void _sfpu_binary_init_()
+ {
+-    if constexpr (BINOP == BinaryOp::DIV) {
++    if constexpr (BINOP == BinaryOp::DIV || BINOP == BinaryOp::POW) {
+         _init_reciprocal_<APPROXIMATION_MODE>();
+     }
+ }
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_quant.h
+@@ -18,7 +18,7 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _quant_int32_(const uint dst_offset)
+ {
+     // Operand A is input (fp32)
+@@ -38,12 +38,12 @@ inline void _quant_int32_(const uint dst_offset)
+         // fp32->int8, descale value is zero (LREG_9)
+         TTI_SFP_STOCH_RND(0,0,9,0,0,3);
+         // LREG_0 -> dest as int32
+-        TTI_SFPSTORE(0,4,3,0);
++        TTI_SFPSTORE(0, SIGN_MAGNITUDE_FORMAT ? 4 : 12, 3, 0);
+         dst_reg++;
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _requant_int32_(const uint dst_offset)
+ {
+     // Operand A is input to requant (int32)
+@@ -54,7 +54,7 @@ inline void _requant_int32_(const uint dst_offset)
+     for (int d = 0; d < ITERATIONS; d++)
+     {
+         // operand A - int32
+-        TTI_SFPLOAD(0, 4, 3, 0);
++        TTI_SFPLOAD(0, SIGN_MAGNITUDE_FORMAT ? 4 : 12, 3, 0);
+         // operand B - fp32 scaler
+         TT_SFPLOAD(1, 3, 3, dst_offset*64);
+         // cast int32->fp32
+@@ -66,12 +66,12 @@ inline void _requant_int32_(const uint dst_offset)
+         // fp32->int8, descale value is zero (LREG_9)
+         TTI_SFP_STOCH_RND(0,0,9,0,0,3);
+         // LREG_0 -> dest as int32
+-        TTI_SFPSTORE(0,4,3,0);
++        TTI_SFPSTORE(0, SIGN_MAGNITUDE_FORMAT ? 4 : 12, 3, 0);
+         dst_reg++;
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _dequant_int32_(const uint dst_offset)
+ {
+     // Operand A[LREG0] is input to dequant (int32)
+@@ -81,7 +81,7 @@ inline void _dequant_int32_(const uint dst_offset)
+     #pragma GCC unroll 8
+     for (int d = 0; d < ITERATIONS; d++) {
+         // operand A - int32
+-        TTI_SFPLOAD(0, 4, 3, 0);
++        TTI_SFPLOAD(0, SIGN_MAGNITUDE_FORMAT ? 4 : 12, 3, 0);
+         // operand B - fp32 scaler
+         TT_SFPLOAD(1, 3, 3, dst_offset*64);
+         // cast int32->fp32
+@@ -98,6 +98,7 @@ inline void _dequant_int32_(const uint dst_offset)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE /*unused*/>
+ inline void _init_quant_zero_point_(const uint zero_point)
+ {
+     _sfpu_load_imm32_(2,zero_point);
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_sub_int32.h
+@@ -0,0 +1,46 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel_defs.h"
++#include "ckernel.h"
++#include "noc_nonblocking_api.h"
++
++#include "sfpi.h"
++
++using namespace sfpi;
++
++namespace ckernel
++{
++namespace sfpu
++{
++
++template <bool APPROXIMATION_MODE, bool SIGN_MAGNITUDE_FORMAT, int ITERATIONS>
++inline void _sub_int32_(const uint dst_offset) {
++    // Use '12' if Dest is in sign-magnitude format and '4' for 2's complement,
++    // because TTI_SFPIADD requires 2's complement format in LREGs
++    constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? 12 : 4;
++
++    // Operand A is input1 (int32)
++    // Operand B is input2 (int32)
++    // Output is int32
++    #pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++) {
++        // operand A - int32
++        TTI_SFPLOAD(1 /*lreg*/, sfpload_instr_mod, 3 /*addr_mode*/, 0 /*dest*/);
++        // operand B - int32
++        TT_SFPLOAD(0 /*lreg*/, sfpload_instr_mod, 3 /*addr_mode*/, dst_offset * 64 /*dest*/);
++        // Use 6 as imod to convert operand B to 2's complement
++        TTI_SFPIADD(0 /*imm*/, 1 /*lreg*/, 0 /*ldest*/, 6 /*imod*/);
++        // MAD has a 2-cycle pipeline latency so we need one cycle latency until next instr can consume the result
++        TTI_NOP;
++        // LREG_0 -> dest as int32
++        TTI_SFPSTORE(0 /*lreg_ind*/, sfpload_instr_mod, 3 /*addr_mode*/, 0 /*dest*/);
++        dst_reg++;
++    }
++}
++
++} // namespace sfpu
++} // namespace ckernel
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_topk.h
+@@ -384,7 +384,7 @@ inline void _bitonic_topk_phases_steps(
+     topk_replay_init = -1;
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, bool top_min, int ITERATIONS>
+ inline void _bitonic_topk_merge(const int m_iter, const int k)
+ {
+     uint dst_addr_offset = 0;
+@@ -403,7 +403,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
+             while (datums_compared < total_datums_to_compare) {
+                 for (uint ii=0; ii<inner_d; ii++) {
+                     bitonic_topk_load8(dst_offset, ld_dist);
+-                    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
++                    TTI_SFPSWAP(0, top_min ? p_sfpu::LREG1 : p_sfpu::LREG0, top_min ? p_sfpu::LREG0 : p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+                     bitonic_topk_store8(dst_offset, ld_dist);
+                     datums_compared += 8;
+                     if (ii == (inner_d-1)) {
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_datacopy.h
+@@ -38,11 +38,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
+         if constexpr (type == A2D) {
+             ckernel_template::run(instrn_buffer);
+         } else if constexpr (type == B2D) {
+-            if constexpr (src_b_bcast_type == BroadcastType::SCALAR) {
+-                // Manually clear B once mop is done
+-                ckernel_template::run(instrn_buffer);
+-                TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+-            } else if constexpr (src_b_bcast_type == BroadcastType::COL) {
++            if constexpr (src_b_bcast_type == BroadcastType::COL) {
+                 // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
+                 ckernel_template::run(instrn_buffer);
+                 TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+@@ -151,13 +147,15 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
+             innerloop = (total_rows >> 3);
+             broadcast_type = p_movb2d::MOV_8_ROW_BRCST;
+         } else if constexpr (bcast_type == BroadcastType::SCALAR) {
+-            innerloop = (total_rows >> 3);
+-            broadcast_type = p_movb2d::MOV_8_ROW_BRCST_D0_BRCST;
++            // ELTWADD with zeros will be used as a workaround
++            outerloop = 1;
++            innerloop = num_faces * (total_rows >> 3);
++            broadcast_type = p_elwise::SRCB_BCAST_ALL;
+         }
+ 
+         if constexpr (bcast_type == BroadcastType::SCALAR) {
+-            ckernel_template tmp(outerloop, innerloop, TT_OP_MOVB2D(0, 0, addr_mod, broadcast_type, 0));
+-            tmp.set_end_op(TT_OP_SETRWC(0, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));
++            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
++            tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0));
+             tmp.program(instrn_buffer);
+         } else if constexpr (bcast_type == BroadcastType::COL) {
+             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_A.h
+@@ -40,14 +40,22 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+     #else
+         static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+         static constexpr uint unpack_srca_to_dest = TT_OP_UNPACR(SrcA, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // ch0/ch1 z_inc
+-        static constexpr uint unpack_srca_set_dvalid = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC_SET_DVALID);
++        static constexpr uint unpack_srca_zerosrc = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
++        static constexpr uint unpack_srca_set_dvalid = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
+         static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+         static constexpr uint unpack_srcb_inc_z_0 = TT_OP_UNPACR(SrcB, 0b0 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+         static constexpr uint unpack_srcb_zerosrc    = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+         static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID); //WA for tenstorrent/budabackend#1230
+         static constexpr uint srca_set_z_1 = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // set srcA ch0_z = 1
+         static constexpr uint srcb_set_z_2 = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2, 0b0001); // set srcB ch0_z = 2
+         static constexpr uint srcb_clear_z = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001); // set srcB ch0_z = 0
++        TTI_REPLAY(0, 4, 0, 1);
++        TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
++        TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
++        TTI_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
++        TTI_UNPACR(SrcB, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
++        static constexpr uint unpack_srca_zerosrc_set_dvalid = TT_OP_REPLAY(0,2,0,0);
++        static constexpr uint unpack_srcb_unpack_srcb = TT_OP_REPLAY(2,2,0,0);
+     #endif
+ 
+     if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format)) {
+@@ -56,45 +64,35 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+         ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
+         tmp.program(instrn_buffer);
+     } else if constexpr (BType == BroadcastType::COL) {
+-        if constexpr (acc_to_dest) {
+-            constexpr uint32_t innerloop = 1;
+-            constexpr uint32_t outerloop = 2; //TODO: add support for num_faces, add support for dest to srcB
+-            ckernel_template tmp(outerloop, innerloop, unpack_srca_set_dvalid, unpack_srca_set_dvalid);
+-            tmp.set_start_op(unpack_srcb);
+-            tmp.set_end_op(srcb_set_z_2);
+-            tmp.program(instrn_buffer);
+-        } else {
+-            constexpr uint32_t innerloop = 1;
+-            constexpr uint32_t outerloop = 1; //TODO: add support for num_faces, add support for dest to srcB
+-            ckernel_template tmp(outerloop, innerloop, srcb_set_z_2, unpack_srcb);
+-            tmp.set_start_op(unpack_srcb);
+-            tmp.set_end_op(unpack_srca_set_dvalid);
+-            tmp.program(instrn_buffer);
+-        }
++        constexpr uint32_t innerloop = 1;
++        constexpr uint32_t outerloop = 1; //TODO: add support for num_faces, add support for dest to srcB
++        ckernel_template tmp(outerloop, innerloop, unpack_srcb, srcb_set_z_2);
++        // ELWADD used in datacopy due to WH broadcast bug, use zerosrca regardless of acc_to_dest
++        tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
++        tmp.set_end_op(unpack_srcb);
++        tmp.program(instrn_buffer);
+     } else if constexpr (BType == BroadcastType::ROW) {
+-        constexpr uint32_t innerloop = 2;
+-        constexpr uint32_t outerloop = 2; //TODO: add support for num_faces
++        constexpr uint32_t innerloop = 1;
++        constexpr uint32_t outerloop = 1; //TODO: add support for num_faces
++        ckernel_template tmp(outerloop, innerloop, unpack_srcb_unpack_srcb, srcb_clear_z);
+         if constexpr (acc_to_dest) {
+-            ckernel_template tmp(outerloop, innerloop, unpack_srcb, unpack_srca_set_dvalid);
+-            tmp.set_end_op(srcb_clear_z);
+-            tmp.program(instrn_buffer);
+-
+-        } else {
+-            ckernel_template tmp(outerloop, innerloop, unpack_srcb);
+-            tmp.set_end_op(srcb_clear_z);
+-            tmp.program(instrn_buffer);
++            tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
+         }
++        tmp.set_end_op(unpack_srcb_unpack_srcb);
++        tmp.program(instrn_buffer);
+     } else if constexpr (BType == BroadcastType::SCALAR) {
+         static_assert((!acc_to_dest) && "accumulate into dest with broadcast scaler is not supported!");
+-        const uint32_t outerloop = num_faces;
++        const uint32_t outerloop = 1;
+         constexpr uint32_t innerloop = 1;
+         ckernel_template tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
++        // ELWADD used in datacopy due to WH broadcast bug, use zerosrca regardless of acc_to_dest
++        tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
+         tmp.program(instrn_buffer);
+     } else {
+         if (transpose_of_faces) {
+             #if SKIP_UNP == 0
+                 constexpr uint replay_buf_len = 3;
+-                TTI_REPLAY(0, replay_buf_len, 0, 1);
++                TTI_REPLAY(4, replay_buf_len, 0, 1);
+                 TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+                 TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_SET_DVALID);
+                 if (num_faces>2) {
+@@ -105,7 +103,7 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+             #endif
+             const uint32_t outerloop = num_faces < 4 ? 1 : 2;
+             const uint32_t innerloop = num_faces < 2 ? 1 : 2;
+-            ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, replay_buf_len, 0, 0)); // Unpack faces 0/2 && 1/3 to srcA
++            ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(4, replay_buf_len, 0, 0)); // Unpack faces 0/2 && 1/3 to srcA
+                                                                                                // or 0/1 for 2 face tile
+             if (num_faces>2) {
+                 tmp.set_end_op(srca_set_z_1);
+@@ -114,7 +112,7 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+         } else {
+             if constexpr (acc_to_dest) {
+                 static constexpr uint unpack_srca_reuse = (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA) ?
+-                    unpack_srca_set_dvalid : unpack_srca;
++                    unpack_srca_zerosrc : unpack_srca;
+ 
+                 static constexpr uint unpack_srcb_reuse = (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ?
+                     unpack_srcb_zerosrc  : unpack_srcb;
+@@ -124,7 +122,9 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+                 ckernel_template tmp(outerloop, innerloop, unpack_srca_reuse, unpack_srcb_reuse);
+                 if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB) {
+                     tmp.set_end_op(unpack_srcb_set_dvalid);
+-                }
++                } else if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA) {
++                    tmp.set_end_op(unpack_srca_set_dvalid);
++		}
+                 tmp.program(instrn_buffer);
+             } else {
+                 const uint32_t outerloop = num_faces;
+

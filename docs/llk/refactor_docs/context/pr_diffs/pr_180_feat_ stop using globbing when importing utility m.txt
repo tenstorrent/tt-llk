@@ -1,0 +1,695 @@
+PR #180: feat: stop using globbing when importing utility methods
+URL: https://github.com/tenstorrent/tt-llk/pull/180
+
+File: .pre-commit-config.yaml
+@@ -14,6 +14,11 @@ repos:
+   hooks:
+     -  id: autoflake
+        args: [--remove-all-unused-imports, --in-place, --recursive, --exclude=__init__.py]
++- repo: https://github.com/PyCQA/pylint
++  rev: v3.0.0  # Use the latest version
++  hooks:
++    - id: pylint
++      args: [--disable=all, --enable=wildcard-import]
+ - repo: https://github.com/adrienverge/yamllint
+   rev: v1.35.1
+   hooks:
+
+File: tests/python_tests/conftest.py
+@@ -1,22 +1,25 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import pytest
+-import os
+ import logging
++import os
+ import subprocess
+ 
++import pytest
++from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
++from helpers.log_utils import _format_log
++
+ 
+ @pytest.fixture(scope="session", autouse=True)
+ def setup_chip_arch():
+     def detect_architecture(output):
+         if "Blackhole" in output:
+-            return "blackhole"
++            return ChipArchitecture.BLACKHOLE
+         elif "Wormhole" in output:
+-            return "wormhole"
++            return ChipArchitecture.WORMHOLE
+         return None
+ 
+-    chip_arch = os.getenv("CHIP_ARCH")
++    chip_arch = get_chip_architecture()
+     if chip_arch:
+         print(f"CHIP_ARCH is already set to {chip_arch}")
+         return
+@@ -41,7 +44,7 @@ def detect_architecture(output):
+             "Error: Unable to detect architecture from tt-smi output.", file=sys.stderr
+         )
+         sys.exit(1)
+-    os.environ["CHIP_ARCH"] = architecture
++    os.environ["CHIP_ARCH"] = architecture.value
+ 
+ 
+ def pytest_configure(config):
+@@ -88,14 +91,6 @@ def pytest_runtest_protocol(item, nextitem):
+     return None
+ 
+ 
+-_format_log = []
+-
+-
+-def add_to_format_log(input_fmt, output_fmt):
+-    global _format_log
+-    _format_log.append((input_fmt, output_fmt))
+-
+-
+ def pytest_sessionfinish(session, exitstatus):
+     BOLD = "\033[1m"
+     YELLOW = "\033[93m"
+@@ -104,3 +99,19 @@ def pytest_sessionfinish(session, exitstatus):
+         print(f"\n\n{BOLD}{YELLOW} Cases Where Dest Accumulation Turned On:{RESET}")
+         for input_fmt, output_fmt in _format_log:
+             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
++
++
++# Skip decorators for specific architectures
++# These decorators can be used to skip tests based on the architecture
++# For example, if you want to skip a test for the "wormhole" architecture,
++# decorate the test with @skip_for_wormhole.
++
++skip_for_wormhole = pytest.mark.skipif(
++    lambda: get_chip_architecture() == ChipArchitecture.WORMHOLE,
++    reason="Test is not supported on Wormhole architecture",
++)
++
++skip_for_blackhole = pytest.mark.skipif(
++    lambda: get_chip_architecture() == ChipArchitecture.BLACKHOLE,
++    reason="Test is not supported on Blackhole architecture",
++)
+
+File: tests/python_tests/helpers/__init__.py
+@@ -1,59 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-from .format_config import (
+-    InputOutputFormat,
+-    FormatConfig,
+-    DataFormat,
+-    create_formats_for_testing,
+-    is_dest_acc_needed,
+-)
+-from .stimuli_generator import flatten_list, generate_stimuli
+-from .format_arg_mapping import (
+-    format_dict,
+-    ApproximationMode,
+-    MathOperation,
+-    ReduceDimension,
+-    ReducePool,
+-    DestAccumulation,
+-    MathFidelity,
+-    TileCount,
+-)
+-from .pack import pack_bfp16, pack_fp16, pack_fp32, pack_int32, pack_bfp8_b
+-from .unpack import (
+-    unpack_fp16,
+-    unpack_bfp16,
+-    unpack_fp32,
+-    unpack_int32,
+-    unpack_bfp8_b,
+-)
+-from .utils import (
+-    run_shell_command,
+-    compare_pcc,
+-    format_kernel_list,
+-    print_faces,
+-    get_chip_architecture,
+-    calculate_read_byte_count,
+-)
+-from .device import (
+-    collect_results,
+-    run_elf_files,
+-    write_stimuli_to_l1,
+-    get_result_from_device,
+-    wait_for_tensix_operations_finished,
+-)
+-from .param_config import (
+-    format_combination_sweep,
+-    generate_param_ids,
+-    clean_params,
+-    generate_params,
+-    input_output_formats,
+-)
+-
+-from .hardware_controller import HardwareController
+-
+-from .test_config import generate_make_command
+-from .tilize_untilize import tilize, untilize
+ from ttexalens import Verbosity
+ 
+ Verbosity.set(Verbosity.ERROR)
+
+File: tests/python_tests/helpers/chip_architecture.py
+@@ -0,0 +1,29 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++import os
++from enum import Enum
++
++
++class ChipArchitecture(Enum):
++    BLACKHOLE = "blackhole"
++    WORMHOLE = "wormhole"
++
++    def __str__(self):
++        return self.value
++
++    @classmethod
++    def from_string(cls, arch_str):
++        if arch_str.lower() == "blackhole":
++            return cls.BLACKHOLE
++        elif arch_str.lower() == "wormhole":
++            return cls.WORMHOLE
++        else:
++            raise ValueError(f"Unknown architecture: {arch_str}")
++
++
++def get_chip_architecture():
++    chip_architecture = os.getenv("CHIP_ARCH")
++    if not chip_architecture:
++        return None
++    return ChipArchitecture.from_string(chip_architecture.strip())
+
+File: tests/python_tests/helpers/device.py
+@@ -1,19 +1,24 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
++import inspect
++import time
++
+ from ttexalens.tt_exalens_lib import (
+-    write_to_device,
+-    write_words_to_device,
++    check_context,
++    load_elf,
+     read_from_device,
+     read_word_from_device,
+-    load_elf,
+     run_elf,
+-    check_context,
++    write_to_device,
++    write_words_to_device,
+ )
+-from helpers import *
+-import inspect
+-import time
+-from helpers.param_config import *
++
++from .format_arg_mapping import Mailbox, TileCount
++from .format_config import DataFormat, FormatConfig
++from .pack import pack_bfp8_b, pack_bfp16, pack_fp16, pack_fp32, pack_int32
++from .unpack import unpack_bfp8_b, unpack_bfp16, unpack_fp16, unpack_fp32, unpack_int32
++from .utils import calculate_read_byte_count
+ 
+ MAX_READ_BYTE_SIZE_16BIT = 2048
+ 
+
+File: tests/python_tests/helpers/hardware_controller.py
+@@ -1,7 +1,8 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ 
+-from .utils import get_chip_architecture, run_shell_command
++from .chip_architecture import ChipArchitecture, get_chip_architecture
++from .utils import run_shell_command
+ 
+ 
+ class HardwareController:
+@@ -13,10 +14,10 @@ def __init__(self):
+         self.chip_architecture = get_chip_architecture()
+ 
+     def reset_card(self):
+-        if self.chip_architecture == "blackhole":
++        if self.chip_architecture == ChipArchitecture.BLACKHOLE:
+             print("Resetting BH card")
+             run_shell_command("tt-smi -r 0")
+-        elif self.chip_architecture == "wormhole":
++        elif self.chip_architecture == ChipArchitecture.WORMHOLE:
+             print("Resetting WH card")
+             run_shell_command("tt-smi -r 0")
+         else:
+
+File: tests/python_tests/helpers/log_utils.py
+@@ -0,0 +1,9 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++_format_log = []
++
++
++def add_to_format_log(input_fmt, output_fmt):
++    global _format_log
++    _format_log.append((input_fmt, output_fmt))
+
+File: tests/python_tests/helpers/param_config.py
+@@ -2,14 +2,16 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ 
+ from typing import List, Optional, Tuple
+-from .format_arg_mapping import *
++
++from helpers.log_utils import add_to_format_log
++
++from .format_arg_mapping import DestAccumulation
+ from .format_config import (
+-    FormatConfig,
+     DataFormat,
++    FormatConfig,
+     InputOutputFormat,
+     is_dest_acc_needed,
+ )
+-from conftest import add_to_format_log
+ 
+ checked_formats_and_dest_acc = {}
+ 
+
+File: tests/python_tests/helpers/utils.py
+@@ -1,10 +1,11 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import os
+-import torch
+-import numpy as np
+ import subprocess
++
++import numpy as np
++import torch
++
+ from .format_config import DataFormat, FormatConfig
+ 
+ torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+@@ -118,10 +119,3 @@ def compare_pcc(golden, calculated, pcc=0.99):
+         return True, 1.0
+ 
+     return cal_pcc >= pcc, cal_pcc
+-
+-
+-def get_chip_architecture():
+-    chip_architecture = os.getenv("CHIP_ARCH")
+-    if chip_architecture is None:
+-        raise ValueError("CHIP_ARCH environment variable is not set")
+-    return chip_architecture
+
+File: tests/python_tests/pytest.ini
+@@ -6,3 +6,5 @@ filterwarnings =
+ addopts = -vvv -s
+ python_files = test_*.py
+ python_functions = test
++markers =
++    long: marks tests as long-running (deselect with '-m "not long"')
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -3,7 +3,23 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import DestAccumulation, format_dict
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ 
+ def generate_golden(operand1, format):
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -1,10 +1,33 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
++import math
++
+ import pytest
+ import torch
+-import math
+-from helpers import *
++from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import (
++    ApproximationMode,
++    DestAccumulation,
++    MathOperation,
++    format_dict,
++)
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ 
+ def generate_golden(operation, operand1, data_format):
+@@ -70,7 +93,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         )
+ 
+     if formats.input_format == DataFormat.Float16 and (
+-        dest_acc == DestAccumulation.No and arch == "blackhole"
++        dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE
+     ):
+         pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+
+File: tests/python_tests/test_fill_dest.py
+@@ -3,7 +3,23 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import DestAccumulation, format_dict
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import flatten_list, generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ 
+ def generate_golden(operations, operand1, operand2, data_format):
+
+File: tests/python_tests/test_matmul.py
+@@ -3,7 +3,24 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.tilize_untilize import tilize
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ 
+ def generate_golden(operand1, operand2, data_format, math_fidelity):
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -3,8 +3,24 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
+-
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.tilize_untilize import tilize
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+ 
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -3,7 +3,29 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import (
++    DestAccumulation,
++    MathFidelity,
++    MathOperation,
++    TileCount,
++    format_dict,
++)
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import flatten_list, generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.utils import compare_pcc, format_kernel_list, run_shell_command
+ 
+ 
+ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -3,8 +3,24 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
+-
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import format_dict
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.tilize_untilize import untilize
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+ 
+
+File: tests/python_tests/test_reduce.py
+@@ -3,7 +3,29 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import (
++    DestAccumulation,
++    ReduceDimension,
++    ReducePool,
++    format_dict,
++)
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.tilize_untilize import untilize
++from helpers.utils import compare_pcc, print_faces, run_shell_command
+ 
+ 
+ def generate_golden(operand1, reduce_dim, pool_type, data_format):
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -3,7 +3,23 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ 
+ def generate_golden(operation, operand1, operand2, data_format):
+@@ -124,5 +140,5 @@ def test_all(testname, formats, dest_acc, mathop):
+             golden_tensor[i], res_tensor[i], rtol=rtol, atol=atol
+         ), f"Failed at index {i} with values {golden[i]} and {res_from_L1[i]}"
+ 
+-    _, pcc = comp_pcc(golden_tensor, res_tensor, pcc=0.99)
++    _, pcc = compare_pcc(golden_tensor, res_tensor, pcc=0.99)
+     assert pcc > 0.99
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -3,7 +3,30 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import (
++    DestAccumulation,
++    MathFidelity,
++    MathOperation,
++    TileCount,
++    format_dict,
++)
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    format_combination_sweep,
++    generate_param_ids,
++    generate_params,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.tilize_untilize import tilize
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ 
+ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -2,7 +2,24 @@
+ # SPDX-License-Identifier: Apache-2.0
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import format_dict
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.tilize_untilize import tilize
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ 
+ def generate_golden(operand1, data_format):
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -3,7 +3,24 @@
+ 
+ import pytest
+ import torch
+-from helpers import *
++from helpers.device import (
++    collect_results,
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++    write_stimuli_to_l1,
++)
++from helpers.format_arg_mapping import format_dict
++from helpers.format_config import DataFormat
++from helpers.param_config import (
++    clean_params,
++    generate_param_ids,
++    generate_params,
++    input_output_formats,
++)
++from helpers.stimuli_generator import generate_stimuli
++from helpers.test_config import generate_make_command
++from helpers.tilize_untilize import untilize
++from helpers.utils import compare_pcc, run_shell_command
+ 
+ torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
+ 
+

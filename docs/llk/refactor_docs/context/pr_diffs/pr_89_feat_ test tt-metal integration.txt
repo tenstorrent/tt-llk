@@ -1,0 +1,241 @@
+PR #89: feat: test tt-metal integration
+URL: https://github.com/tenstorrent/tt-llk/pull/89
+
+File: .github/workflows/manual-tt-metal-integration.yml
+@@ -0,0 +1,25 @@
++name: 🧪 Manual tt-metal integration dry run
++
++on:
++  workflow_dispatch:
++    inputs:
++      branch_name:
++        description: "Branch name to check out in tt-metal"
++        required: true
++        default: "main"
++      runs_on:
++        description: "Runner to use for the job"
++        required: true
++        type: choice
++        options:  # List of options for the dropdown
++          - tt-beta-ubuntu-2204-n150-large-stable
++          - tt-beta-ubuntu-2204-n300-large-stable
++        default: "tt-beta-ubuntu-2204-n150-large-stable"
++
++jobs:
++  test-tt-metal:
++    uses: ./.github/workflows/tt-metal-integration-tests.yml
++    with:
++      branch_name: ${{ inputs.branch_name }}
++      runs_on: ${{ inputs.runs_on }}
++    secrets: inherit
+
+File: .github/workflows/on-pr.yml
+@@ -31,7 +31,6 @@ jobs:
+     uses: ./.github/workflows/setup-and-test.yml
+     needs: build-images
+     with:
+-      chip_arch: wormhole
+       docker_image: ${{ needs.build-images.outputs.docker-image }}
+       runs_on: tt-beta-ubuntu-2204-n150-large-stable
+ 
+@@ -44,7 +43,7 @@ jobs:
+       - setup-and-test-wormhole
+     runs-on: ubuntu-latest
+     steps:
+-      - name: Check if the needed jobs succeeded or failed
++      - name: Check if the required jobs succeeded or failed
+         uses: re-actors/alls-green@release/v1
+         with:
+           jobs: ${{ toJSON(needs) }}
+
+File: .github/workflows/pre-commit.yml
+@@ -28,3 +28,42 @@ jobs:
+         uses: pre-commit/action@v3.0.1
+         with:
+           extra_args: "--from-ref origin/main --to-ref HEAD"
++
++  pr-comment:
++    name: Post comment on PR
++    runs-on: ubuntu-latest
++    steps:
++      - name: Check if comment already exists
++        id: check-comment
++        uses: actions/github-script@v7
++        with:
++          script: |
++            const { data: comments } = await github.rest.issues.listComments({
++              owner: context.repo.owner,
++              repo: context.repo.repo,
++              issue_number: context.payload.pull_request.number,
++            });
++
++            const existingComment = comments.find(comment =>
++              comment.body.includes("Thank you for your contribution!")
++            );
++
++            return existingComment ? true : false;
++          result-encoding: string
++
++      - name: Post comment on PR
++        if: steps.check-comment.outputs.result == 'false'
++        uses: actions/github-script@v7
++        with:
++          script: |
++            await github.rest.issues.createComment({
++              owner: context.repo.owner,
++              repo: context.repo.repo,
++              issue_number: context.payload.pull_request.number,
++              body:
++                "Thank you for your contribution! 🚀\n\n" +
++                "You can run tt-metal integration tests by adding the `run-integration-tests` label " +
++                "to this pull request.\n\n" +
++                "📖 For more information, please refer to our [CONTRIBUTING.md](" +
++                "https://github.com/tenstorrent/tt-llk/blob/main/CONTRIBUTING.md)."
++            });
+
+File: .github/workflows/run-metal-tests-on-label.yml
+@@ -0,0 +1,15 @@
++name: 🧩 tt-metal integration
++
++on:
++  pull_request:
++    types: [labeled, synchronize]
++
++jobs:
++  test-tt-metal:
++    name: "🧪 Running tests (Wormhole)"
++    if: contains(github.event.pull_request.labels.*.name, 'run-integration-tests')
++    uses: ./.github/workflows/tt-metal-integration-tests.yml
++    secrets: inherit
++    with:
++      branch_name: ${{ github.head_ref }}
++      runs_on: tt-beta-ubuntu-2204-n150-large-stable
+
+File: .github/workflows/setup-and-test.yml
+@@ -3,10 +3,6 @@ name: "⚙️ Setup and Test"
+ on:
+   workflow_call:
+     inputs:
+-      chip_arch:
+-        description: "The chip architecture"
+-        required: true
+-        type: string
+       docker_image:
+         description: "The Docker image to use for the container"
+         required: true
+@@ -29,22 +25,23 @@ jobs:
+       # Step 1: Checkout the repository
+       - name: Checkout code
+         uses: actions/checkout@v4
+-        with:
+-          fetch-depth: 0  # Fetch all history so 'origin/main' is available
+ 
+-      # Step 2: Run the tests
++      # Step 2: Install SFPI
++      - name: Install SFPI
++        shell: bash
++        run: |
++          cd tests
++          ./setup_testing_env.sh
++          cd ..
++
++      # Step 3: Run the tests
+       - name: Run tests
+-        env:
+-          CHIP_ARCH: ${{ inputs.chip_arch }}
+         shell: bash
+         run: |
+-          echo "CHIP_ARCH is set to $CHIP_ARCH"
+-          cd tests && ./setup_testing_env.sh
+-          # Run the tests
+-          cd python_tests/
++          cd tests/python_tests/
+           pytest --timeout=60 --color=yes --force-sugar .
+ 
+-      # Step 3: Upload test log as an artifact
++      # Step 4: Upload test log as an artifact
+       - name: Upload logs if tests fail
+         if: failure()  # Only upload the log if the previous step failed
+         uses: actions/upload-artifact@v4
+
+File: .github/workflows/tt-metal-integration-tests.yml
+@@ -0,0 +1,78 @@
++on:
++  workflow_call:
++    inputs:
++      branch_name:
++        description: "Branch name to check out in tt-metal"
++        required: true
++        type: string
++      runs_on:
++        description: "Runner to use for the job"
++        required: true
++        type: string
++
++jobs:
++  test-tt-metal:
++    name: 🔧 LLK unit tests
++    env:
++      DOCKER_IMAGE: ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-ci-build-amd64
++      IMAGE_HASH: ec366e61ff1989d6650d8ee0fc636189b3c08c13
++    runs-on: ${{ inputs.runs_on }}
++    timeout-minutes: 40
++    steps:
++      - name: Checkout tt-metal repository with submodules
++        uses: actions/checkout@v4
++        with:
++          repository: tenstorrent/tt-metal
++          token: ${{ secrets.GITHUB_TOKEN }}
++          path: tt-metal
++          submodules: recursive
++
++      - name: Override LLK submodule branch
++        run: |
++          cd tt-metal/tt_metal/third_party/tt_llk
++
++          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
++            echo "PR is from a fork: ${{ github.event.pull_request.head.repo.full_name }}"
++
++            echo "Adding contributor's fork as remote..."
++            git remote add fork https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git
++
++            echo "Fetching branch '${{ github.head_ref }}' from fork..."
++            git fetch fork ${{ github.head_ref }}
++
++            echo "Checking out the fork branch"
++            git checkout FETCH_HEAD
++          else
++            echo "PR is internal (same repo). Using origin to checkout submodule branch"
++
++            echo "Fetching all branches from origin..."
++            git fetch origin +refs/heads/*:refs/remotes/origin/*
++
++            echo "Checking out branch '${{ github.head_ref }}' from origin"
++            git checkout remotes/origin/${{ github.head_ref }}
++          fi
++
++          cd ../../../../
++
++      - name: Log in to Docker registry
++        uses: docker/login-action@v3
++        with:
++          registry: ghcr.io
++          username: ${{ github.repository_owner }}
++          password: ${{ secrets.GITHUB_TOKEN }}
++
++      - name: Pull Docker image
++        run: |
++          docker pull ${DOCKER_IMAGE}:${IMAGE_HASH}
++
++      - name: Run tests in Docker container
++        run: |
++          docker run --device /dev/tenstorrent --rm \
++            -v ${{ github.workspace }}:/workspace \
++            -v /dev/hugepages-1G:/dev/hugepages-1G \
++            -w /workspace/tt-metal \
++            -e TT_METAL_HOME=/workspace/tt-metal \
++            -e PYTHONPATH=/workspace/tt-metal \
++            ${DOCKER_IMAGE}:${IMAGE_HASH} \
++            bash -c "./build_metal.sh --build-metal-tests && \
++              TT_METAL_SLOW_DISPATCH_MODE=1 ./build_Release/test/tt_metal/unit_tests_llk"
+

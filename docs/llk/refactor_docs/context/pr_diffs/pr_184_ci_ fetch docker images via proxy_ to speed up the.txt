@@ -1,0 +1,14 @@
+PR #184: ci: fetch docker images via proxy, to speed up the download
+URL: https://github.com/tenstorrent/tt-llk/pull/184
+
+File: .github/workflows/setup-and-test.yml
+@@ -25,7 +25,7 @@ jobs:
+       matrix:
+         test_group: ${{ fromJSON(inputs.test_group) }}
+     container:
+-      image: ${{ inputs.docker_image }}
++      image: ${{ inputs.runs_on != 'P150' && 'harbor.ci.tenstorrent.net/' || '' }}${{ inputs.docker_image }}
+       options: "--rm --device /dev/tenstorrent"
+     name: "🦄 Run tests (group ${{ matrix.test_group }}${{ fromJSON(inputs.test_group).length }})"
+     steps:
+

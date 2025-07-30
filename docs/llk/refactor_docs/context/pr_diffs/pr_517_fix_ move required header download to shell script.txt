@@ -1,0 +1,577 @@
+PR #517: fix: move required header download to shell script
+URL: https://github.com/tenstorrent/tt-llk/pull/517
+
+File: .gitignore
+@@ -21,4 +21,4 @@ perf_data/
+ tests/helpers/include/build.h
+ 
+ # Ignore generated compile_flags.txt
+-tests/compile_flags.txt
++compile_flags.txt
+
+File: setup_clangd.sh
+@@ -6,27 +6,119 @@
+ set -e  # Exit immediately if a command exits with a non-zero status
+ set -o pipefail  # Fail if any command in a pipeline fails
+ 
+-ARCH=$1
+-case "$ARCH" in
+-    wormhole)
+-        ARCH_LLK_ROOT="tt_llk_wormhole_b0"
+-        ARCH_DEFINE="ARCH_WORMHOLE"
+-        CHIP_ARCH="wormhole"
+-        ;;
+-    blackhole)
+-        ARCH_LLK_ROOT="tt_llk_blackhole"
+-        ARCH_DEFINE="ARCH_BLACKHOLE"
+-        CHIP_ARCH="blackhole"
+-        ;;
+-    *)
+-        echo "Usage: $0 [wormhole|blackhole]"
++# --- Functions ---
++
++# Function to get chip architecture using tt-smi (borrowed from setup_testing_env.sh)
++get_chip_architecture() {
++    local smi_output
++    if ! smi_output=$(tt-smi -ls 2>/dev/null); then
++        echo "WARNING: tt-smi command failed or not found. Architecture detection unavailable." >&2
++        return 1
++    fi
++
++    if echo "$smi_output" | grep -q "Blackhole"; then
++        echo "blackhole"
++    elif echo "$smi_output" | grep -q "Wormhole"; then
++        echo "wormhole"
++    else
++        echo "WARNING: Unable to determine chip architecture from tt-smi output." >&2
++        return 1
++    fi
++}
++
++# Function to set architecture-specific variables
++set_arch_variables() {
++    local arch=$1
++    case "$arch" in
++        wormhole)
++            ARCH_LLK_ROOT="tt_llk_wormhole_b0"
++            ARCH_DEFINE="ARCH_WORMHOLE"
++            CHIP_ARCH="wormhole"
++            ;;
++        blackhole)
++            ARCH_LLK_ROOT="tt_llk_blackhole"
++            ARCH_DEFINE="ARCH_BLACKHOLE"
++            CHIP_ARCH="blackhole"
++            ;;
++        *)
++            echo "ERROR: Unsupported architecture: $arch" >&2
++            echo "Supported architectures: wormhole, blackhole" >&2
++            return 1
++            ;;
++    esac
++}
++
++# Function to validate required directories
++validate_directories() {
++    local missing_dirs=()
++
++    # Check if git repository
++    if ! git rev-parse --git-dir >/dev/null 2>&1; then
++        echo "ERROR: Not in a git repository. Please run this script from within the project." >&2
+         exit 1
+-        ;;
+-esac
++    fi
++
++    # Check critical directories
++    local dirs_to_check=(
++        "$ROOT_DIR/tests"
++        "$ROOT_DIR/$ARCH_LLK_ROOT"
++        "$ROOT_DIR/tests/firmware/riscv/common"
++        "$ROOT_DIR/tests/firmware/riscv/$CHIP_ARCH"
++    )
+ 
+-ROOT_DIR=$(git rev-parse --show-toplevel)
++    for dir in "${dirs_to_check[@]}"; do
++        if [[ ! -d "$dir" ]]; then
++            missing_dirs+=("$dir")
++        fi
++    done
++
++    if [[ ${#missing_dirs[@]} -gt 0 ]]; then
++        echo "ERROR: The following required directories are missing:" >&2
++        printf "  %s\n" "${missing_dirs[@]}" >&2
++        echo "Please ensure you're in the correct project directory and all dependencies are installed." >&2
++        exit 1
++    fi
++}
++
++# Function to setup testing environment
++setup_testing_environment() {
++    echo "Setting up testing environment..."
++    local setup_script="$ROOT_DIR/tests/setup_testing_env.sh"
++
++    if [[ ! -f "$setup_script" ]]; then
++        echo "ERROR: setup_testing_env.sh not found at $setup_script" >&2
++        exit 1
++    fi
+ 
+-cat > "$ROOT_DIR/compile_flags.txt" <<EOF
++    if ! bash "$setup_script"; then
++        echo "ERROR: Failed to execute setup_testing_env.sh" >&2
++        exit 1
++    fi
++
++    echo "Testing environment setup completed."
++}
++
++# Function to validate sfpi installation
++validate_sfpi_installation() {
++    local sfpi_dirs=(
++        "$ROOT_DIR/tests/sfpi/compiler/lib/gcc/riscv32-tt-elf/12.4.0/include/"
++        "$ROOT_DIR/tests/sfpi/compiler/riscv32-tt-elf/include"
++        "$ROOT_DIR/tests/sfpi/include"
++    )
++
++    for dir in "${sfpi_dirs[@]}"; do
++        if [[ ! -d "$dir" ]]; then
++            echo "WARNING: SFPI directory not found: $dir" >&2
++            echo "The setup_testing_env.sh script may not have completed successfully." >&2
++        fi
++    done
++}
++
++# Function to generate compile flags
++generate_compile_flags() {
++    echo "Generating compile_flags.txt for $CHIP_ARCH architecture..."
++
++    cat > "$ROOT_DIR/compile_flags.txt" <<EOF
+ -D$ARCH_DEFINE
+ -DTENSIX_FIRMWARE
+ -DCOMPILE_FOR_TRISC
+@@ -57,4 +149,102 @@ $ROOT_DIR/tests/sfpi/include
+ -I$ROOT_DIR/tests/helpers/include
+ EOF
+ 
+-(pkill clangd && clangd >/dev/null 2>&1 &) || true  # restart clang if it's running
++    echo "compile_flags.txt generated successfully at $ROOT_DIR/compile_flags.txt"
++}
++
++# Function to restart clangd
++restart_clangd() {
++    echo "Restarting clangd language server..."
++
++    # More robust clangd restart
++    if pgrep -x clangd >/dev/null; then
++        echo "Stopping existing clangd process..."
++        pkill -x clangd || true
++        sleep 1  # Give it time to shut down
++    fi
++
++    # Start clangd in background, suppress output
++    if command -v clangd >/dev/null 2>&1; then
++        nohup clangd >/dev/null 2>&1 &
++        echo "clangd restarted successfully."
++    else
++        echo "WARNING: clangd not found in PATH. Please install clangd for language server support." >&2
++    fi
++}
++
++# Function to display usage information
++usage() {
++    cat <<EOF
++Usage: $0 [ARCHITECTURE]
++
++Set up clangd configuration for TT-LLK development.
++
++ARCHITECTURE:
++    wormhole    Configure for Wormhole architecture
++    blackhole   Configure for Blackhole architecture
++
++If no architecture is specified, the script will attempt to auto-detect
++the architecture using tt-smi.
++
++Examples:
++    $0 wormhole     # Set up for Wormhole
++    $0 blackhole    # Set up for Blackhole
++    $0              # Auto-detect architecture
++EOF
++}
++
++# --- Main Script ---
++
++main() {
++    local arch="$1"
++
++    # Handle help requests
++    if [[ "$arch" == "-h" || "$arch" == "--help" ]]; then
++        usage
++        exit 0
++    fi
++
++    # Get root directory
++    ROOT_DIR=$(git rev-parse --show-toplevel)
++
++    # Determine architecture
++    if [[ -z "$arch" ]]; then
++        echo "No architecture specified. Attempting auto-detection..."
++        if arch=$(get_chip_architecture); then
++            echo "Detected architecture: $arch"
++        else
++            echo "ERROR: Auto-detection failed. Please specify architecture manually." >&2
++            usage
++            exit 1
++        fi
++    fi
++
++    # Set architecture-specific variables
++    if ! set_arch_variables "$arch"; then
++        usage
++        exit 1
++    fi
++
++    echo "Configuring clangd for $arch architecture..."
++
++    # Validate directories before proceeding
++    validate_directories
++
++    # Setup testing environment (downloads SFPI and headers)
++    setup_testing_environment
++
++    # Validate SFPI installation
++    validate_sfpi_installation
++
++    # Generate compile flags
++    generate_compile_flags
++
++    # Restart clangd
++    restart_clangd
++
++    echo "Setup complete! clangd is now configured for $arch architecture."
++    echo "You can now use IDE features like code completion and navigation."
++}
++
++# Execute the main function with all arguments
++main "$@"
+
+File: tests/python_tests/conftest.py
+@@ -3,13 +3,9 @@
+ 
+ import logging
+ import os
+-import sys
+-import time
+ from pathlib import Path
+ 
+ import pytest
+-import requests
+-from requests.exceptions import ConnectionError, RequestException, Timeout
+ from ttexalens import tt_exalens_init
+ from ttexalens.tt_exalens_lib import (
+     arc_msg,
+@@ -27,90 +23,59 @@ def init_llk_home():
+     os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
+ 
+ 
+-@pytest.fixture(autouse=True)
+-def reset_mailboxes_fixture():
+-    reset_mailboxes()
+-    yield
++def check_hardware_headers():
++    """Check if hardware-specific headers have been downloaded for the current architecture."""
+ 
++    # Get the chip architecture
++    chip_arch = get_chip_architecture()
++    arch_name = chip_arch.value.lower()  # Convert enum to string
+ 
+-@pytest.fixture(scope="session", autouse=True)
+-def download_headers():
+-    CHIP_ARCH = get_chip_architecture()
+-    if CHIP_ARCH not in [ChipArchitecture.WORMHOLE, ChipArchitecture.BLACKHOLE]:
+-        sys.exit(f"Unsupported CHIP_ARCH detected: {CHIP_ARCH.value}")
++    # Get the project root (LLK_HOME)
++    llk_home = Path(os.environ.get("LLK_HOME"))
++    header_dir = llk_home / "tests" / "hw_specific" / arch_name / "inc"
+ 
+-    LLK_HOME = os.environ.get("LLK_HOME")
+-    HEADER_DIR = os.path.join(LLK_HOME, "tests", "hw_specific", CHIP_ARCH.value, "inc")
+-    STAMP_FILE = os.path.join(HEADER_DIR, ".headers_downloaded")
+-    if os.path.exists(STAMP_FILE):
+-        print("Headers already downloaded. Skipping download.")
+-        return
+-
+-    BASE_URL = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}"
+-    WORMHOLE_SPECIFIC_URL = f"https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/{CHIP_ARCH.value}/wormhole_b0_defines"
+-    HEADERS = [
++    required_headers = [
+         "cfg_defines.h",
+         "dev_mem_map.h",
+         "tensix.h",
+         "tensix_dev_map.h",
+         "tensix_types.h",
+     ]
+ 
+-    # Create the header directory if it doesn't exist
+-    os.makedirs(HEADER_DIR, exist_ok=True)
++    # Check if header directory exists
++    if not header_dir.exists():
++        pytest.exit(
++            f"ERROR: Hardware-specific header directory not found: {header_dir}\n\n"
++            f"SOLUTION: Run the setup script to download required headers:\n"
++            f"  cd {llk_home}/tests\n"
++            f"  ./setup_testing_env.sh\n",
++            returncode=1,
++        )
++
++    # Check for required headers
++    missing_headers = []
++    for header in required_headers:
++        if not (header_dir / header).exists():
++            missing_headers.append(header)
++
++    if missing_headers:
++        pytest.exit(
++            f"ERROR: Missing required hardware headers for {arch_name}:\n"
++            + "\n".join(f"  {header}" for header in missing_headers)
++            + "\n\n"
++            f"SOLUTION: Run the setup script to download missing headers:\n"
++            f"  cd {llk_home}/tests\n"
++            f"  ./setup_testing_env.sh\n",
++            returncode=1,
++        )
++
++    print(f"✓ Hardware-specific headers for {arch_name} are present")
+ 
+-    # Determine the specific URL based on CHIP_ARCH
+-    specific_url = (
+-        WORMHOLE_SPECIFIC_URL if CHIP_ARCH == ChipArchitecture.WORMHOLE else None
+-    )
+ 
+-    # Download headers
+-    def download_with_retries(url, header):
+-        RETRIES, RETRY_DELAY = 3, 2
+-        for attempt in range(1, RETRIES + 1):
+-            try:
+-                print(f"Attempt {attempt}: Downloading {header} from {url}...")
+-                response = requests.get(url, timeout=10)
+-                if response.status_code == 200:
+-                    with open(os.path.join(HEADER_DIR, header), "wb") as f:
+-                        f.write(response.content)
+-                    return True
+-                elif response.status_code == 429:  # Rate limited
+-                    retry_after = int(response.headers.get("Retry-After", RETRY_DELAY))
+-                    print(f"Rate limited. Waiting {retry_after} seconds...")
+-                    time.sleep(retry_after)
+-                else:
+-                    print(f"HTTP error {response.status_code} for {url}")
+-                    return False
+-            except (ConnectionError, Timeout) as e:
+-                print(f"Network issue on attempt {attempt}: {e}")
+-                if attempt < RETRIES:
+-                    time.sleep(RETRY_DELAY)
+-                    RETRY_DELAY *= 2
+-            except RequestException as e:
+-                print(f"Non-retryable error on attempt {attempt}: {e}")
+-                return False
+-        return False
+-
+-    for header in HEADERS:
+-        header_url = f"{BASE_URL}/{header}"
+-        specific_header_url = f"{specific_url}/{header}" if specific_url else None
+-
+-        # Try primary URL
+-        if not download_with_retries(header_url, header):
+-            # Fallback to specific URL
+-            if specific_header_url and not download_with_retries(
+-                specific_header_url, header
+-            ):
+-                print(f"Failed to download {header} after trying both URLs")
+-                sys.exit(1)
+-            elif not specific_header_url:
+-                print(f"Failed to download {header} after retries from primary URL")
+-                sys.exit(1)
+-
+-    # Create the stamp file to indicate headers are downloaded
+-    with open(STAMP_FILE, "w") as f:
+-        f.write("Headers downloaded.\n")
++@pytest.fixture(autouse=True)
++def reset_mailboxes_fixture():
++    reset_mailboxes()
++    yield
+ 
+ 
+ def pytest_configure(config):
+@@ -124,6 +89,14 @@ def pytest_configure(config):
+         format="%(asctime)s - %(levelname)s - %(message)s",
+     )
+ 
++    initialize_test_target_from_pytest(config)
++    test_target = TestTargetConfig()
++
++    if test_target.run_simulator:
++        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
++    else:
++        tt_exalens_init.init_ttexalens()
++
+ 
+ def pytest_runtest_logreport(report):
+     # Capture errors when tests fail
+@@ -161,6 +134,9 @@ def pytest_sessionstart(session):
+     # Default LLK_HOME environment variable
+     init_llk_home()
+ 
++    # Check if hardware-specific headers are present
++    check_hardware_headers()
++
+     test_target = TestTargetConfig()
+     if not test_target.run_simulator:
+         # Send ARC message for GO BUSY signal. This should increase device clock speed.
+@@ -211,17 +187,6 @@ def pytest_addoption(parser):
+     )
+ 
+ 
+-# Use simulator or silicon to run tests depending on the given command line options
+-def pytest_configure(config):
+-    initialize_test_target_from_pytest(config)
+-    test_target = TestTargetConfig()
+-
+-    if test_target.run_simulator:
+-        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+-    else:
+-        tt_exalens_init.init_ttexalens()
+-
+-
+ # Skip decorators for specific architectures
+ # These decorators can be used to skip tests based on the architecture
+ # For example, if you want to skip a test for the "wormhole" architecture,
+
+File: tests/setup_testing_env.sh
+@@ -12,16 +12,80 @@ cleanup() {
+     fi
+ }
+ 
++# --- Globals ---
++SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
++
++# Function to get chip architecture using tt-smi
++get_chip_architecture() {
++    local smi_output
++    if ! smi_output=$(tt-smi -ls 2>/dev/null); then
++        echo "ERROR: tt-smi command failed or not found. Please ensure tt-smi is installed and in your PATH." >&2
++        exit 1
++    fi
++
++    if echo "$smi_output" | grep -q "Blackhole"; then
++        echo "blackhole"
++    elif echo "$smi_output" | grep -q "Wormhole"; then
++        echo "wormhole"
++    else
++        echo "ERROR: Unable to determine chip architecture from tt-smi output." >&2
++        echo "tt-smi output:" >&2
++        echo "$smi_output" >&2
++        exit 1
++    fi
++}
++
++# Function to download headers
++download_headers() {
++    local chip_arch=$1
++    local header_dir="${SCRIPT_DIR}/hw_specific/${chip_arch}/inc"
++    local stamp_file="${header_dir}/.headers_downloaded"
++
++    if [[ -f "$stamp_file" ]]; then
++        echo "Headers for ${chip_arch} already downloaded."
++        return
++    fi
++
++    echo "Downloading headers for ${chip_arch}..."
++    mkdir -p "$header_dir"
++
++    local base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/${chip_arch}"
++    local headers=("cfg_defines.h" "dev_mem_map.h" "tensix.h" "tensix_dev_map.h" "tensix_types.h")
++
++    local specific_url=""
++    if [[ "$chip_arch" == "wormhole" ]]; then
++        specific_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/${chip_arch}/wormhole_b0_defines"
++    fi
++
++    for header in "${headers[@]}"; do
++        local download_url="${base_url}/${header}"
++        if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
++            if [[ -n "$specific_url" ]]; then
++                local fallback_url="${specific_url}/${header}"
++                echo "Could not find ${header} at ${download_url}, trying ${fallback_url}..."
++                if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$fallback_url" > /dev/null; then
++                    echo "ERROR: Failed to download ${header} from both primary and fallback URLs." >&2
++                    exit 1
++                fi
++            else
++                echo "ERROR: Failed to download ${header} from ${download_url}" >&2
++                exit 1
++            fi
++        fi
++    done
++
++    touch "$stamp_file"
++    echo "Headers for ${chip_arch} downloaded successfully."
++}
++
+ # --- Main Script ---
+ 
+ main() {
+     # Set up trap for cleanup on exit
+     trap cleanup EXIT
+ 
+     # Get script directory and version file
+-    local script_dir
+-    script_dir="$(dirname "$0")"
+-    local version_file="$script_dir/sfpi-version.sh"
++    local version_file="$SCRIPT_DIR/sfpi-version.sh"
+ 
+     # Check if version file exists and is readable
+     if [[ ! -r "$version_file" ]]; then
+@@ -33,6 +97,13 @@ main() {
+     # shellcheck source=/dev/null
+     source "$version_file"
+ 
++    # Get chip architecture
++    local chip_arch
++    chip_arch=$(get_chip_architecture)
++
++    # Download headers
++    download_headers "$chip_arch"
++
+     # Determine architecture, OS, file extension, and extraction flags
+     local arch_os
+     arch_os="$(uname -m)_$(uname -s)"
+@@ -62,8 +133,8 @@ main() {
+ 
+     # Check if SFPI is already installed and up to date
+     local current_version=""
+-    if [[ -f "sfpi/sfpi.version" ]]; then
+-        current_version="$(cat "sfpi/sfpi.version")"
++    if [[ -f "${SCRIPT_DIR}/sfpi/sfpi.version" ]]; then
++        current_version="$(cat "${SCRIPT_DIR}/sfpi/sfpi.version")"
+     fi
+ 
+     if [[ "$current_version" == "$sfpi_version" ]]; then
+@@ -97,16 +168,16 @@ main() {
+ 
+     # Remove old installation and extract the new one
+     echo "Extracting SFPI release..."
+-    rm -rf sfpi
++    rm -rf "${SCRIPT_DIR}/sfpi"
+     # The -f flag is already included in the $tar_flags variable.
+     # Passing it again was causing the error.
+-    if ! tar "$tar_flags" "$download_file"; then
++    if ! tar "${tar_flags}" "$download_file" -C "${SCRIPT_DIR}"; then
+         echo "ERROR: Failed to extract SFPI release from $download_file" >&2
+         exit 1
+     fi
+ 
+     # Write the new version file
+-    echo "$sfpi_version" > sfpi/sfpi.version
++    echo "$sfpi_version" > "${SCRIPT_DIR}/sfpi/sfpi.version"
+     echo "SFPI successfully installed version $sfpi_version"
+     echo "Setup complete. You can now run your tests."
+ }
+

@@ -1,0 +1,246 @@
+PR #223: build: sort python imports automatically
+URL: https://github.com/tenstorrent/tt-llk/pull/223
+
+File: .pre-commit-config.yaml
+@@ -19,6 +19,11 @@ repos:
+   hooks:
+     - id: pylint
+       args: [--disable=all, --enable=wildcard-import]
++- repo: https://github.com/PyCQA/isort
++  rev: 6.0.1
++  hooks:
++    - id: isort
++      language: python
+ - repo: https://github.com/adrienverge/yamllint
+   rev: v1.35.1
+   hooks:
+
+File: tests/python_tests/conftest.py
+@@ -3,19 +3,18 @@
+ 
+ import logging
+ import os
+-import pytest
+-import requests
+ import subprocess
+ import sys
+ import time
+ 
+-from requests.exceptions import ConnectionError, Timeout, RequestException
++import pytest
++import requests
++from requests.exceptions import ConnectionError, RequestException, Timeout
++from ttexalens.tt_exalens_lib import arc_msg
+ 
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.log_utils import _format_log
+ 
+-from ttexalens.tt_exalens_lib import arc_msg
+-
+ 
+ def set_chip_architecture():
+     def _identify_chip_architecture(output):
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -1,10 +1,11 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import torch
+ from enum import Enum
+-from .format_config import DataFormat
+ 
++import torch
++
++from .format_config import DataFormat
+ 
+ format_dict = {
+     DataFormat.Float32: torch.float32,
+
+File: tests/python_tests/helpers/stimuli_generator.py
+@@ -2,7 +2,8 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ import torch
+-from .format_arg_mapping import format_dict, TileCount
++
++from .format_arg_mapping import TileCount, format_dict
+ from .format_config import DataFormat
+ 
+ 
+
+File: tests/python_tests/helpers/test_config.py
+@@ -2,19 +2,19 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ from .format_arg_mapping import (
++    ApproximationMode,
++    DestAccumulation,
++    MathFidelity,
++    MathOperation,
++    ReduceDimension,
+     TileCount,
++    math_dict,
++    pack_dst_dict,
++    pack_src_dict,
+     unpack_A_dst_dict,
+     unpack_A_src_dict,
+     unpack_B_dst_dict,
+     unpack_B_src_dict,
+-    pack_src_dict,
+-    pack_dst_dict,
+-    math_dict,
+-    MathFidelity,
+-    DestAccumulation,
+-    ApproximationMode,
+-    MathOperation,
+-    ReduceDimension,
+ )
+ from .format_config import InputOutputFormat
+ 
+
+File: tests/python_tests/helpers/tilize_untilize.py
+@@ -2,6 +2,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ 
+ import torch
++
+ from .format_arg_mapping import format_dict
+ from .format_config import DataFormat
+ 
+
+File: tests/python_tests/helpers/unpack.py
+@@ -4,6 +4,7 @@
+ # unpack.py
+ 
+ import struct
++
+ import torch
+ 
+ 
+
+File: tests/python_tests/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.isort]
++profile = "black"
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -5,6 +5,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.device import (
+     collect_results,
+
+File: tests/python_tests/test_fill_dest.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_matmul.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_reduce.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -2,6 +2,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -3,6 +3,7 @@
+ 
+ import pytest
+ import torch
++
+ from helpers.device import (
+     collect_results,
+     run_elf_files,
+

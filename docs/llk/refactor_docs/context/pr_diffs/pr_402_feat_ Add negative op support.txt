@@ -1,0 +1,276 @@
+PR #402: feat: Add negative op support
+URL: https://github.com/tenstorrent/tt-llk/pull/402
+
+File: tests/firmware/riscv/common/llk_sfpu_types.h
+@@ -91,6 +91,7 @@ enum class SfpuType
+     fmod,
+     ceil,
+     unused,
++    neg,
+     cumsum,
+     fill,
+     prelu,
+
+File: tests/helpers/include/params.h
+@@ -93,6 +93,9 @@ constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::LSHFT;
+ #ifdef SFPU_OP_LOGICAL_RSHFT
+ constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::LOGICAL_RSHFT;
+ #endif
++#ifdef SFPU_OP_NEG
++constexpr auto SFPU_OPERATION = SfpuType::neg;
++#endif
+ 
+ #ifdef SFPU_OP_SQRT
+ constexpr auto SFPU_OPERATION = SfpuType::sqrt;
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -52,6 +52,7 @@ class MathOperation(Enum):
+     SfpuElwLogicalRightShift = "SFPU_OP_LOGICAL_RSHFT"
+     Silu = "SFPU_OP_SILU"
+     Gelu = "SFPU_OP_GELU"
++    Neg = "SFPU_OP_NEG"
+ 
+ 
+ class ReduceDimension(Enum):
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -116,6 +116,7 @@ def __init__(self):
+             MathOperation.Celu: self._celu,
+             MathOperation.Silu: self._silu,
+             MathOperation.Gelu: self._gelu,
++            MathOperation.Neg: self._neg,
+         }
+         self.data_format = None
+         self.shared_exponent_zeroed = False
+@@ -193,6 +194,9 @@ def _silu(self, x):
+         )
+         return torch.nn.functional.silu(input_tensor).item()
+ 
++    def _neg(self, x):
++        return -x
++
+     def _gelu(self, x):
+         input_tensor = (
+             x
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -29,13 +29,13 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [
++supported_float_formats = [
+     DataFormat.Float32,
+     DataFormat.Float16,
+     DataFormat.Float16_b,
+     DataFormat.Bfp8_b,
+ ]
+-
++supported_int_formats = [DataFormat.Int32]
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -54,25 +54,42 @@
+ #   SPECIFIC INPUT-OUTPUT COMBINATION
+ #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+ 
+-test_formats = input_output_formats(supported_formats)
+-all_params = generate_params(
++float_ops = [
++    MathOperation.Abs,
++    MathOperation.Cos,
++    MathOperation.Log,
++    MathOperation.Reciprocal,
++    MathOperation.Sin,
++    MathOperation.Sqrt,
++    MathOperation.Square,
++    MathOperation.Celu,
++    MathOperation.Silu,
++    MathOperation.Gelu,
++    MathOperation.Neg,
++]
++
++int_ops = [
++    MathOperation.Neg,
++]
++
++float_params = generate_params(
+     ["eltwise_unary_sfpu_test"],
+-    test_formats,
++    input_output_formats(supported_float_formats),
+     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+-    mathop=[
+-        MathOperation.Abs,
+-        MathOperation.Cos,
+-        MathOperation.Log,
+-        MathOperation.Reciprocal,
+-        MathOperation.Sin,
+-        MathOperation.Sqrt,
+-        MathOperation.Square,
+-        MathOperation.Celu,
+-        MathOperation.Silu,
+-        MathOperation.Gelu,
+-    ],
++    mathop=float_ops,
+ )
++
++int_params = generate_params(
++    ["eltwise_unary_sfpu_test"],
++    input_output_formats(supported_int_formats),
++    dest_acc=[DestAccumulation.Yes],
++    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
++    mathop=int_ops,
++)
++
++all_params = float_params + int_params
++
+ param_ids = generate_param_ids(all_params)
+ 
+ 
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -49,7 +49,7 @@ const int iterations = 32;
+ 
+ namespace
+ {
+-void call_sfpu_operation(SfpuType operation)
++void call_sfpu_operation(SfpuType operation, DataFormat MATH_FORMAT)
+ {
+     switch (operation)
+     {
+@@ -87,6 +87,16 @@ void call_sfpu_operation(SfpuType operation)
+             ckernel::sfpu::_init_gelu_<APPROX_MODE>();
+             ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();
+             break;
++        case SfpuType::neg:
++            if (MATH_FORMAT == DataFormat::Int32)
++            {
++                ckernel::sfpu::_calculate_negative_int_<APPROX_MODE, iterations>();
++            }
++            else
++            {
++                ckernel::sfpu::_calculate_negative_<APPROX_MODE, iterations>();
++            }
++            break;
+         default:
+             return;
+     }
+@@ -115,7 +125,7 @@ void run_kernel()
+         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
+         // calling sfpu function from ckernel
+         // this part is where parametrization of operation takes part
+-        call_sfpu_operation(SFPU_OPERATION);
++        call_sfpu_operation(SFPU_OPERATION, static_cast<DataFormat>(MATH_FORMAT));
+ 
+         _llk_math_eltwise_unary_sfpu_done_();
+     }
+
+File: tt_llk_blackhole/common/inc/ckernel_sfpu.h
+@@ -30,6 +30,7 @@
+ #include "sfpu/ckernel_sfpu_max.h"
+ #include "sfpu/ckernel_sfpu_max_int32.h"
+ #include "sfpu/ckernel_sfpu_mul_int.h"
++#include "sfpu/ckernel_sfpu_negative.h"
+ #include "sfpu/ckernel_sfpu_power.h"
+ #include "sfpu/ckernel_sfpu_quant.h"
+ #include "sfpu/ckernel_sfpu_recip.h"
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_negative.h
+@@ -0,0 +1,39 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "sfpi.h"
++
++namespace ckernel
++{
++namespace sfpu
++{
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_negative_()
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat val = sfpi::dst_reg[0];
++        sfpi::dst_reg[0] = -val;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_negative_int_()
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vInt val   = sfpi::dst_reg[0];
++        sfpi::dst_reg[0] = -val;
++        sfpi::dst_reg++;
++    }
++}
++
++} // namespace sfpu
++} // namespace ckernel
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_sfpu.h
+@@ -30,6 +30,7 @@
+ #include "sfpu/ckernel_sfpu_max.h"
+ #include "sfpu/ckernel_sfpu_max_int32.h"
+ #include "sfpu/ckernel_sfpu_mul_int.h"
++#include "sfpu/ckernel_sfpu_negative.h"
+ #include "sfpu/ckernel_sfpu_power.h"
+ #include "sfpu/ckernel_sfpu_quant.h"
+ #include "sfpu/ckernel_sfpu_recip.h"
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_negative.h
+@@ -0,0 +1,43 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "sfpi.h"
++
++namespace ckernel
++{
++namespace sfpu
++{
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_negative_()
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat val = sfpi::dst_reg[0];
++        sfpi::dst_reg[0] = -val;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_negative_int_()
++{
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vInt val = sfpi::dst_reg[0];
++        v_if (val != 0)
++        {
++            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vInt>(-sfpi::reinterpret<sfpi::vFloat>(val));
++        }
++        v_endif;
++        sfpi::dst_reg++;
++    }
++}
++
++} // namespace sfpu
++} // namespace ckernel
+

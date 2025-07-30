@@ -1,0 +1,116 @@
+PR #250: Add 32-bit support for transpose_of_faces to A2D datacopy.
+URL: https://github.com/tenstorrent/tt-llk/pull/250
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_transpose_dest.h
+@@ -19,10 +19,19 @@ using namespace ckernel;
+ // local function declarations
+ template <bool is_32bit>
+ inline void transpose_dest_configure_addrmod();
+-template <bool is_32bit>
++template <bool transpose_of_faces, bool is_32bit>
+ inline void transpose_dest_configure_mop();
+ 
+-template <bool is_32bit = false>
++// Notes on these template parameters:
++// 1. <transpose_of_faces=false, is_32bit=false>: not supported.
++// 2. <transpose_of_faces=false, is_32bit=true>: 4x 16x16 face transpose; can be combined with _llk_unpack_A_ with transpose_of_faces=true.
++// 3. <transpose_of_faces=true, is_32bit=false>: the default case (full 32x32 tile transpose, non-32-bit).
++// 4. <transpose_of_faces=true, is_32bit=true>: full 32x32 tile transpose for 32-bit.
++//
++// We may want to revisit these template parameters, and perhaps the
++// transpose_dest API generally as it's not currently widely used:
++// https://github.com/tenstorrent/tt-llk/issues/290
++template <bool transpose_of_faces = true, bool is_32bit = false>
+ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
+ {
+     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+@@ -31,8 +40,16 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
+ 
+     if constexpr (is_32bit)
+     {
+-        // 4x 32b face transpositions followed by 8x middle-face row swaps.
+-        ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
++        if constexpr (transpose_of_faces)
++        {
++            // 4x 32b face transpositions followed by 8x middle-face row swaps.
++            ckernel_unpack_template::run(instrn_buffer, 12, 0xff0);
++        }
++        else
++        {
++            // 4x 32b face transpositions.
++            ckernel_unpack_template::run(instrn_buffer, 4, 0);
++        }
+     }
+     else
+     {
+@@ -41,6 +58,8 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
+ 
+     // clear SrcA, SrcB valids; reset SrcA, SrcB, Dst counters to zero
+     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
++    // completely reset SrcA/SrcB sync mechanism: see https://github.com/tenstorrent/tt-metal/issues/22383
++    TTI_CLEARDVALID(0, 1);
+ }
+ 
+ template <bool is_32bit>
+@@ -75,7 +94,7 @@ inline void transpose_dest_configure_addrmod()
+         .set(ADDR_MOD_3);
+ }
+ 
+-template <bool is_32bit>
++template <bool transpose_of_faces, bool is_32bit>
+ inline void transpose_dest_configure_mop()
+ {
+     if (is_32bit)
+@@ -188,9 +207,12 @@ inline void transpose_dest_configure_mop()
+     }
+ }
+ 
+-template <bool is_32bit = false>
++template <bool transpose_of_faces = true, bool is_32bit = false>
+ inline void _llk_math_transpose_dest_init_()
+ {
+     transpose_dest_configure_addrmod<is_32bit>();
+-    transpose_dest_configure_mop<is_32bit>();
++    transpose_dest_configure_mop<transpose_of_faces, is_32bit>();
++
++    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
++    math::reset_counters(p_setrwc::SET_ABD_F);
+ }
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_A.h
+@@ -53,6 +53,8 @@ inline void _llk_unpack_A_mop_config_(
+         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+     static constexpr uint unpack_srca_to_dest =
+         TT_OP_UNPACR(SrcA, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // ch0/ch1 z_inc
++    static constexpr uint unpack_srca_to_dest_transpose_of_faces =
++        TT_OP_UNPACR(SrcA, 0b00010010, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc srcA ch1_z+=1, ch0_z+=2
+     static constexpr uint unpack_srca_zerosrc    = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
+     static constexpr uint unpack_srca_set_dvalid = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_SET_DVALID);
+     static constexpr uint unpack_srcb =
+@@ -75,10 +77,21 @@ inline void _llk_unpack_A_mop_config_(
+ 
+     if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format))
+     {
+-        const uint32_t outerloop     = num_faces;
+-        constexpr uint32_t innerloop = 1;
+-        ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
+-        tmp.program(instrn_buffer);
++        if (transpose_of_faces && num_faces == 4)
++        {
++            const uint32_t outerloop = 2;
++            const uint32_t innerloop = 2;
++            ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest_transpose_of_faces);
++            tmp.set_end_op(TT_OP_SETADCZW(p_setadc::UNP_A, 0, 2, 0, 1, 0b0101));
++            tmp.program(instrn_buffer);
++        }
++        else
++        {
++            const uint32_t outerloop     = num_faces;
++            constexpr uint32_t innerloop = 1;
++            ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
++            tmp.program(instrn_buffer);
++        }
+     }
+     else if constexpr (BType == BroadcastType::COL)
+     {
+

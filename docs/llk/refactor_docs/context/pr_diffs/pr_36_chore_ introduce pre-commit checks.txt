@@ -1,0 +1,328 @@
+PR #36: chore: introduce pre-commit checks
+URL: https://github.com/tenstorrent/tt-llk/pull/36
+
+File: .clang-format
+@@ -0,0 +1,87 @@
++BasedOnStyle: Google
++ColumnLimit: 160
++IndentWidth: 4
++
++# Indentation and Alignment
++# -------------------------
++# This will make access modifiers (public/protected/private) sit on the same indentation as `class` keyword
++AccessModifierOffset: -4
++
++# Arguments, parameters and construction initializer are broken as following:
++# - Try to fit everything into single line (controlled by ColumnLimit).
++# - If it doesn't fit, break immediately after open bracket (in case of arguments and parameters)
++#   or after colon in case of constructor initializers.
++# - Try to fit everything else into the second line.
++# - If it doesn't fit in second line, then each argument, parameter or initializer will sit in its own line.
++AlignAfterOpenBracket: AlwaysBreak
++AlignConsecutiveAssignments: Consecutive
++AlignConsecutiveBitFields: Consecutive
++AlignConsecutiveMacros: Consecutive
++AlignTrailingComments: true
++AlignEscapedNewlines: Left
++AlignOperands: true
++
++# Bin Packing
++# -----------
++BinPackArguments: false
++BinPackParameters: false
++
++# Constructor Initializers
++# ------------------------
++# When constructor initializers exist in the constructor definition, leave the colon as last thing on the original
++# line instead of putting it on the next line.
++BreakConstructorInitializers: AfterColon
++
++# Pointer and Reference Alignment
++# -------------------------------
++DerivePointerAlignment: true
++PointerAlignment: Left
++ReferenceAlignment: Left
++
++# Braces and Blocks
++# -----------------
++# Disallow single statements after if/else/for/while/do without curly braces.
++InsertBraces: true
++BreakBeforeBraces: Allman
++
++# Separate definition blocks, including classes, structs, enums, and functions.
++SeparateDefinitionBlocks: Always
++SpaceBeforeCpp11BracedList: true
++
++# Spaces and Formatting
++# ---------------------
++SpacesBeforeTrailingComments: 1
++SpacesInAngles: Never
++
++# Short Statements and Functions
++# ------------------------------
++AllowShortLoopsOnASingleLine: false
++AllowShortBlocksOnASingleLine: false
++AllowShortEnumsOnASingleLine: false
++AllowShortIfStatementsOnASingleLine: false
++AllowShortFunctionsOnASingleLine: false
++
++# Miscellaneous
++# -------------
++RemoveSemicolon: true
++SortUsingDeclarations: LexicographicNumeric
++
++# Include Categories
++# ------------------
++IncludeCategories:
++  - Regex: '^<.*\.h>'
++    Priority: 1
++    SortPriority: 0
++  - Regex: '^<.*>'
++    Priority: 2
++    SortPriority: 0
++  - Regex: '^".*"'
++    Priority: 3
++    SortPriority: 0
++
++# Custom Macros
++# -------------
++# Add custom macros for v_if and v_elseif
++ForEachMacros:
++  - v_if
++  - v_elseif
+
+File: .clang-format-ignore
+@@ -0,0 +1,20 @@
++tt_llk_blackhole/hw_specific/inc/cfg_defines.h
++tt_llk_blackhole/hw_specific/inc/ckernel_sfpu_converter.h
++tt_llk_blackhole/hw_specific/inc/dev_mem_map.h
++tt_llk_blackhole/hw_specific/inc/noc_nonblocking_api.h
++tt_llk_blackhole/hw_specific/inc/noc_parameters.h
++tt_llk_blackhole/hw_specific/inc/tensix.h
++tt_llk_blackhole/hw_specific/inc/tensix_types.h
++
++tt_llk_wormhole_b0/hw_specific/inc/cfg_defines.h
++tt_llk_wormhole_b0/hw_specific/inc/ckernel_sfpu_converter.h
++tt_llk_wormhole_b0/hw_specific/inc/dev_mem_map.h
++tt_llk_wormhole_b0/hw_specific/inc/noc_nonblocking_api.h
++tt_llk_wormhole_b0/hw_specific/inc/noc_parameters.h
++tt_llk_wormhole_b0/hw_specific/inc/tensix.h
++tt_llk_wormhole_b0/hw_specific/inc/tensix_types.h
++
++# Do not format grayskull files
++tt_llk_grayskull/common/inc/*
++tt_llk_grayskull/common/inc/sfpu/*
++tt_llk_grayskull/llk_lib/*
+
+File: .github/workflows/pre-commit.yml
+@@ -0,0 +1,28 @@
++# Run Pre-commit Hooks
++name: Run pre-commit hooks
++
++on:
++  workflow_dispatch:
++  pull_request:
++  push:
++    branches: ["main"]
++
++jobs:
++  pre-commit:
++    name: Run pree-commit hooks
++    runs-on: ubuntu-latest
++    steps:
++      - name: Checkout code
++        uses: actions/checkout@v4
++        with:
++          fetch-depth: 0  # Fetch all history so 'origin/main' is available
++
++      - name: Set up Python
++        uses: actions/setup-python@v4
++        with:
++          python-version: 3.8
++
++      - name: Run pre-commit and fix issues
++        uses: pre-commit/action@v3.0.1
++        with:
++          extra_args: "--from-ref origin/main --to-ref HEAD"
+
+File: .github/workflows/static-checks.yml
+@@ -1,25 +0,0 @@
+-name: "[post-commit] Static-check: license"
+-
+-on:
+-  workflow_dispatch:
+-  push:
+-    branches: ["main"]
+-  workflow_call:
+-  pull_request:
+-    branches:
+-      - "main"
+-
+-jobs:
+-  check-spdx-licenses:
+-    runs-on: ubuntu-latest
+-    steps:
+-      - uses: actions/checkout@v3
+-      - uses: actions/setup-python@v4
+-        with:
+-          python-version: '3.8'
+-          cache: 'pip'
+-          cache-dependency-path: infra/requirements-infra.txt
+-      - name: Install infra deps
+-        run: python -m pip install -r infra/requirements-infra.txt
+-      - name: Check SPDX licenses
+-        run: python -m check_copyright --verbose --dry-run --config ./infra/check_copyright_config.yaml .
+
+File: .gitignore
+@@ -0,0 +1,14 @@
++**/build/**
++**/__pycache__/**
++.idea/
++.cpmcache/
++compile_commands.json
++*.code-workspace
++*.o
++*.elf
++*.d/
++.cache/**
++.envrc
++.vscode/
++*.log
++*.csv
+
+File: .pre-commit-config.yaml
+@@ -0,0 +1,31 @@
++repos:
++- repo: https://github.com/pre-commit/mirrors-clang-format
++  rev: v19.1.7
++  hooks:
++  - id: clang-format
++    args: ["-style=file"]
++- repo: https://github.com/psf/black-pre-commit-mirror
++  rev: 24.8.0
++  hooks:
++    - id: black
++      language_version: python3
++- repo: https://github.com/adrienverge/yamllint
++  rev: v1.35.1
++  hooks:
++  - id: yamllint
++    exclude: ^(?!\.github/).* # Only include files in .github/
++- repo: https://github.com/espressif/check-copyright/
++  rev: v1.0.3
++  hooks:
++    - id: check-copyright
++      args: ['--config', 'infra/check_copyright_config.yaml', "--replace"]
++- repo: https://github.com/pre-commit/pre-commit-hooks
++  rev: v3.4.0
++  hooks:
++    - id: trailing-whitespace
++    - id: end-of-file-fixer
++    - id: check-added-large-files
++      args: ["--maxkb=500"]
++    - id: check-merge-conflict
++    - id: check-executables-have-shebangs
++    - id: check-docstring-first
+
+File: .yamllint
+@@ -0,0 +1,11 @@
++---
++
++extends: default
++
++rules:
++  # yaml documents should start optionally with ---
++  document-start: disable
++  line-length:
++    max: 120
++  # the "on:" is detected as truthy value and spawns a false warning
++  truthy: disable
+
+File: CONTRIBUTING.md
+@@ -0,0 +1,39 @@
++## Contribution standards
++This project has adopted C++ formatting and style as defined in `.clang-format`.
++There are additional requirements such as license headers.
++
++## Pre-commit Hook Integration for Formatting and Linting
++
++As part of maintaining consistent code formatting across the project, we have integrated the [pre-commit](https://pre-commit.com/) framework into our workflow. The pre-commit hooks will help automatically check and format code before commits are made, ensuring that we adhere to the project's coding standards.
++
++### What is Pre-commit?
++
++Pre-commit is a framework for managing and maintaining multi-language pre-commit hooks. It helps catch common issues early by running a set of hooks before code is committed, automating tasks like:
++
++- Formatting code (e.g., fixing trailing whitespace, enforcing end-of-file newlines)
++- Running linters (e.g., `clang-format`, `black`, `flake8`)
++- Checking for merge conflicts or other common issues.
++
++For more details on pre-commit, you can visit the [official documentation](https://pre-commit.com/).
++
++### How to Set Up Pre-commit Locally
++
++To set up pre-commit on your local machine, follow these steps:
++
++1. **Install Pre-commit**:
++   Ensure you have Python installed, then run:
++   ```bash
++   pip install pre-commit
++   ```
++   *Note:* pre-commit is already installed if you are using the python virtual environment.
++2. **Install the Git Hook Scripts**:
++   In your local repository, run the following command to install the pre-commit hooks:
++   ```bash
++   pre-commit install
++   ```
++   This command will configure your local Git to run the defined hooks automatically before each commit.
++3. **Run Pre-commit Hooks Manually**:
++   You can also run the hooks manually against all files at any time with:
++   ```bash
++   pre-commit run --all-files
++   ```
+
+File: infra/check_copyright_config.yaml
+@@ -10,6 +10,9 @@ DEFAULT:
+     // SPDX-FileCopyrightText: © {years} Tenstorrent AI ULC
+     //
+     // SPDX-License-Identifier: {license}
++  new_notice_python: | # notice for new Python files
++    # SPDX-License-Identifier: {license}
++    # SPDX-FileCopyrightText: © {years} Tenstorrent AI ULC
+ 
+   # comment lines matching:
+   # SPDX-FileCopyrightText: year[-year] Espressif Systems
+@@ -21,3 +24,9 @@ DEFAULT:
+     - "*.cpp"
+     - "*.cc"
+     - "*.h"
++    - "*.py"
++  ignore:  # You can also select ignoring files here
++    perform_check: no  # Don't check files from that block
++    include:
++      - tt_llk_blackhole/hw_speific/
++      - tt_llk_wormhole_b0/hw_specific/
+
+File: infra/requirements-infra.txt
+@@ -1,3 +0,0 @@
+-ansible==6.0.0
+-ansible-lint==6.7.0
+-check-copyright @ git+https://github.com/espressif/check-copyright.git@master
+
+File: tt_llk_blackhole/infra/requirements-infra.txt
+@@ -1,3 +0,0 @@
+-ansible==6.0.0
+-ansible-lint==6.7.0
+-check-copyright @ git+https://github.com/espressif/check-copyright.git@master
+
+File: tt_llk_grayskull/infra/requirements-infra.txt
+@@ -1,3 +0,0 @@
+-ansible==6.0.0
+-ansible-lint==6.7.0
+-check-copyright @ git+https://github.com/espressif/check-copyright.git@master
+
+File: tt_llk_wormhole_b0/infra/requirements-infra.txt
+@@ -1,3 +0,0 @@
+-ansible==6.0.0
+-ansible-lint==6.7.0
+-check-copyright @ git+https://github.com/espressif/check-copyright.git@master
+

@@ -1,0 +1,11 @@
+PR #87: build: switch IRD base image to metaillium-dev
+URL: https://github.com/tenstorrent/tt-llk/pull/87
+
+File: .github/Dockerfile.ird
+@@ -1,4 +1,4 @@
+-FROM ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-amd64:latest
++FROM ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-dev-amd64:latest
+ SHELL ["/bin/bash", "-c"]
+ 
+ # Set environment variables
+

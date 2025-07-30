@@ -1,0 +1,14 @@
+PR #205: Reset config context to 0 when doing unpack tilize to dest
+URL: https://github.com/tenstorrent/tt-llk/pull/205
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_tilize.h
+@@ -233,6 +233,8 @@ inline void _llk_unpack_tilize_(
+     }
+     else
+     {
++        // Unpack tilize to DEST works with only one config context, hence it needs to be reset before calling the function.
++        reset_config_context();
+         unpack_tilize_to_dest_impl(base_address, unpack_src_format, num_loops, top_face_offset_address, bot_face_offset_address);
+     }
+ 
+

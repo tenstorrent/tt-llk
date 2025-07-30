@@ -1,0 +1,369 @@
+PR #507: Add int32 to unpack_tilize/pack_untilize tests.
+URL: https://github.com/tenstorrent/tt-llk/pull/507
+
+File: tests/firmware/riscv/blackhole/l1_address_map.h
+@@ -67,7 +67,7 @@ struct address_map
+     static constexpr std::uint32_t NCRISC_L1_RUNTIME_SECTION_SIZE = 16 * 1024;
+     static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE =
+         NCRISC_L1_RUNTIME_SECTION_BASE +
+-        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
++        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used e.g. TEST_MAILBOX
+     static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE =
+         NCRISC_L1_RUNTIME_SECTION_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
+     static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_L1_RUNTIME_SECTION_BASE + 0x40;
+@@ -85,7 +85,7 @@ struct address_map
+     static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(TRISC0_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-    static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(TRISC2_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(EPOCH_RUNTIME_CONFIG_BASE % NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(OVERLAY_BLOB_BASE % NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+@@ -128,7 +128,7 @@ struct address_map
+     // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
+     static constexpr std::uint32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
+ 
+-    // This value must be equal to the sum of all all the subsequent sizes in this section
++    // This value must be equal to the sum of all the subsequent sizes in this section
+     static constexpr std::uint32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
+     // Queue header below is used for the concurrent performance trace
+     static constexpr std::uint32_t PERF_QUEUE_HEADER_SIZE = 16;
+
+File: tests/firmware/riscv/wormhole/l1_address_map.h
+@@ -53,7 +53,7 @@ struct address_map
+     static constexpr std::uint32_t NCRISC_LOCAL_MEM_BASE = NCRISC_FIRMWARE_BASE + NCRISC_FIRMWARE_SIZE - NCRISC_LOCAL_MEM_SIZE; // Copy of the local memory
+     static constexpr std::uint32_t NCRISC_L1_SCRATCH_BASE =
+         NCRISC_FIRMWARE_BASE +
+-        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used .e.g. TEST_MAILBOX
++        0x200; // L1 Scratch used by NCRISC sized NCRISC_L1_SCRATCH_SIZE, skip 0x200 because some of the beginning of NCRISC is used e.g. TEST_MAILBOX
+     static constexpr std::uint32_t NCRISC_L1_CONTEXT_BASE =
+         NCRISC_FIRMWARE_BASE + 0x20; // If changing make sure to modify src/firmware/riscv/targets/ncrisc/contextASM.S
+     static constexpr std::uint32_t NCRISC_L1_DRAM_POLLING_CTRL_BASE = NCRISC_FIRMWARE_BASE + 0x40;
+@@ -79,7 +79,7 @@ struct address_map
+     static_assert(FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(NCRISC_FIRMWARE_BASE % NOC_ADDRESS_ALIGNMENT == 0, "NCRISC_FIRMWARE_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(TRISC0_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC0_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+-    static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TROSC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
++    static_assert(TRISC1_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC1_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(TRISC2_BASE % NOC_ADDRESS_ALIGNMENT == 0, "TRISC2_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(EPOCH_RUNTIME_CONFIG_BASE % NOC_ADDRESS_ALIGNMENT == 0, "EPOCH_RUNTIME_CONFIG_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+     static_assert(OVERLAY_BLOB_BASE % NOC_ADDRESS_ALIGNMENT == 0, "OVERLAY_BLOB_BASE must be aligned to NOC_ADDRESS_ALIGNMENT");
+@@ -121,7 +121,7 @@ struct address_map
+     // Parameter UNPACK_PACK_PERF_BUF_SIZE_LEVEL_1 assumes the following PERF_BUF_SIZE = 12KB - 768
+     static constexpr std::uint32_t PERF_BUF_SIZE = FIRMWARE_SIZE - BRISC_FIRMWARE_SIZE - ZEROS_SIZE;
+ 
+-    // This value must be equal to the sum of all all the subsequent sizes in this section
++    // This value must be equal to the sum of all the subsequent sizes in this section
+     static constexpr std::uint32_t PERF_TOTAL_SETUP_BUFFER_SIZE = 64;
+     // Queue header below is used for the concurrent performance trace
+     static constexpr std::uint32_t PERF_QUEUE_HEADER_SIZE = 16;
+
+File: tests/python_tests/conftest.py
+@@ -87,7 +87,7 @@ def download_with_retries(url, header):
+                     time.sleep(RETRY_DELAY)
+                     RETRY_DELAY *= 2
+             except RequestException as e:
+-                print(f"Non-retriable error on attempt {attempt}: {e}")
++                print(f"Non-retryable error on attempt {attempt}: {e}")
+                 return False
+         return False
+ 
+
+File: tests/python_tests/helpers/format_config.py
+@@ -73,7 +73,7 @@ def is_exponent_B(self) -> bool:
+ @dataclass
+ class FormatConfig:
+     """
+-    A data class that holds configuration details for formats passed to LLKs.tions).
++    A data class that holds configuration details for formats passed to LLKs
+ 
+     Attributes:
+     unpack_A_src (DataFormat): The source format for source register A in the Unpacker, which is the format of our data in L1.
+@@ -88,7 +88,7 @@ class FormatConfig:
+     same_src_format (bool): If `True`, the formats for source registers A and B will be the same for unpack operations.
+     If `False`, source registers A and B have different formats formats must be specified. Defaults to `True`.
+ 
+-    unpack_B_src (Optional[DataFormat]): The source format for source register B in the Unpacker which is the format of our data in L1, used only if `same_src_format=False` i.e when source regosters don't share the same formats we distinguish source register A and B formats.
++    unpack_B_src (Optional[DataFormat]): The source format for source register B in the Unpacker which is the format of our data in L1, used only if `same_src_format=False` i.e when source registers don't share the same formats we distinguish source register A and B formats.
+     unpack_B_dst (Optional[DataFormat]): The destination format for source register B in the Unpacker, which is the format of our data in src register used only if `same_src_format=False` i.e when source registers don't share the same formats we distinguish source register A and B formats.
+ 
+     Example:
+@@ -230,7 +230,7 @@ def is_dest_acc_needed(format: InputOutputFormat) -> bool:
+     If the input-output combination is an outlier that is not supported when dest accumulation is on
+     then the data format inference model will turn dest accumulation off for this combination to work.
+ 
+-    We must notify the user that this has happened and cheange the test output to reflect this.
++    We must notify the user that this has happened and change the test output to reflect this.
+     """
+     return (
+         format.input_format in [DataFormat.Bfp8_b, DataFormat.Float16_b]
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -570,7 +570,7 @@ def __call__(
+         result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
+         return torch.tensor(result, dtype=format_dict[data_format])
+ 
+-    # Operation methods are cover by Eltwise Binary Golden
++    # Operation methods are covered by Eltwise Binary Golden
+     def _xlogy(self, x, y):
+         # Unable to model edge cases for Tensix behavior in golden.
+         # Tensix shows inconsistent patterns in handling non-finite results for xlogy, depending on the input,
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -26,6 +26,7 @@
+     DataFormat.Float16_b,
+     DataFormat.Float16,
+     DataFormat.Float32,
++    DataFormat.Int32,
+     DataFormat.Bfp8_b,
+ ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
+ 
+@@ -55,6 +56,10 @@
+ def test_pack_untilize(testname, formats):
+     if formats.output_format == DataFormat.Bfp8_b:
+         pytest.skip("Pack Untilize does not support Bfp8_b format")
++    if (formats.input_format == DataFormat.Int32) ^ (
++        formats.output_format == DataFormat.Int32
++    ):
++        pytest.skip("Pack Untilize does not support mixing Int32 with other formats")
+ 
+     input_dimensions = [32, 128]
+ 
+@@ -74,6 +79,7 @@ def test_pack_untilize(testname, formats):
+         "testname": testname,
+         "tile_cnt": tile_cnt,
+         "input_dimensions": input_dimensions,
++        "unpack_to_dest": formats.input_format.is_32_bit(),
+     }
+ 
+     run_test(test_config)
+
+File: tests/python_tests/test_profiler_overhead.py
+@@ -28,7 +28,7 @@ def test_profiler_overhead():
+ 
+     runtime = Profiler.get_data(test_config["testname"])
+ 
+-    # filter out all zones that dont have marker "OVERHEAD"
++    # filter out all zones that don't have marker "OVERHEAD"
+     overhead_zones = [x for x in runtime.unpack if x.full_marker.marker == "OVERHEAD"]
+     assert (
+         len(overhead_zones) == 32
+
+File: tests/python_tests/test_profiler_primitives.py
+@@ -62,7 +62,7 @@ def test_profiler_primitives():
+     ), f"Expected timestamp.timestamp > 0, got {timestamp.timestamp}"
+     assert (
+         timestamp.data is None
+-    ), f"Expected timestamp.date to be None, got {timestamp.data}"
++    ), f"Expected timestamp.data to be None, got {timestamp.data}"
+ 
+     # TIMESTAMP_DATA
+     timestamp_data = runtime.pack[0]
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -25,6 +25,7 @@
+     DataFormat.Float16_b,
+     DataFormat.Float16,
+     DataFormat.Float32,
++    DataFormat.Int32,
+     DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
+ ]  # Included in test only as input format
+ 
+@@ -55,6 +56,10 @@ def test_unpack_tilize(testname, formats):
+ 
+     if formats.input_format == DataFormat.Bfp8_b:
+         pytest.skip("Unpack Tilize does not support Bfp8_b input format")
++    if (formats.input_format == DataFormat.Int32) ^ (
++        formats.output_format == DataFormat.Int32
++    ):
++        pytest.skip("Unpack Tilize does not support mixing Int32 with other formats")
+ 
+     input_dimensions = [64, 64]
+ 
+@@ -75,6 +80,7 @@ def test_unpack_tilize(testname, formats):
+         "testname": testname,
+         "tile_cnt": tile_cnt,
+         "input_dimensions": input_dimensions,
++        "unpack_to_dest": formats.input_format == DataFormat.Int32,
+     }
+ 
+     run_test(test_config)
+
+File: tests/sources/pack_untilize_test.cpp
+@@ -57,7 +57,8 @@ void run_kernel()
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, formats.math, formats.math);
++        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
++            i, formats.math, formats.math);
+     }
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+
+File: tests/sources/tilize_calculate_untilize_L1.cpp
+@@ -40,7 +40,7 @@ void run_kernel()
+ 
+     /*
+     In this test we fuse two LLK pipeline runs, one is to unpack untilized buffers/operands from L1 (39-45) and pack them in tilized format(130-145).
+-    The next run unpacks these two tilized operands, performs a math compute and pack them out in utilized format.
++    The next run unpacks these two tilized operands, performs a math compute and pack them out in untilized format.
+     Since we have set all three TRISCs to run at the same time, fusing these two runs will cause a race condition where unpacker will immediately read from
+     L1 before the packer has completed writing to L1. To prevent the unpacker from prematurely reading from L1 before packer has completed write
+     the unpacker needs to wait for packer to finish writing to L1 before it starts reading from L1 for the second iteration of LLK pipeline.
+
+File: tests/sources/unpack_tilize_test.cpp
+@@ -65,7 +65,8 @@ void run_kernel()
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, formats.math, formats.math);
++        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
++            i, formats.math, formats.math);
+     }
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+@@ -80,22 +81,22 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    const bool UNTILIIZE = false;
++    const bool UNTILIZE = false;
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIIZE>();
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
++    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIIZE>(i, L1_ADDRESS(buffer_Res[i]));
++        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
+     }
+     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+
+File: tests/sources/unpack_untilize_test.cpp
+@@ -74,20 +74,20 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    const bool UNTILIIZE = false;
++    const bool UNTILIZE = false;
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #endif
+ 
+-    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+ #else
+-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIIZE>();
++    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+
+File: tt_llk_blackhole/common/inc/ckernel.h
+@@ -371,7 +371,7 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask,
+     volatile uint tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
+     uint32_t cfg_data                  = cfg_regs[addr];
+ 
+-    // Shift and mask wrdata to properly align withn 32-bit DWORD
++    // Shift and mask wrdata to properly align within 32-bit DWORD
+     wrdata <<= cfg_shamt;
+     wrdata &= cfg_mask;
+ 
+
+File: tt_llk_blackhole/common/inc/ckernel_ops.h
+@@ -214,7 +214,7 @@
+ 
+ #define TT_OP_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control) TT_OP(0x35, (((reset_srcb_gate_control) << 1) + ((reset_srca_gate_control) << 0)))
+ #define TT_GATESRCRST_VALID(reset_srcb_gate_control, reset_srca_gate_control) \
+-    (ckernel::is_valid(reset srcb gate control, 23) && ckernel::is_valid(reset srca gate control, 1))
++    (ckernel::is_valid(reset_srcb_gate_control, 23) && ckernel::is_valid(reset_srca_gate_control, 1))
+ #define TT_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control) \
+     ckernel::instrn_buffer[0] = TT_OP_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control)
+ #define TTI_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control) INSTRUCTION_WORD(TT_OP_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control))
+@@ -1051,7 +1051,7 @@
+ #define TTI_WRCFG(GprAddress, wr128b, CfgReg)      INSTRUCTION_WORD(TT_OP_WRCFG(GprAddress, wr128b, CfgReg))
+ 
+ #define TT_OP_XMOV(Mov_block_selection, Last)    TT_OP(0x40, (((Mov_block_selection) << 23) + ((Last) << 0)))
+-#define TT_XMOV_VALID(Mov_block_selection, Last) (ckernel::is_valid(Mov block selection, 1) && ckernel::is_valid(Last, 23))
++#define TT_XMOV_VALID(Mov_block_selection, Last) (ckernel::is_valid(Mov_block_selection, 1) && ckernel::is_valid(Last, 23))
+ #define TT_XMOV(Mov_block_selection, Last)       ckernel::instrn_buffer[0] = TT_OP_XMOV(Mov_block_selection, Last)
+ #define TTI_XMOV(Mov_block_selection, Last)      INSTRUCTION_WORD(TT_OP_XMOV(Mov_block_selection, Last))
+ 
+
+File: tt_llk_blackhole/common/inc/cpack_common.h
+@@ -108,7 +108,7 @@ typedef union
+     dest_rd_ctrl_t f;
+ } dest_rd_ctrl_u;
+ 
+-// PACK_EDGE_OFFSET_SEC[0:3] register sutructure
++// PACK_EDGE_OFFSET_SEC[0:3] register structure
+ //
+ // Lower 16b represent a mask that is applied on a single row of one face on the packer output
+ // Higher 16b contain information about which TILE_ROW_SET_MAPPING register is used for each packer (only in PACK_EDGE_OFFSET_SEC0)
+
+File: tt_llk_wormhole_b0/common/inc/ckernel.h
+@@ -362,7 +362,7 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask,
+     volatile uint tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
+     uint32_t cfg_data                  = cfg_regs[addr];
+ 
+-    // Shift and mask wrdata to properly align withn 32-bit DWORD
++    // Shift and mask wrdata to properly align within 32-bit DWORD
+     wrdata <<= cfg_shamt;
+     wrdata &= cfg_mask;
+ 
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_ops.h
+@@ -199,7 +199,7 @@
+ 
+ #define TT_OP_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control) TT_OP(0x35, (((reset_srcb_gate_control) << 1) + ((reset_srca_gate_control) << 0)))
+ #define TT_GATESRCRST_VALID(reset_srcb_gate_control, reset_srca_gate_control) \
+-    (ckernel::is_valid(reset srcb gate control, 23) && ckernel::is_valid(reset srca gate control, 1))
++    (ckernel::is_valid(reset_srcb_gate_control, 23) && ckernel::is_valid(reset_srca_gate_control, 1))
+ #define TT_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control) \
+     ckernel::instrn_buffer[0] = TT_OP_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control)
+ #define TTI_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control) INSTRUCTION_WORD(TT_OP_GATESRCRST(reset_srcb_gate_control, reset_srca_gate_control))
+@@ -952,7 +952,7 @@
+ #define TTI_WRCFG(GprAddress, wr128b, CfgReg)      INSTRUCTION_WORD(TT_OP_WRCFG(GprAddress, wr128b, CfgReg))
+ 
+ #define TT_OP_XMOV(Mov_block_selection, Last)    TT_OP(0x40, (((Mov_block_selection) << 23) + ((Last) << 0)))
+-#define TT_XMOV_VALID(Mov_block_selection, Last) (ckernel::is_valid(Mov block selection, 1) && ckernel::is_valid(Last, 23))
++#define TT_XMOV_VALID(Mov_block_selection, Last) (ckernel::is_valid(Mov_block_selection, 1) && ckernel::is_valid(Last, 23))
+ #define TT_XMOV(Mov_block_selection, Last)       ckernel::instrn_buffer[0] = TT_OP_XMOV(Mov_block_selection, Last)
+ #define TTI_XMOV(Mov_block_selection, Last)      INSTRUCTION_WORD(TT_OP_XMOV(Mov_block_selection, Last))
+ 
+
+File: tt_llk_wormhole_b0/common/inc/cpack_common.h
+@@ -106,7 +106,7 @@ typedef union
+     dest_rd_ctrl_t f;
+ } dest_rd_ctrl_u;
+ 
+-// PACK_EDGE_OFFSET_SEC[0:3] register sutructure
++// PACK_EDGE_OFFSET_SEC[0:3] register structure
+ //
+ // Lower 16b represent a mask that is applied on a single row of one face on the packer output
+ // Higher 16b contain information about which TILE_ROW_SET_MAPPING register is used for each packer (only in PACK_EDGE_OFFSET_SEC0)
+

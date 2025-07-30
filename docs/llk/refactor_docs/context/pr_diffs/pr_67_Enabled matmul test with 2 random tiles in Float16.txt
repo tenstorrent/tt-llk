@@ -1,0 +1,124 @@
+PR #67: Enabled matmul test with 2 random tiles in Float16_b
+URL: https://github.com/tenstorrent/tt-llk/pull/67
+
+File: tests/python_tests/helpers/pack.py
+@@ -29,7 +29,7 @@ def bfloat16_to_bytes(number):
+     for i in range(0, len(torch_tensor), 2):
+         half1 = bfloat16_to_bytes(torch_tensor[i])
+         half2 = bfloat16_to_bytes(torch_tensor[i + 1])
+-        packed_bytes.extend([half1[0:2][::-1], half2[0:2][::-1]][::-1])
++        packed_bytes.extend([half1[0:2][::-1], half2[0:2][::-1]])
+     return flatten_list(packed_bytes)
+ 
+ 
+
+File: tests/python_tests/helpers/unpack.py
+@@ -48,6 +48,10 @@ def bytes_to_bfloat16(byte_list):
+         for i in range(0, len(limited_packed_list), 2)
+     ]
+ 
++    if unpack_src == pack_dst:
++        for i in range(0, len(result), 2):
++            result[i], result[i + 1] = result[i + 1], result[i]
++
+     # Patch Up! Fixes incorrect reading of numbers in L1:
+     # When input format i.e `unpack_src` is BFP8_b but the result is packed into a different format then consecutive pairs of numbers are inverted in L1.
+     # Instead of being placed as (a,b,c,d,e,f,...) in L1, they are placed as (b,a,d,c,f,e,...).
+
+File: tests/python_tests/test_matmul.py
+@@ -18,13 +18,17 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+                 element = element.to(torch.int32)
+                 element &= 0xFFF8
+ 
+-    return torch.matmul(
+-        tilize(operand1).view(32, 32), tilize(operand2).view(32, 32)
+-    ).view(-1)
++    operand1_matrix = operand1.view(32, 32).to(format_dict[data_format])
++    operand2_matrix = operand2.view(32, 32).to(format_dict[data_format])
++
++    result_matrix = torch.zeros(32, 32, dtype=operand1_matrix.dtype)
++    result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
++
++    return result_matrix.view(1024).to(format_dict[data_format])
+ 
+ 
+ all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b], all_same=True, same_src_reg_format=True
++    [DataFormat.Float16_b], all_same=True
+ )  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+ all_params = generate_params(
+     ["matmul_test"],
+@@ -42,19 +46,17 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+ )
+ def test_matmul(testname, formats, dest_acc, math_fidelity):
+ 
+-    src_A = torch.tensor(
+-        [torch.rand(1, dtype=format_dict[formats.unpack_A_src]).item()] * 1024,
+-        dtype=torch.bfloat16,
+-    )
+-    src_B = torch.tensor(
+-        [torch.rand(1, dtype=format_dict[formats.unpack_B_src]).item()] * 1024,
+-        dtype=torch.bfloat16,
+-    )
++    src_A, src_B = generate_stimuli()
+ 
+     golden_tensor = generate_golden(src_A, src_B, formats.pack_dst, math_fidelity)
++    golden_tensor = tilize(golden_tensor, format_dict[formats.unpack_A_src])
++    golden_tensor = golden_tensor.to(format_dict[formats.pack_dst])
+ 
+     write_stimuli_to_l1(
+-        tilize(src_A), tilize(src_B), formats.unpack_A_src, formats.unpack_B_src
++        tilize(src_A, format_dict[formats.unpack_A_src]),
++        tilize(src_B, format_dict[formats.unpack_B_src]),
++        formats.unpack_A_src,
++        formats.unpack_B_src,
+     )
+ 
+     test_config = {
+
+File: tests/sources/matmul_test.cpp
+@@ -36,11 +36,9 @@ void run_kernel()
+ 
+     std::uint32_t tile_size = 128;
+ 
+-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+-        UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, FACE_R_DIM, 0, 4, 4, tile_size, tile_size);
+-    _llk_unpack_AB_matmul_init_<>(0, ct_dim, rt_dim, kt_dim, FACE_R_DIM, FACE_R_DIM, 4, 4, false, false);
+-    _llk_unpack_AB_matmul_<>(
+-        L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B), 0, 0, tile_size, tile_size, FACE_R_DIM, FACE_R_DIM, false, false, ct_dim, rt_dim, kt_dim);
++    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT);
++    _llk_unpack_AB_matmul_init_<>();
++    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A), L1_ADDRESS(buffer_B), 0, 0, tile_size, tile_size);
+ }
+ 
+ #endif
+@@ -55,7 +53,7 @@ void run_kernel()
+ {
+     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
+     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<true, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
+     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
+     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+@@ -77,16 +75,12 @@ void run_kernel()
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
++    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+ #else
+     _llk_pack_hw_configure_<false, is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-#endif
+-
+     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
+-
+-#ifdef ARCH_BLACKHOLE
+-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, is_fp32_dest_acc_en>();
+-#else
+-    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, false>();
++    _llk_pack_dest_init_<DstSync::SyncFull, DstTileFaceLayout::RowMajor, false, is_fp32_dest_acc_en>();
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+

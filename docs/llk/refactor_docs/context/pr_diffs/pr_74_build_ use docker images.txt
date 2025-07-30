@@ -1,0 +1,475 @@
+PR #74: build: use docker images
+URL: https://github.com/tenstorrent/tt-llk/pull/74
+
+File: .github/Dockerfile.base
+@@ -0,0 +1,34 @@
++FROM ubuntu:22.04
++SHELL ["/bin/bash", "-c"]
++
++# Set environment variables
++ENV DEBIAN_FRONTEND=noninteractive
++
++# Install dependencies
++RUN apt-get update && apt-get install -y \
++    software-properties-common \
++    build-essential \
++    python3-dev \
++    python3-venv \
++    python3-pip \
++    python3-wheel \
++    git \
++    libhwloc-dev \
++    libyaml-cpp-dev \
++    libzmq3-dev \
++    libnsl2 \
++    pkg-config \
++    linux-tools-generic \
++    ninja-build \
++    wget \
++    cmake \
++    ccache \
++    doxygen \
++    graphviz \
++    patchelf \
++    curl \
++    jq \
++    gh \
++    lcov
++
++RUN apt-get clean
+
+File: .github/Dockerfile.ci
+@@ -0,0 +1,19 @@
++ARG FROM_TAG=latest
++FROM ghcr.io/tenstorrent/tt-llk/tt-llk-base-ubuntu-22-04:${FROM_TAG} AS ci-build
++SHELL ["/bin/bash", "-c"]
++
++ENV PATH="/root/.cargo/bin:${PATH}"
++
++# Copy scripts into the image
++COPY .github/scripts/ /home/
++
++COPY tests/requirements.txt /tmp/requirements_tests.txt
++
++# Install pytest dependencies
++RUN ./home/install-tests-dependencies.sh
++
++# Install tt-exalens
++RUN ./home/install-exalens.sh
++
++# Install tt-smi
++RUN ./home/install-smi.sh
+
+File: .github/Dockerfile.ird
+@@ -0,0 +1,37 @@
++FROM ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-amd64:latest
++SHELL ["/bin/bash", "-c"]
++
++# Set environment variables
++ENV DEBIAN_FRONTEND=noninteractive
++
++# Install dependencies
++RUN apt-get update && apt-get install -y \
++    ssh \
++    rsync \
++    sudo \
++    wget \
++    vim \
++    nano \
++    tmux \
++    python3-dev \
++    python3-venv \
++    python3-pip \
++    clangd \
++    xxd
++
++# Clean up
++RUN apt-get clean
++
++# Copy scripts into the image
++COPY .github/scripts/ /home/
++
++COPY tests/requirements.txt /tmp/requirements_tests.txt
++
++# Install pytest dependencies
++RUN ./home/install-tests-dependencies.sh
++
++# Install tt-exalens
++RUN ./home/install-exalens.sh
++
++# Install tt-smi
++RUN ./home/install-smi.sh
+
+File: .github/scripts/build-docker-images.sh
+@@ -0,0 +1,58 @@
++#!/usr/bin/env bash
++# SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
++#
++# SPDX-License-Identifier: Apache-2.0
++
++set -e
++
++REPO=tenstorrent/tt-llk
++BASE_IMAGE_NAME=ghcr.io/$REPO/tt-llk-base-ubuntu-22-04
++CI_IMAGE_NAME=ghcr.io/$REPO/tt-llk-ci-ubuntu-22-04
++BASE_IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-base-ird-ubuntu-22-04
++IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-ird-ubuntu-22-04
++
++# Compute the hash of the Dockerfile
++DOCKER_TAG=$(./.github/scripts/get-docker-tag.sh)
++echo "Docker tag: $DOCKER_TAG"
++
++# Are we on main branch
++ON_MAIN=$(git branch --show-current | grep -q main && echo "true" || echo "false")
++
++build_and_push() {
++    local image_name=$1
++    local dockerfile=$2
++    local on_main=$3
++    local from_image=$4
++
++
++    if docker manifest inspect $image_name:$DOCKER_TAG > /dev/null; then
++        echo "Image $image_name:$DOCKER_TAG already exists"
++    else
++        echo "Building image $image_name:$DOCKER_TAG"
++        docker build \
++            --progress=plain \
++            --build-arg FROM_TAG=$DOCKER_TAG \
++            ${from_image:+--build-arg FROM_IMAGE=$from_image} \
++            -t $image_name:$DOCKER_TAG \
++            -t $image_name:latest \
++            -f $dockerfile .
++
++        echo "Pushing image $image_name:$DOCKER_TAG"
++        docker push $image_name:$DOCKER_TAG
++    fi
++
++    # If we are on main branch also push the latest tag
++    if [ "$on_main" = "true" ]; then
++        docker manifest create $image_name:latest --amend $image_name:$DOCKER_TAG
++        docker manifest push $image_name:latest
++    fi
++}
++
++build_and_push $BASE_IMAGE_NAME .github/Dockerfile.base $ON_MAIN
++build_and_push $BASE_IRD_IMAGE_NAME .github/Dockerfile.ird $ON_MAIN base
++build_and_push $CI_IMAGE_NAME .github/Dockerfile.ci $ON_MAIN
++build_and_push $IRD_IMAGE_NAME .github/Dockerfile.ird $ON_MAIN ci
++
++echo "All images built and pushed successfully"
++echo "CI_IMAGE_NAME:"
++echo $CI_IMAGE_NAME:$DOCKER_TAG
+
+File: .github/scripts/get-docker-tag.sh
+@@ -0,0 +1,17 @@
++#!/usr/bin/env bash
++# SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
++#
++# SPDX-License-Identifier: Apache-2.0
++
++# Calculate hash from the following files. This hash is used to tag the docker images.
++# Any change in these files will result in a new docker image build
++DOCKERFILE_HASH_FILES=".github/Dockerfile.base \
++    .github/Dockerfile.ci \
++    .github/Dockerfile.ird \
++    tests/requirements.txt \
++    .github/scripts/build-docker-images.sh \
++    .github/scripts/install-exalens.sh \
++    .github/scripts/install-smi.sh \
++    .github/scripts/install-tests-dependencies.sh"
++DOCKERFILE_HASH=$(sha256sum $DOCKERFILE_HASH_FILES | sha256sum | cut -d ' ' -f 1)
++echo dt-$DOCKERFILE_HASH
+
+File: .github/scripts/install-exalens.sh
+@@ -0,0 +1,11 @@
++#!/usr/bin/env bash
++# SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
++#
++# SPDX-License-Identifier: Apache-2.0
++
++set -e
++
++wget -O ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl \
++    https://github.com/tenstorrent/tt-exalens/releases/download/0.1/ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
++pip install --no-cache-dir ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
++rm ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl
+
+File: .github/scripts/install-smi.sh
+@@ -0,0 +1,9 @@
++#!/usr/bin/env bash
++# SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
++#
++# SPDX-License-Identifier: Apache-2.0
++
++set -e
++
++curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
++pip install git+https://github.com/tenstorrent/tt-smi.git
+
+File: .github/scripts/install-tests-dependencies.sh
+@@ -0,0 +1,9 @@
++#!/usr/bin/env bash
++# SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
++#
++# SPDX-License-Identifier: Apache-2.0
++
++set -e
++
++pip install --upgrade pip
++pip install --no-cache-dir -r /tmp/requirements_tests.txt
+
+File: .github/workflows/build-images.yml
+@@ -0,0 +1,38 @@
++name: 🐳️ Docker setup and build
++
++on:
++  workflow_call:
++    outputs:
++      docker-image:
++        description: "The built Docker image"
++        value: ${{ jobs.build-images.outputs.docker-image }}
++
++jobs:
++  build-images:
++    name: "🏗️ Build images"
++    runs-on: ubuntu-latest
++    timeout-minutes: 30
++    outputs:
++      docker-image: ${{ steps.build.outputs.docker-image }}
++    steps:
++      - uses: actions/checkout@v4
++        with:
++          fetch-depth: 0
++
++      - name: Log in to Docker registry
++        uses: docker/login-action@v3
++        with:
++          registry: ghcr.io
++          username: ${{ github.repository_owner }}
++          password: ${{ secrets.GITHUB_TOKEN }}
++
++      - name: Build Docker images and output the image name
++        id: build
++        shell: bash
++        run: |
++          # Output the image name
++          set pipefail
++          .github/scripts/build-docker-images.sh | tee docker.log
++          DOCKER_CI_IMAGE=$(tail -n 1 docker.log)
++          echo "DOCKER_CI_IMAGE $DOCKER_CI_IMAGE"
++          echo "docker-image=$DOCKER_CI_IMAGE" >> "$GITHUB_OUTPUT"
+
+File: .github/workflows/on-pr.yml
+@@ -0,0 +1,50 @@
++name: 🛠️ PR Pipeline
++on:
++  workflow_dispatch:
++  pull_request:
++    types: [opened, synchronize, reopened, ready_for_review]
++    branches: ["main"]
++
++concurrency:
++  # Use github.run_id on main branch (or any protected branch)
++  # This ensures that no runs get cancelled on main.
++  # Use github.event.pull_request.number on pull requests, so it's unique per pull request
++  # and will cancel obsolete runs.
++  # Use github.ref on other branches, so it's unique per branch.
++  group: ${{ github.workflow }}-${{ github.ref_protected && github.run_id ||
++    github.event.pull_request.number || github.ref }}
++  cancel-in-progress: true
++
++jobs:
++  pre-commit:
++    name: "🔍 Static checks"
++    uses: ./.github/workflows/pre-commit.yml
++
++  build-images:
++    name: "🐳️ Docker setup"
++    uses: ./.github/workflows/build-images.yml
++    needs: pre-commit
++    secrets: inherit
++
++  setup-and-test-wormhole:
++    name: "🧪 Perform checks (Wormhole)"
++    uses: ./.github/workflows/setup-and-test.yml
++    needs: build-images
++    with:
++      chip_arch: wormhole
++      docker_image: ${{ needs.build-images.outputs.docker-image }}
++      runs_on: tt-beta-ubuntu-2204-n150-large-stable
++
++  check-all-green:
++    name: "✅ Check all green"
++    if: always()
++    needs:
++      - pre-commit
++      - build-images
++      - setup-and-test-wormhole
++    runs-on: ubuntu-latest
++    steps:
++      - name: Check if the needed jobs succeeded or failed
++        uses: re-actors/alls-green@release/v1
++        with:
++          jobs: ${{ toJSON(needs) }}
+
+File: .github/workflows/pre-commit.yml
+@@ -1,15 +1,17 @@
+-# Run pre-commit hooks
+-name: Run pre-commit hooks
++name: 🔍 Static checks
+ 
+ on:
+-  workflow_dispatch:
+-  pull_request:
+-  push:
+-    branches: ["main"]
++  workflow_call:
++    inputs:
++      python_version:
++        description: "Python version to use for pre-commit"
++        required: false
++        type: string
++        default: "3.10"
+ 
+ jobs:
+   pre-commit:
+-    name: Run pre-commit hooks
++    name: Pre-commit checks
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout code
+@@ -20,7 +22,7 @@ jobs:
+       - name: Set up Python
+         uses: actions/setup-python@v4
+         with:
+-          python-version: 3.8
++          python-version: ${{ inputs.python_version }}
+ 
+       - name: Run pre-commit and fix issues
+         uses: pre-commit/action@v3.0.1
+
+File: .github/workflows/run.yml
+@@ -1,51 +0,0 @@
+-name: Wormhole tests
+-on:
+-  push:
+-    branches:
+-      - main
+-  pull_request:
+-    branches:
+-      - main
+-
+-concurrency:
+-  # Use github.run_id on main branch (or any protected branch)
+-  # This ensures that no runs get cancelled on main.
+-  # Use github.event.pull_request.number on pull requests, so it's unique per pull request
+-  # and will cancel obsolete runs.
+-  # Use github.ref on other branches, so it's unique per branch.
+-  group: ${{ github.workflow }}-${{ github.ref_protected && github.run_id ||
+-    github.event.pull_request.number || github.ref }}
+-  cancel-in-progress: true
+-
+-jobs:
+-  setup-and-test:
+-    runs-on: tt-beta-ubuntu-2204-n150-large-stable
+-
+-    steps:
+-      # Step 1: Checkout the repository
+-      - name: Checkout code
+-        uses: actions/checkout@v4
+-        with:
+-          fetch-depth: 0  # Fetch all history so 'origin/main' is available
+-
+-      # Step 2: Set up Python environment
+-      - name: Set up Python
+-        uses: actions/setup-python@v5
+-        with:
+-          python-version: '3.8'
+-
+-      # Step 3: Run setup_env.sh
+-      - name: Setup environment
+-        run: |
+-          cd tests/
+-          chmod +x setup_env.sh
+-          source setup_env.sh
+-
+-      # Step 4: Run Python tests
+-      - name: Run Python tests
+-        run: |
+-          cd tests/
+-          source .venv/bin/activate
+-          cd python_tests/
+-          export CHIP_ARCH=wormhole
+-          pytest --force-sugar .
+
+File: .github/workflows/setup-and-test.yml
+@@ -0,0 +1,53 @@
++name: "⚙️ Setup and Test"
++
++on:
++  workflow_call:
++    inputs:
++      chip_arch:
++        description: "The chip architecture"
++        required: true
++        type: string
++      docker_image:
++        description: "The Docker image to use for the container"
++        required: true
++        type: string
++      runs_on:
++        description: "The runner to use for the job"
++        required: true
++        type: string
++
++jobs:
++  setup-and-test:
++    name: "🦄 Run tests"
++    runs-on: ${{ inputs.runs_on }}
++    timeout-minutes: 40
++    container:
++      image: ${{ inputs.docker_image }}
++      options: "--device /dev/tenstorrent"
++
++    steps:
++      # Step 1: Checkout the repository
++      - name: Checkout code
++        uses: actions/checkout@v4
++        with:
++          fetch-depth: 0  # Fetch all history so 'origin/main' is available
++
++      # Step 2: Run the tests
++      - name: Run tests
++        env:
++          CHIP_ARCH: ${{ inputs.chip_arch }}
++        shell: bash
++        run: |
++          echo "CHIP_ARCH is set to $CHIP_ARCH"
++          cd tests && ./setup_sfpi.sh
++          # Run the tests
++          cd python_tests/
++          pytest --timeout=60 --color=yes --force-sugar .
++
++      # Step 3: Upload test log as an artifact
++      - name: Upload logs if tests fail
++        if: failure()  # Only upload the log if the previous step failed
++        uses: actions/upload-artifact@v4
++        with:
++          name: test-log
++          path: tests/python_tests/pytest_errors.log
+
+File: tests/setup_sfpi.sh
+@@ -0,0 +1,11 @@
++#!/usr/bin/env bash
++# SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
++#
++# SPDX-License-Identifier: Apache-2.0
++
++set -e
++
++SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.7.0/sfpi-release.tgz"
++wget "$SFPI_RELEASE_URL" -O sfpi-release.tgz
++tar -xzf sfpi-release.tgz
++rm sfpi-release.tgz
+

@@ -1,0 +1,294 @@
+PR #143: [Test Infrastructure] Data format Inference Model 
+URL: https://github.com/tenstorrent/tt-llk/pull/143
+
+File: tests/helpers/include/data_format_inference.h
+@@ -0,0 +1,62 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++#include "tensix_types.h"
++
++#ifdef ARCH_WORMHOLE
++const bool is_blackhole = false;
++const bool is_wormhole  = true;
++#endif
++
++#ifdef ARCH_BLACKHOLE
++const bool is_blackhole = true;
++const bool is_wormhole  = false;
++#endif
++
++struct FormatConfig
++{
++    const uint32_t unpack_src;
++    const uint32_t unpack_dst;
++    const uint32_t pack_src;
++    const uint32_t pack_dst;
++};
++
++constexpr bool is_exponentB(uint32_t format)
++{
++    return (
++        format == static_cast<uint32_t>(DataFormat::Float16_b) || format == static_cast<uint32_t>(DataFormat::Bfp8_b) ||
++        format == static_cast<uint32_t>(DataFormat::Tf32));
++}
++
++constexpr bool is_format_combination_outlier(uint32_t input, uint32_t output, bool is_fp32_dest_acc_en)
++{
++    return (is_exponentB(input) && output == (uint32_t)DataFormat::Float16 && !is_fp32_dest_acc_en);
++}
++
++constexpr FormatConfig get_data_formats(uint32_t input, uint32_t output, bool is_fp32_dest_acc_en)
++{
++    uint32_t unpack_in  = input;
++    uint32_t unpack_out = input;
++    uint32_t pack_out   = output;
++    uint32_t pack_in;
++
++    if (input == (uint32_t)DataFormat::Float16 && output == (uint32_t)DataFormat::Bfp8_b && !is_fp32_dest_acc_en)
++    {
++        pack_in = static_cast<uint32_t>(DataFormat::Bfp8);
++    }
++    else if (is_wormhole && is_fp32_dest_acc_en && output == (uint32_t)DataFormat::Float16)
++    {
++        pack_in = static_cast<uint32_t>(DataFormat::Float32); // Gasket in wormhole cannot convert fp32 to fp16, and since dest accumulation turns on for
++                                                              // outlier cases we have fp32 in dest, so gasket cannot conver it to fp16, packer must do that
++    }
++    else if (is_format_combination_outlier(input, output, is_fp32_dest_acc_en))
++    {
++        pack_in = (is_wormhole) ? (uint32_t)DataFormat::Float32 : output;
++    }
++    else
++    {
++        pack_in = is_fp32_dest_acc_en ? output : input;
++    }
++
++    return {unpack_in, unpack_out, pack_in, pack_out};
++}
+
+File: tests/helpers/include/params.h
+@@ -10,6 +10,7 @@
+ #include "ckernel_sfpu_log.h"
+ #include "ckernel_sfpu_sqrt.h"
+ #include "ckernel_sfpu_square.h"
++#include "data_format_inference.h"
+ #include "llk_defs.h"
+ #include "llk_sfpu_types.h"
+ #include "tensix_types.h"
+@@ -27,6 +28,20 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
+ }
+ } // namespace
+ 
++constexpr bool dest_acc_en_input =
++#ifdef DEST_ACC
++    true;
++#else
++    false;
++#endif
++
++constexpr bool unpack_to_dest =
++#if defined(UNPACK_A_SRC_INT32) || defined(UNPACK_A_SRC_FLOAT32)
++    true;
++#else
++    false;
++#endif
++
+ #define UNPACK_A_SRC_CASE(data_format) constexpr auto UNPACK_A_IN = get_data_format(DataFormat::data_format);
+ 
+ #if defined(UNPACK_A_SRC_FLOAT16_B)
+@@ -165,6 +180,18 @@ MATH_CASE(Bfp8_b)
+ 
+ #undef MATH_CASE
+ 
++#if !defined(MATH_BFP8_B) && !defined(MATH_INT32) && !defined(MATH_FLOAT32) && !defined(MATH_FLOAT16) && !defined(MATH_FLOAT16_B)
++constexpr bool is_fp32_dest_acc_en      = dest_acc_en_input || is_format_combination_outlier(UNPACK_A_IN, PACK_OUT, dest_acc_en_input);
++constexpr FormatConfig pipeline_formats = get_data_formats(UNPACK_A_IN, PACK_OUT, dest_acc_en_input);
++constexpr auto UNPACK_A_OUT             = pipeline_formats.unpack_dst;
++constexpr auto UNPACK_B_IN              = pipeline_formats.unpack_src;
++constexpr auto UNPACK_B_OUT             = pipeline_formats.unpack_dst;
++constexpr auto PACK_IN                  = pipeline_formats.pack_src;
++constexpr auto MATH_FORMAT              = pipeline_formats.unpack_dst;
++#else
++constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
++#endif
++
+ #ifdef ELTWISE_BINARY_ADD
+ constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWADD;
+ #endif
+
+File: tests/sources/eltwise_unary_datacopy_test.cpp
+@@ -14,18 +14,6 @@
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+-#if defined(UNPACK_A_SRC_INT32) || defined(UNPACK_A_SRC_FLOAT32)
+-const bool unpack_to_dest = true;
+-#else
+-const bool unpack_to_dest = false;
+-#endif
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_A.h"
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -10,18 +10,10 @@
+ #include "ckernel.h"
+ #include "llk_defs.h"
+ 
+-const bool unpack_to_dest = true;
+-
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_A.h"
+
+File: tests/sources/fill_dest_test.cpp
+@@ -13,12 +13,6 @@
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_AB.h"
+
+File: tests/sources/matmul_test.cpp
+@@ -14,12 +14,6 @@ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+ uint32_t math_sync_tile_dst_index = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_AB_matmul.h"
+
+File: tests/sources/multiple_tiles_eltwise_test.cpp
+@@ -13,12 +13,6 @@
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_AB.h"
+
+File: tests/sources/pack_untilize_test.cpp
+@@ -13,12 +13,6 @@
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_A.h"
+
+File: tests/sources/reduce_test.cpp
+@@ -14,12 +14,6 @@ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+ uint32_t math_sync_tile_dst_index = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ #ifdef REDUCE_ROW_OPERATION
+ const std::uint32_t within_face_16x16_transpose = 1;
+ #else
+
+File: tests/sources/sfpu_binary_test.cpp
+@@ -14,12 +14,6 @@ const bool unpack_to_dest = true;
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_A.h"
+
+File: tests/sources/tilize_calculate_untilize_L1.cpp
+@@ -14,12 +14,6 @@ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+ uint32_t math_sync_tile_dst_index = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+ volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
+ 
+
+File: tests/sources/unpack_tilize_test.cpp
+@@ -12,11 +12,6 @@
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+ 
+ #ifdef LLK_TRISC_UNPACK
+ 
+
+File: tests/sources/unpack_untilize_test.cpp
+@@ -13,12 +13,6 @@
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+ 
+-#ifdef DEST_ACC
+-const bool is_fp32_dest_acc_en = true;
+-#else
+-const bool is_fp32_dest_acc_en = false;
+-#endif
+-
+ #ifdef LLK_TRISC_UNPACK
+ 
+ #include "llk_unpack_A.h"
+

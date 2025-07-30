@@ -1,0 +1,119 @@
+PR #299: SFPU test running on tile not face. No need for sfpu flag in stimuli generator
+URL: https://github.com/tenstorrent/tt-llk/pull/299
+
+File: tests/python_tests/helpers/stimuli_generator.py
+@@ -52,7 +52,6 @@ def generate_stimuli(
+     stimuli_format_A=DataFormat.Float16_b,
+     stimuli_format_B=DataFormat.Float16_b,
+     tile_cnt=TileCount.One,
+-    sfpu=False,
+     const_face=False,
+     const_value_A=1,
+     const_value_B=1,
+@@ -68,20 +67,14 @@ def generate_stimuli(
+         srcA.extend(face_a.tolist())
+         srcB.extend(face_b.tolist())
+ 
+-    if not sfpu:
+-        dtype_A = (
+-            format_dict[stimuli_format_A]
+-            if stimuli_format_A != DataFormat.Bfp8_b
+-            else torch.bfloat16
+-        )
+-        dtype_B = (
+-            format_dict[stimuli_format_B]
+-            if stimuli_format_B != DataFormat.Bfp8_b
+-            else torch.bfloat16
+-        )
+-        return torch.tensor(srcA, dtype=dtype_A), torch.tensor(srcB, dtype=dtype_B)
+-    else:
+-        srcA = generate_random_face(stimuli_format_A, const_value_A, const_face)
+-        srcB = torch.zeros(256)
+-        srcA = torch.cat((srcA, torch.zeros(1024 - 256)))
+-        return srcA, srcB
++    dtype_A = (
++        format_dict[stimuli_format_A]
++        if stimuli_format_A != DataFormat.Bfp8_b
++        else torch.bfloat16
++    )
++    dtype_B = (
++        format_dict[stimuli_format_B]
++        if stimuli_format_B != DataFormat.Bfp8_b
++        else torch.bfloat16
++    )
++    return torch.tensor(srcA, dtype=dtype_A), torch.tensor(srcB, dtype=dtype_B)
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -48,7 +48,7 @@ def generate_golden(operation, operand1, data_format):
+     }
+     if operation not in ops:
+         raise ValueError("Unsupported operation!")
+-    return [ops[operation](num) for num in tensor1_float.tolist()][:256]
++    return [ops[operation](num) for num in tensor1_float.tolist()][:1024]
+ 
+ 
+ # SUPPORTED FORMATS FOR TEST
+@@ -111,7 +111,8 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+     src_A, src_B = generate_stimuli(
+-        formats.input_format, formats.input_format, sfpu=True
++        formats.input_format,
++        formats.input_format,
+     )
+     golden = generate_golden(mathop, src_A, formats.output_format)
+     write_stimuli_to_l1(src_A, src_B, formats.input_format, formats.input_format)
+@@ -129,12 +130,8 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+     run_elf_files(testname)
+ 
+     wait_for_tensix_operations_finished()
+-    res_from_L1 = collect_results(
+-        formats, tensor_size=len(src_A)
+-    )  # Bug patchup in (unpack.py): passing formats struct to check unpack_src with pack_dst and distinguish when input and output formats have different exponent widths then reading from L1 changes
+-    res_from_L1 = res_from_L1[
+-        :256
+-    ]  # this will be removed once we implement to read bytes from L1 according to data format (size of datum) which will be added in next PR
++    res_from_L1 = collect_results(formats, tensor_size=len(src_A))
++    res_from_L1 = res_from_L1[:1024]
+     assert len(res_from_L1) == len(golden)
+ 
+     golden_tensor = torch.tensor(
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -50,28 +50,28 @@ void call_sfpu_operation(SfpuType operation)
+     switch (operation)
+     {
+         case SfpuType::abs:
+-            ckernel::sfpu::_calculate_abs_<APPROX_MODE, 10>(10);
++            ckernel::sfpu::_calculate_abs_<APPROX_MODE, 32>(32);
+             break;
+         case SfpuType::cosine:
+-            ckernel::sfpu::_calculate_cosine_<APPROX_MODE, 10>(10);
++            ckernel::sfpu::_calculate_cosine_<APPROX_MODE, 32>(32);
+             break;
+         case SfpuType::log:
+             ckernel::sfpu::_init_log_<APPROX_MODE>();
+-            ckernel::sfpu::_calculate_log_<APPROX_MODE, false, 10>(10, 0);
++            ckernel::sfpu::_calculate_log_<APPROX_MODE, false, 32>(32, 0);
+             break;
+         case SfpuType::reciprocal:
+             ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
+-            ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, 10, is_fp32_dest_acc_en>(10);
++            ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, 32, is_fp32_dest_acc_en>(32);
+             break;
+         case SfpuType::sine:
+-            ckernel::sfpu::_calculate_sine_<APPROX_MODE, 10>();
++            ckernel::sfpu::_calculate_sine_<APPROX_MODE, 32>();
+             break;
+         case SfpuType::sqrt:
+             ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
+-            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, 10>(10);
++            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, 32>(32);
+             break;
+         case SfpuType::square:
+-            ckernel::sfpu::_calculate_square_<APPROX_MODE, 10>(10);
++            ckernel::sfpu::_calculate_square_<APPROX_MODE, 32>(32);
+             break;
+         default:
+             return;
+

@@ -1,0 +1,27 @@
+PR #257: Disable unpacker flush denormals for int32.
+URL: https://github.com/tenstorrent/tt-llk/pull/257
+
+File: tt_llk_blackhole/common/inc/cunpack_common.h
+@@ -291,7 +291,8 @@ inline void configure_unpack_AB(
+ 
+     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
+ 
+-    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
++    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16) ||
++                                     ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
+     if constexpr (disable_src_zero_flag)
+     {
+         src_zeroflags_disable = true;
+
+File: tt_llk_wormhole_b0/common/inc/cunpack_common.h
+@@ -286,7 +286,8 @@ inline void configure_unpack_AB(
+ 
+     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
+ 
+-    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
++    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16) ||
++                                     ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
+     if constexpr (disable_src_zero_flag)
+     {
+         src_zeroflags_disable = true;
+

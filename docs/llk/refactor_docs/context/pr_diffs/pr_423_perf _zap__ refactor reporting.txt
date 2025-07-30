@@ -1,0 +1,275 @@
+PR #423: perf :zap:: refactor reporting
+URL: https://github.com/tenstorrent/tt-llk/pull/423
+
+File: tests/python_tests/conftest.py
+@@ -15,7 +15,6 @@
+ 
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.log_utils import _format_log
+-from helpers.perf import delete_reports
+ 
+ 
+ def init_llk_home():
+@@ -61,11 +60,6 @@ def _identify_chip_architecture(output):
+     return architecture
+ 
+ 
+-@pytest.fixture(scope="session", autouse=True)
+-def delete_perf_reports():
+-    delete_reports()
+-
+-
+ @pytest.fixture(scope="session", autouse=True)
+ def download_headers():
+     CHIP_ARCH = set_chip_architecture()
+
+File: tests/python_tests/helpers/perf.py
+@@ -8,6 +8,7 @@
+ from enum import Enum
+ from pathlib import Path
+ from statistics import mean, variance
++from typing import List
+ 
+ from helpers.device import run_elf_files, wait_for_tensix_operations_finished
+ from helpers.profiler import Profiler
+@@ -145,16 +146,11 @@ def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
+     return results
+ 
+ 
+-def delete_reports():
+-    root = os.environ.get("LLK_HOME")
+-    if not root:
+-        raise AssertionError("Environment variable LLK_HOME is not set")
+-
+-    path = Path(root) / "perf"
+-    print(path)
+-
+-    if path.exists() and path.is_dir():
+-        shutil.rmtree(path)
++class PerfReport:
++    sweep_names: List[str] = []
++    stat_names: List[str] = []
++    sweep_values: List[List] = []
++    stat_values: List[List] = []
+ 
+ 
+ def _dataclass_names(parent, obj):
+@@ -167,60 +163,110 @@ def _dataclass_values(obj):
+     return [getattr(obj, f.name) for f in fields(obj)]
+ 
+ 
+-def report_header(params, result):
+-    columns = []
++def _get_sweep_names(params):
++    names = []
+     for param, value in params.items():
+         if is_dataclass(value):
+-            columns.extend(_dataclass_names(param, value))
++            names.extend(_dataclass_names(param, value))
+         else:
+-            columns.append(param)
++            names.append(param)
+ 
+-    for run_type, stats in result.items():
+-        for i, _ in enumerate(stats):
+-            columns.extend(
+-                [
+-                    f"mean({run_type.name}[{i}])",
+-                    f"variance({run_type.name}[{i}])",
+-                ]
+-            )
++    return names
+ 
+-    return columns
+ 
++def _get_stat_names(result):
++    """Version with pre-allocation."""
+ 
+-def write_to_report(test_config, result):
+-    root = os.environ.get("LLK_HOME")
+-    if not root:
+-        raise AssertionError("Environment variable LLK_HOME is not set")
++    # Pre-calculate total size needed
++    total_stats = sum(len(stats) for stats in result.values())
++    names = [None] * (total_stats * 2)  # Pre-allocate exact size
++
++    column = 0
++    for run_type, stats in result.items():
++        stats_count = len(stats)
++        for idx in range(stats_count):
++            idx_str = f"[{idx}]" if len(stats) > 1 else ""
++            names[column] = f"mean({run_type.name}{idx_str})"
++            names[column + 1] = f"variance({run_type.name}{idx_str})"
++            column += 2
+ 
+-    filename = f"{test_config['testname']}.csv"
+-    output_path = Path(root) / "perf" / filename
+-    output_path.parent.mkdir(parents=True, exist_ok=True)
++    return names
++
++
++def update_report(report: PerfReport, test_config, results):
+ 
+     exclude = {
+         "testname",
+         "perf_run_type",
+-        "tile_cnt",
+     }
+ 
+     params = {
+         param: value for param, value in test_config.items() if param not in exclude
+     }
+ 
+-    row = []
+-    for value in params.values():
+-        if is_dataclass(value):
+-            row.extend(_dataclass_values(value))
++    if not report.sweep_names:
++        report.sweep_names = _get_sweep_names(params)
++
++    if not report.stat_names:
++        report.stat_names = _get_stat_names(results)
++
++    sweep = []
++    for param in params.values():
++        if is_dataclass(param):
++            sweep.extend(_dataclass_values(param))
+         else:
+-            row.append(value)
++            sweep.append(param)
++    report.sweep_values.append(sweep)
+ 
+-    for stats in result.values():
++    stat_values = []
++    for stats in results.values():
+         for stat in stats:
+-            row.extend([stat["mean"], stat["variance"]])
++            stat_values.append(stat["mean"])
++            stat_values.append(stat["variance"])
++    report.stat_values.append(stat_values)
++
++
++def delete_benchmark_dir(testname: str):
++    root = os.environ.get("LLK_HOME")
++    if not root:
++        raise AssertionError("Environment variable LLK_HOME is not set")
++
++    path = Path(root) / "perf" / testname
++
++    if path.exists() and path.is_dir():
++        shutil.rmtree(path)
++
++
++def create_benchmark_dir(testname: str):
++    root = os.environ.get("LLK_HOME")
++    if not root:
++        raise AssertionError("Environment variable LLK_HOME is not set")
++
++    output_path = Path(root) / "perf" / testname
++    output_path.mkdir(parents=True, exist_ok=True)
++
++    return output_path
++
++
++def dump_report(testname: str, report: PerfReport):
++    if len(report.sweep_values) != len(report.stat_values):
++        raise ValueError("Mismatch between sweep_values and stat_values lengths")
++
++    root = os.environ.get("LLK_HOME")
++    if not root:
++        raise AssertionError("Environment variable LLK_HOME is not set")
++
++    benchmark_dir = create_benchmark_dir(testname)
++    output_path = benchmark_dir / f"{testname}.csv"
++
++    header_row = report.sweep_names + report.stat_names
++    data_rows = [
++        sweep_vals + stat_vals
++        for sweep_vals, stat_vals in zip(report.sweep_values, report.stat_values)
++    ]
+ 
+     # Write to CSV
+-    first_entry = not os.path.exists(output_path)
+     with open(output_path, "a", newline="") as csvfile:
+         writer = csv.writer(csvfile)
+-        if first_entry:
+-            writer.writerow(report_header(params, result))
+-        writer.writerow(row)
++        writer.writerow(header_row)
++        writer.writerows(data_rows)
+
+File: tests/python_tests/perf_eltwise_binary_fpu.py
+@@ -15,15 +15,22 @@
+     generate_params,
+     input_output_formats,
+ )
+-from helpers.perf import ALL_RUN_TYPES, perf_benchmark, write_to_report
++from helpers.perf import (
++    ALL_RUN_TYPES,
++    PerfReport,
++    delete_benchmark_dir,
++    dump_report,
++    perf_benchmark,
++    update_report,
++)
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
++TEST_NAME = "eltwise_binary_fpu_perf"
+ 
+-test_formats = input_output_formats(supported_formats)
+ all_params = generate_params(
+-    ["eltwise_binary_fpu_perf"],
+-    test_formats,
++    [TEST_NAME],
++    format_combos=input_output_formats(
++        [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
++    ),
+     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+     math_fidelity=[
+@@ -35,27 +42,38 @@
+ )
+ param_ids = generate_param_ids(all_params)
+ 
++report = PerfReport()
++
++
++@pytest.fixture(scope="module")
++def report_fixture():
++    delete_benchmark_dir(TEST_NAME)
++    yield
++    dump_report(TEST_NAME, report)
++
+ 
+ @pytest.mark.perf
+ @pytest.mark.parametrize(
+     "testname, formats, dest_acc, mathop, math_fidelity",
+     clean_params(all_params),
+     ids=param_ids,
+ )
+-def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidelity):
++def test_perf_eltwise_binary_fpu(
++    report_fixture, testname, formats, dest_acc, mathop, math_fidelity
++):
+ 
+     # MathFidelity is only used for Elwmul
+     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
+ 
+     test_config = {
+         "testname": testname,
+-        "tile_cnt": 16,
+-        "formats": formats,
+-        "dest_acc": dest_acc,
+         "mathop": mathop,
++        "formats": formats,
+         "math_fidelity": math_fidelity,
++        "tile_cnt": 16,
++        "dest_acc": dest_acc,
+     }
+ 
+     results = perf_benchmark(test_config, ALL_RUN_TYPES)
+-    write_to_report(test_config, results)
++    update_report(report, test_config, results)
+

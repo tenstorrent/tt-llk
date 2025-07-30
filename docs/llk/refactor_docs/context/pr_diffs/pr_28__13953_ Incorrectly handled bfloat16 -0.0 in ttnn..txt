@@ -1,0 +1,81 @@
+PR #28: #13953: Incorrectly handled bfloat16 -0.0 in ttnn.signbit
+URL: https://github.com/tenstorrent/tt-llk/pull/28
+
+File: tt_llk_blackhole/common/inc/cunpack_common.h
+@@ -192,7 +192,7 @@ namespace ckernel::unpacker
+       cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, ALU_ACC_CTRL_INT8_math_enabled_MASK>(alu_payload.val);
+    }
+ 
+-   template<bool row_pool=false, bool is_fp32_dest_acc_en = false, bool fpu_srnd_en = false, bool pack_srnd_en = false>
++   template<bool row_pool=false, bool is_fp32_dest_acc_en = false, bool fpu_srnd_en = false, bool pack_srnd_en = false, bool disable_src_zero_flag = false>
+    inline void configure_unpack_AB(
+      const uint unpA_src_format,
+      const uint unpB_src_format,
+@@ -272,6 +272,9 @@ namespace ckernel::unpacker
+       cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
+ 
+       uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
++      if constexpr (disable_src_zero_flag) {
++         src_zeroflags_disable = true;
++      }
+       cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(src_zeroflags_disable);
+ 
+       //Set FP8 E4M3 mode, bit is accessible by unpacker/packer
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_A.h
+@@ -140,13 +140,13 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+     }
+ }
+ 
+-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
++template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None, bool disable_src_zero_flag = false>
+ inline void _llk_unpack_A_hw_configure_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM,  const std::uint32_t within_face_16x16_transpose = 0, const std::uint32_t num_faces = 4) {
+     constexpr bool is_row_pool = false;
+     constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
+     constexpr bool fpu_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
+     constexpr bool pack_srnd_en = stoch_rnd_en ||(stoch_rnd_mode == StochRndType::Pack);
+-    configure_unpack_AB<is_row_pool, is_fp32_dest_acc_en, fpu_srnd_en, pack_srnd_en>(
++    configure_unpack_AB<is_row_pool, is_fp32_dest_acc_en, fpu_srnd_en, pack_srnd_en, disable_src_zero_flag>(
+         unpack_src_format,
+         unpack_src_format,
+         unpack_dst_format,
+
+File: tt_llk_wormhole_b0/common/inc/cunpack_common.h
+@@ -192,7 +192,7 @@ namespace ckernel::unpacker
+       cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, ALU_ACC_CTRL_INT8_math_enabled_MASK>(alu_payload.val);
+    }
+ 
+-   template<bool row_pool=false, bool is_fp32_dest_acc_en = false, bool fpu_srnd_en = false, bool pack_srnd_en = false>
++   template<bool row_pool=false, bool is_fp32_dest_acc_en = false, bool fpu_srnd_en = false, bool pack_srnd_en = false, bool disable_src_zero_flag = false>
+    inline void configure_unpack_AB(
+      const uint unpA_src_format,
+      const uint unpB_src_format,
+@@ -267,6 +267,9 @@ namespace ckernel::unpacker
+       cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
+ 
+       uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
++      if constexpr (disable_src_zero_flag) {
++         src_zeroflags_disable = true;
++      }
+       cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(src_zeroflags_disable);
+ 
+       t6_mutex_release(mutex::REG_RMW);
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_A.h
+@@ -141,13 +141,13 @@ inline void _llk_unpack_A_mop_config_(const bool transpose_of_faces, const std::
+     }
+ }
+ 
+-template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None>
++template <bool is_fp32_dest_acc_en = false, StochRndType stoch_rnd_mode = StochRndType::None, bool disable_src_zero_flag = false>
+ inline void _llk_unpack_A_hw_configure_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM,  const std::uint32_t within_face_16x16_transpose = 0, const std::uint32_t num_faces = 4) {
+     constexpr bool is_row_pool = false;
+     constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
+     constexpr bool fpu_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
+     constexpr bool pack_srnd_en = stoch_rnd_en ||(stoch_rnd_mode == StochRndType::Pack);
+-    configure_unpack_AB<is_row_pool, is_fp32_dest_acc_en, fpu_srnd_en, pack_srnd_en>(
++    configure_unpack_AB<is_row_pool, is_fp32_dest_acc_en, fpu_srnd_en, pack_srnd_en, disable_src_zero_flag>(
+         unpack_src_format,
+         unpack_src_format,
+         unpack_dst_format,
+

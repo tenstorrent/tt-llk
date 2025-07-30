@@ -1,0 +1,783 @@
+PR #149: [Test Infra] Added Test Output Notifying User if Format Combination Triggered Dest Accumulation Enabled + Activating Input-Output Format Increasing Test Coverage 
+URL: https://github.com/tenstorrent/tt-llk/pull/149
+
+File: tests/Makefile
+@@ -38,7 +38,7 @@ OPTIONS_LINK=-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -no
+ INCLUDES = -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc -I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I../$(ARCH_LLK_ROOT)/hw_specific/inc
+ INCLUDES += -Ifirmware/riscv/common -Ifirmware/riscv/$(CHIP_ARCH)/ -Isfpi/include -Ihelpers/include
+ 
+-FORMAT_ARG += $(foreach var, unpack_A_src unpack_A_dst unpack_B_src unpack_B_dst fpu pack_src pack_dst, -D$($(var)))
++FORMAT_ARG += $(foreach var, unpack_A_src unpack_A_dst unpack_B_src unpack_B_dst fpu pack_src pack_dst, $(if $($(var)),-D$($(var))))
+ 
+ ifeq ($(mathop),)
+     MATHOP_ARG =
+
+File: tests/helpers/include/data_format_inference.h
+@@ -3,14 +3,16 @@
+ // SPDX-License-Identifier: Apache-2.0
+ #include "tensix_types.h"
+ 
+-#ifdef ARCH_WORMHOLE
+-const bool is_blackhole = false;
+-const bool is_wormhole  = true;
+-#endif
+-
+-#ifdef ARCH_BLACKHOLE
+-const bool is_blackhole = true;
+-const bool is_wormhole  = false;
++#if defined(ARCH_WORMHOLE) && defined(ARCH_BLACKHOLE)
++#error "Only one of ARCH_WORMHOLE or ARCH_BLACKHOLE can be defined"
++#elif defined(ARCH_WORMHOLE)
++constexpr bool is_blackhole = false;
++constexpr bool is_wormhole  = true;
++#elif defined(ARCH_BLACKHOLE)
++constexpr bool is_blackhole = true;
++constexpr bool is_wormhole  = false;
++#else
++#error "You must define either ARCH_WORMHOLE or ARCH_BLACKHOLE"
+ #endif
+ 
+ struct FormatConfig
+@@ -47,7 +49,7 @@ constexpr FormatConfig get_data_formats(uint32_t input, uint32_t output, bool is
+     else if (is_wormhole && is_fp32_dest_acc_en && output == (uint32_t)DataFormat::Float16)
+     {
+         pack_in = static_cast<uint32_t>(DataFormat::Float32); // Gasket in wormhole cannot convert fp32 to fp16, and since dest accumulation turns on for
+-                                                              // outlier cases we have fp32 in dest, so gasket cannot conver it to fp16, packer must do that
++                                                              // outlier cases we have fp32 in dest, so gasket cannot convert it to fp16, packer must do that
+     }
+     else if (is_format_combination_outlier(input, output, is_fp32_dest_acc_en))
+     {
+
+File: tests/python_tests/conftest.py
+@@ -86,3 +86,21 @@ def pytest_runtest_protocol(item, nextitem):
+ 
+     # Continue the test execution as usual
+     return None
++
++
++_format_log = []
++
++
++def add_to_format_log(input_fmt, output_fmt):
++    global _format_log
++    _format_log.append((input_fmt, output_fmt))
++
++
++def pytest_sessionfinish(session, exitstatus):
++    BOLD = "\033[1m"
++    YELLOW = "\033[93m"
++    RESET = "\033[0m"
++    if _format_log:
++        print(f"\n\n{BOLD}{YELLOW} Cases Where Dest Accumulation Turned On:{RESET}")
++        for input_fmt, output_fmt in _format_log:
++            print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
+
+File: tests/python_tests/helpers/__init__.py
+@@ -6,6 +6,7 @@
+     FormatConfig,
+     DataFormat,
+     create_formats_for_testing,
++    is_dest_acc_needed,
+ )
+ from .stimuli_generator import flatten_list, generate_stimuli
+ from .format_arg_mapping import (
+@@ -42,10 +43,11 @@
+     wait_for_tensix_operations_finished,
+ )
+ from .param_config import (
+-    generate_format_combinations,
++    format_combination_sweep,
+     generate_param_ids,
+     clean_params,
+     generate_params,
++    input_output_formats,
+ )
+ 
+ from .hardware_controller import HardwareController
+
+File: tests/python_tests/helpers/format_config.py
+@@ -194,3 +194,17 @@ def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatC
+                 )
+             )
+     return format_configs
++
++
++def is_dest_acc_needed(format: InputOutputFormat) -> bool:
++    """
++    This function is called when a format configuration for input and output is called without dest accumulation.
++    If the input-output combination is an outlier that is not supported when dest accumulation is on
++    then the data format inference model will turn dest accumulation off for this combination to work.
++
++    We must notify the user that this has happened and cheange the test output to reflect this.
++    """
++    return (
++        format.input_format in [DataFormat.Bfp8_b, DataFormat.Float16_b]
++        and format.output_format == DataFormat.Float16
++    )
+
+File: tests/python_tests/helpers/param_config.py
+@@ -1,9 +1,17 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ 
+-from typing import List, Optional
++from typing import List, Optional, Tuple
+ from .format_arg_mapping import *
+-from .format_config import FormatConfig, DataFormat, InputOutputFormat
++from .format_config import (
++    FormatConfig,
++    DataFormat,
++    InputOutputFormat,
++    is_dest_acc_needed,
++)
++from conftest import add_to_format_log
++
++checked_formats_and_dest_acc = {}
+ 
+ 
+ def manage_included_params(func):
+@@ -16,7 +24,7 @@ def wrapper(*args, **kwargs):
+ 
+ 
+ @manage_included_params
+-def generate_format_combinations(
++def format_combination_sweep(
+     included_params,
+     formats: List[DataFormat],
+     all_same: bool,
+@@ -39,11 +47,11 @@ def generate_format_combinations(
+     List[FormatConfig]: A list of FormatConfig instances representing the generated format combinations.
+ 
+     Example:
+-    >>> generate_format_combinations([DataFormat.Float16, DataFormat.Float32], True)
++    >>> format_combination_sweep([DataFormat.Float16, DataFormat.Float32], True)
+     [FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float16),
+      FormatConfig(unpack_src=DataFormat.Float32, unpack_dst=DataFormat.Float32, math=DataFormat.Float32, pack_src=DataFormat.Float32, pack_dst=DataFormat.Float32)]
+ 
+-    >>> generate_format_combinations([DataFormat.Float16, "Float32"], False)
++    >>> format_combination_sweep([DataFormat.Float16, "Float32"], False)
+     [FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float16),
+      FormatConfig(unpack_src=DataFormat.Float16, unpack_dst=DataFormat.Float16, math=DataFormat.Float16, pack_src=DataFormat.Float16, pack_dst=DataFormat.Float32),
+      ...
+@@ -110,6 +118,19 @@ def generate_params(
+         ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.No, None, None, None, None, None)
+     ]
+     """
++    for combo in format_combos:
++        if not isinstance(combo, InputOutputFormat):
++            continue
++
++        if dest_acc is None:
++            continue
++
++        for acc in dest_acc:
++            if acc == DestAccumulation.No and is_dest_acc_needed(combo):
++                key = (combo.input, combo.output)
++                if key not in checked_formats_and_dest_acc:
++                    add_to_format_log(combo.input_format, combo.output_format)
++                    checked_formats_and_dest_acc[key] = True
+ 
+     # Build a list of parameter names (`included_params`) that are non-None.
+     # This allows later code in generate_param_ids(...) to conditionally include
+@@ -237,7 +258,14 @@ def format_combination(comb: tuple) -> str:
+                 f"pack_dst={format_config.pack_dst.name}",
+             ]
+         if params[0]:
+-            result.append(f"dest_acc={params[0].name}")
++            dest_acc_value = (
++                "Turned On"
++                if isinstance(format_config, InputOutputFormat)
++                and params[0] == DestAccumulation.No
++                and is_dest_acc_needed(format_config)
++                else params[0].name
++            )
++            result.append(f"dest_acc={dest_acc_value}")
+         if params[1]:
+             result.append(f"approx_mode={params[1].value}")
+         if params[2]:
+@@ -256,3 +284,57 @@ def format_combination(comb: tuple) -> str:
+ 
+     # Generate and return formatted strings for all parameter combinations
+     return [format_combination(comb) for comb in all_params if comb[0] is not None]
++
++
++def input_output_formats(formats: List[DataFormat]) -> List[InputOutputFormat]:
++    """
++    Generates a list of InputOutputFormat instances based on the given formats.
++    This function is used to create input-output format combinations for testing.
++    Parameters:
++    formats (List[DataFormat]): A list of formats that are supported for this test.
++    Returns:
++    List[InputOutputFormat]: A list of InputOutputFormat instances representing the generated format combinations.
++    """
++    return [InputOutputFormat(input, output) for input in formats for output in formats]
++
++
++def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:
++    """
++    A function that creates a list of FormatConfig objects from a list of DataFormat objects that client wants to test.
++    This function is useful for creating a list of FormatConfig objects for testing multiple formats combinations
++    and cases which the user has specifically defined and wants to particularly test instead of a full format flush.
++    Args:
++    formats (List[Tuple[DataFormat]]): A list of tuples of DataFormat objects for which FormatConfig objects need to be created.
++    Returns:
++    List[FormatConfig]: A list of FormatConfig objects created from the list of DataFormat objects passed as input.
++    Example:
++    >>> formats = [(DataFormat.Float16, DataFormat.Float32, DataFormat.Float16, DataFormat.Float32, DataFormat.Float32)]
++    >>> format_configs = generate_combination(formats)
++    >>> print(format_configs[0].unpack_A_src)
++    DataFormat.Float16
++    >>> print(format_configs[0].unpack_B_src)
++    DataFormat.Float16
++    """
++    return [
++        (
++            FormatConfig(
++                unpack_A_src=tuple[0],
++                unpack_A_dst=tuple[1],
++                pack_src=tuple[2],
++                pack_dst=tuple[3],
++                math=tuple[4],
++            )
++            if len(tuple) == 5
++            else FormatConfig(
++                unpack_A_src=tuple[0],
++                unpack_A_dst=tuple[1],
++                unpack_B_src=tuple[2],
++                unpack_B_dst=tuple[3],
++                pack_src=tuple[4],
++                pack_dst=tuple[5],
++                math=tuple[6],
++                same_src_format=False,
++            )
++        )
++        for tuple in formats
++    ]
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -10,46 +10,43 @@ def generate_golden(operand1, format):
+     return operand1
+ 
+ 
+-full_sweep = False
+-#  This is an example of how users can define and create their own format combinations for testing specific cases they're interested in
+-# Note these combinations might fail because we don't have date inference model to adjust unsupported format combinations
+-generate_format_selection = create_formats_for_testing(
+-    [
+-        (
+-            DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-            DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-            DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-            DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-            DataFormat.Float16_b,  # index 4 is for math format
+-        ),
+-    ]
+-)
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [
++    DataFormat.Float32,
++    DataFormat.Float16,
++    DataFormat.Float16_b,
++    DataFormat.Bfp8_b,
++]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
+ 
+-all_format_combos = generate_format_combinations(
+-    formats=[
+-        DataFormat.Float32,
+-        DataFormat.Bfp8_b,
+-        DataFormat.Float16_b,
+-        DataFormat.Float16,
+-        DataFormat.Int32,
+-    ],
+-    all_same=True,
+-    same_src_reg_format=True,  # setting src_A and src_B register to have same format
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++test_formats = input_output_formats(supported_formats)
+ dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
+ testname = ["eltwise_unary_datacopy_test"]
+-all_params = generate_params(testname, all_format_combos, dest_acc)
++all_params = generate_params(testname, test_formats, dest_acc)
+ param_ids = generate_param_ids(all_params)
+ 
+ 
+ @pytest.mark.parametrize(
+     "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
+ )
+ def test_unary_datacopy(testname, formats, dest_acc):
+-    if formats.input_format == DataFormat.Int32:
+-        pytest.skip("Bfp8_b to Float16 is not supported")
+-    if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
+-        pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+     srcB = torch.full((1024,), 0)
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -23,15 +23,30 @@ def generate_golden(operation, operand1, data_format):
+     return [ops[operation](num) for num in tensor1_float.tolist()][:256]
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Float32],
+-    all_same=True,
+-    same_src_reg_format=True,  # setting src_A and src_B register to have same format
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Float32, DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
+ all_params = generate_params(
+     ["eltwise_unary_sfpu_test"],
+-    all_format_combos,
++    test_formats,
+     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+     mathop=[MathOperation.Sqrt, MathOperation.Log, MathOperation.Square],
+@@ -44,17 +59,18 @@ def generate_golden(operation, operand1, data_format):
+     clean_params(all_params),
+     ids=param_ids,
+ )
+-def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):  #
++def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
++    arch = get_chip_architecture()
+     if (
+         formats.input_format in [DataFormat.Float32, DataFormat.Int32]
+         and dest_acc != DestAccumulation.Yes
+     ):
+         pytest.skip(
+             reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
+         )
++
+     if formats.input_format == DataFormat.Float16 and (
+-        (dest_acc == DestAccumulation.No and get_chip_architecture() == "blackhole")
+-        or (dest_acc == DestAccumulation.Yes and get_chip_architecture() == "wormhole")
++        dest_acc == DestAccumulation.No and arch == "blackhole"
+     ):
+         pytest.skip(reason="This combination is not fully implemented in testing")
+ 
+
+File: tests/python_tests/test_fill_dest.py
+@@ -39,13 +39,30 @@ def generate_golden(operations, operand1, operand2, data_format):
+     return flatten_list(res)
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
+ all_params = generate_params(
+     ["fill_dest_test"],
+-    all_format_combos,
++    test_formats,
+     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+ )
+ param_ids = generate_param_ids(all_params)
+@@ -56,9 +73,6 @@ def generate_golden(operations, operand1, operand2, data_format):
+ )
+ def test_fill_dest(testname, formats, dest_acc):
+ 
+-    if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
+-        pytest.skip(reason="This combination is not fully implemented in testing")
+-
+     pack_start_address = 0x1C000
+     pack_addresses = [pack_start_address + 0x1000 * i for i in range(16)]
+ 
+
+File: tests/python_tests/test_matmul.py
+@@ -27,14 +27,37 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+     return result_matrix.view(1024).to(format_dict[data_format])
+ 
+ 
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
+ all_params = generate_params(
+     ["matmul_test"],
+-    all_format_combos,
++    test_formats,
+     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+-    math_fidelity=[MathFidelity.HiFi3, MathFidelity.HiFi4],
++    math_fidelity=[
++        MathFidelity.LoFi,
++        MathFidelity.HiFi2,
++        MathFidelity.HiFi3,
++        MathFidelity.HiFi4,
++    ],
+ )
+ param_ids = generate_param_ids(all_params)
+ 
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -43,14 +43,30 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     return res.tolist()
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b, DataFormat.Float16],
+-    all_same=True,  # , DataFormat.Bfp8_b], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
+ all_params = generate_params(
+     ["multiple_tiles_eltwise_test"],
+-    all_format_combos,
++    test_formats,
+     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+     math_fidelity=[
+@@ -70,13 +86,6 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     ids=param_ids,
+ )
+ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
+-    if (
+-        mathop in [MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul]
+-        and formats.input_format == DataFormat.Float16
+-        and dest_acc == DestAccumulation.Yes
+-    ):
+-        pytest.skip(reason="This combination is not fully implemented in testing")
+-
+     pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt.value
+     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt.value)]
+     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -15,11 +15,28 @@ def generate_golden(operand1, data_format):
+     return A_untilized.flatten()
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+-all_params = generate_params(["pack_untilize_test"], all_format_combos)
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
++all_params = generate_params(["pack_untilize_test"], test_formats)
+ param_ids = generate_param_ids(all_params)
+ 
+ 
+
+File: tests/python_tests/test_reduce.py
+@@ -56,17 +56,35 @@ def apply_pooling(tensor, pool_type, dim):
+     return result.view(1024)
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
+ all_params = generate_params(
+     ["reduce_test"],
+-    all_format_combos,
++    test_formats,
+     dest_acc=[DestAccumulation.No],
+     reduce_dim=[ReduceDimension.Column],
+     pool_type=[ReducePool.Max, ReducePool.Sum, ReducePool.Average],
+ )
++
+ param_ids = generate_param_ids(all_params)
+ 
+ 
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -30,13 +30,30 @@ def generate_golden(operation, operand1, operand2, data_format):
+     return operations[operation].tolist()
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float32], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
+ all_params = generate_params(
+     ["sfpu_binary_test"],
+-    all_format_combos,
++    test_formats,
+     dest_acc=[DestAccumulation.Yes],
+     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+ )
+@@ -48,13 +65,6 @@ def generate_golden(operation, operand1, operand2, data_format):
+ )
+ @pytest.mark.skip(reason="Not fully implemented")
+ def test_all(testname, formats, dest_acc, mathop):
+-    if (
+-        formats.input_format in [DataFormat.Float32, DataFormat.Int32]
+-        and dest_acc != DestAccumulation.Yes
+-    ):
+-        pytest.skip(
+-            "Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
+-        )
+ 
+     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+     golden = generate_golden(mathop, src_A, src_B, formats.output_format)
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -47,13 +47,32 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     return res
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = format_combination_sweep(
++    formats=supported_formats, all_same=True, same_src_reg_format=True
++)
+ all_params = generate_params(
+     ["tilize_calculate_untilize_L1"],
+-    all_format_combos,
++    test_formats,
+     dest_acc=[DestAccumulation.No],
+     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+     math_fidelity=[MathFidelity.HiFi4],
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -11,11 +11,28 @@ def generate_golden(operand1, data_format):
+     return A_tilized.flatten()
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+-all_params = generate_params(["unpack_tilize_test"], all_format_combos)
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
++all_params = generate_params(["unpack_tilize_test"], test_formats)
+ param_ids = generate_param_ids(all_params)
+ 
+ 
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -14,11 +14,28 @@ def generate_golden(operand1, data_format):
+     return A_untilized.flatten()
+ 
+ 
+-full_sweep = False
+-all_format_combos = generate_format_combinations(
+-    [DataFormat.Float16_b, DataFormat.Float16], all_same=True
+-)  # Generate format combinations with all formats being the same (flag set to True), refer to `param_config.py` for more details.
+-all_params = generate_params(["unpack_untilize_test"], all_format_combos)
++# SUPPORTED FORMATS FOR TEST
++supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++
++#   INPUT-OUTPUT FORMAT SWEEP
++#   input_output_formats(supported_formats)
++
++#   FULL FORMAT SWEEP
++#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
++
++#   SPECIFIC FORMAT COMBINATION
++#   generate_combination(
++#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
++#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
++#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
++#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
++#         DataFormat.Float16_b,  # index 4 is for math format)])
++
++#   SPECIFIC INPUT-OUTPUT COMBINATION
++#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++
++test_formats = input_output_formats(supported_formats)
++all_params = generate_params(["unpack_untilize_test"], test_formats)
+ param_ids = generate_param_ids(all_params)
+ 
+ 
+

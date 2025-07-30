@@ -1,0 +1,125 @@
+PR #384: perf: isolate math performance
+URL: https://github.com/tenstorrent/tt-llk/pull/384
+
+File: tests/helpers/include/perf.h
+@@ -21,6 +21,18 @@ enum class PerfRunType
+     L1_CONGESTION
+ };
+ 
++template <bool set_a, bool set_b>
++inline void _perf_unpack_loop_set_valid(uint32_t iterations)
++{
++    while (iterations-- > 0)
++    {
++        constexpr uint32_t cond_clear_a = set_a ? ckernel::p_stall::SRCA_CLR : 0;
++        constexpr uint32_t cond_clear_b = set_b ? ckernel::p_stall::SRCB_CLR : 0;
++        TTI_SETDVALID((set_b << 1) | set_a);
++        TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, cond_clear_a | cond_clear_b);
++    }
++}
++
+ template <bool clear_a, bool clear_b>
+ inline void _perf_math_loop_clear_valid(uint32_t iterations)
+ {
+
+File: tests/python_tests/helpers/perf.py
+@@ -99,6 +99,11 @@ def _build_unpack_isolate(test_config):
+     return build_with_profiler(test_config)
+ 
+ 
++def _build_math_isolate(test_config):
++    test_config["perf_run_type"] = PerfRunType.MATH_ISOLATE
++    return build_with_profiler(test_config)
++
++
+ def process_runs(runs, test_config):
+     tile_cnt = test_config.get("tile_cnt", 1)
+ 
+@@ -121,15 +126,15 @@ class PerfRunType(Enum):
+ 
+ def perf_benchmark(test_config, run_types: list[PerfRunType]):
+     # todo: support all types of runs
+-    SUPPORTED_RUNS = {PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE}
+     RUN_CONFIGURATIONS = {
+         PerfRunType.L1_TO_L1: (_build_l1_to_l1, timing_l1_to_l1),
+         PerfRunType.UNPACK_ISOLATE: (_build_unpack_isolate, timing_unpack),
++        PerfRunType.MATH_ISOLATE: (_build_math_isolate, timing_math),
+         # Add new run types here as they're implemented:
+-        # PerfRunType.MATH_ISOLATE: (_build_math_isolate, timing_math),
+         # PerfRunType.PACK_ISOLATE: (_build_pack_isolate, timing_pack),
+         # PerfRunType.L1_CONGESTION: (_build_l1_congestion, timing_l1_congestion),
+     }
++    SUPPORTED_RUNS = RUN_CONFIGURATIONS.keys()
+ 
+     results = {}
+ 
+
+File: tests/python_tests/perf_eltwise_binary_fpu.py
+@@ -43,7 +43,11 @@
+     ids=param_ids,
+ )
+ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidelity):
+-    RUN_TYPES = [PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE]
++    RUN_TYPES = [
++        PerfRunType.L1_TO_L1,
++        PerfRunType.UNPACK_ISOLATE,
++        PerfRunType.MATH_ISOLATE,
++    ]
+ 
+     # MathFidelity is only used for Elwmul
+     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+
+File: tests/sources/eltwise_binary_fpu_perf.cpp
+@@ -37,6 +37,11 @@ void run_kernel()
+     }
+     {
+         ZONE_SCOPED("TILE_LOOP")
++        if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
++        {
++            return _perf_unpack_loop_set_valid<true, true>(TILE_CNT * TILE_NUM_FACES);
++        }
++
+         for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+         {
+             _llk_unpack_AB_<>(L1_ADDRESS(src_a + (tile % 8) * 0x1000), L1_ADDRESS(src_b + (tile % 8) * 0x1000), false);
+@@ -67,6 +72,14 @@ void run_kernel()
+         {
+             return _perf_math_loop_clear_valid<true, true>(TILE_CNT * TILE_NUM_FACES);
+         }
++        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
++        {
++            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++            {
++                _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
++                    TILE_NUM_FACES, 0, false);
++            }
++        }
+         else
+         {
+             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+@@ -100,18 +113,16 @@ void run_kernel()
+     }
+     {
+         ZONE_SCOPED("TILE_LOOP")
+-        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
++        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+         {
+             return;
+         }
+-        else
++
++        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+         {
+-            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+-            {
+-                _llk_packer_wait_for_math_done_();
+-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
+-                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-            }
++            _llk_packer_wait_for_math_done_();
++            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
++            _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+         }
+ 
+         tensix_sync(); // -> perf
+

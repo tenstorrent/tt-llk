@@ -1,0 +1,71 @@
+PR #411: Enable BRISC TRISC synchronisation
+URL: https://github.com/tenstorrent/tt-llk/pull/411
+
+File: tests/helpers/src/brisc.cpp
+@@ -4,13 +4,16 @@
+ 
+ #include <cstdint>
+ 
++#include "ckernel.h"
+ #include "ckernel_instr_params.h"
+ #include "ckernel_ops.h"
+ #include "ckernel_structs.h"
+ #include "dev_mem_map.h"
+ #include "risc_attribs.h"
+ #include "tensix.h"
+ 
++static constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
++
+ void device_setup()
+ {
+     volatile tt_reg_ptr std::uint32_t* cfg_regs = reinterpret_cast<std::uint32_t*>(TENSIX_CFG_BASE);
+@@ -35,9 +38,20 @@ void device_setup()
+     TTI_SEMINIT(1, 0, ckernel::semaphore::PACK_DONE);
+ }
+ 
++void clear_trisc_soft_reset()
++{
++    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
++    soft_reset &= ~TRISC_SOFT_RESET_MASK;
++    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
++}
++
+ int main()
+ {
+     device_setup();
++
++    // Release reset of triscs here in order to achieve brisc <-> trisc synchronization
++    clear_trisc_soft_reset();
++
+     // Use a volatile variable to prevent the compiler from optimizing away the loop
+     volatile bool run = true;
+ 
+
+File: tests/python_tests/helpers/device.py
+@@ -57,12 +57,9 @@ def collect_results(
+     return res_from_L1
+ 
+ 
+-def run_elf_files(testname, core_loc="0,0", run_brisc=True):
++def run_elf_files(testname, core_loc="0,0"):
+     BUILD = "../build"
+ 
+-    if run_brisc:
+-        run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_id=0)
+-
+     context = check_context()
+     device = context.devices[0]
+     RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address(
+@@ -85,9 +82,8 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
+     TRISC_PROFILER_BARRIER = 0x16AFF4
+     write_words_to_device(core_loc, TRISC_PROFILER_BARRIER, [0, 0, 0])
+ 
+-    # Clear soft reset
+-    soft_reset &= ~0x7800
+-    write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
++    # Run BRISC
++    run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_id=0)
+ 
+ 
+ def write_stimuli_to_l1(
+

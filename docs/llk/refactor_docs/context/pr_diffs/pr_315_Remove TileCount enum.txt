@@ -1,0 +1,193 @@
+PR #315: Remove TileCount enum
+URL: https://github.com/tenstorrent/tt-llk/pull/315
+
+File: tests/python_tests/helpers/device.py
+@@ -14,7 +14,7 @@
+     write_words_to_device,
+ )
+ 
+-from .format_arg_mapping import Mailbox, TileCount
++from .format_arg_mapping import Mailbox
+ from .format_config import DataFormat, FormatConfig
+ from .pack import pack_bfp8_b, pack_bfp16, pack_fp16, pack_fp32, pack_int32
+ from .unpack import unpack_bfp8_b, unpack_bfp16, unpack_fp16, unpack_fp32, unpack_int32
+@@ -69,16 +69,16 @@ def write_stimuli_to_l1(
+     stimuli_A_format,
+     stimuli_B_format,
+     core_loc="0,0",
+-    tile_cnt=TileCount.One,
++    tile_cnt=1,
+ ):
+ 
+     BUFFER_SIZE = 4096
+     TILE_SIZE = 1024
+ 
+     buffer_A_address = 0x1A000
+-    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt.value
++    buffer_B_address = 0x1A000 + BUFFER_SIZE * tile_cnt
+ 
+-    for i in range(tile_cnt.value):
++    for i in range(tile_cnt):
+ 
+         start_index = TILE_SIZE * i
+         end_index = start_index + TILE_SIZE
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -138,13 +138,6 @@ class MathFidelity(Enum):
+     Invalid = 5
+ 
+ 
+-class TileCount(Enum):
+-    One = 1
+-    Two = 2
+-    Three = 3
+-    Four = 4
+-
+-
+ class Mailbox(Enum):
+     Unpacker = 0x19FFC
+     Math = 0x19FF8
+
+File: tests/python_tests/helpers/param_config.py
+@@ -97,7 +97,7 @@ def generate_params(
+     approx_mode: Optional[List[str]] = None,
+     mathop: Optional[List[str]] = None,
+     math_fidelity: Optional[List[int]] = None,
+-    tile_cnt: Optional[List[int]] = None,
++    tile_cnt: Optional[int] = None,
+     reduce_dim: Optional[List[str]] = None,
+     pool_type: Optional[List[str]] = None,
+ ) -> List[tuple]:
+@@ -171,7 +171,7 @@ def generate_params(
+         for approx in (approx_mode if approx_mode is not None else [None])
+         for math in (mathop if mathop is not None else [None])
+         for fidelity in (math_fidelity if math_fidelity is not None else [None])
+-        for num_tiles in (tile_cnt if tile_cnt is not None else [None])
++        for num_tiles in [tile_cnt]
+         for dim in (reduce_dim if reduce_dim is not None else [None])
+         for pool in (pool_type if pool_type is not None else [None])
+     ]
+@@ -222,7 +222,7 @@ def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
+ 
+     Example:
+     >>> all_params = [
+-    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, MathOperation.Elwadd, TileCount.One, MathFidelity.HiFi4, ReduceDimension.Column, ReducePoolArgs.Max),
++    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, MathOperation.Elwadd, 1, MathFidelity.HiFi4, ReduceDimension.Column, ReducePoolArgs.Max),
+     ...     ("reduce_test", FormatConfig(DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32), DestAccumulation.No, None, MathOperation.Elwmul, None, None, ReduceDimension.Column, ReducePollArgs.Avg)
+     ... ]
+     >>> generate_param_ids(all_params)
+@@ -275,7 +275,7 @@ def format_combination(comb: tuple) -> str:
+         if params[3]:
+             result.append(f"math_fidelity={params[3].name}")
+         if params[4]:
+-            result.append(f"tile_cnt={params[4].value}")
++            result.append(f"tile_cnt={params[4]}")
+         if params[5]:
+             result.append(f"reduce_dim={params[5].name}")
+         if params[6]:
+
+File: tests/python_tests/helpers/stimuli_generator.py
+@@ -3,7 +3,7 @@
+ 
+ import torch
+ 
+-from .format_arg_mapping import TileCount, format_dict
++from .format_arg_mapping import format_dict
+ from .format_config import DataFormat
+ 
+ 
+@@ -51,7 +51,7 @@ def generate_random_face_ab(
+ def generate_stimuli(
+     stimuli_format_A=DataFormat.Float16_b,
+     stimuli_format_B=DataFormat.Float16_b,
+-    tile_cnt=TileCount.One,
++    tile_cnt=1,
+     const_face=False,
+     const_value_A=1,
+     const_value_B=1,
+@@ -60,7 +60,7 @@ def generate_stimuli(
+     srcA = []
+     srcB = []
+ 
+-    for _ in range(4 * tile_cnt.value):
++    for _ in range(4 * tile_cnt):
+         face_a, face_b = generate_random_face_ab(
+             stimuli_format_A, stimuli_format_B, const_face, const_value_A, const_value_B
+         )
+
+File: tests/python_tests/helpers/test_config.py
+@@ -9,7 +9,6 @@
+     MathFidelity,
+     MathOperation,
+     ReduceDimension,
+-    TileCount,
+     math_dict,
+     pack_dst_dict,
+     pack_src_dict,
+@@ -69,8 +68,7 @@ def generate_make_command(
+         else:  # multiple tiles handles mathop as int. we don't access value but return ENUM directly which is position in the class + 1
+ 
+             make_cmd += f"mathop={mathop.value} "
+-
+-            kern_cnt = str(test_config.get("kern_cnt", TileCount.One).value)
++            kern_cnt = str(test_config.get("kern_cnt", 1))
+             pack_addr_cnt = str(test_config.get("pack_addr_cnt"))
+             pack_addrs = test_config.get("pack_addrs")
+ 
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -14,7 +14,6 @@
+     DestAccumulation,
+     MathFidelity,
+     MathOperation,
+-    TileCount,
+     format_dict,
+ )
+ from helpers.format_config import DataFormat
+@@ -98,13 +97,13 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+         MathFidelity.HiFi3,
+         MathFidelity.HiFi4,
+     ],
+-    tile_cnt=[TileCount.One, TileCount.Two, TileCount.Three],
+ )
+ param_ids = generate_param_ids(all_params)
+ 
+ 
++@pytest.mark.parametrize("tile_cnt", range(1, 4))
+ @pytest.mark.parametrize(
+-    "testname, formats, dest_acc, mathop, math_fidelity, tile_cnt",
++    "testname, formats, dest_acc, mathop, math_fidelity",
+     clean_params(all_params),
+     ids=param_ids,
+ )
+@@ -113,8 +112,8 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
+     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
+ 
+-    pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt.value
+-    pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt.value)]
++    pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt
++    pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt)]
+     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
+ 
+     src_A, src_B = generate_stimuli(
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -14,7 +14,6 @@
+     DestAccumulation,
+     MathFidelity,
+     MathOperation,
+-    TileCount,
+     format_dict,
+ )
+ from helpers.format_config import DataFormat
+@@ -98,7 +97,7 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     dest_acc=[DestAccumulation.No],
+     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+     math_fidelity=[MathFidelity.HiFi4],
+-    tile_cnt=[TileCount.One],
++    tile_cnt=1,
+ )
+ param_ids = generate_param_ids(all_params)
+ 
+

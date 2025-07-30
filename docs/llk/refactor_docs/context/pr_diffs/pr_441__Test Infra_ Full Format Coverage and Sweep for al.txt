@@ -1,0 +1,671 @@
+PR #441: [Test Infra] Full Format Coverage and Sweep for all Tests 
+URL: https://github.com/tenstorrent/tt-llk/pull/441
+
+File: tests/helpers/include/data_format_inference.h
+@@ -42,14 +42,29 @@ constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, boo
+ 
+     if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
+     {
+-        unpack_out = DataFormat::Tf32;
++        if (is_fp32_dest_acc_en)
++        {
++            unpack_out = DataFormat::Tf32;
++        }
++        else
++        {
++            if (is_exponentB(output) || output == DataFormat::Float32)
++            {
++                unpack_out = DataFormat::Float16_b; // If output Float32 or Float16_b
++            }
++            else
++            {
++                unpack_out = DataFormat::Float16; // Tilize to Float16
++            }
++        }
++
+         if (is_fp32_dest_acc_en || is_exponentB(output))
+         {
+             pack_in = output;
+         }
+         else
+         {
+-            pack_in = DataFormat::Tf32;
++            pack_in = unpack_out;
+         }
+     }
+     else if (input == DataFormat::Float16 && output == DataFormat::Bfp8_b && !is_fp32_dest_acc_en)
+
+File: tests/python_tests/helpers/format_config.py
+@@ -60,6 +60,15 @@ def is_32_bit(self) -> bool:
+         """Checks if the data format is a 32-bit type."""
+         return self in {DataFormat.Float32, DataFormat.Int32, DataFormat.UInt32}
+ 
++    def is_exponent_B(self) -> bool:
++        """Checks if the data format is an exponent B format."""
++        return self in {
++            DataFormat.Float16_b,
++            DataFormat.Bfp8_b,
++            DataFormat.Tf32,
++            DataFormat.Float32,
++        }
++
+ 
+ @dataclass
+ class FormatConfig:
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -11,10 +11,31 @@
+     ReducePool,
+     format_dict,
+ )
++from helpers.format_config import DataFormat
+ 
+ golden_registry = {}
+ 
+ 
++def check_bfp8_b(operand: list) -> list:
++    """Check if datum is BFP8_B there is a +/- inf then zero out entire row of 16 elements because they inherit the same exponent and therefore get zeroed out in tensix."""
++    # tensor_bytes = pack_bfp8_b(torch.tensor(operand, dtype=torch.bfloat16))
++    # tensor = unpack_bfp8_b(tensor_bytes)
++    # return tensor
++
++    not_finite = [1.7014118346046923e38, float("inf"), float("-inf"), float("nan")]
++    for i in range(len(operand)):
++        if operand[i] in not_finite:
++            # Zero out the entire row of 16 elements
++            inf_index = i
++            for col in range(16):
++                row = inf_index // 16
++                index = row * 16 + col
++                if operand[index] not in not_finite:
++                    operand[index] = 0.0
++
++    return operand
++
++
+ def register_golden(cls):
+     """Register a golden class by its type."""
+     golden_registry[cls] = cls()
+@@ -97,15 +118,34 @@ def __init__(self):
+             MathOperation.Gelu: self._gelu,
+         }
+         self.data_format = None
++        self.shared_exponent_zeroed = False
+ 
+     def __call__(self, operation, operand1, data_format):
++        self.data_format = data_format
+         if operation not in self.ops:
+             raise ValueError(f"Unsupported operation: {operation}")
+-        self.data_format = data_format
+-        tensor = to_tensor(operand1, data_format)
++        tensor = to_tensor(operand1, self.data_format)
+         result = [self.ops[operation](x) for x in tensor.tolist()]
++        if self.shared_exponent_zeroed:
++            check_bfp8_b(result)
+         return torch.tensor(result, dtype=format_dict[data_format])
+ 
++    # Helper functions
++    def handle_infinite_numbers(self, expected: float) -> float:
++        """Handle infinite numbers based on the data format.
++        Tensix will return inf, -inf for B_exponent formats, and NaN for Float16.
++        Returns:
++            float: Infinite number
++            Depending on our format we either return NaN or +/- inf.
++        """
++        if self.data_format.is_exponent_B():
++
++            if self.data_format == DataFormat.Bfp8_b:
++                self.shared_exponent_zeroed = True
++            return expected
++        else:  # self.data_format == DataFormat.Float16:
++            return float("NaN")
++
+     # Operation methods
+     def _abs(self, x):
+         return abs(x)
+@@ -114,18 +154,27 @@ def _cos(self, x):
+         return math.cos(x)
+ 
+     def _log(self, x):
+-        return math.log(x) if x != 0 else float("nan")
++        if x == 0.0:
++            return self.handle_infinite_numbers(float("-inf"))
++        return math.log(x)
+ 
+     def _reciprocal(self, x):
+-        return 1 / x if x != 0 else float("nan")
++        if x == 0.0:
++            return self.handle_infinite_numbers(1.7014118346046923e38)
++        return 1 / x
+ 
+     def _sin(self, x):
++        # Never not finite, values range from [-1, 1]
+         return math.sin(x)
+ 
+     def _sqrt(self, x):
++        if x < 0.0:
++            self.handle_infinite_numbers(float("inf"))
+         return math.sqrt(x)
+ 
+     def _square(self, x):
++        if not math.isfinite(x * x):
++            return self.handle_infinite_numbers(float("inf"))
+         return x * x
+ 
+     def _celu(self, x):
+@@ -187,34 +236,46 @@ def _mul(self, t1, t2):
+ @register_golden
+ class BinarySFPUGolden(EltwiseBinaryGolden):
+     def __init__(self):
+-        self.ops = {
+-            MathOperation.SfpuElwadd: self._add,
+-            MathOperation.SfpuElwsub: self._sub,
+-            MathOperation.SfpuElwmul: self._mul,
+-            MathOperation.SfpuXlogy: self._xlogy,
+-            MathOperation.SfpuElwRightShift: self._right_shift,
+-            MathOperation.SfpuElwLeftShift: self._left_shift,
+-            MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
+-        }
++        super().__init__()
++        self.ops.update(
++            {
++                MathOperation.SfpuElwadd: self._add,
++                MathOperation.SfpuElwsub: self._sub,
++                MathOperation.SfpuElwmul: self._mul,
++                MathOperation.SfpuXlogy: self._xlogy,
++                MathOperation.SfpuElwRightShift: self._right_shift,
++                MathOperation.SfpuElwLeftShift: self._left_shift,
++                MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
++            }
++        )
+ 
+-    def __call__(self, operation, operand1, operand2, data_format):
++    def __call__(
++        self, operation: MathOperation, operand1, operand2, data_format: DataFormat
++    ):
+         if operation not in self.ops:
+             raise ValueError(f"Unsupported SFPU operation: {operation}")
+ 
+         t1 = to_tensor(operand1, data_format)
+         t2 = to_tensor(operand2, data_format)
+ 
+-        return self.ops[operation](t1, t2)
++        result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
++        return torch.tensor(result, dtype=format_dict[data_format])
+ 
+     # Operation methods are cover by Eltwise Binary Golden
+-    def _xlogy(self, t1, t2):
+-        return torch.xlogy(t1, t2)
++    def _xlogy(self, x, y):
++        # Unable to model edge cases for Tensix behavior in golden.
++        # Tensix shows inconsistent patterns in handling non-finite results for xlogy, depending on the input,
++        # data format (both input and output), and destination accumulation (dest_acc).
++        # We need to work with the Tensix team to understand when and why certain results are returned,
++        # what configuration dependencies exist, and how to handle them appropriately.
++        # Without this understanding, discrepancies will occur between golden and Tensix results due to differing edge case handling.
++        pass
+ 
+     def _right_shift(self, t1, t2):
+-        return torch.bitwise_right_shift(t1, t2)
++        return torch.bitwise_right_shift(t1, t2).item()
+ 
+     def _left_shift(self, t1, t2):
+-        return torch.bitwise_left_shift(t1, t2)
++        return torch.bitwise_left_shift(t1, t2).item()
+ 
+     def _logical_right_shift(self, t1, t2):
+         # Perform logical right shift by treating t1 as unsigned 32-bit
+
+File: tests/python_tests/helpers/unpack.py
+@@ -8,7 +8,10 @@
+ 
+ import torch
+ 
+-from .format_arg_mapping import DataFormat, format_dict, format_tile_sizes
++from helpers.format_arg_mapping import format_dict
++from helpers.format_config import DataFormat
++
++from .format_arg_mapping import format_dict, format_tile_sizes
+ 
+ 
+ def unpack_fp16(packed_list):
+
+File: tests/python_tests/helpers/utils.py
+@@ -156,8 +156,12 @@ def get_tolerance(output_data_format):
+     return atol, rtol
+ 
+ 
+-def passed_test(golden_tensor, res_tensor, output_data_format=DataFormat.Float16_b):
+-
++def passed_test(
++    golden_tensor,
++    res_tensor,
++    output_data_format: DataFormat = DataFormat.Float16_b,
++    L1_to_L1_iterations: int = 1,
++):
+     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
+ 
+     def get_tolerance(output_data_format):
+@@ -186,17 +190,27 @@ def get_tolerance(output_data_format):
+     is_close = torch.isclose(
+         golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
+     )
+-    is_within_tolerance = torch.all(is_close)
++    is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
++
++    is_valid = is_close | is_nan
++    is_within_tolerance = torch.all(is_valid)
+ 
+     if not is_within_tolerance:
+         # Find all indices where values differ
+-        diff_indices = torch.where(~is_close)[0]
++        diff_indices = torch.where(~is_valid)[0]
+         print(f"Found {len(diff_indices)} differences:")
+         for idx in diff_indices:
+             print(
+                 f"Failed at index {idx} with values {res_tensor[idx]} and {golden_tensor[idx]}"
+             )
+ 
+     pcc = calculate_pcc(res_tensor, golden_tensor)
+-
+-    return is_within_tolerance and (pcc > 0.99)
++    target_pcc = 0.99
++    # Once we iterate L1-L1 more than once the loss in percision is accumulated because the result from the first run is transferred as input to the next run
++    # We don't have a robust accuracy model to determine exact percision loss from each run and accumulate as such per test, so we use a heuristic
++    #   - This reduction in precision occurs primarily when copying results from the first L1-to-L1 stage, and is further compounded when truncating
++    #     values with less percision (Bfp8_b) and drops below 99% in that case
++    if output_data_format == DataFormat.Bfp8_b:
++        target_pcc = pow(0.99, L1_to_L1_iterations)
++    print("PCC:", pcc)
++    return is_within_tolerance and (pcc > target_pcc)
+
+File: tests/python_tests/pytest.ini
+@@ -3,7 +3,7 @@ filterwarnings =
+     ignore::UserWarning
+     ignore::DeprecationWarning
+     ignore::FutureWarning
+-addopts = -vvv -s
++addopts = -v -s
+ python_files =
+     test_*.py
+     perf_*.py
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -16,7 +16,7 @@
+     MathOperation,
+     format_dict,
+ )
+-from helpers.format_config import DataFormat
++from helpers.format_config import DataFormat, InputOutputFormat
+ from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
+ from helpers.param_config import (
+     clean_params,
+@@ -29,7 +29,13 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float32, DataFormat.Float16, DataFormat.Float16_b]
++supported_formats = [
++    DataFormat.Float32,
++    DataFormat.Float16,
++    DataFormat.Float16_b,
++    DataFormat.Bfp8_b,
++]
++
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -77,31 +83,31 @@
+ )
+ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+     arch = get_chip_architecture()
+-    if (
+-        formats.input_format in [DataFormat.Float32, DataFormat.Int32]
+-        and dest_acc != DestAccumulation.Yes
+-    ):
+-        pytest.skip(
+-            reason="Skipping test for 32 bit wide data without 32 bit accumulation in Dest"
+-        )
+-
+-    if formats.input_format == DataFormat.Float16 and (
+-        dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE
+-    ):
+-        pytest.skip(reason="This combination is not fully implemented in testing")
++
++    if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
++        if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
++            DataFormat.Float32, DataFormat.Float16
++        ):
++            pytest.skip(reason="This combination is not supported on BH architecture")
+ 
+     input_dimensions = [64, 64]
+ 
+     src_A, src_B, tile_cnt = generate_stimuli(
+         formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
++
+     generate_golden = get_golden_generator(UnarySFPUGolden)
+     golden_tensor = generate_golden(mathop, src_A, formats.output_format)
++
+     res_address = write_stimuli_to_l1(
+         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+     )
+ 
+-    unpack_to_dest = formats.input_format.is_32_bit()
++    unpack_to_dest = (
++        formats.input_format.is_32_bit()
++        and dest_acc
++        == DestAccumulation.Yes  # If dest_acc is off, we unpack Float32 into 16-bit format in src regsiters (later copied over in dest reg for SFPU op)
++    )
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+@@ -115,6 +121,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+     run_test(test_config)
+ 
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
++
+     # res_from_L1 = res_from_L1[:1024]
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -35,8 +35,12 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
+-
++supported_formats = [
++    DataFormat.Float16,
++    DataFormat.Float16_b,
++    DataFormat.Float32,
++    DataFormat.Bfp8_b,
++]
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+ 
+@@ -104,14 +108,15 @@ def test_matmul_and_unary_sfpu(
+ 
+     torch_format = format_dict.get(formats.output_format)
+     src_A, src_B, tile_cnt = generate_stimuli(
+-        formats.input_format, formats.input_format
++        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
+ 
+     generate_matmul_golden = get_golden_generator(MatmulGolden)
+     golden_tensor = generate_matmul_golden(
+         src_A, src_B, formats.output_format, math_fidelity
+     )
+     golden_tensor = tilize(golden_tensor, formats.output_format)
++
+     generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
+     golden_tensor = generate_sfpu_golden(mathop, golden_tensor, formats.output_format)
+     golden_tensor = golden_tensor.to(torch_format)
+@@ -130,6 +135,7 @@ def test_matmul_and_unary_sfpu(
+         "math_fidelity": math_fidelity,
+         "approx_mode": approx_mode,
+         "mathop": mathop,
++        "L1_to_L1_iterations": 2,  # This is a fused test does two runs of L1-L1, result tensor from first run (matmul) is used as input for second run (sfpu operation)
+     }
+ 
+     run_test(test_config)
+@@ -138,4 +144,11 @@ def test_matmul_and_unary_sfpu(
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+ 
+-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
++    assert passed_test(
++        golden_tensor,
++        res_tensor,
++        formats.output_format,
++        test_config.get(
++            "L1_to_L1_iterations"  # Needed to calculate accumulated percision loss for fused tests that copy result tensor as input for next runs
++        ),
++    )
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -26,7 +26,7 @@
+ supported_formats = [
+     DataFormat.Float16_b,
+     DataFormat.Float16,
+-    DataFormat.Bfp8_b,
++    DataFormat.Bfp8_b,  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
+     DataFormat.Float32,
+ ]
+ 
+
+File: tests/python_tests/test_matmul_unpack_tilize.py
+@@ -26,7 +26,10 @@
+ supported_formats = [
+     DataFormat.Float16_b,
+     DataFormat.Float16,
+-]  # Add DataFormat.Float32 when Data format Inference Model 2.0 supports format conversions for > 1 pipeline run
++    DataFormat.Float32,
++]  #  Add DataFormat.Bfp8_b only as input when Data format Inference Model 2.0 supports format conversions for > 1 pipeline run with different inputs and outputs.
++#  Now tests run by requiring input format to be same as output format.
++#  We cannot unpack tilize on Bfp8_b format, so it will be included only as input format.
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -91,6 +94,7 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
++        "L1_to_L1_iterations": 2,
+     }
+ 
+     run_test(test_config)
+@@ -100,4 +104,11 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+ 
+     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+ 
+-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
++    assert passed_test(
++        golden_tensor,
++        res_tensor,
++        formats.output_format,
++        test_config.get(
++            "L1_to_L1_iterations"  # Needed to calculate accumulated percision loss for fused tests that copy result tensor as input for next runs
++        ),
++    )
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -27,7 +27,12 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
++supported_formats = [
++    DataFormat.Bfp8_b,
++    DataFormat.Float16,
++    DataFormat.Float16_b,
++    DataFormat.Float32,
++]
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -22,7 +22,12 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
++supported_formats = [
++    DataFormat.Float16_b,
++    DataFormat.Float16,
++    DataFormat.Float32,
++    DataFormat.Bfp8_b,
++]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -48,6 +53,8 @@
+ 
+ @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+ def test_pack_untilize(testname, formats):
++    if formats.output_format == DataFormat.Bfp8_b:
++        pytest.skip("Pack Untilize does not support Bfp8_b format")
+ 
+     input_dimensions = [32, 128]
+ 
+
+File: tests/python_tests/test_reduce.py
+@@ -36,7 +36,12 @@
+ }
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
++supported_formats = [
++    DataFormat.Float16_b,
++    DataFormat.Float16,
++    DataFormat.Float32,
++    DataFormat.Bfp8_b,
++]
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -23,7 +23,12 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_float_formats = [DataFormat.Float16_b, DataFormat.Float16]
++supported_float_formats = [
++    DataFormat.Float32,
++    DataFormat.Float16,
++    DataFormat.Float16_b,
++    DataFormat.Bfp8_b,
++]
+ supported_int_formats = [DataFormat.Int32]
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+@@ -38,7 +43,7 @@
+ #         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+ #         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+ #         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
++#         DataFormat.Float16_b,)]) # index 4 is for math format
+ 
+ #   SPECIFIC INPUT-OUTPUT COMBINATION
+ #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+@@ -47,7 +52,6 @@
+     MathOperation.SfpuElwadd,
+     MathOperation.SfpuElwsub,
+     MathOperation.SfpuElwmul,
+-    MathOperation.SfpuXlogy,
+ ]
+ 
+ int_ops = [
+@@ -59,7 +63,7 @@
+ float_params = generate_params(
+     ["sfpu_binary_test"],
+     input_output_formats(supported_float_formats),
+-    dest_acc=[DestAccumulation.No],
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     mathop=float_ops,
+ )
+ 
+@@ -86,6 +90,15 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
+     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
+         pytest.skip("Not currently supported in tests")
+ 
++    if (
++        dest_acc == DestAccumulation.No
++        and chip_arch == ChipArchitecture.BLACKHOLE
++        and formats.input_format == DataFormat.Float16
++    ):
++        pytest.skip(
++            "Float16_a isn't supported for SFPU on Blackhole without being converted to 32-bit intermediate format in dest register"
++        )
++
+     src_A, src_B, tile_cnt = generate_stimuli(
+         formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
+@@ -99,7 +112,7 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
+     unpack_to_dest = formats.input_format.is_32_bit()
+ 
+     # Blackhole needs this for some reason
+-    if formats.input_format == DataFormat.Float16:
++    if formats.input_format in [DataFormat.Float16, DataFormat.Float32]:
+         dest_acc = DestAccumulation.Yes
+ 
+     test_config = {
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -28,7 +28,11 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16, DataFormat.Float16_b]
++supported_formats = [
++    DataFormat.Float16,
++    DataFormat.Float16_b,
++    DataFormat.Float32,
++]  # Unpack Tilize & Pack Untilize does not work on Bfp8_b format
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -21,7 +21,12 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16_b]  # , DataFormat.Float16]
++supported_formats = [
++    DataFormat.Float16_b,
++    DataFormat.Float16,
++    DataFormat.Float32,
++    DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
++]  # Included in test only as input format
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -48,6 +53,9 @@
+ @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+ def test_unpack_tilize(testname, formats):
+ 
++    if formats.input_format == DataFormat.Bfp8_b:
++        pytest.skip("Unpack Tilize does not support Bfp8_b input format")
++
+     input_dimensions = [64, 64]
+ 
+     src_A, _, tile_cnt = generate_stimuli(
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -22,7 +22,12 @@
+ from helpers.utils import passed_test
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
++supported_formats = [
++    DataFormat.Float16_b,
++    DataFormat.Float16,
++    DataFormat.Float32,
++    DataFormat.Bfp8_b,
++]
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -48,8 +53,17 @@
+ 
+ @pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+ def test_unpack_untilize(testname, formats):
++    if formats.input_format == DataFormat.Bfp8_b:
++        pytest.skip(
++            "BFP8 format is not supported for unpack_untilize operation for multiple tiles"
++        )
+ 
+     input_dimensions = [32, 128]
++    if formats.input_format == DataFormat.Float32:
++        input_dimensions = [
++            32,
++            32,
++        ]  # Multiple tile unpack untilize not supported for Float32, @ldjurovic can take a look to extend this
+ 
+     src_A, _, tile_cnt = generate_stimuli(
+         formats.input_format, formats.input_format, input_dimensions=input_dimensions
+

@@ -1,0 +1,9 @@
+PR #39: fix: correct tt-metal build issue
+URL: https://github.com/tenstorrent/tt-llk/pull/39
+
+File: tt_llk_blackhole/hw_specific/inc/ckernel_sfpu_converter.h
+[binary or too large or removed]
+
+File: tt_llk_wormhole_b0/hw_specific/inc/ckernel_sfpu_converter.h
+[binary or too large or removed]
+

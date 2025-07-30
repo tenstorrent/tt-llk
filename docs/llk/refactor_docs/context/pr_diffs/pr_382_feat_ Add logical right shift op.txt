@@ -1,0 +1,326 @@
+PR #382: feat: Add logical right shift op
+URL: https://github.com/tenstorrent/tt-llk/pull/382
+
+File: tests/helpers/include/params.h
+@@ -90,6 +90,9 @@ constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::RSHFT;
+ #ifdef SFPU_OP_LSHFT
+ constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::LSHFT;
+ #endif
++#ifdef SFPU_OP_LOGICAL_RSHFT
++constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::LOGICAL_RSHFT;
++#endif
+ 
+ #ifdef SFPU_OP_SQRT
+ constexpr auto SFPU_OPERATION = SfpuType::sqrt;
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -49,6 +49,7 @@ class MathOperation(Enum):
+     SfpuXlogy = "SFPU_OP_XLOGY"
+     SfpuElwRightShift = "SFPU_OP_RSHFT"
+     SfpuElwLeftShift = "SFPU_OP_LSHFT"
++    SfpuElwLogicalRightShift = "SFPU_OP_LOGICAL_RSHFT"
+ 
+ 
+ class ReduceDimension(Enum):
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -176,6 +176,7 @@ def __init__(self):
+             MathOperation.SfpuXlogy: self._xlogy,
+             MathOperation.SfpuElwRightShift: self._right_shift,
+             MathOperation.SfpuElwLeftShift: self._left_shift,
++            MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
+         }
+ 
+     def __call__(self, operation, operand1, operand2, data_format):
+@@ -197,6 +198,12 @@ def _right_shift(self, t1, t2):
+     def _left_shift(self, t1, t2):
+         return torch.bitwise_left_shift(t1, t2)
+ 
++    def _logical_right_shift(self, t1, t2):
++        # Perform logical right shift by treating t1 as unsigned 32-bit
++        t1_uint = t1.to(torch.int64) & 0xFFFFFFFF
++        result = (t1_uint >> t2).to(torch.int32)
++        return result
++
+ 
+ @register_golden
+ class FillDestGolden(EltwiseBinaryGolden):
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -53,6 +53,7 @@
+ int_ops = [
+     MathOperation.SfpuElwRightShift,
+     MathOperation.SfpuElwLeftShift,
++    MathOperation.SfpuElwLogicalRightShift,
+ ]
+ 
+ float_params = generate_params(
+
+File: tests/sources/sfpu_binary_test.cpp
+@@ -60,6 +60,9 @@ void call_binary_sfpu_operation(BinaryOp operation)
+         case BinaryOp::LSHFT:
+             _calculate_binary_left_shift_<false, 32, INT32, false>(1);
+             break;
++        case BinaryOp::LOGICAL_RSHFT:
++            _calculate_logical_right_shift_<false, 32, INT32, false>(1);
++            break;
+         default:
+             return;
+     }
+
+File: tt_llk_blackhole/common/inc/ckernel_defs.h
+@@ -231,15 +231,16 @@ enum class ActivationType
+ 
+ enum class BinaryOp : uint8_t
+ {
+-    ADD   = 0,
+-    SUB   = 1,
+-    MUL   = 2,
+-    DIV   = 3,
+-    RSUB  = 4,
+-    POW   = 5,
+-    XLOGY = 6,
+-    RSHFT = 7,
+-    LSHFT = 8
++    ADD           = 0,
++    SUB           = 1,
++    MUL           = 2,
++    DIV           = 3,
++    RSUB          = 4,
++    POW           = 5,
++    XLOGY         = 6,
++    RSHFT         = 7,
++    LSHFT         = 8,
++    LOGICAL_RSHFT = 9
+ };
+ 
+ } // namespace ckernel
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_activations.h
+@@ -20,7 +20,7 @@ struct ActivationImpl;
+ template <bool APPROXIMATION_MODE>
+ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+ {
+-    static inline void apply(sfpi::vFloat& v, uint param0, uint param1)
++    static inline void apply(sfpi::vFloat& v, float param0, float param1)
+     {
+         // All params are in FP16_B format
+         // param0 = alpha
+@@ -31,28 +31,25 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+ 
+         v_if (v < 0.0f)
+         {
+-            sfpi::vFloat exp_val      = _calculate_exponential_body_<APPROXIMATION_MODE>(v * alpha_recip);
+-            sfpi::vFloat result       = v * exp_val;
+-            sfpi::vFloat result_alpha = result * alpha;
+-            v                         = result_alpha - 1;
+-        }
+-        v_elseif (v == 0.0f)
+-        {
+-            v = 0.0f;
++            // Compute exp(x / alpha)
++            sfpi::vFloat exp_val = _calculate_exponential_body_<APPROXIMATION_MODE>(v * alpha_recip);
++
++            // Compute CELU: alpha * (exp(x / alpha) - 1)
++            v = alpha * (exp_val - 1.0f);
+         }
+         v_endif;
+     }
+ };
+ 
+ // Dispatch wrapper function
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+-inline void apply_activation(sfpi::vFloat& v, uint param0, uint param1)
++inline void apply_activation(sfpi::vFloat& v, float param0, float param1)
+ {
+     ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0, param1);
+ }
+ 
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
+-inline void _calculate_activation_(uint param0, uint param1)
++inline void _calculate_activation_(float param0, float param1)
+ {
+ #pragma GCC unroll 8
+     for (int d = 0; d < ITERATIONS; d++)
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_shift.h
+@@ -78,5 +78,34 @@ inline void _calculate_binary_right_shift_(const uint dst_offset)
+     }
+ }
+ 
++template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
++inline void _calculate_logical_right_shift_(const uint dst_offset)
++{
++    static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
++
++    constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
++
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        constexpr uint dst_tile_size = 64;
++        // load
++        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, 0);
++        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_7, dst_offset * dst_tile_size);
++        // if (shift_amount < 0 OR shift_amount >= 32) -> result should be 0
++        TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
++        TTI_SFPIADD(0xFE0, p_sfpu::LREG1, p_sfpu::LREG2, 1); // 0xFE0 = -32
++        TTI_SFPCOMPC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
++        TTI_SFPMOV(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
++        TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
++        // shift right
++        TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG1, 6); // take negative of shift_amount to shift right
++        TTI_SFPSHFT(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);
++        // store result
++        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, 0);
++        sfpi::dst_reg++;
++    }
++}
++
+ } // namespace sfpu
+ } // namespace ckernel
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_defs.h
+@@ -230,15 +230,16 @@ enum class ActivationType
+ 
+ enum class BinaryOp : uint8_t
+ {
+-    ADD   = 0,
+-    SUB   = 1,
+-    MUL   = 2,
+-    DIV   = 3,
+-    RSUB  = 4,
+-    POW   = 5,
+-    XLOGY = 6,
+-    RSHFT = 7,
+-    LSHFT = 8
++    ADD           = 0,
++    SUB           = 1,
++    MUL           = 2,
++    DIV           = 3,
++    RSUB          = 4,
++    POW           = 5,
++    XLOGY         = 6,
++    RSHFT         = 7,
++    LSHFT         = 8,
++    LOGICAL_RSHFT = 9
+ };
+ 
+ } // namespace ckernel
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_activations.h
+@@ -20,7 +20,7 @@ struct ActivationImpl;
+ template <bool APPROXIMATION_MODE>
+ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+ {
+-    static inline void apply(sfpi::vFloat& v, uint param0, uint param1)
++    static inline void apply(sfpi::vFloat& v, float param0, float param1)
+     {
+         // All params are in FP16_B format
+         // param0 = alpha
+@@ -31,28 +31,25 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+ 
+         v_if (v < 0.0f)
+         {
+-            sfpi::vFloat exp_val      = _calculate_exponential_body_<APPROXIMATION_MODE>(v * alpha_recip);
+-            sfpi::vFloat result       = v * exp_val;
+-            sfpi::vFloat result_alpha = result * alpha;
+-            v                         = result_alpha - 1;
+-        }
+-        v_elseif (v == 0.0f)
+-        {
+-            v = 0.0f;
++            // Compute exp(x / alpha)
++            sfpi::vFloat exp_val = _calculate_exponential_body_<APPROXIMATION_MODE>(v * alpha_recip);
++
++            // Compute CELU: alpha * (exp(x / alpha) - 1)
++            v = alpha * (exp_val - 1.0f);
+         }
+         v_endif;
+     }
+ };
+ 
+ // Dispatch wrapper function
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+-inline void apply_activation(sfpi::vFloat& v, uint param0, uint param1)
++inline void apply_activation(sfpi::vFloat& v, float param0, float param1)
+ {
+     ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0, param1);
+ }
+ 
+ template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
+-inline void _calculate_activation_(uint param0, uint param1)
++inline void _calculate_activation_(float param0, float param1)
+ {
+ #pragma GCC unroll 8
+     for (int d = 0; d < ITERATIONS; d++)
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_shift.h
+@@ -26,8 +26,8 @@ inline void _calculate_binary_left_shift_(const uint dst_offset)
+     {
+         constexpr uint dst_tile_size = 64;
+         // load
+-        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, 3, 0);
+-        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, 3, dst_offset * dst_tile_size);
++        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, 0);
++        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_3, dst_offset * dst_tile_size);
+         // if (shift_amount < 0 OR shift_amount >= 32) -> result should be 0
+         TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+         TTI_SFPIADD(0xFE0, p_sfpu::LREG1, p_sfpu::LREG2, 1); // 0xFE0 = -32
+@@ -37,7 +37,7 @@ inline void _calculate_binary_left_shift_(const uint dst_offset)
+         // shift left
+         TTI_SFPSHFT(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);
+         // store result
+-        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, 3, 0);
++        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, 0);
+         sfpi::dst_reg++;
+     }
+ }
+@@ -55,7 +55,7 @@ inline void _calculate_binary_right_shift_(const uint dst_offset)
+         constexpr uint dst_tile_size = 64;
+         // load
+         TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, 3, 0);
+-        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, 3, dst_offset * dst_tile_size);
++        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_3, dst_offset * dst_tile_size);
+         TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG4, 0); // save shift_value for later
+         // if (shift_amount < 0 OR shift_amount >= 32) -> result should be 0
+         TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+@@ -74,7 +74,36 @@ inline void _calculate_binary_right_shift_(const uint dst_offset)
+         TTI_SFPOR(0, p_sfpu::LREG3, p_sfpu::LREG0, 0);       // OR in the 1's
+         TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+         // store result
+-        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, 3, 0);
++        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, 0);
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
++inline void _calculate_logical_right_shift_(const uint dst_offset)
++{
++    static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
++
++    constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
++
++    // SFPU microcode
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        constexpr uint dst_tile_size = 64;
++        // load
++        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, 0);
++        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_3, dst_offset * dst_tile_size);
++        // if (shift_amount < 0 OR shift_amount >= 32) -> result should be 0
++        TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
++        TTI_SFPIADD(0xFE0, p_sfpu::LREG1, p_sfpu::LREG2, 1); // 0xFE0 = -32
++        TTI_SFPCOMPC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
++        TTI_SFPMOV(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
++        TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
++        // shift right
++        TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG1, 6); // take negative of shift_amount to shift right
++        TTI_SFPSHFT(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);
++        // store result
++        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, 0);
+         sfpi::dst_reg++;
+     }
+ }
+

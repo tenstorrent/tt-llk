@@ -1,0 +1,66 @@
+PR #536: passing ITERATIONS to where LLK
+URL: https://github.com/tenstorrent/tt-llk/pull/536
+
+File: tests/sources/ttnn_where_test.cpp
+@@ -107,7 +107,9 @@ void run_kernel()
+     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
+     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
+ 
+-    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>(UNPACK_A_IN)>();
++    constexpr int iterations = 32;
++
++    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>(UNPACK_A_IN), iterations>();
+ 
+     _llk_math_eltwise_ternary_sfpu_done_();
+ 
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_where.h
+@@ -79,7 +79,7 @@ inline void _calculate_where_fp32_()
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, DataFormat data_format>
++template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
+ inline void _calculate_where_()
+ {
+     // Add a compile-time check to ensure only supported formats are used.
+@@ -88,11 +88,11 @@ inline void _calculate_where_()
+         "Unsupported data format for _calculate_where_(). Only Float32 and Float16_b are allowed.");
+     if constexpr (data_format == DataFormat::Float32)
+     {
+-        _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
++        _calculate_where_fp32_<APPROXIMATION_MODE, ITERATIONS>();
+     }
+     else
+     {
+-        _calculate_where_fp16_b_<APPROXIMATION_MODE, 32>();
++        _calculate_where_fp16_b_<APPROXIMATION_MODE, ITERATIONS>();
+     }
+ }
+ 
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_where.h
+@@ -79,7 +79,7 @@ inline void _calculate_where_fp32_()
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, DataFormat data_format>
++template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
+ inline void _calculate_where_()
+ {
+     // Add a compile-time check to ensure only supported formats are used.
+@@ -88,11 +88,11 @@ inline void _calculate_where_()
+         "Unsupported data format for _calculate_where_(). Only Float32 and Float16_b are allowed.");
+     if constexpr (data_format == DataFormat::Float32)
+     {
+-        _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
++        _calculate_where_fp32_<APPROXIMATION_MODE, ITERATIONS>();
+     }
+     else
+     {
+-        _calculate_where_fp16_b_<APPROXIMATION_MODE, 32>();
++        _calculate_where_fp16_b_<APPROXIMATION_MODE, ITERATIONS>();
+     }
+ }
+ 
+

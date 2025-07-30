@@ -1,0 +1,34 @@
+PR #304: Skipping tests that are not elwmul and sweep fidelity
+URL: https://github.com/tenstorrent/tt-llk/pull/304
+
+File: tests/python_tests/helpers/test_config.py
+@@ -76,5 +76,4 @@ def generate_make_command(
+ 
+             make_cmd += f"kern_cnt={kern_cnt} pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs} "
+ 
+-    print(make_cmd)
+     return make_cmd
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -109,6 +109,10 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     ids=param_ids,
+ )
+ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile_cnt):
++
++    if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
++        pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
++
+     pack_start_address = 0x1A000 + 2 * 4096 * tile_cnt.value
+     pack_addresses = [pack_start_address + 0x1000 * i for i in range(tile_cnt.value)]
+     pack_addresses_formatted = format_kernel_list(pack_addresses, as_hex=True)
+@@ -121,9 +125,6 @@ def test_multiple_tiles(testname, formats, dest_acc, mathop, math_fidelity, tile
+         src_A, src_B, formats.input_format, formats.input_format, "0,0", tile_cnt
+     )
+ 
+-    if mathop != MathOperation.Elwmul:
+-        math_fidelity = MathFidelity.LoFi
+-
+     test_config = {
+         "formats": formats,
+         "testname": testname,
+

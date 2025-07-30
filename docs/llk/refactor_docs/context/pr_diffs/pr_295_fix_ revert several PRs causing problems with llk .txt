@@ -1,0 +1,550 @@
+PR #295: fix: revert several PRs causing problems with llk integration into metal
+URL: https://github.com/tenstorrent/tt-llk/pull/295
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -64,7 +64,7 @@ void call_sfpu_operation(SfpuType operation)
+             ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, 32, is_fp32_dest_acc_en>(32);
+             break;
+         case SfpuType::sine:
+-            ckernel::sfpu::_calculate_sine_<APPROX_MODE, 32>();
++            ckernel::sfpu::_calculate_sine_<APPROX_MODE, 32>(32);
+             break;
+         case SfpuType::sqrt:
+             ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
+
+File: tests/sources/matmul_and_unary_sfpu_test.cpp
+@@ -70,7 +70,7 @@ void call_sfpu_operation(SfpuType operation)
+             ckernel::sfpu::_calculate_abs_<APPROX_MODE, 10>(10);
+             break;
+         case SfpuType::cosine:
+-            ckernel::sfpu::_calculate_cosine_<APPROX_MODE, 10>();
++            ckernel::sfpu::_calculate_cosine_<APPROX_MODE, 10>(10);
+             break;
+         case SfpuType::log:
+             ckernel::sfpu::_init_log_<APPROX_MODE>();
+@@ -81,7 +81,7 @@ void call_sfpu_operation(SfpuType operation)
+             ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, 10, is_fp32_dest_acc_en>(10);
+             break;
+         case SfpuType::sine:
+-            ckernel::sfpu::_calculate_sine_<APPROX_MODE, 10>();
++            ckernel::sfpu::_calculate_sine_<APPROX_MODE, 10>(10);
+             break;
+         case SfpuType::sqrt:
+             ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
+
+File: tt_llk_blackhole/common/inc/cunpack_common.h
+@@ -291,8 +291,7 @@ inline void configure_unpack_AB(
+ 
+     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
+ 
+-    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16) ||
+-                                     ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
++    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
+     if constexpr (disable_src_zero_flag)
+     {
+         src_zeroflags_disable = true;
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h
+@@ -84,10 +84,10 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
+     return out;
+ }
+ 
+-template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK = false>
+-void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0x3F80)
++template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX = true>
++void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0)
+ {
+-    if constexpr (FAST_APPROX)
++    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+     {
+         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
+         // value with -88.5 and store back to DEST
+@@ -187,61 +187,35 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
+             sfpi::vFloat val = sfpi::dst_reg[0];
+             if constexpr (SCALE_EN)
+             {
+-                val = val * sfpi::s2vFloat16b(exp_base_scale_factor);
++                val = val * sfpi::s2vFloat16a(exp_base_scale_factor);
+             }
+             if constexpr (APPROXIMATION_MODE)
+             {
+-                if constexpr (!SKIP_POSITIVE_CHECK)
++                v_if (val >= 89)
+                 {
+-                    v_if (val >= 89)
+-                    {
+-                        sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
+-                        sfpi::dst_reg[0]     = val_inf;
+-                    }
+-                    v_elseif (val < -42)
+-                    {
+-                        sfpi::dst_reg[0] = 0.0f;
+-                    }
+-                    v_else
+-                    {
+-                        // * by 1/ln2 and add convert to 7.3 FxP format
+-                        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-                        sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+-                        sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+-                        val                         = val * vConstLn2Recip + c23_73;
+-
+-                        // Remove Exponent of 7 and bias the Mantissa to 127.
+-                        sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
+-
+-                        // SHL to move integer bits to exponent
+-                        val_short <<= 10 - p_exp::FRAC_BITS;
+-                        sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
+-                    }
+-                    v_endif;
++                    sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
++                    sfpi::dst_reg[0]     = val_inf;
+                 }
+-                else
++                v_elseif (val < -42)
+                 {
+-                    v_if (val < -42)
+-                    {
+-                        sfpi::dst_reg[0] = 0.0f;
+-                    }
+-                    v_else
+-                    {
+-                        // * by 1/ln2 and add convert to 7.3 FxP format
+-                        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-                        sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+-                        sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+-                        val                         = val * vConstLn2Recip + c23_73;
+-
+-                        // Remove Exponent of 7 and bias the Mantissa to 127.
+-                        sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
+-
+-                        // SHL to move integer bits to exponent
+-                        val_short <<= 10 - p_exp::FRAC_BITS;
+-                        sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
+-                    }
+-                    v_endif;
++                    sfpi::dst_reg[0] = 0.0f;
+                 }
++                v_else
++                {
++                    // * by 1/ln2 and add convert to 7.3 FxP format
++                    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
++                    sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
++                    sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
++                    val                         = val * vConstLn2Recip + c23_73;
++
++                    // Remove Exponent of 7 and bias the Mantissa to 127.
++                    sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
++
++                    // SHL to move integer bits to exponent
++                    val_short <<= 10 - p_exp::FRAC_BITS;
++                    sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
++                }
++                v_endif;
+             }
+             else
+             {
+@@ -262,14 +236,10 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
+     }
+ }
+ 
+-constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
+-constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
+-constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
+-
+-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000>
++template <bool APPROXIMATION_MODE, bool FAST_APPROX = true>
+ inline void _init_exponential_()
+ {
+-    if constexpr (FAST_APPROX)
++    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+     {
+         // Algorithm is adapted from:
+         //      A Fast, Compact Approximation of the Exponential Function
+@@ -287,28 +257,16 @@ inline void _init_exponential_()
+         //          LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
+         //          LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
+ 
+-        constexpr float LN2_RECIP = 1.4426950408889634f;
+-        constexpr float A         = 256.0f * LN2_RECIP;
+-        constexpr float B_minus_C = 32500.818359375f;
+-        constexpr float THRESHOLD = -88.5f;
+-
+-        constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
+-
+-        // constexpr float scale_fp32 = :std:bit_cast<float>(scale);
+-
+-        constexpr float A_scaled         = A * scale_fp32;
+-        constexpr float THRESHOLD_scaled = THRESHOLD / scale_fp32;
+-
+-        TTI_SFPLOADI(0, 0xA, lo16(THRESHOLD_scaled));
+-        TTI_SFPLOADI(0, 0x8, hi16(THRESHOLD_scaled));
++        TTI_SFPLOADI(0, 0xA, 0x0000);
++        TTI_SFPLOADI(0, 0x8, 0xC2B1);
+         TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14] =            -88.5               = 0xc2b10000
+ 
+-        TTI_SFPLOADI(0, 0xA, lo16(A_scaled));
+-        TTI_SFPLOADI(0, 0x8, hi16(A_scaled));
++        TTI_SFPLOADI(0, 0xA, 0xaa3b);
++        TTI_SFPLOADI(0, 0x8, 0x43B8);
+         TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
+ 
+-        TTI_SFPLOADI(0, 0xA, lo16(B_minus_C));
+-        TTI_SFPLOADI(0, 0x8, hi16(B_minus_C));
++        TTI_SFPLOADI(0, 0xA, 0xe9a3);
++        TTI_SFPLOADI(0, 0x8, 0x46Fd);
+         TTI_SFPCONFIG(0, 13, 0); // SFPCONFIG Dest 13 = LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
+ 
+         // Next, set up the macro instructions which will be necessary
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_trigonometry.h
+@@ -11,30 +11,6 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
+-namespace
+-{
+-constexpr double FRAC_1_PI = 0.3183098861837907;
+-
+-template <bool APPROXIMATION_MODE>
+-static sfpi::vFloat sfpu_sinpi(sfpi::vFloat x);
+-
+-template <>
+-sfpi_inline sfpi::vFloat sfpu_sinpi<true>(sfpi::vFloat x)
+-{
+-    sfpi::vFloat xx = x * x;
+-
+-    return x * ((0x1.29cf02p+1f * xx - 0x1.4954d4p+2f) * xx + 0x1.92149p+1f);
+-}
+-
+-template <>
+-sfpi_inline sfpi::vFloat sfpu_sinpi<false>(sfpi::vFloat x)
+-{
+-    sfpi::vFloat xx = x * x;
+-
+-    return x * ((((0x1.406628p-4f * xx - 0x9.93f86p-4f) * xx + 0x2.8cd64p+0f) * xx - 0x5.2aef6p+0f) * xx + 0x3.243f6cp+0f);
+-}
+-} // namespace
+-
+ template <bool APPROXIMATION_MODE>
+ sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
+ {
+@@ -96,7 +72,7 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
+     return output;
+ }
+ 
+-// Legacy implementation, replaced by newer void _calculate_sine_() which produces more accurate results
++// Legacy implementation
+ // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _calculate_sine_(const int iterations)
+@@ -150,47 +126,5 @@ inline void _calculate_cosine_(const int iterations)
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
+-inline void _calculate_sine_()
+-{
+-    // SFPU microcode
+-    for (int d = 0; d < ITERATIONS; d++)
+-    {
+-        sfpi::vFloat v     = sfpi::dst_reg[0] * FRAC_1_PI;
+-        sfpi::vInt whole_v = float_to_int16(v, 0);
+-        v -= int32_to_float(whole_v, 0);
+-        v = sfpu_sinpi<APPROXIMATION_MODE>(v);
+-
+-        v_if (whole_v & 1)
+-        {
+-            v = -v;
+-        }
+-        v_endif;
+-        sfpi::dst_reg[0] = v;
+-        sfpi::dst_reg++;
+-    }
+-}
+-
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
+-inline void _calculate_cosine_()
+-{
+-    // SFPU microcode
+-    for (int d = 0; d < ITERATIONS; d++)
+-    {
+-        sfpi::vFloat v     = sfpi::dst_reg[0] * FRAC_1_PI + 0.5f;
+-        sfpi::vInt whole_v = float_to_int16(v, 0);
+-        v -= int32_to_float(whole_v, 0);
+-        v = sfpu_sinpi<APPROXIMATION_MODE>(v);
+-
+-        v_if (whole_v & 1)
+-        {
+-            v = -v;
+-        }
+-        v_endif;
+-        sfpi::dst_reg[0] = v;
+-        sfpi::dst_reg++;
+-    }
+-}
+-
+ } // namespace sfpu
+ } // namespace ckernel
+
+File: tt_llk_wormhole_b0/common/inc/cunpack_common.h
+@@ -286,8 +286,7 @@ inline void configure_unpack_AB(
+ 
+     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
+ 
+-    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16) ||
+-                                     ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
++    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
+     if constexpr (disable_src_zero_flag)
+     {
+         src_zeroflags_disable = true;
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_exp.h
+@@ -83,10 +83,10 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
+     return out;
+ }
+ 
+-template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK = false>
+-void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0x3F80)
++template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX = true>
++void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_factor = 0)
+ {
+-    if constexpr (FAST_APPROX)
++    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+     {
+         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
+         // value with -88.5 and store back to DEST
+@@ -186,64 +186,39 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
+             sfpi::vFloat val = sfpi::dst_reg[0];
+             if constexpr (SCALE_EN)
+             {
+-                val = val * sfpi::s2vFloat16b(exp_base_scale_factor);
++                val = val * sfpi::s2vFloat16a(exp_base_scale_factor);
+             }
+             if constexpr (APPROXIMATION_MODE)
+             {
+-                if constexpr (!SKIP_POSITIVE_CHECK)
++                v_if (val >= 89)
+                 {
+-                    v_if (val >= 89)
+-                    {
+-                        sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
+-                        sfpi::dst_reg[0]     = val_inf;
+-                    }
+-                    v_elseif (val < -42)
+-                    {
+-                        sfpi::dst_reg[0] = 0.0f;
+-                    }
+-                    v_else
+-                    {
+-                        // * by 1/ln2 and add convert to 7.3 FxP format
+-                        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-                        sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+-                        sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+-                        val                         = val * vConstLn2Recip + c23_73;
+-
+-                        // Remove Exponent of 7 and bias the Mantissa to 127.
+-                        sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
+-
+-                        // SHL to move integer bits to exponent
+-                        val_short <<= 10 - p_exp::FRAC_BITS;
+-                        sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
+-                    }
+-                    v_endif;
++                    sfpi::vFloat val_inf = std::numeric_limits<float>::infinity();
++                    sfpi::dst_reg[0]     = val_inf;
+                 }
+-                else
++                v_elseif (val < -42)
+                 {
+-                    v_if (val < -42)
+-                    {
+-                        sfpi::dst_reg[0] = 0.0f;
+-                    }
+-                    v_else
+-                    {
+-                        // * by 1/ln2 and add convert to 7.3 FxP format
+-                        sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-                        sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
+-                        sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
+-                        val                         = val * vConstLn2Recip + c23_73;
+-
+-                        // Remove Exponent of 7 and bias the Mantissa to 127.
+-                        sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
+-
+-                        // SHL to move integer bits to exponent
+-                        val_short <<= 10 - p_exp::FRAC_BITS;
+-                        sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
+-                    }
+-                    v_endif;
++                    sfpi::dst_reg[0] = 0.0f;
+                 }
++                v_else
++                {
++                    // * by 1/ln2 and add convert to 7.3 FxP format
++                    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
++                    sfpi::vFloat c23_73         = sfpi::vConstFloatPrgm1;
++                    sfpi::vInt adj_exp          = sfpi::vConstIntPrgm2;
++                    val                         = val * vConstLn2Recip + c23_73;
++
++                    // Remove Exponent of 7 and bias the Mantissa to 127.
++                    sfpi::vInt val_short = adj_exp + sfpi::reinterpret<sfpi::vInt>(val);
++
++                    // SHL to move integer bits to exponent
++                    val_short <<= 10 - p_exp::FRAC_BITS;
++                    sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(val_short);
++                }
++                v_endif;
+             }
+             else
+             {
++                // Force sign to 0 (make number positive)
+                 sfpi::vFloat result = _sfpu_exp_(sfpi::setsgn(val, 0));
+ 
+                 v_if (val < 0)
+@@ -260,14 +235,10 @@ void _calculate_exponential_(const int iterations, uint16_t exp_base_scale_facto
+     }
+ }
+ 
+-constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
+-constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
+-constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
+-
+-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000>
++template <bool APPROXIMATION_MODE, bool FAST_APPROX = true>
+ inline void _init_exponential_()
+ {
+-    if constexpr (FAST_APPROX)
++    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+     {
+         // Algorithm is adapted from:
+         //      A Fast, Compact Approximation of the Exponential Function
+@@ -285,28 +256,16 @@ inline void _init_exponential_()
+         //          LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
+         //          LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
+ 
+-        constexpr float LN2_RECIP = 1.4426950408889634f;
+-        constexpr float A         = 256.0f * LN2_RECIP;
+-        constexpr float B_minus_C = 32500.818359375f;
+-        constexpr float THRESHOLD = -88.5f;
+-
+-        constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
+-
+-        // constexpr float scale_fp32 = :std:bit_cast<float>(scale);
+-
+-        constexpr float A_scaled         = A * scale_fp32;
+-        constexpr float THRESHOLD_scaled = THRESHOLD / scale_fp32;
+-
+-        TTI_SFPLOADI(0, 0xA, lo16(THRESHOLD_scaled));
+-        TTI_SFPLOADI(0, 0x8, hi16(THRESHOLD_scaled));
++        TTI_SFPLOADI(0, 0xA, 0x0000);
++        TTI_SFPLOADI(0, 0x8, 0xC2B1);
+         TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14] =            -88.5               = 0xc2b10000
+ 
+-        TTI_SFPLOADI(0, 0xA, lo16(A_scaled));
+-        TTI_SFPLOADI(0, 0x8, hi16(A_scaled));
++        TTI_SFPLOADI(0, 0xA, 0xaa3b);
++        TTI_SFPLOADI(0, 0x8, 0x43B8);
+         TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
+ 
+-        TTI_SFPLOADI(0, 0xA, lo16(B_minus_C));
+-        TTI_SFPLOADI(0, 0x8, hi16(B_minus_C));
++        TTI_SFPLOADI(0, 0xA, 0xe9a3);
++        TTI_SFPLOADI(0, 0x8, 0x46Fd);
+         TTI_SFPCONFIG(0, 13, 0); // SFPCONFIG Dest 13 = LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
+ 
+         // Next, set up the macro instructions which will be necessary
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_trigonometry.h
+@@ -11,30 +11,6 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
+-namespace
+-{
+-constexpr double FRAC_1_PI = 0.3183098861837907;
+-
+-template <bool APPROXIMATION_MODE>
+-static sfpi::vFloat sfpu_sinpi(sfpi::vFloat x);
+-
+-template <>
+-sfpi_inline sfpi::vFloat sfpu_sinpi<true>(sfpi::vFloat x)
+-{
+-    sfpi::vFloat xx = x * x;
+-
+-    return x * ((0x1.29cf02p+1f * xx - 0x1.4954d4p+2f) * xx + 0x1.92149p+1f);
+-}
+-
+-template <>
+-sfpi_inline sfpi::vFloat sfpu_sinpi<false>(sfpi::vFloat x)
+-{
+-    sfpi::vFloat xx = x * x;
+-
+-    return x * ((((0x1.406628p-4f * xx - 0x9.93f86p-4f) * xx + 0x2.8cd64p+0f) * xx - 0x5.2aef6p+0f) * xx + 0x3.243f6cp+0f);
+-}
+-} // namespace
+-
+ template <bool APPROXIMATION_MODE>
+ sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
+ {
+@@ -96,7 +72,7 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
+     return output;
+ }
+ 
+-// Legacy implementation, replaced by newer void _calculate_sine_() which produces more accurate results
++// Legacy implementation.
+ // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _calculate_sine_(const int iterations)
+@@ -123,7 +99,7 @@ inline void _calculate_sine_(const int iterations)
+     }
+ }
+ 
+-// Legacy implementation, replaced by newer void _calculate_sine_() which produces more accurate results
++// Legacy implementation.
+ // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+ inline void _calculate_cosine_(const int iterations)
+@@ -150,42 +126,5 @@ inline void _calculate_cosine_(const int iterations)
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
+-inline void _calculate_sine_()
+-{
+-    // SFPU microcode
+-    for (int d = 0; d < ITERATIONS; d++)
+-    {
+-        sfpi::vFloat v     = sfpi::dst_reg[0] * FRAC_1_PI;
+-        sfpi::vInt whole_v = float_to_int16(v, 0);
+-        v -= int32_to_float(whole_v, 0);
+-        v = sfpu_sinpi<APPROXIMATION_MODE>(v);
+-
+-        v_if (whole_v & 1)
+-        {
+-            v = -v;
+-        }
+-        v_endif;
+-        sfpi::dst_reg[0] = v;
+-        sfpi::dst_reg++;
+-    }
+-}
+-
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
+-inline void _calculate_cosine_()
+-{
+-    // SFPU microcode
+-    for (int d = 0; d < ITERATIONS; d++)
+-    {
+-        sfpi::vFloat v     = sfpi::dst_reg[0] * FRAC_1_PI + 0.5f;
+-        sfpi::vInt whole_v = float_to_int16(v, 0);
+-        v -= int32_to_float(whole_v, 0);
+-        v = sfpu_sinpi<APPROXIMATION_MODE>(v);
+-
+-        sfpi::dst_reg[0] = v;
+-        sfpi::dst_reg++;
+-    }
+-}
+-
+ } // namespace sfpu
+ } // namespace ckernel
+

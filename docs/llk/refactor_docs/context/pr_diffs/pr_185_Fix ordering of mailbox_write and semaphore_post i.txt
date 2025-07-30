@@ -1,0 +1,41 @@
+PR #185: Fix ordering of mailbox_write and semaphore_post in unpack_get_tile
+URL: https://github.com/tenstorrent/tt-llk/pull/185
+
+File: tt_llk_blackhole/llk_lib/llk_unpack_common.h
+@@ -40,14 +40,14 @@ inline void _llk_unpack_get_tile_(std::uint32_t address, std::uint32_t *p_tile)
+ 
+     if constexpr (mail2math)
+     {
+-        mailbox_write(ThreadId::MathThreadId, byte_address);
+         semaphore_post(semaphore::UNPACK_OPERAND_SYNC);
++        mailbox_write(ThreadId::MathThreadId, byte_address);
+     }
+ 
+     if constexpr (mail2pack)
+     {
+-        mailbox_write(ThreadId::PackThreadId, byte_address);
+         semaphore_post(semaphore::UNPACK_OPERAND_SYNC);
++        mailbox_write(ThreadId::PackThreadId, byte_address);
+     }
+ 
+     *p_tile = byte_address;
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_common.h
+@@ -41,14 +41,14 @@ inline void _llk_unpack_get_tile_(std::uint32_t address, std::uint32_t *p_tile)
+ 
+     if constexpr (mail2math)
+     {
+-        mailbox_write(ThreadId::MathThreadId, byte_address);
+         semaphore_post(semaphore::UNPACK_OPERAND_SYNC);
++        mailbox_write(ThreadId::MathThreadId, byte_address);
+     }
+ 
+     if constexpr (mail2pack)
+     {
+-        mailbox_write(ThreadId::PackThreadId, byte_address);
+         semaphore_post(semaphore::UNPACK_OPERAND_SYNC);
++        mailbox_write(ThreadId::PackThreadId, byte_address);
+     }
+ 
+     *p_tile = byte_address;
+

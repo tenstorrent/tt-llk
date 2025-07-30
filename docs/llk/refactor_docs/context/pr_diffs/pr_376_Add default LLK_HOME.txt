@@ -1,0 +1,46 @@
+PR #376: Add default LLK_HOME
+URL: https://github.com/tenstorrent/tt-llk/pull/376
+
+File: .github/workflows/setup-and-test.yml
+@@ -48,7 +48,6 @@ jobs:
+       - name: Run tests
+         shell: bash
+         env:
+-          LLK_HOME: ${{ github.workspace }}
+           TEST_GROUPS: ${{ inputs.test_group }}
+         run: |
+           CHIP_ARCH=unknown
+
+File: tests/python_tests/conftest.py
+@@ -6,6 +6,7 @@
+ import subprocess
+ import sys
+ import time
++from pathlib import Path
+ 
+ import pytest
+ import requests
+@@ -17,6 +18,12 @@
+ from helpers.perf import delete_reports
+ 
+ 
++def init_llk_home():
++    if "LLK_HOME" in os.environ:
++        return
++    os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
++
++
+ def set_chip_architecture():
+     def _identify_chip_architecture(output):
+         if "Blackhole" in output:
+@@ -182,6 +189,9 @@ def pytest_runtest_protocol(item, nextitem):
+ 
+ 
+ def pytest_sessionstart(session):
++    # Default LLK_HOME environment variable
++    init_llk_home()
++
+     # Send ARC message for GO BUSY signal. This should increase device clock speed.
+     ARC_COMMON_PREFIX = 0xAA00
+     GO_BUSY_MESSAGE_CODE = 0x52
+

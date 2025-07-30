@@ -1,0 +1,192 @@
+PR #383: perf: isolate unpacker performance
+URL: https://github.com/tenstorrent/tt-llk/pull/383
+
+File: tests/helpers/include/params.h
+@@ -17,6 +17,7 @@
+ #include "data_format_inference.h"
+ #include "llk_defs.h"
+ #include "llk_sfpu_types.h"
++#include "perf.h"
+ #include "tensix_types.h"
+ 
+ inline uint32_t L1_ADDRESS(const volatile void* buffer)
+
+File: tests/helpers/include/perf.h
+@@ -0,0 +1,34 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include <cstddef>
++#include <cstdint>
++#include <type_traits>
++
++#include "ckernel.h"
++#include "ckernel_instr_params.h"
++#include "ckernel_ops.h"
++
++enum class PerfRunType
++{
++    L1_TO_L1,
++    UNPACK_ISOLATE,
++    MATH_ISOLATE,
++    PACK_ISOLATE,
++    L1_CONGESTION
++};
++
++template <bool clear_a, bool clear_b>
++inline void _perf_math_loop_clear_valid(uint32_t iterations)
++{
++    while (iterations-- > 0)
++    {
++        constexpr uint32_t cond_valid_a = clear_a ? ckernel::p_stall::SRCA_VLD : 0;
++        constexpr uint32_t cond_valid_b = clear_b ? ckernel::p_stall::SRCB_VLD : 0;
++        TTI_STALLWAIT(ckernel::p_stall::STALL_MATH, cond_valid_a | cond_valid_b);
++        TTI_CLEARDVALID((clear_b << 1) | clear_a, 0);
++    }
++}
+
+File: tests/python_tests/helpers/perf.py
+@@ -90,6 +90,12 @@ def timing_l1_congestion(perf_data: PerfData) -> int:
+ 
+ 
+ def _build_l1_to_l1(test_config):
++    test_config["perf_run_type"] = PerfRunType.L1_TO_L1
++    return build_with_profiler(test_config)
++
++
++def _build_unpack_isolate(test_config):
++    test_config["perf_run_type"] = PerfRunType.UNPACK_ISOLATE
+     return build_with_profiler(test_config)
+ 
+ 
+@@ -115,11 +121,11 @@ class PerfRunType(Enum):
+ 
+ def perf_benchmark(test_config, run_types: list[PerfRunType]):
+     # todo: support all types of runs
+-    SUPPORTED_RUNS = {PerfRunType.L1_TO_L1}
++    SUPPORTED_RUNS = {PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE}
+     RUN_CONFIGURATIONS = {
+         PerfRunType.L1_TO_L1: (_build_l1_to_l1, timing_l1_to_l1),
++        PerfRunType.UNPACK_ISOLATE: (_build_unpack_isolate, timing_unpack),
+         # Add new run types here as they're implemented:
+-        # PerfRunType.UNPACK_ISOLATE: (_build_unpack_isolate, timing_unpack),
+         # PerfRunType.MATH_ISOLATE: (_build_math_isolate, timing_math),
+         # PerfRunType.PACK_ISOLATE: (_build_pack_isolate, timing_pack),
+         # PerfRunType.L1_CONGESTION: (_build_l1_congestion, timing_l1_congestion),
+
+File: tests/python_tests/helpers/test_config.py
+@@ -51,8 +51,11 @@ def generate_build_header(
+         "// SPDX-License-Identifier: Apache-2.0",
+         "// AUTO-GENERATED CONFIGURATION HEADER. DO NOT EDIT MANUALLY!",
+         "",
+-        '#include "tensix_types.h"',
+         "#include <type_traits>",
++        "",
++        '#include "perf.h"',
++        '#include "tensix_types.h"',
++        "",
+         "#pragma once",
+         "",
+         "// Basic configuration",
+@@ -147,6 +150,12 @@ def generate_build_header(
+         if pack_addrs is not None:
+             header_content.append(f"#define PACK_ADDRS {pack_addrs}")
+ 
++    if perf_run_type := test_config.get("perf_run_type"):
++        header_content.append("")
++        header_content.append(
++            f"constexpr auto PERF_RUN_TYPE = PerfRunType::{perf_run_type.name};"
++        )
++
+     header_content.append("")
+     return "\n".join(header_content)
+ 
+
+File: tests/python_tests/perf_eltwise_binary_fpu.py
+@@ -43,19 +43,20 @@
+     ids=param_ids,
+ )
+ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidelity):
++    RUN_TYPES = [PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE]
+ 
+     # MathFidelity is only used for Elwmul
+     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
+ 
+     test_config = {
+         "testname": testname,
+-        "tile_cnt": 16,  # currently isn't passed to kernel, should be TILE_CNT
++        "tile_cnt": 16,
+         "formats": formats,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+         "math_fidelity": math_fidelity,
+     }
+ 
+-    results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1])
+-    write_to_report(test_config, [PerfRunType.L1_TO_L1], results)
++    results = perf_benchmark(test_config, RUN_TYPES)
++    write_to_report(test_config, RUN_TYPES, results)
+
+File: tests/sources/eltwise_binary_fpu_perf.cpp
+@@ -11,6 +11,7 @@
+ #include "ckernel_defs.h"
+ #include "llk_defs.h"
+ #include "params.h"
++#include "perf.h"
+ #include "profiler.h"
+ 
+ // Globals
+@@ -62,11 +63,19 @@ void run_kernel()
+     }
+     {
+         ZONE_SCOPED("TILE_LOOP")
+-        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
++        {
++            return _perf_math_loop_clear_valid<true, true>(TILE_CNT * TILE_NUM_FACES);
++        }
++        else
+         {
+-            _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+-            _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(TILE_NUM_FACES, 0, false);
+-            _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++            {
++                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
++                _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
++                    TILE_NUM_FACES, 0, false);
++                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++            }
+         }
+         tensix_sync(); // -> perf
+     }
+@@ -91,12 +100,20 @@ void run_kernel()
+     }
+     {
+         ZONE_SCOPED("TILE_LOOP")
+-        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
+         {
+-            _llk_packer_wait_for_math_done_();
+-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
+-            _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++            return;
+         }
++        else
++        {
++            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++            {
++                _llk_packer_wait_for_math_done_();
++                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
++                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++            }
++        }
++
+         tensix_sync(); // -> perf
+     }
+ }
+

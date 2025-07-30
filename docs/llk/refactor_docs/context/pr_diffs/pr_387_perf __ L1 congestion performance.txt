@@ -1,0 +1,119 @@
+PR #387: perf ⚡: L1 congestion performance
+URL: https://github.com/tenstorrent/tt-llk/pull/387
+
+File: tests/python_tests/helpers/perf.py
+@@ -106,18 +106,17 @@ class PerfRunType(Enum):
+     L1_CONGESTION = 5
+ 
+ 
+-RUN_COUNT = 8
++ALL_RUN_TYPES = [type for type in PerfRunType]
+ 
+ 
+-def perf_benchmark(test_config, run_types: list[PerfRunType]):
+-    # todo: support all types of runs
++def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
++
+     RUN_CONFIGURATIONS = {
+         PerfRunType.L1_TO_L1: timing_l1_to_l1,
+         PerfRunType.UNPACK_ISOLATE: timing_unpack,
+         PerfRunType.MATH_ISOLATE: timing_math,
+         PerfRunType.PACK_ISOLATE: timing_pack,
+-        # Add new run types here as they're implemented:
+-        # PerfRunType.L1_CONGESTION: timing_l1_congestion,
++        PerfRunType.L1_CONGESTION: timing_l1_congestion,
+     }
+     SUPPORTED_RUNS = RUN_CONFIGURATIONS.keys()
+ 
+@@ -131,7 +130,7 @@ def perf_benchmark(test_config, run_types: list[PerfRunType]):
+         profiler_meta = build_with_profiler(test_config)
+ 
+         runs = []
+-        for _ in range(RUN_COUNT):
++        for _ in range(run_count):
+             run_elf_files(test_config["testname"])
+             wait_for_tensix_operations_finished()
+ 
+@@ -164,19 +163,23 @@ def write_to_report(test_config, run_types, results):
+     output_path = Path(root) / "perf" / filename
+     output_path.parent.mkdir(parents=True, exist_ok=True)
+ 
+-    exclude = {"testname", "tile_cnt", "formats"}  # fix: include format info
++    exclude = {
++        "testname",
++        "perf_run_type",
++        "tile_cnt",
++        "formats",
++    }  # fix: include format info
+     sweep_columns = [param for param in test_config.keys() if not param in exclude]
+ 
+     result_columns = []
+-    for run_type in run_types:
+-        result_columns.append(f"mean({run_type.name})")
+-        result_columns.append(f"variance({run_type.name})")
+ 
+     row = [test_config[k] for k in sweep_columns]
+     for run_type in run_types:
+         stats = results[run_type]
+-        for stat in stats:
+-            # fix : multiple stats per run type
++        for i, stat in enumerate(stats):
++            # fixme: give results names instead of printing indicies
++            result_columns.append(f"mean({run_type.name}[{i}])")
++            result_columns.append(f"variance({run_type.name}[{i}])")
+             row.append(stat["mean"])
+             row.append(stat["variance"])
+ 
+
+File: tests/python_tests/perf_eltwise_binary_fpu.py
+@@ -15,7 +15,7 @@
+     generate_params,
+     input_output_formats,
+ )
+-from helpers.perf import PerfRunType, perf_benchmark, write_to_report
++from helpers.perf import ALL_RUN_TYPES, perf_benchmark, write_to_report
+ 
+ # SUPPORTED FORMATS FOR TEST
+ supported_formats = [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
+@@ -43,12 +43,6 @@
+     ids=param_ids,
+ )
+ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidelity):
+-    RUN_TYPES = [
+-        PerfRunType.L1_TO_L1,
+-        PerfRunType.UNPACK_ISOLATE,
+-        PerfRunType.MATH_ISOLATE,
+-        PerfRunType.PACK_ISOLATE,
+-    ]
+ 
+     # MathFidelity is only used for Elwmul
+     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+@@ -63,5 +57,5 @@ def test_perf_eltwise_binary_fpu(testname, formats, dest_acc, mathop, math_fidel
+         "math_fidelity": math_fidelity,
+     }
+ 
+-    results = perf_benchmark(test_config, RUN_TYPES)
+-    write_to_report(test_config, RUN_TYPES, results)
++    results = perf_benchmark(test_config, ALL_RUN_TYPES)
++    write_to_report(test_config, ALL_RUN_TYPES, results)
+
+File: tests/sources/eltwise_binary_fpu_perf.cpp
+@@ -78,7 +78,7 @@ void run_kernel()
+         {
+             return;
+         }
+-        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
++        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+         {
+             return _perf_math_loop_clear_valid<true, true>(TILE_CNT * TILE_NUM_FACES);
+         }
+@@ -127,7 +127,7 @@ void run_kernel()
+         {
+             return;
+         }
+-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
++        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+         {
+             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+             {
+

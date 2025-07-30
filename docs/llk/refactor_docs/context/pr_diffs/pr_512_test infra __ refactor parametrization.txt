@@ -1,0 +1,2013 @@
+PR #512: test infra 🧪: refactor parametrization
+URL: https://github.com/tenstorrent/tt-llk/pull/512
+
+File: tests/python_tests/conftest.py
+@@ -17,6 +17,7 @@
+ 
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.device import reset_mailboxes
++from helpers.format_config import InputOutputFormat
+ from helpers.log_utils import _format_log
+ from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
+ 
+@@ -131,30 +132,45 @@ def pytest_runtest_logreport(report):
+         logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+ 
+ 
+-# Modify how the nodeid is generated
+-def pytest_collection_modifyitems(items):
+-    for item in items:
+-        # Modify the test item to hide the function name and only show parameters
+-        # item.nodeid is immutable, so we should modify how the test is represented
+-        if "::" in item.nodeid and "[" in item.nodeid:
+-            file_part, params_part = item.nodeid.split("::", 1)
+-            param_only = params_part.split("[", 1)[1]  # Extract parameters
+-            item._nodeid = f"{file_part}[{param_only}]"
+-
+-
+-def pytest_runtest_protocol(item, nextitem):
+-    """
+-    This hook can modify the test item before it's executed.
+-    We're going to set the test function name to an empty string.
+-    """
+-    # Modify the nodeid to show only the parameters, not the function name
+-    if "::" in item.nodeid and "[" in item.nodeid:
+-        _, param_part = item.nodeid.split("::", 1)
+-        param_only = param_part.split("[", 1)[1]  # Extract parameters
+-        item.name = f"[{param_only}]"
+-
+-    # Continue the test execution as usual
+-    return None
++def _stringify_params(params):
++    parts = []
++    for name, value in params.items():
++        # todo: handle FormatConfig?
++        if name == "test_name":
++            continue
++        elif isinstance(value, InputOutputFormat):
++            parts.append(f"{name}.input={value.input}")
++            parts.append(f"{name}.output={value.output}")
++        elif isinstance(value, str):
++            parts.append(f'{name}="{value}"')
++        elif hasattr(value, "repr"):
++            parts.append(f"{name}={value.repr()}")
++        else:
++            parts.append(f"{name}={str(value)}")
++
++    return f"[{' | '.join(parts)}]"
++
++
++def pytest_runtest_logreport(report):
++    if report.when != "call":
++        return
++
++    callspec = getattr(report.item, "callspec", None)
++    if callspec is None:
++        return
++
++    print(f"\nParameters: {_stringify_params(callspec.params)}")
++
++
++@pytest.hookimpl(hookwrapper=True)
++def pytest_runtest_makereport(item, call):
++    # Execute all other hooks to obtain the report object
++    outcome = yield
++    report = outcome.get_result()
++
++    # Attach the item to the report so it's available in logreport
++    report.item = item
++    return report
+ 
+ 
+ def pytest_sessionstart(session):
+
+File: tests/python_tests/helpers/param_config.py
+@@ -1,7 +1,10 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ 
+-from typing import List, Optional, Tuple
++from itertools import product
++from typing import List, Optional, Tuple, TypedDict
++
++import pytest
+ 
+ from helpers.log_utils import add_to_format_log
+ 
+@@ -16,18 +19,7 @@
+ checked_formats_and_dest_acc = {}
+ 
+ 
+-def manage_included_params(func):
+-    def wrapper(*args, **kwargs):
+-        if not hasattr(wrapper, "included_params"):
+-            wrapper.included_params = []
+-        return func(wrapper.included_params, *args, **kwargs)
+-
+-    return wrapper
+-
+-
+-@manage_included_params
+ def format_combination_sweep(
+-    included_params,
+     formats: List[DataFormat],
+     all_same: bool,
+     same_src_reg_format: bool = True,
+@@ -88,19 +80,19 @@ def format_combination_sweep(
+     ]
+ 
+ 
+-@manage_included_params
+-def generate_params(
+-    included_params,
+-    testnames: List[str],
+-    format_combos: List[FormatConfig],
+-    dest_acc: Optional[DestAccumulation] = None,
+-    approx_mode: Optional[List[str]] = None,
+-    mathop: Optional[List[str]] = None,
+-    math_fidelity: Optional[List[int]] = None,
+-    tile_cnt: Optional[int] = None,
+-    reduce_dim: Optional[List[str]] = None,
+-    pool_type: Optional[List[str]] = None,
+-) -> List[tuple]:
++class TestParamsConfig(TypedDict):
++    test_name: str
++    formats: Optional[List[FormatConfig]] = None
++    dest_acc: Optional[DestAccumulation] = None
++    approx_mode: Optional[List[str]] = None
++    mathop: Optional[List[str]] = None
++    math_fidelity: Optional[List[int]] = None
++    tile_count: Optional[int] = None
++    reduce_dim: Optional[List[str]] = None
++    pool_type: Optional[List[str]] = None
++
++
++def generate_params(**kwargs: any) -> List[tuple]:
+     """
+     Generates a list of parameter combinations for test configurations.
+ 
+@@ -120,172 +112,38 @@ def generate_params(
+         ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.No, None, None, None, None, None)
+     ]
+     """
++
++    format_combos = kwargs.get("formats", [])
++    dest_acc = kwargs.get("dest_acc", [])
++
+     for combo in format_combos:
+         if not isinstance(combo, InputOutputFormat):
+             continue
+ 
+-        if dest_acc is None:
+-            continue
+-
+         for acc in dest_acc:
+             if acc == DestAccumulation.No and is_dest_acc_needed(combo):
+                 key = (combo.input, combo.output)
+                 if key not in checked_formats_and_dest_acc:
+                     add_to_format_log(combo.input_format, combo.output_format)
+                     checked_formats_and_dest_acc[key] = True
+ 
+-    # Build a list of parameter names (`included_params`) that are non-None.
+-    # This allows later code in generate_param_ids(...) to conditionally include
+-    # only the parameters that were actually provided (not None) when generating the ID.
+-    included_params.extend(
+-        [
+-            param
+-            for param, value in [
+-                ("dest_acc", dest_acc),
+-                ("approx_mode", approx_mode),
+-                ("mathop", mathop),
+-                ("math_fidelity", math_fidelity),
+-                ("tile_cnt", tile_cnt),
+-                ("reduce_dim", reduce_dim),
+-                ("pool_type", pool_type),
+-            ]
+-            if value is not None
+-        ]
+-    )
+-
+-    return [
+-        (
+-            testname,
+-            format_config,
+-            acc_mode,
+-            approx,
+-            math,
+-            fidelity,
+-            num_tiles,
+-            dim,
+-            pool,
+-        )
+-        for testname in testnames
+-        for format_config in format_combos
+-        for acc_mode in (dest_acc if dest_acc is not None else [None])
+-        for approx in (approx_mode if approx_mode is not None else [None])
+-        for math in (mathop if mathop is not None else [None])
+-        for fidelity in (math_fidelity if math_fidelity is not None else [None])
+-        for num_tiles in [tile_cnt]
+-        for dim in (reduce_dim if reduce_dim is not None else [None])
+-        for pool in (pool_type if pool_type is not None else [None])
+-    ]
+-
+-
+-@manage_included_params
+-def clean_params(included_params, all_params: List[tuple]) -> List[tuple]:
+-    """
+-    Cleans up the list of parameter combinations by removing any `None` values.
+-
+-    This function filters out any `None` values from the provided list of parameter combinations.
+-    It is used to clean up the list of parameters before generating parameter IDs for test cases.
++    wrap_list = lambda x: [x] if not isinstance(x, list) else x
++    arguments = [wrap_list(value) for value in kwargs.values() if value is not None]
+ 
+-    Returns:
+-    List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
+-
+-    Example:
+-    >>> all_params = [
+-    ...     ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, None, None, None, None, None),
+-    ...     ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, None, None, None, None, None)
+-    ... ]
+-    >>> clean_params(all_params)
+-    [
+-        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes),
+-        ("fill_dest_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes)
+-    ]
+-    """
+-    return [tuple(param for param in comb if param is not None) for comb in all_params]
+-
+-
+-@manage_included_params
+-def generate_param_ids(included_params, all_params: List[tuple]) -> List[str]:
+-    """
+-    Generates a list of parameter IDs based on the provided parameter combinations.
++    return product(*arguments)
+ 
+-    Creates a string ID for each combination, including only those parameters that are present in the `included_params` list.
+-    If a parameter is not included (i.e., it is `None`), it will be excluded from the final ID.
+ 
+-    Used to format output of our test cases in a more readable way. Function return is passed into `ids` parameter of `@pytest.mark.parametrize`.
++def parametrize(**kwargs: any):
++    parameters = kwargs.keys()
++    parameters_string = ",".join(parameters)
++    parameter_values = generate_params(**kwargs)
+ 
+-    Parameters:
+-    all_params (List[tuple]): A list of tuples, where each tuple contains a combination of parameters.
+-                               The second element in the tuple is expected to be a `FormatConfig` object,
+-                               and the rest are the parameter values (like `dest_acc`, `approx_mode`, etc.).
+-
+-    Returns:
+-    List[str]: A list of formatted strings representing each combination of parameters.
+-
+-    Example:
+-    >>> all_params = [
+-    ...     ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.No, ApproximationMode.Yes, MathOperation.Elwadd, 1, MathFidelity.HiFi4, ReduceDimension.Column, ReducePoolArgs.Max),
+-    ...     ("reduce_test", FormatConfig(DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32, DataFormat.Float32), DestAccumulation.No, None, MathOperation.Elwmul, None, None, ReduceDimension.Column, ReducePollArgs.Avg)
+-    ... ]
+-    >>> generate_param_ids(all_params)
+-    [
+-        'unpack_src=Float16 | unpack_dst=Float16 | math=Add | pack_src=Float16 | pack_dst=Float16 | dest_acc=No | approx_mode=true | mathop=ElwAdd | tile_cnt=1 | math_fidelity=HiFi4 | reduce_dim=Column | pool_type=Max',
+-        'unpack_src=Float32 | unpack_dst=Float32 | math=Mul | pack_src=Float32 | pack_dst=Float32 | dest_acc=No | mathop=ElwMul | reduce_dim=Column | pool_type=Average'
+-    ]
+-    """
++    def decorator(test_function):
++        return pytest.mark.parametrize(parameters_string, parameter_values)(
++            test_function
++        )
+ 
+-    def format_combination(comb: tuple) -> str:
+-        """
+-        Helper function to format a single combination of parameters into a readable string.
+-
+-        Args:
+-        comb (tuple): A tuple containing a combination of parameters, including the FormatConfig object.
+-
+-        Returns:
+-        str: A formatted string of parameter names and values.
+-        """
+-        # Extract the FormatConfig and other parameters
+-        testname, format_config, *params = comb
+-
+-        # Start with the FormatConfig information
+-        if isinstance(format_config, InputOutputFormat):
+-            result = [
+-                f"unpack_src={format_config.input.name}",
+-                f"pack_dst={format_config.output.name}",
+-            ]
+-        else:
+-            result = [
+-                f"unpack_src={format_config.unpack_A_src.name}, {format_config.unpack_B_src.name}",
+-                f"unpack_dst={format_config.unpack_A_dst.name}, {format_config.unpack_B_dst.name}",
+-                f"math={format_config.math.name}",
+-                f"pack_src={format_config.pack_src.name}",
+-                f"pack_dst={format_config.pack_dst.name}",
+-            ]
+-        if params[0]:
+-            dest_acc_value = (
+-                "Turned On"
+-                if isinstance(format_config, InputOutputFormat)
+-                and params[0] == DestAccumulation.No
+-                and is_dest_acc_needed(format_config)
+-                else params[0].name
+-            )
+-            result.append(f"dest_acc={dest_acc_value}")
+-        if params[1]:
+-            result.append(f"approx_mode={params[1].value}")
+-        if params[2]:
+-            result.append(f"mathop={params[2].name}")
+-        if params[3]:
+-            result.append(f"math_fidelity={params[3].name}")
+-        if params[4]:
+-            result.append(f"tile_cnt={params[4]}")
+-        if params[5]:
+-            result.append(f"reduce_dim={params[5].name}")
+-        if params[6]:
+-            result.append(f"pool_type={params[6].name}")
+-
+-        # Join the result list into a single string with appropriate spacing
+-        return " | ".join(result)
+-
+-    # Generate and return formatted strings for all parameter combinations
+-    return [format_combination(comb) for comb in all_params if comb[0] is not None]
++    return decorator
+ 
+ 
+ def input_output_formats(
+
+File: tests/python_tests/perf_eltwise_binary_fpu.py
+@@ -10,10 +10,8 @@
+ )
+ from helpers.format_config import DataFormat
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.perf import (
+     ALL_RUN_TYPES,
+@@ -27,22 +25,6 @@
+ 
+ TEST_NAME = "eltwise_binary_fpu_perf"
+ 
+-all_params = generate_params(
+-    [TEST_NAME],
+-    format_combos=input_output_formats(
+-        [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
+-    ),
+-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+-    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+-    math_fidelity=[
+-        MathFidelity.LoFi,
+-        MathFidelity.HiFi2,
+-        MathFidelity.HiFi3,
+-        MathFidelity.HiFi4,
+-    ],
+-)
+-param_ids = generate_param_ids(all_params)
+-
+ report = PerfReport()
+ 
+ 
+@@ -55,25 +37,35 @@ def report_fixture():
+ 
+ 
+ @pytest.mark.perf
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, mathop, math_fidelity",
+-    clean_params(all_params),
+-    ids=param_ids,
++@parametrize(
++    test_name=TEST_NAME,
++    formats=input_output_formats(
++        [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
++    ),
++    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
++    tile_count=16,
++    math_fidelity=[
++        MathFidelity.LoFi,
++        MathFidelity.HiFi2,
++        MathFidelity.HiFi3,
++        MathFidelity.HiFi4,
++    ],
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+ )
+ def test_perf_eltwise_binary_fpu(
+-    report_fixture, testname, formats, dest_acc, mathop, math_fidelity
++    report_fixture, test_name, formats, mathop, tile_count, math_fidelity, dest_acc
+ ):
+ 
+     # MathFidelity is only used for Elwmul
+     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
+ 
+     test_config = {
+-        "testname": testname,
++        "testname": test_name,
+         "mathop": mathop,
+         "formats": formats,
+         "math_fidelity": math_fidelity,
+-        "tile_cnt": 16,
++        "tile_cnt": tile_count,
+         "dest_acc": dest_acc,
+     }
+ 
+
+File: tests/python_tests/pytest.ini
+@@ -3,7 +3,7 @@ filterwarnings =
+     ignore::UserWarning
+     ignore::DeprecationWarning
+     ignore::FutureWarning
+-addopts = -v -s
++addopts = -s
+ python_files =
+     test_*.py
+     perf_*.py
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import pytest
+ import torch
+ 
+ from helpers.device import (
+@@ -12,52 +11,27 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import DataCopyGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float32,
+-    DataFormat.Float16,
+-    DataFormat.Float16_b,
+-    DataFormat.Bfp8_b,
+-]
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-
+-test_formats = input_output_formats(supported_formats)
+-dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
+-testname = ["eltwise_unary_datacopy_test"]
+-all_params = generate_params(testname, test_formats, dest_acc)
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc", clean_params(all_params), ids=param_ids
++@parametrize(
++    test_name="eltwise_unary_datacopy_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float32,
++            DataFormat.Float16,
++            DataFormat.Float16_b,
++            DataFormat.Bfp8_b,
++        ]
++    ),
++    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+ )
+-def test_unary_datacopy(testname, formats, dest_acc):
++def test_unary_datacopy(test_name, formats, dest_acc):
+ 
+     input_dimensions = [64, 64]
+ 
+@@ -77,7 +51,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "unpack_to_dest": unpack_to_dest,
+         "tile_cnt": tile_cnt,
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -19,92 +19,46 @@
+ from helpers.format_config import DataFormat, InputOutputFormat
+ from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_float_formats = [
+-    DataFormat.Float32,
+-    DataFormat.Float16,
+-    DataFormat.Float16_b,
+-    DataFormat.Bfp8_b,
+-]
+-supported_int_formats = [DataFormat.Int32]
+-
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-float_ops = [
+-    MathOperation.Abs,
+-    MathOperation.Cos,
+-    MathOperation.Log,
+-    MathOperation.Reciprocal,
+-    MathOperation.Sin,
+-    MathOperation.Sqrt,
+-    MathOperation.Square,
+-    MathOperation.Celu,
+-    MathOperation.Silu,
+-    MathOperation.Gelu,
+-    MathOperation.Neg,
+-    MathOperation.Fill,
+-    MathOperation.Elu,
+-    MathOperation.Exp,
+-    MathOperation.Exp2,
+-    MathOperation.Hardsigmoid,
+-]
+-
+-int_ops = [
+-    MathOperation.Neg,
+-    MathOperation.Fill,
+-]
+-
+-float_params = generate_params(
+-    ["eltwise_unary_sfpu_test"],
+-    input_output_formats(supported_float_formats),
+-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+-    mathop=float_ops,
+-)
+ 
+-int_params = generate_params(
+-    ["eltwise_unary_sfpu_test"],
+-    input_output_formats(supported_int_formats),
+-    dest_acc=[DestAccumulation.Yes],
++@parametrize(
++    test_name="eltwise_unary_sfpu_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float32,
++            DataFormat.Float16,
++            DataFormat.Float16_b,
++            DataFormat.Bfp8_b,
++        ]
++    ),
+     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+-    mathop=int_ops,
+-)
+-
+-all_params = float_params + int_params
+-
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, approx_mode, mathop",
+-    clean_params(all_params),
+-    ids=param_ids,
++    mathop=[
++        MathOperation.Abs,
++        MathOperation.Cos,
++        MathOperation.Log,
++        MathOperation.Reciprocal,
++        MathOperation.Sin,
++        MathOperation.Sqrt,
++        MathOperation.Square,
++        MathOperation.Celu,
++        MathOperation.Silu,
++        MathOperation.Gelu,
++        MathOperation.Neg,
++        MathOperation.Fill,
++        MathOperation.Elu,
++        MathOperation.Exp,
++        MathOperation.Exp2,
++        MathOperation.Hardsigmoid,
++    ],
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+ )
+-def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
++def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
+     arch = get_chip_architecture()
+ 
+     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
+@@ -113,9 +67,6 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         ):
+             pytest.skip(reason="This combination is not supported on BH architecture")
+ 
+-    if formats.input_format == DataFormat.Int32:
+-        pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
+-
+     if (
+         approx_mode == ApproximationMode.Yes
+         and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
+@@ -128,6 +79,27 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+             reason="Exp-related operations are not supported for bf8_b format in approximation mode."
+         )
+ 
++    eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
++
++
++@parametrize(
++    test_name="eltwise_unary_sfpu_int",
++    formats=input_output_formats([DataFormat.Int32]),
++    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
++    mathop=[
++        MathOperation.Neg,
++        MathOperation.Fill,
++    ],
++    dest_acc=[DestAccumulation.Yes],
++)
++def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_acc):
++    if formats.input_format == DataFormat.Int32:
++        pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
++
++    eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
++
++
++def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
+     input_dimensions = [64, 64]
+ 
+     src_A, src_B, tile_cnt = generate_stimuli(
+@@ -148,7 +120,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+     )
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+         "approx_mode": approx_mode,
+
+File: tests/python_tests/test_fast_tilize.py
+@@ -10,14 +10,13 @@
+     write_stimuli_to_l1,
+ )
+ from helpers.format_arg_mapping import DestAccumulation, format_dict
+-from helpers.format_config import DataFormat, InputOutputFormat
++from helpers.format_config import DataFormat
+ from helpers.golden_generators import TilizeGolden, get_golden_generator
++from helpers.param_config import input_output_formats, parametrize
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.utils import passed_test
+ 
+-TEST_NAME = "fast_tilize_test"
+-
+ 
+ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
+     """
+@@ -53,42 +52,47 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
+ 
+ 
+ @skip_for_blackhole
+-@pytest.mark.parametrize("input_format", [DataFormat.Float32, DataFormat.Float16_b])
+-@pytest.mark.parametrize(
+-    "output_format", [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Bfp8_b]
++@parametrize(
++    test_name="fast_tilize_test",
++    formats=input_output_formats(
++        [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Bfp8_b]
++    ),
++    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
++    dimensions=generate_input_dimensions(25),
+ )
+-@pytest.mark.parametrize("fp32_dest", [DestAccumulation.Yes, DestAccumulation.No])
+-@pytest.mark.parametrize("input_width, input_height", generate_input_dimensions(25))
+-def test_fast_tilize(input_format, output_format, fp32_dest, input_width, input_height):
++def test_fast_tilize(test_name, formats, dest_acc, dimensions):
++
++    input_width, input_height = dimensions
++
++    if formats.input == DataFormat.Bfp8_b:
++        pytest.skip("Bfp8_b input format is not supported for fast tilize")
+ 
+     input_dimensions = [input_height * 32, input_width * 32]
+ 
+     src_A, src_B, tile_cnt = generate_stimuli(
+-        input_format, input_format, input_dimensions=input_dimensions
++        formats.input, formats.input, input_dimensions=input_dimensions
+     )
+ 
+     generate_golden = get_golden_generator(TilizeGolden)
+-    golden_tensor = generate_golden(src_A, input_dimensions, output_format)
++    golden_tensor = generate_golden(src_A, input_dimensions, formats.output)
+ 
+     res_address = write_stimuli_to_l1(
+-        src_A, src_B, input_format, input_format, tile_count=tile_cnt
++        src_A, src_B, formats.input, formats.input, tile_count=tile_cnt
+     )
+ 
+-    formats = InputOutputFormat(input_format, output_format)
+-
+     test_config = {
+         "formats": formats,
+-        "testname": TEST_NAME,
++        "testname": test_name,
+         "tile_cnt": tile_cnt,
+         "input_dimensions": input_dimensions,
+-        "dest_acc": fp32_dest,
++        "dest_acc": dest_acc,
+     }
+ 
+     run_test(test_config)
+ 
+     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[output_format])
++    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output])
+ 
+     assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_matmul.py
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import pytest
+ import torch
+ 
+ from helpers.device import (
+@@ -12,44 +11,25 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import MatmulGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize_block
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16_b,
+-    DataFormat.Float16,
+-    # DataFormat.Bfp8_b,
+-    DataFormat.Float32,
+-]
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+ 
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats)
+-all_params = generate_params(
+-    ["matmul_test"],
+-    test_formats,
++@parametrize(
++    test_name="matmul_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float16,
++            # DataFormat.Bfp8_b,
++            DataFormat.Float32,
++        ]
++    ),
+     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     math_fidelity=[
+         MathFidelity.LoFi,
+@@ -58,15 +38,7 @@
+         MathFidelity.HiFi4,
+     ],
+ )
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, math_fidelity",
+-    clean_params(all_params),
+-    ids=param_ids,
+-)
+-def test_matmul(testname, formats, dest_acc, math_fidelity):
++def test_matmul(test_name, formats, dest_acc, math_fidelity):
+     torch_format = format_dict[formats.output_format]
+ 
+     input_dimensions = [64, 64]
+@@ -110,7 +82,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
+         "tile_cnt": tile_cnt,
+
+File: tests/python_tests/test_matmul_and_unary_sfpu.py
+@@ -24,46 +24,26 @@
+     get_golden_generator,
+ )
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16,
+-    DataFormat.Float16_b,
+-    DataFormat.Float32,
+-    DataFormat.Bfp8_b,
+-]
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+ 
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats, same=True)
+-all_params = generate_params(
+-    ["matmul_and_unary_sfpu_test"],
+-    test_formats,
+-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
++@parametrize(
++    test_name="matmul_and_unary_sfpu_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16,
++            DataFormat.Float16_b,
++            DataFormat.Float32,
++            DataFormat.Bfp8_b,
++        ],
++        same=True,
++    ),
+     mathop=[
+         MathOperation.Abs,
+         MathOperation.Celu,
+@@ -77,25 +57,18 @@
+         MathOperation.Sqrt,
+         MathOperation.Square,
+     ],
++    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
++    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+     math_fidelity=[
+         MathFidelity.LoFi,
+         # MathFidelity.HiFi2, TODO: FIND OUT WHY
+         MathFidelity.HiFi3,
+         MathFidelity.HiFi4,
+     ],
+ )
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, approx_mode, mathop, math_fidelity",
+-    clean_params(all_params),
+-    ids=param_ids,
+-)
+ def test_matmul_and_unary_sfpu(
+-    testname, formats, dest_acc, approx_mode, mathop, math_fidelity
++    test_name, formats, mathop, approx_mode, dest_acc, math_fidelity
+ ):
+-
+     input_dimensions = [32, 32]
+ 
+     if mathop in [MathOperation.Cos, MathOperation.Sin]:
+@@ -140,7 +113,7 @@ def test_matmul_and_unary_sfpu(
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
+         "approx_mode": approx_mode,
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -12,45 +12,25 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import MatmulGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16_b,
+-    DataFormat.Float16,
+-    DataFormat.Bfp8_b,  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
+-    DataFormat.Float32,
+-]
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Float16_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats)
+-all_params = generate_params(
+-    ["matmul_pack_untilize_test"],
+-    test_formats,
++@parametrize(
++    test_name="matmul_pack_untilize_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float16,
++            DataFormat.Bfp8_b,  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
++            DataFormat.Float32,
++        ]
++    ),
+     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+     math_fidelity=[
+         MathFidelity.LoFi,
+@@ -59,15 +39,7 @@
+         MathFidelity.HiFi4,
+     ],
+ )
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, math_fidelity",
+-    clean_params(all_params),
+-    ids=param_ids,
+-)
+-def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
++def test_matmul_pack_untilize(test_name, formats, dest_acc, math_fidelity):
+     if formats.output == DataFormat.Bfp8_b:
+         pytest.skip("Pack untilize does not support Bfp8_b")
+ 
+@@ -89,8 +61,8 @@ def test_matmul_pack_untilize(testname, formats, dest_acc, math_fidelity):
+     )
+ 
+     test_config = {
++        "testname": test_name,
+         "formats": formats,
+-        "testname": testname,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
+     }
+
+File: tests/python_tests/test_matmul_unpack_tilize.py
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import pytest
+ import torch
+ 
+ from helpers.device import (
+@@ -12,46 +11,25 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import MatmulGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16_b,
+-    DataFormat.Float16,
+-    DataFormat.Float32,
+-]  #  Add DataFormat.Bfp8_b only as input when Data format Inference Model 2.0 supports format conversions for > 1 pipeline run with different inputs and outputs.
+-#  Now tests run by requiring input format to be same as output format.
+-#  We cannot unpack tilize on Bfp8_b format, so it will be included only as input format.
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Float16_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats, same=True)
+-all_params = generate_params(
+-    ["matmul_unpack_tilize_test"],
+-    test_formats,
++@parametrize(
++    test_name="matmul_unpack_tilize_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float16,
++            DataFormat.Float32,
++        ],  #  Add DataFormat.Bfp8_b only as input when Data format Inference Model 2.0 supports format conversions for > 1 pipeline run with different inputs and outputs.
++        same=True,
++    ),
+     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+     math_fidelity=[
+         MathFidelity.LoFi,
+@@ -60,15 +38,7 @@
+         MathFidelity.HiFi4,
+     ],
+ )
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, math_fidelity",
+-    clean_params(all_params),
+-    ids=param_ids,
+-)
+-def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
++def test_matmul_unpack_tilize(test_name, formats, dest_acc, math_fidelity):
+ 
+     torch_format = format_dict[formats.output_format]
+ 
+@@ -91,7 +61,7 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+     buffer_dest_address = 0x1E000
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
+         "L1_to_L1_iterations": 2,
+
+File: tests/python_tests/test_multiple_tiles_eltwise.py
+@@ -17,64 +17,36 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Bfp8_b,
+-    DataFormat.Float16,
+-    DataFormat.Float16_b,
+-    DataFormat.Float32,
+-]
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats)
+-all_params = generate_params(
+-    ["multiple_tiles_eltwise_test"],
+-    test_formats,
+-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
++@parametrize(
++    test_name="multiple_tiles_eltwise_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Bfp8_b,
++            DataFormat.Float16,
++            DataFormat.Float16_b,
++            DataFormat.Float32,
++        ]
++    ),
+     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     math_fidelity=[
+         MathFidelity.LoFi,
+         MathFidelity.HiFi2,
+         MathFidelity.HiFi3,
+         MathFidelity.HiFi4,
+     ],
+-)
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize("input_dimensions", [[32, 32], [32, 64], [64, 64]])
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, mathop, math_fidelity",
+-    clean_params(all_params),
+-    ids=param_ids,
++    input_dimensions=[[32, 32], [32, 64], [64, 64]],
+ )
+ def test_multiple_tiles(
+-    testname, formats, dest_acc, mathop, math_fidelity, input_dimensions
++    test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
+ ):
+ 
+     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+@@ -99,7 +71,7 @@ def test_multiple_tiles(
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+         "math_fidelity": math_fidelity,
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -12,48 +12,27 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import UntilizeGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16_b,
+-    DataFormat.Float16,
+-    DataFormat.Float32,
+-    DataFormat.Int32,
+-    DataFormat.Bfp8_b,
+-]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats)
+-all_params = generate_params(["pack_untilize_test"], test_formats)
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+-def test_pack_untilize(testname, formats):
++@parametrize(
++    test_name="pack_untilize_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float16,
++            DataFormat.Float32,
++            DataFormat.Int32,
++            DataFormat.Bfp8_b,
++        ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
++    ),
++)
++def test_pack_untilize(test_name, formats):
+     if formats.output_format == DataFormat.Bfp8_b:
+         pytest.skip("Pack Untilize does not support Bfp8_b format")
+     if (formats.input_format == DataFormat.Int32) ^ (
+@@ -76,7 +55,7 @@ def test_pack_untilize(testname, formats):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "tile_cnt": tile_cnt,
+         "input_dimensions": input_dimensions,
+         "unpack_to_dest": formats.input_format.is_32_bit(),
+
+File: tests/python_tests/test_reduce.py
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import pytest
+ import torch
+ 
+ from helpers.device import (
+@@ -18,10 +17,8 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import ReduceGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+@@ -35,49 +32,22 @@
+     ReduceDimension.Scalar: MathOperation.ReduceScalar,
+ }
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16_b,
+-    DataFormat.Float16,
+-    DataFormat.Float32,
+-    DataFormat.Bfp8_b,
+-]
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-formats = input_output_formats(supported_formats)
+-all_params = generate_params(
+-    ["reduce_test"],
+-    formats,
++@parametrize(
++    test_name="reduce_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float16,
++            DataFormat.Float32,
++            DataFormat.Bfp8_b,
++        ]
++    ),
+     dest_acc=[DestAccumulation.No],
+     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
+     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
+ )
+-
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, reduce_dim, pool_type",
+-    clean_params(all_params),
+-    ids=param_ids,
+-)
+-def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
++def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
+ 
+     input_dimensions = [32, 32]
+ 
+@@ -107,7 +77,7 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "reduce_dim": reduce_dim,
+         "pool_type": pool_type,
+@@ -122,10 +92,4 @@ def test_reduce(testname, formats, dest_acc, reduce_dim, pool_type):
+     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+     res_tensor = untilize(res_tensor, formats.output_format)
+ 
+-    # run_shell_command(f"cd .. && make clean") -> TODO: Investigate
+-
+-    # E           RuntimeError: Build failed: cd .. && make clean
+-    # E           rm: cannot remove 'build/elf': Directory not empty
+-    # E           make: *** [Makefile:129: clean] Error 1
+-
+     assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -13,92 +13,70 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_float_formats = [
+-    DataFormat.Float32,
+-    DataFormat.Float16,
+-    DataFormat.Float16_b,
+-    DataFormat.Bfp8_b,
+-]
+-supported_int_formats = [DataFormat.Int32]
+-
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,)]) # index 4 is for math format
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-float_ops = [
+-    MathOperation.SfpuElwadd,
+-    MathOperation.SfpuElwsub,
+-    MathOperation.SfpuElwmul,
+-]
+-
+-int_ops = [
+-    MathOperation.SfpuElwRightShift,
+-    MathOperation.SfpuElwLeftShift,
+-    MathOperation.SfpuElwLogicalRightShift,
+-]
+-
+-float_params = generate_params(
+-    ["sfpu_binary_test"],
+-    input_output_formats(supported_float_formats),
+-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+-    mathop=float_ops,
+-)
+-
+-int_params = generate_params(
+-    ["sfpu_binary_test"],
+-    input_output_formats(supported_int_formats),
+-    dest_acc=[DestAccumulation.Yes],
+-    mathop=int_ops,
+-)
+ 
+-all_params = float_params + int_params
+-
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, mathop", clean_params(all_params), ids=param_ids
++@parametrize(
++    test_name="sfpu_binary_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float32,
++            DataFormat.Float16,
++            DataFormat.Float16_b,
++            DataFormat.Bfp8_b,
++        ]
++    ),
++    mathop=[
++        MathOperation.SfpuElwadd,
++        MathOperation.SfpuElwsub,
++        MathOperation.SfpuElwmul,
++    ],
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+ )
+-def test_sfpu_binary(testname, formats, dest_acc, mathop):
+-
+-    input_dimensions = [64, 64]
+-
++def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
+     chip_arch = get_chip_architecture()
+     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
+         pytest.skip("Not currently supported in tests")
+ 
+     if (
+-        dest_acc == DestAccumulation.No
+-        and chip_arch == ChipArchitecture.BLACKHOLE
++        chip_arch == ChipArchitecture.BLACKHOLE
+         and formats.input_format == DataFormat.Float16
++        and dest_acc == DestAccumulation.No
+     ):
+         pytest.skip(
+             "Float16_a isn't supported for SFPU on Blackhole without being converted to 32-bit intermediate format in dest register"
+         )
+ 
++    sfpu_binary(test_name, formats, dest_acc, mathop)
++
++
++@parametrize(
++    test_name="sfpu_binary_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Int32,
++        ]
++    ),
++    mathop=[
++        MathOperation.SfpuElwRightShift,
++        MathOperation.SfpuElwLeftShift,
++        MathOperation.SfpuElwLogicalRightShift,
++    ],
++    dest_acc=[DestAccumulation.Yes],
++)
++def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
++    sfpu_binary(test_name, formats, dest_acc, mathop)
++
++
++def sfpu_binary(test_name, formats, dest_acc, mathop):
++
++    input_dimensions = [64, 64]
++
+     src_A, src_B, tile_cnt = generate_stimuli(
+         formats.input_format, formats.input_format, input_dimensions=input_dimensions
+     )
+@@ -117,7 +95,7 @@ def test_sfpu_binary(testname, formats, dest_acc, mathop):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+         "unpack_to_dest": unpack_to_dest,
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import pytest
+ import torch
+ 
+ from helpers.device import (
+@@ -17,63 +16,36 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.tilize_untilize import tilize
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16,
+-    DataFormat.Float16_b,
+-    DataFormat.Float32,
+-]  # Unpack Tilize & Pack Untilize does not work on Bfp8_b format
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats, same=True)
+-all_params = generate_params(
+-    ["tilize_calculate_untilize_L1"],
+-    test_formats,
+-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
++@parametrize(
++    test_name="tilize_calculate_untilize_L1",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16,
++            DataFormat.Float16_b,
++            DataFormat.Float32,
++        ],  # Unpack Tilize & Pack Untilize does not work on Bfp8_b format
++        same=True,
++    ),
+     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+     math_fidelity=[
+         MathFidelity.LoFi,
+         MathFidelity.HiFi2,
+         MathFidelity.HiFi3,
+         MathFidelity.HiFi4,
+     ],
+ )
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, mathop, math_fidelity",
+-    clean_params(all_params),
+-    ids=param_ids,
+-)
+ def test_tilize_calculate_untilize_L1(
+-    testname, formats, dest_acc, mathop, math_fidelity
++    test_name, formats, dest_acc, mathop, math_fidelity
+ ):
+ 
+     input_dimensions = [32, 32]
+@@ -98,7 +70,7 @@ def test_tilize_calculate_untilize_L1(
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "math_fidelity": math_fidelity,
+         "mathop": mathop,
+
+File: tests/python_tests/test_ttnn_where.py
+@@ -20,10 +20,8 @@
+ from helpers.format_config import DataFormat
+ from helpers.pack import pack_bfp8_b, pack_bfp16, pack_fp32
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.test_config import run_test
+ 
+@@ -48,28 +46,11 @@ def torch_equal_nan(a, b):
+     return torch.all((a == b) | (torch.isnan(a) & torch.isnan(b)))
+ 
+ 
+-# SUPPORTED FORMATS FOR TEST - allow sweeping through multiple formats
+-supported_formats = [
+-    DataFormat.Float16_b,
+-    DataFormat.Float32,
+-]
+-
+-
+ def get_dtype_for_format(data_format):
+     """Get appropriate torch dtype for the given DataFormat"""
+     return format_dict[data_format]
+ 
+ 
+-def get_dest_acc_for_format(data_format):
+-    """Get appropriate dest_acc options for the given DataFormat"""
+-    if data_format == DataFormat.Float32:
+-        return [DestAccumulation.Yes]  # Float32 requires dest_acc=Yes
+-    elif data_format == DataFormat.Float16_b:
+-        return [DestAccumulation.No]  # Float16_b only allows dest_acc=No
+-    else:
+-        return [DestAccumulation.No, DestAccumulation.Yes]  # Other formats can use both
+-
+-
+ def create_test_tensors(data_format):
+     """Create test tensors with appropriate dtype for the given format"""
+     dtype = get_dtype_for_format(data_format)
+@@ -113,31 +94,30 @@ def create_test_tensors(data_format):
+     return condition, condition_all_ones, condition_all_zeros, true_values, false_values
+ 
+ 
+-# Generate parameter combinations that dynamically include appropriate dest_acc for each format
+-# Use same=True to ensure input and output formats are identical (no mixing)
+-test_formats = input_output_formats(supported_formats, same=True)
+-all_params = []
+-for fmt in test_formats:
+-    dest_acc_options = get_dest_acc_for_format(fmt.input_format)
+-    # Use generate_params to create properly formatted parameter tuples
+-    params = generate_params(
+-        ["ttnn_where_test"],
+-        [fmt],
+-        dest_acc=dest_acc_options,
+-        mathop=[MathOperation.TTNNWhere],
+-    )
+-    all_params.extend(params)
+-
+-param_ids = generate_param_ids(all_params)
++@parametrize(
++    test_name="ttnn_where_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float32,
++        ],
++        same=True,
++    ),
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
++    mathop=MathOperation.TTNNWhere,
++    test_case=["mixed", "all_ones", "all_zeros"],
++)
++def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
+ 
++    if (
++        formats.input == DataFormat.Float32 and formats.output == DataFormat.Float32
++    ) and dest_acc == DestAccumulation.No:
++        pytest.skip("DataFormat.Float32 not supported with DestAccumulation.No")
+ 
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, mathop",
+-    clean_params(all_params),
+-    ids=param_ids,
+-)
+-@pytest.mark.parametrize("test_case", ["mixed", "all_ones", "all_zeros"])
+-def test_ttnn_where(testname, formats, dest_acc, mathop, test_case):
++    if (
++        formats.input == DataFormat.Float16_b and formats.output == DataFormat.Float16_b
++    ) and dest_acc == DestAccumulation.Yes:
++        pytest.skip("DataFormat.Float16_b not supported with DestAccumulation.Yes")
+ 
+     # Generate tensors dynamically based on current input format
+     condition, condition_all_ones, condition_all_zeros, true_values, false_values = (
+@@ -158,15 +138,6 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_case):
+     src_B = extend_tensor(true_values, length=1024, dtype=dtype)
+     src_C = extend_tensor(false_values, length=1024, dtype=dtype)
+ 
+-    # Skipping test combinations that are not supported
+-    if (
+-        formats.output_format == DataFormat.Float32
+-        or formats.input_format == DataFormat.Float32
+-    ) and dest_acc == DestAccumulation.No:
+-        pytest.skip(
+-            "Skipping test for Float32 input format with NO dest_acc, as it is not supported."
+-        )
+-
+     core_loc = "0,0"
+     buffer_A_address = 0x1A000
+     buffer_B_address = 0x1B000
+@@ -196,7 +167,7 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_case):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+         "unpack_to_dest": unpack_to_dest,
+@@ -233,39 +204,41 @@ def test_ttnn_where(testname, formats, dest_acc, mathop, test_case):
+ 
+ # MCW test with dynamic format sweeping like main test
+ # Use same input/output format - no mixing
+-test_formats_mcw = input_output_formats(supported_formats, same=True)
+-all_params_mcw = []
+-for fmt in test_formats_mcw:
+-    dest_acc_options = get_dest_acc_for_format(fmt.input_format)
+-    # Use generate_params to create properly formatted parameter tuples
+-    params = generate_params(
+-        ["ttnn_where_test"],
+-        [fmt],
+-        dest_acc=dest_acc_options,
+-        mathop=[MathOperation.TTNNWhere],
+-    )
+-    all_params_mcw.extend(params)
++@parametrize(
++    test_name="ttnn_where_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float32,
++        ],
++        same=True,
++    ),
++    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
++    mathop=MathOperation.TTNNWhere,
++    height=[32],
++    width=[32],
++)
++def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
++    # Generate dtype dynamically based on current input format
+ 
+-param_ids_mcw = generate_param_ids(all_params_mcw)
++    if (
++        formats.input == DataFormat.Float32 and formats.output == DataFormat.Float32
++    ) and dest_acc == DestAccumulation.No:
++        pytest.skip("DataFormat.Float32 not supported with DestAccumulation.No")
+ 
++    if (
++        formats.input == DataFormat.Float16_b and formats.output == DataFormat.Float16_b
++    ) and dest_acc == DestAccumulation.Yes:
++        pytest.skip("DataFormat.Float16_b not supported with DestAccumulation.Yes")
+ 
+-@pytest.mark.parametrize(
+-    "testname, formats, dest_acc, mathop",
+-    clean_params(all_params_mcw),
+-    ids=param_ids_mcw,
+-)
+-@pytest.mark.parametrize("h", [32])
+-@pytest.mark.parametrize("w", [32])
+-def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
+-    # Generate dtype dynamically based on current input format
+     dtype = get_dtype_for_format(formats.input_format)
+ 
+-    C = torch.arange(h * w, dtype=dtype)
++    C = torch.arange(height * width, dtype=dtype)
+     C = (C % 2).to(dtype)  # Alternates 0, 1, 0, 1, ... with correct dtype
+-    C = C.reshape(1, 1, h, w)
+-    C = C.expand(1, 1, h, w)  # Broadcast to (n, c, h, w)
+-    T = torch.ones(1, 1, h, w, dtype=dtype) * 2
+-    F = torch.ones(1, 1, h, w, dtype=dtype) * 11
++    C = C.reshape(1, 1, height, width)
++    C = C.expand(1, 1, height, width)  # Broadcast to (n, c, h, w)
++    T = torch.ones(1, 1, height, width, dtype=dtype) * 2
++    F = torch.ones(1, 1, height, width, dtype=dtype) * 11
+     golden = torch.where(C != 0, T, F)
+ 
+     C = C.flatten().to(format_dict[formats.input_format])
+@@ -301,7 +274,7 @@ def test_ttnn_where_mcw(testname, formats, dest_acc, mathop, h, w):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "dest_acc": dest_acc,
+         "unpack_to_dest": unpack_to_dest,
+         "mathop": mathop,
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -11,56 +11,40 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import TilizeGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16_b,
+-    DataFormat.Float16,
+-    DataFormat.Float32,
+-    DataFormat.Int32,
+-    DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
+-]  # Included in test only as input format
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
++@parametrize(
++    test_name="unpack_tilize_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float16,
++            DataFormat.Float32,
++            DataFormat.Bfp8_b,  # Unpack Tilize doesn't work for block float formats (Bfp8_b) due to shared exponent at start of input tensor
++        ]
++    ),
++)
++def test_unpack_tilize_float(test_name, formats):
++    if formats.input_format == DataFormat.Bfp8_b:
++        pytest.skip("Unpack Tilize does not support Bfp8_b input format")
+ 
+-test_formats = input_output_formats(supported_formats)
+-all_params = generate_params(["unpack_tilize_test"], test_formats)
+-param_ids = generate_param_ids(all_params)
++    unpack_tilize(test_name, formats)
+ 
+ 
+-@pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+-def test_unpack_tilize(testname, formats):
++@parametrize(
++    test_name="unpack_tilize_test", formats=input_output_formats([DataFormat.Int32])
++)
++def test_unpack_tilize_int(test_name, formats):
++    unpack_tilize(test_name, formats)
+ 
+-    if formats.input_format == DataFormat.Bfp8_b:
+-        pytest.skip("Unpack Tilize does not support Bfp8_b input format")
+-    if (formats.input_format == DataFormat.Int32) ^ (
+-        formats.output_format == DataFormat.Int32
+-    ):
+-        pytest.skip("Unpack Tilize does not support mixing Int32 with other formats")
+ 
++def unpack_tilize(test_name, formats):
+     input_dimensions = [64, 64]
+ 
+     src_A, _, tile_cnt = generate_stimuli(
+@@ -77,7 +61,7 @@ def test_unpack_tilize(testname, formats):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "tile_cnt": tile_cnt,
+         "input_dimensions": input_dimensions,
+         "unpack_to_dest": formats.input_format == DataFormat.Int32,
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -12,47 +12,26 @@
+ from helpers.format_config import DataFormat
+ from helpers.golden_generators import UntilizeGolden, get_golden_generator
+ from helpers.param_config import (
+-    clean_params,
+-    generate_param_ids,
+-    generate_params,
+     input_output_formats,
++    parametrize,
+ )
+ from helpers.stimuli_generator import generate_stimuli
+ from helpers.test_config import run_test
+ from helpers.utils import passed_test
+ 
+-# SUPPORTED FORMATS FOR TEST
+-supported_formats = [
+-    DataFormat.Float16_b,
+-    DataFormat.Float16,
+-    DataFormat.Float32,
+-    DataFormat.Bfp8_b,
+-]
+ 
+-#   INPUT-OUTPUT FORMAT SWEEP
+-#   input_output_formats(supported_formats)
+-
+-#   FULL FORMAT SWEEP
+-#   format_combination_sweep(formats=supported_formats, all_same=False, same_src_reg_format=True)
+-
+-#   SPECIFIC FORMAT COMBINATION
+-#   generate_combination(
+-#       [(DataFormat.Float16_b,  # index 0 is for unpack_A_src
+-#         DataFormat.Float16_b,  # index 1 is for unpack_A_dst
+-#         DataFormat.Float16_b,  # index 2 is for pack_src (if src registers have same formats)
+-#         DataFormat.Bfp8_b,  # index 3 is for pack_dst
+-#         DataFormat.Float16_b,  # index 4 is for math format)])
+-
+-#   SPECIFIC INPUT-OUTPUT COMBINATION
+-#   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+-
+-test_formats = input_output_formats(supported_formats)
+-all_params = generate_params(["unpack_untilize_test"], test_formats)
+-param_ids = generate_param_ids(all_params)
+-
+-
+-@pytest.mark.parametrize("testname, formats", clean_params(all_params), ids=param_ids)
+-def test_unpack_untilize(testname, formats):
++@parametrize(
++    test_name="unpack_untilize_test",
++    formats=input_output_formats(
++        [
++            DataFormat.Float16_b,
++            DataFormat.Float16,
++            DataFormat.Float32,
++            DataFormat.Bfp8_b,
++        ]
++    ),
++)
++def test_unpack_untilize(test_name, formats):
+     if formats.input_format == DataFormat.Bfp8_b:
+         pytest.skip(
+             "BFP8 format is not supported for unpack_untilize operation for multiple tiles"
+@@ -81,7 +60,7 @@ def test_unpack_untilize(testname, formats):
+ 
+     test_config = {
+         "formats": formats,
+-        "testname": testname,
++        "testname": test_name,
+         "tile_cnt": tile_cnt,
+         "input_dimensions": input_dimensions,
+     }
+

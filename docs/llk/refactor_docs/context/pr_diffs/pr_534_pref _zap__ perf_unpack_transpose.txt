@@ -1,0 +1,225 @@
+PR #534: pref :zap:: perf_unpack_transpose
+URL: https://github.com/tenstorrent/tt-llk/pull/534
+
+File: tests/python_tests/helpers/test_config.py
+@@ -109,6 +109,22 @@ def generate_build_header(
+     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
+     header_content.append(f"constexpr bool UNPACKING_TO_DEST = {unpack_to_dest};")
+ 
++    # Unpack transpose faces
++    unpack_transpose_faces = str(
++        test_config.get("unpack_transpose_faces", False)
++    ).lower()
++    header_content.append(
++        f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces};"
++    )
++
++    # Unpack transpose within face
++    unpack_transpose_within_face = str(
++        test_config.get("unpack_transpose_within_face", False)
++    ).lower()
++    header_content.append(
++        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face};"
++    )
++
+     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
+     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
+     # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
+
+File: tests/python_tests/perf_unpack_transpose.py
+@@ -0,0 +1,68 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++import pytest
++
++from helpers.format_config import DataFormat
++from helpers.param_config import input_output_formats, parametrize
++from helpers.perf import (
++    PerfReport,
++    PerfRunType,
++    delete_benchmark_dir,
++    dump_report,
++    dump_scatter,
++    perf_benchmark,
++    update_report,
++)
++
++TEST_NAME = "unpack_transpose_perf"
++
++
++report = PerfReport()
++
++
++@pytest.fixture(scope="module")
++def report_fixture():
++    delete_benchmark_dir(TEST_NAME)
++    yield
++    dump_report(TEST_NAME, report)
++    dump_scatter(TEST_NAME, report)
++
++
++@pytest.mark.perf
++@parametrize(
++    test_name=TEST_NAME,
++    formats=input_output_formats(
++        [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Int32],
++    ),
++    unpack_transpose_faces=[False, True],
++    unpack_transpose_within_face=[False, True],
++)
++def test_perf_eltwise_binary_fpu(
++    report_fixture,
++    test_name,
++    formats,
++    unpack_transpose_faces,
++    unpack_transpose_within_face,
++):
++
++    if formats.input == DataFormat.Int32 and unpack_transpose_within_face:
++        pytest.skip("Unpack within face not supported for Int32")
++
++    if not unpack_transpose_faces and not unpack_transpose_within_face:
++        pytest.skip(
++            "Skipping test for unpack_transpose_faces=False and unpack_transpose_within_face=False"
++        )
++
++    test_config = {
++        "testname": test_name,
++        "formats": formats,
++        "tile_cnt": 16,
++        "unpack_transpose_faces": unpack_transpose_faces,
++        "unpack_transpose_within_face": unpack_transpose_within_face,
++    }
++
++    results = perf_benchmark(
++        test_config, run_types=[PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE]
++    )
++    update_report(report, test_config, results)
+
+File: tests/sources/unpack_transpose_perf.cpp
+@@ -0,0 +1,123 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#include <cstdint>
++
++#include "ckernel.h"
++#include "ckernel_defs.h"
++#include "llk_defs.h"
++#include "params.h"
++#include "perf.h"
++#include "profiler.h"
++
++// Globals
++uint32_t unp_cfg_context          = 0;
++uint32_t pack_sync_tile_dst_ptr   = 0;
++uint32_t math_sync_tile_dst_index = 0;
++
++#ifdef LLK_TRISC_UNPACK
++
++#include "llk_unpack_A.h"
++
++void run_kernel()
++{
++    volatile uint32_t* const src_a = reinterpret_cast<volatile uint32_t*>(0x1a000);
++    volatile uint32_t* const src_b = reinterpret_cast<volatile uint32_t*>(0x1e000);
++
++    {
++        ZONE_SCOPED("INIT")
++        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, true>(
++            formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, TILE_NUM_FACES);
++        _llk_unpack_A_init_<>(UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
++        ckernel::tensix_sync(); // -> perf
++    }
++
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        {
++            _llk_unpack_A_<>(L1_ADDRESS(src_a + (tile % 8) * 0x1000), UNPACK_TRANSPOSE_FACES, formats.unpack_src, formats.unpack_dst);
++        }
++        ckernel::tensix_sync(); // -> perf
++    }
++}
++
++#endif
++
++#ifdef LLK_TRISC_MATH
++
++#include "llk_math_common.h"
++#include "llk_math_eltwise_unary_datacopy.h"
++
++void run_kernel()
++{
++    {
++        ZONE_SCOPED("INIT")
++        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        _llk_math_hw_configure_<>(formats.math, formats.math);
++
++#ifdef ARCH_BLACKHOLE
++        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(
++            UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, TILE_NUM_FACES, formats.math);
++#else
++        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
++            UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, TILE_NUM_FACES, formats.math);
++#endif
++        ckernel::tensix_sync(); // -> perf
++    }
++
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
++        {
++            // _llk_unpack_A sets both A and B valid
++            return _perf_math_loop_clear_valid<true, true>(TILE_CNT * TILE_NUM_FACES);
++        }
++
++        for (int i = 0; i < TILE_CNT; i++)
++        {
++            _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
++            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
++                0, formats.math, formats.math);
++            _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        }
++        ckernel::tensix_sync(); // -> perf
++    }
++}
++
++#endif
++
++#ifdef LLK_TRISC_PACK
++
++#include "llk_pack.h"
++#include "llk_pack_common.h"
++
++void run_kernel()
++{
++    volatile uint32_t* const dst = reinterpret_cast<volatile uint32_t*>(0x1E000);
++    {
++        ZONE_SCOPED("INIT")
++        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
++        _llk_pack_init_<>(formats.pack_dst);
++        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        ckernel::tensix_sync(); // -> perf
++    }
++    {
++        ZONE_SCOPED("TILE_LOOP")
++        if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
++        {
++            return;
++        }
++
++        for (uint32_t tile = 0; tile < TILE_CNT; tile++)
++        {
++            _llk_packer_wait_for_math_done_();
++            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
++            _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
++        }
++        ckernel::tensix_sync(); // -> perf
++    }
++}
++
++#endif
+

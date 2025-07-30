@@ -1,0 +1,311 @@
+PR #292: TT_REPLAY -> TTI_REPLAY
+URL: https://github.com/tenstorrent/tt-llk/pull/292
+
+File: tt_llk_blackhole/common/inc/ckernel.h
+@@ -703,7 +703,7 @@ inline void load_replay_buf(uint start, uint len, bool exec_while_loading, F fn)
+ #endif
+ 
+     // Issue instruction to load replay buffer
+-    TT_REPLAY(start, len, exec_while_loading, 1);
++    TTI_REPLAY(start, len, exec_while_loading, 1);
+ 
+     // Send in the user's desired instructions
+     fn();
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_topk.h
+@@ -158,10 +158,10 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
+     }
+     else
+     {
+-        TT_REPLAY(replay_start, 5, 0, 0);
++        TTI_REPLAY(replay_start, 5, 0, 0);
+     }
+ 
+-    TT_REPLAY(replay_start, 5, 0, 0);
++    TTI_REPLAY(replay_start, 5, 0, 0);
+ 
+     if (dir == (bool)SortDir::ArgMin)
+     {
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_topk.h
+@@ -138,7 +138,7 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
+ 
+     if (init_replay)
+     {
+-        TT_REPLAY(replay_start, 5, 1, 1);
++        TTI_REPLAY(replay_start, 5, 1, 1);
+ 
+         // Step 4
+         TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
+@@ -154,10 +154,10 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
+     }
+     else
+     {
+-        TT_REPLAY(replay_start, 5, 0, 0);
++        TTI_REPLAY(replay_start, 5, 0, 0);
+     }
+ 
+-    TT_REPLAY(replay_start, 5, 0, 0);
++    TTI_REPLAY(replay_start, 5, 0, 0);
+ 
+     if (dir == (bool)SortDir::ArgMin)
+     {
+@@ -290,77 +290,77 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
+                             // Groups of 16 datums being sorted at the same time
+                             if (init_load)
+                             {
+-                                TT_REPLAY(0, 8, 1, 1);
++                                TTI_REPLAY(0, 8, 1, 1);
+                                 bitonic_topk_load16(4, 8);
+                                 init_load = false;
+                             }
+                             else
+                             {
+-                                TT_REPLAY(0, 8, 0, 0);
++                                TTI_REPLAY(0, 8, 0, 0);
+                             }
+                             if (init_phase)
+                             {
+-                                TT_REPLAY(16, 5, 1, 1);
++                                TTI_REPLAY(16, 5, 1, 1);
+                                 bitonic_topk_ph0_st1_to_1();
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TT_REPLAY(16, 5, 0, 0);
++                                TTI_REPLAY(16, 5, 0, 0);
+                             }
+                             if (init_store)
+                             {
+-                                TT_REPLAY(8, 8, 1, 1);
++                                TTI_REPLAY(8, 8, 1, 1);
+                                 bitonic_topk_store16<true>(4, 8);
+                                 init_store = false;
+                             }
+                             else
+                             {
+-                                TT_REPLAY(8, 8, 0, 0);
++                                TTI_REPLAY(8, 8, 0, 0);
+                             }
+                         }
+                         break;
+                     case 1:
+                         for (int d = 0; d < 4; d++)
+                         {
+                             // Groups of 16 datums being sorted at the same time
+-                            TT_REPLAY(0, 8, 0, 0);
++                            TTI_REPLAY(0, 8, 0, 0);
+                             if (init_phase)
+                             {
+-                                TT_REPLAY(16, 6, 1, 1);
++                                TTI_REPLAY(16, 6, 1, 1);
+                                 bitonic_topk_ph1_st2_to_1();
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TT_REPLAY(16, 6, 0, 0);
++                                TTI_REPLAY(16, 6, 0, 0);
+                             }
+-                            TT_REPLAY(8, 8, 0, 0);
++                            TTI_REPLAY(8, 8, 0, 0);
+                         }
+                         break;
+                     case 2:
+                         for (int d = 0; d < 4; d++)
+                         {
+-                            TT_REPLAY(0, 8, 0, 0);
++                            TTI_REPLAY(0, 8, 0, 0);
+                             if (init_phase)
+                             {
+-                                TT_REPLAY(16, 9, 1, 1);
++                                TTI_REPLAY(16, 9, 1, 1);
+                                 bitonic_topk_ph2_st3_to_1();
+                                 init_phase = false;
+                             }
+                             else
+                             {
+-                                TT_REPLAY(16, 9, 0, 0);
++                                TTI_REPLAY(16, 9, 0, 0);
+                             }
+-                            TT_REPLAY(8, 8, 0, 0);
++                            TTI_REPLAY(8, 8, 0, 0);
+                         }
+                         break;
+                     case 3:
+                         for (int d = 0; d < 4; d++)
+                         {
+-                            TT_REPLAY(0, 8, 0, 0);
++                            TTI_REPLAY(0, 8, 0, 0);
+                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
+-                            TT_REPLAY(8, 8, 0, 0);
++                            TTI_REPLAY(8, 8, 0, 0);
+                             dir = !dir;
+                         }
+                         break;
+@@ -413,9 +413,9 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
+                         datums_compared = 0;
+                         while (datums_compared < total_datums_to_compare)
+                         {
+-                            TT_REPLAY(0, 8, 0, 0);
++                            TTI_REPLAY(0, 8, 0, 0);
+                             bitonic_topk_ph3_st4_to_1(dir, init_phase, 16);
+-                            TT_REPLAY(8, 8, 0, 0);
++                            TTI_REPLAY(8, 8, 0, 0);
+                             datums_compared += 16;
+                             dir = (datums_compared == sorted_seq_length) ? !dir : dir;
+                         }
+@@ -514,7 +514,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             // Groups of 8 datums being sorted at the same time
+                             if (init_rebuild)
+                             {
+-                                TT_REPLAY(0, 22, 1, 1);
++                                TTI_REPLAY(0, 22, 1, 1);
+                                 bitonic_topk_load8(0, ld_offset);
+                                 bitonic_topk_ph1_st2_to_1();
+                                 bitonic_topk_store8(0, ld_offset);
+@@ -523,7 +523,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             }
+                             else
+                             {
+-                                TT_REPLAY(0, 22, 0, 0);
++                                TTI_REPLAY(0, 22, 0, 0);
+                             }
+                             datums_compared += 16;
+                         }
+@@ -537,7 +537,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             // Groups of 16 datums being sorted at the same time
+                             if (init_rebuild)
+                             {
+-                                TT_REPLAY(0, 26, 1, 1);
++                                TTI_REPLAY(0, 26, 1, 1);
+                                 bitonic_topk_load16(ld_offset, ld_dist);
+                                 bitonic_topk_ph1_st2_to_1();
+                                 bitonic_topk_store16<true>(ld_offset, ld_dist);
+@@ -549,7 +549,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                             }
+                             else
+                             {
+-                                TT_REPLAY(0, 26, 0, 0);
++                                TTI_REPLAY(0, 26, 0, 0);
+                             }
+                             datums_compared += 16;
+                         }
+@@ -561,7 +561,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         // Groups of 16 datums being sorted at the same time
+                         if (init_rebuild)
+                         {
+-                            TT_REPLAY(0, 29, 1, 1);
++                            TTI_REPLAY(0, 29, 1, 1);
+                             bitonic_topk_load16(4, ld_offset);
+                             bitonic_topk_ph2_st3_to_1();
+                             bitonic_topk_store16<true>(4, ld_offset);
+@@ -573,7 +573,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         }
+                         else
+                         {
+-                            TT_REPLAY(0, 29, 0, 0);
++                            TTI_REPLAY(0, 29, 0, 0);
+                         }
+                         datums_compared += 16;
+                     }
+@@ -584,10 +584,10 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         // Groups of 16 datums being sorted at the same time
+                         if (init_rebuild)
+                         {
+-                            TT_REPLAY(0, 8, 1, 1);
++                            TTI_REPLAY(0, 8, 1, 1);
+                             bitonic_topk_load16(4, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TT_REPLAY(13, 12, 1, 1);
++                            TTI_REPLAY(13, 12, 1, 1);
+                             bitonic_topk_store16<true>(4, 8);
+                             TTI_INCRWC(0, 8, 0, 0);
+                             TTI_INCRWC(0, 8, 0, 0);
+@@ -596,9 +596,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                         }
+                         else
+                         {
+-                            TT_REPLAY(0, 8, 0, 0);
++                            TTI_REPLAY(0, 8, 0, 0);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TT_REPLAY(13, 12, 0, 0);
++                            TTI_REPLAY(13, 12, 0, 0);
+                         }
+                         datums_compared += 16;
+                         dir = !dir;
+@@ -654,17 +654,17 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
+                     {
+                         if (init_rebuild)
+                         {
+-                            TT_REPLAY(0, 8, 1, 1);
++                            TTI_REPLAY(0, 8, 1, 1);
+                             bitonic_topk_load16(4, 8);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TT_REPLAY(13, 8, 1, 1);
++                            TTI_REPLAY(13, 8, 1, 1);
+                             bitonic_topk_store16<true>(4, 8);
+                         }
+                         else
+                         {
+-                            TT_REPLAY(0, 8, 0, 0);
++                            TTI_REPLAY(0, 8, 0, 0);
+                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
+-                            TT_REPLAY(13, 8, 0, 0);
++                            TTI_REPLAY(13, 8, 0, 0);
+                         }
+                         datums_compared += 16;
+                         dir = (datums_compared == sorted_seq_length) ? !dir : dir;
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_matmul.h
+@@ -338,7 +338,7 @@ inline void matmul_configure_mop(
+     const std::uint32_t replay_buf_len =
+         (is_in0_16x32 && is_in1_32x16) ? 4 : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 16);
+ 
+-    TT_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 1);
++    TTI_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 1);
+ 
+     if (is_in1_32x16)
+     {
+@@ -636,7 +636,7 @@ inline void matmul_configure_mop_throttled(
+         (is_in0_16x32 && is_in1_32x16) ? 4
+                                        : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
+ 
+-    TT_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 1);
++    TTI_REPLAY(ckernel::math::replay_buf_offset, replay_buf_len, 0, 1);
+     if (!is_in1_32x16 && !is_in1_16x32 && !is_in0_32x16 && !is_in0_16x32)
+     {
+         run_throttled_sequence<THROTTLE_LEVEL, high_fidelity>(t_dim, reuse_a);
+
+File: tt_llk_wormhole_b0/llk_lib/llk_pack_untilize.h
+@@ -106,7 +106,7 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
+         if (block_ct_dim != full_ct_dim)
+         {
+             const std::uint32_t replay_buf_len = 10;
+-            TT_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 1);
++            TTI_REPLAY(ckernel::packer::replay_buf_offset, replay_buf_len, 0, 1);
+             TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 1, 1); // close block
+             // update l1 address
+             TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+
+File: tt_llk_wormhole_b0/llk_lib/llk_unpack_AB_matmul.h
+@@ -40,7 +40,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
+         TTI_NOP;
+ #else
+         static_assert(kernel_broadcast_b <= 1, "kernel_broadcast>1 on matmul input 1 is not supported with reuse enabled!");
+-        TT_REPLAY(0, replay_buf_prog_len, 0, 1);
++        TTI_REPLAY(0, replay_buf_prog_len, 0, 1);
+         if (unpA_partial_face)
+         {
+             TTI_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
+@@ -98,7 +98,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
+         TTI_NOP;
+ #else
+         static_assert(kernel_broadcast_a <= 1, "kernel_broadcast>1 on matmul input 0 is not supported with reuse enabled!");
+-        TT_REPLAY(0, replay_buf_prog_len, 0, 1);
++        TTI_REPLAY(0, replay_buf_prog_len, 0, 1);
+         if (unpB_partial_face)
+         {
+             TTI_UNPACR_NOP(SrcB, p_unpacr_nop::UNP_ZEROSRC);
+

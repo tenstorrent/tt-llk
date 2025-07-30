@@ -1,0 +1,76 @@
+PR #64: build: remove unused python imports using autoflake
+URL: https://github.com/tenstorrent/tt-llk/pull/64
+
+File: .pre-commit-config.yaml
+@@ -9,6 +9,11 @@ repos:
+   hooks:
+     - id: black
+       language_version: python3
++- repo: https://github.com/PyCQA/autoflake
++  rev: v2.3.1
++  hooks:
++    -  id: autoflake
++       args: [--remove-all-unused-imports, --in-place, --recursive, --exclude=__init__.py]
+ - repo: https://github.com/adrienverge/yamllint
+   rev: v1.35.1
+   hooks:
+
+File: tests/python_tests/helpers/format_config.py
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ 
+-from dataclasses import dataclass, field
++from dataclasses import dataclass
+ from enum import Enum
+ from typing import List, Optional, Tuple
+ 
+
+File: tests/python_tests/helpers/pack.py
+@@ -3,7 +3,6 @@
+ 
+ # pack.py
+ 
+-import torch
+ import struct
+ 
+ 
+
+File: tests/python_tests/helpers/param_config.py
+@@ -1,6 +1,6 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+-from dataclasses import dataclass
++
+ from typing import List, Optional
+ from .format_arg_mapping import *
+ from .format_config import FormatConfig, DataFormat
+
+File: tests/python_tests/helpers/test_config.py
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import sys
+ from .format_arg_mapping import (
+     TileCount,
+     unpack_A_dst_dict,
+@@ -16,7 +15,6 @@
+     ApproximationMode,
+     MathOperation,
+     ReduceDimension,
+-    ReducePool,
+ )
+ 
+ 
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
+-import subprocess
+ import pytest
+ import torch
+ from helpers import *
+

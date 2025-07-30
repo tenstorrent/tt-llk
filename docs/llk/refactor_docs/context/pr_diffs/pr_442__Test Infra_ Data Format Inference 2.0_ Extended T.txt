@@ -1,0 +1,1275 @@
+PR #442: [Test Infra] Data Format Inference 2.0: Extended Test Infra & Fused Testing
+URL: https://github.com/tenstorrent/tt-llk/pull/442
+
+File: tests/helpers/include/data_format_inference.h
+@@ -1,6 +1,14 @@
+ // SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ //
+ // SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include <array>
++#include <type_traits>
++#include <utility>
++
++#include "build.h"
+ #include "tensix_types.h"
+ 
+ #if defined(ARCH_WORMHOLE) && defined(ARCH_BLACKHOLE)
+@@ -15,77 +23,230 @@ constexpr bool is_wormhole  = false;
+ #error "You must define either ARCH_WORMHOLE or ARCH_BLACKHOLE"
+ #endif
+ 
++/**
++ * @struct FormatConfig
++ * @brief Holds data format configurations for each stage of compute pipeline.
++ * including unpacking, math operations, and packing.
++ *
++ * Each member represents the data format used at a specific stage:
++ * - unpack_src: unpacker input format found in L1.
++ * - unpack_dst: unpacker output format when unpacking from L1 to the register(s).
++ * - math: math format used during compute operations and storing in dest register.
++ * - pack_src: packer input format, when packing from dest register to L1.
++ * - pack_dst: packer output format, desired result format in L1.
++ */
+ struct FormatConfig
+ {
+-    DataFormat unpack_src;
+-    DataFormat unpack_dst;
+-    DataFormat pack_src;
+-    DataFormat pack_dst;
++    const uint32_t unpack_src;
++    const uint32_t unpack_dst;
++    const uint32_t math;
++    const uint32_t pack_src;
++    const uint32_t pack_dst;
++
++    constexpr FormatConfig(uint32_t unpack_src_, uint32_t unpack_dst_, uint32_t math_, uint32_t pack_src_, uint32_t pack_dst_) :
++        unpack_src(unpack_src_), unpack_dst(unpack_dst_), math(math_), pack_src(pack_src_), pack_dst(pack_dst_)
++    {
++    }
+ };
+ 
+ constexpr bool is_exponentB(DataFormat format)
+ {
++    // Return true if format has an exponentB representation i.e 8-bit exponent
+     return (format == DataFormat::Float16_b || format == DataFormat::Bfp8_b || format == DataFormat::Tf32);
+ }
+ 
++/**
++ * Checks if the given input/output format combination is an outlier case
++ * that is unsupported by hardware and requires a workaround.
++ *
++ * This outlier case occurs when converting an 8-bit exponent format datum
++ * directly to Float16 without using an intermediate Float32 representation
++ * in the dest register.
++ *
++ * To handle this hardware limitation, the destination register stores 32-bit datums,
++ * and the packer input format is converted to Float32.
++ *
++ * @param input The input data format in L1.
++ * @param output The output data format in L1.
++ * @param is_fp32_dest_acc_en Flag indicating if 32-bit destination accumulation is enabled (dest_acc).
++ *
++ * @return true if the format combination is an unsupported hardware outlier; false otherwise.
++ */
+ constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en)
+ {
+     return (is_exponentB(input) && output == DataFormat::Float16 && !is_fp32_dest_acc_en);
+ }
+ 
+-constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en)
++/**
++ * Returns the output format for the packer based on the input format in L1
++ * and whether unpacking targets the source or dest register.
++ *
++ * @tparam INPUT The input data format.
++ * @return The inferred output data format for unpacking.
++ */
++constexpr FormatConfig get_data_formats(DataFormat unpack_in, DataFormat unpack_out, DataFormat math, DataFormat pack_in, DataFormat pack_out)
+ {
+-    DataFormat unpack_in  = input;
+-    DataFormat unpack_out = input;
+-    DataFormat pack_out   = output;
+-    DataFormat pack_in    = DataFormat::Invalid; // Invalid format as placeholder
++    return {
++        static_cast<std::underlying_type_t<DataFormat>>(unpack_in),
++        static_cast<std::underlying_type_t<DataFormat>>(unpack_out),
++        static_cast<std::underlying_type_t<DataFormat>>(math),
++        static_cast<std::underlying_type_t<DataFormat>>(pack_in),
++        static_cast<std::underlying_type_t<DataFormat>>(pack_out)};
++}
+ 
+-    if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
++/**
++ * Returns the output format for the unpacker (data format config for registers)
++ * based on the input format in L1 and whether unpacking targets the source or destination register.
++ *
++ * @tparam INPUT The data format currently stored in L1 cache.
++ * @return The inferred output data format for unpacking to registers.
++ *
++ * Uses the global constexpr:
++ *   - UNPACKING_TO_DEST: Indicates whether unpacking targets the destination register.
++ */
++template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC>
++constexpr DataFormat infer_unpack_out()
++{
++    if constexpr (INPUT == DataFormat::Float32 && !UNPACKING_TO_DEST)
+     {
+-        if (is_fp32_dest_acc_en)
++        // input format is Float32 in L1 and we are unpacking to src registers instead of dest register
++        // src registers can store 19-bit datums, so we truncate datum to Tf32 perserving 8-bit exponent and as much mantissa as possible
++
++        // When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
++        // Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
++        // which preserves the 8-bit exponent and as much mantissa precision as fits. If our dst regoster is 16-bit we directly truncate to 16-bit format
++        if constexpr (FP32_ACC)
+         {
+-            unpack_out = DataFormat::Tf32;
++            return DataFormat::Tf32;
+         }
+-        else
++        else if constexpr (is_exponentB(OUTPUT) || OUTPUT == DataFormat::Float32)
+         {
+-            if (is_exponentB(output) || output == DataFormat::Float32)
+-            {
+-                unpack_out = DataFormat::Float16_b; // If output Float32 or Float16_b
+-            }
+-            else
+-            {
+-                unpack_out = DataFormat::Float16; // Tilize to Float16
+-            }
++            return DataFormat::Float16_b; // If output Float32 or Float16_b
+         }
++        return DataFormat::Float16; // Tilize to Float16
++    }
++    // For all other cases, we can keep the format the same in L1 and src register or dest register
++    return INPUT;
++}
+ 
+-        if (is_fp32_dest_acc_en || is_exponentB(output))
++/**
++ * Infers all data formats needed for unpacking, math, and packing stages in a pipeline.
++ *
++ * @tparam INPUT   Input data format in L1 (unpacker input)
++ * @tparam OUTPUT  Final output data format after packing
++ * @tparam FP32_ACC  Flag indicating if FP32 accumulation is enabled
++ *
++ * @return FormatConfig struct containing all formats
++ */
++template <DataFormat INPUT, DataFormat OUTPUT, DataFormat unpack_out, bool FP32_ACC>
++constexpr DataFormat infer_pack_in()
++{
++    if constexpr (is_wormhole && FP32_ACC && OUTPUT == DataFormat::Float16)
++    {
++        // On wormhole architecture, data stored as Float32 in dest register,
++        // gasket cannot convert Float32 ->Float16_A, so it leaves the data as Float32,
++        // allowing the packer to handle the conversion successfully.
++        return DataFormat::Float32;
++    }
++    else if constexpr (INPUT == DataFormat::Float32 && !UNPACKING_TO_DEST)
++    {
++        // When input is Float32 in L1 and we are unpacking the input tensor to source registers (not directly to dest registers)
++        if constexpr (FP32_ACC || is_exponentB(OUTPUT))
+         {
+-            pack_in = output;
++            // If FP32 dest accumulation is enabled and the output format has an 8-bit exponent,
++            // the packer input format can directly be the output format since packer can convert Float32 to another 8-bit exponent format
++            return OUTPUT;
+         }
+         else
+         {
+-            pack_in = unpack_out;
++            // Otherwise, we truncate Float32 to Tf32 or 16-bit format
++            // because the packer cannot convert Float32 directly to output formats with less than 8-bit exponent (e.g., 5-bit exponent formats).
++            return unpack_out;
+         }
+     }
+-    else if (input == DataFormat::Float16 && output == DataFormat::Bfp8_b && !is_fp32_dest_acc_en)
++    else if constexpr (INPUT == DataFormat::Float16 && OUTPUT == DataFormat::Bfp8_b && !FP32_ACC)
+     {
+-        pack_in = DataFormat::Bfp8;
++        // When storing Float16 input in destination registers without FP32 accumulation,
++        // the packer cannot convert Float16_A directly to Block Float format (in this case Bfp8_B).
++        // The gasket will convert Float16_A to Bfp8_A before passing it to the packer,
++        // which then converts Bfp8_A to Bfp8_B.
++        return DataFormat::Bfp8;
+     }
+-    else if (is_format_combination_outlier(input, output, is_fp32_dest_acc_en))
++    else if constexpr (is_format_combination_outlier(INPUT, OUTPUT, FP32_ACC))
+     {
+-        pack_in = (is_wormhole) ? DataFormat::Float32 : output;
+-    }
+-    else
+-    {
+-        pack_in = is_fp32_dest_acc_en ? output : input;
++        // Handling a hardware limitation: cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register.
++        // In this case, we set dest registers store 32-bit datums (in params.h).
++        // For wormhole architecture, gasket cannot perform this conversion and packer takes input Float32 (from dest register) converting to Float16_A.
++        // For blackhole architecture, gasket able to convert Float32 to Float16_A before packing (reduces work on packer).
++        return is_wormhole ? DataFormat::Float32 : OUTPUT;
+     }
+ 
+-    if (is_wormhole && is_fp32_dest_acc_en && output == DataFormat::Float16)
+-    {
+-        pack_in = DataFormat::Float32; // Gasket in wormhole cannot convert fp32 to fp16, and since dest accumulation turns on for
+-                                       // outlier cases we have fp32 in dest, so gasket cannot convert it to fp16, packer must do that
+-    }
++    // For all other cases:
++    // - If dest register stores 32-bit data (FP32_ACC = true), packer input format can be set to desired output format,
++    //   as gasket can convert Float32 to any format (except Float16_A).
++    // - If destination registers do not store 32-bit data, gasket cannot convert,
++    //   so the packer input format will be same as dest regsiter format.
++    return FP32_ACC ? OUTPUT : INPUT;
++}
++
++template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC>
++constexpr FormatConfig infer_data_formats()
++{
++    // The following two formats are hard-coded for this test case
++    constexpr DataFormat unpack_in = INPUT;  // The input format for Unpcker (data format in L1)
++    constexpr DataFormat pack_out  = OUTPUT; // The final desired output format after packing (format in L1 after leaving the pipeline)
++
++    // Determine the intermediate formats
++    constexpr DataFormat unpack_out = infer_unpack_out<INPUT, OUTPUT, FP32_ACC>(); // output format for Unpacker, desired format in src register(s)
++    constexpr DataFormat math =
++        unpack_out; // The data format used for mathematical computations, desired format in dest register (typically matches unpack_out)
++    constexpr DataFormat pack_in =
++        infer_pack_in<INPUT, OUTPUT, unpack_out, FP32_ACC>(); // input to the packing stage, determines what gasket can convert from dest register
++                                                              // potentially different from unpack_out and pack_out depending on FP32 accumulation
++
++    // Return a FormatConfig struct capturing all the inferred formats needed for this stage
++    return get_data_formats(unpack_in, unpack_out, math, pack_in, pack_out);
++}
++
++/**
++ * @brief Helper function to build a constexpr array of FormatConfig objects.
++ *
++ * This function uses a compile-time index sequence to generate an array of
++ * FormatConfig, simulating a loop unrolling over pipeline iterations.
++ *
++ * @tparam INPUT   Input data format (enum class DataFormat).
++ * @tparam OUTPUT  Final desired output format (used only in the last iteration).
++ * @tparam FP32_ACC Whether 32-bit datums are enabled for the destination register (dest_acc).
++ * @tparam N       Number of L1-to-L1 pipeline iterations (array size).
++ * @tparam Is...   Compile-time index sequence used to unroll loop iterations.
++ *
++ * @return constexpr std::array<FormatConfig, N> Array of FormatConfig for each iteration.
++ */
++template <size_t N, size_t... Is>
++constexpr std::array<FormatConfig, N> build_data_formats(std::index_sequence<Is...>, const FormatConfig& intermediate_config, const FormatConfig& final_config)
++{
++    return {{(Is < N - 1 ? intermediate_config : final_config)...}};
++}
++
++/**
++ * @brief Entry point for computing an array of FormatConfig objects.
++ *
++ * Each FormatConfig object contains all the data formats necessary to execute
++ * a specific L1-to-L1 compute run across all 3 cores: unpack, math, and pack.
++ * This function abstracts away the index sequence logic from callers.
++ *
++ * @tparam INPUT    The input data format for all pipeline runs.
++ * @tparam OUTPUT   The output data format for the final pipeline run.
++ * @tparam FP32_ACC Whether FP32 accumulation is enabled.
++ * @tparam N        The number of pipeline runs (iterations), determines array length.
++ *
++ * @return A constexpr std::array of FormatConfig objects of length N.
++ */
++template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC, size_t N>
++constexpr std::array<FormatConfig, N> data_formats()
++{
++    constexpr auto intermediate_config = infer_data_formats<INPUT, INPUT, FP32_ACC>();
++    constexpr auto final_config        = infer_data_formats<INPUT, OUTPUT, FP32_ACC>();
+ 
+-    return {unpack_in, unpack_out, pack_in, pack_out};
+-    // return {unpack_in, unpack_out, pack_in, pack_out};
++    return build_data_formats<N>(std::make_index_sequence<N> {}, intermediate_config, final_config);
+ }
+
+File: tests/helpers/include/params.h
+@@ -42,17 +42,25 @@ constexpr bool dest_acc_en_input =
+ 
+ constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
+ 
++/*DATA FORMAT CONFIGURATION*/
++
++// Given input and output formats, infer the rest of the format configuration
+ #if DATA_FORMAT_INFERENCE_MODEL
++
++// If the input is exponentB, we cannot convert it to Float16 without enabling fp32 mode in dest;
++// this is considered a format combination outlier, so we enable dest_acc
+ constexpr bool is_fp32_dest_acc_en =
+     dest_acc_en_input || is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
+-constexpr FormatConfig pipeline_formats = get_data_formats(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
+-constexpr auto UNPACK_A_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+-constexpr auto UNPACK_B_IN              = static_cast<uint32_t>(pipeline_formats.unpack_src);
+-constexpr auto UNPACK_B_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+-constexpr auto PACK_IN                  = static_cast<uint32_t>(pipeline_formats.pack_src);
+-constexpr auto MATH_FORMAT              = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+-#else
+-constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
++
++// Get Data Formats
++inline constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array =
++    data_formats<static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input, L1_to_L1_ITERATIONS>();
++
++constexpr auto& formats = formats_array[0];
++
++#else // Not inferring formats — all formats are pre-defined. Set format configuration directly.
++constexpr bool is_fp32_dest_acc_en = dest_acc_en_input; // dest_acc doesn't require adjustment; configuration is hard-coded
++constexpr FormatConfig formats     = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH, PACK_IN, PACK_OUT);
+ #endif
+ 
+ #ifdef ELTWISE_BINARY_ADD
+
+File: tests/python_tests/helpers/test_config.py
+@@ -85,6 +85,14 @@ def generate_build_header(
+     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
+     header_content.append(f"#define UNPACKING_TO_DEST {unpack_to_dest}")
+ 
++    # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
++    # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
++    # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
++    # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
++    # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration
++    fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
++    header_content.append(f"#define L1_to_L1_ITERATIONS {str(fused_L1_to_L1)}")
++
+     # Math fidelity & Approximation mode
+     header_content.append(
+         f"#define MATH_FIDELITY {test_config.get('math_fidelity', MathFidelity.LoFi).value}"
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -103,6 +103,7 @@ def test_tilize_calculate_untilize_L1(
+         "math_fidelity": math_fidelity,
+         "mathop": mathop,
+         "tile_cnt": tile_cnt,
++        "L1_to_L1_iterations": 2,  # Fused L1 to L1 test has multiple L1-L1 runs: output of first run is used as input for the second run ... This flag marks the number of L1-L1 runs in the test
+     }
+ 
+     run_test(test_config)
+
+File: tests/sources/eltwise_binary_fpu_perf.cpp
+@@ -31,7 +31,7 @@ void run_kernel()
+ 
+     {
+         ZONE_SCOPED("INIT")
+-        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, 8, false, 4);
++        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, 8, false, 4);
+         _llk_unpack_AB_init_<>(FACE_R_DIM, TILE_NUM_FACES, false, false, dest_acc_en_input);
+         tensix_sync(); // -> perf
+     }
+@@ -68,7 +68,7 @@ void run_kernel()
+     {
+         ZONE_SCOPED("INIT")
+         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-        _llk_math_hw_configure_<>(MATH_FORMAT, MATH_FORMAT);
++        _llk_math_hw_configure_<>(formats.math, formats.math);
+         _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(TILE_NUM_FACES, false, false);
+         tensix_sync(); // -> perf
+     }
+@@ -116,8 +116,8 @@ void run_kernel()
+     volatile uint32_t* const dst = reinterpret_cast<volatile uint32_t*>(0x1E000);
+     {
+         ZONE_SCOPED("INIT")
+-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, TILE_WIDTH * TILE_HEIGHT);
+-        _llk_pack_init_<>(PACK_OUT);
++        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
++        _llk_pack_init_<>(formats.pack_dst);
+         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+         tensix_sync(); // -> perf
+     }
+
+File: tests/sources/eltwise_unary_datacopy_test.cpp
+@@ -23,12 +23,14 @@ uint32_t math_sync_tile_dst_index = 0;
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
++    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+ 
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
++        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++            L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
+     }
+ }
+ 
+@@ -52,17 +54,17 @@ void run_kernel()
+ {
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, formats.math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+-            i, UNPACK_A_OUT, UNPACK_A_OUT);
++            i, formats.math, formats.math);
+     }
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+@@ -78,12 +80,12 @@ void run_kernel()
+ void run_kernel()
+ {
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #endif
+ 
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -23,12 +23,14 @@ uint32_t math_sync_tile_dst_index = 0;
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
++    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+ 
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
++        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++            L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
+     }
+ }
+ 
+@@ -49,7 +51,7 @@ const int iterations = 32;
+ 
+ namespace
+ {
+-void call_sfpu_operation(SfpuType operation, DataFormat MATH_FORMAT)
++void call_sfpu_operation(SfpuType operation, uint32_t math_format)
+ {
+     switch (operation)
+     {
+@@ -88,7 +90,7 @@ void call_sfpu_operation(SfpuType operation, DataFormat MATH_FORMAT)
+             ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();
+             break;
+         case SfpuType::neg:
+-            if (MATH_FORMAT == DataFormat::Int32)
++            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
+             {
+                 ckernel::sfpu::_calculate_negative_int_<APPROX_MODE, iterations>();
+             }
+@@ -107,25 +109,25 @@ void run_kernel()
+ {
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, formats.math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, formats.math);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+ 
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+-            i, MATH_FORMAT, MATH_FORMAT);
++            i, formats.math, formats.math);
+ 
+         // calculation of sfpu operation on dest
+         _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
+         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
+         // calling sfpu function from ckernel
+         // this part is where parametrization of operation takes part
+-        call_sfpu_operation(SFPU_OPERATION, static_cast<DataFormat>(MATH_FORMAT));
++        call_sfpu_operation(SFPU_OPERATION, formats.math);
+ 
+         _llk_math_eltwise_unary_sfpu_done_();
+     }
+@@ -143,21 +145,13 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    // If data foramt is Bfp8 it is calculated correctly in Dest but packer cannot pack just that one face
+-    // TODO: make it so It can
+-    // So for now It is packed as Float16_b
+-
+-#ifdef PACK_DST_BFP8_B
+-    constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
+-#endif
+-
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #endif
+ 
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+
+File: tests/sources/matmul_and_unary_sfpu_test.cpp
+@@ -7,7 +7,9 @@
+ #include <cstdio>
+ 
+ #include "ckernel.h"
++#include "data_format_inference.h"
+ #include "llk_defs.h"
++#include "params.h"
+ 
+ // Globals
+ uint32_t unp_cfg_context          = 0;
+@@ -31,17 +33,22 @@ void run_kernel()
+     std::uint32_t rt_dim = 1;
+     std::uint32_t kt_dim = 1;
+ 
+-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT);
++    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
++    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
++        formats_array[run].unpack_src, formats_array[run].unpack_src, formats_array[run].unpack_dst, formats_array[run].unpack_dst);
+     _llk_unpack_AB_matmul_init_<>();
+     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, tile_size, tile_size);
+ 
+     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);
+     t6_semaphore_get<>(semaphore::PACK_DONE);
+ 
+     // Start of second unpack kernel to perform unpack matmul on now tilized input data
+-    _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(UNPACK_A_IN, UNPACK_A_OUT, tile_size);
+-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+-    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A_tilized), 0, UNPACK_A_IN, UNPACK_A_OUT);
++    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
++    _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++        0, 0, FACE_R_DIM, 4, formats_array[run].unpack_src, formats_array[run].unpack_dst);
++    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++        L1_ADDRESS(buffer_A_tilized), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst);
+ }
+ 
+ #endif
+@@ -96,25 +103,27 @@ void call_sfpu_operation(SfpuType operation)
+ 
+ void run_kernel()
+ {
++    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats_array[run].math, formats_array[run].math);
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ 
+     // Start of second math kernel to perform matmul on now tilized input data
+-    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(MATH_FORMAT);
++    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
++    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(formats_array[run].math);
+     // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, formats_array[run].math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, formats_array[run].math);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+-        0, MATH_FORMAT, MATH_FORMAT);
++        0, formats_array[run].math, formats_array[run].math);
+ 
+     // calculation of sfpu operation on dest
+     _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
+@@ -137,13 +146,14 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
++    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats_array[run].pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
+ #endif
+ 
+@@ -154,12 +164,10 @@ void run_kernel()
+     t6_semaphore_post<>(semaphore::PACK_DONE);
+ 
+     // Start of second pack kernel to perform final pack after executing matmul on tilized data
+-    _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(PACK_IN, PACK_OUT, tile_size);
+-#ifdef PACK_DST_BFP8_B
+-    constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
+-#endif
++    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
++    _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(formats_array[run].pack_src, formats_array[run].pack_dst, tile_size);
+ 
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+
+File: tests/sources/matmul_pack_untilize_test.cpp
+@@ -26,7 +26,8 @@ const ckernel::DstSync sync       = ckernel::DstSync::SyncHalf;
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT);
++    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
++        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+     _llk_unpack_AB_matmul_init_<>();
+     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, face_size, face_size);
+ }
+@@ -43,7 +44,7 @@ void run_kernel()
+ {
+     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
+     _llk_math_pack_sync_init_<sync, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<true, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<true, false>(formats.math, formats.math);
+     _llk_math_wait_for_dest_available_<sync>();
+     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+     _llk_math_dest_section_done_<sync, is_fp32_dest_acc_en>();
+@@ -60,16 +61,16 @@ void run_kernel()
+ void run_kernel()
+ {
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(PACK_IN, PACK_OUT, tile_size);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, tile_size);
+     _llk_pack_dest_init_<sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+-    _llk_pack_untilize_init_<ct_dim>(PACK_IN, PACK_OUT, FACE_R_DIM, 4);
++    _llk_pack_untilize_init_<ct_dim>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(PACK_IN, PACK_OUT, tile_size);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, tile_size);
+     _llk_pack_dest_init_<sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+-    _llk_pack_untilize_init_<ct_dim>(PACK_OUT, FACE_R_DIM, 4);
++    _llk_pack_untilize_init_<ct_dim>(formats.pack_dst, FACE_R_DIM, 4);
+ #endif
+     _llk_packer_wait_for_math_done_();
+-    _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Res[0]), PACK_OUT, FACE_R_DIM, 4, 0);
++    _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
+     _llk_pack_dest_section_done_<sync, is_fp32_dest_acc_en>();
+ }
+ 
+
+File: tests/sources/matmul_test.cpp
+@@ -27,17 +27,17 @@ void run_kernel()
+ 
+     std::uint32_t tile_size = 128;
+ 
+-    if constexpr (static_cast<DataFormat>(UNPACK_A_IN) == DataFormat::Bfp8_b)
++    if constexpr (static_cast<DataFormat>(formats.unpack_src) == DataFormat::Bfp8_b)
+     {
+         tile_size = 68;
+     }
+-    else if constexpr (static_cast<DataFormat>(UNPACK_A_IN) == DataFormat::Float32)
++    else if constexpr (static_cast<DataFormat>(formats.unpack_src) == DataFormat::Float32)
+     {
+         tile_size = 256;
+     }
+ 
+     _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+-        UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, FACE_R_DIM, 0, 4, 4, tile_size, tile_size);
++        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 0, 4, 4, tile_size, tile_size);
+     _llk_unpack_AB_matmul_init_<>(0, ct_dim, rt_dim, kt_dim, FACE_R_DIM, FACE_R_DIM);
+     for (uint32_t j = 0; j < kt_dim; j++)
+     {
+@@ -74,7 +74,7 @@ void run_kernel()
+ 
+     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, ct_dim, rt_dim, kt_dim);
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     for (uint32_t j = 0; j < kt_dim; j++)
+     {
+@@ -95,12 +95,12 @@ void run_kernel()
+ void run_kernel()
+ {
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats.pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
+ #endif
+ 
+
+File: tests/sources/matmul_unpack_tilize_test.cpp
+@@ -28,23 +28,27 @@ volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
++    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
++    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats_array[run].unpack_src, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
+ 
+-    _llk_unpack_tilize_init_(UNPACK_A_IN, UNPACK_A_OUT, 1, FACE_R_DIM, false);
+-    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, UNPACK_A_IN, 1, FACE_R_DIM, 4, false);
++    _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
++    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, 1, FACE_R_DIM, 4, false);
+ 
+-    _llk_unpack_tilize_init_(UNPACK_B_IN, UNPACK_B_OUT, 1, FACE_R_DIM, false);
+-    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, UNPACK_B_IN, 1, FACE_R_DIM, 4, false);
++    _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
++    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, formats_array[run].unpack_src, 1, FACE_R_DIM, 4, false);
+ 
+     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(
+         semaphore::PACK_DONE); // Unpacker waits on signal when packer will increment semaphore to 1 (waits while semaphore == 0), utilizing SEMWAIT.
+     t6_semaphore_get<>(semaphore::PACK_DONE); // It will acquire the semaphore t6_semaphore_get (decrementing the semaphore back to 0) signalling it has begun
+ 
+     // Start of second unpack kernel to perform unpack matmul on now tilized input data
++    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+     _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(
+-        UNPACK_A_IN, UNPACK_A_OUT, tile_size); // have to reconfigure unpack kernel data formats if they change in this run
+-    _llk_unpack_reconfig_data_format_srcb_impl_<is_fp32_dest_acc_en, false>(UNPACK_B_IN, UNPACK_B_OUT, tile_size);
+-    _llk_unpack_tilize_uninit_(UNPACK_A_OUT);
++        formats_array[run].unpack_src,
++        formats_array[run].unpack_dst,
++        tile_size); // have to reconfigure unpack kernel data formats_array if they change in this run
++    _llk_unpack_reconfig_data_format_srcb_impl_<is_fp32_dest_acc_en, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
++    _llk_unpack_tilize_uninit_(formats_array[run].unpack_dst);
+     _llk_unpack_AB_matmul_init_<>();
+     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
+ }
+@@ -68,30 +72,35 @@ void run_kernel()
+     const std::uint32_t res_dst_index       = 0;
+     const bool TILIZE                       = true;
+ 
+-// copy srca to dest
++    // copy srca to dest
++    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
++
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
++        0, 0, 4, formats_array[run].math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats_array[run].math);
+ #endif
+ 
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats_array[run].math, formats_array[run].math);
+ 
+     // copy tilized inputs to dest indexes 0 and 1
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+-        operand_A_dst_index, MATH_FORMAT, MATH_FORMAT);
++        operand_A_dst_index, formats_array[run].math, formats_array[run].math);
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ 
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+-        operand_B_dst_index, MATH_FORMAT, MATH_FORMAT);
++        operand_B_dst_index, formats_array[run].math, formats_array[run].math);
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ 
+     // Start of second math kernel to perform matmul on now tilized input data
+-    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(MATH_FORMAT); // have to reconfigure math kernel data formats if they change in this run
+-    _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en, false>(MATH_FORMAT);
++    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
++    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(
++        formats_array[run].math); // have to reconfigure math kernel data formats_array if they change in this run
++    _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en, false>(formats_array[run].math);
+     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+@@ -115,13 +124,14 @@ void run_kernel()
+     const bool UNTILIZE                     = false;
+     const bool TILIZE                       = true;
+ 
++    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats_array[run].pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+ #endif
+ 
+@@ -137,13 +147,14 @@ void run_kernel()
+                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
+ 
+     // Start of second pack kernel to perform final pack after executing matmul on tilized data
++    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+     _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(
+-        PACK_IN,
+-        PACK_OUT,
+-        tile_size); // need to reconfigure data formats for next pack, also calls set_packer_strides to readjust strides after pack tilizing
++        formats_array[run].pack_src,
++        formats_array[run].pack_dst,
++        tile_size); // need to reconfigure data formats_array for next pack, also calls set_packer_strides to readjust strides after pack tilizing
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(PACK_OUT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats_array[run].pack_dst);
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+
+File: tests/sources/multiple_tiles_eltwise_test.cpp
+@@ -22,7 +22,7 @@ uint32_t math_sync_tile_dst_index = 0;
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_A_OUT);
++    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+     _llk_unpack_AB_init_<>();
+     for (int i = 0; i < TILE_CNT; i++)
+     {
+@@ -41,7 +41,7 @@ void run_kernel()
+ void run_kernel()
+ {
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
+ 
+     for (int i = 0; i < TILE_CNT; i++)
+@@ -69,12 +69,12 @@ void run_kernel()
+ void run_kernel()
+ {
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #endif
+ 
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+
+File: tests/sources/pack_untilize_test.cpp
+@@ -22,11 +22,13 @@ uint32_t math_sync_tile_dst_index = 0;
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
++    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
++        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++            L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
+     }
+ }
+ 
+@@ -46,16 +48,16 @@ void run_kernel()
+ 
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, formats.math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<true, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<true, false>(formats.math, formats.math);
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, MATH_FORMAT, MATH_FORMAT);
++        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, formats.math, formats.math);
+     }
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+@@ -74,18 +76,18 @@ void run_kernel()
+     const bool UNTILIZE        = true;
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+-    _llk_pack_untilize_init_<BLOCK_CT_DIM>(PACK_IN, PACK_OUT, FACE_R_DIM, 4);
++    _llk_pack_untilize_init_<BLOCK_CT_DIM>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+-    _llk_pack_untilize_init_<BLOCK_CT_DIM>(PACK_OUT, FACE_R_DIM, 4);
++    _llk_pack_untilize_init_<BLOCK_CT_DIM>(formats.pack_dst, FACE_R_DIM, 4);
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+ 
+-    _llk_pack_untilize_<BLOCK_CT_DIM>(L1_ADDRESS(buffer_Res[0]), PACK_OUT, FACE_R_DIM, 4, 0);
++    _llk_pack_untilize_<BLOCK_CT_DIM>(L1_ADDRESS(buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
+     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+ 
+
+File: tests/sources/reduce_test.cpp
+@@ -32,7 +32,7 @@ const bool row_pool                             = false;
+ void run_kernel()
+ {
+     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+-        UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, within_face_16x16_transpose);
++        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, within_face_16x16_transpose);
+     _llk_unpack_AB_init_<>(FACE_R_DIM, 4, false, within_face_16x16_transpose, 0);
+     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), within_face_16x16_transpose);
+ }
+@@ -52,7 +52,7 @@ void run_kernel()
+     const bool fp32_transpose    = false;
+     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
+-    _llk_math_hw_configure_<false, row_pool>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, row_pool>(formats.math, formats.math);
+     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fid>(within_face_16x16_transpose);
+     _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, fp32_transpose>(0);
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+@@ -68,12 +68,12 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #endif
+ 
+     _llk_pack_reduce_mask_config_<false, REDUCE_DIM>();
+
+File: tests/sources/sfpu_binary_test.cpp
+@@ -21,12 +21,15 @@ uint32_t math_sync_tile_dst_index = 0;
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
++    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
++    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+     for (int i = 0; i < TILE_CNT; i++)
+     {
+-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
+-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_B[i]), 0, UNPACK_A_IN, UNPACK_A_OUT);
++        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++            L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
++        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
++            L1_ADDRESS(buffer_B[i]), 0, formats.unpack_src, formats.unpack_dst);
+     }
+ }
+ 
+@@ -77,24 +80,24 @@ void run_kernel()
+     const bool is_int_fpu_en = false;
+ 
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, formats.math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
+ #endif
+ 
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     for (int i = 0; i < TILE_CNT; i++)
+     {
+         // copy first input to tile 0 in dest
+         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+-            0, MATH_FORMAT, MATH_FORMAT);
++            0, formats.math, formats.math);
+ 
+         // copy second input to tile 1 in dest
+         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+-            1, MATH_FORMAT, MATH_FORMAT);
++            1, formats.math, formats.math);
+ 
+         _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
+ 
+@@ -120,12 +123,12 @@ void run_kernel()
+ void run_kernel()
+ {
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_IN, PACK_OUT, 16 * 16);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(PACK_IN, PACK_OUT, 16 * 16);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16);
+ #endif
+ 
+-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+
+File: tests/sources/tilize_calculate_untilize_L1.cpp
+@@ -29,13 +29,14 @@ volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
++    int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
++    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats_array[run].unpack_src, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
+ 
+-    _llk_unpack_tilize_init_(UNPACK_A_IN, UNPACK_A_OUT, 1, FACE_R_DIM, false);
+-    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, UNPACK_A_IN, 1, FACE_R_DIM, 4, false);
++    _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
++    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, 1, FACE_R_DIM, 4, false);
+ 
+-    _llk_unpack_tilize_init_(UNPACK_B_IN, UNPACK_B_OUT, 1, FACE_R_DIM, false);
+-    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, UNPACK_B_IN, 1, FACE_R_DIM, 4, false);
++    _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
++    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, formats_array[run].unpack_src, 1, FACE_R_DIM, 4, false);
+ 
+     /*
+     In this test we fuse two LLK pipeline runs, one is to unpack untilized buffers/operands from L1 (39-45) and pack them in tilized format(130-145).
+@@ -55,7 +56,10 @@ void run_kernel()
+         semaphore::PACK_DONE); // Unpacker waits on signal when packer will increment semaphore to 1 (waits while semaphore == 0), utilizing SEMWAIT.
+     t6_semaphore_get<>(semaphore::PACK_DONE); // It will acquire the semaphore t6_semaphore_get (decrementing the semaphore back to 0) signalling it has begun
+                                               // processing data from L1
+-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_B_IN, UNPACK_A_OUT, UNPACK_B_OUT, FACE_R_DIM, 0, 4);
++
++    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
++    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
++        formats_array[run].unpack_src, formats_array[run].unpack_src, formats_array[run].unpack_dst, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
+     _llk_unpack_AB_init_<>();
+     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
+ }
+@@ -78,28 +82,31 @@ void run_kernel()
+     const std::uint32_t operand_B_dst_index = 2;
+     const std::uint32_t res_dst_index       = 0;
+     const bool TILIZE                       = true;
++    int run                                 = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+ 
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
++        0, 0, 4, formats_array[run].math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats_array[run].math);
+ #endif
+ 
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats_array[run].math, formats_array[run].math);
+ 
+     // copy tilized inputs to dest indexes 0 and 1
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+-        operand_A_dst_index, MATH_FORMAT, MATH_FORMAT);
++        operand_A_dst_index, formats_array[run].math, formats_array[run].math);
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ 
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+-        operand_B_dst_index, MATH_FORMAT, MATH_FORMAT);
++        operand_B_dst_index, formats_array[run].math, formats_array[run].math);
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ 
++    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+     _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
+@@ -123,14 +130,15 @@ void run_kernel()
+     const std::uint32_t res_dst_index       = 0;
+     const bool UNTILIZE                     = false;
+     const bool TILIZE                       = true;
++    int run                                 = 0;
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats_array[run].pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+ #endif
+ 
+@@ -144,10 +152,10 @@ void run_kernel()
+                                                                             // to L1 is fully is complete.
+     t6_semaphore_post<>(semaphore::PACK_DONE); // The packer signals to the unpacker that it has finished writing to L1 by posting (incrementing) the semaphore.
+                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
+-
++    run = 1;                                   // second L1-to-L1 run, we access the second set of formats_array in our array
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, !TILIZE>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, !TILIZE>(formats_array[run].pack_dst);
+ #endif
+ 
+     _llk_packer_wait_for_math_done_();
+
+File: tests/sources/unpack_tilize_test.cpp
+@@ -22,16 +22,16 @@ uint32_t math_sync_tile_dst_index = 0;
+ 
+ void run_kernel()
+ {
+-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+-    _llk_unpack_tilize_init_(UNPACK_A_IN, UNPACK_A_OUT, BLOCK_CT_DIM, FACE_R_DIM, false);
++    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
++    _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
+ 
+     uint32_t read_offset = 0;
+ 
+     for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+     {
+         for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+         {
+-            _llk_unpack_tilize_(L1_ADDRESS(buffer_A[read_offset]), j, UNPACK_A_IN, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
++            _llk_unpack_tilize_(L1_ADDRESS(buffer_A[read_offset]), j, formats.unpack_src, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
+         }
+         read_offset += BLOCK_RT_DIM;
+     }
+@@ -56,16 +56,16 @@ void run_kernel()
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+     // set tilize flag to true
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, 4, formats.math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, MATH_FORMAT, MATH_FORMAT);
++        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, formats.math, formats.math);
+     }
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+@@ -83,12 +83,12 @@ void run_kernel()
+     const bool UNTILIIZE = false;
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE, TILIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
+-    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
++    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIIZE>();
+ #endif
+ 
+
+File: tests/sources/unpack_untilize_test.cpp
+@@ -26,8 +26,8 @@ void run_kernel()
+ {
+     constexpr std::uint32_t tile_size = 128;
+ 
+-    _llk_unpack_untilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+-    _llk_unpack_untilize_init_(UNPACK_A_OUT, tile_size, FACE_R_DIM, 4);
++    _llk_unpack_untilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
++    _llk_unpack_untilize_init_(formats.unpack_dst, tile_size, FACE_R_DIM, 4);
+ 
+     _llk_unpack_untilize_pass_<true>(L1_ADDRESS(buffer_A[0]), BLOCK_CT_DIM);
+     _llk_unpack_untilize_pass_<false>(L1_ADDRESS(buffer_A[0]), BLOCK_CT_DIM);
+@@ -49,17 +49,17 @@ void run_kernel()
+ {
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, formats.math);
+ #else
+-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, MATH_FORMAT);
++    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
+ #endif
+     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+-    _llk_math_hw_configure_<false, false>(MATH_FORMAT, MATH_FORMAT);
++    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+ 
+     for (int i = 0; i < TILE_CNT; ++i)
+     {
+-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, MATH_FORMAT, MATH_FORMAT);
++        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, formats.math, formats.math);
+     }
+     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+ }
+@@ -77,12 +77,12 @@ void run_kernel()
+     const bool UNTILIIZE = false;
+ 
+ #ifdef ARCH_BLACKHOLE
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE, false>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #else
+-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE>(PACK_IN, PACK_OUT, 16 * 16 * 4);
++    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+ #endif
+ 
+-    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(PACK_OUT);
++    _llk_pack_init_<UNTILIIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+

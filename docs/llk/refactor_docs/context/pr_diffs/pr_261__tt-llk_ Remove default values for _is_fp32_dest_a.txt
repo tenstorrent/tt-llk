@@ -1,0 +1,14 @@
+PR #261: [tt-llk] Remove default values for `is_fp32_dest_acc_en`  templates to enforce explicit DST_ACCUM_MODE forwarding
+URL: https://github.com/tenstorrent/tt-llk/pull/261
+
+File: tt_llk_blackhole/llk_lib/llk_pack.h
+@@ -473,7 +473,7 @@ inline void _llk_pack_mop_config_(
+ }
+ 
+ template <
+-    bool is_fp32_dest_acc_en     = false,
++    bool is_fp32_dest_acc_en,
+     bool is_tile_dim_reconfig_en = false,
+     DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
+     bool write_tile_header       = true>
+

@@ -1,0 +1,14 @@
+PR #424: ci: add Strahinja and Stefan as tests' code owners
+URL: https://github.com/tenstorrent/tt-llk/pull/424
+
+File: CODEOWNERS
+@@ -8,7 +8,7 @@
+ .github/ @fvranicTT @nvelickovicTT
+ 
+ # Tests
+-tests/ @fvranicTT @ldjurovicTT @nvelickovicTT @skotaracTT
++tests/ @fvranicTT @ldjurovicTT @nvelickovicTT @skotaracTT @skrsmanovicTT @sstanisicTT
+ 
+ # Blackhole
+ tt_llk_blackhole/ @amahmudTT @nvelickovicTT @rdjogoTT @rtawfik01 @ttmtrajkovic
+

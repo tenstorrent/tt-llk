@@ -1,0 +1,13 @@
+PR #152: ci: install make inside docker container
+URL: https://github.com/tenstorrent/tt-llk/pull/152
+
+File: .github/Dockerfile.base
+@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
+     pkg-config \
+     linux-tools-generic \
+     ninja-build \
++    make \
+     wget \
+     cmake \
+     ccache \
+

@@ -1,0 +1,557 @@
+PR #260: [Test Infra] Add Float32 coverage for matmul tests 
+URL: https://github.com/tenstorrent/tt-llk/pull/260
+
+File: tests/Makefile
+@@ -49,7 +49,7 @@ else
+ 	MATHOP_ARG:= -D$(mathop) -DAPPROX_MODE=$(approx_mode)  -DPOOL_TYPE=$(pool_type) -DREDUCE_DIM=$(reduce_dim)
+ endif
+ 
+-OPTIONS_COMPILE+= -DMATH_FIDELITY=$(math_fidelity)
++OPTIONS_COMPILE+= -DMATH_FIDELITY=$(math_fidelity) -DUNPACKING_TO_DEST=$(unpack_to_dest)
+ 
+ # If test needs to run muliple consecutive operations it needs some additional
+ # files to be linked to it
+
+File: tests/helpers/include/data_format_inference.h
+@@ -17,48 +17,60 @@ constexpr bool is_wormhole  = false;
+ 
+ struct FormatConfig
+ {
+-    const uint32_t unpack_src;
+-    const uint32_t unpack_dst;
+-    const uint32_t pack_src;
+-    const uint32_t pack_dst;
++    DataFormat unpack_src;
++    DataFormat unpack_dst;
++    DataFormat pack_src;
++    DataFormat pack_dst;
+ };
+ 
+-constexpr bool is_exponentB(uint32_t format)
++constexpr bool is_exponentB(DataFormat format)
+ {
+-    return (
+-        format == static_cast<uint32_t>(DataFormat::Float16_b) || format == static_cast<uint32_t>(DataFormat::Bfp8_b) ||
+-        format == static_cast<uint32_t>(DataFormat::Tf32));
++    return (format == DataFormat::Float16_b || format == DataFormat::Bfp8_b || format == DataFormat::Tf32);
+ }
+ 
+-constexpr bool is_format_combination_outlier(uint32_t input, uint32_t output, bool is_fp32_dest_acc_en)
++constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en)
+ {
+-    return (is_exponentB(input) && output == (uint32_t)DataFormat::Float16 && !is_fp32_dest_acc_en);
++    return (is_exponentB(input) && output == DataFormat::Float16 && !is_fp32_dest_acc_en);
+ }
+ 
+-constexpr FormatConfig get_data_formats(uint32_t input, uint32_t output, bool is_fp32_dest_acc_en)
++constexpr FormatConfig get_data_formats(DataFormat input, DataFormat output, bool is_fp32_dest_acc_en)
+ {
+-    uint32_t unpack_in  = input;
+-    uint32_t unpack_out = input;
+-    uint32_t pack_out   = output;
+-    uint32_t pack_in    = 0;
++    DataFormat unpack_in  = input;
++    DataFormat unpack_out = input;
++    DataFormat pack_out   = output;
++    DataFormat pack_in    = DataFormat::Invalid; // Invalid format as placeholder
+ 
+-    if (input == (uint32_t)DataFormat::Float16 && output == (uint32_t)DataFormat::Bfp8_b && !is_fp32_dest_acc_en)
++    if (input == DataFormat::Float32 && !UNPACKING_TO_DEST)
+     {
+-        pack_in = static_cast<uint32_t>(DataFormat::Bfp8);
++        unpack_out = DataFormat::Tf32;
++        if (is_fp32_dest_acc_en || is_exponentB(output))
++        {
++            pack_in = output;
++        }
++        else
++        {
++            pack_in = DataFormat::Tf32;
++        }
+     }
+-    else if (is_wormhole && is_fp32_dest_acc_en && output == (uint32_t)DataFormat::Float16)
++    else if (input == DataFormat::Float16 && output == DataFormat::Bfp8_b && !is_fp32_dest_acc_en)
+     {
+-        pack_in = static_cast<uint32_t>(DataFormat::Float32); // Gasket in wormhole cannot convert fp32 to fp16, and since dest accumulation turns on for
+-                                                              // outlier cases we have fp32 in dest, so gasket cannot convert it to fp16, packer must do that
++        pack_in = DataFormat::Bfp8;
+     }
+     else if (is_format_combination_outlier(input, output, is_fp32_dest_acc_en))
+     {
+-        pack_in = (is_wormhole) ? (uint32_t)DataFormat::Float32 : output;
++        pack_in = (is_wormhole) ? DataFormat::Float32 : output;
+     }
+     else
+     {
+         pack_in = is_fp32_dest_acc_en ? output : input;
+     }
+ 
++    if (is_wormhole && is_fp32_dest_acc_en && output == DataFormat::Float16)
++    {
++        pack_in = DataFormat::Float32; // Gasket in wormhole cannot convert fp32 to fp16, and since dest accumulation turns on for
++                                       // outlier cases we have fp32 in dest, so gasket cannot convert it to fp16, packer must do that
++    }
++
+     return {unpack_in, unpack_out, pack_in, pack_out};
++    // return {unpack_in, unpack_out, pack_in, pack_out};
+ }
+
+File: tests/helpers/include/params.h
+@@ -35,12 +35,7 @@ constexpr bool dest_acc_en_input =
+     false;
+ #endif
+ 
+-constexpr bool unpack_to_dest =
+-#if defined(UNPACK_A_SRC_INT32) || defined(UNPACK_A_SRC_FLOAT32)
+-    true;
+-#else
+-    false;
+-#endif
++constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
+ 
+ #define UNPACK_A_SRC_CASE(data_format) constexpr auto UNPACK_A_IN = get_data_format(DataFormat::data_format);
+ 
+@@ -59,6 +54,9 @@ UNPACK_A_SRC_CASE(Int32)
+ #if defined(UNPACK_A_SRC_BFP8_B)
+ UNPACK_A_SRC_CASE(Bfp8_b)
+ #endif
++#if defined(UNPACK_A_SRC_TF32)
++UNPACK_A_SRC_CASE(Tf32)
++#endif
+ 
+ #undef UNPACK_A_SRC_CASE
+ 
+@@ -79,6 +77,9 @@ UNPACK_B_SRC_CASE(Int32)
+ #if defined(UNPACK_B_SRC_BFP8_B)
+ UNPACK_B_SRC_CASE(Bfp8_b)
+ #endif
++#if defined(UNPACK_B_SRC_TF32)
++UNPACK_B_SRC_CASE(Tf32)
++#endif
+ 
+ #undef UNPACK_B_SRC_CASE
+ 
+@@ -98,6 +99,9 @@ UNPACK_A_DST_CASE(Int32)
+ #if defined(UNPACK_A_DST_BFP8_B)
+ UNPACK_A_DST_CASE(Bfp8_b)
+ #endif
++#if defined(UNPACK_A_DST_TF32)
++UNPACK_A_DST_CASE(Tf32)
++#endif
+ 
+ #undef UNPACK_A_DST_CASE
+ 
+@@ -117,6 +121,9 @@ UNPACK_B_DST_CASE(Int32)
+ #if defined(UNPACK_B_DST_BFP8_B)
+ UNPACK_B_DST_CASE(Bfp8_b)
+ #endif
++#if defined(UNPACK_B_DST_TF32)
++UNPACK_B_DST_CASE(Tf32)
++#endif
+ 
+ #undef UNPACK_B_DST_CASE
+ 
+@@ -137,6 +144,9 @@ PACK_SRC_CASE(Int32)
+ #if defined(PACK_SRC_BFP8_B)
+ PACK_SRC_CASE(Bfp8_b)
+ #endif
++#if defined(PACK_SRC_TF32)
++PACK_SRC_CASE(Tf32)
++#endif
+ 
+ #undef PACK_SRC_CASE
+ 
+@@ -157,6 +167,9 @@ PACK_DST_CASE(Int32)
+ #if defined(PACK_DST_BFP8_B)
+ PACK_DST_CASE(Bfp8_b)
+ #endif
++#if defined(PACK_DST_TF32)
++PACK_DST_CASE(Tf32)
++#endif
+ 
+ #undef PACK_DST_CASE
+ 
+@@ -177,17 +190,21 @@ MATH_CASE(Int32)
+ #if defined(MATH_BFP8_B)
+ MATH_CASE(Bfp8_b)
+ #endif
++#if defined(MATH_TF32)
++MATH_CASE(Tf32)
++#endif
+ 
+ #undef MATH_CASE
+ 
+-#if !defined(MATH_BFP8_B) && !defined(MATH_INT32) && !defined(MATH_FLOAT32) && !defined(MATH_FLOAT16) && !defined(MATH_FLOAT16_B)
+-constexpr bool is_fp32_dest_acc_en      = dest_acc_en_input || is_format_combination_outlier(UNPACK_A_IN, PACK_OUT, dest_acc_en_input);
+-constexpr FormatConfig pipeline_formats = get_data_formats(UNPACK_A_IN, PACK_OUT, dest_acc_en_input);
+-constexpr auto UNPACK_A_OUT             = pipeline_formats.unpack_dst;
+-constexpr auto UNPACK_B_IN              = pipeline_formats.unpack_src;
+-constexpr auto UNPACK_B_OUT             = pipeline_formats.unpack_dst;
+-constexpr auto PACK_IN                  = pipeline_formats.pack_src;
+-constexpr auto MATH_FORMAT              = pipeline_formats.unpack_dst;
++#if !defined(MATH_BFP8_B) && !defined(MATH_INT32) && !defined(MATH_FLOAT32) && !defined(MATH_FLOAT16) && !defined(MATH_FLOAT16_B) && !defined(MATH_TF32)
++constexpr bool is_fp32_dest_acc_en =
++    dest_acc_en_input || is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
++constexpr FormatConfig pipeline_formats = get_data_formats(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), dest_acc_en_input);
++constexpr auto UNPACK_A_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
++constexpr auto UNPACK_B_IN              = static_cast<uint32_t>(pipeline_formats.unpack_src);
++constexpr auto UNPACK_B_OUT             = static_cast<uint32_t>(pipeline_formats.unpack_dst);
++constexpr auto PACK_IN                  = static_cast<uint32_t>(pipeline_formats.pack_src);
++constexpr auto MATH_FORMAT              = static_cast<uint32_t>(pipeline_formats.unpack_dst);
+ #else
+ constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
+ #endif
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -20,6 +20,7 @@
+     DataFormat.Float16_b: "UNPACK_A_SRC_FLOAT16_B",
+     DataFormat.Bfp8_b: "UNPACK_A_SRC_BFP8_B",
+     DataFormat.Int32: "UNPACK_A_SRC_INT32",
++    DataFormat.Tf32: "UNPACK_A_SRC_TF32",
+ }
+ 
+ unpack_A_dst_dict = {
+@@ -28,6 +29,7 @@
+     DataFormat.Float16_b: "UNPACK_A_DST_FLOAT16_B",
+     DataFormat.Bfp8_b: "UNPACK_A_DST_BFP8_B",
+     DataFormat.Int32: "UNPACK_A_DST_INT32",
++    DataFormat.Tf32: "UNPACK_A_DST_TF32",
+ }
+ 
+ unpack_B_src_dict = {
+@@ -36,6 +38,7 @@
+     DataFormat.Float16_b: "UNPACK_B_SRC_FLOAT16_B",
+     DataFormat.Bfp8_b: "UNPACK_B_SRC_BFP8_B",
+     DataFormat.Int32: "UNPACK_B_SRC_INT32",
++    DataFormat.Tf32: "UNPACK_B_SRC_TF32",
+ }
+ 
+ unpack_B_dst_dict = {
+@@ -44,6 +47,7 @@
+     DataFormat.Float16_b: "UNPACK_B_DST_FLOAT16_B",
+     DataFormat.Bfp8_b: "UNPACK_B_DST_BFP8_B",
+     DataFormat.Int32: "UNPACK_B_DST_INT32",
++    DataFormat.Tf32: "UNPACK_B_DST_TF32",
+ }
+ 
+ math_dict = {
+@@ -52,6 +56,7 @@
+     DataFormat.Float16_b: "MATH_FLOAT16_B",
+     DataFormat.Bfp8_b: "MATH_BFP8_B",
+     DataFormat.Int32: "MATH_INT32",
++    DataFormat.Tf32: "MATH_TF32",
+ }
+ 
+ pack_src_dict = {
+@@ -60,6 +65,7 @@
+     DataFormat.Float16_b: "PACK_SRC_FLOAT16_B",
+     DataFormat.Bfp8_b: "PACK_SRC_BFP8_B",
+     DataFormat.Int32: "PACK_SRC_INT32",
++    DataFormat.Tf32: "PACK_SRC_TF32",
+ }
+ 
+ pack_dst_dict = {
+@@ -68,6 +74,7 @@
+     DataFormat.Float16_b: "PACK_DST_FLOAT16_B",
+     DataFormat.Bfp8_b: "PACK_DST_BFP8_B",
+     DataFormat.Int32: "PACK_DST_INT32",
++    DataFormat.Tf32: "PACK_DST_TF32",
+ }
+ 
+ 
+
+File: tests/python_tests/helpers/format_config.py
+@@ -31,6 +31,7 @@ class DataFormat(Enum):
+     Bfp8_b = DataFormatInfo("Bfp8_b", 1)
+     Float32 = DataFormatInfo("Float32", 4)
+     Int32 = DataFormatInfo("Int32", 4)
++    Tf32 = DataFormatInfo("Tf32", 3)
+ 
+     @property
+     def size(self) -> int:
+
+File: tests/python_tests/helpers/test_config.py
+@@ -23,16 +23,16 @@ def generate_make_command(test_config):
+     make_cmd = f"make -j 6 --silent "
+     formats = test_config.get("formats")
+     testname = test_config.get("testname")
+-    dest_acc = test_config.get(
+-        "dest_acc", DestAccumulation.No
+-    )  # default is not 32 bit dest_acc
++    dest_acc = test_config.get("dest_acc", DestAccumulation.No)
++    unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
++
+     if isinstance(formats, InputOutputFormat):
+         make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.input_format]} pack_dst={pack_dst_dict[formats.output_format]} "
+     else:
+         make_cmd += f"unpack_A_src={unpack_A_src_dict[formats.unpack_A_src]} unpack_A_dst={unpack_A_dst_dict[formats.unpack_A_dst]} unpack_B_src={unpack_B_src_dict[formats.unpack_B_src]} unpack_B_dst={unpack_B_dst_dict[formats.unpack_B_dst]} "
+         make_cmd += f"fpu={math_dict[formats.math]} pack_src={pack_src_dict[formats.pack_src]} pack_dst={pack_dst_dict[formats.pack_dst]} "
+ 
+-    make_cmd += f"testname={testname} dest_acc={dest_acc.value} "
++    make_cmd += f"testname={testname} dest_acc={dest_acc.value} unpack_to_dest={unpack_to_dest} "
+     mathop = test_config.get("mathop", "no_mathop")
+     approx_mode = test_config.get("approx_mode", ApproximationMode.No)
+     math_fidelity = test_config.get("math_fidelity", MathFidelity.LoFi)
+
+File: tests/python_tests/test_eltwise_unary_datacopy.py
+@@ -74,6 +74,7 @@ def test_unary_datacopy(testname, formats, dest_acc):
+         "formats": formats,
+         "testname": testname,
+         "dest_acc": dest_acc,
++        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -122,6 +122,7 @@ def test_eltwise_unary_sfpu(testname, formats, dest_acc, approx_mode, mathop):
+         "dest_acc": dest_acc,
+         "mathop": mathop,
+         "approx_mode": approx_mode,
++        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+
+File: tests/python_tests/test_matmul.py
+@@ -25,7 +25,7 @@
+ 
+ 
+ def generate_golden(operand1, operand2, data_format, math_fidelity):
+-    data_type = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
++    torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+ 
+     if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
+         for element in operand2:
+@@ -36,16 +36,21 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+             element = element.to(torch.int32)
+             element &= 0xFFF8
+ 
+-    operand1_matrix = operand1.view(32, 32).to(data_type)
+-    operand2_matrix = operand2.view(32, 32).to(data_type)
++    operand1_matrix = operand1.view(32, 32).to(torch_format)
++    operand2_matrix = operand2.view(32, 32).to(torch_format)
+ 
+     result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
+ 
+-    return result_matrix.view(1024).to(data_type)
++    return result_matrix.view(1024).to(torch_format)
+ 
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16, DataFormat.Float16_b, DataFormat.Bfp8_b]
++supported_formats = [
++    DataFormat.Float16,
++    DataFormat.Float16_b,
++    DataFormat.Bfp8_b,
++    DataFormat.Float32,
++]
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+ 
+@@ -63,7 +68,6 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+ #   SPECIFIC INPUT-OUTPUT COMBINATION
+ #   [InputOutputFormat(DataFormat.Float16, DataFormat.Float32)]
+ 
+-
+ test_formats = input_output_formats(supported_formats)
+ all_params = generate_params(
+     ["matmul_test"],
+@@ -85,19 +89,18 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+     ids=param_ids,
+ )
+ def test_matmul(testname, formats, dest_acc, math_fidelity):
+-    data_type = format_dict.get(
++    torch_format = format_dict.get(
+         formats.output_format, format_dict[DataFormat.Float16_b]
+     )
+ 
+     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+ 
+     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+-    golden_tensor = tilize(golden_tensor, data_type)
+-    golden_tensor = golden_tensor.to(data_type)
++    golden_tensor = tilize(golden_tensor, torch_format).to(torch_format)
+ 
+     write_stimuli_to_l1(
+-        tilize(src_A, data_type),
+-        tilize(src_B, data_type),
++        tilize(src_A, torch_format),
++        tilize(src_B, torch_format),
+         formats.input_format,
+         formats.input_format,
+     )
+@@ -118,7 +121,7 @@ def test_matmul(testname, formats, dest_acc, math_fidelity):
+     res_from_L1 = collect_results(formats, tensor_size=len(src_A))
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+-    res_tensor = torch.tensor(res_from_L1, dtype=(data_type))
++    res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+ 
+     atol = 0.1
+     rtol = 0.05
+
+File: tests/python_tests/test_matmul_pack_untilize.py
+@@ -48,7 +48,12 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+ 
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b]
++supported_formats = [
++    DataFormat.Float16_b,
++    DataFormat.Float16,
++    DataFormat.Bfp8_b,
++    DataFormat.Float32,
++]
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+
+File: tests/python_tests/test_matmul_unpack_tilize.py
+@@ -25,27 +25,30 @@
+ 
+ 
+ def generate_golden(operand1, operand2, data_format, math_fidelity):
++    torch_format = format_dict.get(data_format, format_dict[DataFormat.Float16_b])
+ 
+-    if data_format == DataFormat.Float16_b:
+-        if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
+-            for element in operand2:
+-                element = element.to(torch.int32)
+-                element &= 0xFFFE
+-        if math_fidelity == MathFidelity.LoFi:  # LoFi
+-            for element in operand1:
+-                element = element.to(torch.int32)
+-                element &= 0xFFF8
++    if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
++        for element in operand2:
++            element = element.to(torch.int32)
++            element &= 0xFFFE
++    if math_fidelity == MathFidelity.LoFi:  # LoFi
++        for element in operand1:
++            element = element.to(torch.int32)
++            element &= 0xFFF8
+ 
+-    operand1_matrix = operand1.view(32, 32).to(format_dict[data_format])
+-    operand2_matrix = operand2.view(32, 32).to(format_dict[data_format])
++    operand1_matrix = operand1.view(32, 32).to(torch_format)
++    operand2_matrix = operand2.view(32, 32).to(torch_format)
+ 
+     result_matrix = torch.matmul(operand1_matrix, operand2_matrix)
+ 
+     return result_matrix.flatten()
+ 
+ 
+ # SUPPORTED FORMATS FOR TEST
+-supported_formats = [DataFormat.Float16_b, DataFormat.Float16]
++supported_formats = [
++    DataFormat.Float16_b,
++    DataFormat.Float16,
++]  # Add DataFormat.Float32 when Data format Inference Model 2.0 supports format conversions for > 1 pipeline run
+ 
+ #   INPUT-OUTPUT FORMAT SWEEP
+ #   input_output_formats(supported_formats)
+@@ -86,12 +89,16 @@ def generate_golden(operand1, operand2, data_format, math_fidelity):
+ )
+ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+ 
++    torch_format = format_dict.get(
++        formats.output_format, format_dict[DataFormat.Float16_b]
++    )
++
+     src_A, src_B = generate_stimuli(formats.input_format, formats.input_format)
+ 
+     golden_tensor = tilize(
+         generate_golden(src_A, src_B, formats.output_format, math_fidelity)
+     )
+-    golden_tensor = golden_tensor.to(format_dict[formats.output_format])
++    golden_tensor = golden_tensor.to(torch_format)
+ 
+     write_stimuli_to_l1(
+         src_A,
+@@ -118,19 +125,11 @@ def test_matmul_unpack_tilize(testname, formats, dest_acc, math_fidelity):
+     )
+     assert len(res_from_L1) == len(golden_tensor)
+ 
+-    res_tensor = torch.tensor(
+-        res_from_L1,
+-        dtype=(
+-            format_dict[formats.output_format]
+-            if formats.output_format in [DataFormat.Float16, DataFormat.Float16_b]
+-            else torch.bfloat16
+-        ),
+-    )
++    res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
+ 
+-    if formats.output_format in [DataFormat.Float16_b, DataFormat.Float16]:
+-        atol = 0.1
+-        rtol = 0.05
+-    elif formats.output_format == DataFormat.Bfp8_b:
++    atol = 0.1
++    rtol = 0.05
++    if formats.output_format == DataFormat.Bfp8_b:
+         atol = 0.1
+         rtol = 0.2
+ 
+
+File: tests/python_tests/test_pack_untilize.py
+@@ -76,6 +76,7 @@ def test_pack_untilize(testname, formats):
+     test_config = {
+         "formats": formats,
+         "testname": testname,
++        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -92,6 +92,7 @@ def test_all(testname, formats, dest_acc, mathop):
+         "testname": testname,
+         "dest_acc": dest_acc,
+         "mathop": mathop,
++        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+
+File: tests/python_tests/test_unpack_tilize.py
+@@ -67,6 +67,7 @@ def test_unpack_tilize(testname, formats):
+     test_config = {
+         "formats": formats,
+         "testname": testname,
++        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+
+File: tests/python_tests/test_unpack_untilize.py
+@@ -70,6 +70,7 @@ def test_unpack_untilze(testname, formats):
+     test_config = {
+         "formats": formats,
+         "testname": testname,
++        "unpack_to_dest": True,  # This test does a datacopy and unpacks input into dest register
+     }
+ 
+     make_cmd = generate_make_command(test_config)
+
+File: tests/sources/pack_untilize_test.cpp
+@@ -23,7 +23,6 @@ uint32_t math_sync_tile_dst_index = 0;
+ void run_kernel()
+ {
+     volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+-    const bool unpack_to_dest         = false;
+ 
+     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, UNPACK_A_IN, UNPACK_A_OUT);
+     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(UNPACK_A_IN, UNPACK_A_OUT, FACE_R_DIM, 0, 4);
+
+File: tests/sources/sfpu_binary_test.cpp
+@@ -8,8 +8,6 @@
+ #include "ckernel.h"
+ #include "llk_defs.h"
+ 
+-const bool unpack_to_dest = true;
+-
+ // Globals
+ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+

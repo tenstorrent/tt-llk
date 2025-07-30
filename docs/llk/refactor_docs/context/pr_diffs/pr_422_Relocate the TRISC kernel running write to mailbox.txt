@@ -1,0 +1,109 @@
+PR #422: Relocate the TRISC kernel running write to mailbox
+URL: https://github.com/tenstorrent/tt-llk/pull/422
+
+File: tests/helpers/src/trisc.cpp
+@@ -43,7 +43,6 @@ int main()
+     std::uint64_t wall_clock = ckernel::read_wall_clock();
+ 
+     *(TIMESTAMP_ADDRESS + core_idx * 2) = wall_clock;
+-    *mailbox                            = 0x2; // write value different than 1 to mailbox to indicate kernel is running
+ 
+     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
+     ckernel::reset_cfg_state_id();
+
+File: tests/python_tests/conftest.py
+@@ -11,9 +11,13 @@
+ import pytest
+ import requests
+ from requests.exceptions import ConnectionError, RequestException, Timeout
+-from ttexalens.tt_exalens_lib import arc_msg
++from ttexalens.tt_exalens_lib import (
++    arc_msg,
++    write_words_to_device,
++)
+ 
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
++from helpers.format_arg_mapping import Mailbox
+ from helpers.log_utils import _format_log
+ from helpers.perf import delete_reports
+ 
+@@ -61,6 +65,17 @@ def _identify_chip_architecture(output):
+     return architecture
+ 
+ 
++@pytest.fixture(autouse=True)
++def reset_mailboxes():
++    """Reset all core mailboxes before each test."""
++    core_loc = "0, 0"
++    reset_value = 0  # Constant - indicates the TRISC kernel run status
++    mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
++    for mailbox in mailboxes:
++        write_words_to_device(core_loc=core_loc, addr=mailbox.value, data=reset_value)
++    yield
++
++
+ @pytest.fixture(scope="session", autouse=True)
+ def delete_perf_reports():
+     delete_reports()
+
+File: tests/python_tests/helpers/device.py
+@@ -3,6 +3,7 @@
+ 
+ import inspect
+ import time
++from pathlib import Path
+ 
+ from ttexalens.coordinate import OnChipCoordinate
+ from ttexalens.tt_exalens_lib import (
+@@ -51,6 +52,9 @@
+ # Constants for soft reset operation
+ TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack) and BRISC
+ 
++# Constant - indicates the TRISC kernel run status
++KERNEL_COMPLETE = 1  # Kernel completed its run
++
+ 
+ def collect_results(
+     formats: FormatConfig,
+@@ -80,16 +84,17 @@ def perform_tensix_soft_reset(core_loc="0,0"):
+ 
+ 
+ def run_elf_files(testname, core_loc="0,0"):
+-    BUILD = "../build"
++    build_dir = Path("../build")
+ 
+     # Perform soft reset
+     perform_tensix_soft_reset(core_loc)
+ 
+     # Load TRISC ELF files
+-    TRISC = ["unpack", "math", "pack"]
+-    for i in range(3):
++    trisc_names = ["unpack", "math", "pack"]
++    for i, trisc_name in enumerate(trisc_names):
++        elf_path = build_dir / "tests" / testname / "elf" / f"{trisc_name}.elf"
+         load_elf(
+-            elf_file=f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf",
++            elf_file=str(elf_path.absolute()),
+             core_loc=core_loc,
+             risc_name=f"trisc{i}",
+         )
+@@ -99,7 +104,8 @@ def run_elf_files(testname, core_loc="0,0"):
+     write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
+ 
+     # Run BRISC
+-    run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_name="brisc")
++    brisc_elf_path = build_dir / "shared" / "brisc.elf"
++    run_elf(str(brisc_elf_path.absolute()), core_loc, risc_name="brisc")
+ 
+ 
+ def write_stimuli_to_l1(
+@@ -274,7 +280,7 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
+     backoff = 0.1  # Initial backoff time in seconds
+ 
+     while time.time() - start_time < timeout:
+-        if read_word_from_device(core_loc, mailbox_addr.value) == 1:
++        if read_word_from_device(core_loc, mailbox_addr.value) == KERNEL_COMPLETE:
+             return
+ 
+         time.sleep(backoff)
+

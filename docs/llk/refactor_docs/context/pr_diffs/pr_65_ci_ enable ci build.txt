@@ -1,0 +1,376 @@
+PR #65: ci: enable ci build
+URL: https://github.com/tenstorrent/tt-llk/pull/65
+
+File: .github/workflows/pre-commit.yml
+@@ -1,4 +1,4 @@
+-# Run Pre-commit Hooks
++# Run pre-commit hooks
+ name: Run pre-commit hooks
+ 
+ on:
+@@ -9,7 +9,7 @@ on:
+ 
+ jobs:
+   pre-commit:
+-    name: Run pree-commit hooks
++    name: Run pre-commit hooks
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout code
+
+File: .github/workflows/run.yml
+@@ -0,0 +1,51 @@
++name: Wormhole tests
++on:
++  push:
++    branches:
++      - main
++  pull_request:
++    branches:
++      - main
++
++concurrency:
++  # Use github.run_id on main branch (or any protected branch)
++  # This ensures that no runs get cancelled on main.
++  # Use github.event.pull_request.number on pull requests, so it's unique per pull request
++  # and will cancel obsolete runs.
++  # Use github.ref on other branches, so it's unique per branch.
++  group: ${{ github.workflow }}-${{ github.ref_protected && github.run_id ||
++    github.event.pull_request.number || github.ref }}
++  cancel-in-progress: true
++
++jobs:
++  setup-and-test:
++    runs-on: tt-beta-ubuntu-2204-n150-large-stable
++
++    steps:
++      # Step 1: Checkout the repository
++      - name: Checkout code
++        uses: actions/checkout@v4
++        with:
++          fetch-depth: 0  # Fetch all history so 'origin/main' is available
++
++      # Step 2: Set up Python environment
++      - name: Set up Python
++        uses: actions/setup-python@v5
++        with:
++          python-version: '3.8'
++
++      # Step 3: Run setup_env.sh
++      - name: Setup environment
++        run: |
++          cd tests/
++          chmod +x setup_env.sh
++          source setup_env.sh
++
++      # Step 4: Run Python tests
++      - name: Run Python tests
++        run: |
++          cd tests/
++          source .venv/bin/activate
++          cd python_tests/
++          export CHIP_ARCH=wormhole
++          pytest --force-sugar .
+
+File: .gitignore
+@@ -1,5 +1,6 @@
+ **/build/**
+ **/__pycache__/**
++**/.venv/**
+ .idea/
+ .cpmcache/
+ compile_commands.json
+
+File: tests/README.md
+@@ -0,0 +1,26 @@
++# Test Infrastructure Guide
++
++To run the test infrastructure, ensure you have one of the following devices installed on your system:
++- **Blackhole**
++- **Wormhole**
++
++Device must be flashed with the original firmware.
++
++## Steps to Run Tests
++
++1. Source the environment setup script:
++    ```bash
++    source setup_env.sh
++    ```
++
++2. Navigate to the `python_tests` directory:
++    ```bash
++    cd python_tests
++    ```
++
++3. Run any test using `pytest`:
++    ```bash
++    pytest <test_file_name>
++    ```
++
++Replace `<test_file_name>` with the name of the test file you wish to execute.
+
+File: tests/python_tests/conftest.py
+@@ -11,7 +11,7 @@
+ def manage_hardware_controller():
+     # Setup: initialize the hardware controller
+     controller = HardwareController()
+-    controller.reset_card()
++    # controller.reset_card()
+     yield controller
+ 
+ 
+
+File: tests/python_tests/test_tilize_calculate_untilize_L1.py
+@@ -67,7 +67,7 @@ def generate_golden(op, operand1, operand2, data_format, math_fidelity):
+     clean_params(all_params),
+     ids=param_ids,
+ )
+-# @pytest.mark.skip(reason="Not fully implemented")
++@pytest.mark.skip(reason="Not fully implemented")
+ def test_tilize_calculate_untilize_L1(
+     testname, formats, dest_acc, mathop, math_fidelity, tile_cnt
+ ):
+
+File: tests/requirements.txt
+@@ -0,0 +1,9 @@
++pytest-cov==5.0.0
++pytest-randomly==3.15.0
++pytest-repeat==0.9.3
++pytest-sugar==1.0.0
++pytest-timeout==2.3.1
++pytest==8.3.5
++torch==2.4.1
++torchaudio==2.4.1
++torchvision==0.19.1
+
+File: tests/setup_env.sh
+@@ -1,136 +1,137 @@
+-#!/bin/bash
++#!/usr/bin/env bash
++
++set -o pipefail  # Catch errors in pipelines
+ 
+ # Function to print usage info
+ usage() {
+-    echo "Usage: $0 [--reuse]"
++    echo "Usage: $0 [--reuse] [--clean] [--help]"
+     echo "  --reuse      Skip some setup steps if a virtual environment already exists"
++    echo "  --clean      Remove existing setup (virtual environment, temporary files)"
++    echo "  --help       Display this help message"
+     exit 1
+ }
+ 
+-# Default behavior: Assume not reusing if no argument is passed
++# Variables
+ REUSE=false
+-
+-# Check if we passed command line arguments
+-while [[ $# -gt 0 ]]; do
+-    case "$1" in
+-        --reuse)
+-            REUSE=true
+-            shift
+-            ;;
+-        *)
+-            usage
+-            ;;
++CLEAN=false
++TT_SMI_REPO="https://github.com/tenstorrent/tt-smi"
++SFPI_RELEASE_URL="https://github.com/tenstorrent/sfpi/releases/download/v6.6.0/sfpi-release.tgz"
++
++# Parse arguments
++while [[ "$#" -gt 0 ]]; do
++    case $1 in
++        --reuse) REUSE=true ;;
++        --clean) CLEAN=true ;;
++        --help) usage ;;
++        *) echo "Unknown option: $1"; usage ;;
+     esac
++    shift
+ done
+ 
+-# Check if a Python virtual environment is activated
+-# This can cause crash of script so first deactivate any existing environments
++# Cleanup logic
++if [[ "$CLEAN" == true ]]; then
++    echo "Cleaning up environment..."
++    rm -rf tt-smi sfpi .venv arch.dump sfpi-release.tgz
++    echo "Cleanup complete."
++    exit 0
++fi
++
++# Check Python version
++PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
++if [[ "$PYTHON_VERSION" < "3.8" ]]; then
++    echo "Error: Python 3.8 or higher is required. Detected version: $PYTHON_VERSION"
++    exit 1
++fi
++
++# Deactivate any active virtual environment
+ if [[ -n "$VIRTUAL_ENV" ]]; then
+     echo "Deactivating current Python environment: $VIRTUAL_ENV"
+     deactivate
+ fi
+ 
+-# If we're not reusing, continue with setup
++# If not reusing, perform setup
+ if [[ "$REUSE" == false ]]; then
+-    # Update packages and install gawk (if necessary)
+     echo "Updating system packages..."
+     sudo apt update
+-    sudo apt install software-properties-common build-essential libyaml-cpp-dev libhwloc-dev libzmq3-dev git-lfs xxd
+-
+-    pip install --upgrade pip
++    sudo apt install -y curl cmake software-properties-common build-essential libyaml-cpp-dev libhwloc-dev libzmq3-dev git-lfs xxd wget
+ 
+-    # **************** INSTALLING PYTEST_SUGAR FOR TEST FORMAT ****************************
+-    cd python_tests
+-    pip install --upgrade pip setuptools wheel
+-    pip install pytest-sugar
+-    cd ..
+-
+-    # **************** DOWNLOAD & INSTALL TT-SMI ****************************
+-    echo "Cloning tt-smi repository..."
+-    git clone https://github.com/tenstorrent/tt-smi
+-    cd tt-smi
++    # Clone tt-smi repository if not already cloned
++    if [ ! -d "tt-smi" ]; then
++        echo "Cloning tt-smi repository..."
++        git clone "$TT_SMI_REPO"
++    else
++        echo "tt-smi repository already exists. Skipping clone."
++    fi
+ 
+-    echo "Creating Python virtual environment..."
+-    python3 -m venv .venv
++    # Create virtual environment in the current directory if not already created
+     if [ ! -d ".venv" ]; then
+-        echo "Failed to create virtual environment"
+-        exit 1
++        echo "Creating Python virtual environment in the current directory..."
++        python3 -m venv .venv
++        if [ ! -d ".venv" ]; then
++            echo "Failed to create virtual environment"
++            exit 1
++        fi
++    else
++        echo "Virtual environment already exists in the current directory. Skipping creation."
+     fi
+     source .venv/bin/activate
+ 
+     echo "Upgrading pip..."
+     pip install --upgrade pip
+ 
+-    echo "Installing required packages..."
++    echo "Installing tt-smi"
++    cd tt-smi
+     pip install .
+-    pip install pytest pytest-cov pytest-repeat pytest-timeout
++    cd ..
++
++    echo "Installing required Python packages..."
++    pip install -r requirements.txt
+ 
+     # Detect architecture for chip
+     echo "Running tt-smi -ls to detect architecture..."
+-    tt-smi -ls > ../arch.dump
+-    echo "tt-smi -ls completed. Running find_arch.py..."
+-    cd ..
+-    result=$(python3 helpers/find_arch.py "Wormhole" "Blackhole" "Grayskull" arch.dump)
++    ARCH_DUMP=$(mktemp)
++    tt-smi -ls > "$ARCH_DUMP"
++    result=$(python3 helpers/find_arch.py "Wormhole" "Blackhole" "$ARCH_DUMP")
++    rm -f "$ARCH_DUMP"
+     echo "Detected architecture: $result"
+ 
+     if [ -z "$result" ]; then
+         echo "Error: Architecture detection failed!"
+         exit 1
+     fi
+ 
+-    echo "Setting CHIP_ARCH variable..."
+     export CHIP_ARCH="$result"
+     echo "CHIP_ARCH is: $CHIP_ARCH"
+ 
+-    # Install torch and related packages
+-    echo "Installing PyTorch and related packages..."
+-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+-
+-    # **************** DOWNLOAD & INSTALL TT-EXALENS ****************************
+-    pip install git+https://github.com/tenstorrent/tt-exalens.git@cdca310241827b05a1752db2a15edd11e89a9712
++    # Install tt-exalens
++    echo "Installing tt-exalens..."
++    wget -O ttexalens-0.1.250326+dev.0c4381a-cp38-cp38-linux_x86_64.whl https://github.com/tenstorrent/tt-exalens/releases/download/0.1/ttexalens-0.1.250326+dev.0c4381a-cp38-cp38-linux_x86_64.whl
++    pip install ttexalens-0.1.250326+dev.0c4381a-cp38-cp38-linux_x86_64.whl
+ 
+-    # **************** DOWNLOAD & INSTALL SFPI ****************************
+-    echo "Downloading SFPI release..."
+-    wget https://github.com/tenstorrent/sfpi/releases/download/v6.5.0-sfpi/sfpi-release.tgz -O sfpi-release.tgz
++    # Download and extract SFPI release
+     if [ ! -f "sfpi-release.tgz" ]; then
+-        echo "SFPI release not found!"
+-        exit 1
++        echo "Downloading SFPI release..."
++        wget "$SFPI_RELEASE_URL" -O sfpi-release.tgz
++    else
++        echo "SFPI release already downloaded. Skipping."
+     fi
+     echo "Extracting SFPI release..."
+     tar -xzvf sfpi-release.tgz
+     rm -f sfpi-release.tgz
+-
+-    # **************** SETUP PYTHON VENV **********************************
+-    # Ensure python3.10-venv is installed, fallback to python3.8-venv
+-    echo "Checking python3.10-venv..."
+-    if ! dpkg -l | grep -q python3.10-venv; then
+-        echo "python3.10-venv not found, attempting to install python3.8-venv..."
+-        sudo apt install -y python3.8-venv || { echo "Failed to install python3.8-venv."; exit 1; }
+-    else
+-        sudo apt install -y python3.10-venv
++else   # Reuse existing environment setup
++    # Deactivate any active virtual environment
++    if [[ -n "$VIRTUAL_ENV" ]]; then
++        echo "Deactivating current Python environment: $VIRTUAL_ENV"
++        deactivate
+     fi
+-
+-    # Set up Python virtual environment if not already set
+-    echo "Ensuring virtual environment is set up..."
+-    python3 -m ensurepip
+-
+-    # Install needed packages
+-    pip install -U pytest pytest-cov
+-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+-fi
+-
+-# **************** REUSE ENVIRONMENT SETUP ****************************
+-if [[ "$REUSE" == true ]]; then
+     echo "Reusing existing virtual environment setup..."
++    source .venv/bin/activate
+ 
+-    # Activate the existing virtual environment
+-    source tt-smi/.venv/bin/activate
+-
+-    # Detect architecture for chip
+     echo "Running tt-smi -ls to detect architecture..."
+-    tt-smi -ls > arch.dump
+-    echo "tt-smi -ls completed. Running find_arch.py..."
+-    result=$(python3 helpers/find_arch.py "Wormhole" "Blackhole" "Grayskull" arch.dump)
++    ARCH_DUMP=$(mktemp)
++    tt-smi -ls > "$ARCH_DUMP"
++    result=$(python3 helpers/find_arch.py "Wormhole" "Blackhole" "$ARCH_DUMP")
++    rm -f "$ARCH_DUMP"
+     echo "Detected architecture: $result"
+ 
+     if [ -z "$result" ]; then
+@@ -141,7 +142,6 @@ if [[ "$REUSE" == true ]]; then
+     echo "Setting CHIP_ARCH variable..."
+     export CHIP_ARCH="$result"
+     echo "CHIP_ARCH is: $CHIP_ARCH"
+-
+ fi
+ 
+-echo "Script completed successfully!"
++echo "Setup completed successfully!"
+

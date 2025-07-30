@@ -1,0 +1,498 @@
+PR #394: 23591: Move gelu implementation and tests to llk repo 
+URL: https://github.com/tenstorrent/tt-llk/pull/394
+
+File: tests/helpers/include/params.h
+@@ -121,3 +121,6 @@ constexpr auto SFPU_OPERATION = SfpuType::celu;
+ #ifdef SFPU_OP_SILU
+ constexpr auto SFPU_OPERATION = SfpuType::silu;
+ #endif
++#ifdef SFPU_OP_GELU
++constexpr auto SFPU_OPERATION = SfpuType::gelu;
++#endif
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -51,6 +51,7 @@ class MathOperation(Enum):
+     SfpuElwLeftShift = "SFPU_OP_LSHFT"
+     SfpuElwLogicalRightShift = "SFPU_OP_LOGICAL_RSHFT"
+     Silu = "SFPU_OP_SILU"
++    Gelu = "SFPU_OP_GELU"
+ 
+ 
+ class ReduceDimension(Enum):
+
+File: tests/python_tests/helpers/golden_generators.py
+@@ -94,6 +94,7 @@ def __init__(self):
+             MathOperation.Square: self._square,
+             MathOperation.Celu: self._celu,
+             MathOperation.Silu: self._silu,
++            MathOperation.Gelu: self._gelu,
+         }
+         self.data_format = None
+ 
+@@ -143,6 +144,14 @@ def _silu(self, x):
+         )
+         return torch.nn.functional.silu(input_tensor).item()
+ 
++    def _gelu(self, x):
++        input_tensor = (
++            x
++            if isinstance(x, torch.Tensor)
++            else torch.tensor(x, dtype=format_dict[self.data_format])
++        )
++        return torch.nn.functional.gelu(input_tensor).item()
++
+ 
+ @register_golden
+ class EltwiseBinaryGolden(FidelityMasking):
+
+File: tests/python_tests/test_eltwise_unary_sfpu.py
+@@ -64,6 +64,7 @@
+         MathOperation.Square,
+         MathOperation.Celu,
+         MathOperation.Silu,
++        MathOperation.Gelu,
+     ],
+ )
+ param_ids = generate_param_ids(all_params)
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -83,6 +83,10 @@ void call_sfpu_operation(SfpuType operation)
+         case SfpuType::silu:
+             ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
+             break;
++        case SfpuType::gelu:
++            ckernel::sfpu::_init_gelu_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();
++            break;
+         default:
+             return;
+     }
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_cdf.h
+@@ -0,0 +1,74 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent Inc.
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel.h"
++#include "ckernel_defs.h"
++#include "ckernel_sfpu_polyval.h"
++#include "sfpi.h"
++
++namespace ckernel::sfpu
++{
++
++inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
++{
++    //(0,2.5) interpolation polynomial coeffs  [ 0.0122792,  -0.05281024, -0.03048313,  0.41314081,  0.49866379]
++    //(2.5,5) interpolation polynomial coeffs  [0.44656975,  0.58216001]
++
++    // FIXME:
++    // reuse LREG0-3 for storing coefficients and do product computation
++    // const float coef_2dot5_to_5[4] = {-0.00221304f, -0.03253934f, -0.18027954f, -0.44656975f };
++    // TTI_SFPLOADI(p_sfpu::LREG0, 0, 0xbb1108a6);
++    // TTI_SFPLOADI(p_sfpu::LREG1, 0, 0xbd0547f9);
++    // TTI_SFPLOADI(p_sfpu::LREG2, 0, 0xbe389b33);
++    // TTI_SFPLOADI(p_sfpu::LREG2, 0, 0xbee4a4ca);
++
++    sfpi::vFloat result;
++    v_if (val < 2.5f)
++    {
++        result = POLYVAL5<sfpi::vFloat>(0.0122792f, -0.05281024f, -0.03048313f, 0.41314081f, 0.49866379f, val);
++    }
++    v_else
++    {
++        // assume v >= 2.5f - 5
++        // result = POLYVAL5(result,-0.00221304f,  0.03253934f, -0.18027954f,  0.44656975f,  0.58216001f, val);
++        // result = ((sfpi::vFloat)l_reg[LRegs::LReg0])*val + (sfpi::vFloat)l_reg[LRegs::LReg1];
++        // result = result*val + (sfpi::vFloat)l_reg[LRegs::LReg2];
++        // result = result*val + (sfpi::vFloat)l_reg[LRegs::LReg3];
++        result = 0.44656975f * val + 0.58216001f;
++    }
++    v_endif;
++
++    v_if (result > 1.0f)
++    {
++        result = 1.0f;
++    }
++    v_endif;
++    return result;
++}
++
++// compute the approximate value of CDF of normal distribution
++inline sfpi::vFloat _calculate_cdf_appx_(sfpi::vFloat val, bool scaled = false)
++{
++    sfpi::vFloat result = 0.0f;
++
++    v_if (val < 0.0f)
++    {
++        result = 1.0f - _calculate_pos_cdf_appx_(-val);
++    }
++    v_else
++    {
++        result = _calculate_pos_cdf_appx_(val);
++    }
++    v_endif;
++
++    if (scaled)
++    {
++        result *= val; // scale
++    }
++    return result;
++}
++
++} // namespace ckernel::sfpu
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_gelu.h
+@@ -4,14 +4,13 @@
+ 
+ #pragma once
+ 
++#include "ckernel_sfpu_cdf.h"
+ #include "ckernel_sfpu_exp.h"
+ #include "ckernel_sfpu_load_config.h"
+ #include "sfpi.h"
+ #include "sfpi_fp16.h"
+ 
+-namespace ckernel
+-{
+-namespace sfpu
++namespace ckernel::sfpu
+ {
+ 
+ template <bool APPROXIMATION_MODE>
+@@ -36,8 +35,8 @@ inline sfpi::vFloat _calculate_gelu_core_(sfpi::vFloat in)
+     return result;
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
+-inline void _calculate_gelu_(const int iterations)
++template <int ITERATIONS>
++inline void _calculate_gelu_appx_()
+ {
+     sfpi::vUInt l0 = sfpi::l_reg[sfpi::LRegs::LReg0];
+     sfpi::vUInt l1 = sfpi::l_reg[sfpi::LRegs::LReg1];
+@@ -47,7 +46,7 @@ inline void _calculate_gelu_(const int iterations)
+     sfpi::vUInt l6 = sfpi::l_reg[sfpi::LRegs::LReg6];
+ 
+ #pragma GCC unroll 8
+-    for (int d = 0; d < iterations; d++)
++    for (int d = 0; d < ITERATIONS; d++)
+     {
+         // sfpi::vFloat in = sfpi::dst_reg[0];
+         // sfpi::vFloat result = calculate_gelu_core<APPROXIMATION_MODE>(in);
+@@ -84,8 +83,35 @@ inline void _calculate_gelu_(const int iterations)
+     sfpi::l_reg[sfpi::LRegs::LReg6] = l6;
+ }
+ 
++template <int ITERATIONS>
++inline void _calculate_gelu_accurate_()
++{
++    constexpr bool scaled = true;
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat in     = sfpi::dst_reg[0];
++        sfpi::vFloat result = _calculate_cdf_appx_(in, scaled);
++        sfpi::dst_reg[0]    = result;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_gelu_()
++{
++    if constexpr (APPROXIMATION_MODE)
++    {
++        _calculate_gelu_appx_<ITERATIONS>();
++    }
++    else
++    {
++        _calculate_gelu_accurate_<ITERATIONS>();
++    }
++}
++
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+-inline void _calculate_gelu_derivative_(const int iterations)
++inline void _calculate_gelu_derivative_()
+ {
+     if constexpr (APPROXIMATION_MODE)
+     {
+@@ -100,7 +126,7 @@ inline void _calculate_gelu_derivative_(const int iterations)
+ 
+ // SFPU microcode:
+ #pragma GCC unroll 0
+-        for (int d = 0; d < iterations; d++)
++        for (int d = 0; d < ITERATIONS; d++)
+         {
+             sfpi::vFloat val = sfpi::dst_reg[0];
+             val              = lut2(val, l0, l1, l2, l4, l5, l6, lut_mode);
+@@ -129,7 +155,7 @@ inline void _calculate_gelu_derivative_(const int iterations)
+ 
+ // SFPU microcode:
+ #pragma GCC unroll 0
+-        for (int d = 0; d < iterations; d++)
++        for (int d = 0; d < ITERATIONS; d++)
+         {
+             sfpi::vFloat in             = sfpi::dst_reg[0];
+             sfpi::vFloat neg_half_sq_in = in * in * -0.5f;
+@@ -237,5 +263,4 @@ inline void _init_gelu_derivative_()
+     }
+ }
+ 
+-} // namespace sfpu
+-} // namespace ckernel
++} // namespace ckernel::sfpu
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_polyval.h
+@@ -0,0 +1,15 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++namespace ckernel::sfpu
++{
++
++template <typename T>
++constexpr T POLYVAL5(T coef4, T coef3, T coef2, T coef1, T coef0, T val)
++{
++    return (((((coef4 * val) + coef3) * val + coef2) * val + coef1) * val + coef0);
++}
++} // namespace ckernel::sfpu
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_silu.h
+@@ -9,12 +9,6 @@
+ namespace ckernel::sfpu
+ {
+ 
+-template <typename T>
+-constexpr T POLYVAL5(T coef4, T coef3, T coef2, T coef1, T coef0, T val)
+-{
+-    return (((((coef4 * val) + coef3) * val + coef2) * val + coef1) * val + coef0);
+-}
+-
+ inline sfpi::vFloat _sigmoid_piecewise_linear_positive_(sfpi::vFloat val)
+ {
+     sfpi::vFloat result = 0.0f;
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_cdf.h
+@@ -0,0 +1,74 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent Inc.
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include "ckernel.h"
++#include "ckernel_defs.h"
++#include "ckernel_sfpu_polyval.h"
++#include "sfpi.h"
++
++namespace ckernel::sfpu
++{
++
++inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
++{
++    //(0,2.5) interpolation polynomial coeffs  [ 0.0122792,  -0.05281024, -0.03048313,  0.41314081,  0.49866379]
++    //(2.5,5) interpolation polynomial coeffs  [0.44656975,  0.58216001]
++
++    // FIXME:
++    // reuse LREG0-3 for storing coefficients and do product computation
++    // const float coef_2dot5_to_5[4] = {-0.00221304f, -0.03253934f, -0.18027954f, -0.44656975f };
++    // TTI_SFPLOADI(p_sfpu::LREG0, 0, 0xbb1108a6);
++    // TTI_SFPLOADI(p_sfpu::LREG1, 0, 0xbd0547f9);
++    // TTI_SFPLOADI(p_sfpu::LREG2, 0, 0xbe389b33);
++    // TTI_SFPLOADI(p_sfpu::LREG2, 0, 0xbee4a4ca);
++
++    sfpi::vFloat result;
++    v_if (val < 2.5f)
++    {
++        result = POLYVAL5<sfpi::vFloat>(0.0122792f, -0.05281024f, -0.03048313f, 0.41314081f, 0.49866379f, val);
++    }
++    v_else
++    {
++        // assume v >= 2.5f - 5
++        // result = POLYVAL5(result,-0.00221304f,  0.03253934f, -0.18027954f,  0.44656975f,  0.58216001f, val);
++        // result = ((sfpi::vFloat)l_reg[LRegs::LReg0])*val + (sfpi::vFloat)l_reg[LRegs::LReg1];
++        // result = result*val + (sfpi::vFloat)l_reg[LRegs::LReg2];
++        // result = result*val + (sfpi::vFloat)l_reg[LRegs::LReg3];
++        result = 0.44656975f * val + 0.58216001f;
++    }
++    v_endif;
++
++    v_if (result > 1.0f)
++    {
++        result = 1.0f;
++    }
++    v_endif;
++    return result;
++}
++
++// compute the approximate value of CDF of normal distribution
++inline sfpi::vFloat _calculate_cdf_appx_(sfpi::vFloat val, bool scaled = false)
++{
++    sfpi::vFloat result = 0.0f;
++
++    v_if (val < 0.0f)
++    {
++        result = 1.0f - _calculate_pos_cdf_appx_(-val);
++    }
++    v_else
++    {
++        result = _calculate_pos_cdf_appx_(val);
++    }
++    v_endif;
++
++    if (scaled)
++    {
++        result *= val; // scale
++    }
++    return result;
++}
++
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_gelu.h
+@@ -4,14 +4,13 @@
+ 
+ #pragma once
+ 
++#include "ckernel_sfpu_cdf.h"
+ #include "ckernel_sfpu_exp.h"
+ #include "ckernel_sfpu_load_config.h"
+ #include "sfpi.h"
+ #include "sfpi_fp16.h"
+ 
+-namespace ckernel
+-{
+-namespace sfpu
++namespace ckernel::sfpu
+ {
+ 
+ template <bool APPROXIMATION_MODE>
+@@ -36,8 +35,8 @@ inline sfpi::vFloat _calculate_gelu_core_(sfpi::vFloat in)
+     return result;
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
+-inline void _calculate_gelu_(const int iterations)
++template <int ITERATIONS>
++inline void _calculate_gelu_appx_()
+ {
+     sfpi::vUInt l0 = sfpi::l_reg[sfpi::LRegs::LReg0];
+     sfpi::vUInt l1 = sfpi::l_reg[sfpi::LRegs::LReg1];
+@@ -47,7 +46,7 @@ inline void _calculate_gelu_(const int iterations)
+     sfpi::vUInt l6 = sfpi::l_reg[sfpi::LRegs::LReg6];
+ 
+ #pragma GCC unroll 8
+-    for (int d = 0; d < iterations; d++)
++    for (int d = 0; d < ITERATIONS; d++)
+     {
+         // sfpi::vFloat in = sfpi::dst_reg[0];
+         // sfpi::vFloat result = calculate_gelu_core<APPROXIMATION_MODE>(in);
+@@ -84,8 +83,35 @@ inline void _calculate_gelu_(const int iterations)
+     sfpi::l_reg[sfpi::LRegs::LReg6] = l6;
+ }
+ 
++template <int ITERATIONS>
++inline void _calculate_gelu_accurate_()
++{
++    constexpr bool scaled = true;
++#pragma GCC unroll 8
++    for (int d = 0; d < ITERATIONS; d++)
++    {
++        sfpi::vFloat in     = sfpi::dst_reg[0];
++        sfpi::vFloat result = _calculate_cdf_appx_(in, scaled);
++        sfpi::dst_reg[0]    = result;
++        sfpi::dst_reg++;
++    }
++}
++
++template <bool APPROXIMATION_MODE, int ITERATIONS>
++inline void _calculate_gelu_()
++{
++    if constexpr (APPROXIMATION_MODE)
++    {
++        _calculate_gelu_appx_<ITERATIONS>();
++    }
++    else
++    {
++        _calculate_gelu_accurate_<ITERATIONS>();
++    }
++}
++
+ template <bool APPROXIMATION_MODE, int ITERATIONS>
+-inline void _calculate_gelu_derivative_(const int iterations)
++inline void _calculate_gelu_derivative_()
+ {
+     if constexpr (APPROXIMATION_MODE)
+     {
+@@ -100,7 +126,7 @@ inline void _calculate_gelu_derivative_(const int iterations)
+ 
+ // SFPU microcode:
+ #pragma GCC unroll 0
+-        for (int d = 0; d < iterations; d++)
++        for (int d = 0; d < ITERATIONS; d++)
+         {
+             sfpi::vFloat val = sfpi::dst_reg[0];
+             val              = lut2(val, l0, l1, l2, l4, l5, l6, lut_mode);
+@@ -129,7 +155,7 @@ inline void _calculate_gelu_derivative_(const int iterations)
+ 
+ // SFPU microcode:
+ #pragma GCC unroll 0
+-        for (int d = 0; d < iterations; d++)
++        for (int d = 0; d < ITERATIONS; d++)
+         {
+             sfpi::vFloat in             = sfpi::dst_reg[0];
+             sfpi::vFloat neg_half_sq_in = in * in * -0.5f;
+@@ -237,5 +263,4 @@ inline void _init_gelu_derivative_()
+     }
+ }
+ 
+-} // namespace sfpu
+-} // namespace ckernel
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_polyval.h
+@@ -0,0 +1,15 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++namespace ckernel::sfpu
++{
++
++template <typename T>
++constexpr T POLYVAL5(T coef4, T coef3, T coef2, T coef1, T coef0, T val)
++{
++    return (((((coef4 * val) + coef3) * val + coef2) * val + coef1) * val + coef0);
++}
++} // namespace ckernel::sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_silu.h
+@@ -4,17 +4,12 @@
+ 
+ #pragma once
+ 
++#include "ckernel_sfpu_polyval.h"
+ #include "sfpi.h"
+ 
+ namespace ckernel::sfpu
+ {
+ 
+-template <typename T>
+-constexpr T POLYVAL5(T coef4, T coef3, T coef2, T coef1, T coef0, T val)
+-{
+-    return (((((coef4 * val) + coef3) * val + coef2) * val + coef1) * val + coef0);
+-}
+-
+ inline sfpi::vFloat _sigmoid_piecewise_linear_positive_(sfpi::vFloat val)
+ {
+     sfpi::vFloat result = 0.0f;
+

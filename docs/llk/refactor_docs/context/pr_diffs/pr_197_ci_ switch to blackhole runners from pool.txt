@@ -1,0 +1,16 @@
+PR #197: ci: switch to blackhole runners from pool
+URL: https://github.com/tenstorrent/tt-llk/pull/197
+
+File: .github/workflows/on-pr.yml
+@@ -72,8 +72,8 @@ jobs:
+             needs.detect-changes.outputs.github == 'true' }}
+     with:
+       docker_image: ${{ needs.build-images.outputs.docker-image }}
+-      runs_on: p150
+-      test_group: "[1]"
++      runs_on: tt-beta-ubuntu-2204-p150a-large-stable
++      test_group: "[1, 2, 3, 4, 5]"
+ 
+   check-all-green:
+     name: "✅ Check all green"
+

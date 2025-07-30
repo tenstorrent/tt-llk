@@ -1,0 +1,964 @@
+PR #104: Add missing tiny tiles support to bcast col and reduce w
+URL: https://github.com/tenstorrent/tt-llk/pull/104
+
+File: tt_llk_blackhole/llk_lib/llk_math_eltwise_binary.h
+@@ -96,7 +96,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+     {
+         if constexpr (src_b_bcast_type == BroadcastType::COL)
+         {
+-            // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
++            // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
+             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
+ #pragma GCC unroll 0
+             for (std::uint32_t face_num = 0; face_num < outerloop; face_num++)
+@@ -105,13 +105,16 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+                 ckernel_template::run(instrn_buffer);
+             }
+             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+-#pragma GCC unroll 0
+-            for (std::uint32_t face_num = 0; face_num < outerloop; face_num++)
++            if (num_faces == 4)
+             {
+-                eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+-                ckernel_template::run(instrn_buffer);
++#pragma GCC unroll 0
++                for (std::uint32_t face_num = 0; face_num < outerloop; face_num++)
++                {
++                    eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
++                    ckernel_template::run(instrn_buffer);
++                }
++                TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+             }
+-            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+         }
+         else
+         {
+@@ -133,7 +136,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+     {
+         if constexpr (src_b_bcast_type == BroadcastType::COL)
+         {
+-            // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
++            // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
+             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
+             if constexpr (high_fidelity)
+             {
+@@ -144,24 +147,10 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                     {
+                         // We clear the DEST face-by-face, given the DEST base, tile index and face index
+-                        if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                1 /*clear fp32*/,
+-                                0,
+-                                ADDR_MOD_1,
+-                                (get_dest_buffer_base_32b() + get_dest_index_in_faces(dst_index, (0 + face_num)))); // Clear faces 0 & 1
+-                        }
+-                        else
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                0 /*clear fp32*/,
+-                                0,
+-                                ADDR_MOD_1,
+-                                (get_dest_buffer_base_16b() + get_dest_index_in_faces(dst_index, (0 + face_num)))); // Clear faces 0 & 1
+-                        }
++                        int clear_fp32   = is_fp32_dest_acc_en && clear_fp32_dst_acc ? 1 : 0;
++                        auto buffer_base = is_fp32_dest_acc_en && clear_fp32_dst_acc ? get_dest_buffer_base_32b() : get_dest_buffer_base_16b();
++                        TT_ZEROACC(
++                            ZERO_ACC_MODE, clear_fp32, 0, ADDR_MOD_1, (buffer_base + get_dest_index_in_faces(dst_index, (0 + face_num)))); // Clear faces 0 & 1
+                     }
+                     ckernel_template::run(instrn_buffer);
+                 }
+@@ -175,92 +164,61 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                     {
+                         // We clear the DEST face-by-face, given the DEST base, tile index and face index
+-                        if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                1 /*clear fp32*/,
+-                                0,
+-                                ADDR_MOD_1,
+-                                (get_dest_buffer_base_32b() + get_dest_index_in_faces(dst_index, (0 + face_num)))); // Clear faces 0 & 1
+-                        }
+-                        else
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                0 /*clear fp32*/,
+-                                0,
+-                                ADDR_MOD_1,
+-                                (get_dest_buffer_base_16b() + get_dest_index_in_faces(dst_index, (0 + face_num)))); // Clear faces 0 & 1
+-                        }
++                        int clear_fp32   = is_fp32_dest_acc_en && clear_fp32_dst_acc ? 1 : 0;
++                        auto buffer_base = is_fp32_dest_acc_en && clear_fp32_dst_acc ? get_dest_buffer_base_32b() : get_dest_buffer_base_16b();
++                        TT_ZEROACC(
++                            ZERO_ACC_MODE, clear_fp32, 0, ADDR_MOD_1, (buffer_base + get_dest_index_in_faces(dst_index, (0 + face_num)))); // Clear faces 0 & 1
+                     }
+                     ckernel_template::run(instrn_buffer);
+                 }
+             }
+             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+-            if constexpr (high_fidelity)
++            if (num_faces == 4)
+             {
+-#pragma GCC unroll 0
+-                for (std::uint32_t face_num = 0; face_num < 2; face_num++)
++                if constexpr (high_fidelity)
+                 {
+-                    eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+-                    if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
++#pragma GCC unroll 0
++                    for (std::uint32_t face_num = 0; face_num < 2; face_num++)
+                     {
+-                        // We clear the DEST face-by-face, given the DEST base, tile index and face index
+-                        if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                1 /*clear fp32*/,
+-                                0,
+-                                ADDR_MOD_1,
+-                                (get_dest_buffer_base_32b() + get_dest_index_in_faces(dst_index, (2 + face_num)))); // Clear faces 2 & 3
+-                        }
+-                        else
++                        eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
++                        if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                         {
++                            // We clear the DEST face-by-face, given the DEST base, tile index and face index
++                            int clear_fp32   = is_fp32_dest_acc_en && clear_fp32_dst_acc ? 1 : 0;
++                            auto buffer_base = is_fp32_dest_acc_en && clear_fp32_dst_acc ? get_dest_buffer_base_32b() : get_dest_buffer_base_16b();
+                             TT_ZEROACC(
+                                 ZERO_ACC_MODE,
+-                                0 /*clear fp32*/,
++                                clear_fp32,
+                                 0,
+                                 ADDR_MOD_1,
+-                                (get_dest_buffer_base_16b() + get_dest_index_in_faces(dst_index, (2 + face_num)))); // Clear faces 2 & 3
++                                (buffer_base + get_dest_index_in_faces(dst_index, (2 + face_num)))); // Clear faces 2 & 3
+                         }
++                        ckernel_template::run(instrn_buffer);
+                     }
+-                    ckernel_template::run(instrn_buffer);
+                 }
+-            }
+-            else
+-            {
+-#pragma GCC unroll 0
+-                for (std::uint32_t face_num = 0; face_num < outerloop; face_num++)
++                else
+                 {
+-                    eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+-                    if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
++#pragma GCC unroll 0
++                    for (std::uint32_t face_num = 0; face_num < outerloop; face_num++)
+                     {
+-                        // We clear the DEST face-by-face, given the DEST base, tile index and face index
+-                        if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
++                        eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
++                        if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                         {
++                            // We clear the DEST face-by-face, given the DEST base, tile index and face index
++                            int clear_fp32   = is_fp32_dest_acc_en && clear_fp32_dst_acc ? 1 : 0;
++                            auto buffer_base = is_fp32_dest_acc_en && clear_fp32_dst_acc ? get_dest_buffer_base_32b() : get_dest_buffer_base_16b();
+                             TT_ZEROACC(
+                                 ZERO_ACC_MODE,
+-                                1 /*clear fp32*/,
++                                clear_fp32,
+                                 0,
+                                 ADDR_MOD_1,
+-                                (get_dest_buffer_base_32b() + get_dest_index_in_faces(dst_index, (2 + face_num)))); // Clear faces 2 & 3
+-                        }
+-                        else
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                0 /*clear fp32*/,
+-                                0,
+-                                ADDR_MOD_1,
+-                                (get_dest_buffer_base_16b() + get_dest_index_in_faces(dst_index, (2 + face_num)))); // Clear faces 2 & 3
++                                (buffer_base + get_dest_index_in_faces(dst_index, (2 + face_num)))); // Clear faces 2 & 3
+                         }
++                        ckernel_template::run(instrn_buffer);
+                     }
+-                    ckernel_template::run(instrn_buffer);
+                 }
++                TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+             }
+-            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+         }
+         else
+         {
+@@ -275,16 +233,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                     {
+                         // We clear the DEST face-by-face, given the DEST base, tile index and face index
+-                        if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE, 1 /*clear fp32*/, 0, ADDR_MOD_1, (get_dest_buffer_base_32b() + get_dest_index_in_faces(dst_index, face_num)));
+-                        }
+-                        else
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE, 0 /*clear fp32*/, 0, ADDR_MOD_1, (get_dest_buffer_base_16b() + get_dest_index_in_faces(dst_index, face_num)));
+-                        }
++                        int clear_fp32   = is_fp32_dest_acc_en && clear_fp32_dst_acc ? 1 : 0;
++                        auto buffer_base = is_fp32_dest_acc_en && clear_fp32_dst_acc ? get_dest_buffer_base_32b() : get_dest_buffer_base_16b();
++                        TT_ZEROACC(ZERO_ACC_MODE, clear_fp32, 0, ADDR_MOD_1, (buffer_base + get_dest_index_in_faces(dst_index, face_num)));
+                     }
+                     ckernel_template::run(instrn_buffer);
+                 }
+@@ -298,16 +249,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                     {
+                         // We clear the DEST face-by-face, given the DEST base, tile index and face index
+-                        if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE, 1 /*clear fp32*/, 0, ADDR_MOD_1, (get_dest_buffer_base_32b() + get_dest_index_in_faces(dst_index, face_num)));
+-                        }
+-                        else
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE, 0 /*clear fp32*/, 0, ADDR_MOD_1, (get_dest_buffer_base_16b() + get_dest_index_in_faces(dst_index, face_num)));
+-                        }
++                        int clear_fp32   = is_fp32_dest_acc_en && clear_fp32_dst_acc ? 1 : 0;
++                        auto buffer_base = is_fp32_dest_acc_en && clear_fp32_dst_acc ? get_dest_buffer_base_32b() : get_dest_buffer_base_16b();
++                        TT_ZEROACC(ZERO_ACC_MODE, clear_fp32, 0, ADDR_MOD_1, (buffer_base + get_dest_index_in_faces(dst_index, face_num)));
+                     }
+                     ckernel_template::run(instrn_buffer);
+                 }
+
+File: tt_llk_blackhole/llk_lib/llk_math_reduce.h
+@@ -35,43 +35,40 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
+         {
+             TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+         }
++        else if constexpr (HIGH_FIDELITY)
++        {
++            ckernel_template::run(instrn_buffer);
++            TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
++        }
+         else
+         {
+-            if constexpr (HIGH_FIDELITY)
+-            {
+-                ckernel_template::run(instrn_buffer);
+-                TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+-            }
+-            else
+-            {
+-                TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+-            }
++            TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+         }
+ 
+         if constexpr (type == PoolType::MAX)
+         {
+             TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+         }
++        else if constexpr (HIGH_FIDELITY)
++        {
++            ckernel_template::run(instrn_buffer);
++        }
+         else
+         {
+-            if constexpr (HIGH_FIDELITY)
+-            {
+-                ckernel_template::run(instrn_buffer);
+-            }
+-            else
+-            {
+-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+-            }
++            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+         }
+ 
+-        // Workaround for tenstorrent/budabackend#1948
++        // Datums stored in int32 dest cannot be moved to SrcB which is configured for int8 inputs
++        // Cast int32 datums to int8 using SFPU instructions (load int32, store int8) before moving data to srcB
++        // Besides SFPU instructions to do cast we also need to set chicken bit FP16A_FORCE_Enable to force dest
++        // view to be fp16a as int8 datums are stored in src registers as fp16a
+         if constexpr (is_int_fpu_en)
+         {
+             TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 0);
+-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 0);
+-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 2);
+-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 2);
++            TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 0 /*DEST offset*/);
++            TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 0 /*DEST offset*/);
++            TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 2 /*DEST offset*/);
++            TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 2 /*DEST offset*/);
+             TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
+             TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
+         }
+@@ -104,27 +101,31 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
+         TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+         TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+ 
+-        // Increment dest by 32 or 16 if narrow tile for the next accumulation
+-        if (!narrow_tile)
+-        {
+-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+-        }
+-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+-        TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
+-
+-        /////////////////////
+-        // Second Tile Row //
+-        /////////////////////
+-
+-        // Transpose at unpacker and pool
+-        if constexpr (type == PoolType::MAX)
++        if (num_faces == 2 && !narrow_tile)
+         {
+-            TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
++            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
+         }
+         else
+         {
+-            if constexpr (HIGH_FIDELITY)
++            // Increment dest by 32 or 16 if narrow tile for the next accumulation
++            if (!narrow_tile)
++            {
++                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++            }
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++            TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
++
++            /////////////////////
++            // Second Tile Row //
++            /////////////////////
++
++            // Transpose for each face in src A done at unpacker, and pool
++            if constexpr (type == PoolType::MAX)
++            {
++                TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
++            }
++            else if constexpr (HIGH_FIDELITY)
+             {
+                 ckernel_template::run(instrn_buffer);
+                 TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+@@ -133,64 +134,64 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
+             {
+                 TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+             }
+-        }
+ 
+-        if constexpr (type == PoolType::MAX)
+-        {
+-            TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+-        }
+-        else
+-        {
+-            if constexpr (HIGH_FIDELITY)
++            if constexpr (type == PoolType::MAX)
++            {
++                TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
++            }
++            else if constexpr (HIGH_FIDELITY)
+             {
+                 ckernel_template::run(instrn_buffer);
+             }
+             else
+             {
+                 TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+             }
+-        }
+-        // Workaround for tenstorrent/budabackend#1948
+-        if constexpr (is_int_fpu_en)
+-        {
+-            TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 0);
+-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 0);
+-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 2);
+-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 2);
+-            TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
+-            TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
+-        }
+-
+-        // Move back to B and transpose
+-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
+-        /*
+-        if constexpr (is_fp32_dest_acc_en) {
+-            if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
++            // Datums stored in int32 dest cannot be moved to SrcB which is configured for int8 inputs
++            // Cast int32 datums to int8 using SFPU instructions (load int32, store int8) before moving data to srcB
++            // Besides SFPU instructions to do cast we also need to set chicken bit FP16A_FORCE_Enable to force dest
++            // view to be fp16a as int8 datums are stored in src registers as fp16a
++            if constexpr (is_int_fpu_en)
++            {
+                 TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+-                TTI_SFPLOAD(0, 0, 3, 0);
+-                TTI_SFP_STOCH_RND(0,0,0,0,0,8);
+-                TTI_SFPSTORE(0,1,3,0);
++                TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 0 /*DEST offset*/);
++                TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 0 /*DEST offset*/);
++                TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 2 /*DEST offset*/);
++                TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 2 /*DEST offset*/);
++                TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
++                TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
+             }
+-        }
+-        */
+-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+-        // Note: transpose on src B on works on rows 16 - 31
+-        TTI_TRNSPSRCB;
+-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+-        if constexpr (is_int_fpu_en)
+-        {
+-            TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x0);
+-        }
+ 
+-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
+-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
+-        TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
+-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
++            // Move back to B and transpose
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
++            /*
++            if constexpr (is_fp32_dest_acc_en) {
++                if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
++                    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
++                    TTI_SFPLOAD(0, 0, 3, 0);
++                    TTI_SFP_STOCH_RND(0,0,0,0,0,8);
++                    TTI_SFPSTORE(0,1,3,0);
++                }
++            }
++            */
++            TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
++            // Note: transpose on src B on works on rows 16 - 31
++            TTI_TRNSPSRCB;
++            TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
++            if constexpr (is_int_fpu_en)
++            {
++                TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x0);
++            }
+ 
+-        // Increment dest by 32 for next accumulation
+-        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
++            TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
++            TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
++            TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
++
++            // Increment dest by 32 for next accumulation
++            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
++        }
+     }
+     else if constexpr (dim == ReduceDim::REDUCE_COL)
+     {
+
+File: tt_llk_wormhole_b0/llk_lib/llk_defs.h
+@@ -130,4 +130,21 @@ enum struct StochRndType
+     All  = 0xf,
+ };
+ 
++// This is populated per Wormhole ISA for SFPLOAD/SFPSTORE instructions.
++enum InstrModLoadStore
++{
++    DEFAULT       = 0,
++    FP16A         = 1,
++    FP16B         = 2,
++    FP32          = 3,
++    INT32         = 4,
++    INT8          = 5,
++    LO16          = 6,
++    HI16          = 7,
++    INT32_2S_COMP = 12,
++    INT8_2S_COMP  = 13,
++    LO16_ONLY     = 14,
++    HI16_ONLY     = 15
++};
++
+ } // namespace ckernel
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_binary.h
+@@ -96,29 +96,32 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+     {
+         if constexpr (src_b_bcast_type == BroadcastType::COL)
+         {
+-            // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
++            // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
+             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
+ #pragma GCC unroll 0
+             for (std::uint32_t n = 0; n < outerloop; n++)
+-            { // N-num faces
++            {
+                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                 ckernel_template::run(instrn_buffer);
+             }
+             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
++            if (num_faces == 4)
++            {
+ #pragma GCC unroll 0
+-            for (std::uint32_t n = 0; n < outerloop; n++)
+-            { // N-num faces
+-                eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+-                ckernel_template::run(instrn_buffer);
++                for (std::uint32_t n = 0; n < outerloop; n++)
++                {
++                    eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
++                    ckernel_template::run(instrn_buffer);
++                }
++                TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+             }
+-            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+         }
+         else
+         {
+             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 4 : 1;
+ #pragma GCC unroll 0
+             for (std::uint32_t n = 0; n < outerloop; n++)
+-            { // N-num faces
++            {
+                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                 ckernel_template::run(instrn_buffer);
+             }
+@@ -133,29 +136,24 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+     {
+         if constexpr (src_b_bcast_type == BroadcastType::COL)
+         {
+-            // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
++            // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
+             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
+             if constexpr (high_fidelity)
+             {
+ #pragma GCC unroll 0
+                 for (std::uint32_t n = 0; n < 2; n++)
+-                { // N-num faces
++                {
+                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
++                    auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << (is_fp32_dest_acc_en && clear_fp32_dst_acc ? 3 : 2));
+                     // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
+                     if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+                     {
+-                        TT_ZEROACC(
+-                            ZERO_ACC_MODE,
+-                            ADDR_MOD_1,
+-                            ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (0 + n * 2)); // Clear lower half of faces 0 & 1 (offsets 0, 2)
+-                        TT_ZEROACC(
+-                            ZERO_ACC_MODE,
+-                            ADDR_MOD_1,
+-                            ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (0 + ((n * 2) + 1))); // Clear upper half of faces 0 & 1 (offsets: 1, 3)
++                        TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + n * 2));         // Clear lower half of faces 0 & 1 (offsets 0, 2)
++                        TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + ((n * 2) + 1))); // Clear upper half of faces 0 & 1 (offsets: 1, 3)
+                     }
+                     else
+                     {
+-                        TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 2)) + (0 + n)); // Clear faces 0 & 1
++                        TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + n)); // Clear faces 0 & 1
+                     }
+                     ckernel_template::run(instrn_buffer);
+                 }
+@@ -164,83 +162,76 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+             {
+ #pragma GCC unroll 0
+                 for (std::uint32_t n = 0; n < outerloop; n++)
+-                { // N-num faces
++                {
+                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                     {
++                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << (is_fp32_dest_acc_en && clear_fp32_dst_acc ? 3 : 2));
++                        // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
+                         if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+                         {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (0 + n * 2)); // Clear lower half of faces 0 & 1
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                ADDR_MOD_1,
+-                                ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (0 + ((n * 2) + 1))); // Clear upper half of faces 0 & 1
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + n * 2));         // Clear lower half of faces 0 & 1 (offsets 0, 2)
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + ((n * 2) + 1))); // Clear upper half of faces 0 & 1 (offsets: 1, 3)
+                         }
+                         else
+                         {
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 2)) + (0 + n)); // Clear faces 0 & 1
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + n)); // Clear faces 0 & 1
+                         }
+                     }
+                     ckernel_template::run(instrn_buffer);
+                 }
+             }
+             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+-            if constexpr (high_fidelity)
++            if (num_faces == 4)
+             {
++                if constexpr (high_fidelity)
++                {
+ #pragma GCC unroll 0
+-                for (std::uint32_t n = 0; n < 2; n++)
+-                { // N-num faces
+-                    eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+-                    if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
++                    for (std::uint32_t n = 0; n < 2; n++)
+                     {
+-                        if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
++                        eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
++                        if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                         {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                ADDR_MOD_1,
+-                                ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (4 + n * 2)); // Clear lower half of faces 2 & 3  (offsets: 4, 6)
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                ADDR_MOD_1,
+-                                ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
+-                        }
+-                        else
+-                        {
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 2)) + (2 + n)); // Clear faces 2 & 3
++                            auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << (is_fp32_dest_acc_en && clear_fp32_dst_acc ? 3 : 2));
++                            // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
++                            if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
++                            {
++                                TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (4 + n * 2));         // Clear lower half of faces 2 & 3  (offsets: 4, 6)
++                                TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
++                            }
++                            else
++                            {
++                                TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (2 + n)); // Clear faces 2 & 3
++                            }
+                         }
++                        ckernel_template::run(instrn_buffer);
+                     }
+-                    ckernel_template::run(instrn_buffer);
+                 }
+-            }
+-            else
+-            {
++                else
++                {
+ #pragma GCC unroll 0
+-                for (std::uint32_t n = 0; n < outerloop; n++)
+-                { // N-num faces
+-                    eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+-                    if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
++                    for (std::uint32_t n = 0; n < outerloop; n++)
+                     {
+-                        if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+-                        {
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                ADDR_MOD_1,
+-                                ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (4 + n * 2)); // Clear lower half of faces 2 & 3  (offsets: 4, 6)
+-                            TT_ZEROACC(
+-                                ZERO_ACC_MODE,
+-                                ADDR_MOD_1,
+-                                ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
+-                        }
+-                        else
++                        eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
++                        if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                         {
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 2)) + (2 + n)); // Clear faces 2 & 3
++                            auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << (is_fp32_dest_acc_en && clear_fp32_dst_acc ? 3 : 2));
++                            // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
++                            if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
++                            {
++                                TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (4 + n * 2));         // Clear lower half of faces 2 & 3  (offsets: 4, 6)
++                                TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
++                            }
++                            else
++                            {
++                                TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (2 + n)); // Clear faces 2 & 3
++                            }
+                         }
++                        ckernel_template::run(instrn_buffer);
+                     }
+-                    ckernel_template::run(instrn_buffer);
+                 }
++                TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+             }
+-            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+         }
+         else
+         {
+@@ -250,18 +241,20 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+             {
+ #pragma GCC unroll 0
+                 for (std::uint32_t n = 0; n < num_faces; n++)
+-                { // N-num faces
++                {
+                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                     {
++                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << (is_fp32_dest_acc_en && clear_fp32_dst_acc ? 3 : 2));
++                        // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
+                         if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+                         {
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + n * 2);
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + ((n * 2) + 1));
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (n * 2));
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + ((n * 2) + 1));
+                         }
+                         else
+                         {
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 2)) + n);
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + n);
+                         }
+                     }
+                     ckernel_template::run(instrn_buffer);
+@@ -271,18 +264,20 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
+             {
+ #pragma GCC unroll 0
+                 for (std::uint32_t n = 0; n < outerloop; n++)
+-                { // N-num faces
++                {
+                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+                     {
++                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << (is_fp32_dest_acc_en && clear_fp32_dst_acc ? 3 : 2));
++                        // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
+                         if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
+                         {
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + n * 2);
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 3)) + ((n * 2) + 1));
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (n * 2));
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + ((n * 2) + 1));
+                         }
+                         else
+                         {
+-                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, ((get_dest_buffer_base() >> 4) + (dst_index << 2)) + n);
++                            TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + n);
+                         }
+                     }
+                     ckernel_template::run(instrn_buffer);
+
+File: tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h
+@@ -35,43 +35,40 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
+         {
+             TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+         }
++        else if constexpr (HIGH_FIDELITY)
++        {
++            ckernel_template::run(instrn_buffer);
++            TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
++        }
+         else
+         {
+-            if constexpr (HIGH_FIDELITY)
+-            {
+-                ckernel_template::run(instrn_buffer);
+-                TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+-            }
+-            else
+-            {
+-                TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+-            }
++            TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+         }
+ 
+         if constexpr (type == PoolType::MAX)
+         {
+             TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+         }
++        else if constexpr (HIGH_FIDELITY)
++        {
++            ckernel_template::run(instrn_buffer);
++        }
+         else
+         {
+-            if constexpr (HIGH_FIDELITY)
+-            {
+-                ckernel_template::run(instrn_buffer);
+-            }
+-            else
+-            {
+-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+-            }
++            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+         }
+ 
+-        // Workaround for tenstorrent/budabackend#1948
++        // Datums stored in int32 dest cannot be moved to SrcB which is configured for int8 inputs
++        // Cast int32 datums to int8 using SFPU instructions (load int32, store int8) before moving data to srcB
++        // Besides SFPU instructions to do cast we also need to set chicken bit FP16A_FORCE_Enable to force dest
++        // view to be fp16a as int8 datums are stored in src registers as fp16a
+         if constexpr (is_int_fpu_en)
+         {
+             TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 0);
+-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 0);
+-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 2);
+-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 2);
++            TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 0 /*DEST offset*/);
++            TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 0 /*DEST offset*/);
++            TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 2 /*DEST offset*/);
++            TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 2 /*DEST offset*/);
+             TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
+             TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
+         }
+@@ -104,27 +101,31 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
+         TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+         TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+ 
+-        // Increment dest by 32 or 16 if narrow tile for the next accumulation
+-        if (!narrow_tile)
+-        {
+-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+-        }
+-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+-        TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
+-
+-        /////////////////////
+-        // Second Tile Row //
+-        /////////////////////
+-
+-        // Transpose at unpacker and pool
+-        if constexpr (type == PoolType::MAX)
++        if (num_faces == 2 && !narrow_tile)
+         {
+-            TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
++            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
+         }
+         else
+         {
+-            if constexpr (HIGH_FIDELITY)
++            // Increment dest by 32 or 16 if narrow tile for the next accumulation
++            if (!narrow_tile)
++            {
++                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++            }
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
++            TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
++
++            /////////////////////
++            // Second Tile Row //
++            /////////////////////
++
++            // Transpose at unpacker and pool
++            if constexpr (type == PoolType::MAX)
++            {
++                TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
++            }
++            else if constexpr (HIGH_FIDELITY)
+             {
+                 ckernel_template::run(instrn_buffer);
+                 TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+@@ -133,64 +134,64 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
+             {
+                 TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+             }
+-        }
+ 
+-        if constexpr (type == PoolType::MAX)
+-        {
+-            TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+-        }
+-        else
+-        {
+-            if constexpr (HIGH_FIDELITY)
++            if constexpr (type == PoolType::MAX)
++            {
++                TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
++            }
++            else if constexpr (HIGH_FIDELITY)
+             {
+                 ckernel_template::run(instrn_buffer);
+             }
+             else
+             {
+                 TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+             }
+-        }
+-        // Workaround for tenstorrent/budabackend#1948
+-        if constexpr (is_int_fpu_en)
+-        {
+-            TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 0);
+-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 0);
+-            TTI_SFPLOAD(0, 4, ADDR_MOD_0, 2);
+-            TTI_SFPSTORE(0, 5, ADDR_MOD_0, 2);
+-            TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
+-            TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
+-        }
+-
+-        // Move back to B and transpose
+-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
+-        /*
+-        if constexpr (is_fp32_dest_acc_en) {
+-            if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
++            // Datums stored in int32 dest cannot be moved to SrcB which is configured for int8 inputs
++            // Cast int32 datums to int8 using SFPU instructions (load int32, store int8) before moving data to srcB
++            // Besides SFPU instructions to do cast we also need to set chicken bit FP16A_FORCE_Enable to force dest
++            // view to be fp16a as int8 datums are stored in src registers as fp16a
++            if constexpr (is_int_fpu_en)
++            {
+                 TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
+-                TTI_SFPLOAD(0, 0, 3, 0);
+-                TTI_SFP_STOCH_RND(0,0,0,0,0,8);
+-                TTI_SFPSTORE(0,1,3,0);
++                TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 0 /*DEST offset*/);
++                TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 0 /*DEST offset*/);
++                TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_0, 2 /*DEST offset*/);
++                TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT8, ADDR_MOD_0, 2 /*DEST offset*/);
++                TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU);
++                TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1);
+             }
+-        }
+-        */
+-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+-        // Note: transpose on src B on works on rows 16 - 31
+-        TTI_TRNSPSRCB;
+-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+-        if constexpr (is_int_fpu_en)
+-        {
+-            TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x0);
+-        }
+ 
+-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
+-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
+-        TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
+-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+-        TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
++            // Move back to B and transpose
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
++            /*
++            if constexpr (is_fp32_dest_acc_en) {
++                if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
++                    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
++                    TTI_SFPLOAD(0, 0, 3, 0);
++                    TTI_SFP_STOCH_RND(0,0,0,0,0,8);
++                    TTI_SFPSTORE(0,1,3,0);
++                }
++            }
++            */
++            TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
++            // Note: transpose on src B on works on rows 16 - 31
++            TTI_TRNSPSRCB;
++            TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
++            if constexpr (is_int_fpu_en)
++            {
++                TTI_SETC16(FP16A_FORCE_Enable_ADDR32, 0x0);
++            }
+ 
+-        // Increment dest by 32 for next accumulation
+-        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
++            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
++            TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
++            TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
++            TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
++
++            // Increment dest by 32 for next accumulation
++            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
++        }
+     }
+     else if constexpr (dim == ReduceDim::REDUCE_COL)
+     {
+

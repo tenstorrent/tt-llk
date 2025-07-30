@@ -1,0 +1,23 @@
+PR #76: fix: add parameter for configuring dest accumulation
+URL: https://github.com/tenstorrent/tt-llk/pull/76
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_recip.h
+@@ -49,7 +49,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
+     return setexp(result, new_exp);
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en = true>
+ inline void _calculate_reciprocal_(const int iterations)
+ {
+ #pragma GCC unroll 8
+@@ -65,7 +65,7 @@ inline void _calculate_reciprocal_(const int iterations)
+         }
+         v_endif;
+ 
+-        if constexpr (APPROXIMATION_MODE)
++        if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+         {
+             sfpi::dst_reg[0] = out;
+         }
+

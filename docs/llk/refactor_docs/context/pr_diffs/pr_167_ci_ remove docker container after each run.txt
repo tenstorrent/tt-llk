@@ -1,0 +1,25 @@
+PR #167: ci: remove docker container after each run
+URL: https://github.com/tenstorrent/tt-llk/pull/167
+
+File: .github/workflows/setup-and-test.yml
+@@ -19,7 +19,7 @@ jobs:
+     timeout-minutes: 40
+     container:
+       image: ${{ inputs.docker_image }}
+-      options: "--device /dev/tenstorrent"
++      options: "--rm --device /dev/tenstorrent"
+ 
+     steps:
+       # Step 1: Checkout the repository
+
+File: .github/workflows/tt-metal-integration-tests.yml
+@@ -17,7 +17,7 @@ jobs:
+     timeout-minutes: 40
+     container:
+       image: ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-ci-build-amd64:latest
+-      options: --user root --device /dev/tenstorrent
++      options: --user root --device /dev/tenstorrent --rm
+       volumes:
+         - /dev/hugepages:/dev/hugepages
+         - /dev/hugepages-1G:/dev/hugepages-1G
+

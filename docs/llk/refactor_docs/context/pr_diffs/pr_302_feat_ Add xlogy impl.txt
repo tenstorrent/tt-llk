@@ -1,0 +1,209 @@
+PR #302: feat: Add xlogy impl
+URL: https://github.com/tenstorrent/tt-llk/pull/302
+
+File: tests/helpers/include/params.h
+@@ -236,6 +236,9 @@ constexpr auto SFPU_BINARY_OPERATION = ckernel::sfpu::BinaryOp::SUB;
+ #ifdef SFPU_ELWMUL
+ constexpr auto SFPU_BINARY_OPERATION = ckernel::sfpu::BinaryOp::MUL;
+ #endif
++#ifdef SFPU_OP_XLOGY
++constexpr auto SFPU_BINARY_OPERATION = ckernel::sfpu::BinaryOp::XLOGY;
++#endif
+ 
+ #ifdef SFPU_OP_SQRT
+ constexpr auto SFPU_OPERATION = SfpuType::sqrt;
+
+File: tests/python_tests/helpers/format_arg_mapping.py
+@@ -104,6 +104,7 @@ class MathOperation(Enum):
+     SfpuElwadd = "SFPU_ELWADD"
+     SfpuElwsub = "SFPU_ELWSUB"
+     SfpuElwmul = "SFPU_ELWMUL"
++    SfpuXlogy = "SFPU_OP_XLOGY"
+ 
+ 
+ class ReduceDimension(Enum):
+
+File: tests/python_tests/test_sfpu_binary.py
+@@ -40,6 +40,7 @@ def generate_golden(operation, operand1, operand2, data_format):
+         MathOperation.SfpuElwadd: tensor1_float + tensor2_float,
+         MathOperation.SfpuElwsub: tensor1_float - tensor2_float,
+         MathOperation.SfpuElwmul: tensor1_float * tensor2_float,
++        MathOperation.SfpuXlogy: torch.xlogy(tensor1_float, tensor2_float),
+     }
+ 
+     if operation not in operations:
+@@ -77,6 +78,7 @@ def generate_golden(operation, operand1, operand2, data_format):
+         MathOperation.SfpuElwsub,
+         MathOperation.SfpuElwadd,
+         MathOperation.SfpuElwmul,
++        MathOperation.SfpuXlogy,
+     ],
+ )
+ param_ids = generate_param_ids(all_params)
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_binary.h
+@@ -4,7 +4,10 @@
+ 
+ #pragma once
+ 
++#include <limits>
++
+ #include "ckernel_sfpu_exp.h"
++#include "ckernel_sfpu_log.h"
+ #include "ckernel_sfpu_recip.h"
+ #include "sfpi.h"
+ 
+@@ -15,12 +18,13 @@ namespace sfpu
+ 
+ enum class BinaryOp : uint8_t
+ {
+-    ADD  = 0,
+-    SUB  = 1,
+-    MUL  = 2,
+-    DIV  = 3,
+-    RSUB = 4,
+-    POW  = 5
++    ADD   = 0,
++    SUB   = 1,
++    MUL   = 2,
++    DIV   = 3,
++    RSUB  = 4,
++    POW   = 5,
++    XLOGY = 6
+ };
+ 
+ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::vFloat pow)
+@@ -102,6 +106,7 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
+ template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 8>
+ inline void _calculate_sfpu_binary_(const uint dst_offset)
+ {
++    static constexpr float nan = std::numeric_limits<float>::quiet_NaN();
+     // SFPU microcode
+     for (int d = 0; d < ITERATIONS; d++)
+     {
+@@ -155,6 +160,20 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
+         {
+             result = _calculate_sfpu_binary_power_(in0, in1);
+         }
++        else if constexpr (BINOP == BinaryOp::XLOGY)
++        {
++            v_if ((in1 < 0.0f) || (in1 == nan))
++            {
++                result = nan;
++            }
++            v_else
++            {
++                sfpi::dst_reg[0] = in1;
++                _calculate_log_body_<false>(0);
++                result = sfpi::dst_reg[0] * in0;
++            }
++            v_endif;
++        }
+ 
+         sfpi::dst_reg[0] = result;
+         sfpi::dst_reg++;
+@@ -168,6 +187,10 @@ inline void _sfpu_binary_init_()
+     {
+         _init_reciprocal_<APPROXIMATION_MODE>();
+     }
++    else if constexpr (BINOP == BinaryOp::XLOGY)
++    {
++        _init_log_<APPROXIMATION_MODE>();
++    }
+ }
+ 
+ } // namespace sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_binary.h
+@@ -4,8 +4,11 @@
+ 
+ #pragma once
+ 
++#include <limits>
++
+ #include "ckernel_sfpu_binary.h"
+ #include "ckernel_sfpu_exp.h"
++#include "ckernel_sfpu_log.h"
+ #include "ckernel_sfpu_recip.h"
+ #include "sfpi.h"
+ 
+@@ -16,12 +19,13 @@ namespace sfpu
+ 
+ enum class BinaryOp : uint8_t
+ {
+-    ADD  = 0,
+-    SUB  = 1,
+-    MUL  = 2,
+-    DIV  = 3,
+-    RSUB = 4,
+-    POW  = 5
++    ADD   = 0,
++    SUB   = 1,
++    MUL   = 2,
++    DIV   = 3,
++    RSUB  = 4,
++    POW   = 5,
++    XLOGY = 6
+ };
+ 
+ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::vFloat pow)
+@@ -103,6 +107,7 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
+ template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 8>
+ inline void _calculate_sfpu_binary_(const uint dst_offset)
+ {
++    static constexpr float nan = std::numeric_limits<float>::quiet_NaN();
+     // SFPU microcode
+     for (int d = 0; d < ITERATIONS; d++)
+     {
+@@ -156,6 +161,20 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
+         {
+             result = _calculate_sfpu_binary_power_(in0, in1);
+         }
++        else if constexpr (BINOP == BinaryOp::XLOGY)
++        {
++            v_if ((in1 < 0.0f) || (in1 == nan))
++            {
++                result = nan;
++            }
++            v_else
++            {
++                sfpi::dst_reg[0] = in1;
++                _calculate_log_body_<false>(0);
++                result = sfpi::dst_reg[0] * in0;
++            }
++            v_endif;
++        }
+ 
+         sfpi::dst_reg[0] = result;
+         sfpi::dst_reg++;
+@@ -169,6 +188,10 @@ inline void _sfpu_binary_init_()
+     {
+         _init_reciprocal_<APPROXIMATION_MODE>();
+     }
++    else if constexpr (BINOP == BinaryOp::XLOGY)
++    {
++        _init_log_<APPROXIMATION_MODE>();
++    }
+ }
+ 
+ } // namespace sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_comp.h
+@@ -523,7 +523,6 @@ inline void apply_unary_comp_int<SfpuType::unary_le>(sfpi::vInt& val, const sfpi
+         v_endif;
+     }
+     v_endif;
+-    val = 8;
+ }
+ 
+ template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+@@ -537,7 +536,7 @@ inline void _calculate_comp_unary_int_(int scalar)
+ 
+         apply_unary_comp_int<COMP_MODE>(val, v, scalar);
+ 
+-        sfpi::dst_reg[0] = 8;
++        sfpi::dst_reg[0] = val;
+         sfpi::dst_reg++;
+     }
+ }
+

@@ -1,0 +1,149 @@
+PR #182: feat: paralelize test execution
+URL: https://github.com/tenstorrent/tt-llk/pull/182
+
+File: .github/workflows/on-pr.yml
+@@ -61,6 +61,7 @@ jobs:
+     with:
+       docker_image: ${{ needs.build-images.outputs.docker-image }}
+       runs_on: tt-beta-ubuntu-2204-n150-large-stable
++      test_group: "[1, 2, 3, 4, 5]"
+ 
+   setup-and-test-blackhole:
+     name: "🕳️ Perform checks (Blackhole)"
+@@ -72,6 +73,7 @@ jobs:
+     with:
+       docker_image: ${{ needs.build-images.outputs.docker-image }}
+       runs_on: p150
++      test_group: "[1]"
+ 
+   check-all-green:
+     name: "✅ Check all green"
+
+File: .github/workflows/setup-and-test.yml
+@@ -11,16 +11,23 @@ on:
+         description: "The runner to use for the job"
+         required: true
+         type: string
++      test_group:
++        description: "Array of test groups. Pass the array as a JSON string (e.g., '[1, 2, 3, 4, 5]')"
++        required: true
++        type: string
+ 
+ jobs:
+   setup-and-test:
+-    name: "🦄 Run tests"
+     runs-on: ${{ inputs.runs_on }}
+     timeout-minutes: 80
++    strategy:
++      fail-fast: false
++      matrix:
++        test_group: ${{ fromJSON(inputs.test_group) }}
+     container:
+       image: ${{ inputs.docker_image }}
+       options: "--rm --device /dev/tenstorrent"
+-
++    name: "🦄 Run tests (group ${{ matrix.test_group }}${{ fromJSON(inputs.test_group).length }})"
+     steps:
+       # Step 1: Checkout the repository
+       - name: Checkout code
+@@ -37,14 +44,19 @@ jobs:
+       # Step 3: Run the tests
+       - name: Run tests
+         shell: bash
++        env:
++          TEST_GROUPS: ${{ inputs.test_group }}
+         run: |
++          # Parse the JSON string into an array to get its length
++          SPLITS=$(echo "$TEST_GROUPS" | jq '. | length')
+           cd tests/python_tests/
+-          pytest --override-ini="addopts=-v" --timeout=60 .
++          pytest --splits $SPLITS --group ${{ matrix.test_group }} \
++                 --override-ini="addopts=-v" --timeout=60 .
+ 
+       # Step 4: Upload test log as an artifact
+       - name: Upload logs if tests fail
+         if: failure()  # Only upload the log if the previous step failed
+         uses: actions/upload-artifact@v4
+         with:
+           name: test-log
+-          path: tests/python_tests/pytest_errors.log
++          path: tests/python_tests/pytest_errors_${{ matrix.test_group }}.log
+
+File: tests/python_tests/conftest.py
+@@ -3,12 +3,14 @@
+ 
+ import logging
+ import os
++import pytest
+ import subprocess
+ 
+-import pytest
+ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+ from helpers.log_utils import _format_log
+ 
++from ttexalens.tt_exalens_lib import arc_msg
++
+ 
+ @pytest.fixture(scope="session", autouse=True)
+ def setup_chip_arch():
+@@ -91,6 +93,20 @@ def pytest_runtest_protocol(item, nextitem):
+     return None
+ 
+ 
++def pytest_sessionstart(session):
++    # Send ARC message for GO BUSY signal. This should increase device clock speed.
++    ARC_COMMON_PREFIX = 0xAA00
++    GO_BUSY_MESSAGE_CODE = 0x52
++    arc_msg(
++        device_id=0,
++        msg_code=ARC_COMMON_PREFIX | GO_BUSY_MESSAGE_CODE,
++        wait_for_done=True,
++        arg0=0,
++        arg1=0,
++        timeout=10,
++    )
++
++
+ def pytest_sessionfinish(session, exitstatus):
+     BOLD = "\033[1m"
+     YELLOW = "\033[93m"
+@@ -100,6 +116,18 @@ def pytest_sessionfinish(session, exitstatus):
+         for input_fmt, output_fmt in _format_log:
+             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
+ 
++    # Send ARC message for GO IDLE signal. This should decrease device clock speed.
++    ARC_COMMON_PREFIX = 0xAA00
++    GO_IDLE_MESSAGE_CODE = 0x54
++    arc_msg(
++        device_id=0,
++        msg_code=ARC_COMMON_PREFIX | GO_IDLE_MESSAGE_CODE,
++        wait_for_done=True,
++        arg0=0,
++        arg1=0,
++        timeout=10,
++    )
++
+ 
+ # Skip decorators for specific architectures
+ # These decorators can be used to skip tests based on the architecture
+
+File: tests/requirements.txt
+@@ -1,9 +1,10 @@
+-pytest-cov==5.0.0
+-pytest-randomly==3.15.0
+-pytest-repeat==0.9.3
++pytest-cov==6.1.1
++pytest-randomly==3.16.0
++pytest-repeat==0.9.4
++pytest-split==0.10.0
+ pytest-sugar==1.0.0
+-pytest-timeout==2.3.1
++pytest-timeout==2.4.0
+ pytest==8.3.5
+-torch==2.4.1
+-torchaudio==2.4.1
+-torchvision==0.19.1
++torch==2.7.0
++torchaudio==2.7.0
++torchvision==0.22.0
+

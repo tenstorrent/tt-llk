@@ -1,0 +1,925 @@
+PR #42: chore: refactor test infra
+URL: https://github.com/tenstorrent/tt-llk/pull/42
+
+File: tests/firmware/riscv/blackhole/l1_address_map.h
+@@ -3,10 +3,10 @@
+ // SPDX-License-Identifier: Apache-2.0
+ #pragma once
+ 
+-#include <stdint.h>
++#include <cstdint>
+ 
+ // Aux variable used to align addresses to platform specific width. BH requires 64B alignment.
+-#define NOC_ADDRESS_ALIGNMENT (64)
++constexpr auto NOC_ADDRESS_ALIGNMENT = 64;
+ 
+ namespace l1_mem
+ {
+
+File: tests/firmware/riscv/wormhole/l1_address_map.h
+@@ -6,7 +6,7 @@
+ #include <cstdint>
+ 
+ // Aux variable used to align addresses to platform specific width. WH requires 32B alignment.
+-#define NOC_ADDRESS_ALIGNMENT (32)
++constexpr auto NOC_ADDRESS_ALIGNMENT = 32;
+ 
+ namespace l1_mem
+ {
+
+File: tests/helpers/include/ckernel_helper.h
+@@ -2,8 +2,7 @@
+ //
+ // SPDX-License-Identifier: Apache-2.0
+ 
+-#ifndef CKERNEL_HELPER_H
+-#define CKERNEL_HELPER_H
++#pragma once
+ 
+ namespace ckernel
+ {
+@@ -16,10 +15,6 @@ volatile std::uint32_t tt_reg_ptr *mailbox_base[4] = {
+     reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX2_BASE),
+     reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(TENSIX_MAILBOX3_BASE)};
+ 
+-std::uint32_t cfg_state_id __attribute__((section(".bss")))   = 0; // Flip between 0 and 1 to keep state between kernel calls
+-std::uint32_t dest_offset_id __attribute__((section(".bss"))) = 0; // Flip between 0 and 1 to keep dest pointer between kernel calls
++std::uint32_t cfg_state_id   = 0; // Flip between 0 and 1 to keep state between kernel calls
++std::uint32_t dest_offset_id = 0; // Flip between 0 and 1 to keep dest pointer between kernel calls
+ } // namespace ckernel
+-
+-using namespace ckernel;
+-
+-#endif
+
+File: tests/helpers/include/params.h
+@@ -2,122 +2,84 @@
+ //
+ // SPDX-License-Identifier: Apache-2.0
+ 
+-#ifndef PARAMS_H
+-#define PARAMS_H
++#pragma once
+ 
+ #include <cstdarg>
+-#include <cstdint>
++#include <type_traits>
+ 
+-#define L1_ADDRESS(buffer) ((reinterpret_cast<uint32_t>(buffer) / 16) - 1)
++#include "ckernel_sfpu_log.h"
++#include "ckernel_sfpu_sqrt.h"
++#include "ckernel_sfpu_square.h"
++#include "llk_defs.h"
++#include "llk_sfpu_types.h"
++#include "tensix_types.h"
+ 
+-#ifdef LLK_TRISC_UNPACK
+-
+-#ifdef FORMAT_FLOAT16_B
+-#define DATA_FORMAT (uint32_t)DataFormat::Float16_b
+-#endif
+-#ifdef FORMAT_FLOAT16
+-#define DATA_FORMAT (uint32_t)DataFormat::Float16
+-#endif
+-#ifdef FORMAT_FLOAT32
+-#define DATA_FORMAT (uint32_t)DataFormat::Float32
+-#endif
+-#ifdef FORMAT_INT32
+-#define DATA_FORMAT (uint32_t)DataFormat::Int32
+-#endif
+-#ifdef FORMAT_BFP8_B
+-#define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b
+-#endif
+-
+-#endif
++inline uint32_t L1_ADDRESS(const volatile void* buffer)
++{
++    return (reinterpret_cast<uint32_t>(buffer) / 16) - 1;
++}
+ 
+-#ifdef LLK_TRISC_MATH
++namespace
++{
++constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
++{
++    return static_cast<std::underlying_type_t<DataFormat>>(format);
++}
++} // namespace
+ 
+ #ifdef FORMAT_FLOAT16_B
+-#define DATA_FORMAT (uint32_t)DataFormat::Float16_b
++constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float16_b);
+ #endif
+ #ifdef FORMAT_FLOAT16
+-#define DATA_FORMAT (uint32_t)DataFormat::Float16
++constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float16);
+ #endif
+ #ifdef FORMAT_FLOAT32
+-#define DATA_FORMAT (uint32_t)DataFormat::Float32
++constexpr auto DATA_FORMAT = get_data_format(DataFormat::Float32);
+ #endif
+ #ifdef FORMAT_INT32
+-#define DATA_FORMAT (uint32_t)DataFormat::Int32
++constexpr auto DATA_FORMAT = get_data_format(DataFormat::Int32);
+ #endif
+ #ifdef FORMAT_BFP8_B
+-#define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b
++constexpr auto DATA_FORMAT = get_data_format(DataFormat::Bfp8_b);
+ #endif
+ 
+ #ifdef ELTWISE_BINARY_ADD
+-#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWADD
++constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWADD;
+ #endif
+ #ifdef ELTWISE_BINARY_SUB
+-#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWSUB
++constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWSUB;
+ #endif
+ #ifdef ELTWISE_BINARY_MUL
+-#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWMUL
++constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWMUL;
+ #endif
+ // TO BE IMPLEMENTED IN LLKs
+ #ifdef ELTWISE_BINARY_DIV
+-#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWDIV
++constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWDIV;
+ #endif
+ #ifdef ELTWISE_BINARY_LESS
+-#define ELTWISE_BINARY_OP EltwiseBinaryType::ELWLESS
++constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::ELWLESS;
+ #endif
+ 
+-// SFPU operation macros
+-
+ #ifdef SFPU_OP_SQRT
+-#define SFPU_OPERATION SfpuType::sqrt
+-#define SFPU_CALLS              \
+-    _init_sqrt_<APPROX_MODE>(); \
+-    _calculate_sqrt_<APPROX_MODE, 0, 10>(10);
++constexpr auto SFPU_OPERATION = SfpuType::sqrt;
+ #endif
+ #ifdef SFPU_OP_LOG
+-#define SFPU_OPERATION SfpuType::log
+-#define SFPU_CALLS             \
+-    _init_log_<APPROX_MODE>(); \
+-    _calculate_log_<APPROX_MODE, false, 10>(10, 0);
++constexpr auto SFPU_OPERATION = SfpuType::log;
+ #endif
+ #ifdef SFPU_OP_SQUARE
+-#define SFPU_OPERATION SfpuType::square
+-#define SFPU_CALLS     _calculate_square_<APPROX_MODE, 10>(10);
++constexpr auto SFPU_OPERATION = SfpuType::square;
+ #endif
+ 
+-#endif
+-
+-#ifdef LLK_TRISC_PACK
+-
+ inline void process_addresses(volatile uint32_t* buffer_Dest[], int n, int first, ...)
+ {
+-    buffer_Dest[0] = (volatile uint32_t*)first;
++    buffer_Dest[0] = reinterpret_cast<volatile uint32_t*>(first);
+ 
+     va_list args;
+     va_start(args, first);
+     for (int i = 1; i < n; ++i)
+     {
+         int num        = va_arg(args, int);
+-        buffer_Dest[i] = (volatile uint32_t*)num;
++        buffer_Dest[i] = reinterpret_cast<volatile uint32_t*>(num);
+     }
+     va_end(args);
+ }
+-
+-#ifdef FORMAT_FLOAT16_B
+-#define DATA_FORMAT (uint32_t)DataFormat::Float16_b
+-#endif
+-#ifdef FORMAT_FLOAT16
+-#define DATA_FORMAT (uint32_t)DataFormat::Float16
+-#endif
+-#ifdef FORMAT_FLOAT32
+-#define DATA_FORMAT (uint32_t)DataFormat::Float32
+-#endif
+-#ifdef FORMAT_INT32
+-#define DATA_FORMAT (uint32_t)DataFormat::Int32
+-#endif
+-#ifdef FORMAT_BFP8_B
+-#define DATA_FORMAT (uint32_t)DataFormat::Bfp8_b
+-#endif
+-
+-#endif
+-
+-#endif
+
+File: tests/helpers/src/trisc.cpp
+@@ -2,6 +2,7 @@
+ //
+ // SPDX-License-Identifier: Apache-2.0
+ 
++#include <algorithm>
+ #include <cstdint>
+ 
+ #include "ckernel.h"
+@@ -16,19 +17,15 @@
+ int main()
+ {
+ #ifdef LLK_TRISC_UNPACK
+-    volatile std::uint32_t* mailbox = (volatile std::uint32_t*)(0x19FFC);
++    volatile std::uint32_t* mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
+ #elif defined(LLK_TRISC_MATH)
+-    volatile std::uint32_t* mailbox = (volatile std::uint32_t*)(0x19FF8);
++    volatile std::uint32_t* mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
+ #elif defined(LLK_TRISC_PACK)
+-    volatile std::uint32_t* mailbox = (volatile std::uint32_t*)(0x19FF4);
++    volatile std::uint32_t* mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
+ #endif
+-
+     *mailbox = 0x2; // write value different than 1 to mailbox to indicate kernel is running
+ 
+-    for (int i = 0; i < 64; i++)
+-    {
+-        ckernel::regfile[i] = 0;
+-    }
++    std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
+ 
+     ckernel::reset_cfg_state_id();
+     ckernel::reset_dest_offset_id();
+@@ -38,7 +35,11 @@ int main()
+ 
+     *mailbox = ckernel::KERNEL_COMPLETE; // 0x1
+ 
+-    for (;;)
++    // Use a volatile variable to prevent the compiler from optimizing away the loop
++    volatile bool run = true;
++
++    // Infinite loop
++    while (run)
+     {
+     }
+ }
+
+File: tests/python_tests/helpers/device.py
+@@ -32,7 +32,7 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
+     # and now cores are run in revese order PACK, MATH, UNOPACK
+     # Once that issue is reolved with tt-exalens code will be returned to normal for loop
+ 
+-    for i in range(2, -1, -1):
++    for i in reversed(range(3)):
+         run_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
+ 
+ 
+
+File: tests/python_tests/helpers/pack.py
+@@ -12,40 +12,20 @@ def flatten_list(sublists):
+ 
+ 
+ def int_to_bytes_list(n):
+-    binary_str = bin(n)[2:].zfill(32)
+-    return [int(binary_str[i : i + 8], 2) for i in range(0, 32, 8)]
+-
+-
+-def float16_to_bytes(value):
+-    float16_value = torch.tensor(value, dtype=torch.float16)
+-    packed_bytes = struct.pack(">e", float16_value.item())
+-    return list(packed_bytes) + [0] * (4 - len(packed_bytes))
+-
+-
+-def bfloat16_to_bytes(number):
+-    number_unpacked = struct.unpack("!I", struct.pack("!f", number))[0]
+-    res_masked = number_unpacked & 0xFFFF0000
+-    return int_to_bytes_list(res_masked)
++    return [(n >> (8 * i)) & 0xFF for i in range(3, -1, -1)]
+ 
+ 
+ def fp32_to_bytes(number):
+     number_unpacked = struct.unpack("!I", struct.pack("!f", number))[0]
+     return int_to_bytes_list(number_unpacked)
+ 
+ 
+-def int32_to_bytes(number):
+-    number = int(number)
+-    number_unpacked = struct.unpack("!I", struct.pack("!I", number))[0]
+-    return int_to_bytes_list(number_unpacked)
+-
+-
+-def bfloat16_to_binary(value):
+-    float_value = value.to(torch.float32).item()
+-    bfloat16_bytes = bfloat16_to_bytes(float_value)
+-    return f"{bfloat16_bytes[0]:08b}{bfloat16_bytes[1]:08b}"
+-
+-
+ def pack_bfp16(torch_tensor):
++    def bfloat16_to_bytes(number):
++        number_unpacked = struct.unpack("!I", struct.pack("!f", number))[0]
++        res_masked = number_unpacked & 0xFFFF0000
++        return int_to_bytes_list(res_masked)
++
+     packed_bytes = []
+     for i in range(0, len(torch_tensor), 2):
+         half1 = bfloat16_to_bytes(torch_tensor[i])
+@@ -55,29 +35,44 @@ def pack_bfp16(torch_tensor):
+ 
+ 
+ def pack_fp16(torch_tensor):
++    def float16_to_bytes(value):
++        packed_bytes = struct.pack("<e", value)
++        return list(packed_bytes)
++
+     packed_bytes = []
+     for i in range(0, len(torch_tensor), 2):
+         half1 = float16_to_bytes(torch_tensor[i])
+         half2 = float16_to_bytes(torch_tensor[i + 1])
+-        packed_bytes.extend([half1[0:2][::-1], half2[0:2][::-1]][::-1])
++        packed_bytes.extend([half1[0:2], half2[0:2]][::-1])
+     return flatten_list(packed_bytes)
+ 
+ 
+ def pack_fp32(torch_tensor):
+-    packed_bytes = []
+-    for i in range(0, len(torch_tensor)):
+-        packed_bytes.append(fp32_to_bytes(torch_tensor[i])[::-1])
++    def fp32_to_bytes(number):
++        return list(struct.pack("<f", number))
++
++    packed_bytes = [None] * len(torch_tensor)
++    for i in range(len(torch_tensor)):
++        packed_bytes[i] = fp32_to_bytes(torch_tensor[i])
+     return flatten_list(packed_bytes)
+ 
+ 
+ def pack_int32(torch_tensor):
+-    packed_bytes = []
+-    for i in range(0, len(torch_tensor)):
+-        packed_bytes.append(int32_to_bytes(torch_tensor[i])[::-1])
++    def int32_to_bytes(number):
++        return list(struct.pack("<I", number))
++
++    packed_bytes = [None] * len(torch_tensor)
++    for i in range(len(torch_tensor)):
++        packed_bytes[i] = int32_to_bytes(torch_tensor[i])
+     return flatten_list(packed_bytes)
+ 
+ 
+ def float_to_bfp8_block(block):
++    def bfloat16_to_binary(value):
++        float_value = struct.unpack("!I", struct.pack("!f", value))[0]
++        bfloat16_value = (float_value & 0xFFFF0000) >> 16
++        return f"{(bfloat16_value >> 8) & 0xFF:08b}{bfloat16_value & 0xFF:08b}"
++
+     exponents = []
+     mantissas = []
+     signs = []
+@@ -109,22 +104,16 @@ def float_to_bfp8_block(block):
+ 
+ 
+ def pack_bfp8_b(tensor, block_size=16):
+-
+     flattened_tensor = tensor.flatten()
+     num_blocks = len(flattened_tensor) // block_size
+-    blocks = [
+-        flattened_tensor[i * block_size : (i + 1) * block_size]
+-        for i in range(num_blocks)
+-    ]
+ 
+     exponents = []
+     mantissas = []
+ 
+-    for block in blocks:
++    for i in range(num_blocks):
++        block = flattened_tensor[i * block_size : (i + 1) * block_size]
+         shared_exponent, bfp8_mantissas = float_to_bfp8_block(block)
+         exponents.append(shared_exponent)
+         mantissas.extend(bfp8_mantissas)
+ 
+-    bfp8_result = exponents + mantissas
+-
+-    return bfp8_result
++    return exponents + mantissas
+
+File: tests/python_tests/helpers/stimuli_generator.py
+@@ -12,14 +12,12 @@ def flatten_list(sublists):
+ def generate_random_face(stimuli_format="Float16_b", const_value=1, const_face=False):
+ 
+     if stimuli_format in ["Float16_b", "Float16", "Float32"]:
+-
+         if const_face:
+             srcA_face = torch.ones(256, dtype=format_dict[stimuli_format]) * const_value
+         else:  # random for both faces
+             srcA_face = torch.rand(256, dtype=format_dict[stimuli_format]) + 0.1
+ 
+     elif stimuli_format == "Bfp8_b":
+-
+         size = 256
+         integer_part = torch.randint(0, 3, (size,))
+         fraction = torch.randint(0, 16, (size,)).to(dtype=torch.bfloat16) / 16.0
+@@ -54,27 +52,22 @@ def generate_stimuli(
+     srcA = []
+     srcB = []
+ 
+-    for i in range(4 * tile_cnt):
++    for _ in range(4 * tile_cnt):
+         face_a, face_b = generate_random_face_ab(
+             stimuli_format, const_face, const_value_A, const_value_B
+         )
+-        srcA.append(face_a.tolist())
+-        srcB.append(face_b.tolist())
+-
+-    srcA = flatten_list(srcA)
+-    srcB = flatten_list(srcB)
++        srcA.extend(face_a.tolist())
++        srcB.extend(face_b.tolist())
+ 
+     if not sfpu:
+-        if stimuli_format != "Bfp8_b":
+-            return torch.tensor(srcA, dtype=format_dict[stimuli_format]), torch.tensor(
+-                srcB, dtype=format_dict[stimuli_format]
+-            )
+-        else:
+-            return torch.tensor(srcA, dtype=torch.bfloat16), torch.tensor(
+-                srcB, dtype=torch.bfloat16
+-            )
++        dtype = (
++            format_dict[stimuli_format]
++            if stimuli_format != "Bfp8_b"
++            else torch.bfloat16
++        )
++        return torch.tensor(srcA, dtype=dtype), torch.tensor(srcB, dtype=dtype)
+     else:
+         srcA = generate_random_face(stimuli_format, const_value_A, const_face)
+-        srcB = torch.full((256,), 0)
++        srcB = torch.zeros(256)
+         srcA = torch.cat((srcA, torch.zeros(1024 - 256)))
+         return srcA, srcB
+
+File: tests/python_tests/helpers/test_config.py
+@@ -23,8 +23,7 @@ def generate_make_command(test_config):
+     approx_mode = test_config.get("approx_mode", "false")
+     math_fidelity = test_config.get("math_fidelity", 0)
+ 
+-    make_cmd += f" math_fidelity={math_fidelity} "
+-    make_cmd += f" approx_mode={approx_mode} "
++    make_cmd += f" math_fidelity={math_fidelity} approx_mode={approx_mode} "
+ 
+     reduce_dim = test_config.get("reduce_dim", "no_reduce_dim")
+     pool_type = test_config.get("pool_type", "no_reduce_dim")
+@@ -36,23 +35,20 @@ def generate_make_command(test_config):
+                 make_cmd += f"reduce_dim={reduce_dim_args[reduce_dim]} "
+                 make_cmd += f"pool_type={reduce_pool_args[pool_type]} "
+             else:
+-                make_cmd += f"mathop={  mathop_args_dict[mathop]} "
++                make_cmd += f"mathop={mathop_args_dict[mathop]} "
+         else:  # multiple tiles handles mathop as int
+-
+-            if mathop == 1:
+-                make_cmd += " mathop=ELTWISE_BINARY_ADD "
+-            elif mathop == 2:
+-                make_cmd += " mathop=ELTWISE_BINARY_SUB "
+-            else:
+-                make_cmd += " mathop=ELTWISE_BINARY_MUL "
++            mathop_map = {
++                1: "ELTWISE_BINARY_ADD",
++                2: "ELTWISE_BINARY_SUB",
++                3: "ELTWISE_BINARY_MUL",
++            }
++            make_cmd += f"mathop={mathop_map.get(mathop, 'ELTWISE_BINARY_MUL')} "
+ 
+             kern_cnt = str(test_config.get("kern_cnt"))
+             pack_addr_cnt = str(test_config.get("pack_addr_cnt"))
+             pack_addrs = test_config.get("pack_addrs")
+ 
+-            make_cmd += f" kern_cnt={kern_cnt} "
+-            make_cmd += f" pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs}"
++            make_cmd += f" kern_cnt={kern_cnt} pack_addr_cnt={pack_addr_cnt} pack_addrs={pack_addrs}"
+ 
+     print(make_cmd)
+-
+     return make_cmd
+
+File: tests/python_tests/helpers/unpack.py
+@@ -9,61 +9,54 @@
+ 
+ 
+ def int_to_bytes_list(n):
+-    binary_str = bin(n)[2:].zfill(32)
+-    return [int(binary_str[i : i + 8], 2) for i in range(0, 32, 8)]
+-
+-
+-def bytes_to_float16(byte_list):
+-    bytes_data = bytes(byte_list[:2])
+-    unpacked_value = struct.unpack(">e", bytes_data)[0]
+-    return torch.tensor(unpacked_value, dtype=torch.float16)
+-
+-
+-def bytes_to_bfloat16(byte_list):
+-    bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
+-    unpacked_value = struct.unpack(">f", bytes_data)[0]
+-    return torch.tensor(unpacked_value, dtype=torch.float32)
+-
+-
+-def bytes_to_float32(byte_list):
+-    bytes_data = bytes(byte_list)
+-    unpacked_value = struct.unpack(">f", bytes_data)[0]
+-    return torch.tensor(unpacked_value, dtype=torch.float32)
+-
+-
+-def bytes_to_int32(byte_list):
+-    bytes_data = bytes(byte_list)
+-    unpacked_value = struct.unpack(">I", bytes_data)[0]
+-    return torch.tensor(unpacked_value, dtype=torch.int32)
++    return [(n >> (24 - i * 8)) & 0xFF for i in range(4)]
+ 
+ 
+ def unpack_fp16(packed_list):
++    def bytes_to_float16(byte_list):
++        bytes_data = bytes(byte_list[:2])
++        unpacked_value = struct.unpack(">e", bytes_data)[0]
++        return unpacked_value
++
+     limited_packed_list = packed_list[:2048]
+     return [
+-        bytes_to_float16(limited_packed_list[i : i + 2]).item()
++        bytes_to_float16(limited_packed_list[i : i + 2])
+         for i in range(0, len(limited_packed_list), 2)
+     ]
+ 
+ 
+ def unpack_bfp16(packed_list):
++    def bytes_to_bfloat16(byte_list):
++        bytes_data = bytes(byte_list[:2] + [0, 0])  # Ensure we include padding
++        unpacked_value = struct.unpack(">f", bytes_data)[0]
++        return unpacked_value
++
+     limited_packed_list = packed_list[:2048]
+     return [
+-        bytes_to_bfloat16(limited_packed_list[i : i + 2]).item()
++        bytes_to_bfloat16(limited_packed_list[i : i + 2])
+         for i in range(0, len(limited_packed_list), 2)
+     ]
+ 
+ 
+ def unpack_float32(packed_list):
++    def bytes_to_float32(byte_list):
++        bytes_data = bytes(byte_list)
++        unpacked_value = struct.unpack(">f", bytes_data)[0]
++        return unpacked_value
++
+     return [
+-        bytes_to_float32(packed_list[i : i + 4]).item()
+-        for i in range(0, len(packed_list), 4)
++        bytes_to_float32(packed_list[i : i + 4]) for i in range(0, len(packed_list), 4)
+     ]
+ 
+ 
+ def unpack_int32(packed_list):
++    def bytes_to_int32(byte_list):
++        bytes_data = bytes(byte_list)
++        unpacked_value = struct.unpack(">I", bytes_data)[0]
++        return unpacked_value
++
+     return [
+-        bytes_to_int32(packed_list[i : i + 4]).item()
+-        for i in range(0, len(packed_list), 4)
++        bytes_to_int32(packed_list[i : i + 4]) for i in range(0, len(packed_list), 4)
+     ]
+ 
+ 
+@@ -96,12 +89,11 @@ def unpack_bfp8_b(bfp8_block, sfpu=False):
+ 
+     if not sfpu:
+         exponents = bfp8_block[:64]
+-        reversed_exponents = reverse_endian_chunk(exponents)
+         mantissas = bfp8_block[64:]
+     else:
+         exponents = bfp8_block[:16]
+-        reversed_exponents = reverse_endian_chunk(exponents)
+         mantissas = bfp8_block[16:272]
++    reversed_exponents = reverse_endian_chunk(exponents)
+ 
+     bfloat16_values = []
+     for i in range(len(reversed_exponents)):
+
+File: tests/python_tests/helpers/utils.py
+@@ -1,6 +1,7 @@
+ # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+ # SPDX-License-Identifier: Apache-2.0
+ 
++import os
+ import torch
+ import numpy as np
+ import subprocess
+@@ -41,12 +42,11 @@ def run_shell_command(command: str):
+         command, shell=True, text=True, capture_output=False, stdout=subprocess.DEVNULL
+     )
+     if result.returncode != 0:
+-        raise RuntimeError(f"Command failed: {command}\n{result.stderr}")
++        raise RuntimeError(f"Build failed: {command}\n{result.stderr}")
+     return result
+ 
+ 
+ def calculate_read_words_count(format, sfpu=False):
+-
+     if format not in format_sizes:
+         raise ValueError(f"Unsupported format: {format}")
+ 
+@@ -64,14 +64,8 @@ def reverse_endian_chunk(input_list, chunk_size=4):
+ 
+ 
+ def format_kernel_list(kernels, as_hex=False):
+-    formatted_str = ""
+-    for i in kernels:
+-        # Use hex formatting if the flag is set, otherwise use decimal
+-        if as_hex:
+-            formatted_str += str(hex(i)) + ","
+-        else:
+-            formatted_str += str(i) + ","
+-    return formatted_str[:-1]  # Remove the trailing comma
++    formatter = hex if as_hex else str
++    return ",".join(formatter(i) for i in kernels)
+ 
+ 
+ def compare_pcc(golden, calculated, pcc=0.99):
+@@ -127,3 +121,10 @@ def compare_pcc(golden, calculated, pcc=0.99):
+         return True, 1.0
+ 
+     return cal_pcc >= pcc, cal_pcc
++
++
++def get_chip_architecture():
++    chip_architecture = os.getenv("CHIP_ARCH")
++    if chip_architecture is None:
++        raise ValueError("CHIP_ARCH environment variable is not set")
++    return chip_architecture
+
+File: tests/setup_env.sh
+@@ -57,7 +57,7 @@ if [[ "$REUSE" == false ]]; then
+ 
+     echo "Installing required packages..."
+     pip install .
+-    pip install pytest pytest-cov
++    pip install pytest pytest-cov pytest-repeat pytest-timeout
+ 
+     # Detect architecture for chip
+     echo "Running tt-smi -ls to detect architecture..."
+
+File: tests/sources/eltwise_unary_datacopy_test.cpp
+@@ -13,7 +13,6 @@
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+
+File: tests/sources/eltwise_unary_sfpu_test.cpp
+@@ -5,6 +5,7 @@
+ #include <algorithm>
+ #include <cstdint>
+ #include <cstdio>
++#include <type_traits>
+ 
+ #include "ckernel.h"
+ #include "llk_defs.h"
+@@ -14,7 +15,6 @@ const bool unpack_to_dest = true;
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+@@ -50,6 +50,29 @@ void run_kernel()
+ using namespace ckernel;
+ using namespace ckernel::sfpu;
+ 
++namespace
++{
++void call_sfpu_operation(SfpuType operation)
++{
++    switch (operation)
++    {
++        case SfpuType::sqrt:
++            ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, 10>(10);
++            break;
++        case SfpuType::log:
++            ckernel::sfpu::_init_log_<APPROX_MODE>();
++            ckernel::sfpu::_calculate_log_<APPROX_MODE, false, 10>(10, 0);
++            break;
++        case SfpuType::square:
++            ckernel::sfpu::_calculate_square_<APPROX_MODE, 10>(10);
++            break;
++        default:
++            return;
++    }
++}
++} // namespace
++
+ void run_kernel()
+ {
+ // copy srca to dest
+@@ -67,11 +90,9 @@ void run_kernel()
+     // calculation of sfpu operation on dest
+     _llk_math_eltwise_unary_sfpu_init_<SFPU_OPERATION>();
+     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncFull>(0);
+-// calling sfpu function from ckernel
+-// this part is where parametrization of operation takes part
+-#ifdef SFPU_CALLS
+-    SFPU_CALLS
+-#endif
++    // calling sfpu function from ckernel
++    // this part is where parametrization of operation takes part
++    call_sfpu_operation(SFPU_OPERATION);
+ 
+     _llk_math_eltwise_unary_sfpu_done_();
+     _llk_math_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
+@@ -85,18 +106,18 @@ void run_kernel()
+ #include "llk_pack_common.h"
+ #include "params.h"
+ 
+-// If data foramt is Bfp8 it is calculated correctly in Dest but packer cannot pack just that one face
+-// TODO: make it so It can
+-// So for now It is packed as Float16_b
++void run_kernel()
++{
++    // If data foramt is Bfp8 it is calculated correctly in Dest but packer cannot pack just that one face
++    // TODO: make it so It can
++    // So for now It is packed as Float16_b
+ 
+ #ifdef FORMAT_BFP8_B
+-#define PACK_DEST_FORMAT (uint32_t)DataFormat::Float16_b
++    constexpr auto PACK_DEST_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float16_b);
+ #else
+-#define PACK_DEST_FORMAT DATA_FORMAT
++    constexpr auto PACK_DEST_FORMAT = DATA_FORMAT;
+ #endif
+ 
+-void run_kernel()
+-{
+     volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+ 
+     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+
+File: tests/sources/fill_dest_test.cpp
+@@ -12,7 +12,6 @@
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+@@ -28,8 +27,8 @@ const bool is_fp32_dest_acc_en = false;
+ 
+ void run_kernel()
+ {
+-    volatile uint32_t* const buffer_A = (volatile uint32_t*)0x1a000;
+-    volatile uint32_t* const buffer_B = (volatile uint32_t*)0x1b000;
++    volatile uint32_t* const buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
++    volatile uint32_t* const buffer_B = reinterpret_cast<volatile uint32_t*>(0x1b000);
+ 
+     for (uint index = 0; index < 16; index++)
+     {
+@@ -76,7 +75,7 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    volatile uint32_t* const buffer_Dest = (volatile uint32_t*)0x1c000;
++    volatile uint32_t* const buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+ 
+ #ifdef ARCH_BLACKHOLE
+     _llk_pack_hw_configure_<false, is_fp32_dest_acc_en, false>(DATA_FORMAT, DATA_FORMAT, 16 * 16 * 4);
+
+File: tests/sources/matmul_test.cpp
+@@ -14,8 +14,6 @@ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+ uint32_t math_sync_tile_dst_index = 0;
+ 
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+-
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+ #else
+
+File: tests/sources/multiple_tiles_eltwise_test.cpp
+@@ -12,7 +12,6 @@
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+
+File: tests/sources/pack_untilize_test.cpp
+@@ -12,7 +12,6 @@
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+
+File: tests/sources/reduce_test.cpp
+@@ -14,8 +14,6 @@ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+ uint32_t math_sync_tile_dst_index = 0;
+ 
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+-
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+ #else
+
+File: tests/sources/sfpu_binary_test.cpp
+@@ -13,7 +13,6 @@ const bool unpack_to_dest = true;
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+@@ -29,7 +28,7 @@ const bool is_fp32_dest_acc_en = false;
+ 
+ void run_kernel()
+ {
+-    volatile uint32_t* buffer_A = (volatile uint32_t*)0x1a000;
++    volatile uint32_t* buffer_A = reinterpret_cast<volatile uint32_t*>(0x1a000);
+ 
+     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(DATA_FORMAT, DATA_FORMAT, FACE_R_DIM, 0, 4);
+     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(0, 0, FACE_R_DIM, 4, DATA_FORMAT, DATA_FORMAT);
+@@ -49,11 +48,9 @@ void run_kernel()
+ using namespace ckernel;
+ using namespace ckernel::sfpu;
+ 
+-#define ELTWISE_BINARY_SFPU_OP 0
+-
+ void run_kernel()
+ {
+-    const bool is_int_fpu_en = false;
++    constexpr auto ELTWISE_BINARY_SFPU_OP = 0 constexpr bool is_int_fpu_en = false;
+ // copy srca to dest
+ #ifdef ARCH_BLACKHOLE
+     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, BroadcastType::NONE, false, is_fp32_dest_acc_en, is_int_fpu_en>(0, 0, 4, DATA_FORMAT);
+@@ -98,7 +95,7 @@ void run_kernel()
+ 
+ void run_kernel()
+ {
+-    volatile uint32_t* buffer_Dest = (volatile uint32_t*)0x1c000;
++    volatile uint32_t* buffer_Dest = reinterpret_cast<volatile uint32_t*>(0x1c000);
+ 
+     std::fill(buffer_Dest, buffer_Dest + 16 * 16 * 4, 0xdeadbeef);
+ 
+
+File: tests/sources/tilize_calculate_untilize_L1.cpp
+@@ -13,7 +13,6 @@
+ uint32_t unp_cfg_context          = 0;
+ uint32_t pack_sync_tile_dst_ptr   = 0;
+ uint32_t math_sync_tile_dst_index = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+
+File: tests/sources/unpack_tilize_test.cpp
+@@ -12,7 +12,6 @@
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+ #else
+
+File: tests/sources/unpack_untilize_test.cpp
+@@ -12,7 +12,6 @@
+ // Globals
+ uint32_t unp_cfg_context        = 0;
+ uint32_t pack_sync_tile_dst_ptr = 0;
+-volatile uint32_t tt_l1_ptr l1_buffer[16] __attribute__((section(".text#"))) __attribute__((aligned(16)));
+ 
+ #ifdef DEST_ACC
+ const bool is_fp32_dest_acc_en = true;
+
+File: tt_llk_blackhole/common/inc/ckernel_defs.h
+@@ -8,6 +8,7 @@
+ 
+ #include "ckernel_ops.h"
+ #include "llk_defs.h"
++#include "tensix.h"
+ #include "tensix_types.h"
+ 
+ namespace ckernel
+
+File: tt_llk_wormhole_b0/common/inc/ckernel_defs.h
+@@ -8,6 +8,7 @@
+ 
+ #include "ckernel_ops.h"
+ #include "llk_defs.h"
++#include "tensix.h"
+ #include "tensix_types.h"
+ 
+ namespace ckernel
+

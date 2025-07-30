@@ -1,0 +1,160 @@
+PR #155: Improve reciprocal precision.
+URL: https://github.com/tenstorrent/tt-llk/pull/155
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_binary.h
+@@ -144,7 +144,7 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
+             }
+             v_else
+             {
+-                result = in0 * sfpi::setsgn(_sfpu_reciprocal_<4>(in1), in1);
++                result = in0 * sfpi::setsgn(_sfpu_reciprocal_<3>(in1), in1);
+             }
+             v_endif;
+         }
+@@ -165,10 +165,15 @@ inline void _calculate_sfpu_binary_(const uint dst_offset)
+ template <bool APPROXIMATION_MODE /*unused*/, BinaryOp BINOP>
+ inline void _sfpu_binary_init_()
+ {
+-    if constexpr (BINOP == BinaryOp::DIV || BINOP == BinaryOp::POW)
++    if constexpr (BINOP == BinaryOp::DIV)
+     {
+         _init_reciprocal_<APPROXIMATION_MODE>();
+     }
++    if constexpr (BINOP == BinaryOp::POW)
++    {
++        // note: calls _init_reciprocal_
++        _init_exponential_<APPROXIMATION_MODE>();
++    }
+ }
+ 
+ } // namespace sfpu
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_exp.h
+@@ -25,7 +25,7 @@ sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
+     v_endif;
+ 
+     // Run series in Horner form
+-    sfpi::vFloat tmp = val * sfpi::vConst0p8373 + sfpi::s2vFloat16b(0.863281);
++    sfpi::vFloat tmp = val * sfpi::vConst0p8373 + sfpi::vConstFloatPrgm2;
+     val              = val * tmp + sfpi::vConst1;
+ 
+     v_if (exp >= 0)
+@@ -360,8 +360,7 @@ inline void _init_exponential_()
+     }
+     else
+     {
+-        sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+-        sfpi::vConstFloatPrgm1 = 2.0f;
++        _init_reciprocal_<APPROXIMATION_MODE>();
+         sfpi::vConstFloatPrgm2 = 0.863281f;
+     }
+ }
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_gelu.h
+@@ -189,10 +189,6 @@ inline void _init_gelu_()
+ template <bool APPROXIMATION_MODE>
+ inline void _init_gelu_derivative_()
+ {
+-    sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+-    sfpi::vConstFloatPrgm1 = 2.0f;
+-    sfpi::vConstFloatPrgm2 = 0.863281f;
+-
+     uint imm0;
+     uint imm1;
+     uint imm2;
+@@ -230,6 +226,8 @@ inline void _init_gelu_derivative_()
+     }
+     else
+     {
++        _init_exponential_<false>();
++
+         imm0 = 0x28FF;
+         imm1 = 0x3020;
+         _sfpu_load_imm16_(0, imm0);
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_recip.h
+@@ -17,38 +17,35 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
+     // Force sign to 1 (make number negative)
+     sfpi::vFloat val = sfpi::setsgn(in, 1);
+ 
+-    val = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
+-    // Use 1.44 as first guess at x, ideal value would be 1.33.
+-    // Grayskull has hardwired 1.44 and uses it to avoid a load.
+-    // We use it here for consistency.
+-    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
+-    sfpi::vFloat two            = sfpi::vConstFloatPrgm1;
+-    sfpi::vFloat result         = vConstLn2Recip * (val * vConstLn2Recip + two);
++    val                 = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
++    sfpi::vFloat a      = sfpi::vConstFloatPrgm0;
++    sfpi::vFloat b      = sfpi::vConstFloatPrgm1;
++    sfpi::vFloat result = a + b * val;
+ 
+-    for (int s_iter = 0; s_iter < (max_iter - 1); s_iter++)
++    for (int s_iter = 0; s_iter < max_iter; s_iter++)
+     {
+-        result = result * (val * result + two);
++        result += result * (val * result + sfpi::vConst1);
+     }
+ 
+     sfpi::vInt orig_exp = exexp(in);
+     sfpi::vInt new_exp  = exexp(result);
+-
+-    // "Subtract" exponents, and re-bias.
+-    // Execute: -1 - exp, then exp += 127
+     new_exp -= orig_exp;
+     new_exp += 126;
+ 
+-    v_if (new_exp < 0)
++    v_if (new_exp >= 0)
++    {
++        // Set newly denormalized exponent to result exponent field
++        result = setexp(result, new_exp);
++    }
++    v_else
+     {
+         // If rebiased exponent is negative, we need to saturate at 0.
+         // This means the initial number was too big so reciprocal result should be 0
+-        result  = 0.0F;
+-        new_exp = 0;
++        result = 0.0f;
+     }
+     v_endif;
+ 
+-    // Set newly denormalized exponent to result exponent field
+-    return setexp(result, new_exp);
++    return result;
+ }
+ 
+ template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en = true>
+@@ -59,13 +56,7 @@ inline void _calculate_reciprocal_(const int iterations)
+     {
+         sfpi::vFloat in  = sfpi::dst_reg[0];
+         sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(in);
+-
+-        v_if (in < 0.0F)
+-        {
+-            // Invert sign on calculated value if CC=1 (number is negative)
+-            out = -out;
+-        }
+-        v_endif;
++        out              = setsgn(out, sfpi::reinterpret<sfpi::vInt>(in));
+ 
+         if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+         {
+@@ -83,8 +74,13 @@ inline void _calculate_reciprocal_(const int iterations)
+ template <bool APPROXIMATION_MODE>
+ inline void _init_reciprocal_()
+ {
+-    sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
+-    sfpi::vConstFloatPrgm1 = 2.0f;
++    // The following constants are used to calculate an initial estimate for 1/D using a linear approximation.
++    // The linear approximation with minimum worst-case absolute error on the interval [0.5, 1] is:
++    //   X_0 = 48/17 - 32/17 D
++    // See https://en.wikipedia.org/wiki/Division_algorithm#Initial_estimate for the full derivation.
++
++    sfpi::vConstFloatPrgm0 = 48.0f / 17.0f;
++    sfpi::vConstFloatPrgm1 = 32.0f / 17.0f;
+ }
+ 
+ } // namespace sfpu
+

@@ -1,0 +1,118 @@
+PR #379: chore: update tt-exalens version
+URL: https://github.com/tenstorrent/tt-llk/pull/379
+
+File: .github/scripts/install-exalens.sh
+@@ -5,7 +5,10 @@
+ 
+ set -e
+ 
+-wget -O ttexalens-0.1.250514+dev.d45dfb0-cp310-cp310-linux_x86_64.whl \
+-    https://github.com/tenstorrent/tt-exalens/releases/download/0.1.250514/ttexalens-0.1.250514+dev.d45dfb0-cp310-cp310-linux_x86_64.whl
+-pip install --no-cache-dir ttexalens-0.1.250514+dev.d45dfb0-cp310-cp310-linux_x86_64.whl
+-rm ttexalens-0.1.250514+dev.d45dfb0-cp310-cp310-linux_x86_64.whl
++EXALENS_VERSION="0.1.250626+dev.7538f60-cp310-cp310-linux_x86_64"
++EXALENS_WHEEL="ttexalens-${EXALENS_VERSION}.whl"
++
++wget -O ${EXALENS_WHEEL} \
++    https://github.com/tenstorrent/tt-exalens/releases/download/0.1.250626/${EXALENS_WHEEL}
++pip install --no-cache-dir ${EXALENS_WHEEL}
++rm ${EXALENS_WHEEL}
+
+File: tests/python_tests/helpers/device.py
+@@ -3,6 +3,8 @@
+ 
+ import time
+ 
++from ttexalens.coordinate import OnChipCoordinate
++from ttexalens.debug_tensix import TensixDebug
+ from ttexalens.tt_exalens_lib import (
+     check_context,
+     load_elf,
+@@ -46,6 +48,10 @@
+ 
+ MAX_READ_BYTE_SIZE_16BIT = 2048
+ 
++# Constants for soft reset operation
++RISC_DBG_SOFT_RESET0 = "RISCV_DEBUG_REG_SOFT_RESET_0"
++TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack)
++
+ 
+ def collect_results(
+     formats: FormatConfig,
+@@ -61,33 +67,39 @@ def collect_results(
+     return res_from_L1
+ 
+ 
+-def run_elf_files(testname, core_loc="0,0"):
+-    BUILD = "../build"
+-
++def perform_tensix_soft_reset(core_loc="0,0"):
+     context = check_context()
+     device = context.devices[0]
+-    RISC_DBG_SOFT_RESET0 = device.get_tensix_register_address(
+-        "RISCV_DEBUG_REG_SOFT_RESET_0"
+-    )
++    chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
++    tensix_debug = TensixDebug(chip_coordinate, 0, context)
++
++    # Read current soft reset register, set TRISC reset bits, and write back
++    soft_reset = tensix_debug.read_tensix_register(RISC_DBG_SOFT_RESET0)
++    soft_reset |= TRISC_SOFT_RESET_MASK
++    tensix_debug.write_tensix_register(RISC_DBG_SOFT_RESET0, soft_reset)
++
++
++def run_elf_files(testname, core_loc="0,0"):
++    BUILD = "../build"
+ 
+     # Perform soft reset
+-    soft_reset = read_word_from_device(core_loc, RISC_DBG_SOFT_RESET0)
+-    soft_reset |= 0x7800
+-    write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
++    perform_tensix_soft_reset(core_loc)
+ 
+     # Load TRISC ELF files
+     TRISC = ["unpack", "math", "pack"]
+     for i in range(3):
+         load_elf(
+-            f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf", core_loc, risc_id=i + 1
++            elf_file=f"{BUILD}/tests/{testname}/elf/{TRISC[i]}.elf",
++            core_loc=core_loc,
++            risc_name=f"trisc{i}",
+         )
+ 
+     # Reset the profiler barrier
+-    TRISC_PROFILER_BARRIER = 0x16AFF4
+-    write_words_to_device(core_loc, TRISC_PROFILER_BARRIER, [0, 0, 0])
++    TRISC_PROFILER_BARRIE_ADDRESS = 0x16AFF4
++    write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
+ 
+     # Run BRISC
+-    run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_id=0)
++    run_elf(f"{BUILD}/shared/brisc.elf", core_loc, risc_name="brisc")
+ 
+ 
+ def write_stimuli_to_l1(
+
+File: tests/setup_external_testing_env.sh
+@@ -90,17 +90,14 @@ if [[ "$REUSE" == false ]]; then
+ 
+     # Install tt-exalens
+     echo "Installing tt-exalens..."
+-    if [[ $PYTHON_VERSION == "3.8"* ]]; then
+-        EXALENS_WHEEL="ttexalens-0.1.250326+dev.0c4381a-cp38-cp38-linux_x86_64.whl"
+-        echo "Python 3.8 detected, using pre-built wheel for tt-exalens $EXALENS_WHEEL"
+-    elif [[ $PYTHON_VERSION == "3.10"* ]]; then
+-        EXALENS_WHEEL="ttexalens-0.1.250326+dev.0c4381a-cp310-cp310-linux_x86_64.whl"
++    if [[ $PYTHON_VERSION == "3.10"* ]]; then
++        EXALENS_WHEEL="ttexalens-0.1.250626+dev.7538f60-cp310-cp310-linux_x86_64.whl"
+         echo "Python 3.10 detected, using pre-built wheel for tt-exalens $EXALENS_WHEEL"
+     else
+         echo "Unsupported Python version: $PYTHON_VERSION"
+         exit 1
+     fi
+-    wget -O $EXALENS_WHEEL https://github.com/tenstorrent/tt-exalens/releases/download/0.1/$EXALENS_WHEEL
++    wget -O $EXALENS_WHEEL https://github.com/tenstorrent/tt-exalens/releases/download/0.1.250626/$EXALENS_WHEEL
+     if [ ! -f $EXALENS_WHEEL ]; then
+         echo "Failed to download tt-exalens wheel file"
+         exit 1
+

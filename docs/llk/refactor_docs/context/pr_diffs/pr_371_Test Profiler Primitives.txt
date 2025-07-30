@@ -1,0 +1,183 @@
+PR #371: Test Profiler Primitives
+URL: https://github.com/tenstorrent/tt-llk/pull/371
+
+File: tests/helpers/include/profiler.h
+@@ -88,22 +88,9 @@ __attribute__((always_inline)) inline void sync_threads()
+ {
+     auto& barrier = *barrier_ptr;
+ 
+-    // wait for all the threads to reset the barrier
+-    barrier[TRISC_ID] = 0;
+-    for (uint32_t i = 0; i < NUM_CORES; ++i)
+-    {
+-        if (i == TRISC_ID)
+-        {
+-            continue;
+-        }
+-        while (barrier[i] != 0)
+-        {
+-            asm volatile("fence");
+-        }
+-    }
+-
+     // wait for all the threads to set the barrier
+     barrier[TRISC_ID] = 1;
++    asm volatile("fence" ::: "memory");
+     for (uint32_t i = 0; i < NUM_CORES; ++i)
+     {
+         if (i == TRISC_ID)
+@@ -112,7 +99,7 @@ __attribute__((always_inline)) inline void sync_threads()
+         }
+         while (barrier[i] != 1)
+         {
+-            asm volatile("fence");
++            asm volatile("fence" ::: "memory");
+         }
+     }
+ }
+
+File: tests/python_tests/helpers/device.py
+@@ -78,6 +78,10 @@ def run_elf_files(testname, core_loc="0,0", run_brisc=True):
+     for i in range(3):
+         load_elf(f"{ELF_LOCATION}{testname}_trisc{i}.elf", core_loc, risc_id=i + 1)
+ 
++    # Reset the profiler barrier
++    TRISC_PROFILER_BARRIER = 0x16AFF4
++    write_words_to_device(core_loc, TRISC_PROFILER_BARRIER, [0, 0, 0])
++
+     # Clear soft reset
+     soft_reset &= ~0x7800
+     write_words_to_device(core_loc, RISC_DBG_SOFT_RESET0, soft_reset)
+
+File: tests/python_tests/test_profiler_primitives.py
+@@ -0,0 +1,88 @@
++# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++# SPDX-License-Identifier: Apache-2.0
++
++
++from helpers.device import (
++    run_elf_files,
++    wait_for_tensix_operations_finished,
++)
++from helpers.profiler import Profiler, build_with_profiler
++
++
++def assert_marker(
++    marker_obj, expected_marker, expected_file_suffix, expected_line, expected_id
++):
++    assert (
++        marker_obj.marker == expected_marker
++    ), f"Expected marker = '{expected_marker}', got {marker_obj.marker}"
++    assert marker_obj.file.endswith(
++        expected_file_suffix
++    ), f"Expected file to end with '{expected_file_suffix}', got {marker_obj.file}"
++    assert (
++        marker_obj.line == expected_line
++    ), f"Expected line = {expected_line}, got {marker_obj.line}"
++    assert (
++        marker_obj.id == expected_id
++    ), f"Expected id = {expected_id}, got {marker_obj.id}"
++
++
++def test_profiler_primitives():
++
++    test_config = {
++        "testname": "profiler_primitives_test",
++    }
++
++    profiler_meta = build_with_profiler(test_config)
++    assert profiler_meta is not None, "Profiler metadata should not be None"
++
++    run_elf_files("profiler_primitives_test")
++    wait_for_tensix_operations_finished()
++
++    runtime = Profiler.get_data(profiler_meta)
++
++    # ZONE_SCOPED
++    zone = runtime.unpack[0]
++    assert_marker(
++        zone.full_marker,
++        "TEST_ZONE",
++        "profiler_primitives_test.cpp",
++        17,
++        42158,
++    )
++    assert zone.start > 0, f"Expected zone.start > 0, got {zone.start}"
++    assert zone.end > zone.start, f"Expected zone.end > {zone.start}, got {zone.end}"
++    assert (
++        zone.duration == zone.end - zone.start
++    ), f"Expected zone.duration = {zone.end - zone.start}, got {zone.duration}"
++
++    # TIMESTAMP
++    timestamp = runtime.math[0]
++    assert_marker(
++        timestamp.full_marker,
++        "TEST_TIMESTAMP",
++        "profiler_primitives_test.cpp",
++        26,
++        28111,
++    )
++    assert (
++        timestamp.timestamp > 0
++    ), f"Expected timestamp.timestamp > 0, got {timestamp.timestamp}"
++    assert (
++        timestamp.data is None
++    ), f"Expected timestamp.date to be None, got {timestamp.data}"
++
++    # TIMESTAMP_DATA
++    timestamp_data = runtime.pack[0]
++    assert_marker(
++        timestamp_data.full_marker,
++        "TEST_TIMESTAMP_DATA",
++        "profiler_primitives_test.cpp",
++        35,
++        18694,
++    )
++    assert (
++        timestamp_data.timestamp > 0
++    ), f"Expected timestamp_data.timestamp > 0, got {timestamp_data.timestamp}"
++    assert (
++        timestamp_data.data == 0xBADC0FFE0DDF00D
++    ), f"Expected timestamp_data.data = 0xBADC0FFE0DDF00D, got {hex(timestamp_data.data)}"
+
+File: tests/sources/profiler_primitives_test.cpp
+@@ -0,0 +1,38 @@
++// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
++//
++// SPDX-License-Identifier: Apache-2.0
++
++#include <cstdint>
++
++#include "profiler.h"
++
++// Globals
++uint32_t unp_cfg_context        = 0;
++uint32_t pack_sync_tile_dst_ptr = 0;
++
++#ifdef LLK_TRISC_UNPACK
++
++void run_kernel()
++{
++    ZONE_SCOPED("TEST_ZONE")
++}
++
++#endif
++
++#ifdef LLK_TRISC_MATH
++
++void run_kernel()
++{
++    TIMESTAMP("TEST_TIMESTAMP")
++}
++
++#endif
++
++#ifdef LLK_TRISC_PACK
++
++void run_kernel()
++{
++    TIMESTAMP_DATA("TEST_TIMESTAMP_DATA", 0xBADC0FFE0DDF00D);
++}
++
++#endif
+

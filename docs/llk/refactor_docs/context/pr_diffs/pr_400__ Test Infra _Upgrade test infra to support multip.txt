@@ -1,0 +1,332 @@
+PR #400: [ Test Infra ]Upgrade test infra to support multiple tiles and random tensor shape as input ( first iteration )
+URL: https://github.com/tenstorrent/tt-llk/pull/400
+
+File: .github/workflows/on-pr.yml
+@@ -39,6 +39,7 @@ jobs:
+       tests: ${{ steps.filter.outputs.tests }}
+       github: ${{ steps.filter.outputs.github }}
+       documentation: ${{ steps.filter.outputs.documentation }}
++      performance: ${{ steps.filter.outputs.performance }}
+     steps:
+       - name: Checkout code
+         uses: actions/checkout@v4
+@@ -62,6 +63,9 @@ jobs:
+                 - 'docs/**'
+                 - '**/*.md'
+                 - '**/*.rst'
++              performance:
++                - '**/*perf**'
++                - '**/*profiler**'
+ 
+   label-pr:
+     name: "🏷️ Label PR"
+@@ -82,6 +86,7 @@ jobs:
+             if ("${{ needs.detect-changes.outputs.tests }}" === "true") expectedLabels.add("test-infra");
+             if ("${{ needs.detect-changes.outputs.github }}" === "true") expectedLabels.add("ci");
+             if ("${{ needs.detect-changes.outputs.documentation }}" === "true") expectedLabels.add("documentation");
++            if ("${{ needs.detect-changes.outputs.performance }}" === "true") expectedLabels.add("performance");
+ 
+             // Get current labels
+             const {data: currentLabels} = await github.rest.issues.listLabelsOnIssue({
+@@ -91,7 +96,8 @@ jobs:
+             });
+ 
+             // Create sets for comparison
+-            const managedLabels = new Set(["blackhole", "ci", "documentation", "test-infra", "wormhole"]);
++            const managedLabels = new Set(["blackhole", "ci", "documentation",
++                                           "performance", "test-infra", "wormhole"]);
+             const currentLabelSet = new Set(currentLabels.map(label => label.name));
+ 
+             // Calculate labels to add and remove
+
+File: tests/python_tests/helpers/device.py
+@@ -14,7 +14,7 @@
+     write_words_to_device,
+ )
+ 
+-from .format_arg_mapping import Mailbox
++from .format_arg_mapping import DestAccumulation, Mailbox
+ from .format_config import DataFormat, FormatConfig
+ from .pack import (
+     pack_bfp8_b,
+@@ -171,6 +171,62 @@ def get_result_from_device(
+         raise ValueError(f"Unsupported format: {formats.output_format}")
+ 
+ 
++def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
++    """
++    Reads values in the destination register from the device.
++        - Only supported on BH . Due to hardware bug, TRISCs exit the halted state after a single read and must be rehalted for each read. On wormhole they cannot be halted again. This breaks multi-read loops (e.g., 1024 reads).
++        - On blackhole, debug_risc.read_memory() re-halts the TRISC, so multi-read loops work. Until the debug team provides a workaround, memory reads are limited to blackhole only.
++        - We read with TRISC 0 (Risc ID 1) because this is the only core that can be rehalted.
++
++    Args:
++        num_tiles: Number of tiles to read from the destination register.
++        dest_acc: Whether destination accumulation is enabled or not.
++
++    Prerequisite: Disable flag that clears dest register after packing (in llk_pack_common.h) otherwise you will read garbage values.
++        - For BH in pack_dest_section_done_, comment out this line : TT_ZEROACC(p_zeroacc::CLR_HALF, is_fp32_dest_acc_en, 0, ADDR_MOD_1, (dest_offset_id) % 2);
++
++    Note:
++        - The destination register is read from the address 0xFFBD8000.
++        - Number of tiles that can fit in dest register depends on size of datum. If dest register is in 32 bit mode (dest accumulation is enabled), num_tiles must be ≤ 8. Otherwise, ≤ 16.
++    """
++
++    from ttexalens.debug_risc import RiscDebug, RiscLoc
++    from ttexalens.tt_exalens_lib import (
++        check_context,
++        convert_coordinate,
++        validate_device_id,
++    )
++
++    risc_id = 1  # we want to use TRISC 0 for reading the destination register
++    noc_id = 0  # NOC ID for the device
++    device_id = 0  # Device ID for the device
++    core_loc = "0,0"  # Core location in the format "tile_id,risc_id"
++    base_address = 0xFFBD8000
++
++    context = check_context()
++    validate_device_id(device_id, context)
++    coordinate = convert_coordinate(core_loc, device_id, context)
++
++    if risc_id != 1:
++        raise ValueError(
++            "Risc id is not 1. Only TRISC 0 can be halted and read from memory."
++        )
++
++    location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
++    debug_risc = RiscDebug(location=location, context=context, verbose=False)
++
++    assert num_tiles <= (8 if dest_acc == DestAccumulation.Yes else 16)
++
++    word_size = 4  # bytes per 32-bit integer
++    num_words = num_tiles * 1024
++    addresses = [base_address + i * word_size for i in range(num_words)]
++
++    with debug_risc.ensure_halted():
++        dest_reg = [debug_risc.read_memory(addr) for addr in addresses]
++
++    return dest_reg
++
++
+ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):
+     """
+     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
+
+File: tests/sources/sfpu_binary_test.cpp
+@@ -58,10 +58,10 @@ void call_binary_sfpu_operation(BinaryOp operation)
+             _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(1);
+             break;
+         case BinaryOp::RSHFT:
+-            _calculate_binary_right_shift_<false, 32>(1);
++            _calculate_binary_right_shift_<false, 32, INT32, false>(1);
+             break;
+         case BinaryOp::LSHFT:
+-            _calculate_binary_left_shift_<false, 32>(1);
++            _calculate_binary_left_shift_<false, 32, INT32, false>(1);
+             break;
+         default:
+             return;
+
+File: tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_shift.h
+@@ -4,6 +4,8 @@
+ 
+ #pragma once
+ 
++#include <type_traits>
++
+ #include "ckernel_addrmod.h"
+ #include "ckernel_ops.h"
+ #include "sfpi.h"
+@@ -13,59 +15,65 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _calculate_binary_left_shift_(const uint dst_offset)
+ {
++    static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
++
++    constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
+     // SFPU microcode
+     for (int d = 0; d < ITERATIONS; d++)
+     {
+         constexpr uint dst_tile_size = 64;
+         // load
+-        TTI_SFPLOAD(0, 12, ADDR_MOD_7, 0);
+-        TT_SFPLOAD(1, 12, ADDR_MOD_7, dst_offset * dst_tile_size);
++        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, 0);
++        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_7, dst_offset * dst_tile_size);
+         // if (shift_amount < 0 OR shift_amount >= 32) -> result should be 0
+-        TTI_SFPSETCC(0, 1, 0, 4);
+-        TTI_SFPIADD(0xFE0, 1, 2, 1); // 0xFE0 = -32
+-        TTI_SFPCOMPC(0, 0, 0, 0);
+-        TTI_SFPMOV(0, 9, 0, 0);
+-        TTI_SFPENCC(0, 0, 0, 0);
++        TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
++        TTI_SFPIADD(0xFE0, p_sfpu::LREG1, p_sfpu::LREG2, 1); // 0xFE0 = -32
++        TTI_SFPCOMPC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
++        TTI_SFPMOV(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
++        TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+         // shift left
+-        TTI_SFPSHFT(0, 1, 0, 0);
++        TTI_SFPSHFT(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);
+         // store result
+-        TTI_SFPSTORE(0, 12, ADDR_MOD_7, 0);
++        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, 0);
+         sfpi::dst_reg++;
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _calculate_binary_right_shift_(const uint dst_offset)
+ {
++    static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
++
++    constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
+     // SFPU microcode
+     for (int d = 0; d < ITERATIONS; d++)
+     {
+         constexpr uint dst_tile_size = 64;
+         // load
+-        TTI_SFPLOAD(0, 12, ADDR_MOD_7, 0);
+-        TT_SFPLOAD(1, 12, ADDR_MOD_7, dst_offset * dst_tile_size);
+-        TTI_SFPMOV(0, 0, 4, 0); // save shift_value for later
++        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, 0);
++        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_7, dst_offset * dst_tile_size);
++        TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG4, 0); // save shift_value for later
+         // if (shift_amount < 0 OR shift_amount >= 32) -> result should be 0
+         TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+         TTI_SFPIADD(0xFE0, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LCONST_0); // 0xFE0 = -32
+         TTI_SFPMOV(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+         TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+         TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG1, 6); // take negative of shift_amount to shift right
+         // shift right
+-        TTI_SFPSHFT(0, 1, 0, 0);
++        TTI_SFPSHFT(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);
+         // if shift_value was negative, need to shift in 1's manually
+-        TTI_SFPSETCC(0, 4, 0, 0);    // only run if shift_value is negative
+-        TTI_SFPSETCC(0, 1, 0, 2);    // only needed if shift_amount>0
+-        TTI_SFPIADD(0x020, 1, 2, 5); // take 32-shift_amount (0x020 = 32)
+-        TTI_SFPNOT(0, 9, 3, 0);      // put all 1's into LREG3
+-        TTI_SFPSHFT(0, 2, 3, 0);     // shift all 1's by 32-shift_amount
+-        TTI_SFPOR(0, 3, 0, 0);       // OR in the 1's
+-        TTI_SFPENCC(0, 0, 0, 0);
++        TTI_SFPSETCC(0, p_sfpu::LREG4, p_sfpu::LREG0, 0);    // only run if shift_value is negative
++        TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 2);    // only needed if shift_amount>0
++        TTI_SFPIADD(0x020, p_sfpu::LREG1, p_sfpu::LREG2, 5); // take 32-shift_amount (0x020 = 32)
++        TTI_SFPNOT(0, p_sfpu::LCONST_0, p_sfpu::LREG3, 0);   // put all 1's into LREG3
++        TTI_SFPSHFT(0, p_sfpu::LREG2, p_sfpu::LREG3, 0);     // shift all 1's by 32-shift_amount
++        TTI_SFPOR(0, p_sfpu::LREG3, p_sfpu::LREG0, 0);       // OR in the 1's
++        TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+         // store result
+-        TTI_SFPSTORE(0, 12, ADDR_MOD_7, 0);
++        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, 0);
+         sfpi::dst_reg++;
+     }
+ }
+
+File: tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_shift.h
+@@ -4,6 +4,8 @@
+ 
+ #pragma once
+ 
++#include <type_traits>
++
+ #include "ckernel_ops.h"
+ #include "sfpi.h"
+ 
+@@ -12,59 +14,67 @@ namespace ckernel
+ namespace sfpu
+ {
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _calculate_binary_left_shift_(const uint dst_offset)
+ {
++    static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
++
++    constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
++
+     // SFPU microcode
+     for (int d = 0; d < ITERATIONS; d++)
+     {
+         constexpr uint dst_tile_size = 64;
+         // load
+-        TTI_SFPLOAD(0, 4, 3, 0);
+-        TT_SFPLOAD(1, 4, 3, dst_offset * dst_tile_size);
++        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, 3, 0);
++        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, 3, dst_offset * dst_tile_size);
+         // if (shift_amount < 0 OR shift_amount >= 32) -> result should be 0
+-        TTI_SFPSETCC(0, 1, 0, 4);
+-        TTI_SFPIADD(0xFE0, 1, 2, 1); // 0xFE0 = -32
+-        TTI_SFPCOMPC(0, 0, 0, 0);
+-        TTI_SFPMOV(0, 9, 0, 0);
+-        TTI_SFPENCC(0, 0, 0, 0);
++        TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
++        TTI_SFPIADD(0xFE0, p_sfpu::LREG1, p_sfpu::LREG2, 1); // 0xFE0 = -32
++        TTI_SFPCOMPC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
++        TTI_SFPMOV(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
++        TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+         // shift left
+-        TTI_SFPSHFT(0, 1, 0, 0);
++        TTI_SFPSHFT(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);
+         // store result
+-        TTI_SFPSTORE(0, 4, 3, 0);
++        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, 3, 0);
+         sfpi::dst_reg++;
+     }
+ }
+ 
+-template <bool APPROXIMATION_MODE, int ITERATIONS>
++template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
+ inline void _calculate_binary_right_shift_(const uint dst_offset)
+ {
++    static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
++
++    constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
++
+     // SFPU microcode
+     for (int d = 0; d < ITERATIONS; d++)
+     {
+         constexpr uint dst_tile_size = 64;
+         // load
+-        TTI_SFPLOAD(0, 4, 3, 0);
+-        TT_SFPLOAD(1, 4, 3, dst_offset * dst_tile_size);
+-        TTI_SFPMOV(0, 0, 4, 0); // save shift_value for later
++        TTI_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, 3, 0);
++        TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, 3, dst_offset * dst_tile_size);
++        TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG4, 0); // save shift_value for later
+         // if (shift_amount < 0 OR shift_amount >= 32) -> result should be 0
+         TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+         TTI_SFPIADD(0xFE0, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LCONST_0); // 0xFE0 = -32
+         TTI_SFPMOV(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+         TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+         TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG1, 6); // take negative of shift_amount to shift right
+         // shift right
+-        TTI_SFPSHFT(0, 1, 0, 0);
++        TTI_SFPSHFT(0, p_sfpu::LREG1, p_sfpu::LREG0, 0);
+         // if shift_value was negative, need to shift in 1's manually
+-        TTI_SFPSETCC(0, 4, 0, 0);    // only run if shift_value is negative
+-        TTI_SFPSETCC(0, 1, 0, 2);    // only needed if shift_amount>0
+-        TTI_SFPIADD(0x020, 1, 2, 5); // take 32-shift_amount (0x020 = 32)
+-        TTI_SFPNOT(0, 9, 3, 0);      // put all 1's into LREG3
+-        TTI_SFPSHFT(0, 2, 3, 0);     // shift all 1's by 32-shift_amount
+-        TTI_SFPOR(0, 3, 0, 0);       // OR in the 1's
+-        TTI_SFPENCC(0, 0, 0, 0);
++        TTI_SFPSETCC(0, p_sfpu::LREG4, p_sfpu::LREG0, 0);    // only run if shift_value is negative
++        TTI_SFPSETCC(0, p_sfpu::LREG1, p_sfpu::LREG0, 2);    // only needed if shift_amount>0
++        TTI_SFPIADD(0x020, p_sfpu::LREG1, p_sfpu::LREG2, 5); // take 32-shift_amount (0x020 = 32)
++        TTI_SFPNOT(0, p_sfpu::LCONST_0, p_sfpu::LREG3, 0);   // put all 1's into LREG3
++        TTI_SFPSHFT(0, p_sfpu::LREG2, p_sfpu::LREG3, 0);     // shift all 1's by 32-shift_amount
++        TTI_SFPOR(0, p_sfpu::LREG3, p_sfpu::LREG0, 0);       // OR in the 1's
++        TTI_SFPENCC(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+         // store result
+-        TTI_SFPSTORE(0, 4, 3, 0);
++        TTI_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, 3, 0);
+         sfpi::dst_reg++;
+     }
+ }
+

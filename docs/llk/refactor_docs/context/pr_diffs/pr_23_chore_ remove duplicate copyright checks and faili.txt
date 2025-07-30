@@ -1,0 +1,59 @@
+PR #23: chore: remove duplicate copyright checks and failing pre-commit check
+URL: https://github.com/tenstorrent/tt-llk/pull/23
+
+File: .github/workflows/pre-commit.yml
+@@ -9,7 +9,7 @@ on:
+ 
+ jobs:
+   pre-commit:
+-    name: Run Pre-commit Hooks
++    name: Run pre-commit hooks
+     runs-on: ubuntu-latest
+     steps:
+       - name: Checkout code
+@@ -22,7 +22,7 @@ jobs:
+         with:
+           python-version: 3.8
+ 
+-      - name: Run Pre-commit and Fix Issues
++      - name: Run pre-commit and fix issues
+         uses: pre-commit/action@v3.0.1
+         with:
+           extra_args: "--from-ref origin/main --to-ref HEAD"
+
+File: .github/workflows/static-checks.yml
+@@ -1,25 +0,0 @@
+-name: "[post-commit] Static-check: license"
+-
+-on:
+-  workflow_dispatch:
+-  push:
+-    branches: ["main"]
+-  workflow_call:
+-  pull_request:
+-    branches:
+-      - "main"
+-
+-jobs:
+-  check-spdx-licenses:
+-    runs-on: ubuntu-latest
+-    steps:
+-      - uses: actions/checkout@v3
+-      - uses: actions/setup-python@v4
+-        with:
+-          python-version: '3.8'
+-          cache: 'pip'
+-          cache-dependency-path: infra/requirements-infra.txt
+-      - name: Install infra deps
+-        run: python -m pip install -r infra/requirements-infra.txt
+-      - name: Check SPDX licenses
+-        run: python -m check_copyright --verbose --dry-run --config ./infra/check_copyright_config.yaml .
+
+File: .pre-commit-config.yaml
+@@ -29,5 +29,3 @@ repos:
+     - id: check-merge-conflict
+     - id: check-executables-have-shebangs
+     - id: check-docstring-first
+-    - id: no-commit-to-branch
+-      args: ["--branch", "main"]
+
