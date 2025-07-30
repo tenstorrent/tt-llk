@@ -19,11 +19,11 @@ inline void _calculate_rsqrt_(int iterations)
 {
     if constexpr (layernorm_compat)
     {
-        return _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, true>(iterations);
+        return _calculate_rsqrt_compat_<APPROXIMATION_MODE, ITERATIONS>(iterations);
     }
     else
     {
-        return _calculate_rsqrt_compat_<APPROXIMATION_MODE, ITERATIONS>(iterations);
+        return _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, true>(iterations);
     }
 }
 
