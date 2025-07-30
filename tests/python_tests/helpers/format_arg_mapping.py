@@ -170,6 +170,16 @@ class ApproximationMode(Enum):
     No = "false"
 
 
+class Transpose(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class Haloize(Enum):
+    Yes = "true"
+    No = "false"
+
+
 class MathFidelity(Enum):
     LoFi = 0
     HiFi2 = 1

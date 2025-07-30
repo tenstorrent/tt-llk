@@ -226,6 +226,122 @@ def to_tensor(operand, data_format):
     return operand.clone().detach().to(torch_format)
 
 
+def transpose_tensor(tensor):
+    """Transpose a PyTorch tensor.
+    Args:
+        tensor: Input PyTorch tensor to transpose
+    Returns:
+        torch.Tensor: Transposed tensor
+    """
+    return tensor.T
+
+
+@register_golden
+class TransposeGolden:
+    def __init__(self):
+        self.ops = {
+            "within_faces": self._transpose_within_faces,
+            "faces": self._transpose_faces,
+        }
+
+    def __call__(self, operation, operand, data_format):
+        """Perform transpose operation on operand.
+        Args:
+            operation: Type of transpose operation ("within_faces" or "faces")
+            operand: Input tensor to transpose
+            data_format: Data format for the result
+        Returns:
+            torch.Tensor: Transposed tensor in the specified data format
+        """
+        if operation not in self.ops:
+            raise ValueError(f"Unsupported transpose operation: {operation}")
+
+        tensor = to_tensor(operand, data_format)
+        result = self.ops[operation](tensor)
+        return result.to(format_dict[data_format])
+
+    def _transpose_within_faces(self, tensor):
+        """Transpose a tile tensor by transposing within each of the four faces.
+        A tile tensor consists of 4 equal faces arranged in a tile.
+        This function dynamically splits the tensor into 4 faces, transposes each face
+        individually, and reassembles the tile.
+        Args:
+            tensor: Input PyTorch tensor representing 4 faces (must be divisible by 4)
+        Returns:
+            torch.Tensor: Tensor with each face transposed, flattened back to original size
+        """
+        total_elements = tensor.numel()
+        if total_elements % 4 != 0:
+            raise ValueError(
+                f"Tensor size {total_elements} must be divisible by 4 for tile structure"
+            )
+
+        face_size = total_elements // 4
+        face_dim = int(math.sqrt(face_size))
+
+        if face_dim * face_dim != face_size:
+            raise ValueError(
+                f"Each face must be square. Face size {face_size} is not a perfect square"
+            )
+
+        # Split the tensor into 4 faces dynamically
+        f0 = tensor[:face_size].view(face_dim, face_dim)
+        f1 = tensor[face_size : 2 * face_size].view(face_dim, face_dim)
+        f2 = tensor[2 * face_size : 3 * face_size].view(face_dim, face_dim)
+        f3 = tensor[3 * face_size :].view(face_dim, face_dim)
+
+        # Transpose each face using the helper function
+        f0_transposed = transpose_tensor(f0)
+        f1_transposed = transpose_tensor(f1)
+        f2_transposed = transpose_tensor(f2)
+        f3_transposed = transpose_tensor(f3)
+
+        # Flatten each face and concatenate back into a single tensor
+        result = torch.cat(
+            [
+                f0_transposed.flatten(),
+                f1_transposed.flatten(),
+                f2_transposed.flatten(),
+                f3_transposed.flatten(),
+            ]
+        )
+
+        return result
+
+    def _transpose_faces(self, tensor):
+        """Transpose the arrangement of the four faces in a tile tensor.
+        Treats each face as a single element and transposes their arrangement.
+        If faces are arranged as:
+        f0 f1
+        f2 f3
+        After transposition:
+        f0 f2
+        f1 f3
+        Args:
+            tensor: Input PyTorch tensor representing 4 faces (must be divisible by 4)
+        Returns:
+            torch.Tensor: Tensor with faces rearranged in transposed order
+        """
+        total_elements = tensor.numel()
+        if total_elements % 4 != 0:
+            raise ValueError(
+                f"Tensor size {total_elements} must be divisible by 4 for tile structure"
+            )
+
+        face_size = total_elements // 4
+
+        # Split the tensor into 4 faces
+        f0 = tensor[:face_size]
+        f1 = tensor[face_size : 2 * face_size]
+        f2 = tensor[2 * face_size : 3 * face_size]
+        f3 = tensor[3 * face_size :]
+
+        # Transpose the face arrangement: f0,f1,f2,f3 -> f0,f2,f1,f3
+        result = torch.cat([f0, f2, f1, f3])
+
+        return result
+
+
 @register_golden
 class MatmulGolden(FidelityMasking):
 
