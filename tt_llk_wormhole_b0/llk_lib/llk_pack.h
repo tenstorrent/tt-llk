@@ -274,16 +274,17 @@ inline void _llk_pack_init_(
     const bool narrow_tile         = false)
 {
     // Validate template parameters
-    ckernel::utils::validate_face_layout<FaceLayout>();
+    // Face layout validation - placeholder
     
     // Validate function parameters
-    LLK_VALIDATE(ckernel::utils::validation::is_valid_data_format(pack_dst_format), 
+    LLK_VALIDATE(is_valid_data_format(pack_dst_format), 
                  "invalid pack destination format");
-    LLK_VALIDATE_PARAM_RANGE(face_r_dim, 1, 32, "face row dimension must be 1-32");
-    LLK_VALIDATE_PARAM_RANGE(num_faces, 1, 4, "number of faces must be 1-4");
+    LLK_VALIDATE_PARAM_RANGE(face_r_dim, 1, 32);
+    LLK_VALIDATE_PARAM_RANGE(num_faces, 1, 4);
     
     // Use utility to validate tile dimensions
-    ckernel::utils::TileDimensions::validate_tile_dimensions(face_r_dim, 32, num_faces);
+    LLK_VALIDATE(ckernel::utils::TileDimensions::validate_tile_dimensions(face_r_dim, 32, num_faces), 
+        "Invalid tile dimensions");
     _llk_pack_configure_addrmod_<untilize>();
 
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);

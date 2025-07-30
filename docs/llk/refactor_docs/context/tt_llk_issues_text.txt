@@ -1,0 +1,2970 @@
+Issue #539: Batched building for test cases
+------------------------------------------------------------
+For a test case compilation time can take quite a bit of time compared to the execution of the test. Given we test our llk separately from tt-metal, for each test case we have fewer files to test, that would mean we are probably not using the full capacity of the machine while compiling, even if we parallelize the compilation of the files of a single test case.  So we could parallelize the compilation more, in a producer consumer fashion. 
+
+For example multiple CPU threads will try to compile multiple test cases into a folder as long as there is space in the folder and there are test cases to be executed. 
+
+While the execution thread will keep on executing tests as long as compiled test cases are finished. 
+
+If compilation time takes considerable time compared to execution time, this should speed up the testing considerably.
+
+================================================================================
+
+Issue #531: Requirements for running tests on Quasar simulator
+------------------------------------------------------------
+## Description
+This ticket serves as an umbrella item and a bill of materials (BOM) for enabling and running tests on the Quasar simulator.
+All specific requirements and dependencies will be tracked as separate issues and linked to this ticket for visibility and traceability.
+
+## Purpose
+- Provide a central reference point for all test-related requirements for the Quasar simulator.
+- Ensure all necessary components, tools, and configurations are clearly defined and tracked.
+- Enable smoother planning, development, and integration of test capabilities for the Quasar hardware.
+
+## Requirements
+- Rework testing framework to utilize exalens for initial configuration (instead of brisc, use exalens)
+- LLK Quasar drop in tt-llk (ongoing)
+- Linker scripts and headers for Quasar
+- Exalens support for running Quasar tests
+- SFPI Quasar support
+
+================================================================================
+
+Issue #530: Unify Test Reporting
+------------------------------------------------------------
+Currently, when `pytest` is run locally and on CI it will log in a different format. I assume this is because the default terminal reporter treats interactive and non-interactive shells differently. I think it would be useful for unify this so that when ran anywhere, our test harness uses the same logging format.
+
+================================================================================
+
+Issue #527: TTNN Where track unresolved issues
+------------------------------------------------------------
+- dst_offset in ternary_params to allow random tile placement in dest register
+- std::forward instead of static_cast if left somewhere [ done ]
+- [this comment](https://github.com/tenstorrent/tt-llk/pull/520#discussion_r2219614253) [followed by](https://github.com/tenstorrent/tt-llk/pull/520#discussion_r2219615977) [ done ]
+- remove namespaces tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_ternary_sfpu.h [from here](https://github.com/tenstorrent/tt-llk/pull/520#discussion_r2222290984) [ done ]
+- clean test [ done ]
+- pass ITERATIONS to kernels
+
+================================================================================
+
+Issue #526: Investigate perf optimization of EXP LLK implementation
+------------------------------------------------------------
+[`calculate_exponential`](https://github.com/tenstorrent/tt-llk/blob/19b0ab73905e45f2284bc5892ed687775e31bf13/tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_exp.h#L161C1-L254C6) spends quite a bit of time on input sanitization.
+Explore possibilities to optimize that part, or hide by overlapping with some other compute. It would be very beneficial for FlashAttention in SDPA op, and overall for llama perf.
+See also https://github.com/tenstorrent/tt-metal/issues/17954
+
+================================================================================
+
+Issue #525: Evaluate FlashAttention 2 paper for optimization ideas
+------------------------------------------------------------
+[FlashAttention 2](https://arxiv.org/pdf/2307.08691) paper has some interesting low level optimization ideas. Target HW is Nvidia, but it is worth evaluating if any of those are transferable to LLKs and TT HW.
+
+================================================================================
+
+Issue #523: Profiling and analysis of Reader/Writer/Compute Kernels for an OP
+------------------------------------------------------------
+If we consider the three kernels as three stages of a pipeline, the one that will end up being the bottleneck is going to be the one with the largest stage. In an ideal scenario, these three would take exactly same amount of time and none would bottleneck another.
+
+In a practical scenario this is not achieved and one stage waits for another, now how is that wait manifested ?
+
+It is manifested through the wait times for a circular buffer for the second iteration and so on. In the first iteration, the compute kernel must wait for the circular buffer to be filled, the writer must wait for its corresponding circular buffers to be filled, but theoretically in an ideal case the moment the compute kernel tries to read new data from the circular buffer, it should be there. 
+
+So one thing we could do is analyze which buffers are being waited upon, that could indicate who is causing the bottleneck, but then again due to dependency chain it might not be obvious and may require some investigation. For example the writer waits for the compute unit to finish filling up the circular buffer, but that could just be because the compute was slowed down by the reader. 
+
+So how do we know who is the bottleneck ? Here is a plausible way of doing the analysis. 
+
+Let the reader kernel run with an infinitely fast compute kernel & writer kernel (that is assume data is consumed right away) 
+Let the compute kernel run with an infinitely fast reader & writer kernel (that is work with garbage data , assuming the compute speed remains the same). 
+Let the writer kernel run with an infinitely fast reader & compute kernel. 
+
+This should tell us which kernel is taking up the most time and needs to be optimized, if the reader and writer kernels are taking more time, then we should probably change the data format. 
+
+
+But here is the catch. In some cases in this train of thought there might be more hypothetical pipeline stages. That is when the reader kernel is broken into two parts & so is the compute & writer kernels. In such cases its like a many stage pipeline, and we need to find out a sorted list latencies of such stages and spot the bottleneck. I think we could still do that by applying the above methods, we just need to use timestamp for each such stage. The idea would be the same, benchmark each part in a thread assuming everything else is running at full speed. And then make a sorted list of portions of work based on time consumed and then we could focus on improving those chunks. 
+
+It may be possible to reverse engineer the bottlenecks by looking at the waiting time on the circular buffers (which are the effects, the differences in processing time of the chunks being the cause), but that would require a bit of mathematical analysis and thought. Or it may be just measuring everything in chunks and ignoring the wait times and then creating a sorted list of some form.
+
+================================================================================
+
+Issue #515: cleanup 🧽 : uint short
+------------------------------------------------------------
+This seems like a mistake, I assume the intention was to make a `unsigned short int` 
+
+Permalinks:
+- https://github.com/tenstorrent/tt-llk/blob/417b446cd02475baf2beb98cb2d2651d88e1e7b9/tt_llk_wormhole_b0/common/inc/ckernel.h#L221-L229
+- https://github.com/tenstorrent/tt-llk/blob/417b446cd02475baf2beb98cb2d2651d88e1e7b9/tt_llk_blackhole/common/inc/ckernel.h#L230-L238
+
+================================================================================
+
+Issue #509: Transpose in unpack_AB_matmul sets haloize mode twice
+------------------------------------------------------------
+I noticed that when we call  _llk_unpack_AB_matmul_init and _llk_unpack_AB_matmul_hw_configure we are setting haloize mode twice.
+_llk_unpack_AB_matmul_hw_configure takes parameter **within_face_16x16_transpose** which sets `config.f.haloize_mode` in configure_unpack_AB.
+
+However, in in _llk_unpack_AB_matmul_init we have parameter **transpose** which sets haloize mode `cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose);`
+
+When I comment out one of these, everything seems to work fine my guess is because it's already set.
+
+================================================================================
+
+Issue #505: DstTileFaceLayout unused in llks
+------------------------------------------------------------
+Working on matmul api parameter sweep and noticed something funky with DstTileFaceLayout template parameter.
+
+The following LLKs require DstTileFaceLayout as template parameter, however this parameter is either unused or if used the function requires that it is RowMajor, never ColMajor. Every function that uses Face layout sets 
+`static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");` 
+Since the DstTileFaceLayout class only has RowMajor, ColMajor and it always required to be RowMajor, then the functions don't need this template parameter at all. And maybe we don't need ColMajor?
+
+Matmul API
+matmul_configure_addrmod (default set to ColMajor, but asserts FaceLayout == RowMajor)
+matmul_configure_mop (default set to ColMajor, unused in function)
+matmul_configure_mop_throttled (defaults to ColMajor, unused in function)
+\_llk_math_matmul_ (default set to ColMajor, unused in function)
+\_llk_math_matmul_init_ (default set to ColMajor, unused)
+   - calls functions matmul_configure_addrmod, matmul_configure_mop_throttled, matmul_configure_mop above
+
+Pack API
+\_llk_init_packer_dest_offset_registers_ (unused)
+\_llk_pack_dest_init_ (unused)
+\_llk_pack_mop_config_ (requires RowMajor layout)
+\_llk_pack_reconfig_data_format_(unused)
+
+================================================================================
+
+Issue #503: calculate_pcc incorrectly returns 1.0 when one tensor has std dev 0 (all same value)
+------------------------------------------------------------
+This doesn't currently affect anything in tt-llk since `passed_test` checks both allclose and pcc, but worth fixing in case `calculate_pcc` ends up being used elsewhere.
+
+See: https://github.com/tenstorrent/tt-metal/issues/24928 for same issue in tt-metal, which _does_ actually affect quite a few tests there.
+
+================================================================================
+
+Issue #502: Add runtime assertion support to tt-llk
+------------------------------------------------------------
+Currently, tt-llk lacks runtime assertion capabilities that are available in tt-metal. This limitation prevents effective assertion testing (negative scenario testing) within the LLK layer, making it difficult to validate error conditions and debug runtime failures.
+
+## Background
+
+- **tt-metal** provides runtime assertion functionality that enables comprehensive testing of error conditions
+- **tt-llk** currently has no equivalent assertion mechanism
+- Runtime assertions are essential for:
+  - Negative scenario testing
+  - Debugging runtime failures
+  - Validating preconditions and postconditions
+  - Ensuring robust error handling
+
+## Proposed Solution
+
+Investigate and implement a runtime assertion framework for tt-llk that provides:
+
+1. **Assertion Mechanism**: Ability to add runtime checks within LLK code
+2. **Error Reporting**: Capture and report assertion failures with sufficient context
+3. **Debugging Support**: Integration with debugging tools for failure analysis
+
+### Initial Investigation Areas
+
+- **L1 Memory Storage**: Place assertion information in L1 memory for retrieval
+- **Exalens Integration**: Utilize exalens tooling to:
+  - Retrieve assertion failure information
+  - Provide backtrace functionality
+  - Offer detailed failure context
+
+## Acceptance Criteria
+
+### Must Have
+- [ ] Runtime assertion macro/function available in tt-llk
+- [ ] Assertion failures can be detected and reported
+- [ ] Basic failure information is captured (file, line, condition)
+- [ ] Backtrace information on assertion failure
+- [ ] Integration with existing tt-llk build system
+- [ ] Documentation for assertion usage
+
+### Should Have
+
+- [ ] Integration with exalens for failure retrieval
+- [ ] Configurable assertion levels (debug/release builds)
+- [ ] Conditional assertion compilation
+- [ ] Integration with existing tt-metal assertion framework
+
+## Implementation Considerations
+
+### Technical Requirements
+- Minimal performance impact on normal execution
+- Compatible with existing tt-llk architecture
+- Clear separation between debug and release builds
+
+### Dependencies
+- Exalens tooling capabilities
+- L1 memory layout constraints
+- tt-llk build system modifications
+- Potential tt-metal integration points
+
+================================================================================
+
+Issue #500: Clean up: Purge `DstSync::Tile16` and `DstSync::Tile2` from the code base
+------------------------------------------------------------
+During argument sweep testing, we came across these two DstSync values whose purpose was unclear. After investigation, we determined that these represent deprecated and unsupported cases. According to Reem:
+
+> Ana Mokan
+Hey guys, does anyone know what do DstSync::Tile16 and DstSync::Tile2 do and why would we use them instead of using DstSync::SyncHalf and DstSync::SyncFull?
+3 replies
+> Reem
+They refer to having dest sync over a tile or a face, those terms are safe to remove from the repo since they are fully deprecated and not supported at all
+
+Therefore, these represent dead code and should be removed.
+
+================================================================================
+
+Issue #498: Clean up: Unused function argument in _llk_math_eltwise_unary_datacopy_ function
+------------------------------------------------------------
+In llk_math_eltwise_unary_datacopy.h,
+
+In the _llk_math_eltwise_unary_datacopy_ function, there is one unused argument: is_fp32_dest_acc_en. This should be cleaned up.
+
+================================================================================
+
+Issue #497: Clean up: Unused function arguments in _llk_math_eltwise_unary_datacopy_init_ function
+------------------------------------------------------------
+In llk_math_eltwise_unary_datacopy.h,
+
+In the _llk_math_eltwise_unary_datacopy_init_ function, there are two unused arguments: transpose_of_faces and within_face_16x16_transpose. This should be cleaned up.
+
+================================================================================
+
+Issue #496: Unpacking to srcB from the llk_unpack_A API is possible but not obvious
+------------------------------------------------------------
+In llk_unpack_A.h,
+
+The following functions accept BroadcastType as a template argument:
+_llk_unpack_A_init_ , 
+_llk_unpack_A_mop_config_ ,
+_llk_unpack_A_ .
+
+Only srcB supports broadcasting, srcA does not. It seems like the Broadcast argument is used to redirect the unpacking to srcB in case BroadcastType other than NONE is specified. 
+
+In this case, the name of the API and the functions is confusing, because a set of arguments could be passed to these functions which would cause unpacking to srcB to be done, whereas unpacking to srcA was intended. This functionality is not obvious and the cases of unpacking to different source registers should be defined more clearly.
+
+================================================================================
+
+Issue #495: Adress all remaining Fast tilize implementation #412 comments
+------------------------------------------------------------
+- [ ] I agree with this, since tile size is unused it should be removed since we have llk_api wrappers around this?
+- [ ] I think for generality we shouldn't hardcode the else here to be Float16b, we should have it as Float16A or B depending on the input exponent width
+- [ ] Instead of Unpack_block_selection, can this be called something else like unpack_engine_select or something? or atleast a comment that explains this selects between Unpacker 0 and 1, otherwise it sounds like it has something to do with the "block" of tiles
+- [ ] Since the z_stride & w_stride changed for all default ops, was this change tested with all op sweeps in tt-metallium? There should be an explanation now that Z dimension is no longer tile dim
+- [ ] We are trying to move away from this idea of having "unset" or "revert" in the APIs using flags, it will cause confusion and possible debug failures with the API cleanup effort.  to comment
+- [ ] Instead of hardcoding sizes, Id rather 256 & 512 are derived from the const values of NUM_FACES, TILE_C_DIM, TILE_R_DIM, etc
+- [ ] All these values should be const or constexpr
+- [ ] Instead of unit_dim, can we call this block_ct_dim or num_tiles_c_dim or some naming convention that already exists? Again this will cause confusion with the clean up effort since we are trying to move to a common naming convention 
+- [ ] Im surprised that code size is not increased significantly with the non-constexpr if statements below. It would be much better for trisc code size and also for readability if you change the below to something like this:
+- [ ] Same note as above, should change unit_dim and num_uints into terminology that followings clean up naming conventions
+- [ ] non-constexpr is statements that increase code size with duplicate code, try to combine the duplicate functions like:
+- [ ] Same idea as above, we need to document anything that does a "uinint" because we are trying to move away from this model
+- [ ] Could we maybe create an issue, or otherwise note the ambiguities that we have within the LLKs, so that we can find the answers sometime in the future? I'm afraid that if we just remember, of even note down these things locally, we will forget about them and slow down our development going forward.
+- [ ] I am not sure about the code size but I disagree that ?: operator is more readable than if-else. I really like better the code bellow.
+- [ ] Can we use static_assert here or am I missing smth?
+
+FYI @nvelickovicTT @rtawfik01 @ncvetkovicTT
+
+================================================================================
+
+Issue #494: SFPU bfloat16 binary LLK truncate towards 0 rather than round-to-nearest
+------------------------------------------------------------
+## Problem
+
+To give some context: we have accuracy issues with some operation. In particular, the pow operation gives `9**2 ~78` for bfloat16, instead of 81.
+
+Fortunately, we have found a better approximation for `pow`. 
+This [new approximation](https://github.com/tenstorrent/tt-llk/blob/5d8b851f70679467821835760416bbea7037f137/tt_llk_wormhole_b0/common/inc/sfpu/ckernel_sfpu_binary.h#L82) gives us `9**2 = 80.5`, which is 1 ULP away from the truth (i.e. there are no other bfloat16 numbers between 80.5 and 81).
+
+Interestingly enough, the float32 operation gives `9**2 = 80.819`. 
+
+If I understand correctly, the SFPU does all its internal computation in float32.  If that's indeed the case, then the final `bfloat16` value is rounded from the `float32` upon being written (to a DEST register ?).
+
+The general expectation is that `80.819` should be rounded up to `81` rather than truncated down to `80.5`, which is not the case here. 
+
+
+## Reproduction steps
+
+The following tests have been performed on wormhole. 
+
+For testing, I am currently using the [nmaurice/test-binary-llk](https://github.com/tenstorrent/tt-metal/tree/nmaurice/test-binary-llk) branch of tt-metal, and the [nmaurice/exp-accurate](https://github.com/tenstorrent/tt-llk/tree/nmaurice/exp-accurate) branch of tt-llk (which has the new power function). 
+The test program/kernels is at [tt_metal/programming_examples/test-binary-llk](https://github.com/tenstorrent/tt-metal/tree/nmaurice/test-binary-llk/tt_metal/programming_examples/test-binary-llk).
+
+It can be compiled and run with 
+
+
+```
+CONFIG=Debug ./build_metal.sh --build-tests -b Debug -e --build-programming-examples
+./build_Debug/programming_examples/metal_example_test_binary_llk
+```
+
+This will perform `pow(input0, input1)` for several input values and print results.
+
+In this case, the compute kernel also prints the computed tile with 'dprint_tensix_dest_reg()'. With bfloat16, it shows a DEST tile filled with 80.5 (instead of 81).
+
+Manually changing calls to `_calculate_sfpu_binary_power_` to `_calculate_sfpu_binary_power_null_`, which only returns `80.819f` gives the same result.
+
+## Attempted solution
+
+
+For bfloat16, the `float_to_fp16b(x, 0)` intrinsic can be called, and solves the problem. However, it would also massively degrade accuracy for float32. And I'm not exactly sure how to pass the output data format to the LLK to enable/disable it.
+
+================================================================================
+
+Issue #491: Fix B2D in llk_math_eltwise_unary_datacopy API
+------------------------------------------------------------
+In llk_math_eltwise_unary_datacopy.h, 
+
+The function eltwise_unary_configure_mop has an if-else statement which checks whether data is copied from srcA to dest (A2D), or from srcB to dest(B2D), aka checks the DataCopyType.
+
+For A2D, the execution of the function depends on the variable is_fp32_dest_acc_en. Based on this variable either TT_OP_MOVA2D is executed, or TT_OP_ELWADD. TT_OP_ELWADD is used as a workaround to handle unpacking data into srcA as fp16, but when dest is in fp32 mode.
+
+For B2D there is no such workaround implemented, and the execution of the configure mop function does not depend on is_fp32_dest_acc_en at all. This causes some eltwise unary datacopy tests to fail. On blackhole the tests with DataCopyType = B2D, unpack_src = Float16, and DestAccumulation = Yes fail. And in case of wormhole the tests with DataCopyType = B2D and DestAccumulation = Yes/Turned On fail.
+
+------------------------------
+
+Also, the eltwise_unary_configure_mop function is called from within the _llk_math_eltwise_unary_datacopy_init_ function. In the case of A2D the rows_per_inst argument is p_mova2d::MOV_8_ROWS. And in the case of B2D, rows_per_inst = p_movb2d::MOV_4_ROWS (llk_math_eltwise_unary_datacopy.h:250). 
+
+```
+if constexpr (type == A2D)
+{
+    const uint num_rows = tilize ? 64 : 16;
+    eltwise_unary_configure_mop<type, is_fp32_dest_acc_en, src_b_bcast_type, tilize, is_int_fpu_en>(p_mova2d::MOV_8_ROWS, num_rows, num_faces, dst_format);
+}
+else if constexpr (type == B2D)
+{
+    eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
+}
+```
+
+From this init function, the eltwise_unary_configure_addrmod function is called. For both A2D and B2D the addrmod is configured with .incr = 8 (llk_math_eltwise_unary_datacopy.h:112 and 148). This is fine for A2D, but because rows_per_inst for B2D is set to p_movb2d::MOV_4_ROWS, it should be .incr = 4.  
+This would work in the case of BroadCastType::NONE, except for the few cases which fail due to the dest_acc issue described above. I am unsure about how the parts of code including a different BroadCastType would behave. 
+
+```
+// Just unpack into A and move to Dest
+addr_mod_t {
+    .srca = {.incr = 8},
+    .srcb = {.incr = 0},
+    .dest = {.incr = 8},
+}
+    .set(ADDR_MOD_2);
+```
+
+```
+// Just unpack into B and move to Dest
+addr_mod_t {
+    .srca = {.incr = 0},
+    .srcb = {.incr = 8},      // should be .dest = {.incr = 4}
+    .dest = {.incr = 8},      // should be .dest = {.incr = 4}         
+}
+    .set(ADDR_MOD_2);
+```
+
+------------------------------
+
+In the eltwise_unary_configure_mop function, the following is called for A2D (llk_math_eltwise_unary_datacopy.h:174):
+
+`tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));`
+
+For B2D the next piece of code is called (llk_math_eltwise_unary_datacopy.h:236): 
+
+`tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_B, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));`
+
+A2D datacopy tests work fine, but B2D tests fail. However, when tmp.set_end_op for B2D is called in the same way it is for A2D, B2D tests pass.
+
+------------------------------
+
+NOTE: 
+The code line numbers are given for tt_llk_blackhole/llk_lib/llk_math_eltwise_unary_datacopy.h.
+The code line numbers are different for wormhole, but the general structure of the code is similar and the same problems persist there as well.
+
+================================================================================
+
+Issue #488: Test test-cases with reordering of functions/instructions.
+------------------------------------------------------------
+We have many test cases where some functions could be reordered, and those test cases would only fail with certain orders. 
+
+For example the following test case in issue : https://github.com/tenstorrent/tt-metal/issues/22068
+
+```
+void MAIN {
+    // Circular Buffers
+    constexpr auto cb_in = tt::CBIndex::c_0;
+    constexpr auto cb_other = tt::CBIndex::c_1;
+    constexpr auto cb_out = tt::CBIndex::c_2;
+
+    // Variables
+    constexpr uint32_t input_dst_reg = 0;
+
+    add_trisc_nops<UNOPS, MNOPS, PNOPS>();
+
+    binary_op_init_common(cb_in, cb_other, cb_out);
+
+    tile_regs_acquire();
+    cb_wait_front(cb_in, onetile);
+    cb_wait_front(cb_other, onetile);
+
+    mul_tiles_init(cb_in, cb_other);
+    mul_tiles(cb_in, cb_other, 0, 0, 0);
+
+    tile_regs_commit();
+
+    tile_regs_wait();
+    cb_reserve_back(cb_out, onetile);
+    pack_tile(0, cb_out);
+    cb_push_back(cb_out, onetile);
+    tile_regs_release();
+
+    cb_wait_front(cb_out, 1);
+    cb_pop_front(cb_in, onetile);
+    cb_pop_front(cb_other, onetile);
+}
+```
+
+This test case would only fail if cb_wait_fronts are put after the binary_op_init_common, not before. The details can be found in the issue (there is a race between the packer and unpacker initializations). Such cases are generally race conditions, and they take a huge amount of resources from different team during debugging. 
+
+This race condition can be reproduced frequently by adding perturbation before the binary_op_init_common, but the prerequisite was having the call to cb_wait_front after binary_op_init_common. 
+
+Now to have such reproducers, one thing we could do is in a kernel set some ordering among instructions through dependencies, and then we could have a program generate the test case everytime it tests in a different order along with other features like adding perturbation/randomly initializing the state before starting the kernel to maximize chances of encountering the errors. 
+
+But for such a test case before running it must record the ordering so that we can get back to it if we need to debug it.
+
+================================================================================
+
+Issue #487: Is t6_mutex_acquire/release(mutex::REG_RMW) needed in LLK configs?
+------------------------------------------------------------
+This mutex is used in unpack and pack threads to configure a few registers when calling the `cfg_reg_rmw_tensix` function:
+
+https://github.com/tenstorrent/tt-llk/blob/c2c44d24ae8ac7b7b46dc71db20284f9ee222d33/tt_llk_wormhole_b0/common/inc/cunpack_common.h#L250
+
+and 
+
+https://github.com/tenstorrent/tt-llk/blob/c2c44d24ae8ac7b7b46dc71db20284f9ee222d33/tt_llk_wormhole_b0/common/inc/cpack_common.h#L506
+
+and the respective calls for BH.
+
+This issue is to track the investigation into whether these mutex are necessary, and if not, to remove them.
+
+================================================================================
+
+Issue #484: Eltwise Unary SFPU Tests failed for Bfp8_b dtype for exp related ops
+------------------------------------------------------------
+While testing tt-llk migration for exp related ops the test_eltwise_unary_sfpu failed for Bgp8_b dtype. The exp related ops include:-
+
+- Elu
+- Exp
+- Exp2
+
+This behaviour happens for approx_mode=True configuration.
+
+================================================================================
+
+Issue #482: Test for races in updating initial values of registers.
+------------------------------------------------------------
+When a kernel is run and it sets the values of a register and a subsequent kernel is run that needs the values of the registers to be reversed, there can be race conditions leading to wrong outputs when two threads of the next kernel tries to update the same register. 
+
+An example is this issue : https://github.com/tenstorrent/tt-metal/issues/22068
+
+See comment : https://github.com/tenstorrent/tt-metal/issues/22068#issuecomment-3045684363
+
+The test case runs a copy tile kernel and then an elementwise multiply kernel. 
+The issue lies in the race on the ALU_ACC_CTRL_Zero_Flag_disabled_src bit (datacopy needs this bit set while mul needs it cleared), in the failing iteration this bit fails to clear (gets cleared for only a couple of cycles and then restored) causing wrong FPU results. The cause of the race is that the register that stores that bit also stores some packer bits meaning that the same register is accessed from both the unpacker and the packer thread
+
+Unpacker thread uses tensix RMW instructions to modify that bit (cunpack_common.h:294) 
+
+```
+   template<bool row_pool=false, bool is_fp32_dest_acc_en = false, bool fpu_srnd_en = false, bool pack_srnd_en = false>
+   inline void configure_unpack_AB(
+
+
+      uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
+      cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(src_zeroflags_disable);
+```
+
+while packer uses explicit risc mmio read modify write sequence outside of the appropriate mutex guards (cpack_common.h:554) 
+
+```
+@@ -435,16 +443,6 @@ inline void configure_pack(
+    regfile[p_gpr_pack::TILE_HEADER + 3] = 0;
+    sync_regfile_write(p_gpr_pack::TILE_HEADER + 3);
+
+    relu_config_u hw_relu_config;
+    // Config RELU
+    uint32_t current_relu_val = reg_read((uint)&cfg[STACC_RELU_ApplyRelu_ADDR32]);
+    hw_relu_config.val[0]     = current_relu_val;
+
+    hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
+    hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
+
+    cfg[STACC_RELU_ApplyRelu_ADDR32] = hw_relu_config.val[0];
+```
+
+if the unpack RMW happens between the pack read and write the unpack change will be lost.
+
+
+Action items could include :
+
+--- Look at all MMIOs which write to more bits than needed and replace them with cfg_reg_rmw or check if there are potential race conditions and use synchronization mechanisms. 
+
+--- For every test case we test it in two ways, we set all the registers to true/false in the beginning and start the test case with some perturbation.
+ 
+For example this particular issue mentioned here https://github.com/tenstorrent/tt-metal/issues/22068 was not easily reproducible, it was made reproducible by adding perturbation to it, at the very beginning before the initialization functions. The branch and commands are mentioned in the issue description.
+
+================================================================================
+
+Issue #478: Support for passing arbitrary parameters from python to c
+------------------------------------------------------------
+All kernel parameters passed through from python to c currently go through test_config dictionary and it supports a strictly defined set of keys. When expanding to full parameter coverage adding almost all parameters from all llk apis to this set doesn't seem scalable or the best idea. I would like us to explore the option of providing the test writer with the ability to pass arbitrary parameters from python to c.
+
+FYI @fvranicTT
+
+================================================================================
+
+Issue #477: Investigate large variance in perf tests
+------------------------------------------------------------
+When running perf tests for fast tilize `perf_fast_tilize.py`, the results indicate a large variance on a random subset of tests.
+Variance can be orders of magnitude larger than mean runtime of the test and tests which exibit this large variance change from run to run.
+
+FYI @sstanisicTT
+
+================================================================================
+
+Issue #470: Bfp8_b support for matmul multiple tiles
+------------------------------------------------------------
+For now bfp8_b is failing in test infra when run on multiple tiles. 
+I think it is due to our golden generation and modeling of precision since not all result elements are bad.
+
+================================================================================
+
+Issue #468: Full argument sweep: llk_unpack_untilize
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #467: Full argument sweep: llk_unpack_tilize API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #466: Full argument sweep: llk_unpack_reduce API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #465: Full argument sweep: llk_unpack_AB_matmul API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #464: Full argument sweep: llk_unpack_AB API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #463: Generalized Fused LLK template
+------------------------------------------------------------
+In this step, unpack and matmul could be swapped with a different op.
+
+================================================================================
+
+Issue #462: Fused LLK template: Unpack + Matmul + SFPU activations sweep
+------------------------------------------------------------
+## DoD
+
+1 cpp test file (for all cores) that can be swept from pytest (activation functions are swept)
+
+================================================================================
+
+Issue #461: Define combinations of interest for fusing
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #460: Full argument sweep: llk_math_transpose_dest API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #459: Full argument sweep: llk_math_eltwise_unary_datacopy API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #458: Full argument sweep: llk_math_eltwise_binary_sfpu API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #457: Full argument sweep: llk_math_eltwise_unary_sfpu API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #456: Full argument sweep: llk_math_eltwise_binary API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #455: Full argument sweep: llk_unpack_A API
+------------------------------------------------------------
+# Description
+Implement comprehensive testing for the _llk_unpack_A LLK (Low Level Kernel) API to ensure all combinations of template parameters and function arguments work correctly across different configurations. This involves testing the three main functions:
+1. `_llk_unpack_A_hw_configure_` - Hardware configuration
+2. `_llk_unpack_A_init_` - Initialization
+3. `_llk_unpack_A_` - Main unpack operation
+
+
+# Scope of Testing
+## Template Parameters to Sweep
+For `_llk_unpack_A_` and `_llk_unpack_A_init_`:
+
+- `BroadcastType`: `NONE`, `COL`, `ROW`, `SCALAR`
+- `acc_to_dest`: `true`, `false`
+- `EltwiseBinaryReuseDestType`: `NONE`, `DEST_TO_SRCA`, `DEST_TO_SRCB`
+- `unpack_to_dest`: `true`, `false`
+
+For `_llk_unpack_A_hw_configure_`:
+- `is_fp32_dest_acc_en`: `true`, `false`
+- `StochRndType`: `None`, `Fpu`, `Pack`, `All`
+- `disable_src_zero_flag`: `true`, `false`
+
+
+## Function Parameters to Sweep
+### Configuration Parameters:
+- `transpose_of_faces`: `0`, `1`
+- `within_face_16x16_transpose`: `0`, `1`
+- `face_r_dim`
+- `num_faces`: `1`, `2`, `4`
+- `unpack_src_format`: All supported DataFormat values
+- `unpack_dst_format`: All supported DataFormat values
+### Runtime Parameters:
+`address`: Various memory addresses
+`transpose_of_faces`: `0`, `1`
+
+## Format parameters for runtime calls
+### Data Formats to Test
+Primary Formats:
+- `Float32`
+- `Float16`
+- `Float16_b`
+- `Bfp8_b`
+
+### Format Combinations:
+- Input-output format compatibility matrices
+- Same format combinations (src == dst)
+- Cross-format combinations
+
+### Constraints to Respect
+- The test must handle these static assertion constraints from the source code:
+
+## Test Requirements
+### Coverage Requirements
+- All valid template parameter combinations
+- All supported data format pairs
+- Edge cases and boundary conditions
+
+### Validation Requirements
+- Functional correctness verification
+- Hardware configuration validation
+- Error handling for invalid combinations
+
+### Architecture Support
+- Wormhole-specific testing
+- Blackhole-specific testing
+
+### Expected Deliverables
+Test Suite: Comprehensive C++ test implementation covering all parameter combinations
+Python Test Framework: Integration with existing Python test infrastructure
+
+## Acceptance Criteria
+- [ ] All valid template parameter combinations are tested
+- [ ] All supported data format combinations are covered
+- [ ] Invalid combinations are properly rejected with appropriate error messages
+- [ ] Tests pass on all supported hardware architectures (Wormhole, Blackhole)
+- [ ] Test suite integrates with existing CI/CD pipeline
+- [ ] Documentation covers test methodology and coverage gaps
+
+================================================================================
+
+Issue #454: Full argument sweep: llk_pack_untilize API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #453: Full argument sweep: llk_math_matmul API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #452: Full argument sweep: llk_math_reduce API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #451: [Test Infra] Full argument sweep: llk_pack API
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #449: ALU_ACC_CTRL_Fp32_enabled incompatible with MOVD2B and B2D on BH
+------------------------------------------------------------
+`ALU_ACC_CTRL_Fp32_enabled == 1` causes incorrect behaviour for `MOVD2B/B2D` on only BH (not WH).
+`MOVD2B` will put all 0's into SRCB, while `MOVB2D` will write to both lo16 and hi16 bits of Dest.
+
+This was discovered running TopK tests in tt-metal: `pytest tests/ttnn/unit_tests/operations/reduce/test_topk.py::test_topk_large_2d_shapes`, since it uses transpose wh Dest API with `DST_ACCUM_EN`.
+
+Will update ticket with info from tensix team as I get it.
+
+================================================================================
+
+Issue #446: [Perf] Add support for executing performance benchmarks in CI
+------------------------------------------------------------
+Currently, we can't run Performance Benchmarks in CI because we utilize multiple runners. This is because the performance infrastructure expects all test cases to be executed in a single call to pytest to correctly report the data.
+
+================================================================================
+
+Issue #438: [Perf] Guide to OP performance analysis in tt-metal
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #437: [Perf] Performance cheatsheet for OP team
+------------------------------------------------------------
+- LLK end to end length (cycles per tile)
+- DM numbers per primitive (sync with Vuk, Reem, DjordjeM)
+- HW related expected timings (access to L1, DRAM, NOC transactions...)
+
+================================================================================
+
+Issue #436: [Perf] OP level perf evaluation - explore HW performance counters
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #435: [Perf] OP level perf evaluation - measure compute/DM time
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #434: [Perf] Evaluate performance metrics for Transpose
+------------------------------------------------------------
+Evaluate performance metrics for Transpose LLK using LLK perf & test infrastcture:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Use perf and test infrastructure to run 5 different performance tests:
+    - Isolated thread test for Unpacker, Math and Packer
+    - L1 to L1(end to end) OP length test
+    - L1 congestion test (decouple thread from sync but run unpacker and packer at full L1 access speed)
+- Use perf and test infra to sweep all input parameters for LLKs
+- Report all relevant performance metrics defined in #310 and #311(cycles per tile, utilization, llk length)
+
+Some estimations and initial tt-metal measurements available:
+
+- [Tilize](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=drive_link), [Untilize](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=drive_link), [Matmul](https://docs.google.com/spreadsheets/d/1TPfxJBEMPz3JoLjdD4oTKqUVxF-AkztRNGol_lR4_YA/edit?usp=drive_link), [Eltwise binary FPU](https://docs.google.com/spreadsheets/d/1OYx3r5bbOktJgRws1_XkAqu3Pb6mTngmBBZd7LU_jds/edit?usp=drive_link)
+- [LLK tt-metal f2f presentation](https://docs.google.com/presentation/d/1elP6uxVq1Y2GeGAElpTUIoF7ypl9BklZ/edit?usp=sharing&ouid=109332159612593109957&rtpof=true&sd=true)
+
+================================================================================
+
+Issue #433: [Perf] Evaluate performance metrics for Reduce
+------------------------------------------------------------
+Evaluate performance metrics for Reduce LLK using LLK perf & test infrastcture:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Use perf and test infrastructure to run 5 different performance tests:
+    - Isolated thread test for Unpacker, Math and Packer
+    - L1 to L1(end to end) OP length test
+    - L1 congestion test (decouple thread from sync but run unpacker and packer at full L1 access speed)
+- Use perf and test infra to sweep all input parameters for LLKs
+- Report all relevant performance metrics defined in #310 and #311(cycles per tile, utilization, llk length)
+
+Some estimations and initial tt-metal measurements available:
+
+- [Tilize](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=drive_link), [Untilize](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=drive_link), [Matmul](https://docs.google.com/spreadsheets/d/1TPfxJBEMPz3JoLjdD4oTKqUVxF-AkztRNGol_lR4_YA/edit?usp=drive_link), [Eltwise binary FPU](https://docs.google.com/spreadsheets/d/1OYx3r5bbOktJgRws1_XkAqu3Pb6mTngmBBZd7LU_jds/edit?usp=drive_link)
+- [LLK tt-metal f2f presentation](https://docs.google.com/presentation/d/1elP6uxVq1Y2GeGAElpTUIoF7ypl9BklZ/edit?usp=sharing&ouid=109332159612593109957&rtpof=true&sd=true)
+
+================================================================================
+
+Issue #432: [Perf] Evaluate performance metrics for Untilize
+------------------------------------------------------------
+Evaluate performance metrics for Untilize LLK using LLK perf & test infrastcture:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Use perf and test infrastructure to run 5 different performance tests:
+    - Isolated thread test for Unpacker, Math and Packer
+    - L1 to L1(end to end) OP length test
+    - L1 congestion test (decouple thread from sync but run unpacker and packer at full L1 access speed)
+- Use perf and test infra to sweep all input parameters for LLKs
+- Report all relevant performance metrics defined in #310 and #311(cycles per tile, utilization, llk length)
+
+Some estimations and initial tt-metal measurements available:
+
+- [Tilize](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=drive_link), [Untilize](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=drive_link), [Matmul](https://docs.google.com/spreadsheets/d/1TPfxJBEMPz3JoLjdD4oTKqUVxF-AkztRNGol_lR4_YA/edit?usp=drive_link), [Eltwise binary FPU](https://docs.google.com/spreadsheets/d/1OYx3r5bbOktJgRws1_XkAqu3Pb6mTngmBBZd7LU_jds/edit?usp=drive_link)
+- [LLK tt-metal f2f presentation](https://docs.google.com/presentation/d/1elP6uxVq1Y2GeGAElpTUIoF7ypl9BklZ/edit?usp=sharing&ouid=109332159612593109957&rtpof=true&sd=true)
+
+================================================================================
+
+Issue #431: [Perf] Evaluate performance metrics for Tilize
+------------------------------------------------------------
+Evaluate performance metrics for Tilize LLK using LLK perf & test infrastcture:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Use perf and test infrastructure to run 5 different performance tests:
+    - Isolated thread test for Unpacker, Math and Packer
+    - L1 to L1(end to end) OP length test
+    - L1 congestion test (decouple thread from sync but run unpacker and packer at full L1 access speed)
+- Use perf and test infra to sweep all input parameters for LLKs
+- Report all relevant performance metrics defined in #310 and #311(cycles per tile, utilization, llk length)
+
+Some estimations and initial tt-metal measurements available:
+
+- [Tilize](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=drive_link), [Untilize](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=drive_link), [Matmul](https://docs.google.com/spreadsheets/d/1TPfxJBEMPz3JoLjdD4oTKqUVxF-AkztRNGol_lR4_YA/edit?usp=drive_link), [Eltwise binary FPU](https://docs.google.com/spreadsheets/d/1OYx3r5bbOktJgRws1_XkAqu3Pb6mTngmBBZd7LU_jds/edit?usp=drive_link)
+- [LLK tt-metal f2f presentation](https://docs.google.com/presentation/d/1elP6uxVq1Y2GeGAElpTUIoF7ypl9BklZ/edit?usp=sharing&ouid=109332159612593109957&rtpof=true&sd=true)
+
+================================================================================
+
+Issue #430: [Perf] Evaluate performance metrics for Matmul
+------------------------------------------------------------
+Evaluate performance metrics for Matmul LLK using LLK perf & test infrastcture:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Use perf and test infrastructure to run 5 different performance tests:
+    - Isolated thread test for Unpacker, Math and Packer
+    - L1 to L1(end to end) OP length test
+    - L1 congestion test (decouple thread from sync but run unpacker and packer at full L1 access speed)
+- Use perf and test infra to sweep all input parameters for LLKs
+- Report all relevant performance metrics defined in #310 and #311(cycles per tile, utilization, llk length)
+
+Some estimations and initial tt-metal measurements available:
+
+- [Tilize](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=drive_link), [Untilize](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=drive_link), [Matmul](https://docs.google.com/spreadsheets/d/1TPfxJBEMPz3JoLjdD4oTKqUVxF-AkztRNGol_lR4_YA/edit?usp=drive_link), [Eltwise binary FPU](https://docs.google.com/spreadsheets/d/1OYx3r5bbOktJgRws1_XkAqu3Pb6mTngmBBZd7LU_jds/edit?usp=drive_link)
+- [LLK tt-metal f2f presentation](https://docs.google.com/presentation/d/1elP6uxVq1Y2GeGAElpTUIoF7ypl9BklZ/edit?usp=sharing&ouid=109332159612593109957&rtpof=true&sd=true)
+
+================================================================================
+
+Issue #429: [Perf] Estimate performance metrics for Transpose
+------------------------------------------------------------
+Estimate performance metrics for Transpose LLK:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Estimate number of cycles per tile required for LLK:
+  - Unpacker, Math and Packer thread
+  - End to end OP assuming ideal pipeline and no sync between threads
+
+================================================================================
+
+Issue #428: [Perf] Estimate performance metrics for Reduce
+------------------------------------------------------------
+Estimate performance metrics for Reduce LLK:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Estimate number of cycles per tile required for LLK:
+  - Unpacker, Math and Packer thread
+  - End to end OP assuming ideal pipeline and no sync between threads
+
+================================================================================
+
+Issue #427: [Perf] Estimate performance metrics for Untilize
+------------------------------------------------------------
+Estimate performance metrics for Untilize LLK:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Estimate number of cycles per tile required for LLK:
+  - Unpacker, Math and Packer thread
+  - End to end OP assuming ideal pipeline and no sync between threads
+
+Some estimations and initial tt-metal measurements available:
+
+- [Tilize](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=drive_link), [Untilize](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=drive_link), [Matmul](https://docs.google.com/spreadsheets/d/1TPfxJBEMPz3JoLjdD4oTKqUVxF-AkztRNGol_lR4_YA/edit?usp=drive_link), [Eltwise binary FPU](https://docs.google.com/spreadsheets/d/1OYx3r5bbOktJgRws1_XkAqu3Pb6mTngmBBZd7LU_jds/edit?usp=drive_link)
+- [LLK tt-metal f2f presentation](https://docs.google.com/presentation/d/1elP6uxVq1Y2GeGAElpTUIoF7ypl9BklZ/edit?usp=sharing&ouid=109332159612593109957&rtpof=true&sd=true)
+
+================================================================================
+
+Issue #426: [Perf] Estimate performance metrics for Tilize
+------------------------------------------------------------
+Estimate performance metrics for Tilize LLK:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Estimate number of cycles per tile required for LLK:
+  - Unpacker, Math and Packer thread
+  - End to end OP assuming ideal pipeline and no sync between threads
+
+Some estimations and initial tt-metal measurements available:
+
+- [Tilize](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=drive_link), [Untilize](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=drive_link), [Matmul](https://docs.google.com/spreadsheets/d/1TPfxJBEMPz3JoLjdD4oTKqUVxF-AkztRNGol_lR4_YA/edit?usp=drive_link), [Eltwise binary FPU](https://docs.google.com/spreadsheets/d/1OYx3r5bbOktJgRws1_XkAqu3Pb6mTngmBBZd7LU_jds/edit?usp=drive_link)
+- [LLK tt-metal f2f presentation](https://docs.google.com/presentation/d/1elP6uxVq1Y2GeGAElpTUIoF7ypl9BklZ/edit?usp=sharing&ouid=109332159612593109957&rtpof=true&sd=true)
+
+================================================================================
+
+Issue #425: [Perf] Estimate performance metrics for Matmul
+------------------------------------------------------------
+Estimate performance metrics for Matmul LLK:
+
+- Brakedown of llk calls from tt-metal available in [sheet](https://docs.google.com/spreadsheets/d/1kmMp0JMUs08i0TfZyQ12M-AJ3Grgi1hAJ7bksYgIavI/edit?usp=sharing)
+- Estimate number of cycles per tile required for LLK:
+  - Unpacker, Math and Packer thread
+  - End to end OP assuming ideal pipeline and no sync between threads
+
+Some estimations and initial tt-metal measurements available:
+
+- [Tilize](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=drive_link), [Untilize](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=drive_link), [Matmul](https://docs.google.com/spreadsheets/d/1TPfxJBEMPz3JoLjdD4oTKqUVxF-AkztRNGol_lR4_YA/edit?usp=drive_link), [Eltwise binary FPU](https://docs.google.com/spreadsheets/d/1OYx3r5bbOktJgRws1_XkAqu3Pb6mTngmBBZd7LU_jds/edit?usp=drive_link)
+- [LLK tt-metal f2f presentation](https://docs.google.com/presentation/d/1elP6uxVq1Y2GeGAElpTUIoF7ypl9BklZ/edit?usp=sharing&ouid=109332159612593109957&rtpof=true&sd=true)
+
+================================================================================
+
+Issue #420: [Perf] Add sweep over number of input tiles for eltwise OPs
+------------------------------------------------------------
+#316 showed there is dependency between perf and number of input tiles, please add this as parameter to sweep for all applicable OPs perf tests.
+
+Additionally we should understand why this is case and is there anything we can do to remove this dependency?
+
+================================================================================
+
+Issue #419: [Perf] Add unit test that confirms 0 variance for repeated perf test runs
+------------------------------------------------------------
+Per #316 Repeated test runs in metal env generate different cycles per tile while in llk there is no difference, I think I confirmed profiler build is measuring correctly(new data for every run) but would like that @sstanisicTT confirms this as well by adding some kind of unit test for this purpose.
+
+================================================================================
+
+Issue #418: [Perf] Analyze difference between llk and tt-metal infra
+------------------------------------------------------------
+Based on #316 results there is no significant difference between two infrastructures. However eltwise add test showed up to ~2 cycles longer duration in case of llk infra. Analyze where this diff comes from, can profiler overhead be reason ?
+
+================================================================================
+
+Issue #410: [ Test Infra ] code cleanup for multiple tiles support
+------------------------------------------------------------
+Some parts of newly added code should be cleaned.
+
+Parametrization of input_dimensions which are now hardcoded inside of test functions. Should be done through test config and other files that  govern parametrization.
+
+Making format_tile_sizes more explicit as suggested by @fvranicTT 
+
+from collections import namedtuple
+
+```
+ByteSize = namedtuple('ByteSize', ['bytes'])
+
+format_tile_sizes = {
+    DataFormat.Bfp8_b: ByteSize(1088),
+    DataFormat.Float16: ByteSize(2048),
+    DataFormat.Float16_b: ByteSize(2048),
+    DataFormat.Float32: ByteSize(4096),
+    DataFormat.Int32: ByteSize(4096),
+}
+
+# Usage:
+size = format_tile_sizes[DataFormat.Float16].bytes
+```
+
+================================================================================
+
+Issue #409: [ Test infra ] Find a way to dynamically store temp values in llk tests
+------------------------------------------------------------
+For now tests that do 2 iterations of L1->L1 for example tilize_calculate_untilize test have hardcoded addresses where they store temp values in L1. That should change.
+
+================================================================================
+
+Issue #406: [Test infra] Inability to Reliably Read Integer Data from dest Registers on Wormhole
+------------------------------------------------------------
+In order to do integer format sweep we need to be able to have visibility into device.
+We’re currently unable to reliably read integer data from dest registers on the Wormhole architecture due to a halting bug that prevents us from holding the core in place for memory reads. 
+On Blackhole, we are able to use Exalens to read dest registers and extract integer data using the standard integer formats. However, on Wormhole, there is a hardware-level bug that prevents Exalens from halting the core, making memory reads unreliable or impossible in some cases.
+
+To unblock myself from waiting on Exalens to support integer decoding on Wormhole, I attempted a workaround:
+- Dump raw hex data from srcA and dest registers using tt-exalens functions that will read bytes regardless of format.
+- Manually parse this data back into the intended format 
+
+While this approach technically works in some cases, it suffers from several limitations on Wormhole:
+- MOVDBGA2D instruction (used by Exalens) truncates the lower 3 bits of the integer when copying to dest, resulting in loss of precision. After consulting with Marco Merlini he confirmed that this may be one potential bug. Small int8/uint8 values are particularly affected — if the magnitude is too small, it ends up in the truncated bits and appears as zero.
+- Because of this truncation, there's very little flexibility or variety in testing values — most low-range values are wiped out, and data integrity is compromised.
+
+There also appears to be a deeper hardware bug that affects the ability to accurately read or preserve lower-bit data on Wormhole. I consulted with Marco Merlini, who noted that the issue is likely rooted in the RTL, but it's complex and currently not well understood or easily traceable.
+
+So we will wait on debug team to provide integer support for reading integer values before moving forward
+
+================================================================================
+
+Issue #403: [Perf] tt-metal test for profiler overhead
+------------------------------------------------------------
+Measure overhead that profiler build introduce by putting NOP loop inside profiler zone, look how it is done in LLK perf infra 
+
+Test will not be merged in main(maybe) just to have something that can measure overhead. Check with Mo if something already exist since there are some unit test for profiler.
+
+================================================================================
+
+Issue #397: Investigate underlying context/state leakage after int32 permute operations in LLK
+------------------------------------------------------------
+Recent debugging revealed that running int32 permute tests can leave ttnn in an unexpected state, affecting subsequent operations (e.g., bfloat16) due to insufficient reset of internal context, config, or state. While a workaround/fix has been identified and applied, the root cause of the state leakage or improper reset remains unclear.
+
+This issue is created to track further investigation into the underlying cause of context or configuration leakage after int32 permute operations. The aim is to ensure robustness of state management in LLK and prevent similar issues from arising in the future.
+
+### Steps to Reproduce
+
+1. Run int32 permute tests using the specified test case in [the linked branch](https://github.com/jasondavies/tt-metal/tree/permute-int32-bfloat16-failure-leak).
+2. Observe that running the test an odd number of times leads to failure, while an even number results in success.
+3. After int32 permute tests, bfloat16 operations can be affected, indicating a lack of proper reset or context isolation.
+
+### Investigation Goals
+
+- [ ] Identify specifically which state, config, or context elements are not being reset or isolated after int32 permute operations.
+- [ ] Determine why the workaround/fix resolves the issue, and whether there are deeper architectural improvements that should be made.
+- [ ] Propose, implement, and test a more robust fix if necessary.
+
+### Additional Information
+
+See the original issue for more details on reproduction steps and the observed behavior: [#22383](https://github.com/tenstorrent/tt-metal/issues/22383)
+
+================================================================================
+
+Issue #395: [ Test Infra ] remove test_fill_dest
+------------------------------------------------------------
+Once multiple tiles support for test infra is done this test will just be one of cases with specific input dimesnios so it can be removed.
+
+================================================================================
+
+Issue #392: [Test Infra] Enable reading from dest register in any int format
+------------------------------------------------------------
+It’s currently difficult to debug and understand why certain test cases are failing because exalens tool doesn't support reading from src and dest registers when the data format is any type of integer. As a result, running tests with integer format combinations that fail becomes a black box — we get a failure, but not much insight into why.
+
+Currently, when a test fails, all we see is that the output doesn’t match the expected golden values. But we have no way of tracing where in the pipeline things broke — making it difficult to analyze or fix issues for certain format combinations.
+
+I've found a way generate a wrapper function that will use existing exalens functions to read from the device using TRISC at a given address. I’m currently working on a proof-of-concept to enable printing the dest register contents at the end of each test, which should provide some much-needed visibility until native support for integer format reads is implemented.
+
+================================================================================
+
+Issue #391: Explore perf optimization possibilities in llk_pack_untilize for WH_B0
+------------------------------------------------------------
+Conv team is currently working on a model that is using llk_pack_untilize kernel. 
+It would be of use to explore possibilities for performance optimization within LLK, primarily for bfp8 input dtype. 
+
+Proposed steps towards solution:
+
+- [ ] Communicate needs, timeline and desired perf results with Conv team (@pavlejosipovic)
+- [ ] Explore algorithmic improvements (simulate if needed)
+- [ ] Establish valid evaluation mechanism (single test, e2e, model test etc.)
+
+FYI: @vmilicevicTT @nvelickovicTT
+
+================================================================================
+
+Issue #370: [Perf] Matmul performance benchmark PR
+------------------------------------------------------------
+https://github.com/tenstorrent/tt-metal/blob/main/tests/ttnn/unit_tests/benchmarks/test_benchmark.py is matmul performance benchmark sweep, add following support in benchmark based on work done in https://github.com/tenstorrent/tt-metal/tree/skrsmanovic/perf_rebase:
+
+- [x] Add support for BH in benchmark
+- [x] Run benchmark on full grid available by default, allow passing of grid_size as argument
+- [x] Add utilization based on device timings(measure kernel time on device) to the .csv report. So far only host measured timings are rerported.
+
+================================================================================
+
+Issue #367: Diagnose transpose_dest sync issue on BH
+------------------------------------------------------------
+In #359 it was found that adding a `p_stall::MATH` wait condition to the STALLWAIT for transpose_dest fixed incorrect transpose of the first face on BH.
+
+Inserting 5x NOPs also seemed to fix the issue.
+
+It doesn't make sense to stall MATH on MATH wait condition, and most likely this just creates a short delay.
+
+The exact cause of the original issue should be diagnosed and a more appropriate fix used.
+
+================================================================================
+
+Issue #363: [Test Infra] Tests for transpose_dest
+------------------------------------------------------------
+Now that we'll be using transpose_dest more widely as part of transpose_wh_tile, it would be great to add transpose_dest to the LLK testing infra.  This will also help us debug an ongoing possible race condition issue that affects WH: https://github.com/tenstorrent/tt-metal/issues/22298
+
+The primary use case is the combined unpack+transpose_dest, as used by transpose_wh_tile in https://github.com/tenstorrent/tt-metal/pull/23415
+
+(Note: the transpose_wh_tile changes have not been merged yet, but should be soon.)
+
+**32b (int32/float32)**
+
+- unpack_A with transpose_of_faces=true, transpose_within_face=false
+- transpose_dest with transpose_of_faces=false, is_32bit=true
+
+**non-32b types**
+
+- We may also want to ensure that unpack_A with transpose_of_faces=true, transpose_within_face=true works, not sure if this should be separate from the existing unpack tests
+
+The other use case is transpose_dest used on data which is already in dest, i.e. as used by transpose_wh_dest:
+
+**32b (int32/float32)**
+
+- transpose_dest with transpose_of_faces=true, is_32bit=true
+
+**non-32b types**
+
+- transpose_dest with transpose_of_faces=true, is_32bit=false
+
+================================================================================
+
+Issue #361: Standardize instruction type for maintainability and readability
+------------------------------------------------------------
+There are examples in the LLK code where our instructions are declared like this:
+`static constexpr uint unpack_srca_zerosrc    = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);`
+
+To improve portability, readability, and type safety we should introduce a new definition:
+`#define instruction_t uint32_t`,
+and use `instruction_t` consistently whenever declaring or storing an instruction. 
+
+This guarantees 32-bit width, which is important as `uint` is not a standard type and may vary across compilers.
+
+================================================================================
+
+Issue #355: [Test Infra] Code Cleanup: Consolidate Repeated Golden Functions into a Shared Class
+------------------------------------------------------------
+This change moves repeated golden reference functions from individual test files into a single shared class. Each function is now organized by operation type and can be called through a unified interface. 
+- Reduces code duplication, improves readability
+- Easier to manage and update golden logic across tests
+
+================================================================================
+
+Issue #354: [Test Infra] Format-Aware Input Tensor Ranges Using Min/Max Bounds + Test Format Edge Cases
+------------------------------------------------------------
+Currently, tests generate inputs in a limited range (typically between 0 and 1, or up to 256), which doesn't fully exercise the representable range of many data formats. For example, Float32 supports very large and very small values that aren't being tested.
+
+To improve coverage, we now define a min and max range for each DataFormat/datum. These can then be used to generate randomized tensor inputs that span the full valid range for each format 
+- Ensuring we test edge cases like underflow, overflow, and signed limits.
+- Making test input tensors more robust and format-aware
+
+Input Generation to Use DataFormat-Specific Ranges
+Improve Test Coverage by Using Full DataFormat Value Ranges
+Expand Test Input Ranges Based on DataFormat min/max Values
+
+Input tensor ranges based on datum min/max values
+
+================================================================================
+
+Issue #353: [Test Infra] Restructure Format Handling for Easier Extension & Scalability
+------------------------------------------------------------
+As we continue to add support for more data formats in the test infrastructure, we've seen a noticeable increase in code bloat, duplication, and tight coupling across layers. Parts of the codebase particularly `params.h` require repetitive boilerplate, and updating/adding a new format often means touching multiple files and abstractions.
+
+Refactoring will improve readability, maintainability and speed of development as the system scales.
+
+Restructuring the format-handling logic to be more flexible and extensible aims to:
+- Reduce boilerplate and repetitive logic
+- Simplify format-related cleanup code
+- Improve readability and structure
+- Minimize cross-file dependencies (i.e., avoid having to update multiple layers for a single format change)
+- Make it easier to scale to support more formats over time
+
+================================================================================
+
+Issue #346: [Perf] Explore additional perf related metrics relevant for LLK and OP teams
+------------------------------------------------------------
+Main performance related metric used in perf evaluation MVP is number of cycles per tile.
+
+Explore possibility and need of adding some extra performance related metrics, some ideas that should be explored with relevant team:
+1. Latency - time until first tile is processed(or entered processing pipeline)
+2. Kernel size
+3. Accuracy/Precision for math operations
+
+================================================================================
+
+Issue #340: exp_init: reset LoadMacroConfig[Lane].Misc.
+------------------------------------------------------------
+See [SFPLOADMACRO](https://github.com/tenstorrent/tt-isa-documentation/blob/4da131dbab619f0b47db4658f8ea2d79b12ed381/WormholeB0/TensixTile/TensixCoprocessor/SFPLOADMACRO.md) ISA documentation for `LoadMacroConfig[Lane].Misc` description.
+
+It seems that _all_ users of macros should configure `LoadMacroConfig[Lane].Misc` via `SFPCONFIG` during initialisation.  This issue has not arisen previously as `exp` (fast_and_approx mode) was the only user of macros.
+
+This issue came to light due to `transpose_dest` using macros for face-swapping, and setting `LoadMacroConfig[Lane].Misc`.  This macro config persists until it is either set/reset via `SFPCONFIG` or a full device reset.
+
+This issue seems to cause `exp` to hang after `transpose_dest` was used unless the macro config is properly reset during initialisation.
+
+================================================================================
+
+Issue #339: [ Feature ] higher-precision arithmetic emulation in the matmul unit
+------------------------------------------------------------
+Right now the highest precision the matmul unit supports on any tenstorrent card is TF32, and as far as I can tell the effective machine epsilon is around 2^-9 or even lower. This is too high for almost any numerical linear algebra workload and even a lot of machine learning workloads. It is possible of course to do everything in the SFPU and use full precision arithmetic, but this seems very nontrivial and probably slow due to the lack of cross-lane addition instructions.
+
+The simplest strategy to do this I think would be to create some new kernels which "unpack" a 16x16 matrix of fp32 values into a 32x16 matrix in srcA or a 16x32 matrix in srcB, both of TF32 values. Each 16x16 block of these matrices just stores one part of the original numbers from the input matrix, so for instance if unpacking a matrix X into srcB, we would store [X1, 2^-10\*X2] where X = X1 + 2^-10\*X2. The "unpacking" procedure that the SFPU needs to do would basically just just be VD = VC - Truncate(VC), where the truncation is either to the high 19 bits for srcB or the high 18 bits for srcA. Then we'd do an effective 8 fidelity passes for 18 bits of effective mantissa, which is enough for most applications.
+
+This issue is to track discussion relating to an eventual PR that I intend to submit (work starts either this week or next week).
+
+Questions:
+-Does this feature properly belong in the llk library?
+-If so, is there any special pattern that needs to be adhered to for the kernels to be usable in higher-level software stacks?
+-Is it advisable to have the SFPU part of these "unpacking" kernels be dispatched from the actual unpacker thread? I think it would be nice to not need to constantly reconfigure the replay buffer of the math thread, and it doesn't seem like the unpacker thread will have much to do most of the time.
+
+================================================================================
+
+Issue #334: [Perf] Unify profiler build with test infra
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #333: [BUG] LLK testing issue
+------------------------------------------------------------
+I am trying to run the below simple code using the LLK test infra
+```
+sfpi::vFloat four = 4.0f;
+sfpi::vFloat five = 5.0f;
+result = 44;
+v_if(four > five)
+{
+      result = 55;
+}
+v_endif;
+```
+
+as 4 is not greater than 5, the result value should be maintained at 44 but i am getting 55, if i switch like 4 <  5, then it stays at 44 by not entering the loop, faced this issue only when testing using LLK test infra, is something wrong in that or am i missing something?
+
+Additional info:
+Found this bug only when using vFloat, if vInt is used, then no issues
+
+Branch : https://github.com/tenstorrent/tt-llk/tree/llk_test
+
+Attaching screenshots below
+
+<img width="1512" alt="Image" src="https://github.com/user-attachments/assets/5f60e281-16a0-4238-a419-652b25af87ec" />
+
+<img width="1512" alt="Image" src="https://github.com/user-attachments/assets/1af7c30d-2255-4002-9d92-9a60067fe79b" />
+
+================================================================================
+
+Issue #332: [Perf] Verify test infra support for relevant perf evaluation features
+------------------------------------------------------------
+- [x] Tile size other than 1
+- [x] Running multiple iterations of same test
+  - [x] In form of new instance
+  - [x] As loop inside single test iteration
+- [x] Sweep of perf relevant input paramters
+  - [ ] Use list of top 10 LLKs to check what are parameters of interest and confirm there is support for sweep
+
+================================================================================
+
+Issue #331: [Perf] Placing of profiler zones possible only inside run kernel
+------------------------------------------------------------
+Please document limitation of profiler build to only place profiler zones inside run_kernel() and not inside trisc.cc due to incremental compilation used in test infra.
+
+Think about potential workaround (adding compile all flags in make or something similar) if required.
+
+================================================================================
+
+Issue #330: [Perf] Explore option of running same tests on multiple cores
+------------------------------------------------------------
+Running same test on multiple cores can give us opportunity to:
+
+- reduce test run time, since less iterations should run on single core
+- get better sample since same test will run across different cores
+
+Talk to Filip about test infra plans for supporting multiple cores
+
+================================================================================
+
+Issue #329: [Perf] Support for performance evaluation test in llk test infrastrcuture
+------------------------------------------------------------
+Implement python tests in llk test infrastructure that should be used for performance evaluation.
+
+Test needs to support following:
+
+- Sweep of relevant input parameters(input size, data type, fidelit,...)
+- Implementation of defined perf evaluation methodology(measure threads in isolation, measure l1-l1 llk timing from OP perspective...)
+- Support for parsing data collected from profiler build and exporting performance evaluation results(covered by #313 )
+
+================================================================================
+
+Issue #328: [Perf] Support for L1-L1 llk test
+------------------------------------------------------------
+Implement support for running L1-L1 llk performance test, this should be test that is calling sequence of llk lib calls in order to execute logical llk operation(eltwise add, matmul...) by reading inputs from L1, doing compute and storing outputs in L1.
+
+================================================================================
+
+Issue #327: [Perf] Support for thread isolation
+------------------------------------------------------------
+- Add support for isolated running of Unpack, Math, Pack threads.
+- Idea is to implement solution that doesn't require any existing llk lib codebase modification. This should be possible by:
+  - Adding mock kernels for unpacker and math that will always keep dvalid flag up to date for other thread
+  - Math<->Packer synchronization is done in SW so in this case only SW sync steps should be skipped
+- Document and explore methodology for thread separation:
+  - Document mock kernel implementation
+  - Measure if there is any timing impact with this approach. It should not never happen that for example isolated Unpacker is waiting for Math mock since this would impact isolation performance results.
+
+================================================================================
+
+Issue #326: [Perf] Document all test infra improvement proposals
+------------------------------------------------------------
+Let's use this issue to document and track test infra improvement proposals, also let's list here any blocking/missing feature in test infra that impact performance evaluation infra.
+
+- [ ] How parameters are passed to make @sstanisicTT to elaborate in more details
+
+================================================================================
+
+Issue #325: [Perf] Perf infrastructure documentation
+------------------------------------------------------------
+Write readme for perf infrastructure:
+
+- High level details of implementation, methodology
+- Focus on documenting existing test
+- Focus on providing guide how new test should be added
+
+================================================================================
+
+Issue #324: [Perf] Check SFPU OPs that are in metal vs llk
+------------------------------------------------------------
+- [ ] List all releavatn SFPU ops
+- [ ] Check if there is implementation code in tt-metal for SFPU OP
+- [ ] Talk to Velja/Filip to check if porting of code can be done by MCW and when
+
+================================================================================
+
+Issue #322: [Perf] Define infrastructure for performance evaluation on OP level
+------------------------------------------------------------
+- [ ] Talk to relevant stakeholder to understand performance evaluation from different perspectives
+  - [ ] OP writers/architects
+  - [ ] Model owners
+  - [ ] LLK developers
+  - [ ] Forge compiler architects
+- [ ] List important requirements for perf evaluation infra
+- [ ] Propose several approaches for perf evaluation
+- [ ] Define infrastructure implementation steps and plan
+
+================================================================================
+
+Issue #321: [Perf] Create performance overview for top 10 LLKs
+------------------------------------------------------------
+- [ ] Tlak to all relevant stakeholders about perf info that can be valuable to them: LLK devs, OP writers...
+- [ ] Define tool and medium that will be used to share perf overview: cheatsheet, excel, github pager...
+- [ ] Define level of details to be shared in perf overview
+
+================================================================================
+
+Issue #320: [Perf] Create list of investigation points for top 10 LLKs
+------------------------------------------------------------
+- Based on perf evaluation and estimation results for top 10 LLKs
+- Note all unexpected results and things that needs to be double checked
+
+- [ ] Create sub-issue for every LLK that needs to be tracked
+
+================================================================================
+
+Issue #319: [Perf] Evaluate performance metrics for top 10 LLKs
+------------------------------------------------------------
+- [x] Need perf evaluation infrastructure implemented in LLK repo
+- [x] Need perf testing infrastructure implemented in LLK
+- [x] Need list of 10 LLKs that would be analyzed
+- [ ] Create sub-issue for each LLK that needs to be analyzed in order to track progress per LLK
+
+================================================================================
+
+Issue #318: [Perf] Estimate performance metrics for top 10 LLKs
+------------------------------------------------------------
+- [x] Need list of 10 LLKs to estimate perf metrics for
+- [x] Need defined perf metrics of interest
+- [ ] Create sub-issue for each LLK that needs to be estimated
+- [ ] Reach out to relevant stakeholders to better understand perf implications of LLK
+  - [ ] LLK developers
+  - [ ] Metal OP writers/MCW developers for SFPU related OP
+
+================================================================================
+
+Issue #317: [Perf] Define top 10 LLKs to be evaluated with new performance measurement infrastructure
+------------------------------------------------------------
+- Talk to all relevant parties to collect feedback about top 10 LLKs: LLK team, OPs team
+- Initial list consist of: matmul, eltwise fpu, eltwise sfpu, tilize, untilize, exponent, reciprocal, squre, squre root, GELU, SiLU, reduce, TopK
+
+================================================================================
+
+Issue #316: [Perf] Compare perf measurement infrastructure in LLK and tt-metal
+------------------------------------------------------------
+- Take common scenario to test perf infrastructure in tt-metal vs LLK. For example run same kernel in both environment - we should expect ~similar resuts.
+
+================================================================================
+
+Issue #313: [Perf] Implement tools for performance results post processing
+------------------------------------------------------------
+- [x] Python API to read raw profiler zones data and intermediate representation
+- [x] Python API to generate graph and data summary of performance relevant metrics out of profiler zone results
+- [x] Integration of Python API in performance evaluation tests - example. This should become common part of every perf evaluation test.
+
+================================================================================
+
+Issue #312: [Perf] Implement test infrastructure for performance evaluation in LLK repo
+------------------------------------------------------------
+- Important test infra feature for running performance evaluation tests
+  - Support for sweeping LLKs input parameters(data type, data format, math fidelity, input size, feature flags etc...)
+  - Running same test in multiple iterations to get statistically significant results with minimal runtime overhead
+  - Support for LLK inputs larger than 1 tile
+- How to support different scenarios defined by performance evaluation methodology
+
+================================================================================
+
+Issue #311: [Perf]Define performance metrics relevant for LLKs
+------------------------------------------------------------
+- Think about possible performance metrics that can be relevant for LLK developers, OP writers/architects, Model owners.
+- Some of proposed metrics: cycles per tile, TFLOPs, BW - bytes per second...
+- Take into consideration list of top 10 LLKs that will be analyzed in first round of performance evaluation
+
+================================================================================
+
+Issue #310: [Perf]Define performance evaluation methodology for LLKs
+------------------------------------------------------------
+- Think about possible strategies for measuring performance metrics for LLKs
+  - Measure isolated thread performance(Unpack, Math, Pack), no L1 traffic/l1 congestion
+  - Measure _llk_ API performance
+  - Measure tt-metal comput API performance 
+- Think about metrics that would be useful for LLK developers, OP writers/architects, Model owners
+  - Tensinx engine utilization
+  - LLK API length or throughput
+  - tt-metal compute API length
+  - tt-metal logical LLK operation(set of compute APIs)
+- Document proposed methodology for measuring performance metrics
+
+================================================================================
+
+Issue #309: [Perf]Unit test for performance measurement infrastructure in LLK repo
+------------------------------------------------------------
+- [x] - Think about some simple unit tests that can ensure stability of performance measurement infrastructure in LLK repo.
+- [x] - Check if similar tests are available in tt-metal
+- [x] - We need to ensure that
+  - [x] No extra time overhead is introduced for placing zones in kernel code(compared to initial estimation)
+  - [x] Performance measurement infrastructure is working if build system, llk testing infra core and similar are changed
+
+================================================================================
+
+Issue #308: [Perf]Measure time overhead introduced by adding profiler zones in kernel code
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #307: [Perf]Implement MVP for performance measurement infrastructure in LLK repo
+------------------------------------------------------------
+- Implement basic support for measuring performance related metrics in LLK repo.
+- Performance measurement infrastructure should be based on tt-metal profiler build, special tt-metal build that enables storing timing events and time zones in L1 and DRAM memory that can be later read on host.
+- We should aim to keep same(similar) interface for placing zones inside code and saving raw zones info on host in .csv file.
+- Features like storing data in DRAM should not be supported since there is no DRAM support in LLK test infrastructure yet.
+- Sub issues should be used to track meaningful chunk of work on task level.
+
+================================================================================
+
+Issue #306: [Perf]Implement host side support for profiler zones in LLK repo
+------------------------------------------------------------
+- [x] Read profiler zones data from L1
+- [x] Enabling extracting zone location data from device
+- [x] Store raw zones data in .csv file, lookt at tt-metal profiler build support for format reference
+
+================================================================================
+
+Issue #305: [Perf]Implement device side support for profiler zones in LLK repo
+------------------------------------------------------------
+- [x] Add support for profiler zones
+- [ ] ~~Do we need separate build or profiler can be common part of build flow~~ moved to separate task
+- [x] Store zones data in L1
+- [x] Enable storing zone location information in L1 as well
+- [x] At least support following zone types(based on tt-metal)
+  - [x] Clasic scoped zone, mark zone start and end
+  - [x] Timestamped event
+  - [x] Timestamped event with data
+
+================================================================================
+
+Issue #300: [ Test Infra ] Skip fidelity sweep for ops not affected by fidelity
+------------------------------------------------------------
+We are running a lot of tests inside of a sweep that change fidelity on ops like eltwise add which is not affected by fidelity. Those should be skipped, and will also lower needed time for running them
+
+================================================================================
+
+Issue #297: [ Test Infra ] support write_stimuli_to_l1 for ternary ops
+------------------------------------------------------------
+Extend write_stimuli_to_l1 function to be able to accept one more argument and format and write it to L1 after first two. This will be useful for testing ternary ops like ttnn.where
+
+================================================================================
+
+Issue #296: [ Test Infra ] Enable sfpu tests on full tiles
+------------------------------------------------------------
+For now we only test sfpu unary ops on one face. It can be changed to work on full tile by changing number of iterations parameter in sfpu function calls
+
+================================================================================
+
+Issue #293: [Test Infra] Fix Math Fidelity for Golden
+------------------------------------------------------------
+Our current golden generation implementation for math fidelities modifies elements of the input tensor one by one, but it does not update the tensor in-place. In the example below, operand is a PyTorch tensor, but the element-wise operations do not affect the original data because the modified values are not written back to the tensor.
+
+```cpp
+if math_fidelity in [MathFidelity.LoFi, MathFidelity.HiFi2]:  # LoFi or HiFi2
+        for element in operand:
+            element = element.to(torch.int32)
+            element &= 0xFFFE
+```
+
+If the code is fixed to apply the modification of tensor elements, some test cases begin to fail. This needs to be looked into further to understand where the issue lies: is our golden generation inaccurate or is the sfpu operation buggy?
+
+================================================================================
+
+Issue #291: Create a single threaded program for documentation purposes, that uses only one TRISC core to perform the tasks of all cores.
+------------------------------------------------------------
+For documentation purposes we want to write a program that handles the task of all the cores in a tensix core. The single core will handle all the responsibilities of the Reader/Writer/Unpacker/Math & Packer. This will serve the purpose of explaining how things are done in Tensix Cores. We would move on to explain how we divide the different tasks to the different cores and how. 
+
+Key requirements. 
+
+- Simple and easy to understand :  We should choose a simple program but also one that uses all the cores. A program using a simple eltwise addition will do. 
+
+- Highly documented : Since this is for documentation purposes, we want the code to be highly documented and nicely organized. 
+
+
+**Steps taken (assuming the TRISC0 will execute all the compute code) :**
+
+- Make copies of api calls (with small modification in name) and replace PACK / MATH with UNPACK as we want TRISC0 to execute all the functions called in the api functions. 
+
+- In the api file used, include math and unpacker code/headers unconditionally since all the code needs to be compiled for the TRISC0/unpacker thread. This will lead to conflicts for duplicate declarations. For example is_32bit_input is implemented for both unpacker and math. Such cases should be handled. (In this case comment out the code for the math thread).
+
+- The generated header files like 
+ ```
+chlkc_dst_accum_mode.h	chlkc_math_approx_mode.h  chlkc_pack_data_format.h  chlkc_unpack_data_format.h
+chlkc_dst_sync_mode.h	chlkc_math_fidelity.h	  chlkc_pack_tile_dims.h    chlkc_unpack_tile_dims.h
+ chlkc_math.cpp		chlkc_pack.cpp		  chlkc_unpack.cpp	    defines_generated.h
+ ```
+ for math and packer needs to be accessible to the unpacker. For that we need to modify the ```chlkc_list.h``` file where it conditionally includes for unpacker/math/packer. Two other files (dataflow_api.h and dprint_tile.h) include some of these files but that should not be a problem because they do not include these files based on whether it is the unpacker/math/packer.
+
+The last step did not pan out properly. Files like 
+
+```
+tt_metal/include/compute_kernel_api/common_globals.h
+/tt_metal/hw/ckernels/blackhole/metal/llk_io/llk_outputs.h
+/tt_metal/hw/ckernels/blackhole/metal/llk_io/llk_operands.h
+```
+Threw errors regarding undeclared identifiers, and I had to include 
+
+```
++#include "chlkc_math_fidelity.h"
++#include "llk_pack_api.h"
++#include "llk_math_common_api.h"
+
+in common_globals.h
+```
+
+```
+chlkc_unpack_data_format.h  in llk_operands.h
+```
+
+```
+chlkc_pack_data_format.h in llk_outputs.h
+```
+
+- The different threads have their own local circular buffers, due to some optimizations all the read write pointers are not initialized. For example for the unpacker's interface the write pointer is not updated. After talking with relevant developers it seems this was done for completely optimization purposes. So all of them can be initialized when using the unpacker thread to do all tasks. Apply this change to trisc.cc
+
+```
+-#if defined(UCK_CHLKC_UNPACK)
++// These were conditionally set to true/false
++// do avoid writing, but both being true should
++// work, as read and write initializes read and
++// write pointers respectively.
+ constexpr bool cb_init_read = true;
+-#else
+-constexpr bool cb_init_read = false;
+-#endif
+-#if defined(UCK_CHLKC_PACK)
+ constexpr bool cb_init_write = true;
+-#else
+-constexpr bool cb_init_write = false;
+-#endif
+```
+
+- Merge and remove mops
+
+A thread has access to only one mop buffer, thus we cannot have separate mops anymore and configuring one will overwrite the previous one. Thus we merged the mops of unpacker and math and did the work of packer without a mop. Moreover since we have access to the addressmods of one thread only, we make sure that the function to unpack and do math does not conflict with the addressmods used by the function to pack. This way we can still initialize only once and run the functions / mops repeatedly, since addressmods do not conflict and we run only one mop. 
+
+- Remove register sync functions 
+
+Since only one thread is doing all the compute parts, there is no need to sync destination register using the functions like ```tile_regs_acquire/wait/commit/release```
+
+================================================================================
+
+Issue #290: Review transpose_dest API
+------------------------------------------------------------
+As part of #250, it was found that `transpose_dest` wasn't that widely used (the only place I could find was for row-wise cumsum) prior to adding support for transposing 32-bit values.
+
+With the new 32-bit support, which is mainly for the use case of permute/transpose, it's more efficient to do transpose of faces via unpack, followed by 4x 16x16 face transposes.  To support this use case, a new `transpose_of_faces` template parameter was added to the `transpose_dest` API.
+
+To reduce API surface area, it might be worth revisiting to see if the API can be simplified.  One idea is to drop the 32x32 tile `transpose_dest` entirely in favour of a single API for the aforementioned 16x16 face transpose for 32-bit (and maybe non-32-bit).  This might make sense if row-wise cumsum can be rewritten to use this instead of the 32x32 transpose.
+
+================================================================================
+
+Issue #278: Fix documentaion in assembly.yaml docs
+------------------------------------------------------------
+The documentation regarding instructions in assembly.yaml is not perfect. 
+
+For example the ELWMUL instruction for wormhole_b0 will always assume the accumulate to dest field to be true. 
+For some instructions the documented EXU is not the correct one. 
+
+Ideally we would go through the ground truth, in case the RTL to document everything. But the feasible option we have is Peter Cawley's documentation https://github.com/tenstorrent/tt-isa-documentation/ regarding the instructions (which are derived from RTL). For instructions that matter for example ELWMUL we need to search all its instances and correct them if they have bugs or at least open such bugs.
+
+================================================================================
+
+Issue #273: Fix ordering of fields in pack_config_t with the actual ordering of the registers.
+------------------------------------------------------------
+The structurre of pack_config_t for Wormhole_b0. can be seen here 
+
+![Image](https://github.com/user-attachments/assets/6dafc871-81cd-44c9-899a-f4571440383c)
+
+
+The ordering of the registers in cfg_defines.h for Wormhole_b0 can be seen here
+
+![Image](https://github.com/user-attachments/assets/b2b7b397-29d8-44e7-ba48-ae3384c1d74d)
+
+As can be seen what is between src_if_sel and l1_src_addr is different between the pack_config_t and the original register structure. 
+So we need to make sure the structure is okay for both wormhole and blackhole and make sure all corresponding function calls are corrected.
+
+================================================================================
+
+Issue #272: [Bounty $500] Move code from tt-metal to tt-llk
+------------------------------------------------------------
+There is some code in tt-metal repo that uses low level TT/TTI instructions which should actually belong to tt-llk repo. 
+For some code we have such code for one architecture already in the tt-llk repo but for the other architecture it is in tt-metal repo. Ideally we would want to have the code inside tt-llk and expose it through apis. 
+
+For example the function 
+
+```
+template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false>
+inline void llk_unpack_tilizeA_B(
+```
+
+For blackhole in file ```tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_unpack_tilize_api.h``` was supposed to serve as an api with a call to a function in tt-llk for example as for wormhole_b0 counterpart it calls "void \_llk_unpack_tilizeA_B\_" inside tt-llk but for blackhole the code is inside the function that is supposed to be just delegating the task to tt-llk. There are many such examples. Below is a list of such files as of now (May-29-2025)
+
+Fixing this will also help us in documenting our code as the same standard from one perspective would be applied to all llk functions and apis and we would be able maximize the decoupling of low level code from tt-metal.
+
+- [ ] tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_pack_api.h
+    llk_pack_init should only call _llk_pack_init_. Other calls should be moved to _llk_pack_init_ inside tt-llk repo.
+    llk_pack_untilize_init should only call _llk_pack_untilize_init_. Other calls should be moved to _llk_pack_untilize_init_ inside tt-llk repo.
+  llk_pack_untilize_uninit should call _llk_pack_untilize_uninit_ from tt-llk. If it doesn't exist should be created, and body of llk_pack_untilize_uninit moved to it.
+
+- [ ] tt_metal/hw/ckernels/blackhole/metal/llk_api/llk_unpack_untilize_api.h
+   llk_unpack_untilize_init should only call _llk_unpack_untilize_init_. If it doesn't exist should be created, and body of llk_unpack_untilize_init moved to it.
+  llk_unpack_untilize_uninit should only call _llk_unpack_untilize_uninit_. If it doesn't exist should be created, and body of llk_unpack_untilize_uninit moved to it.
+
+- [ ] tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_pack_api.h
+  Similar to above described for BH.
+
+- [ ] tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_unpack_untilize_api.h
+  Similar to above described for BH.
+
+================================================================================
+
+Issue #267: [Test Infra] Cleanup: Create Class for Golden Functions
+------------------------------------------------------------
+Many tests currently share the same ops and reuse similar or identical golden functions. Instead of duplicating these functions across multiple test files, we should consolidate them into a single class that encapsulates golden reference functions for specific ops.
+Benefits:
+- Reduce repeated code: Avoid duplicating the same logic across test files.
+- Lower error rate: A single source of truth reduces the chance of inconsistencies or silent divergence across tests.
+- Simplify maintenance: Updating or fixing a golden function in one place automatically benefits all dependent tests, reducing manual overhead.
+
+Suggested Implementation:
+- Create a class, e.g., GoldenReferenceOps, in a shared test utilities module.
+- Define golden functions as static or class methods, grouped by op.
+- Import this class wherever needed in tests instead of redefining functions.
+
+================================================================================
+
+Issue #262: Individual Sin/Cos tests failing locally when run on their own
+------------------------------------------------------------
+This is to track discussion about this ongoing issue on Wormhole:
+
+@fvranicTT You might be interested to note that using `tt-smi -r 0` makes a Cos test pass the first time:
+
+```sh
+tt-smi -r 0
+pytest 'test_eltwise_unary_sfpu.py::test_eltwise_unary_sfpu[unpack_src=Float16 | pack_dst=Float32 | dest_acc=Yes | approx_mode=true | mathop=Cos]'
+```
+
+Running the test again fails for me:
+
+```sh
+pytest 'test_eltwise_unary_sfpu.py::test_eltwise_unary_sfpu[unpack_src=Float16 | pack_dst=Float32 | dest_acc=Yes | approx_mode=true | mathop=Cos]'
+```
+
+This is running on latest main 8212ae84a91e4a8ee9f3a3839b2f041857c10c8e
+
+Running all tests at once seems to work fine: `pytest 'test_eltwise_unary_sfpu.py`.  Presumably because other operations are interleaved with Cos.  Restricting to Sin or Cos fails:
+
+`pytest -k Sin ...` or `pytest -k Cos ...`.
+
+================================================================================
+
+Issue #246: [Test Infra] Issues with SFPU ops causing test to fail
+------------------------------------------------------------
+**Improve the golden generation fidelity to better reflect kernel-level precision behavior**
+
+In `test_matmul_and_unary_sfpu.py` — first performs a matmul operation with a certain Math Fidelity setting, followed by a unary Sfpu op on the matmul resulting tensor — golden tensor generation attempts to simulate  precision degradation by computing the matmul first and then applying the Sfpu Op to that result; mimicking the same op sequence. 
+The actual outputs are numerically close to the golden  — just not within the thresholds to pass.
+- To isolate the problem, I modified the test to run only the SFPU op by performing a matmul using an identity matrix (effectively preserving the input tensor), and then applying the SFPU op. In this case, all tests passed, confirming that the functionality and computation are accurate.
+
+This points to a limitation in the golden generation logic: 
+- Golden does not fully capture the minor numerical differences that accumulate when these ops are executed through the actual kernels, particularly under lower math fidelity settings.
+- Needs to fully capture the precision characteristics of actual kernel execution — especially when chaining ops
+
+================================================================================
+
+Issue #245: [Test Infra] Extend Infra To Support Integer Data Formats
+------------------------------------------------------------
+Since we need to do a sweep on integer formats we need to ensure that our infrastructure supports parsing integer formats. 
+
+Test infra needs to be able to write to and read from L1, it does so leveraging exalens which returns a string of bytes. We have helper functions that will read those bytes and convert them to `Float32`, `Float16_a`, `Float16_b`, `Signed Int32` and `Bfp8_b`.
+
+We need to extend infrastructure to convert bytes to the following integer formats:
+- Unsigned Int32
+- Signed Int16
+- Unsigned Int8
+- Signed Int8
+
+================================================================================
+
+Issue #244: [Test Infra] Extend Data Format Inference Model for Integer Formats
+------------------------------------------------------------
+The Data Format Inference Model takes an input and output format and determines the required intermediate formats for all three kernel configurations. This enables the pipeline to operate correctly from input ingestion at L1 to output emission back into L1.
+
+Once the format sweep for integer formats is complete, we will have a clearer understanding of how integer formats behave when combined with other integer or floating-point formats. This will clarify which input-output format combinations are supported and define the necessary format configurations for all three kernels, as determined by the inference model.
+
+The inference model will generate all format configs for all three kernels given an input and output format (including integer and floats).
+
+================================================================================
+
+Issue #243: [Test Infra] Sweep Test Suite for Integer Formats
+------------------------------------------------------------
+In order to add format coverage for Integers, need to perform format sweep on integer values
+- Unsigned Int32
+- Signed Int32
+- Unsigned Int16
+- Signed Int8
+- Unsigned Int8
+
+Sweep all integers combinations and inspect behavior to understand what works and what doesn't for increasing format combination coverage. Then move on to sweeping combinations among integers and floats.
+
+================================================================================
+
+Issue #242: [Test Infra] Base Format Coverage Across All Tests
+------------------------------------------------------------
+Our tests currently run with various combinations of the following formats : `Float16_b` ,`Float16_a`, `Bfp8_b`,  `Float32`. However, not every test covers combinations of all 4 formats. Test coverage needs to cover these 4 base formats across the entire test infra before we start extending more format coverage.
+
+This can be done with the help of the data format inference model. At the time it was written to cover format conversion among all format combinations for the current formats enabled for the tests. Extending format test coverage would involve doing another sweep per test and extending the data format inference model to cover possible edge cases arising from specific test configurations.
+
+================================================================================
+
+Issue #241: [Test Infra] Add Test for Matmul + Binary Sfpu Ops
+------------------------------------------------------------
+Once we can confirm that testing Sfpu Ops #240 works we can move onto testing matmul extensively by fusing a Matmul run with a Binary Sfpu Op. 
+The idea behind this is to have two llk pipeline runs (synchronized)
+- The first would take two input tensors and perform a Binary Sfpu Op.
+- The second would take the output of the first run and another input tensor and perform a matmul on the two
+
+Additionally we can reverse the order of the two runs to add more coverage for both directions...is precision up to par when we first perform a Matmul and then Sfpu Op?
+Need to ensure that Golden also reflects the order of our llk runs.
+
+================================================================================
+
+Issue #240: [Test Infra] Add Test for Binary Sfpu Ops
+------------------------------------------------------------
+Our test infra currently covers tests for unary Sfpu Ops. There are tests written for binary sfpu ops `tests/python_tests/test_sfpu_binary.py` however they do not work and are being skipped. Need to look into the currently written test and see what is going wrong & potential fix or make a working test from scratch (python and c++ file)
+
+================================================================================
+
+Issue #239: Wrong registers set during configuration/initialization for packer.
+------------------------------------------------------------
+Some registers or flags are adjacent, and to optimize a write to them, developers often used only one call to cfg_reg_rmw_tensix function trying to pack more data to do multiple tasks, but in blackhole some registers were not adjacent anymore. Thus the copied over code is invalid. The case I have encountered so far will not likely give wrong results but will consume more power. 
+
+Moreover the helper structure to write into registers may not correspond to the original register ordering. 
+
+File : ``` tt_llk_blackhole/common/inc/cpack_common.h```
+
+Examples 
+
+```
+   inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc){
+
+      const uint32_t pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
+
+      cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pack_L1_Acc_ADDR32, THCON_SEC0_REG1_Pack_L1_Acc_SHAMT, THCON_SEC0_REG1_Disable_pack_zero_flags_MASK | THCON_SEC0_REG1_Pack_L1_Acc_MASK>(pack_l1_acc_disable_pack_zero_flag);
+
+   }
+```
+
+The optimization for Wormhole can be valid since we have the bits adjacent in wormhole but not in blackhole
+
+Wormhole fileds :
+```
+#define THCON_SEC0_REG1_Pack_L1_Acc_ADDR32 59
+#define THCON_SEC0_REG1_Pack_L1_Acc_SHAMT 21
+#define THCON_SEC0_REG1_Pack_L1_Acc_MASK 0x200000
+#define THCON_SEC0_REG1_Pack_L1_Acc_RMW \
+    THCON_SEC0_REG1_Pack_L1_Acc_ADDR32, THCON_SEC0_REG1_Pack_L1_Acc_SHAMT, THCON_SEC0_REG1_Pack_L1_Acc_MASK
+
+#define THCON_SEC0_REG1_Disable_pack_zero_flags_ADDR32 59
+#define THCON_SEC0_REG1_Disable_pack_zero_flags_SHAMT 22
+#define THCON_SEC0_REG1_Disable_pack_zero_flags_MASK 0x400000
+```
+
+Blackhole fields:
+```
+#define THCON_SEC0_REG1_Pack_L1_Acc_ADDR32 71
+#define THCON_SEC0_REG1_Pack_L1_Acc_SHAMT 19
+#define THCON_SEC0_REG1_Pack_L1_Acc_MASK 0x80000
+#define THCON_SEC0_REG1_Pack_L1_Acc_RMW \
+    THCON_SEC0_REG1_Pack_L1_Acc_ADDR32, THCON_SEC0_REG1_Pack_L1_Acc_SHAMT, THCON_SEC0_REG1_Pack_L1_Acc_MASK
+
+---- REMOVED ---- 
+
+#define THCON_SEC0_REG1_Disable_pack_zero_flags_ADDR32 70
+#define THCON_SEC0_REG1_Disable_pack_zero_flags_SHAMT 2
+#define THCON_SEC0_REG1_Disable_pack_zero_flags_MASK 0x4
+#define THCON_SEC0_REG1_Disable_pack_zero_flags_RMW                                                \
+    THCON_SEC0_REG1_Disable_pack_zero_flags_ADDR32, THCON_SEC0_REG1_Disable_pack_zero_flags_SHAMT, \
+        THCON_SEC0_REG1_Disable_pack_zero_flags_MASK
+```
+
+For the ground truth the structures like this , in the same file cfg_defins.h files should be used as they are generated using scripts from rtls.
+All such instances should be looked at and fixed.
+
+================================================================================
+
+Issue #237: [Test Infra] Coverage for synchronization mechanisms used in LLKs
+------------------------------------------------------------
+@amahmudTT and @fvranicTT can you please figure out what we need to do to support testing synchronization mechanisms we use in LLK, and then fill in this description.
+We have seen a few issues with that, which escaped all the way to models, and we want to cover that as well in test infra.
+
+================================================================================
+
+Issue #235: [Test Infra] Extend tests to run on multiple tiles
+------------------------------------------------------------
+In an effort to to get matmul tests to run on multiple tiles https://github.com/orgs/tenstorrent/projects/123/views/1?pane=issue&itemId=109134287&issue=tenstorrent%7Ctt-llk%7C158, it turns out that this is much harder to do in one go since the entire test infra is structured to support testing one one tile. 
+We need to accomplish the following in order to start running tests on multiple tiles
+- we need to support writing multiple tiles contiguously to memory (L1)
+- reading multiple tiles from memory
+- computing golden on multiple tiles
+- support test configuration for multiple tiles : ct_dim, rt_dim, kt_dim and propagate this to compilation and c++ test files
+
+================================================================================
+
+Issue #234: [Test Infra] Fix reduce for row dimension
+------------------------------------------------------------
+For now it seems that tests for reduce column and scalar are passing with random generated input tensors, but there is a problem somewhere in testing reduce row. This issue will be used to track fixing reduce row test.
+
+================================================================================
+
+Issue #233: Two "iterations" parameters
+------------------------------------------------------------
+I'm not sure if there's a good reason for this?
+
+```cpp
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_sine_()
+{
+    // SFPU microcode
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+```
+
+```cpp
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_square_(const int iterations)
+{
+#pragma GCC unroll 8
+    for (int d = 0; d < iterations; d++)
+    {
+```
+
+================================================================================
+
+Issue #225: sin and cos implementations different from ones in tt-metal, metal being more precise
+------------------------------------------------------------
+The current implementations of SFPU `_calculate_sine_` and `_calculate_cosine_` appear outdated, as tt-metal switched to a different approach (using the Remez algorithm) several months ago. For more details, see [this pull request](https://github.com/tenstorrent/tt-metal/pull/14368).
+
+Should the existing implementation be removed? 
+We're keeping it for now for testing purposes and will decide later whether to remove it entirely.
+
+================================================================================
+
+Issue #224: [Test Infra] CHIP_ARCH not being detected in /tests/setup_external_testing_env.sh
+------------------------------------------------------------
+While trying to fix reduce test I noticed that test infra would not get CHIP_ARCH env variable from `setup_external_testing_env.sh`. It is not a big problem but could be neat if solved.
+
+================================================================================
+
+Issue #220: Add unpack_tilize_uninit to LLKs
+------------------------------------------------------------
+When writing tests that incorporate unpack_tilize with other unpacker kernels we need to uninit the unpack_tilize_init otherwise we cannot properly initialize a different unpack kernel and the tests fail. This uninit function is defined and called in metal, but we need one for llk.
+
+================================================================================
+
+Issue #214: Remove TileCount enum from format_arg_mapping.py
+------------------------------------------------------------
+Currently in format_args_mapping.py there is an enum called 
+
+```
+class TileCount(Enum):
+    One = 1
+    Two = 2
+    Three = 3
+    Four = 4
+```
+
+As we can see it just maps words to numbers. It is a bit confusing when assigning this kind of enum to tile_cnt variable in tests which use would expect to be an integer. I think it should be removed and left as just plain integer
+
+================================================================================
+
+Issue #202: [bug] pack_untilize int32 support
+------------------------------------------------------------
+Suspected bug with pack_untilize for Int32 (see [here](https://github.com/tenstorrent/tt-metal/issues/19950#issuecomment-2883350103)).
+
+Would be good to update the pack_untilize test to cover the Int32 case.
+
+================================================================================
+
+Issue #186: Add Watcher asserts before semaphore posts and gets.
+------------------------------------------------------------
+Due to some race conditions for example one explained here 
+
+https://github.com/tenstorrent/tt-metal/issues/19201#issuecomment-2867613877
+
+we can have semaphore_get and semaphore_post instructions dropped, for example trying to call semaphore_get on a semaphore that is already 0. These could lead to very expensive  bugs. We need to add watcher asserts to make sure these situations do not arise. The timing due to enabling watcher may change and some bugs may not manifest, but still it may expose many bugs.
+
+================================================================================
+
+Issue #179: [Test Infra] Math Fidelity Sweep for Eltwise Ops (MUL, ADD, SUB)
+------------------------------------------------------------
+Running tests with full Math fidelity sweep (LoFi, HiFi2, HiFi3, HiFi4) for `EltwiseAdd`, `EltwiseSub` and `EltwiseSub`. This is found in `test_multiple_tiles_eltwise.py`
+
+================================================================================
+
+Issue #178: Feature: reusable LLK for integer multiplication
+------------------------------------------------------------
+I wrote a [mul_u16_to_u32](https://github.com/tenstorrent/tt-metal/blob/f91e4cdde2ea2b9c62cf3124f9cc0fc2e875298f/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/ckernel_sfpu_lcm.h#L19-L53) SFPU function for LCM, which I think could be made reusable for other functions, and perhaps extended to support the following via template parameters:
+
+- u8 × u8 → u8
+- u8 × u8 → u16
+- u16 × u16 → u16
+- u16 × u16 → u32
+- u32 × u32 → u32
+
+These can all be implemented by splitting into u8 words, cast to fp32, multiply the relevant combinations of words, cast back, and shift and combine via addition (or bitwise or).  The first two are of course trivial, but would make sense to roll into the same LLK.
+
+I'm not sure if i32 should be supported instead of u32, or if that should just be dealt with by LLK user, e.g. for LCM it's explicitly documented that all inputs must be within a 15-bit range.
+
+================================================================================
+
+Issue #177: Dealing with files shared between tt-llk and tt-metal
+------------------------------------------------------------
+Currently, we have several header files that reside in the `tt-metal` repository but are required for the LLK test infrastructure to compile and execute:
+1.  `cfg_defines.h`
+2. `dev_mem_map.h`
+3. `tensix.h`
+4. `tensix_types.h`
+5. `ckernel_sfpu_converter.h`
+
+These files primarily contain definitions (e.g. memory sizes, register addresses, etc.). Until now, copies of these files were stored in the `tt-llk` repository to break the dependency. However, since they are frequently updated in the `tt-metal` repository, we need to continuously track these changes to keep them in sync. This approach is not sustainable.
+
+Since these files are essential and cannot be removed, an ideal solution would be to store them in a centralized location (e.g., a separate repository) that all other repositories could access. However, this would complicate matters for existing users (e.g., metal, umd).
+
+The proposed solution is to download these files from `tt-metal` dynamically whenever LLK tests are run. This approach is minimally intrusive, as it only affects our repository and does not impact others. The main drawback is that we may encounter sudden CI failures if changes are made to these files in `tt-metal` and we are not prepared for them. Also, later, if we encounter issues with stack/code size, we could come back to the previous approach, as we would need to have our version of the above, suitable for testing. But I'd expect it be just one file.
+
+================================================================================
+
+Issue #175: Reduce data movement / instruction count in transpose_dest when swapping middle tiles.
+------------------------------------------------------------
+Originally this was tracking a small optimisation where SrcB was replaced with SrcA for the temporary copy, which allowed 4x MOVB2D to be replaced with 2x MOVA2D, with 8 rows moved at a time instead of 4 in the A2D direction.
+
+However, this also opened up another optimisation opportunity, and the number of tile movements has now been reduced from 10 to 9 thanks to the use of SrcA.
+
+================================================================================
+
+Issue #174: [Test Infra] Data Format Inference Model for Fused Tests (Output Tensor Reused as Input)
+------------------------------------------------------------
+The data format inference model currently defines the optimal combination of formats for a llk pipeline run according to the wanted input and output format in L1 (and other test configurations). However, we are now increasing test coverage and fusing two pipeline runs in one test. 
+
+This means:
+- The input format is the input format of the first unpacker kernel 
+- The output format is the output of the second packer kernel 
+- The output formats of the first run must align with the input formats of the second run 
+- Take into account format conversion logic of one run and the conversion for the second run: for example one run can unpack to dest and utilize SFPU, while the second run can unpack to src registers and utilize FPU (the format conversion rules differ)
+
+================================================================================
+
+Issue #173: [Test Infra] Fuse Matmul Test with Unpack Tilize and Pack Tilize
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #172: Retest and remove skip_for_blackhole for tests
+------------------------------------------------------------
+Parent issue : https://github.com/tenstorrent/tt-metal/issues/12349
+
+================================================================================
+
+Issue #161: [Test Infra] Fuse Matmul with Pack Untilize
+------------------------------------------------------------
+Increase matmul test coverage by fusing matmul with untilize and then tilize and then both ( tilize + matmul + untilize)
+
+================================================================================
+
+Issue #160: [Test Infra] Add Matmul Test Coverage + Unary Sfpu Ops
+------------------------------------------------------------
+Fuse matmul with sfpu operations like gelu, relu. First matmul will put result into dest register and sfpu will work on what is in dest register.
+
+================================================================================
+
+Issue #159: [Test infra] Add Matmul Test Coverage + Different Template Parameter Configs
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #158: [Test Infra] Add Matmul Test Coverage + Different Number of Tiles
+------------------------------------------------------------
+Add coverage for matmul tests to sweep test cases for >1 tile.
+
+================================================================================
+
+Issue #157: [Test Infra] Add Bfp8_b format coverage for multiple_tile_eltwise test
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #154: _calculate_reciprocal_ has poor precision
+------------------------------------------------------------
+The existing implementation uses Newton's method, with a default iteration count of 3.  Here is a histogram of precision error (ULPs) for all $2^{24}$ 32-bit float patterns (ignoring sign and exponents, since we rescale the exponent to calculate the reciprocal anyway, and I'm not including denormals):
+
+![Image](https://github.com/user-attachments/assets/e46b596a-86b5-43c3-84a2-2a73b489a20b)
+
+Of course, it gets worse for the "approximate mode" version, which uses 2 iterations:
+
+![Image](https://github.com/user-attachments/assets/5aa9b0f9-d985-4536-8574-1b5e1688eeff)
+
+Fix to follow.
+
+================================================================================
+
+Issue #150: [Test Infra] Data Format Inference Model to Check Existing Format Combination + Offer Replacement That Works
+------------------------------------------------------------
+Our current Data Format Inference Model takes input and output formats and defines all formats needed for LLK pipeline to run while maintaining the defined input and output formats in L1. 
+
+However, the testing infrastructure also allows for users to predefine the entire pipeline format combination, in which case we need to check if this combination is valid and supported by hardware. If not, the test should not run using this format combination and the inference model should suggest another combination to run the test. This would be done in python in order to prevent the test from running before the check is done. 
+- Ideally if the `unpacker_src` (L1 input) format and `packer_dst` (output) format are supported formats for that test then ideally the inference model would yield a valid format combination while keeping the same output and input format
+- If the `unpack_src` and/or `pack_dst` format are not supported for that specific test, then provide a format combination where the input and output formats are close to what the client wants
+
+================================================================================
+
+Issue #148: [Test Infra] Notify User When Dest Accumulation was Turned on for Specific Format Combination
+------------------------------------------------------------
+Data Format Inference Model aims to define all formats given input and output format by client, since there are some input-output combinations that hardware does not support when dest accumulation is off, the inference model will note this combination and turn on dest accumulation in this specific case so the pipeline can complete and the user can acquire the result tensor in their wanted output format.
+
+We when this is done the user should be notified at the end of the test if and which format combinations needed dest accumulation turned on i.e when dest accumulation was turned on even though the test setup declared dest accumulation to be off.
+
+================================================================================
+
+Issue #147: [Perf] Tilize/Untilize follow up with OP writers
+------------------------------------------------------------
+After short meeting with @pavlejosipovic and @mbezuljTT we defined list of additional things to be considered from LLK team to make tilize/untilize petf numbers more useful for OP writers, subtasks should be created to track progress in more details:
+
+- [x] Perf results for L1 Sharded use case. For existing perf results when data is in L1 or when measuring isolated thread utilization all DM kernels are disabled --> this is same as we would have L1 sharded use case since all data is stored in local L1.
+- [ ] Show perf results for bfp8 data type. Document estimated perf and measured test results since this is one of most common data types used in OPs/models
+- [ ] It would be good to create general guide for available variants of tilize/untilize LLK api calls that can be consumed by OP writers. This document should cover available calls, their limitations, perf implications etc...
+- [ ] Help @pavlejosipovic to understand better perf implications in specific use cases:
+    - [ ] [Hallo untilize](https://github.com/tenstorrent/tt-metal/blob/f910c5a18bfa3c65d786b709996bad1d65898b02/ttnn/cpp/ttnn/operations/sliding_window/halo/device/kernels/compute/pack_untilize.cpp)
+    - [ ] [tilize with matmul](https://github.com/tenstorrent/tt-metal/blob/f910c5a18bfa3c65d786b709996bad1d65898b02/ttnn/cpp/ttnn/operations/conv/conv2d/device/kernels/conv_bmm_tilize_col_major_out_blocks.cpp)(compare tilize then matmul perf with fused variant) sync with @lpremovicTT for more details
+        - [ ] untilize not on critical path
+    - [ ] [Maxpool untilize and tilize](https://github.com/tenstorrent/tt-metal/blob/main/ttnn/cpp/ttnn/operations/pool/generic/device/kernels/compute/pool_2d_multi_core.cpp)
+
+================================================================================
+
+Issue #141: [Test Infra] Add Format Combination Check Inference Model
+------------------------------------------------------------
+Once the inference model is done for input and output formats in L1, the next step is to add flexibility to check an existing format combination that the user wants to pass to test and run through LLK pipeline. Ideally the test should not run on this combination if it not supported by hardware (not valid combination). Instead the inference model should identify that this combination is inaccurate and notify the user. Additionally, it should offer an alternative combination that has the same input and output format. 
+- This ideal because the input and output formats are the data formats in L1 and these are the formats that the user needs to stay the same because they directly work with data in L1. 
+- Keeping input and output formats the same and offering different intermediate data formats allows the LLK pipeline to function and test to pass while keeping the data the user passes as input and later processes as result tensor in L1 the same format. That way they do not need to change any additional work that is dependent on this data in a required format.
+
+================================================================================
+
+Issue #140: [Test Infra] Add matmul test coverage for Bfp8_b format (input and output format)
+------------------------------------------------------------
+Adding coverage to run test when our input is Bfp8_b or when output tensor is Bfp8_b (independent from respective output or input format). For any input format when output is Bfp8_b, the test should work and vise versa.
+
+================================================================================
+
+Issue #139: [Test Infra] Format Inference Model: Add support for packer gasket behavior on wormhole
+------------------------------------------------------------
+In the inference model when DestAccumulation is on and our output is Float16, the inference model sets packer src to be Float16 that way Packer does less work. This works on Blackhole because packer gasket can take format32 in dest register and converting it to Float16. However, on wormhole this conversion is not possible because packer gasket cannot do this conversion so when we set packer SRC format to be float16 the test fails (results are incorrect).
+
+Add functionality to inference model to distinguish when architecture is blackhole or wormhole and make the necessary change to format combination according to what format conversion the architecture supports, in this case specifically packer gasket.
+
+================================================================================
+
+Issue #134: Add support for 32-bit types to _llk_math_transpose_dest_.
+------------------------------------------------------------
+Currently, the transpose_dest implementation uses `TRNSPSRCB`, and since SrcA/SrcB only support transposing 19 bits, this will fail to work correctly for 32-bit types such as int32 or float32.
+
+================================================================================
+
+Issue #133: [Perf] Tilize OP Utilization - Anomalies
+------------------------------------------------------------
+Based on [Tilize perf results](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=sharing) please investigate following anomalies in thread utilization data:
+
+- [ ] Unpacker Thread performance have increased number of cycles per tile for ct_dim 1,2 and multiple of 8/4 for BH/WH (35-45%)
+- [ ] Packer Thread performance have decreased number of cycles per tile for ct_dim 1 and 2, this trend decreases with higher rt_dim(25-60%)
+- [ ] rt_dim x ct_dim 1x1 have bad packer and unpacker performances
+- [ ] Packer Thread performance for ct_dim 1 and 2 have average number of cycles per tile less then estimated minimum based on HW BW and llk algo
+
+================================================================================
+
+Issue #132: [Perf] Untilize OP Utilization - Anomalies
+------------------------------------------------------------
+Based on [Untilize perf results](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=sharing) please investigate following anomalies in thread utilization data:
+
+- [ ] Pack Untilize, Packer thread performance for ct_dim 1,2 and 3 have increased cycles per tile, up to 60% for ct_dim 1 on BH and WH
+- [ ] Pack Untilize, Packer thread have lower numbers than theoretical limit for rt_dim x ct_dim = (1,3) - (1,4) for BH and (1,5) - (1,8) for WH
+- [ ] Pack Untilize, Unpacker thread performance degradation for ct_dim 1,2,3, this degradation tends to be less visible on higher rt_dim's -> Not fully relevant since Packer Thread is bottleneck in pipeline
+- [ ] Unpack Untilize, average OP length is less then average unpacker thread utilization --> Check if this is due to averaging --> compare head to head each rt_dim x ct_dim
+
+================================================================================
+
+Issue #131: [Perf] Untilize OP Utilization
+------------------------------------------------------------
+Based on perf tests executed for Untilize OP measured utilization of Unpacker/Packer thread for Pack Untilize is:
+- BH Unpacker Utilization ~58% (28 cycles per tile)
+- WH Unpacker Utilization ~85% (~38 cycles per tile)
+- BH Packer Utilization ~39% (~82 cycler per tile)
+- WH Packer Utilization ~56% (~57 cycles per tile)
+
+Based on perf tests executed for Untilize OP measured utilization of Unpacker/Packer thread for Unpack Untilize is:
+- BH Unpacker Utilization ~12% (512 cycles per tile)
+- WH Unpacker Utilization ~16% (~393 cycles per tile)
+- BH Packer Utilization ~64% (25 cycler per tile)
+- WH Packer Utilization ~68% (47 cycles per tile)
+
+List of things to investigate:
+
+- [ ] Investigate can we improve utilization of Unpacker/Packer thread to improve overall perf numbers for Untilize OP
+- [ ] Pack Untilize, WH have better utilization of Packer(~15%) and Unpacker(~25%) Thread. Focus on Packer utilization since this is slowest part of pipeline and have same estimated BW for BH and WH
+- [ ] Unpack Untilize, WH shows ~4% better utilization of Unpacker, due to same algo used in WH and BH, same utilization is expected
+
+More detailed overview of perf infrastructure, metrics and results can be found at: [Untilize results](https://docs.google.com/spreadsheets/d/1XpbyWTVnaCLoJ9s76tgTkby4H-FUxOHL4a9mUVmVGP8/edit?usp=sharing)
+
+
+Steps to reproduce perf results:
+1. Checkout tt-metal and skrsmanovic/tilize_untilize_perf_testing branch
+2. Build tt-metal with profiler and tests:` ./build_metal.sh -p --build-tests`
+3. Run Python Tilize test sweep: `TT_METAL_DEVICE_PROFILER=1 pytest tests/tt_eager/python_api_testing/sweep_tests/pytests/tt_dnn/test_tilize_perf.py`
+    - Results are stored in generated/tilize_llk_perf_{data}.csv files, data= (op, op_no_dm, unpack, pack)
+4. Run CPP Tilize test sweep: `TT_METAL_DEVICE_PROFILER=1 pytest tests/tt_eager/python_api_testing/sweep_tests/pytests/tt_dnn/test_tilize_cpp.py`
+    - Results are stored in generated/tilize_llk_perf_{data}_cpp.csv files, data= (op, op_no_dm, unpack, pack)
+5. Run Python Untilize test sweep: `TT_METAL_DEVICE_PROFILER=1 pytest tests/tt_eager/python_api_testing/sweep_tests/pytests/tt_dnn/test_untilize_perf.py`
+    - Results are stored in generated/untilize_llk_perf_{data}.csv files, data= (op, op_no_dm, unpack, pack)
+6. Run CPP Untilize test sweep: `TT_METAL_DEVICE_PROFILER=1 pytest tests/tt_eager/python_api_testing/sweep_tests/pytests/tt_dnn/test_untilize_cpp.py`
+    - Results are stored in generated/untilize_llk_perf_{data}_cpp.csv files, data= (op, op_no_dm, unpack, pack)
+7. Each row of .csv file represent average perf number based on 10 executions of tilize/untilize OP
+    - There is total number of cycles and number of cycles per tile, later one is used to for perf metric calculation in google sheets
+
+================================================================================
+
+Issue #130: [Perf] Tilize OP Utilization
+------------------------------------------------------------
+Based on perf tests executed for Tilize OP measured utilization of Unpacker/Packer thread is:
+- BH Unpacker Utilization ~63% (25 cycles per tile)
+- WH Unpacker Utilization ~60% (~52 cycles per tile)
+- BH Packer Utilization ~80% (39 cycler per tile)
+- WH Packer Utilization ~71% (45 cycles per tile)
+
+Investigate can we improve utilization of Unpacker/Packer thread to improve overall perf numbers for Tilize OP.
+
+More detailed overview of perf infrastructure, metrics and results can be found at: [Tilize results](https://docs.google.com/spreadsheets/d/1U4qs5FQRYfL7AWm0n6_rh33h1GCrX-oV077ot-4_8FE/edit?usp=sharing)
+
+Steps to reproduce test results:
+1. Checkout tt-metal and skrsmanovic/tilize_untilize_perf_testing branch
+2. Build tt-metal with profiler and tests: ./build_metal.sh -p --build-tests
+3. Run Python Tilize test sweep: TT_METAL_DEVICE_PROFILER=1 pytest tests/tt_eager/python_api_testing/sweep_tests/pytests/tt_dnn/test_tilize_perf.py
+	a. Results are stored in generated/tilize_llk_perf_{data}.csv files, data= (op, op_no_dm, unpack, pack)
+4. Run CPP Tilize test sweep: TT_METAL_DEVICE_PROFILER=1 pytest tests/tt_eager/python_api_testing/sweep_tests/pytests/tt_dnn/test_tilize_cpp.py
+	a. Results are stored in generated/tilize_llk_perf_{data}_cpp.csv files, data= (op, op_no_dm, unpack, pack)
+5. Run Python Untilize test sweep: TT_METAL_DEVICE_PROFILER=1 pytest tests/tt_eager/python_api_testing/sweep_tests/pytests/tt_dnn/test_untilize_perf.py
+	a. Results are stored in generated/untilize_llk_perf_{data}.csv files, data= (op, op_no_dm, unpack, pack)
+6. Run CPP Untilize test sweep: TT_METAL_DEVICE_PROFILER=1 pytest tests/tt_eager/python_api_testing/sweep_tests/pytests/tt_dnn/test_untilize_cpp.py
+	a. Results are stored in generated/untilize_llk_perf_{data}_cpp.csv files, data= (op, op_no_dm, unpack, pack)
+7. Each row of .csv file represent average perf number based on 10 executions of tilize/untilize OP
+	a. There is total number of cycles and number of cycles per tile, later one is used to for perf metric calculation in google sheets
+
+================================================================================
+
+Issue #129: [Test Infra] Inconclusive Hardware Definition for Packer Format Conversion from Float16_b to Float16_a
+------------------------------------------------------------
+I have a situation where I want my input tensor in L1  to be in format `Float16_b` and my output tensor in L1 to be in format `Float16_a`. I am currently setting my unpacker formats (unpack_src, unpack_dst) to be (`Float16_b`, `Float16_b`) as is supported in hardware. 
+However for programming packer formats I am getting conflicting advice from hardware team regarding which formats Gasket can convert and which formats packer can accept as input and corresponding output format it can convert. 
+
+Marko Merleni claims that Packer can take input of Float16_b and convert it to Float16, however when I run this in the test infrastructure the result is wrong, after consulting with Marko he concluded that the number is not being converted to Float16 and reading it as Float16 gives us the wrong results we are getting in output. He suggested that certain registers need to be set to specific values for packer to be able to do the conversion. When using tt-exalens to check the value of those registers some of them are not set to the values Marco specified 
+- `PCK_DEST_RD_CTRL_Round_10b_mant` should be 1 instead of 0
+- `THCON_SEC0_REG1_Exp_section_size` should be set to 0, in our case it is set to 4
+This would require that we go into `pack_common.h` and program registers accordingly for this specific case, but that seems a bit tricky.
+
+On the other hand, Rakesh Lal provided a table for format conversions in blackhole which shows that Packer cannot covert `Float16_b` to `Float16`, which contradicts Marco's table and suggestion.  Rakesh suggests that Packer Gasket does format conversion from `Float16_b` to `Float16`. In which case it would make sense to set Packer input and output formats to be `Float16`, because Gasket will convert `Float16_b` format from dest register to `Float16` accordingly. 
+However when I try to program it this way, I get extremely big numbers in my output to L1. Upon further inspection it turns out that these numbers are coming from the dest register which is storing these huge numbers. 
+- Interestingly enough the only thing the changed from this case and the first case is how we program packer formats, in the case above I set input and output to be `Float16_b` and `Float16`, int his case they are `Float16` and `Float16`. This leads me to believe that dest register format or numbers are behaving in accordance to how we program packer formats, which is counter intuitive because dest register format depends on which formats unpacker stores into source register and fpu later works with.
+
+================================================================================
+
+Issue #128: Inconclusive Hardware Definition for Packer Format Conversion from Float16_b to Float16_a
+------------------------------------------------------------
+I have a situation where I want my input tensor in L1  to be in format `Float16_b` and my output tensor in L1 to be in format `Float16_a`. I am currently setting my unpacker formats (unpack_src, unpack_dst) to be (`Float16_b`, `Float16_b`) as is supported in hardware. 
+However for programming packer formats I am getting conflicting advice from hardware team regarding which formats Gasket can convert and which formats packer can accept as input and corresponding output format it can convert. 
+
+Marko Merleni claims that Packer can take input of Float16_b and convert it to Float16, however when I run this in the test infrastructure the result is wrong, after consulting with Marko he concluded that the number is not being converted to Float16 and reading it as Float16 gives us the wrong results we are getting in output. He suggested that certain registers need to be set to specific values for packer to be able to do the conversion. When using tt-exalens to check the value of those registers some of them are not set to the values Marco specified 
+- `PCK_DEST_RD_CTRL_Round_10b_mant` should be 1 instead of 0
+- `THCON_SEC0_REG1_Exp_section_size` should be set to 0, in our case it is set to 4
+This would require that we go into `pack_common.h` and program registers accordingly for this specific case, but that seems a bit tricky.
+
+On the other hand, Rakesh Lal provided a table for format conversions in blackhole which shows that Packer cannot covert `Float16_b` to `Float16`, which contradicts Marco's table and suggestion.  Rakesh suggests that Packer Gasket does format conversion from `Float16_b` to `Float16`. In which case it would make sense to set Packer input and output formats to be `Float16`, because Gasket will convert `Float16_b` format from dest register to `Float16` accordingly. 
+However when I try to program it this way, I get extremely big numbers in my output to L1. Upon further inspection it turns out that these numbers are coming from the dest register which is storing these huge numbers. 
+- Interestingly enough the only thing the changed from this case and the first case is how we program packer formats, in the case above I set input and output to be `Float16_b` and `Float16`, int his case they are `Float16` and `Float16`. This leads me to believe that dest register format or numbers are behaving in accordance to how we program packer formats, which is counter intuitive because DEST register format depends on which formats unpacker stores into source register and fpu later works with.
+
+================================================================================
+
+Issue #127: [Test Infra] Add format inference for conversion between Float16 and Bfp8_b
+------------------------------------------------------------
+When Dest Accumulation is turned off we cannot program packer to convert `Float16` format in Dest to Bfp8_b format for L1 result. However, if we take data in format Float16 on dest register and program packer input format to be `Bfp8_a` and output format to be `Bfp8_b` then the conversion works and packer can output `Bfp8_b`! Thus we can successfully run a test where input is `Float16` and output is `Bfp8_b` without Dest Accumulation.
+
+================================================================================
+
+Issue #126: [Test Infra] Add Input and Output format Parametrization to Test infrastructure
+------------------------------------------------------------
+Adding ability to only pass input and output formats, instead of all formats or just one format being set to all formats in LLK pipeline. 
+This feature goes hand in hand with Data Format Inference Model, without the model we cannot have only input and output parametrization.
+
+================================================================================
+
+Issue #125: [Test Infra] Adding Matmul Test Coverage for Float16
+------------------------------------------------------------
+Adding coverage to run test when our input is Float16 or when output tensor is Float16 (independent from respective output or input format)
+
+================================================================================
+
+Issue #124: [Test Infra] Add Matmul Test Coverage for Float32 Output
+------------------------------------------------------------
+Adding capability to cover matmul tests for when output format is `Float32`
+
+================================================================================
+
+Issue #122: Reduce kernel on wormhole [P1]
+------------------------------------------------------------
+Whilst attempting to complete the [`phi-1` bounty](https://github.com/tenstorrent/tt-metal/issues/18287), we bumped into `layer_norm` having very bad precision.
+
+The lack of precision for `layer_norm` also seems to manifest for other models (e.g https://github.com/tenstorrent/tt-metal/issues/18548)
+
+That led me to the wormhole reduce kernel, which seemingly ignores `is_fp32_dest_acc_en`:  https://github.com/tenstorrent/tt-llk/blob/main/tt_llk_wormhole_b0/llk_lib/llk_math_reduce.h#L168
+
+Accumulating in FP32 is very important for these types of operations, so I'm unsurprised that it currently has bad PCC.
+
+The oracular @pcawleyTT had this insight:
+
+> The code you linked to looks like it was originally written for Grayskull, and then piecemeal ported to Wormhole, and then piecemeal hacked on (hence all the commented out bits). There's a TTI_TRNSPSRCB a few lines down from the line you linked, which poses as problem on Wormhole, as SrcA / SrcB only hold 19b datums, whereas Dst can hold 32b datums, so the Grayskull approach of transposing Dst via moving it to SrcB results in precision loss. is_fp32_dest_acc_en ties in to whether Dst contains 16b datums or 32b datums, but nothing can make SrcB any wider.
+The approach it should be taking for 32b datums is to split them in to two 16b parts (or a 19b part and a 13b part), use two SrcB transposes to transpose the parts, and then rejoin the parts.
+
+================================================================================
+
+Issue #115: Suspected compute kernel issue when scalling behond 1 tile
+------------------------------------------------------------
+Copying in a customer issue:
+
+> 
+> To demonstrate the problem, I've implemented a simplified tile addition program that should be a very good representation of why one of the all-reduce algorithms is not working, and hopefully also holds the answer to why another all-reduce algorithm isn't working as expected.
+> Overall, the program functions as follows:
+> Host: Creates a bfloat_16 vector containing all 1s
+> Host: Copies the vector to shared-device memory
+> Host: Launches kernels
+> d_Dataflow: Copies vector to node memory, in "cb_local" and "cb_recv"
+> d_Compute: Adds cb_recv directly to cb_local, iterating over cb_recv but staying on tile 0 of cb_local and writing the results directly to cb_local
+> d_Dataflow: Copies vector from node to shared-device memory
+> Host: Copies vector from shared-device to host memory
+> Host: Compares with output
+> The behaviour is as follows:
+> Given 0 tiles to add - compute kernel doesn't execute the loop, doing no math - answer correct (no change 1+0=1)
+> Given 1 tile to add - compute kernel executes the loop exactly once, adding cb_recv tile 0 to cb_local tile 0 - answer correct (1+1=2)
+> Given n > 1 tile to add -  compute kernel executes the loop n times, always adding cb_recv tile i to cb_local tile 0 - answer incorrect (outputs 2 regardless of how many times the addition loop is carried out).
+```
+
+namespace NAMESPACE {
+void MAIN {
+    uint32_t num_tiles = get_arg_val<uint32_t>(0);
+    uint32_t cb_wait_tile_num = num_tiles;
+    if (cb_wait_tile_num < 1) {
+        cb_wait_tile_num = 1;
+    }
+
+    constexpr uint32_t cb_id_SE = tt::CBIndex::c_2;
+    constexpr uint32_t cb_id_recv = tt::CBIndex::c_3;
+    constexpr uint32_t cb_id_local = tt::CBIndex::c_16;
+
+    // await writing to local buffer to finish
+    cb_wait_front(cb_id_local, 1);
+    cb_wait_front(cb_id_recv, cb_wait_tile_num);
+
+    binary_op_init_common(cb_id_local, cb_id_recv, cb_id_local);
+    add_tiles_init();
+    //In place add of recv buffer to local buffer
+    for (uint32_t n_tile = 0; n_tile < num_tiles; n_tile++) {
+        tile_regs_acquire();
+        add_tiles(cb_id_local, cb_id_recv, 0, n_tile, 0);
+        tile_regs_commit();
+
+        tile_regs_wait();
+        pack_tile(0, cb_id_local, 0);
+        tile_regs_release();
+    }
+
+    // Signal computation end
+    cb_pop_front(cb_id_recv, cb_wait_tile_num);
+    cb_pop_front(cb_id_local, 1);
+    cb_push_back(cb_id_SE, 1);
+}
+}  // namespace NAMESPACE
+```
+
+================================================================================
+
+Issue #114: Added flexibility for dynamic byte count calculation for reading datums of different sizes
+------------------------------------------------------------
+Instead of reading words from device to extract our result vector, we instead call read_from_device which reads the data in bytes. Previously this was set to read a fixed number or words and then a fixed number of bytes (maximum amount of bytes because it was set to read bytes for 32bit datums).
+However, we want to be able to be flexible with our stimuli generation for testing, which means input tensors will be of different sizes and different formats, thus the number of bytes we read should be flexible to these changes, instead of fixed.
+
+================================================================================
+
+Issue #113: Fixing how data is read from L1 and written to L1 (in bytes)
+------------------------------------------------------------
+There is a reoccurring issue where data written to L1 is not organized in same order as when packer writes data to L1, in other words our program was writing incorrectly to L1 and this caused comparison of golden and result to be incorrect even though the numbers produced were accurate they were out of order.
+
+Once this issue was addressed and solved, our data was in stored uniform order throughout, however we were reading words from L1 using tt-exalens but misinterpreting in which order to read the bytes, and according to which format. Since this would cause too much logic and work around to develop our own model for how we read bytes from a word in L1, instead we now use tt-exalens function read_from_device which reads bytes from words in L1 correctly.
+
+Now there is no need for bug patches made prior when reading from device in certain formats like bfp8_b or float16, everything is uniform and bytes are read in consecutive order for each format except the number of bytes varies according to size of format/datum.
+
+================================================================================
+
+Issue #112: [Test Infra] Tiny Tiles Coverage
+------------------------------------------------------------
+Some LLKs have added support for tiny tiles, these should also be covered so we know which OPs support which tile sizes.
+
+Binary OP cast col and reduce rows have added 16x32 support here: https://github.com/tenstorrent/tt-llk/pull/104. 
+
+Need to go through our kernels so that we know exactly what is supported and what the gaps are to avoid surprises from OPs team etc.
+
+================================================================================
+
+Issue #105: tt-metal uses its own duplicate kernel instead of using one from the tt-llk
+------------------------------------------------------------
+During preparation of #99 and #100 I came across an interesting problem.
+
+The `tt-metal` repository demonstrates three distinct patterns for handling SFPU unary operations:
+
+1. Using its own kernel implementations:
+In some cases, `tt-metal` relies on its own implementations of kernels, even if this implementation exists in tt-llk. For example, the [llk_math_eltwise_unary_sfpu_log.h](https://github.com/tenstorrent/tt-metal/blob/main/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/llk_math_eltwise_unary_sfpu_log.h) file directly uses `ckernel::sfpu::calculate_log()` from its own repository (found [here](https://github.com/tenstorrent/tt-metal/blob/24986581acac9c82e48a0e373163805e89e363a7/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/ckernel_sfpu_log.h#L69)) to perform the computation. Same applies to [llk_math_eltwise_unary_sfpu_abs.h](https://github.com/tenstorrent/tt-metal/blob/24986581acac9c82e48a0e373163805e89e363a7/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/llk_math_eltwise_unary_sfpu_abs.h) and [ckernel::sfpu::calculate_abs()](https://github.com/tenstorrent/tt-metal/blob/24986581acac9c82e48a0e373163805e89e363a7/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/ckernel_sfpu_abs.h). Same stands for `square` and trigonometry functions (`sin`, `cos` and `tanh` are present in tt-llk, while others are missing, and metal uses its own versions completely).
+
+2. Providing an additional wrapper:
+In other cases, tt-metal acts as a wrapper around existing functionality, which adds a layer of indirection (e.g. [llk_math_eltwise_unary_sfpu_typecast.h](https://github.com/tenstorrent/tt-metal/blob/main/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/llk_math_eltwise_unary_sfpu_typecast.h) which calls functions from [ckernel_sfpu_typecast.h](https://github.com/tenstorrent/tt-metal/blob/24986581acac9c82e48a0e373163805e89e363a7/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/ckernel_sfpu_typecast.h), which calls functions from tt-llk. This middle layer could be removed. Same stands for `reciprocal` and `sqrt`.
+
+3. Calling tt-llk implementations directly
+This is how I think it should be in the future, to keep all the kernels in one place (tt-llk) and call them from metal's API layer
+Only a handful of tese cases exist in the metal repository at the moment, and only for grayskull, which is now de-facto defunct.
+
+
+While the second pattern is not problematic in terms of functionality, it could introduce additional overhead (depending on how the code is optimized). However, the first pattern could be more concerning, as it hides changes made in tt-llk by aliasing them. What is more, tt-metal often has additional implementations (see [calculate_abs_int32](https://github.com/tenstorrent/tt-metal/blob/ff6c3218cf66e1ce26444a032f15982d00244712/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu/ckernel_sfpu_abs.h#L27) which is present in tt-metal, but not in tt-llk)
+
+================================================================================
+
+Issue #102: [Bounty $500] Remove extraneous NOPs for SFPSWAP.
+------------------------------------------------------------
+Despite the docs saying otherwise, SFPSWAP does _not_ need to be followed by NOP (hardware will automatically do this even on Wormhole).  SFPSWAP always takes 2 cycles, but removing any NOPs removes confusion for anyone reading LLK code, and potentially saves I$.
+
+Suggest doing a check for unnecessary NOPs and removing them e.g. in topk LLK.
+
+Presumably a similar but wider check can be done for Blackhole, which has scoreboarding, but for now this issue can just be for Wormhole.
+
+================================================================================
+
+Issue #100: [Test Infra] Increase SFPU coverage for binary ops
+------------------------------------------------------------
+SFPU supports the following binary operations:
+
+| Operation        | Tested  |  Implemented in tt-llk  |
+|------------------|---------|----------|
+| add_int32        |       |    ✅     |
+| sub_int32        |       |    ✅     |
+| add              |   ✅    |    ✅     | 
+| sub              |    ✅   |    ✅     |
+| mul              |   ✅ |    ✅     |
+| rsub             |       |    ✅     |
+| div              |       |    ✅     |
+| eltw_bitwise_and |       |    ✅     |
+| eltw_bitwise_or  |       |    ✅     |
+| eltw_bitwise_xor |       |    ✅     |
+| eltw_copy_dest   |       |    ❌     |
+| lshift           |       |    ✅     |
+| rshift           |       |    ✅     |
+| quant          |  |  ❌ | 
+| requant          |  |  ❌ | 
+
+Some are missing implementation in tt-llk, and those should be copied from tt-metal repository before proceeding with tests.
+
+================================================================================
+
+Issue #99: [Test Infra] Increase SFPU unary ops coverage
+------------------------------------------------------------
+SFPU supports the following unary operations:
+
+
+Operation | Tested | Implemented in tt-llk | Implemented in tt-metal|bounty candidate
+-- | -- | -- | --| --
+abs | ✅ | ✅ | ❌|
+acos |   | ❌ | ✅|
+add1 |   | ❌ | ✅
+asin |   | ❌ | ✅
+atan |   | ❌ | ✅
+bitwise_and |   | ❌ | ✅
+bitwise_not |   | ❌ | ✅
+bitwise_or |   | ❌ | ✅
+bitwise_xor |   | ❌ | ✅
+cast_fp32_to_fp16a |   | ✅ | ❌|Yes
+ceil |   | ❌ | ✅
+clamp |   | ✅ | ❌|Yes
+cosine | ✅ | ✅ | ❌
+cumsum |   | ✅ | ❌|Yes
+dequant_int32 |   | ✅ | ❌|Yes
+elu |   | ❌ | ✅
+equal_zero |   | ❌ | ✅
+erf |   | ❌ | ✅
+erfc |   | ❌ | ✅
+erfinv |   | ❌ | ✅
+exp2 |   | ❌ | ✅
+exp_with_base |   | ✅ | ❌|Yes
+exponential |   | ✅ | ❌|Yes
+fill |   | ❌ | ✅
+floor |   | ❌ | ✅
+fmod |   | ❌ | ✅
+gelu |   | ✅ | ❌|Yes
+gelu_appx |   | ✅ | ❌|Yes
+gelu_derivative |   | ✅ | ❌|Yes
+greater_than_equal_zero |   | ❌ | ✅
+greater_than_zero |   | ❌ | ✅
+hardtanh |   | ✅ | ❌|Yes
+heaviside |   | ❌ | ✅
+isfinite |   | ❌ | ✅
+isinf |   | ❌ | ✅
+isneginf |   | ❌ | ✅
+isnan |   | ❌ | ✅
+isposinf |   | ❌ | ✅
+left_shift |   | ❌ | ✅
+less_than_equal_zero |   | ❌ | ✅
+less_than_zero |   | ❌ | ✅
+log | ✅ | ✅ | ❌
+log_with_base |   | ✅ | ❌|Yes
+logical_not_unary |   | ❌ | ✅
+lrelu |   | ❌ | ✅
+mask |   | ❌ | ✅
+max |   | ❌ | ✅
+min |   | ❌ | ✅
+negative |   | ❌ | ✅
+not_equal_zero |   | ❌ | ✅
+power |   | ❌ | ✅
+prelu |   | ❌ | ✅
+quant_int32 |   | ✅ | ❌|Yes
+reciprocal | ✅ | ✅ | ❌
+relu_max |   | ✅ | ❌|Yes
+relu_min |   | ✅ | ❌|Yes
+remainder |   | ❌| ✅
+requant_int32 |   | ✅ | ❌|Yes
+right_shift |   | ✅ | ❌|Yes
+rsqrt |   | ❌ | ✅
+sign |   | ✅ | ❌|Yes
+signbit |   | ❌ | ✅
+sigmoid |   | ✅ | ❌|Yes
+sigmoid_appx |   | ❌ | ✅
+silu |   | ❌ | ✅
+sine | ✅ | ✅ | ❌
+softplus |   | ❌ | ✅
+sqrt | ✅ | ✅ | ❌
+square | ✅ | ✅ | ❌
+tan |   | ❌ | ✅
+tanh |   | ✅ | ❌|Yes
+tanh_derivative |   | ✅ | ❌|Yes
+topk_local_sort |   | ✅ | ❌
+topk_merge |   | ✅ | ❌
+topk_rebuild |   | ✅ | ❌
+unary_gt |   | ❌ | ✅
+unary_lt |   | ❌ | ✅
+unary_ne |   | ❌ | ✅
+
+
+✅ marks what we already covered in our tests and what's implemented in tt-llk repository.
+[Ops present in tt-metal](https://github.com/tenstorrent/tt-metal/tree/c9e4a1ac43c37f0b801788ac6280c25960ad5296/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api/llk_sfpu), but not in tt-llk would need to be moved before writing the tests.
+
+At present, our tests cover these data types:
+- Float16
+- Float16_b
+- Float32
+
+We should aim at covering the rest as well.
+
+================================================================================
+
+Issue #95: Review is_32bit_input functions
+------------------------------------------------------------
+The functions _is_32_bit_input_ located in _cmath_common.h_ and _cunpack_common.h_ have a misleading name. While the name suggests that they are checking the input, they are also used to check the output format.
+Review the functions and consider renaming/splitting them.
+The purpose of the functions is to check if both the input and output formats are 32-bit, as in that case, unpacking is performed directly into the destination register.
+
+================================================================================
+
+Issue #80: Data Format Inference Model
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #79: Fixed Hang on multiple tiles eltwise test
+------------------------------------------------------------
+The trisc cores responsible for unpacking, math, and packing were not running in parallel. This misalignment occurred because the cores were not loaded simultaneously. As a result, the unpacker core was lagging behind the packer and math cores by nearly 800 cycles. This discrepancy caused a race condition, where the cores were not synchronized, leading to failures in computation, particularly when reading from multiple tiles.
+
+This issue was evident in the `test_multiple_tiles_eltwise_binary` test. The test would sometimes pass all 236 test cases, but other times, certain test cases would fail sporadically. The same test case did not always fail, and the number of failed tests varied between runs. Additionally, this issue occurred even when tests were run in isolation, with each test resetting the board and executing independently of the previous test's state.
+
+The issue was addressed in device.py by putting all three cores into reset before loading them. Once the elf files were loaded, the cores were released from reset and started running simultaneously. Additionally, in the `trisc.cpp` file, we ensured proper synchronization by invoking the following sequence:
+```cpp
+run_kernel();
+ckernel::tensix_sync();
+```
+This approach aligns with how kernels are executed in Metal, ensuring consistency and resolving the hang issue. To validate the fix, 25,000 tests were conducted on both BH and WH devices, confirming that the issue was resolved across both architectures.
+
+================================================================================
+
+Issue #78: Upgraded Test Interface and Output of Results
+------------------------------------------------------------
+#### 1. **Improved Test Output with `pytest-sugar`**
+**Visual Progress + Concise Test Summary**
+Upgraded the look and readability of test output using `pytest-sugar`.
+Here we ca track which test cases pass, skip or fail and on the side we
+have an active overview of how our tests are progressing i.e what
+percentage of tests have completed. At the end we get a clear and
+concise overview of all the tests we ran and their result summary.
+#### 2. **Automated Test Configuration with `pytest.ini`**
+**Simplified Command-Line Invocation + Increased Verbosity**
+The test configuration has been automated via the `pytest.ini` file.
+This eliminates the need to manually add flags (like `-v`) each time
+tests are run. The `-v` verbosity flag is set up by default in the
+`pytest.ini` file, ensuring that test parameters are clearly displayed
+in the output, making it easier to track the setup, state and condition
+of each test.
+* added feature to run all tests by simply typing `pytest` in terminal
+(under python_tests directory of course).
+#### 3. **Centralized Error Logging with `pytest_errors.log`**
+ **Clean Terminal Output + Error Logging**
+All error messages and warnings are now redirected to a dedicated log
+file (`pytest_errors.log`). This ensures the terminal only shows a
+concise summary of the test results. Removed clutter of error messages
+and warnings in terminal. We are unable to see which tests have
+passed/failed/skipped. Errors and failures are logged so they can be
+reviewed later without cluttering the terminal output.
+* Note that after each test run, the error logs from previous runs are cleared to make room for the current test run, preventing overflow and ensuring clarity.
+#### 4. **Clearer Test Parameter Display**
+**Full Parameter Visibility + Enhanced Debugging**
+The output now clearly shows all parameters passed to the test function,
+including data types, states, and conditions. This eliminates the
+confusion over which parameters were used in the tests. By displaying
+the parameters, we can better understand the state and conditions under
+which the tests pass or fail, making it easier to debug issues.
+
+================================================================================
+
+Issue #77: Fix test_tilize_calculate_utilize.py synchronization bug
+------------------------------------------------------------
+### Problem description
+Once TRISCs were synced to run at the same time in order to resolve
+hangs because unpack was lagging behind pack and math TRISCs,
+`test_tilize_calculate_utilize.py` started to fail because it attempted
+to fuse two LLK pipeline runs. This means that in the first run we
+unpack from two buffers in L1 and after math we pack to two other
+buffers in L1. Then in the second run we unpack from these two buffers
+that pack wrote to, however `unpacker` started to read from the buffers
+before the `packer` completed writing to L1.
+
+This worked previously because the `unpacker` was severely lagging
+behind `packer` and `math` (approximately 700 cycles), and this lag
+allowed for `packer` to finish writing to L1 before the `unpacker` would
+start reading. Since `unpacker` is synced with `packer` we must make
+`unpacker` wait for packer to finish before it begins reading from L1.
+
+### What's changed
+The bug seemed to have been fix by using a semaphore (PACK_DONE) to create communication between packer and unpacker. The packer first writes data to L1 and signals the unpacker by incrementing the semaphore (PACK_DONE = 1). The unpacker waits for the semaphore to be set to 1 before reading the data from L1.
+This ensures that the unpacker does not read premature or incorrect data, preventing data race conditions.
+Once the unpacker starts reading, it decrements the semaphore (PACK_DONE = 0) signalling it has started processing data.
+
+### Bug Persists 
+This might be due to the fact that math has to synchronize with unpacker. While unpacker waits for packer to write to L1 before it starts processing that data, similarly math must wait for unpacker to load data into registers before it begins operating on operands. We will try to use semaphore to synchronize math with unpacker. Hopefully this should solve the issue.
+
+================================================================================
+
+Issue #71: Rename t6_semaphore_wait_on_zero and t6_semaphore_wait_on_max for clarity
+------------------------------------------------------------
+Function `t6_semaphore_wait_on_zero(const uint8_t index)` is used to wait while semaphore is 0 i.e while `sem == 0`. However this is counter intuitive since "wait on zero" suggests we wait for semaphore to be 0 i.e wait while `sem != 0`.  Similarly for `t6_semaphore_wait_on_max`, the name implies waiting until the semaphore reaches its maximum value i.e while `sem!= max` or `sem < max`, but it in fact waits while `sem == max` which could lead to confusion.
+
+```cpp
+template <uint WaitRes>
+inline void t6_semaphore_wait_on_max(const uint8_t index)
+{
+    TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_MAX);
+}
+
+template <uint WaitRes>
+inline void t6_semaphore_wait_on_zero(const uint8_t index)
+{
+    TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_ZERO);
+}
+```
+
+Notice that our `wait_sem_cond` for `TTI_SEMWAIT` is `STALL_ON_ZERO` and `STALL_ON_MAX`, there respective values are shown below.
+```cpp
+//ckernel_instr_params.h
+constexpr static uint STALL_ON_ZERO = 0x1;
+constexpr static uint STALL_ON_MAX  = 0x2;
+```
+However, we can see that `SEMWAIT` will acknowledge that passing argument wait_sem_cond is 1 i.e `STALL_ON_ZERO` then it waits while semaphore is 0 and when `wait_sem_cond` is 2 i.e `STALL_ON_MAX` it waits while semaphore is max.
+```yaml
+SEMWAIT:
+    instrn_type: LOCAL_CREGS
+    ex_resource: SYNC
+    op_binary: 0xa6
+    src_mask: 0x0
+    fcov:
+    arguments:
+        - name: wait_sem_cond
+          start_bit: 0
+          field_type: DEC
+          description: "Wait on semaphore. 1 - wait while semaphore is 0, 2 - wait while semaphore is max"
+          fcov_point_bins:
+            bins: [ {name: "WaitWhileZero",    value: "0x1"},
+                    {name: "WaitWhileMax",  value: "0x2"}]
+```
+
+Renaming the functions to `t6_semaphore_wait_while_zero` and `t6_semaphore_wait_while_max` would more accurately reflect its purpose. It clearly indicates that the function is waiting while the semaphore value is zero, not until it reaches zero. This change would make the code more intuitive for developers who read the function name and try to understand its behavior at a glance.
+
+================================================================================
+
+Issue #69: [Test Infra] Reduce test fails build
+------------------------------------------------------------
+I started working o fixing reduce test for reduce_row and reduce_scalar and what happens is that when I remove pytests.skip and fix generate_golden to work with new infra parametrization cpp tests fail compile. 
+
+Repro can be found in branch ldjurovic/reduce_fix.
+
+Can I be enabled to continue working on this fix ?
+
+================================================================================
+
+Issue #62: Investigate the possibility of speeding up sigmoid on WH_B0
+------------------------------------------------------------
+Context: https://github.com/tenstorrent/tt-metal/issues/19477
+The issue above suggests exposing VectorMode::C to unary ops, giving us ~50% of speedup in sigmoid calculations.
+To get more perf, we need llk support, which in my mind boils down to this:
+- Expose a 32x2 VectorMode calculation, which I don't think is possible, I think that SFPU can operate at minimum at 4x32 (if I'm not mistaken). So if this is right we would need ability to transpose tile in unpacker, followed by 4x32 calculation, followed by transpose back. Is this doable? It will be messy to expose this in metal tho :(
+
+Last year, exponent was a critical op in a bunch of models (Stable Diffusion, LLM prefill), due to it being extremely slow. To speed it up, LLK changes were made, which I believe "turned on the pipeline in SFPU", so a bunch of calculations can be overlapped. This yielded, if I remember correctly, 4-6 times speedup on the op itself, largely removing the exponent bottleneck.
+
+I think it is worth exploring the same path for sigmoid op, before doing any additional VectorMode exposings, and see where that gets us
+
+For reference, tt-metal issue regarding the problem:
+https://github.com/tenstorrent/tt-metal/issues/7208
+
+tt-metal commit that introduced exponent changes:
+https://github.com/tenstorrent/tt-metal/pull/7693/files
+
+================================================================================
+
+Issue #61: [Blackhole]: Pack untilize improvements
+------------------------------------------------------------
+Pack untilize kernel needed to be re-written for Blackhole, due to Blackhole packer limitations:
+
+Only one Dest offset register for the packer instance (but we can use strided mode of 16 rows apart)
+PACR instructions can only write L1 contiguous output.
+These L1 Offset registers, are now set per PACR Context, not per rows output from PACR instruction (i.e PACK_INTF_SEL)
+
+```
+THCON_SEC0_REG1_L1_Dest_addr_ADDR32 -> Context 0
+THCON_SEC0_REG8_L1_Dest_addr_ADDR32 -> Context 1
+THCON_SEC1_REG1_L1_Dest_addr_ADDR32 -> Context 2
+THCON_SEC1_REG8_L1_Dest_addr_ADDR32 -> Context 3
+```
+
+Here is the current algorithm:
+
+![Image](https://github.com/user-attachments/assets/2368edba-a9ad-4e5c-9952-df51b1b474a6)
+
+For wormhole b0, 8x16 rows can be output per tile (before incrementing counters), while for blackhole with the above implementation, only 2x16 can. Since pack_untilize feature needs to be fused with other operations, we cannot change the unpacker to use a different unpacking scheme (Fastest untilize scheme would be T0F0, T0F1, T1F0, T1F1, T0F2, T0F3, T1F2, T1,F3)). However, we should use that implementation if the use case is doing a pack_untilize for a block of tiles (i.e not fused).
+
+One major optimization, is to enable the use of contexts.
+```
+THCON_SEC0_REG1_L1_Dest_addr_ADDR32 = CNTX0 = tile_offset (Configured for top faces)
+THCON_SEC0_REG8_L1_Dest_addr_ADDR32 = CNTX2 = tile_offset + block_ct_dim * TILE_C_DIM *datum_size ((Configured for bottom faces)
+```
+Then algorithm can do 4x16 rows, will change to something like this:
+
+```
+CH0 x_stride = number of bytes per datum (2 bytes for Float16b default)
+CH0 y_stride = FACE_C_DIM*x_stride
+CH0 z_stride = FACE_R_DIM*y_stride (1x16x16 datums default, already done in pack_hw_config)
+CH0 w_stride = 4*z_stride (32x32 by default)
+PACK_INTF_SELECT_0 = 0b0011 (read 2 rows from dest)
+PACK_INTF_SELECT_1 = 0b1100 (read 2 rows from dest)
+Dest Mode = DST_STRIDED_MODE (Each row read from dest is 16 apart)
+
+    for face_r_dim (16 by default):
+        for block_ct_dim (2 in this example) {
+            PACK(CNTX0, PACK_INTF_SELECT_0); (Reads 2 rows, writes them contigous in L1, dest rows = 0,16, 1, 17, 2, 18 .....)
+            PACK(CNTX1, PACK_INTF_SELECT_1); (Reads 2 rows, writes them contigous in L1, dest rows = 32,48, 33, 49,  .....)
+            W_CNT += 1 (Jumps to next tile)
+        }
+        Y_CNT+=1
+    }
+```
+The problem here is if contexts are used, initial hardware configuration for data formats, tile sizes, etc, all need to also be programmed.
+
+================================================================================
+
+Issue #60: Placeholder - can be used for anything
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #57: Unpack 32x32 tiles
+------------------------------------------------------------
+Currently the only unpacker kernel that unpacks 32x32 tiles is the llk_unpack_AB_matmul.h. The addition was done to saturate the compute kernel for matmul operations. There are other unpacker kernels that could also make use of the same additions:
+
+```
+    llk_unpack_A.h
+    llk_unpack_AB.h
+    llk_unpack_reduce.h
+    llk_unpack_tilize.h
+    llk_unpack_untilize.h
+```
+
+Not only would this be helpful for performance, but also it could remove the unnecessary face dimensions configs:
+
+    config_unpacker_x_end<UNP_SEL>(face_r_dim);
+
+That need to be added to init functions such as _llk_unpack_A_init_ to be able to fuse operations that switch between unpacking 16x16 and unpacking 32x32.
+
+@nvelickovicTT fyi
+
+================================================================================
+
+Issue #56: Use replay buffers + tensix l1 updates
+------------------------------------------------------------
+Replay buffers are currently under-utilized in the kernels. For the case of unpacker kernels, replay buffers can be used to update the l1 tile addresses without mmio accesses:
+
+```
+  TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_address_ADDR32);
+  TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
+  TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+  TTI_WRCFG(p_gpr_unpack::TMP0,0,THCON_SEC0_REG3_Base_address_ADDR32);
+```
+or can also use CFGSHIFTMASK method
+
+The following unpacker kernels do not use replay buffers:
+
+    llk_unpack_A.h
+    llk_unpack_AB.h
+    llk_unpack_reduce.h
+    llk_unpack_tilize.h
+
+Performance measurements for the above kernels should be done, and operations that are unpack bound can try implementing the addresses updates for performance increase. Eltwise binary/unary operations for example are around ~15% math util in buda performance measurements.
+
+================================================================================
+
+Issue #55: [Blackhole] CFGSHIFTMASK instruction
+------------------------------------------------------------
+Blackhole has new CFGSHIFTMASK that can update addresses for the unpacker instructions inside the mop/replay buffers.
+
+Instead of updating addresses in this method:
+
+```
+  TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_address_ADDR32);
+  TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
+  TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+  TTI_WRCFG(p_gpr_unpack::TMP0,0,THCON_SEC0_REG3_Base_address_ADDR32);
+```
+
+Using the CFGSHIFTMASK instruction, it could be done like this:
+
+```
+TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_address_ADDR32); // THCON_SEC0_REG3_Base_address_ADDR32 =  THCON_SEC0_REG3_Base_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32 
+```
+
+as long as the scratch buffer is correctly populated:
+
+```
+TTI_WRCFG(p_gpr_unpack::TILE_SIZE_A, 0, SCRATCH_SEC0_val_ADDR32);
+TTI_NOP;
+```
+
+If an operation is unpacker bound, then using the CFGSHIFTMASK should increase performance.
+
+================================================================================
+
+Issue #51: [Code improvement] Throw assert if calling API with block_ct_dim < full_ct_dim
+------------------------------------------------------------
+We know that code paths that are triggered with block_ct_dim < full_ct_dim are not well tested and might have serious bugs.
+To avoid silent failures due to using this code path, we should throw an assert to signalize that it shouldn't be used currently.
+
+================================================================================
+
+Issue #48: test_multiple_tiles_eltwise.py failing on main branch
+------------------------------------------------------------
+Tests intermittenty fail when executed on BH, while they pass and perform as expected on WH. Specifically, mailbox assertions in the `assert_tensix_operations_finished(...)` function fail when running on BH which checks if kernels have finished executing.
+
+         tensix_L1_mailboxes = [0x19FF4, 0x19FF8, 0x19FFC]  # L1 Mailbox addresses    
+         assert read_word_from_device(core_loc, tensix_L1_mailboxes[0]) == 1
+         AssertionError
+
+Further investigation using tt-exalens reveals that the mailbox value during the assertion failure is 2. The tests execute the trisc.cpp file, where trisc writes 2 to the current kernel’s mailbox location at the start of execution. Upon completion, the kernel writes 1 to the mailbox address. 
+
+This suggests that the kernels are not completing as expected, resulting in a hang. Notably, this issue is not specific to any single test; it occurs randomly across different tests, all of which pass when run individually. Sometimes, test_multiple_tiles_elwise.py runs without any assertion failures, but the overall behavior pattern remains inconclusive.
+
+Further analysis shows that only the PACK and UNPACK kernels are affected by this hang. Specifically, the UNPACK kernel hangs during the execution of the tensix_sync() function, while the PACK kernel hangs during the run_kernel() execution in device.py. In contrast, the MATH kernel does not experience any hang.
+
+In order to document this hang for future reference, I have saved the current state of main testing infrastructure on `hang_multiple_tiles_eltwise_test` branch
+
+          git checkout hang_multiple_tiles_eltwise_test
+          pytest -x --count 10 test_multiple_tiles_eltwise.py
+
+================================================================================
+
+Issue #38: [Test Infra] Documentation for Test Infra
+------------------------------------------------------------
+Refine Test Infra presentation into readme 
+How to write tests, run tests, high level structure.
+
+================================================================================
+
+Issue #30: [Test infra] Find a way to see code coverage
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #20: [Code improvement] Stop using `using namespace` in header files
+------------------------------------------------------------
+### Description
+Using using namespace in header files is generally considered bad practice because it can lead to namespace pollution and unexpected name conflicts. When you include a header file that uses using namespace, it brings all the names from the specified namespace into the global namespace of any file that includes it. This can cause name collisions and make the code harder to understand and maintain. At the moment of writing this issue, we have 183 using directives in 149 files. Since this is a header-only project, I'd say we have this issue in almost 60% of files.
+
+### Why This Is a Problem
+**Namespace Pollution:** All names from the "used" namespaces are brought into the global namespace, which can lead to unintended name clashes.
+**Code Maintainability:** It becomes difficult to track where certain names are coming from, making the code harder to read and maintain.
+**Potential Conflicts:** If another header file or source file includes the same header and defines names that conflict with those in the namespace that was included using `using namespace` directive, it can lead to compilation errors or unexpected behavior.
+
+### Solution
+**Remove using namespace directives:** Remove the using namespace directives from all of the header files and fully qualify the names from namespaces where they are used.
+
+================================================================================
+
+Issue #19: [Test Infra] Go through files taken from tt-metal and other projects
+------------------------------------------------------------
+Once main functionality of test infra is reached We should go through all files taken from other projects and remove what is not needed. For example tensix_types.h is very similar for both WH and BH. Same is for few more files. We should try to reduce number of helper files to minimum.
+
+================================================================================
+
+Issue #16: [Test Infra] Math Fidelity Sweep for Matmul
+------------------------------------------------------------
+figure out masks to get golden for different fidelities
+
+================================================================================
+
+Issue #15: [Test Infra] port to unified repo ( Works on WH and BH)
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #14: [Test Infra] Check golden generation for matmul with L1 accum
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #13: [Test Infra] Check golden generation for  tilize/untilize
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #12: [Test Infra] Reduce
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #11: [Test Infra] tilize/untilize
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #10: [Test Infra] matmul coverage - sequential matmul runs
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #9: [Test Infra] matmul coverage - sweep L1 accumulation (spill)
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #8: [Test Infra] matmul coverage - sweep accumulation in dest
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #7: [Test Infra] matmul coverage - sweep through sub block size 1-8
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #6: [Test Infra] DPRINT support
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #5: [Test Infra] 32 bit datacopy
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #4: [Test Infra] Format sweep
+------------------------------------------------------------
+
+
+================================================================================
+
+Issue #3: [Test Infra] Environment setup & infra foundation
+------------------------------------------------------------
+@ldjurovicTT please put description of the work you are adding in the https://github.com/tenstorrent/tt-llk/pull/1
+
+================================================================================
+

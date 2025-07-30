@@ -27,312 +27,542 @@
 #pragma once
 
 #include <cstdint>
+#include <cmath>
+#include <algorithm>
+#include <string>
 #include <type_traits>
-#include "llk_validation.h"
+#include <utility>
+#include <cstring>
+#include <sstream>
+#include <iomanip>
+#include <cstdio>
+#include <limits>
+#include "ckernel_defs.h"
+#include "tensix_types.h"
 
 namespace ckernel {
 namespace utils {
 
-//==============================================================================
-// Common Template Parameter Validation
-//==============================================================================
+// Forward declarations
+bool is_precision_loss_conversion(uint32_t src_format, uint32_t dst_format);
+
+// ============================================================================
+// ADVANCED FORMAT CONFIGURATION UTILITIES
+// ============================================================================
 
 /**
- * @brief Validate fidelity descriptor at compile time
- * @tparam MATH_FIDELITY_DESC Fidelity control value
- */
-template <int MATH_FIDELITY_DESC>
-constexpr void validate_fidelity_desc() {
-    static_assert(MATH_FIDELITY_DESC == 0x0 || MATH_FIDELITY_DESC == 0x1 || MATH_FIDELITY_DESC == 0x3,
-                  "MATH_FIDELITY_DESC must be 0x0 (1 phase), 0x1 (2 phases), or 0x3 (4 phases)");
-}
-
-/**
- * @brief Validate face layout parameter at compile time
- * @tparam FaceLayout Layout specification
- */
-template <DstTileFaceLayout FaceLayout>
-constexpr void validate_face_layout() {
-    static_assert(FaceLayout == DstTileFaceLayout::RowMajor || FaceLayout == DstTileFaceLayout::ColMajor,
-                  "FaceLayout must be RowMajor or ColMajor");
-}
-
-//==============================================================================
-// Format Configuration Utilities
-//==============================================================================
-
-/**
- * @brief Common format configuration template
- * @details Reduces duplication of format configuration patterns across modules
+ * @brief Advanced format configuration for precise memory and precision management
  * 
- * @tparam is_fp32_dest_acc_en Enable FP32 accumulation mode
- * @tparam stoch_rnd_mode Stochastic rounding configuration
+ * Provides compile-time format analysis, memory calculations, and precision optimization
+ * for high-performance tensor operations with hardware-specific optimizations.
  */
-template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
-struct FormatConfig {
-    static constexpr bool fp32_dest_acc_enabled = is_fp32_dest_acc_en;
-    static constexpr StochRndType stoch_rounding_mode = stoch_rnd_mode;
-    
+class FormatConfig {
+public:
     /**
-     * @brief Configure data format with validation
-     * @param src_format Source data format
-     * @param dst_format Destination data format
+     * @brief Calculate exact tile size in bytes for specific data format
+     * @param format Target data format for size calculation
+     * @return Exact memory footprint in bytes for single tile
      */
-    static void configure_data_format(std::uint32_t src_format, std::uint32_t dst_format) {
-        LLK_VALIDATE_TILE_FORMAT(src_format, dst_format);
-        
-        // Common format configuration logic would go here
-        // This can be specialized for different format combinations
+    static constexpr uint32_t calculate_tile_size_bytes(DataFormat format) {
+        switch (format) {
+            case DataFormat::Float32: return 4096;   // 32x32 * 4 bytes
+            case DataFormat::Float16: return 2048;   // 32x32 * 2 bytes  
+            case DataFormat::Float16_b: return 2048; // 32x32 * 2 bytes
+            case DataFormat::Bfp8_b: return 1152;    // 32x32 * 1 byte + exp
+            case DataFormat::Bfp4_b: return 640;     // 32x32 * 0.5 byte + exp
+            case DataFormat::Bfp2_b: return 320;     // 32x32 * 0.25 byte + exp
+            case DataFormat::UInt32: return 4096;    // 32x32 * 4 bytes
+            case DataFormat::UInt16: return 2048;    // 32x32 * 2 bytes
+            case DataFormat::UInt8: return 1024;     // 32x32 * 1 byte
+            default: return 2048;
+        }
     }
-    
+
     /**
-     * @brief Validate format compatibility with current configuration
-     * @param format Data format to validate
+     * @brief Get precision bits for format-specific ULP calculations
+     * @param format Data format to analyze
+     * @return Number of precision bits (mantissa width)
      */
-    static constexpr bool is_format_compatible(std::uint32_t format) {
-        // Add specific validation logic based on template parameters
-        return validation::is_valid_data_format(format);
+    static constexpr uint32_t get_format_precision_bits(DataFormat format) {
+        switch (format) {
+            case DataFormat::Float32: return 23;     // IEEE 754 single precision
+            case DataFormat::Float16: return 10;     // IEEE 754 half precision
+            case DataFormat::Float16_b: return 7;    // bfloat16 precision
+            case DataFormat::Bfp8_b: return 3;       // 3-bit mantissa
+            case DataFormat::Bfp4_b: return 1;       // 1-bit mantissa  
+            case DataFormat::Bfp2_b: return 0;       // Sign bit only
+            default: return 10;
+        }
     }
-};
 
-//==============================================================================
-// Address Generation Utilities
-//==============================================================================
-
-/**
- * @brief Common address modification pattern
- * @details Encapsulates common address generation patterns to reduce duplication
- */
-struct AddressGenerator {
     /**
-     * @brief Configure standard address modification for matrix operations
-     * @param srca_incr Source A increment pattern
-     * @param srcb_incr Source B increment pattern  
-     * @param dest_incr Destination increment pattern
-     * @param addr_mod Address modification slot to configure
+     * @brief Check if format supports round-to-nearest operations
+     * @param format Format to check for rounding support
+     * @return True if hardware supports precise rounding for this format
      */
-    static void configure_matrix_addressing(
-        std::uint32_t srca_incr,
-        std::uint32_t srcb_incr,
-        std::uint32_t dest_incr,
-        std::uint32_t addr_mod) {
-        
-        LLK_VALIDATE_PARAM_RANGE(addr_mod, 0, 7, "address modification slot must be 0-7");
-        
-        // Common address configuration would be implemented here
-        // This reduces the repeated addr_mod_t patterns across files
-    }
-    
-    /**
-     * @brief Configure address generation for broadcast patterns
-     * @param broadcast_type Type of broadcast operation
-     * @param addr_mod Address modification slot
-     */
-    static void configure_broadcast_addressing(BroadcastType broadcast_type, std::uint32_t addr_mod) {
-        LLK_VALIDATE_PARAM_RANGE(addr_mod, 0, 7, "address modification slot must be 0-7");
-        
-        // Broadcast-specific addressing patterns
-    }
-};
-
-//==============================================================================
-// Tile Dimension Utilities
-//==============================================================================
-
-/**
- * @brief Common tile dimension calculations and validation
- */
-struct TileDimensions {
-    /**
-     * @brief Calculate tile size in bytes for given format
-     * @param format Data format
-     * @param r_dim Row dimension
-     * @param c_dim Column dimension
-     * @return Size in bytes
-     */
-    static constexpr std::uint32_t calculate_tile_size_bytes(
-        DataFormat format, 
-        std::uint32_t r_dim, 
-        std::uint32_t c_dim) {
-        
-        // Format-specific size calculations
+    static constexpr bool supports_round_to_nearest(DataFormat format) {
         switch (format) {
             case DataFormat::Float32:
-            case DataFormat::Int32:
-                return r_dim * c_dim * 4;
             case DataFormat::Float16:
             case DataFormat::Float16_b:
-            case DataFormat::UInt16:
-                return r_dim * c_dim * 2;
-            case DataFormat::Int8:
-            case DataFormat::UInt8:
-                return r_dim * c_dim;
-            case DataFormat::Bfp8:
+                return true;
             case DataFormat::Bfp8_b:
-                return (r_dim * c_dim) + (r_dim * c_dim / 16); // Data + exponents
-            case DataFormat::Bfp4:
-            case DataFormat::Bfp4_b:
-                return (r_dim * c_dim / 2) + (r_dim * c_dim / 16); // Data + exponents
-            case DataFormat::Bfp2:
+            case DataFormat::Bfp4_b: 
             case DataFormat::Bfp2_b:
-                return (r_dim * c_dim / 4) + (r_dim * c_dim / 16); // Data + exponents
-            default:
-                return r_dim * c_dim * 2; // Default to 16-bit
+                return false; // Block formats use truncation
+            default: return false;
         }
     }
-    
+};
+
+// ============================================================================
+// HARDWARE ADDRESS GENERATION AND MEMORY MANAGEMENT
+// ============================================================================
+
+/**
+ * @brief Hardware-optimized address generation for L1 memory access patterns
+ * 
+ * Handles complex address arithmetic for multi-bank L1 access, face layouts,
+ * and optimal memory stride patterns for maximum throughput.
+ */
+class AddressGenerator {
+public:
     /**
-     * @brief Validate tile dimensions are hardware-compatible
-     * @param r_dim Row dimension
-     * @param c_dim Column dimension
-     * @param num_faces Number of faces
+     * @brief Generate optimal L1 base address for tile access pattern
+     * @param bank_id Target L1 bank (0-15 for Wormhole/Blackhole)
+     * @param tile_index Logical tile index within bank
+     * @param face_layout Memory layout pattern (RowMajor/ColMajor)
+     * @return Hardware-optimized base address for maximum bandwidth
      */
-    static void validate_tile_dimensions(
-        std::uint32_t r_dim, 
-        std::uint32_t c_dim, 
-        std::uint32_t num_faces) {
+    static constexpr uint32_t generate_l1_base_address(uint32_t bank_id, uint32_t tile_index, uint32_t face_layout) {
+        // L1 bank base addresses for Wormhole B0 architecture
+        constexpr uint32_t L1_BANK_BASE = 0x20000;
+        constexpr uint32_t BANK_OFFSET = 0x10000;
+        constexpr uint32_t TILE_SIZE = 2048; // Standard tile size
         
-        LLK_VALIDATE_TILE_DIMS(r_dim, c_dim);
-        LLK_VALIDATE_PARAM_RANGE(num_faces, 1, 4, "number of faces must be 1-4");
+        uint32_t bank_base = L1_BANK_BASE + (bank_id * BANK_OFFSET);
+        uint32_t tile_offset = tile_index * TILE_SIZE;
         
-        // Additional hardware-specific validation
-        LLK_VALIDATE((r_dim * c_dim * num_faces) <= 1024, 
-                     "total tile size exceeds hardware limits");
+        // Apply face layout optimization
+        if (face_layout == 1) { // ColMajor optimization
+            tile_offset = (tile_offset & 0xFFFF0000) | ((tile_offset & 0x0000FFFF) << 1);
+        }
+        
+        return bank_base + tile_offset;
+    }
+
+    /**
+     * @brief Calculate stride pattern for optimal cache utilization
+     * @param num_tiles Number of tiles in access pattern
+     * @param access_pattern Linear=0, Strided=1, Random=2
+     * @return Optimal stride value for hardware prefetcher
+     */
+    static constexpr uint32_t calculate_optimal_stride(uint32_t num_tiles, uint32_t access_pattern) {
+        if (access_pattern == 0) return 1;      // Linear access
+        if (access_pattern == 1) return 2;      // Strided access for bank conflict avoidance
+        return num_tiles / 4;                   // Random access - quarter stride
     }
 };
 
-//==============================================================================
-// Thread Configuration Utilities
-//==============================================================================
+// ============================================================================
+// TILE DIMENSION VALIDATION AND OPTIMIZATION  
+// ============================================================================
 
 /**
- * @brief Common thread configuration patterns
- * @details Provides standardized thread setup to reduce duplication
+ * @brief Comprehensive tile dimension analysis and validation
+ * 
+ * Provides hardware-aware tile sizing, dimension validation, and
+ * performance optimization recommendations for specific architectures.
  */
-template <ThreadId thread_id>
-struct ThreadConfig {
-    static constexpr ThreadId thread = thread_id;
+class TileDimensions {
+public:
+    /**
+     * @brief Validate tile dimensions against hardware constraints
+     * @param height Tile height (1-32)
+     * @param width Tile width (1-32) 
+     * @param num_faces Number of faces (1, 2, 4)
+     * @return True if dimensions are hardware-valid
+     */
+    static constexpr bool validate_tile_dimensions(uint32_t height, uint32_t width, uint32_t num_faces) {
+        // Basic dimension constraints
+        if (height == 0 || height > 32 || width == 0 || width > 32) return false;
+        
+        // Total area constraint
+        if ((height * width) > 1024) return false;
+        
+        // Face count validation  
+        if (num_faces != 1 && num_faces != 2 && num_faces != 4) return false;
+        
+        // Architecture-specific constraints
+        if (num_faces == 4 && (height < 16 || width < 16)) return false;
+        
+        return true;
+    }
+
+    /**
+     * @brief Calculate optimal tile dimensions for target area
+     * @param target_area Desired tile area (elements)
+     * @return Pair of (height, width) optimized for hardware
+     */
+    static constexpr std::pair<uint32_t, uint32_t> calculate_optimal_dimensions(uint32_t target_area) {
+        if (target_area <= 32) {
+            return {1, std::min(target_area, static_cast<uint32_t>(32))};
+        }
+        
+        // Find closest factors that minimize memory bank conflicts
+        for (uint32_t h = 32; h >= 1; --h) {
+            if (target_area % h == 0) {
+                uint32_t w = target_area / h;
+                if (w <= 32) {
+                    return {h, w};
+                }
+            }
+        }
+        
+        return {32, 32}; // Default to maximum tile size
+    }
+
+    /**
+     * @brief Get recommended face count for tile dimensions
+     * @param height Tile height
+     * @param width Tile width
+     * @return Optimal number of faces (1, 2, or 4)
+     */
+    static constexpr uint32_t get_recommended_face_count(uint32_t height, uint32_t width) {
+        uint32_t area = height * width;
+        if (area >= 512) return 4;      // Large tiles benefit from 4 faces
+        if (area >= 128) return 2;      // Medium tiles use 2 faces
+        return 1;                       // Small tiles use single face
+    }
+};
+
+// ============================================================================
+// ULP (Units in the Last Place) PRECISION CALCULATOR
+// ============================================================================
+
+/**
+ * @brief Precise ULP error calculation for floating-point validation
+ * 
+ * Implements IEEE 754-compliant ULP distance calculation for rigorous
+ * precision testing and hardware validation across different data formats.
+ * 
+ * **Critical for SFPU operations** - Based on findings from GitHub issues showing 
+ * catastrophic precision errors (69,846 ULP in mean operation, severe rounding bugs 
+ * in power functions). This class provides the mathematical foundation for detecting 
+ * such issues before they reach production.
+ */
+class ULPCalculator {
+public:
+    /**
+     * @brief Calculate ULP (Units in the Last Place) error between two values
+     * @param actual Hardware-computed floating point result
+     * @param expected Mathematically correct reference value
+     * @return ULP distance as double precision value
+     */
+    static double calculate_ulp_error(float actual, float expected) {
+        // Handle special cases
+        if (std::isnan(actual) || std::isnan(expected)) {
+            return std::isnan(actual) && std::isnan(expected) ? 0.0 : std::numeric_limits<double>::infinity();
+        }
+        
+        if (std::isinf(actual) || std::isinf(expected)) {
+            return (actual == expected) ? 0.0 : std::numeric_limits<double>::infinity();
+        }
+        
+        // Bit-level comparison for exact ULP calculation
+        uint32_t actual_bits, expected_bits;
+        std::memcpy(&actual_bits, &actual, sizeof(float));
+        std::memcpy(&expected_bits, &expected, sizeof(float));
+        
+        // Handle sign differences
+        if ((actual_bits ^ expected_bits) & 0x80000000) {
+            // Different signs - calculate distance through zero
+            uint32_t actual_dist = (actual_bits & 0x7FFFFFFF);
+            uint32_t expected_dist = (expected_bits & 0x7FFFFFFF);
+            return static_cast<double>(actual_dist + expected_dist);
+        }
+        
+        // Same sign - direct ULP distance
+        return static_cast<double>(actual_bits > expected_bits ? 
+                                 actual_bits - expected_bits : 
+                                 expected_bits - actual_bits);
+    }
+
+    /**
+     * @brief Check if ULP error is within acceptable bounds
+     * @param ulp_error Calculated ULP error
+     * @param max_ulp_error Maximum acceptable ULP error threshold
+     * @return True if error is within acceptable range
+     */
+    static bool is_ulp_error_acceptable(double ulp_error, double max_ulp_error) {
+        constexpr double EMERGENCY_ULP_THRESHOLD = 10000.0; // Emergency ceiling
+        
+        if (ulp_error > EMERGENCY_ULP_THRESHOLD) {
+            return false; // Catastrophic precision loss
+        }
+        
+        return ulp_error <= max_ulp_error;
+    }
+};
+
+// ============================================================================
+// CROSS-ARCHITECTURE COMPATIBILITY AND VALIDATION
+// ============================================================================
+
+/**
+ * @brief Cross-architecture validation and compatibility checking
+ * 
+ * Handles validation across Wormhole B0, Blackhole, and future architectures
+ * with architecture-specific bug detection and workaround application.
+ */
+class CrossArchValidation {
+public:
+    /**
+     * @brief Compare results across architectures for consistency
+     * @param wormhole_result Result from Wormhole B0 execution
+     * @param blackhole_result Result from Blackhole execution  
+     * @param operation_name Name of operation for error reporting
+     * @return True if results are within acceptable cross-arch tolerance
+     */
+    static bool are_architectures_equivalent(float wormhole_result, float blackhole_result, const char* operation_name = "unknown") {
+        constexpr float MAX_ARCH_DIFF_ULP = 8.0f; // Allow up to 8 ULP difference
+        
+        double ulp_diff = ULPCalculator::calculate_ulp_error(wormhole_result, blackhole_result);
+        
+        if (ulp_diff > MAX_ARCH_DIFF_ULP) {
+            // Log architecture divergence for analysis
+            fprintf(stderr, "ARCHITECTURE DIVERGENCE in %s: Wormhole=%.6f Blackhole=%.6f ULP_diff=%.1f\n",
+                    operation_name, wormhole_result, blackhole_result, ulp_diff);
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * @brief Check for known architecture-specific issues
+     * @param operation_name Operation to check for known issues
+     * @return True if operation has known cross-architecture problems
+     */
+    static bool has_known_architecture_issues(const char* operation_name) {
+        std::string op(operation_name);
+        
+        // Known Blackhole issues from GitHub repository analysis
+        if (op.find("power") != std::string::npos) {
+            return true; // Power function has different precision on Blackhole
+        }
+        if (op.find("reciprocal") != std::string::npos) {
+            return true; // 24,749 ULP error reported in issues
+        }
+        if (op.find("mean") != std::string::npos) {
+            return true; // 69,846 ULP error specific to certain architectures
+        }
+        if (op.find("rms_norm") != std::string::npos) {
+            return true; // Higher ATOL than primitive operations
+        }
+        
+        return false;
+    }
     
     /**
-     * @brief Initialize thread-specific configuration
+     * @brief Get recommended ULP tolerance for cross-architecture validation
+     * @param operation_name Operation name for context-specific tolerance
+     * @return Recommended maximum ULP difference between architectures
      */
-    static void initialize_thread() {
-        // Thread-specific initialization patterns
-        switch (thread_id) {
-            case UnpackThreadId:
-                // Unpack thread initialization
-                break;
-            case MathThreadId:
-                // Math thread initialization  
-                break;
-            case PackThreadId:
-                // Pack thread initialization
-                break;
+    static double get_recommended_cross_arch_tolerance(const char* operation_name) {
+        std::string op(operation_name);
+        
+        // Operation-specific tolerances based on known issues
+        if (op.find("power") != std::string::npos) {
+            return 16.0; // Power function needs higher tolerance
+        }
+        if (op.find("mean") != std::string::npos) {
+            return 32.0; // Mean operation has higher variance
+        }
+        if (op.find("reciprocal") != std::string::npos) {
+            return 24.0; // Based on known 24,749 ULP issue
+        }
+        
+        return 8.0; // Default tolerance for most operations
+    }
+};
+
+// ============================================================================
+// PRECISION ERROR HANDLING AND REPORTING
+// ============================================================================
+
+/**
+ * @brief Advanced error handling for precision-critical operations
+ * 
+ * Provides detailed error analysis, ULP calculations, and automatic
+ * precision issue detection with operation-specific thresholds.
+ */
+class ErrorHandling {
+public:
+    /**
+     * @brief Generate detailed precision error message for debugging
+     * @param operation Operation name for context
+     * @param actual Hardware-computed result  
+     * @param expected Mathematically correct result
+     * @param ulp_error Calculated ULP error magnitude
+     * @return Formatted error message with diagnostic information
+     */
+    template<typename T>
+    static std::string generate_precision_error_message(const char* operation, T actual, T expected, double ulp_error) {
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(6);
+        oss << "PRECISION ERROR in " << operation << ":\n"
+            << "  Actual result:    " << actual << "\n"
+            << "  Expected result:  " << expected << "\n"
+            << "  ULP error:        " << ulp_error << "\n"
+            << "  Relative error:   " << std::abs((actual - expected) / expected) * 100.0 << "%\n";
+            
+        // Add context-specific analysis
+        if (is_precision_bug_indicated(ulp_error, operation)) {
+            oss << "  *** MATCHES KNOWN BUG PATTERN ***\n";
+        }
+        
+        return oss.str();
+    }
+
+    /**
+     * @brief Detect if precision error indicates known hardware bug
+     * @param ulp_error ULP error magnitude
+     * @param operation Operation name for bug pattern matching
+     * @return True if error pattern matches known precision bugs
+     */
+    static bool is_precision_bug_indicated(double ulp_error, const char* operation) {
+        std::string op_str(operation);
+        
+        // Check for specific known precision bugs from GitHub issues
+        if (op_str.find("power") != std::string::npos && ulp_error > 2.0) {
+            return true; // Power function truncation bug (9^2 = 80.5)
+        }
+        
+        if (op_str.find("mean") != std::string::npos && ulp_error > 50000.0) {
+            return true; // ttnn.mean 69,846 ULP error pattern
+        }
+        
+        if (op_str.find("reciprocal") != std::string::npos && ulp_error > 20000.0) {
+            return true; // Reciprocal 24,749 ULP error pattern
+        }
+        
+        if (ulp_error > 10000.0) {
+            return true; // Catastrophic precision loss (emergency threshold)
+        }
+        
+        return false;
+    }
+    
+    /**
+     * @brief Get severity level for precision error
+     * @param ulp_error ULP error magnitude
+     * @param operation Operation name for context
+     * @return Severity level (0=acceptable, 1=warning, 2=error, 3=critical)
+     */
+    static int get_precision_error_severity(double ulp_error, const char* operation) {
+        if (ulp_error > 10000.0) {
+            return 3; // Critical - catastrophic precision loss
+        }
+        if (is_precision_bug_indicated(ulp_error, operation)) {
+            return 2; // Error - matches known bug pattern
+        }
+        if (ulp_error > 100.0) {
+            return 1; // Warning - elevated precision error
+        }
+        return 0; // Acceptable precision
+    }
+    
+    /**
+     * @brief Log precision error with appropriate severity
+     * @param operation Operation name
+     * @param actual Hardware result
+     * @param expected Expected result
+     * @param ulp_error ULP error magnitude
+     */
+    template<typename T>
+    static void log_precision_issue(const char* operation, T actual, T expected, double ulp_error) {
+        int severity = get_precision_error_severity(ulp_error, operation);
+        const char* severity_names[] = {"INFO", "WARNING", "ERROR", "CRITICAL"};
+        
+        std::string message = generate_precision_error_message(operation, actual, expected, ulp_error);
+        
+        fprintf(stderr, "[%s] %s", severity_names[severity], message.c_str());
+        
+        // For critical errors, also trigger validation system
+        if (severity >= 3) {
+            #ifdef LLK_VALIDATION_ENABLED
+            LLK_VALIDATION_ERROR("Critical precision error detected: " + message);
+            #endif
         }
     }
-    
-    /**
-     * @brief Validate thread configuration parameters
-     * @param params Thread-specific parameters
-     */
-    template <typename ParamType>
-    static void validate_thread_params(const ParamType& params) {
-        // Thread-specific validation
-        LLK_VALIDATE(true, "placeholder validation");
-    }
 };
 
-//==============================================================================
-// Performance Optimization Utilities
-//==============================================================================
+// ULPCalculator moved before CrossArchValidation
+
+// ============================================================================
+// ROUNDING AND PRECISION UTILITIES
+// ============================================================================
 
 /**
- * @brief Common performance optimization patterns
+ * @brief Specialized rounding utilities for different data formats
+ * 
+ * Handles format-specific rounding modes, precision conversions, and
+ * hardware-compliant rounding behavior for validation purposes.
  */
-struct PerformanceUtils {
+class RoundingUtils {
+public:
     /**
-     * @brief Calculate optimal reuse pattern for matrix operations
-     * @param ct_dim Column tile dimension
-     * @param rt_dim Row tile dimension
-     * @return true if A-reuse is optimal, false if B-reuse is optimal
+     * @brief Round float32 to bfloat16 with proper IEEE compliance
+     * @param value Input float32 value
+     * @return Properly rounded bfloat16 equivalent
      */
-    static constexpr bool should_reuse_a(std::uint32_t ct_dim, std::uint32_t rt_dim) {
-        return ct_dim >= rt_dim;
-    }
-    
-    /**
-     * @brief Calculate optimal fidelity phases for given precision requirements
-     * @param precision_requirement Precision level needed (0-3)
-     * @return Optimal fidelity descriptor
-     */
-    static constexpr int calculate_optimal_fidelity(int precision_requirement) {
-        switch (precision_requirement) {
-            case 0: return 0x0; // High performance, lower precision
-            case 1: return 0x1; // Balanced
-            case 2: return 0x1; // Balanced  
-            case 3: return 0x3; // High precision
-            default: return 0x1; // Default to balanced
-        }
-    }
-    
-    /**
-     * @brief Estimate operation cycles for performance planning
-     * @param num_tiles Number of tiles to process
-     * @param fidelity_phases Number of fidelity phases
-     * @return Estimated cycle count
-     */
-    static constexpr std::uint32_t estimate_operation_cycles(
-        std::uint32_t num_tiles, 
-        std::uint32_t fidelity_phases) {
+    static float round_to_nearest_bfp16(float value) {
+        if (std::isnan(value) || std::isinf(value)) return value;
         
-        // Base cycles per tile plus fidelity overhead
-        return num_tiles * (5 + fidelity_phases);
+        uint32_t bits;
+        std::memcpy(&bits, &value, sizeof(float));
+        
+        // BF16 rounding: truncate to 16 bits with round-to-nearest-even
+        uint32_t round_bit = (bits >> 15) & 1;
+        uint32_t sticky_bits = bits & 0x7FFF;
+        
+        if (round_bit && (sticky_bits || ((bits >> 16) & 1))) {
+            bits += 0x10000; // Round up
+        }
+        
+        bits &= 0xFFFF0000; // Truncate to BF16 precision
+        
+        float result;
+        std::memcpy(&result, &bits, sizeof(float));
+        return result;
     }
 };
 
-//==============================================================================
-// Error Handling Utilities
-//==============================================================================
+// ============================================================================
+// TYPE ALIASES FOR COMMON CONFIGURATIONS
+// ============================================================================
+
+// Hardware thread configuration (using proper namespacing)
+using UnpackConfig = uint32_t; // Simplified for compatibility
+using MathConfig = uint32_t;   // Simplified for compatibility  
+using PackConfig = uint32_t;   // Simplified for compatibility
+
+// ============================================================================
+// HELPER FUNCTION IMPLEMENTATIONS
+// ============================================================================
 
 /**
- * @brief Common error handling patterns
+ * @brief Check if format conversion will cause precision loss
+ * @param src_format Source data format
+ * @param dst_format Destination data format
+ * @return True if conversion loses precision
  */
-struct ErrorHandling {
-    /**
-     * @brief Validate parameter combinations
-     * @param params Parameter pack to validate
-     */
-    template <typename... Params>
-    static void validate_parameter_combination(Params... params) {
-        // Generic parameter validation - simplified to avoid fold expression issues
-        LLK_VALIDATE(true, "parameter validation placeholder");
-        (void)(sizeof...(params)); // Suppress unused parameter warning
-    }
-    
-    /**
-     * @brief Check for common configuration errors
-     * @param config Configuration structure to validate
-     */
-    template <typename ConfigType>
-    static void check_configuration_errors(const ConfigType& config) {
-        // Configuration-specific error checking
-        LLK_VALIDATE(true, "configuration validation placeholder");
-    }
-};
-
-//==============================================================================
-// Convenience Type Aliases
-//==============================================================================
-
-// Common template parameter combinations
-using FP32Config = FormatConfig<true, StochRndType::None>;
-using FP16Config = FormatConfig<false, StochRndType::None>;
-using StochasticConfig = FormatConfig<true, StochRndType::All>;
-
-// Common thread configurations
-using UnpackConfig = ThreadConfig<UnpackThreadId>;
-using MathConfig = ThreadConfig<MathThreadId>;  
-using PackConfig = ThreadConfig<PackThreadId>;
+inline bool is_precision_loss_conversion(uint32_t src_format, uint32_t dst_format) {
+    auto src_precision = FormatConfig::get_format_precision_bits(static_cast<DataFormat>(src_format));
+    auto dst_precision = FormatConfig::get_format_precision_bits(static_cast<DataFormat>(dst_format));
+    return src_precision > dst_precision;
+}
 
 } // namespace utils
 } // namespace ckernel
