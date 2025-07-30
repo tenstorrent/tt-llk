@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "ckernel_sfpu_rsqrt_compat.h"
 #include "ckernel_sfpu_sqrt.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
@@ -31,7 +32,7 @@ inline void _init_rsqrt_()
 {
     if constexpr (layernorm_compat)
     {
-        _init_sqrt_compat_<APPROXIMATION_MODE>();
+        _init_rsqrt_compat_<APPROXIMATION_MODE>();
     }
     else
     {
