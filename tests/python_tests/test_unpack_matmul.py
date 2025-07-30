@@ -17,7 +17,6 @@ from helpers.format_arg_mapping import (
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     MatmulGolden,
-    TilizeGolden,
     TransposeGolden,
     get_golden_generator,
 )
@@ -27,6 +26,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
+from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
 
@@ -36,7 +36,6 @@ from helpers.utils import passed_test
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
-            # DataFormat.Bfp8_b,
             DataFormat.Float32,
         ]
     ),
@@ -53,7 +52,7 @@ from helpers.utils import passed_test
         StochasticRnd.All,
         StochasticRnd.No,
     ],
-    transpose=[Transpose.No, Transpose.Yes],
+    transpose=[Transpose.Yes, Transpose.No],
 )
 def test_matmul(test_name, formats, dest_acc, math_fidelity, stochastic_rnd, transpose):
 
@@ -61,36 +60,56 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, stochastic_rnd, tra
 
     input_dimensions = [32, 32]  # Will be sweeping over dimensions
 
-    _, src_B, tile_cnt = generate_stimuli(
+    src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-    tilize_function = get_golden_generator(TilizeGolden)
-    src_B = tilize_function(src_B, input_dimensions, formats.input_format).flatten()
-
     src_B_golden = src_B
-    src_A_golden = torch.eye(input_dimensions[0], dtype=torch.float16).flatten()
-
     if transpose == Transpose.Yes:
+        # In hw we tilize inputs for matmul and then transpose on src_B
+        # We must first tilize src_B before transpose + haloize
+        # However, torch works with row major data so we untilize this for now in order to properly compute golden
         transpose_function = get_golden_generator(TransposeGolden)
-        src_B_haloize = transpose_function("within_faces", src_B, formats.input_format)
-        src_B_haloize_and_transpose = transpose_function(
-            "faces", src_B_haloize, formats.input_format
+        src_B_golden = tilize_block(
+            src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
+        ).flatten()
+        src_B_golden = transpose_function("faces", src_B_golden, formats.input_format)
+        src_B_golden = transpose_function(
+            "within_faces", src_B_golden, formats.input_format
         )
-        src_B_golden = src_B_haloize_and_transpose
+        src_B_golden = untilize_block(
+            src_B_golden,
+            dimensions=input_dimensions,
+            stimuli_format=formats.input_format,
+        ).flatten()
 
     generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(
-        src_A_golden,  # not tilized
+        src_A,  # not tilized
         src_B_golden,  # needs to be transposed and tilized
         formats.output_format,
         math_fidelity,
         input_dimensions=input_dimensions,
     )
+    # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
+    golden_tensor = (
+        tilize_block(
+            golden_tensor,
+            dimensions=input_dimensions,
+            stimuli_format=formats.output_format,
+        )
+        .to(torch_format)
+        .flatten()
+    )
 
-    src_A = tilize_function(src_A_golden, input_dimensions, formats.input_format)
+    tilized_A = tilize_block(
+        src_A, dimensions=input_dimensions, stimuli_format=formats.input_format
+    )
+    tilized_B = tilize_block(
+        src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
+    )
     res_address = write_stimuli_to_l1(
-        src_A,  # tilized
-        src_B,  # tilized not transpoed
+        tilized_A.flatten(),
+        tilized_B.flatten(),
         formats.input_format,
         formats.input_format,
         tile_count=tile_cnt,

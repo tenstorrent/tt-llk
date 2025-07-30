@@ -199,10 +199,10 @@ def passed_test(
         # Find all indices where values differ
         diff_indices = torch.where(~is_valid)[0]
         print(f"Found {len(diff_indices)} differences:")
-        # for idx in diff_indices:
-        #     print(
-        #         f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}"
-        #     )
+        for idx in diff_indices:
+            print(
+                f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}"
+            )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
     target_pcc = 0.99
