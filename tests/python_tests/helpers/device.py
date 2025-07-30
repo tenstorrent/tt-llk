@@ -128,6 +128,7 @@ def write_stimuli_to_l1(
     tile_count_A: int = 1,
     tile_count_B: int = None,
     core_loc="0,0",
+    num_faces=4,
 ):
     """
     Write matmul stimuli to L1 with different matrix sizes.
@@ -173,19 +174,17 @@ def write_stimuli_to_l1(
     pack_function_A = get_packer(stimuli_A_format)
     pack_function_B = get_packer(stimuli_B_format)
 
-    if not pack_function_A or not pack_function_B:
-        raise ValueError(
-            f"Unsupported data formats: {stimuli_A_format.name}, {stimuli_B_format.name}"
-        )
-
-    def write_matrix(buffer, tile_count, pack_function, base_address, tile_size):
+    def write_matrix(buffer, tile_count, pack_function, base_address, tile_size, num_faces):
         addresses = []
         packed_data_list = []
 
         for i in range(tile_count):
             start_idx = TILE_ELEMENTS * i
             tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
-            packed_data = pack_function(tile_data)
+            if pack_function == pack_bfp8_b:
+                packed_data = pack_function(tile_data, num_faces=num_faces)
+            else:
+                packed_data = pack_function(tile_data)
 
             addresses.append(base_address + i * tile_size)
             packed_data_list.append(packed_data)
@@ -194,10 +193,10 @@ def write_stimuli_to_l1(
             write_to_device(core_loc, addr, data)
 
     write_matrix(
-        buffer_A, tile_count_A, pack_function_A, buffer_A_address, tile_size_A_bytes
+        buffer_A, tile_count_A, pack_function_A, buffer_A_address, tile_size_A_bytes, num_faces
     )
     write_matrix(
-        buffer_B, tile_count_B, pack_function_B, buffer_B_address, tile_size_B_bytes
+        buffer_B, tile_count_B, pack_function_B, buffer_B_address, tile_size_B_bytes, num_faces
     )
 
     # Set buffer addresses in device to be defined in build header
