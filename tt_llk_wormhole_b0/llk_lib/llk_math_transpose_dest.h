@@ -3,6 +3,36 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file llk_math_transpose_dest.h
+ * @brief Advanced destination register transposition for optimal memory layout transformation
+ *
+ * This header provides sophisticated matrix transposition operations that transform destination
+ * register data layouts for optimal memory access patterns and computational efficiency. These
+ * operations are critical for algorithms requiring different data orientations and for preparing
+ * data for downstream operations with specific layout requirements.
+ *
+ * @note **Memory Layout Optimization**: Transposition operations reorganize data from row-major
+ *       to column-major layouts (or vice versa) to match computational patterns and optimize
+ *       memory bandwidth utilization for subsequent mathematical operations.
+ * 
+ * @note **Multi-Scale Transposition Support**: Supports both full 32x32 tile transposition and
+ *       16x16 face-level transposition with specialized optimizations for 32-bit data types
+ *       requiring enhanced precision and memory management.
+ * 
+ * @note **Hardware Integration**: Directly utilizes Tensix STALLWAIT synchronization primitives,
+ *       LLTT instruction recording for replay optimization, and specialized data movement
+ *       instructions for maximum throughput and minimal latency.
+ * 
+ * @note **Performance-Critical Operations**: Transposition can be a significant bottleneck in
+ *       memory-bound algorithms. These implementations provide hardware-optimized patterns
+ *       for maximum efficiency and minimal computational overhead.
+ * 
+ * @warning **Template Parameter Constraints**: Some template parameter combinations are not
+ *          supported (e.g., transpose_of_faces=false with is_32bit=false). API design is
+ *          under active consideration for improvement (GitHub issue #290).
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -23,6 +53,70 @@ inline void transpose_dest_configure_addrmod();
 template <bool transpose_of_faces, bool is_32bit>
 inline void transpose_dest_configure_mop();
 
+/**
+ * @brief Execute high-performance destination register transposition with advanced optimization
+ *
+ * Performs sophisticated matrix transposition operations on destination register data with
+ * support for multiple transposition modes, 32-bit data type optimization, and hardware-specific
+ * acceleration patterns. This function transforms data layouts for optimal memory access and
+ * computational efficiency in downstream mathematical operations.
+ *
+ * @tparam transpose_of_faces Transposition scope control:
+ *                           - true: Full 32x32 tile transposition (default, most common)
+ *                           - false: 4x 16x16 face transposition (32-bit data only)
+ *                           Controls the granularity and scope of the transposition operation
+ * 
+ * @tparam is_32bit Enable 32-bit data type optimization:
+ *                 - false: Standard precision, optimized for 16-bit and smaller data types
+ *                 - true: Enhanced precision handling for 32-bit integer and floating-point data
+ *                 Affects memory access patterns and synchronization requirements
+ * 
+ * @param dst_index Destination tile index for transposed result storage
+ *                 Specifies the location where transposed data will be written
+ *
+ * @note **Supported Configuration Matrix**:
+ *       1. ❌ transpose_of_faces=false, is_32bit=false: Not supported
+ *       2. ✅ transpose_of_faces=false, is_32bit=true: 4x 16x16 face transpose
+ *       3. ✅ transpose_of_faces=true, is_32bit=false: Full 32x32 tile transpose (default)
+ *       4. ✅ transpose_of_faces=true, is_32bit=true: Full 32x32 tile transpose for 32-bit
+ * 
+ * @note **Hardware Synchronization Strategy**: Uses advanced STALLWAIT synchronization
+ *       with multiple wait conditions (SFPU, SRCA_VLD, SRCB_VLD) to ensure proper
+ *       coordination between mathematical units and prevent data corruption
+ * 
+ * @note **Memory Access Optimization**: Different transposition modes use optimized
+ *       instruction sequences and addressing patterns:
+ *       - Face-level transpose: Optimized for irregular data sizes and partial operations
+ *       - Full tile transpose: Maximum throughput for standard 32x32 computational patterns
+ * 
+ * @note **LLTT Integration**: Utilizes Low-Level Trace Tool recording for instruction
+ *       replay optimization, enabling efficient handling of complex transposition patterns
+ *       with minimal runtime overhead and maximum hardware utilization
+ * 
+ * @note **Cross-Unit Coordination**: Can be combined with _llk_unpack_A_ operations
+ *       using transpose_of_faces=true for complex data flow patterns requiring both
+ *       unpacking and transposition in coordinated mathematical pipelines
+ *
+ * @warning **Configuration Compatibility**: transpose_of_faces=false with is_32bit=false
+ *          is explicitly not supported and will cause compilation or runtime errors.
+ *          Verify template parameter combinations before use.
+ * 
+ * @warning **32-bit Data Requirements**: 32-bit data types require special handling
+ *          with enhanced synchronization and memory management. Ensure proper template
+ *          parameter configuration to prevent data corruption or performance degradation.
+ * 
+ * @warning **Pipeline Synchronization**: Transposition operations affect data availability
+ *          for downstream units. Proper synchronization with subsequent mathematical
+ *          operations is critical to prevent pipeline stalls or incorrect results.
+ * 
+ * @warning **API Evolution**: Current template parameter design is under review
+ *          (GitHub issue #290). Future versions may have different parameter structures
+ *          for improved usability and consistency across the LLK API surface.
+ * 
+ * @see transpose_dest_configure_addrmod for address mode configuration details
+ * @see transpose_dest_configure_mop for micro-operation programming specifics
+ * @see _llk_unpack_A_ for coordinated unpacking and transposition operations
+ */
 // Notes on these template parameters:
 // 1. <transpose_of_faces=false, is_32bit=false>: not supported.
 // 2. <transpose_of_faces=false, is_32bit=true>: 4x 16x16 face transpose; can be combined with _llk_unpack_A_ with transpose_of_faces=true.

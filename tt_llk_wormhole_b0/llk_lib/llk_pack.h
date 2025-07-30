@@ -2,6 +2,36 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file llk_pack.h
+ * @brief Comprehensive packer operations for high-performance data output and storage
+ *
+ * This header provides sophisticated packing operations that transform computational results
+ * from internal tile formats to external memory layouts optimized for storage, communication,
+ * and downstream processing. These operations are critical for finalizing mathematical
+ * computations and ensuring efficient data flow throughout the computational pipeline.
+ *
+ * @note **Final Stage Operations**: Packer operations represent the final stage of the
+ *       computational pipeline, transforming mathematical results into formats suitable
+ *       for external memory, inter-chip communication, and integration with host systems.
+ * 
+ * @note **Multi-Mode Support**: Provides comprehensive support for standard packing,
+ *       untilization, fast tilization, and specialized data layout transformations with
+ *       optimal performance characteristics for each use case scenario.
+ * 
+ * @note **Performance-Critical Operations**: Packing operations significantly impact overall
+ *       system throughput as they control the final data output bandwidth and memory
+ *       utilization patterns for computational results and intermediate data.
+ * 
+ * @note **Hardware Integration**: Directly utilizes Tensix packer unit capabilities with
+ *       advanced addressing modes, micro-operation programming, and specialized format
+ *       conversion for maximum efficiency and optimal memory bandwidth utilization.
+ * 
+ * @note **Cross-System Compatibility**: Essential for data exchange between Tensix
+ *       computational units and external systems including CPUs, GPUs, memory controllers,
+ *       and network interfaces requiring specific data formats and layouts.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -16,6 +46,52 @@
 using namespace ckernel;
 using namespace ckernel::packer;
 
+/**
+ * @brief Configure advanced addressing modes for high-performance packing operations
+ *
+ * Sets up sophisticated addressing patterns for packing operations with support for both
+ * standard tiled packing and untilization modes. This function configures the hardware
+ * addressing infrastructure for optimal memory access patterns and data layout transformation
+ * efficiency throughout the packing process.
+ *
+ * @tparam untilize Enable untilization mode for linear data layout transformation
+ *                 When true, configures addressing for tile-to-linear conversion
+ *                 When false, configures addressing for standard tiled output formats
+ *
+ * @note **Addressing Mode Strategy**:
+ *       - ADDR_MOD_0: Standard increment pattern (Y-source=15, Y-destination=1)
+ *         Optimized for maximum memory bandwidth utilization
+ *       - ADDR_MOD_1: Mode-specific configuration based on untilize parameter
+ *       - ADDR_MOD_2: Standard clearing pattern for address counter reset
+ * 
+ * @note **Untilization Optimization**: When untilize=true, uses specialized addressing
+ *       with carriage return patterns for efficient linear memory layout generation
+ *       optimized for external memory controllers and host system compatibility
+ * 
+ * @note **Standard Packing Optimization**: When untilize=false, uses clearing patterns
+ *       for both Y and Z dimensions to support standard tiled output formats with
+ *       optimal memory access patterns and computational efficiency
+ * 
+ * @note **Hardware Address Coordination**: Addressing modes coordinate source and
+ *       destination patterns to ensure optimal data flow, prevent pipeline stalls,
+ *       and maximize overall system throughput and efficiency
+ *
+ * @warning **Mode Consistency**: Addressing mode must match the actual packing operation
+ *          mode (untilization vs standard packing). Mismatched modes can cause incorrect
+ *          memory layouts, data corruption, or performance degradation
+ * 
+ * @warning **Address Pattern Dependencies**: Address patterns affect all subsequent
+ *          packing operations. Ensure proper coordination with micro-operation
+ *          programming and hardware configuration for optimal results
+ * 
+ * @warning **Memory Controller Compatibility**: Address patterns must be compatible
+ *          with downstream memory controllers and system requirements to prevent
+ *          access violations or suboptimal memory utilization
+ * 
+ * @see _llk_pack_mop_config_ for micro-operation programming
+ * @see _llk_pack_init_ for complete initialization sequence
+ * @see _llk_pack_ for main execution function
+ */
 template <bool untilize = false>
 inline void _llk_pack_configure_addrmod_()
 {

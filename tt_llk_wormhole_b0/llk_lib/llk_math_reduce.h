@@ -2,6 +2,22 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file llk_math_reduce.h
+ * @brief Mathematical reduction operations for Tensix pooling and aggregation
+ *
+ * This header provides mathematical reduction operations including pooling (MAX, SUM),
+ * averaging, and other aggregation functions. These operations support both row and
+ * column reduction with configurable fidelity and precision control. The functions
+ * directly utilize Tensix hardware acceleration for high-performance reductions.
+ *
+ * @note Based on PR analysis: Reduction operations have shown precision issues and
+ *       performance bottlenecks requiring careful fidelity configuration.
+ * 
+ * @note Supports both FP32 and standard accumulation modes with architecture-specific
+ *       optimizations for Wormhole and Blackhole platforms.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -21,6 +37,56 @@ inline void reduce_configure_addrmod();
 template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop();
 
+/**
+ * @brief Perform mathematical reduction operation on input tiles
+ *
+ * Executes mathematical reduction operations (pooling, sum, average) on input data
+ * with support for different reduction dimensions, pool types, and precision configurations.
+ * This function handles the core mathematical computation using Tensix hardware acceleration.
+ *
+ * @tparam type Pool operation type:
+ *              - PoolType::MAX: Maximum pooling operation
+ *              - PoolType::SUM: Summation reduction  
+ *              - PoolType::AVG: Average pooling operation
+ * 
+ * @tparam dim Reduction dimension:
+ *             - ReduceDim::REDUCE_ROW: Reduce across rows (width dimension)
+ *             - ReduceDim::REDUCE_COL: Reduce across columns (height dimension)
+ * 
+ * @tparam is_fp32_dest_acc_en Enable FP32 destination accumulation for higher precision
+ *                             Critical for preventing precision loss in large reductions
+ * 
+ * @tparam MATH_FIDELITY_DESC Mathematical fidelity descriptor (0-15)
+ *                           Controls precision vs performance tradeoff
+ *                           Higher values = better precision, lower performance
+ * 
+ * @tparam is_int_fpu_en Enable integer FPU mode for integer data types
+ *                       Required for Int8/Int16/Int32 input processing
+ * 
+ * @tparam fp32_transpose Enable FP32 transposition support for layout optimization
+ *                        Used for memory access pattern optimization
+ * 
+ * @param dst_index Destination tile index for result storage
+ * @param narrow_tile Enable narrow tile processing for memory optimization
+ * @param num_faces Number of tile faces to process (1, 2, or 4)
+ *
+ * @note Hardware instruction selection based on operation type:
+ *       - MAX pooling: Uses GMPOOL instructions
+ *       - SUM/AVG: Uses GAPOOL instructions with fidelity control
+ *       - High fidelity: Uses template-based instruction sequences
+ * 
+ * @note Row reduction requires input transposition at unpacker stage for optimal
+ *       memory access patterns and hardware utilization
+ *
+ * @warning Fidelity settings affect both precision and performance. High fidelity
+ *          modes may exceed memory constraints on some architectures.
+ * 
+ * @warning Based on PR analysis: Reduction operations have shown ULP precision
+ *          issues requiring careful parameter selection and validation.
+ * 
+ * @warning FP32 accumulation significantly increases memory usage and must be
+ *          used carefully to avoid memory overflow conditions.
+ */
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool is_int_fpu_en = false, bool fp32_transpose = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {

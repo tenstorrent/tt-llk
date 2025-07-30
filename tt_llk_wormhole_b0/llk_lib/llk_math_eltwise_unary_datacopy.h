@@ -2,6 +2,25 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file llk_math_eltwise_unary_datacopy.h
+ * @brief High-performance data copying operations for Tensix mathematical processing
+ *
+ * This header provides optimized data movement operations including A→D (SrcA to Destination)
+ * and B→D (SrcB to Destination) transfers with support for broadcasting, format conversion,
+ * and direct destination unpacking. These operations are fundamental for data routing and
+ * layout transformation in mathematical computation pipelines.
+ *
+ * @note Data copy operations are performance-critical and affect memory bandwidth utilization
+ *       across the entire Tensix processing pipeline.
+ * 
+ * @note Supports advanced broadcasting modes, 32-bit data type optimizations, and direct
+ *       destination unpacking for maximum throughput and efficiency.
+ * 
+ * @note Based on PR analysis: Data movement optimizations are critical for overall
+ *       system performance, with copy operations showing significant variance patterns.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -18,6 +37,65 @@ using namespace ckernel;
 // local function declarations
 inline void eltwise_unary_configure_addrmod();
 
+/**
+ * @brief Execute high-performance data copy operation with advanced optimization
+ *
+ * Performs optimized data transfer operations between source registers and destination
+ * with support for format conversion, broadcasting patterns, and direct destination
+ * unpacking. This function implements the core data movement kernel with hardware-specific
+ * optimizations for maximum memory bandwidth utilization.
+ *
+ * @tparam type Data copy operation type:
+ *              - DataCopyType::A2D: Source A to Destination transfer
+ *              - DataCopyType::B2D: Source B to Destination transfer
+ * 
+ * @tparam Dst Destination synchronization mode for output coordination
+ *             - DstSync::SyncFull: Complete synchronization with downstream units
+ *             - DstSync::SyncHalf: Half-buffer synchronization for throughput optimization
+ * 
+ * @tparam is_fp32_dest_acc_en Enable FP32 destination accumulation mode
+ *                             Affects memory layout and precision handling for large data sets
+ * 
+ * @tparam src_b_bcast_type Broadcasting type for Source B operations (B2D mode only)
+ *                          - BroadcastType::NONE: No broadcasting, direct copy
+ *                          - BroadcastType::ROW: Broadcast across rows
+ *                          - BroadcastType::COL: Broadcast across columns (requires special handling)
+ *                          - BroadcastType::SCALAR: Broadcast single value across tile
+ * 
+ * @tparam unpack_to_dest Enable direct destination unpacking optimization
+ *                        Critical for 32-bit data types (Int32/UInt32) performance
+ * 
+ * @param dst_index Destination tile index for result storage
+ * @param src_format Source data format (DataFormat enum value)
+ * @param dst_format Destination data format for conversion
+ *
+ * @note **32-bit Data Type Optimization**: Function automatically detects 32-bit
+ *       input/output combinations and enables optimized direct destination paths
+ *       for maximum performance and memory efficiency
+ * 
+ * @note **Broadcasting Implementation**:
+ *       - COL broadcast: Requires dual execution with manual source B clearing
+ *       - Other broadcasts: Single execution with template-based optimization
+ *       - Broadcasting affects memory access patterns and throughput
+ * 
+ * @note **Memory Bandwidth Optimization**: Data copy operations are memory-bound
+ *       and require careful coordination with other pipeline stages for optimal
+ *       system throughput and resource utilization
+ *
+ * @warning **Column Broadcasting Complexity**: COL broadcast mode requires special
+ *          handling with manual clearing operations. Improper implementation can
+ *          cause data corruption or incomplete transfers
+ * 
+ * @warning **Format Compatibility**: Source and destination format compatibility
+ *          must be verified. Incompatible format combinations can cause hardware
+ *          exceptions or incorrect data conversion
+ * 
+ * @warning **Destination Synchronization**: Sync mode must match downstream
+ *          operation requirements. Mismatched synchronization can cause pipeline
+ *          stalls, deadlocks, or data corruption
+ * 
+ * @see _llk_math_eltwise_unary_datacopy_init_ for initialization and configuration
+ */
 template <DataCopyType type, DstSync Dst, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
 {
@@ -198,6 +276,84 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
     }
 }
 
+/**
+ * @brief Initialize high-performance data copy operations with optimized configuration
+ *
+ * Configures the mathematical unit for optimized data copy operations including address
+ * mode setup, micro-operation programming, and hardware register initialization. This
+ * function establishes the foundation for efficient A→D and B→D data transfers with
+ * support for broadcasting, format conversion, and performance optimization strategies.
+ *
+ * @tparam type Data copy operation type:
+ *              - DataCopyType::A2D: Source A to Destination transfer optimization
+ *              - DataCopyType::B2D: Source B to Destination transfer optimization
+ * 
+ * @tparam is_fp32_dest_acc_en Enable FP32 destination accumulation mode
+ *                             Critical for maintaining precision in accumulation chains
+ *                             Affects memory layout and mathematical processing pathways
+ * 
+ * @tparam src_b_bcast_type Broadcasting configuration for Source B operations (B2D mode)
+ *                          - BroadcastType::NONE: Direct transfer, no broadcasting
+ *                          - BroadcastType::ROW: Broadcast across tile rows
+ *                          - BroadcastType::COL: Broadcast across tile columns (workaround mode)
+ *                          - BroadcastType::SCALAR: Broadcast single value across entire tile
+ * 
+ * @tparam is_int_fpu_en Enable integer FPU processing for integer data types
+ *                       Optimizes integer arithmetic and data movement pathways
+ * 
+ * @param transpose_of_faces Face-level transposition control (unused in math unit)
+ *                          Reserved for future functionality and cross-unit compatibility
+ * @param within_face_16x16_transpose Intra-face transposition control (unused in math unit)
+ *                                   Handled by unpacker, maintained for API consistency
+ * @param num_faces Number of tile faces to process (1, 2, or 4)
+ *                  Affects loop structure and memory access patterns
+ * @param dst_format Destination data format (default: 255 for auto-detection)
+ *                   Controls output format conversion and precision handling
+ *
+ * @note **Address Mode Configuration**: Function automatically configures optimal
+ *       address modes for the specified copy type using `eltwise_unary_configure_addrmod`
+ *       to maximize memory bandwidth utilization and minimize access latency
+ * 
+ * @note **Micro-Operation Programming**: Configures hardware instruction templates
+ *       with optimized parameters:
+ *       - A2D mode: 8-row moves (MOV_8_ROWS) for maximum throughput
+ *       - B2D mode: 4-row moves (MOV_4_ROWS) for optimal source B handling
+ * 
+ * @note **Broadcasting Workarounds**: COL broadcast uses ELTWADD workaround due to
+ *       hardware limitation in FPU tile that masks destination write enable signals
+ *       when instruction mode equals 2'b01. This maintains functionality while
+ *       working around hardware constraints.
+ * 
+ * @note **Counter Reset and Synchronization**: Initializes mathematical unit counters
+ *       and disables source A data validation for optimal performance in data copy
+ *       scenarios where validation overhead is unnecessary
+ * 
+ * @note **Performance Optimization Strategy**:
+ *       - Source A operations: Optimized for large block transfers
+ *       - Source B operations: Balanced for broadcasting and direct copy efficiency
+ *       - FP32 accumulation: Enhanced precision with memory layout optimization
+ *       - Integer processing: Specialized pathways for integer data types
+ *
+ * @warning **Broadcasting Limitations**: Column broadcasting requires special handling
+ *          and may have reduced performance compared to row or scalar broadcasting
+ *          due to hardware workaround implementation using ELTWADD operations
+ * 
+ * @warning **Face Count Constraints**: num_faces must be 1, 2, or 4 to match hardware
+ *          capabilities. Invalid face counts can cause incorrect loop generation
+ *          and memory access violations
+ * 
+ * @warning **Template Parameter Dependencies**: Template parameters must be consistent
+ *          with actual data types and operation requirements. Mismatched parameters
+ *          can lead to suboptimal performance or incorrect results
+ * 
+ * @warning **Initialization Order**: This function must be called before any data copy
+ *          operations and after proper unpacker configuration to ensure hardware
+ *          state consistency and optimal performance
+ * 
+ * @see _llk_math_eltwise_unary_datacopy_ for the main execution function
+ * @see eltwise_unary_configure_addrmod for address mode configuration details
+ * @see eltwise_unary_configure_mop for micro-operation programming specifics
+ */
 template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
 // within_face_16x16_transpose is used by unpacker, math does not transpose
 inline void _llk_math_eltwise_unary_datacopy_init_(

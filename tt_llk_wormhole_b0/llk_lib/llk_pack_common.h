@@ -2,6 +2,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file llk_pack_common.h
+ * @brief Core packer unit synchronization and data handling functions for Tensix
+ *
+ * This header provides fundamental packer unit coordination, synchronization, and data
+ * output functions used across all LLK packer operations. These functions manage the
+ * interface between mathematical processing and L1 memory output, including tile header
+ * generation and destination buffer management.
+ *
+ * @note Based on PR analysis: Race conditions in packer threads (PR #96/97) require
+ *       careful synchronization patterns and proper STALLWAIT usage.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -15,12 +28,45 @@
 using namespace ckernel;
 using namespace ckernel::packer;
 
+/**
+ * @brief Wait for mathematical unit to complete operations before packing
+ *
+ * Synchronizes the packer with the mathematical processing unit by waiting for
+ * math operations to complete. This function ensures that mathematical results
+ * are ready before the packer attempts to process them.
+ *
+ * @note Uses semaphore-based synchronization to coordinate between math and pack units.
+ *       Critical for preventing data races and ensuring result validity.
+ * 
+ * @warning Must be called before any packer operations that depend on math results.
+ *          Missing synchronization can cause data corruption or invalid outputs.
+ * 
+ * @see _llk_packer_set_math_semaphore_ for releasing the semaphore after packing
+ */
 // wait until math is done and has produced something to pack
 inline void _llk_packer_wait_for_math_done_()
 {
     TTI_SEMWAIT(p_stall::STALL_TDMA, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_ZERO);
 }
 
+/**
+ * @brief Release mathematical unit synchronization after packing completion
+ *
+ * Signals to the mathematical processing unit that packer operations are complete
+ * and the math unit can proceed with new operations. This function manages the
+ * semaphore coordination between pack and math units.
+ *
+ * @tparam WaitRes Wait resolution flags for synchronization timing control
+ *
+ * @note Semaphore release timing affects overall pipeline throughput. Should be
+ *       called immediately after packer writes are committed to L1 memory.
+ * 
+ * @note WaitRes parameter allows fine-tuning of synchronization behavior for
+ *       different performance requirements.
+ *
+ * @warning Improper semaphore release can cause pipeline stalls or deadlocks.
+ *          Must be paired with corresponding _llk_packer_wait_for_math_done_ call.
+ */
 // Tell math that it can write again
 template <uint WaitRes = p_stall::NONE>
 inline void _llk_packer_set_math_semaphore_()
@@ -28,6 +74,30 @@ inline void _llk_packer_set_math_semaphore_()
     t6_semaphore_get<WaitRes>(semaphore::MATH_PACK); // Indicate that packer is done and header is written into L1
 }
 
+/**
+ * @brief Complete destination section packing and clear destination buffers
+ *
+ * Finalizes packer operations for a destination section, ensures all writes are
+ * committed to L1 memory, and clears destination accumulator buffers for the next
+ * operation. Handles both FP32 and standard accumulation modes with appropriate
+ * clearing strategies.
+ *
+ * @tparam Dst Destination synchronization mode (SyncFull, SyncHalf)
+ * @tparam is_fp32_dest_acc_en Enable FP32 destination accumulation mode
+ *
+ * @note Clearing behavior varies by sync mode:
+ *       - SyncFull: Clears all destination registers
+ *       - SyncHalf: Clears half of destination registers based on offset
+ * 
+ * @note FP32 accumulation mode uses different clearing commands (32-bit vs 16-bit)
+ *       to handle the expanded data width properly.
+ *
+ * @warning STALLWAIT is critical to ensure pack completion before clearing.
+ *          Premature clearing can cause data loss or corruption.
+ * 
+ * @warning Sync mode must match the mathematical operation's buffer usage.
+ *          Mismatch can cause incomplete clears or buffer corruption.
+ */
 // Wait for all writes to complete in L1 (header + data)
 // Tell math it can write again
 // Clear dest

@@ -2,6 +2,31 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file llk_unpack_AB_matmul.h
+ * @brief Advanced dual-source matrix multiplication unpacker for high-performance computing
+ *
+ * This header provides sophisticated matrix multiplication unpacking operations that simultaneously
+ * manage both Source A and Source B data streams with advanced optimization strategies including
+ * reuse patterns, replay buffers, partial face handling, and broadcast configurations. These
+ * operations are critical for achieving maximum performance in matrix multiplication workloads.
+ *
+ * @note **Dual-Source Complexity**: Manages both input matrices (A→SrcB, B→SrcA) with sophisticated
+ *       reuse detection, replay buffer optimization, and partial face support for irregular matrix sizes.
+ * 
+ * @note **Performance-Critical Operations**: Matrix multiplication unpacking is the primary bottleneck
+ *       in most mathematical workloads, requiring careful optimization of memory access patterns,
+ *       register utilization, and data flow coordination.
+ * 
+ * @note **Based on PR Analysis**: Critical optimizations include replay buffer management for
+ *       irregular tile sizes, broadcast pattern optimization, and memory bandwidth maximization
+ *       for sustained high-throughput matrix operations.
+ * 
+ * @note **Hardware Architecture Integration**: Directly interfaces with Tensix replay buffer
+ *       mechanisms, LLTT (Low-Level Trace Tool) for instruction recording, and SFPI for
+ *       specialized mathematical preprocessing operations.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -18,6 +43,73 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
+/**
+ * @brief Configure sophisticated matrix multiplication micro-operations with advanced optimization
+ *
+ * Sets up complex micro-operation templates for dual-source matrix multiplication unpacking with
+ * intelligent reuse pattern detection, replay buffer optimization, and partial face support.
+ * This function implements the core instruction sequencing for maximum hardware utilization
+ * and optimal memory access patterns in matrix multiplication operations.
+ *
+ * @tparam kernel_broadcast_a Broadcasting configuration for matrix A input (0-1)
+ *                           Controls how matrix A data is distributed across computational units
+ *                           Values > 1 require special handling with reuse disabled
+ * @tparam kernel_broadcast_b Broadcasting configuration for matrix B input (0-1)  
+ *                           Controls how matrix B data is distributed across computational units
+ *                           Restricted to ≤1 when reuse optimization is enabled
+ * 
+ * @param transpose Matrix transposition mode (handled by math unit, not unpacker)
+ *                 Reserved for future functionality and cross-unit coordination
+ * @param ct_dim Column tile dimension for matrix C (output matrix)
+ * @param rt_dim Row tile dimension for matrix C (output matrix)
+ * @param kt_dim K dimension for inner product computation (matrix A columns / matrix B rows)
+ * @param unpA_partial_face Enable partial face support for matrix A irregular dimensions
+ *                         Activates 16-instruction replay buffer for complex addressing
+ * @param unpB_partial_face Enable partial face support for matrix B irregular dimensions
+ *                         Activates 16-instruction replay buffer for complex addressing
+ *
+ * @note **Reuse Strategy Intelligence**: Function automatically determines optimal reuse
+ *       strategy based on dimension analysis (ct_dim >= rt_dim):
+ *       - reuse_a = true: Reuse matrix A data, iterate over matrix B
+ *       - reuse_a = false: Reuse matrix B data, iterate over matrix A
+ * 
+ * @note **Replay Buffer Optimization**: Dynamically configures replay buffer length
+ *       based on partial face requirements:
+ *       - Standard operations: 10-instruction buffer for optimal performance
+ *       - Partial face operations: 16-instruction buffer for complex addressing patterns
+ * 
+ * @note **Input Matrix Mapping** (Critical for understanding):
+ *       - Matrix A (input 0) → loaded to Source B register
+ *       - Matrix B (input 1) → loaded to Source A register
+ *       This mapping optimizes hardware data flow patterns
+ * 
+ * @note **Advanced Instruction Sequences**: Generates sophisticated instruction patterns
+ *       including zero-source operations, context switching, address counter management,
+ *       and synchronization primitives for optimal computational efficiency
+ * 
+ * @note **Hardware Integration**: Uses LLTT recording for instruction replay, SETADCZW
+ *       for address counter management, and specialized UNPACR instructions for optimal
+ *       data movement and register utilization patterns
+ *
+ * @warning **Broadcasting Constraints**: kernel_broadcast_b must be ≤1 when reuse is
+ *          enabled due to hardware limitations. Violating this constraint triggers
+ *          compile-time static_assert failure to prevent runtime issues.
+ * 
+ * @warning **Partial Face Complexity**: Partial face operations significantly increase
+ *          instruction buffer requirements and complexity. Use only when necessary for
+ *          irregular matrix dimensions that don't align with standard tile boundaries.
+ * 
+ * @warning **Memory Access Coordination**: Complex addressing patterns must be carefully
+ *          coordinated with downstream mathematical operations to prevent pipeline stalls,
+ *          register conflicts, or incorrect data flow scenarios.
+ * 
+ * @warning **Template Parameter Dependencies**: Broadcasting parameters must match actual
+ *          data distribution requirements and hardware capabilities to ensure correct
+ *          matrix multiplication results and optimal performance characteristics.
+ * 
+ * @see _llk_unpack_AB_matmul_init_ for initialization and hardware configuration
+ * @see _llk_unpack_AB_matmul_ for the main execution function
+ */
 // transpose is unused, math is adjusted to take into account srca face layout when transpose=true
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 inline void _llk_unpack_AB_matmul_mop_config_(
@@ -156,6 +248,77 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     tmp.program(instrn_buffer);
 }
 
+/**
+ * @brief Configure hardware parameters for dual-source matrix multiplication unpacking
+ *
+ * Sets up comprehensive hardware configuration for both Source A and Source B unpackers
+ * including format conversion, stochastic rounding modes, face dimension setup, and
+ * address counter configuration. This function establishes the hardware foundation for
+ * optimal matrix multiplication data flow and computational efficiency.
+ *
+ * @tparam is_fp32_dest_acc_en Enable FP32 destination accumulation mode
+ *                             Critical for maintaining precision in large matrix chains
+ *                             Affects memory layout and mathematical processing pathways
+ * @tparam stoch_rnd_mode Stochastic rounding mode for enhanced numerical precision:
+ *                        - StochRndType::None: Standard rounding (default)
+ *                        - StochRndType::All: Global stochastic rounding for all units
+ *                        - StochRndType::Fpu: FPU-specific stochastic rounding
+ *                        - StochRndType::Pack: Pack-stage stochastic rounding
+ * 
+ * @param unpA_src_format Source format for matrix A data (DataFormat enum value)
+ * @param unpB_src_format Source format for matrix B data (DataFormat enum value)  
+ * @param unpA_dst_format Destination format for matrix A conversion
+ * @param unpB_dst_format Destination format for matrix B conversion
+ * @param unpA_face_r_dim Face row dimension for matrix A (default: FACE_R_DIM = 16)
+ * @param unpB_face_r_dim Face row dimension for matrix B (default: FACE_R_DIM = 16)
+ * @param within_face_16x16_transpose Enable intra-face transposition for data layout optimization
+ * @param unpA_num_faces Number of faces in matrix A tiles (1, 2, or 4)
+ * @param unpB_num_faces Number of faces in matrix B tiles (1, 2, or 4)
+ * @param unpA_tile_size Matrix A tile size in datums for address calculation
+ * @param unpB_tile_size Matrix B tile size in datums for address calculation
+ *
+ * @note **Stochastic Rounding Configuration**: Function automatically determines optimal
+ *       rounding enable flags based on stoch_rnd_mode template parameter:
+ *       - fpu_srnd_en: Enables FPU stochastic rounding for enhanced precision
+ *       - pack_srnd_en: Enables pack-stage stochastic rounding for output optimization
+ * 
+ * @note **Dual-Source Format Conversion**: Handles independent format conversion for
+ *       both matrix operands, enabling mixed-precision matrix multiplication with
+ *       optimal hardware utilization and memory bandwidth efficiency
+ * 
+ * @note **Address Counter Configuration**: Sets up ADC (Address Counter) endpoints
+ *       for both unpackers based on face dimensions and tile organization:
+ *       - Matrix A: unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1
+ *       - Matrix B: unpB_x_end = unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1
+ * 
+ * @note **Register File Configuration**: Programs tile size registers for both
+ *       unpackers with synchronization to ensure consistent hardware state across
+ *       all computational units and optimal data flow coordination
+ * 
+ * @note **Performance Optimization**: Configuration optimized for row pooling
+ *       disabled (is_row_pool = false) for maximum matrix multiplication throughput
+ *       and optimal memory access patterns
+ *
+ * @warning **Format Compatibility**: Source and destination format combinations
+ *          must be compatible for both matrices. Incompatible formats can cause
+ *          data corruption, hardware exceptions, or incorrect mathematical results
+ * 
+ * @warning **Face Dimension Constraints**: Face dimensions must align with actual
+ *          tile organization and hardware capabilities. Invalid dimensions can
+ *          cause memory access violations or incorrect address generation
+ * 
+ * @warning **Stochastic Rounding Impact**: Stochastic rounding modes affect
+ *          computational precision and performance. Select appropriate modes based
+ *          on numerical requirements and performance constraints
+ * 
+ * @warning **Tile Size Dependencies**: Tile size parameters must match actual data
+ *          organization. Incorrect sizes can cause address calculation errors and
+ *          memory access violations in downstream operations
+ * 
+ * @see configure_unpack_AB for underlying dual-source configuration implementation
+ * @see _llk_unpack_AB_matmul_init_ for complete initialization sequence
+ * @see _llk_unpack_AB_matmul_ for main execution function
+ */
 template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_AB_matmul_hw_configure_(
     const std::uint32_t unpA_src_format,

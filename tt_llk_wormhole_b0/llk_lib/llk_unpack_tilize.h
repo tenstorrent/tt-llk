@@ -2,6 +2,25 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file llk_unpack_tilize.h
+ * @brief Advanced tilization unpacker for data layout transformation on Tensix
+ *
+ * This header provides sophisticated tilization operations that transform data from linear
+ * memory layouts to tiled formats optimized for Tensix mathematical processing. Tilization
+ * is a critical operation that reorganizes data to match hardware computational patterns,
+ * enabling optimal memory access and processing efficiency.
+ *
+ * @note Tilization operations support various data types, face configurations, and
+ *       optimization modes including narrow tiles and direct destination unpacking.
+ * 
+ * @note Based on PR analysis: Tilization bugs (PR #85) showed critical issues with
+ *       Int32/UInt32 support requiring destination register unpacking patterns.
+ * 
+ * @note Performance-critical operation affecting memory bandwidth utilization and
+ *       downstream mathematical operation efficiency.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -16,6 +35,37 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
+/**
+ * @brief Configure tilization micro-operations for data layout transformation
+ *
+ * Sets up the micro-operation templates for tilization operations with support for
+ * narrow tiles and direct destination unpacking. This function configures the
+ * instruction sequences that will be executed during tilization processing.
+ *
+ * @param narrow_tile Enable narrow tile processing for memory optimization
+ *                    Reduces outer loop iterations for smaller data sets
+ * @param unpack_to_dest Enable unpacking directly to destination registers
+ *                       Required for Int32/UInt32 data types (based on PR #85)
+ *                       Bypasses intermediate source registers for optimization
+ *
+ * @note **Instruction Template Configuration**:
+ *       - Standard mode: Uses SrcA → intermediate → destination path
+ *       - unpack_to_dest: Direct SrcA → destination path for efficiency
+ *       - CH0/CH1 Z increment patterns for optimal memory addressing
+ * 
+ * @note **Loop Structure Optimization**:
+ *       - narrow_tile=true: Single outer loop iteration
+ *       - narrow_tile=false: Dual outer loop iterations for full tiles
+ * 
+ * @note **Workaround Integration**: Includes SET_DVALID workaround for
+ *       tenstorrent/budabackend#1230 synchronization issue
+ *
+ * @warning unpack_to_dest mode changes addressing patterns and register usage.
+ *          Must be coordinated with downstream mathematical operations.
+ * 
+ * @warning Based on PR #85 analysis: Int32/UInt32 data types require
+ *          unpack_to_dest=true to prevent data corruption and format issues.
+ */
 inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const bool unpack_to_dest = false)
 {
     static constexpr uint unpack_srca =
@@ -41,6 +91,41 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const
     }
 }
 
+/**
+ * @brief Configure tilization hardware for format conversion and face processing
+ *
+ * Configures the Tensix unpacker hardware for tilization operations with support for
+ * various data formats, face dimensions, and stochastic rounding modes. This function
+ * sets up format conversion, address generation, and face processing parameters.
+ *
+ * @tparam is_fp32_dest_acc_en Enable FP32 destination accumulation mode
+ *                             Affects memory layout and precision handling
+ * @tparam stoch_rnd_mode Stochastic rounding mode for precision control
+ *                        - StochRndType::None: Standard rounding (default)
+ *                        - StochRndType::Fpu: FPU-based stochastic rounding
+ *                        - StochRndType::Pack: Pack-stage stochastic rounding
+ * 
+ * @param unpack_src_format Source data format (DataFormat enum value)
+ * @param unpack_dst_format Destination data format for conversion
+ * @param face_r_dim Face row dimension (default: FACE_R_DIM = 16)
+ * @param within_face_16x16_transpose Enable intra-face transposition
+ * @param num_faces Number of tile faces to process (1, 2, or 4)
+ *
+ * @note **Format Conversion Support**: Handles conversion between various
+ *       data formats including FP32, FP16, BF16, INT8/16/32, UINT8/16/32
+ * 
+ * @note **Face Processing**: Configures face-level addressing and processing
+ *       for optimal memory access patterns and computational efficiency
+ * 
+ * @note **Stochastic Rounding**: Advanced rounding modes for improved
+ *       numerical precision in certain computational workflows
+ *
+ * @warning Format compatibility must be verified between source and destination.
+ *          Incompatible formats can cause data corruption or hardware exceptions.
+ * 
+ * @warning Face dimension must match tile configuration and mathematical
+ *          operation requirements. Mismatched dimensions cause processing errors.
+ */
 template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_tilize_hw_configure_(
     const std::uint32_t unpack_src_format,
@@ -58,6 +143,69 @@ inline void _llk_unpack_tilize_hw_configure_(
         unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
 }
 
+/**
+ * @brief Initialize tilization unpacker with comprehensive hardware configuration
+ *
+ * Performs complete initialization of the tilization unpacker hardware including format
+ * configuration, memory layout setup, addressing mode configuration, and data type-specific
+ * optimizations. This function establishes the foundation for all subsequent tilization
+ * operations with optimal hardware utilization and data integrity.
+ *
+ * @param unpack_src_format Source data format (DataFormat enum value)
+ *                         Determines input data interpretation and memory access patterns
+ * @param unpack_dst_format Destination data format for conversion
+ *                         Controls output format and precision handling
+ * @param ct_dim Column tile dimension for address calculation
+ *              Used to compute block dimensions and memory stride patterns
+ * @param face_r_dim Face row dimension (default: FACE_R_DIM = 16)
+ *                   Controls face-level processing granularity
+ * @param narrow_tile Enable narrow tile processing for memory optimization
+ *                   Reduces memory footprint and processing overhead for smaller datasets
+ *
+ * @note **32-bit Integer Data Type Handling**: Function automatically detects
+ *       Int32/UInt32 formats and enables direct destination unpacking optimization
+ *       (unpack_to_dest=true) for maximum performance and data integrity
+ * 
+ * @note **Hardware Register Configuration**:
+ *       - Configures THCON_SEC0_REG2 for haloize mode control
+ *       - Sets up ADC (Address Counter) for face dimension handling  
+ *       - Programs unpack configuration with throttle mode and shift calculations
+ *       - Establishes tile dimension contexts for proper memory addressing
+ * 
+ * @note **Memory Layout Optimization**: Block column dimension calculated as
+ *       ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM) for optimal memory
+ *       access patterns and bandwidth utilization
+ * 
+ * @note **Tilization Mode Activation**: Enables hardware tilization mode with
+ *       automatic data reordering from linear to tiled memory layouts for
+ *       optimal downstream mathematical processing efficiency
+ * 
+ * @note **Format Compatibility Matrix** (based on PR analysis):
+ *       - FP32 ↔ FP16: Standard conversion, no special handling
+ *       - Int32/UInt32: Requires unpack_to_dest=true (PR #85 fix)
+ *       - BF16 variants: Optimized paths for machine learning workloads
+ *       - Mixed precision: Careful shift amount calculation required
+ *
+ * @warning **Critical 32-bit Integer Requirement**: Int32/UInt32 data types
+ *          MUST use direct destination unpacking to prevent data corruption.
+ *          This is automatically handled but affects downstream register usage.
+ * 
+ * @warning **Face Dimension Constraints**: face_r_dim must be compatible with
+ *          hardware capabilities and tile dimensions. Invalid dimensions can
+ *          cause memory access violations or incorrect data layout.
+ * 
+ * @warning **Memory Bandwidth Considerations**: Tilization is memory-intensive
+ *          and must be coordinated with other pipeline stages to prevent
+ *          bandwidth saturation and performance degradation.
+ * 
+ * @warning **Configuration Order Dependencies**: This initialization must
+ *          precede any tilization operations and should not be called multiple
+ *          times without proper cleanup to avoid hardware state corruption.
+ * 
+ * @see _llk_unpack_tilize_mop_config_ for micro-operation template setup
+ * @see _llk_unpack_tilize_hw_configure_ for hardware-specific configuration
+ * @see _llk_unpack_tilize_ for the main execution function
+ */
 inline void _llk_unpack_tilize_init_(
     const std::uint32_t unpack_src_format = 0,
     const std::uint32_t unpack_dst_format = 0,

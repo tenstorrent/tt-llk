@@ -2,6 +2,22 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file llk_unpack_A.h
+ * @brief Source A unpacker configuration and operation functions for Tensix
+ *
+ * This header provides specialized unpacker functionality for Source A data path,
+ * supporting various broadcast modes, accumulation patterns, and data layout optimizations.
+ * The unpacker is responsible for loading data from L1 memory into the mathematical
+ * processing unit with proper format conversion and addressing.
+ *
+ * @note Complex template configurations support multiple broadcast types, destination
+ *       reuse patterns, and accumulation modes for optimal hardware utilization.
+ * 
+ * @note Based on PR analysis: Unpacker configuration bugs can cause data corruption
+ *       and race conditions. Proper template parameter selection is critical.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -18,6 +34,52 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
+/**
+ * @brief Configure Source A unpacker micro-operations for mathematical processing
+ *
+ * Sets up the unpacker micro-operation templates for Source A data path with support
+ * for various broadcast modes, accumulation patterns, and destination configurations.
+ * This function generates the instruction sequences that will be executed during
+ * unpacker operations.
+ *
+ * @tparam BType Broadcast type for Source A data distribution
+ *               - BroadcastType::NONE: No broadcasting, standard tile-to-tile operation
+ *               - BroadcastType::ROW: Broadcast rows across tile width  
+ *               - BroadcastType::COL: Broadcast columns across tile height
+ *               - BroadcastType::SCALAR: Broadcast single value across entire tile
+ * 
+ * @tparam acc_to_dest Enable accumulation directly to destination registers
+ *                     Bypasses intermediate accumulation for performance optimization
+ * 
+ * @tparam binary_reuse_dest Destination reuse pattern for binary operations
+ *                          - EltwiseBinaryReuseDestType::NONE: No destination reuse
+ *                          - EltwiseBinaryReuseDestType::DEST_TO_SRCA: Reuse dest as srcA
+ *                          - EltwiseBinaryReuseDestType::DEST_TO_SRCB: Reuse dest as srcB
+ * 
+ * @tparam unpack_to_dest Enable unpacking directly to destination registers
+ *                        Required for certain data types (Int32/UInt32) and optimizations
+ * 
+ * @param transpose_of_faces Enable face transposition for memory layout optimization
+ * @param num_faces Number of tile faces to process (1, 2, or 4)
+ * @param unpack_src_format Source data format (DataFormat enum value)
+ * @param unpack_dst_format Destination data format (optional, defaults to 0)
+ *
+ * @note Template parameter combinations have specific constraints enforced by static_assert:
+ *       - Broadcasting + accumulation + destination reuse combinations are restricted
+ *       - unpack_to_dest has specific compatibility requirements
+ * 
+ * @note Face transposition affects memory access patterns and should match the
+ *       mathematical operation's requirements for optimal performance
+ *
+ * @warning Invalid template parameter combinations will cause compilation errors.
+ *          Review static_assert conditions before modifying configurations.
+ * 
+ * @warning Format mismatches between source and destination can cause data corruption.
+ *          Ensure format compatibility before calling.
+ * 
+ * @warning Based on PR analysis: Improper unpacker configuration can cause race
+ *          conditions and data corruption in complex operation sequences.
+ */
 template <
     BroadcastType BType                          = BroadcastType::NONE,
     bool acc_to_dest                             = false,
