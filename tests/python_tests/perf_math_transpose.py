@@ -34,7 +34,10 @@ def report_fixture():
 @parametrize(
     test_name=TEST_NAME,
     formats=input_output_formats(
-        [DataFormat.Float16_b, DataFormat.Int32],
+        [
+            # DataFormat.Float16_b,     # Waiting for resolution of issue 549
+            DataFormat.Int32
+        ],
     ),
     unpack_transpose_faces=[False, True],
     math_transpose_faces=[False, True],
