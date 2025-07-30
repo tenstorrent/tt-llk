@@ -138,44 +138,28 @@ def generate_build_header(
     # Broadcast type
     if "broadcast_type" in test_config:
         broadcast_type = test_config["broadcast_type"]
-        if hasattr(broadcast_type, "value") and isinstance(broadcast_type.value, str):
-            # Use constexpr auto with proper namespace
-            header_content.append(
-                f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
-            )
-        elif hasattr(broadcast_type, "name"):
-            header_content.append(
-                f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.name};"
-            )
-        else:
-            header_content.append(f"#define BROADCAST_TYPE {broadcast_type}")
+        header_content.append(
+            f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
+        )
 
     # Accumulate to dest
     if "acc_to_dest" in test_config:
         acc_to_dest = str(test_config["acc_to_dest"]).lower()
-        header_content.append(f"#define ACC_TO_DEST {acc_to_dest}")
+        header_content.append(f"constexpr bool ACC_TO_DEST = {acc_to_dest};")
 
     # Reuse destination type
     if "reuse_dest" in test_config:
         reuse_dest = test_config["reuse_dest"]
-        if hasattr(reuse_dest, "name"):
-            header_content.append(
-                f"#define REUSE_DEST_TYPE EltwiseBinaryReuseDestType::{reuse_dest.name}"
-            )
-        else:
-            header_content.append(f"#define REUSE_DEST_TYPE {reuse_dest}")
+        header_content.append(
+            f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{reuse_dest.name};"
+        )
 
     if "stoch_rnd_type" in test_config:
         stoch_rnd_type = test_config["stoch_rnd_type"]
-        if hasattr(stoch_rnd_type, "name"):
-            # It's an enum object - use .name but convert NONE to None
-            name = "None" if stoch_rnd_type.name == "NONE" else stoch_rnd_type.name
-            header_content.append(f"#define STOCH_RND_TYPE StochRndType::{name}")
-        else:
-            # It's already a string
-            header_content.append(
-                f"#define STOCH_RND_TYPE StochRndType::{stoch_rnd_type}"
-            )
+        name = "None" if stoch_rnd_type.name == "NONE" else stoch_rnd_type.name
+        header_content.append(
+            f"constexpr auto STOCH_RND_TYPE = ckernel::StochRndType::{name};"
+        )
 
     if "disable_src_zero_flag" in test_config:
         disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
