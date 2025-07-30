@@ -121,6 +121,7 @@ def write_stimuli_to_l1(
     stimuli_B_format,
     core_loc="0,0",
     tile_count=1,
+    num_faces=4,
 ):
 
     TILE_ELEMENTS = 1024
@@ -171,8 +172,23 @@ def write_stimuli_to_l1(
         pack_function_A = packers.get(stimuli_A_format)
         pack_function_B = packers.get(stimuli_B_format)
 
-        write_to_device(core_loc, buffer_A_address, pack_function_A(buffer_A_tile))
-        write_to_device(core_loc, buffer_B_address, pack_function_B(buffer_B_tile))
+        if stimuli_A_format == DataFormat.Bfp8_b:
+            write_to_device(
+                core_loc,
+                buffer_A_address,
+                pack_function_A(buffer_A_tile, num_faces=num_faces),
+            )
+        else:
+            write_to_device(core_loc, buffer_A_address, pack_function_A(buffer_A_tile))
+
+        if stimuli_B_format == DataFormat.Bfp8_b:
+            write_to_device(
+                core_loc,
+                buffer_B_address,
+                pack_function_B(buffer_B_tile, num_faces=num_faces),
+            )
+        else:
+            write_to_device(core_loc, buffer_B_address, pack_function_B(buffer_B_tile))
 
         buffer_A_address += TILE_SIZE_A
         buffer_B_address += TILE_SIZE_B
