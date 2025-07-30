@@ -67,15 +67,6 @@ void run_kernel()
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<>(formats.math, formats.math);
 
-#ifdef ARCH_BLACKHOLE
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(
-            UNPACK_TRANSPOSE_FACES, false, TILE_NUM_FACES, formats.math);
-#else
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-            UNPACK_TRANSPOSE_FACES, false, TILE_NUM_FACES, formats.math);
-#endif
-        _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
-
         ckernel::tensix_sync(); // -> perf
     }
 
@@ -86,8 +77,17 @@ void run_kernel()
         {
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
+#ifdef ARCH_BLACKHOLE
+            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(
+                UNPACK_TRANSPOSE_FACES, false, TILE_NUM_FACES, formats.math);
+#else
+            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+                UNPACK_TRANSPOSE_FACES, false, TILE_NUM_FACES, formats.math);
+#endif
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 0, formats.math, formats.math);
+
+            _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
             _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is32>(0);
 
             _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
