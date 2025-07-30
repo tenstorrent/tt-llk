@@ -104,7 +104,9 @@ inline void _calculate_rsqrt_compat_(const int iterations)
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat tmp = _calculate_sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
-        sfpi::dst_reg[0] = _calculate_reciprocal_compat_<APPROXIMATION_MODE>(tmp);
+        // tmp = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
+        tmp              = _calculate_reciprocal_compat_<APPROXIMATION_MODE>(tmp);
+        sfpi::dst_reg[0] = tmp; // sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
         sfpi::dst_reg++;
     }
 }
