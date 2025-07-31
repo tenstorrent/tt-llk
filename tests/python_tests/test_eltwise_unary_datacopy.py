@@ -43,9 +43,16 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces):
     )
 
     generate_golden = get_golden_generator(DataCopyGolden)
-    golden_tensor = generate_golden(src_A, formats.output_format, num_faces, input_dimensions)
+    golden_tensor = generate_golden(
+        src_A, formats.output_format, num_faces, input_dimensions
+    )
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+        num_faces=num_faces,
     )
 
     unpack_to_dest = formats.input_format.is_32_bit()
@@ -73,10 +80,18 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces):
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces
+    )
+
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    for tile in range(tile_cnt):
+        assert passed_test(
+            golden_tensor[tile * 1024 : tile * 1024 + num_faces * 256],
+            res_tensor[tile * 1024 : tile * 1024 + num_faces * 256],
+            formats.output_format,
+        )

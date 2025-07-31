@@ -65,6 +65,7 @@ def collect_results(
     core_loc: str = "0,0",
     sfpu: bool = False,
     tile_dimensions=[32, 32],
+    num_faces: int = 4,
 ):
     # Calculate tile elements based on tile dimensions instead of hardcoding 1024
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
@@ -75,7 +76,9 @@ def collect_results(
     )
 
     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
-    res_from_L1 = unpack_res_tiles(read_data, formats, tile_count=tile_count, sfpu=sfpu)
+    res_from_L1 = unpack_res_tiles(
+        read_data, formats, tile_count=tile_count, sfpu=sfpu, num_faces=num_faces
+    )
     return res_from_L1
 
 
