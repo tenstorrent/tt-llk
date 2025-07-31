@@ -562,7 +562,12 @@ class UnarySFPUGolden:
     def _rsqrt(self, x):
         if x == 0.0:
             return self.handle_infinite_numbers(1.7014118346046923e38)
-        return 1 / math.sqrt(x)
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.rsqrt(input_tensor).item()
 
 
 @register_golden
