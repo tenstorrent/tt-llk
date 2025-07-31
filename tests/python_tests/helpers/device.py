@@ -66,11 +66,14 @@ def collect_results(
     address: int = 0x1C000,
     core_loc: str = "0,0",
     sfpu: bool = False,
+    num_faces: int = 4,
 ):
 
     read_bytes_cnt = format_tile_sizes[formats.output_format] * tile_count
     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
-    res_from_L1 = unpack_res_tiles(read_data, formats, tile_count=tile_count, sfpu=sfpu)
+    res_from_L1 = unpack_res_tiles(
+        read_data, formats, tile_count=tile_count, sfpu=sfpu, num_faces=num_faces
+    )
     return res_from_L1
 
 

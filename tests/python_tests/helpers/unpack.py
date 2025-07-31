@@ -91,11 +91,17 @@ def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
     return bfloat16_values
 
 
-def unpack_bfp8_b(bfp8_block, sfpu=False):
+def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
 
     if not sfpu:
-        exponents = bfp8_block[:64]
-        mantissas = bfp8_block[64:]
+        exponents = bfp8_block[: int(64 / (4 / num_faces))]
+        mantissas = bfp8_block[
+            int(64 / (4 / num_faces)) : int(num_faces * 256 + 64 / (4 / num_faces))
+        ]
+        exp_padding = b"\00" * (64 - int(64 / (4 / num_faces)))
+        exponents = exponents + exp_padding
+        mantissa_padding = b"\00" * (1088 - int(num_faces * 256 + 64 / (4 / num_faces)))
+        mantissas = mantissas + mantissa_padding
     else:
         exponents = bfp8_block[:16]
         mantissas = bfp8_block[16:272]
@@ -126,7 +132,7 @@ _UNPACKERS = {
 }
 
 
-def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False):
+def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4):
     output_format = formats.output_format
     tile_size = format_tile_sizes[output_format]
     output_dtype = format_dict[output_format]
@@ -147,8 +153,16 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False):
         for i in range(0, total_elements_needed, tile_size)
     ]
 
-    unpacked_data = list(
-        chain.from_iterable(unpack_func(tile_data) for tile_data in reshaped_data)
-    )
+    if unpack_func == unpack_bfp8_b:
+        unpacked_data = list(
+            chain.from_iterable(
+                unpack_func(tile_data, num_faces=num_faces)
+                for tile_data in reshaped_data
+            )
+        )
+    else:
+        unpacked_data = list(
+            chain.from_iterable(unpack_func(tile_data) for tile_data in reshaped_data)
+        )
 
     return torch.tensor(unpacked_data, dtype=output_dtype)
