@@ -12,7 +12,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <bool APPROXIMATION_MODE, int ITERATIONS, int RECIPROCAL_ITERATIONS>
 sfpi_inline sfpi::vFloat _calculate_ln_rsqrt_body_(sfpi::vFloat val)
 {
     sfpi::vFloat result;
@@ -79,7 +79,7 @@ sfpi_inline sfpi::vFloat _calculate_ln_rsqrt_body_(sfpi::vFloat val)
 
             // Newton-Raphson iterations for 1/sqrt(x)
             // Formula: x_new = x * (1.5 - 0.5 * val * x * x)
-            for (int r = 0; r < ITERATIONS; r++)
+            for (int r = 0; r < RECIPROCAL_ITERATIONS; r++)
             {
                 approx = approx * (1.5f - 0.5f * val * approx * approx);
             }
@@ -97,14 +97,14 @@ sfpi_inline sfpi::vFloat _calculate_ln_rsqrt_body_(sfpi::vFloat val)
     return result;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
+template <bool APPROXIMATION_MODE, int ITERATIONS, int RECIPROCAL_ITERATIONS, bool is_fp32_dest_acc_en>
 inline void _calculate_ln_rsqrt_()
 {
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat val = sfpi::dst_reg[0];
-        sfpi::vFloat out = _calculate_ln_rsqrt_body_<APPROXIMATION_MODE, ITERATIONS>(val);
+        sfpi::vFloat out = _calculate_ln_rsqrt_body_<APPROXIMATION_MODE, ITERATIONS, RECIPROCAL_ITERATIONS>(val);
 
         if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
         {
