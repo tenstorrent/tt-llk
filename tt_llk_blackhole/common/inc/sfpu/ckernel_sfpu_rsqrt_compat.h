@@ -19,7 +19,7 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_compat_(sfpi::vFloat val)
     sfpi::vFloat result;
     if constexpr (APPROXIMATION_MODE)
     {
-        sfpi::vUInt magic = sfpi::vConstIntPrgm0;
+        sfpi::vUInt magic = (127 << 7) << 16;
 
         // sqrt initial approximation
         //  adjust bias
@@ -36,7 +36,7 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_compat_(sfpi::vFloat val)
         // u.i = SQRT_MAGIC_F - (u.i >> 1);
         v_if (val != 0.0f)
         {
-            sfpi::vUInt magic   = sfpi::vConstIntPrgm0;
+            sfpi::vUInt magic   = 0x5f37 << 16;
             sfpi::vFloat approx = sfpi::reinterpret<sfpi::vFloat>(magic - (sfpi::reinterpret<sfpi::vUInt>(val) >> 1));
 
             // Reciproot iterations
@@ -67,8 +67,8 @@ sfpi_inline sfpi::vFloat _calculate_reciprocal_compat_(const sfpi::vFloat in)
     // Use 1.44 as first guess at x, ideal value would be 1.33.
     // Grayskull has hardwired 1.44 and uses it to avoid a load.
     // We use it here for consistency.
-    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm1;
-    sfpi::vFloat two            = sfpi::vConstFloatPrgm2;
+    sfpi::vFloat vConstLn2Recip = 1.442695f;
+    sfpi::vFloat two            = 2.0f;
     sfpi::vFloat result         = vConstLn2Recip * (val * vConstLn2Recip + two);
 
     for (int s_iter = 0; s_iter < (max_iter - 1); s_iter++)
@@ -97,14 +97,28 @@ sfpi_inline sfpi::vFloat _calculate_reciprocal_compat_(const sfpi::vFloat in)
     return setexp(result, new_exp);
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
 inline void _calculate_rsqrt_compat_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat tmp = _calculate_sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
-        sfpi::dst_reg[0] = _calculate_reciprocal_compat_<APPROXIMATION_MODE>(tmp);
+        sfpi::dst_reg[0] = _calculate_sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
+        sfpi::vFloat in  = sfpi::dst_reg[0];
+        sfpi::vFloat out = _calculate_reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
+        v_if (in < 0.0)
+        {
+            out = -out;
+        }
+        v_endif;
+        if constexpr (fp32_dest_acc_en || APPROXIMATION_MODE)
+        {
+            sfpi::dst_reg[0] = out;
+        }
+        else
+        {
+            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
+        }
         sfpi::dst_reg++;
     }
 }
@@ -112,17 +126,6 @@ inline void _calculate_rsqrt_compat_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_rsqrt_compat_()
 {
-    if (APPROXIMATION_MODE)
-    {
-        sfpi::vConstFloatPrgm0 = sfpi::s2vFloat16b(127 << 7);
-    }
-    else
-    {
-        sfpi::vConstFloatPrgm0 = sfpi::s2vFloat16b(0x5f37);
-    }
-
-    sfpi::vConstFloatPrgm1 = 1.442695f; // ln2_recip
-    sfpi::vConstFloatPrgm2 = 2.0f;
 }
 
 } // namespace sfpu

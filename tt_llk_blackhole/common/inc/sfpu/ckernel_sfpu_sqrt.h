@@ -104,21 +104,32 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
     return y;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool RECIPROCAL>
+template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool RECIPROCAL>
 inline void _calculate_sqrt_internal_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::dst_reg[0] = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
+        if constexpr (fp32_dest_acc_en)
+        {
+            sfpi::dst_reg[0] = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
+        }
+        else
+        {
+            // If dst is in 16-bit mode, then we always use approximate mode,
+            // since this gives us 10 bits of precision, which is sufficient
+            // for both float16 and bfloat16.
+            sfpi::vFloat tmp = _calculate_sqrt_body_<true, RECIPROCAL>(sfpi::dst_reg[0]);
+            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
+        }
         sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
 inline void _calculate_sqrt_(int iterations)
 {
-    _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, false>(iterations);
+    _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en, false>(iterations);
 }
 
 template <bool APPROXIMATION_MODE>
