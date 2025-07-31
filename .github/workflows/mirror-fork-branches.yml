@@ -113,6 +113,7 @@ jobs:
         run: |
           # Look for a PR with head "fork_owner:src_branch"
           HEAD_QUERY="${{ steps.parse_input.outputs.fork_owner }}:${{ steps.parse_input.outputs.src_branch }}"
+          echo "HEAD_QUERY: $HEAD_QUERY"
           echo "Searching for PR with head: ${HEAD_QUERY}"
           PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" \
             --head "${HEAD_QUERY}" --json number --jq '.[0].number // empty')
