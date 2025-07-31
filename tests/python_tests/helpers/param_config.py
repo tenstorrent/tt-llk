@@ -8,7 +8,7 @@ import pytest
 
 from helpers.log_utils import add_to_format_log
 
-from .format_arg_mapping import DestAccumulation
+from .format_arg_mapping import DestAccumulation, DstSync
 from .format_config import (
     DataFormat,
     FormatConfig,
@@ -80,7 +80,6 @@ def format_combination_sweep(
     ]
 
 
-
 class TestParamsConfig(TypedDict):
     test_name: str
     formats: Optional[List[FormatConfig]] = None
@@ -92,6 +91,7 @@ class TestParamsConfig(TypedDict):
     reduce_dim: Optional[List[str]] = None
     pool_type: Optional[List[str]] = None
     num_faces: Optional[List[int]] = None
+    dest_sync: Optional[DstSync] = None
 
 
 def generate_params(**kwargs: any) -> List[tuple]:
@@ -117,7 +117,7 @@ def generate_params(**kwargs: any) -> List[tuple]:
 
     format_combos = kwargs.get("formats", [])
     dest_acc = kwargs.get("dest_acc", [])
-    
+
     for combo in format_combos:
         if not isinstance(combo, InputOutputFormat):
             continue
