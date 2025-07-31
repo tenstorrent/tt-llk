@@ -7,7 +7,7 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, format_dict
+from helpers.format_arg_mapping import DestAccumulation, DstSync, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, get_golden_generator
 from helpers.param_config import (
@@ -31,8 +31,9 @@ from helpers.utils import passed_test
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     num_faces=[1, 2, 4],
+    dest_sync=[DstSync.SyncHalf, DstSync.SyncFull],
 )
-def test_unary_datacopy(test_name, formats, dest_acc, num_faces):
+def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
 
     input_dimensions = [64, 64]
 
@@ -66,6 +67,7 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces):
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
         "num_faces": num_faces,
+        "dest_sync": dest_sync,
     }
 
     res_address = write_stimuli_to_l1(

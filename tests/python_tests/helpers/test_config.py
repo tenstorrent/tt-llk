@@ -14,6 +14,7 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
+    DstSync,
     MathFidelity,
     MathOperation,
     StochasticRounding,
@@ -156,6 +157,16 @@ def generate_build_header(
         f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
     )
 
+    # Number of faces
+    num_faces = test_config.get("num_faces", 4)
+    header_content.append(f"constexpr int num_faces = {num_faces};")
+
+    # Dest synchronisation mode
+    dest_sync = test_config.get("dest_sync", DstSync.SyncHalf)
+    header_content.append(
+        f"constexpr ckernel::DstSync dest_sync = ckernel::DstSync::{dest_sync.name};"
+    )
+
     # Data format configuration
     header_content.extend(["", "// Data format configuration"])
     formats = test_config.get("formats", None)
@@ -200,8 +211,6 @@ def generate_build_header(
                 )
 
     tile_cnt = test_config.get("tile_cnt", 1)
-
-
 
     header_content.append("")
     # Multi-tile test configuration
