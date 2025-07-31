@@ -104,16 +104,19 @@ inline void _calculate_rsqrt_compat_(const int iterations)
     for (int d = 0; d < iterations; d++)
     {
         sfpi::dst_reg[0] = _calculate_sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
-        sfpi::vFloat in = sfpi::dst_reg[0];
+        sfpi::vFloat in  = sfpi::dst_reg[0];
         sfpi::vFloat out = _calculate_reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
         v_if (in < 0.0)
         {
             out = -out;
         }
         v_endif;
-        if constexpr (fp32_dest_acc_en || APPROXIMATION_MODE) {
+        if constexpr (fp32_dest_acc_en || APPROXIMATION_MODE)
+        {
             sfpi::dst_reg[0] = out;
-        } else {
+        }
+        else
+        {
             sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
         }
         sfpi::dst_reg++;
