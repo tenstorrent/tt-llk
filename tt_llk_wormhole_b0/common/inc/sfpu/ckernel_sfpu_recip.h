@@ -61,8 +61,7 @@ inline void _calculate_reciprocal_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE>(in);
+        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE>(sfpi::dst_reg[0]);
 
         if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
         {

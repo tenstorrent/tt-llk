@@ -19,7 +19,7 @@ inline void _calculate_rsqrt_(int iterations)
 {
     if constexpr (layernorm_compat)
     {
-        return _calculate_rsqrt_compat_<APPROXIMATION_MODE, ITERATIONS>(iterations);
+        return _calculate_rsqrt_compat_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en>(iterations);
     }
     else
     {
