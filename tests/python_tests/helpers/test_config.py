@@ -17,6 +17,7 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
+    DstSync,
     L1BufferLocations,
     MathFidelity,
     MathOperation,
@@ -149,6 +150,16 @@ def generate_build_header(
         f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
     )
 
+    # Number of faces
+    num_faces = test_config.get("num_faces", 4)
+    header_content.append(f"constexpr int num_faces = {num_faces};")
+
+    # Dest synchronisation mode
+    dest_sync = test_config.get("dest_sync", DstSync.SyncHalf)
+    header_content.append(
+        f"constexpr ckernel::DstSync dest_sync = ckernel::DstSync::{dest_sync.name};"
+    )
+
     # Data format configuration
     header_content.extend(["", "// Data format configuration"])
     formats = test_config.get("formats", None)
@@ -194,20 +205,12 @@ def generate_build_header(
 
     tile_cnt = test_config.get("tile_cnt", 1)
 
-
-
     header_content.append("")
     # Multi-tile test configuration
     header_content.append("// Multi-tile test configuration")
     header_content.append(f"constexpr int TILE_CNT = {tile_cnt};")
 
-
-
-    num_faces = test_config.get("num_faces", 8)
-    header_content.append(f"constexpr int num_faces = {num_faces};")
-
-
-    # Unpack an result buffer addresses arrrays generations
+    # Unpack an result buffer addresses arrays generations
     buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
     buffer_B_address = read_word_from_device("0,0", L1BufferLocations.srcB.value)
     result_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
