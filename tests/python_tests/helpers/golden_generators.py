@@ -372,6 +372,7 @@ class UnarySFPUGolden:
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
             MathOperation.Hardsigmoid: self._hardsigmoid,
+            MathOperation.Rsqrt: self._rsqrt,
         }
         self.data_format = None
         self.dest_acc = DestAccumulation.No
@@ -557,6 +558,11 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.hardsigmoid(input_tensor).item()
+
+    def _rsqrt(self, x):
+        if x == 0.0:
+            return self.handle_infinite_numbers(1.7014118346046923e38)
+        return 1 / math.sqrt(x)
 
 
 @register_golden

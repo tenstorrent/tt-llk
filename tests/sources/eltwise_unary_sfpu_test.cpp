@@ -138,6 +138,10 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
             ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
             break;
+        case SfpuType::rsqrt:
+            ckernel::sfpu::_init_ln_rsqrt_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_ln_rsqrt_<APPROX_MODE, iterations, is_fp32_dest_acc_en>();
+            break;
         default:
             return;
     }
