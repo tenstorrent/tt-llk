@@ -223,7 +223,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Trigger the tt-metal workflow
-          gh workflow run "Test LLK to Metal integration" \
+          WORKFLOW_NAME="test-llk-metal-integration.yaml"  # or whatever the filename is
+
+          gh workflow run "$WORKFLOW_NAME" \
             --repo tenstorrent/tt-metal \
             --ref fvranicTT/add-llk-metal-integration-testing-workflow \
             --field mirrored_branch="${{ needs.setup-branch.outputs.branch-to-run }}" \
@@ -241,9 +243,10 @@ jobs:
           # Wait a moment for the workflow to appear
           sleep 10
 
-          # Get the most recent workflow run for the "Test LLK to Metal integration" workflow
+          # Get the most recent workflow run for the tt-metal integration workflow
+          WORKFLOW_NAME="test-llk-metal-integration.yml"  # Must match above
           RUN_DATA=$(gh run list \
-            --workflow "Test LLK to Metal integration" \
+            --workflow "$WORKFLOW_NAME" \
             --repo tenstorrent/tt-metal \
             --limit 1 \
             --json databaseId,url,createdAt)
