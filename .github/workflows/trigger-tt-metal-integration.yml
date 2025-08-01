@@ -99,7 +99,7 @@ jobs:
     name: "⏳ Wait for mirror completion"
     needs: setup-branch
     if: |
-      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
        github.event_name == 'workflow_dispatch') &&
       needs.setup-branch.outputs.is-fork == 'true'
     runs-on: ubuntu-latest
@@ -142,7 +142,7 @@ jobs:
     needs: [setup-branch, wait-for-mirror]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
        github.event_name == 'workflow_dispatch') &&
       (needs.setup-branch.outputs.is-fork == 'false' || needs.wait-for-mirror.result != 'failure')
     runs-on: ubuntu-latest
@@ -217,7 +217,7 @@ jobs:
     needs: [setup-branch, wait-for-mirror, detect-changes]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
       github.event_name == 'workflow_dispatch') &&
       needs.detect-changes.result == 'success' &&
       needs.detect-changes.outputs.should-skip != 'true'
@@ -235,7 +235,7 @@ jobs:
     needs: [setup-branch, detect-changes, trigger-tt-metal-tests]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     outputs:
