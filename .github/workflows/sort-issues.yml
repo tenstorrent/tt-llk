@@ -1,8 +1,4 @@
-name: 🚀 Trigger tt-metal integration tests
-
-# This workflow triggers comprehensive integration tests in the tt-metal repository
-# when labels are added to PRs. It handles fork branch mirroring, analyzes file changes
-# to determine which tests to run, and uses workflow_call to trigger the tt-metal workflow.
+name: 🚀 Run tt-metal integration tests
 
 on:
   pull_request:
@@ -103,7 +99,7 @@ jobs:
     name: "⏳ Wait for mirror completion"
     needs: setup-branch
     if: |
-      (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
        github.event_name == 'workflow_dispatch') &&
       needs.setup-branch.outputs.is-fork == 'true'
     runs-on: ubuntu-latest
@@ -146,13 +142,14 @@ jobs:
     needs: [setup-branch, wait-for-mirror]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
        github.event_name == 'workflow_dispatch') &&
       (needs.setup-branch.outputs.is-fork == 'false' || needs.wait-for-mirror.result != 'failure')
     runs-on: ubuntu-latest
     outputs:
       run-blackhole: ${{ steps.determine-tests.outputs.run-blackhole }}
       run-wormhole: ${{ steps.determine-tests.outputs.run-wormhole }}
+      should-skip: ${{ steps.determine-tests.outputs.should-skip }}
     steps:
       - name: Checkout the appropriate branch
         uses: actions/checkout@v4
@@ -205,28 +202,39 @@ jobs:
           echo "  - Blackhole tests: $RUN_BLACKHOLE"
           echo "  - Wormhole tests: $RUN_WORMHOLE"
 
+          # Check if we should run any tests at all
+          if [ "$RUN_BLACKHOLE" = "false" ] && [ "$RUN_WORMHOLE" = "false" ]; then
+            echo "⚠️ No relevant changes detected in tt_llk_blackhole/ or tt_llk_wormhole_b0/"
+            echo "⏭️ Skipping tt-metal integration tests"
+            echo "should-skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Relevant changes detected, will run integration tests"
+            echo "should-skip=false" >> $GITHUB_OUTPUT
+          fi
+
   trigger-tt-metal-tests:
-    name: "🚀 Trigger tt-metal integration tests"
+    name: "🚀 Run integration tests"
     needs: [setup-branch, wait-for-mirror, detect-changes]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
       github.event_name == 'workflow_dispatch') &&
-      needs.detect-changes.result == 'success'
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.should-skip != 'true'
     uses: tenstorrent/tt-metal/.github/workflows/test-llk-metal-integration.yaml@fvranicTT/add-llk-metal-integration-testing-workflow
     secrets: inherit
     with:
       mirrored_branch: ${{ needs.setup-branch.outputs.branch-to-run }}
       run_all_post_commit: ${{ needs.detect-changes.outputs.run-wormhole == 'true' }}
       run_blackhole_post_commit: ${{ needs.detect-changes.outputs.run-blackhole == 'true' }}
-      workflow_timeout: 240
+      workflow_timeout: 360
 
   post-comment:
     name: "💬 Post workflow status comment"
     needs: [setup-branch, detect-changes, trigger-tt-metal-tests]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     outputs:
@@ -293,7 +301,7 @@ jobs:
         with:
           issue: ${{ steps.get-pr-number.outputs.pr-number }}
           message: |
-            ## 🚀 tt-metal Integration Tests Triggered
+            ## 🚀 tt-metal Integration Tests
 
             **Branch:** `${{ needs.setup-branch.outputs.branch-to-run }}`
             **Test Configuration:**
@@ -304,20 +312,22 @@ jobs:
                   needs.detect-changes.outputs.run-blackhole == 'true' &&
                   '✅ Enabled' || '❌ Disabled' }}
 
-            **Status:** ${{
-              needs.trigger-tt-metal-tests.result == 'success' &&
-              '✅ Successfully triggered' || '❌ Failed to trigger' }}
+            ${{
+              needs.detect-changes.outputs.should-skip == 'true' &&
+              '**Status:** ⏭️ **Skipped** - No relevant changes detected in `tt_llk_blackhole/` or `tt_llk_wormhole_b0/` directories' ||
+              format('**Status:** {0}',
+                needs.trigger-tt-metal-tests.result == 'success' &&
+                '✅ Successfully triggered' ||
+                needs.trigger-tt-metal-tests.result == 'skipped' &&
+                '⏭️ Skipped' ||
+                '❌ Failed to trigger')
+            }}
 
             ## 🔗 Links
-            ${{
-              steps.find-run.outputs.run-url != '' &&
-              format('🎯 **tt-metal Integration Tests:** [View Run]({0})', steps.find-run.outputs.run-url) ||
-              '🔗 **Monitor progress:** [tt-metal Actions](https://github.com/tenstorrent/tt-metal/actions)'
-            }}
-            📊 **This workflow:** [Run #${{ github.run_id }}](${{
+            📊 **Integration tests:** [#${{ github.run_id }}](${{
               github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             ${{
-              needs.trigger-tt-metal-tests.result != 'success' &&
+              needs.trigger-tt-metal-tests.result == 'failure' &&
               '⚠️ The workflow trigger failed. Please check the logs above.' || ''
             }}
