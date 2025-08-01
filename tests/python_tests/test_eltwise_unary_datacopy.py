@@ -44,9 +44,7 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
     )
 
     generate_golden = get_golden_generator(DataCopyGolden)
-    golden_tensor = generate_golden(
-        src_A, formats.output_format, num_faces, input_dimensions
-    )
+    golden_tensor = generate_golden(src_A, formats.output_format)
     res_address = write_stimuli_to_l1(
         src_A,
         src_B,
