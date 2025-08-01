@@ -205,10 +205,10 @@ jobs:
           # Check if we should run any tests at all
           if [ "$RUN_BLACKHOLE" = "false" ] && [ "$RUN_WORMHOLE" = "false" ]; then
             echo "⚠️ No relevant changes detected in tt_llk_blackhole/ or tt_llk_wormhole_b0/"
-            echo "⏭️ Skipping tt-metal integration tests"
+            echo "⏭️ Skipping tt-metal post-commit tests"
             echo "should-skip=true" >> $GITHUB_OUTPUT
           else
-            echo "✅ Relevant changes detected, will run integration tests"
+            echo "✅ Relevant changes detected, will run post-commit tests"
             echo "should-skip=false" >> $GITHUB_OUTPUT
           fi
 
@@ -302,7 +302,7 @@ jobs:
         with:
           issue: ${{ steps.get-pr-number.outputs.pr-number }}
           message: |
-            ## 🚀 tt-metal Integration Tests
+            ## 🚀 tt-metal post-commit tests
 
             **Branch:** `${{ needs.setup-branch.outputs.branch-to-run }}`
             **Test Configuration:**
@@ -325,10 +325,10 @@ jobs:
             }}
 
             ## 🔗 Links
-            📊 **Integration tests:** [#${{ github.run_id }}](${{
+            📊 **Post-commit tests:** [#${{ github.run_id }}](${{
               github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             ${{
               needs.trigger-tt-metal-tests.result == 'failure' &&
-              '⚠️ Some of the integration tests have failed. Please check the logs above.' || ''
+              '⚠️ Some of the post-commit tests have failed. Please check the logs above.' || ''
             }}
