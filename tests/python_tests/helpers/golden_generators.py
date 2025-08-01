@@ -265,7 +265,7 @@ class TransposeGolden:
                 f"Tensor size {total_elements} must be divisible by 4 for tile structure"
             )
         face_size = total_elements // 4
-        face_dim = int(math.isqrt(face_size))
+        face_dim = math.isqrt(face_size)
         if face_dim * face_dim != face_size:
             raise ValueError(
                 f"Each face must be square. Face size {face_size} is not a perfect square"
