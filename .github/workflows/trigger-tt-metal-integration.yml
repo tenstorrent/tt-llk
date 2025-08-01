@@ -161,10 +161,16 @@ jobs:
 
       - name: Determine which tests to run
         id: determine-tests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Get the list of changed files by comparing with the base branch
-          git fetch origin ${{ github.base_ref }}
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          # Get the base branch - always use main for simplicity
+          BASE_REF="main"
+          echo "Base branch: $BASE_REF"
+
+          # Get the list of changed files by comparing the current branch with main
+          git fetch origin "$BASE_REF"
+          CHANGED_FILES=$(git diff --name-only origin/"$BASE_REF"...HEAD)
 
           echo "📁 Changed files:"
           echo "$CHANGED_FILES"
