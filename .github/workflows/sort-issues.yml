@@ -210,60 +210,16 @@ jobs:
     if: |
       always() &&
       (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
-       github.event_name == 'workflow_dispatch') &&
+      github.event_name == 'workflow_dispatch') &&
       needs.detect-changes.result == 'success'
-    runs-on: ubuntu-latest
-    outputs:
-      tt-metal-run-id: ${{ steps.get-run-id.outputs.run-id }}
-      tt-metal-run-url: ${{ steps.get-run-id.outputs.run-url }}
-    steps:
-      - name: Trigger tt-metal workflow
-        id: trigger-workflow
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Trigger the tt-metal workflow
-          WORKFLOW_NAME="test-llk-metal-integration.yaml"  # or whatever the filename is
-
-          gh workflow run "$WORKFLOW_NAME" \
-            --repo tenstorrent/tt-metal \
-            --ref fvranicTT/add-llk-metal-integration-testing-workflow \
-            --field mirrored_branch="${{ needs.setup-branch.outputs.branch-to-run }}" \
-            --field run_all_post_commit="${{ needs.detect-changes.outputs.run-wormhole == 'true' }}" \
-            --field run_blackhole_post_commit="${{ needs.detect-changes.outputs.run-blackhole == 'true' }}" \
-            --field workflow_timeout="240"
-
-          echo "✅ tt-metal workflow triggered successfully"
-
-      - name: Get workflow run ID
-        id: get-run-id
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Wait a moment for the workflow to appear
-          sleep 10
-
-          # Get the most recent workflow run for the tt-metal integration workflow
-          WORKFLOW_NAME="test-llk-metal-integration.yml"  # Must match above
-          RUN_DATA=$(gh run list \
-            --workflow "$WORKFLOW_NAME" \
-            --repo tenstorrent/tt-metal \
-            --limit 1 \
-            --json databaseId,url,createdAt)
-
-          RUN_ID=$(echo "$RUN_DATA" | jq -r '.[0].databaseId // empty')
-          RUN_URL=$(echo "$RUN_DATA" | jq -r '.[0].url // empty')
-
-          if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
-            echo "run-id=$RUN_ID" >> $GITHUB_OUTPUT
-            echo "run-url=$RUN_URL" >> $GITHUB_OUTPUT
-            echo "🎯 Found tt-metal run ID: $RUN_ID"
-            echo "🔗 Run URL: $RUN_URL"
-          else
-            echo "⚠️ Could not find tt-metal run ID"
-            echo "run-id=" >> $GITHUB_OUTPUT
-            echo "run-url=" >> $GITHUB_OUTPUT
-          fi
+    uses: >
+      tenstorrent/tt-metal/.github/workflows/test-llk-metal-integration.yaml@fvranicTT/add-llk-metal-integration-testing-workflow
+    secrets: inherit
+    with:
+      mirrored_branch: ${{ needs.setup-branch.outputs.branch-to-run }}
+      run_all_post_commit: ${{ needs.detect-changes.outputs.run-wormhole == 'true' }}
+      run_blackhole_post_commit: ${{ needs.detect-changes.outputs.run-blackhole == 'true' }}
+      workflow_timeout: 240
 
   post-comment:
     name: "💬 Post workflow status comment"
@@ -275,6 +231,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pr-number: ${{ steps.get-pr-number.outputs.pr-number }}
+      tt-metal-run-url: ${{ steps.find-run.outputs.run-url }}
     steps:
       - name: Get PR number
         id: get-pr-number
@@ -283,6 +240,52 @@ jobs:
             echo "pr-number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
           else
             echo "pr-number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Find tt-metal workflow run
+        id: find-run
+        if: needs.trigger-tt-metal-tests.result == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 Looking for the triggered tt-metal workflow run..."
+
+          # Wait a moment for the workflow to appear
+          sleep 15
+
+          # Get recent workflow runs from tt-metal repo
+          # Look for runs that started around the same time as this workflow
+          CURRENT_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          # Get workflow runs from the last 10 minutes
+          RUN_DATA=$(gh run list \
+            --repo tenstorrent/tt-metal \
+            --workflow test-llk-metal-integration.yaml \
+            --limit 5 \
+            --json databaseId,url,createdAt,status)
+
+          echo "Recent tt-metal runs:"
+          echo "$RUN_DATA" | jq -r '.[] | "ID: \(.databaseId) Status: \(.status) Created: \(.createdAt) URL: \(.url)"'
+
+          # Get the most recent run (likely ours)
+          LATEST_RUN=$(echo "$RUN_DATA" | jq -r '.[0]')
+
+          if [ "$LATEST_RUN" != "null" ] && [ -n "$LATEST_RUN" ]; then
+            RUN_ID=$(echo "$LATEST_RUN" | jq -r '.databaseId')
+            RUN_URL=$(echo "$LATEST_RUN" | jq -r '.url')
+            RUN_STATUS=$(echo "$LATEST_RUN" | jq -r '.status')
+
+            echo "🎯 Found likely tt-metal run:"
+            echo "  ID: $RUN_ID"
+            echo "  URL: $RUN_URL"
+            echo "  Status: $RUN_STATUS"
+
+            echo "run-url=$RUN_URL" >> $GITHUB_OUTPUT
+            echo "run-id=$RUN_ID" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Could not find tt-metal workflow run"
+            echo "run-url=" >> $GITHUB_OUTPUT
+            echo "run-id=" >> $GITHUB_OUTPUT
           fi
 
       - name: Post comment on PR
@@ -307,10 +310,8 @@ jobs:
 
             ## 🔗 Links
             ${{
-              needs.trigger-tt-metal-tests.outputs.tt-metal-run-url != '' &&
-              format('🎯 **tt-metal Integration Tests:** [Run #{0}]({1})',
-                     needs.trigger-tt-metal-tests.outputs.tt-metal-run-id,
-                     needs.trigger-tt-metal-tests.outputs.tt-metal-run-url) ||
+              steps.find-run.outputs.run-url != '' &&
+              format('🎯 **tt-metal Integration Tests:** [View Run]({0})', steps.find-run.outputs.run-url) ||
               '🔗 **Monitor progress:** [tt-metal Actions](https://github.com/tenstorrent/tt-metal/actions)'
             }}
             📊 **This workflow:** [Run #${{ github.run_id }}](${{
