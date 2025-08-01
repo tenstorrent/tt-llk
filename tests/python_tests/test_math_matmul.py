@@ -64,11 +64,11 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
         # In hw we tilize inputs for matmul and then transpose on src_B
         # We must first tilize src_B before transpose + haloize
         # However, torch works with row major data so we untilize this for now in order to properly compute golden
-        transpose_matrix = get_golden_generator(TransposeGolden)
-        src_B_golden = transpose_matrix.faces(
+        t_matrix = get_golden_generator(TransposeGolden)
+        src_B_golden = t_matrix.transpose_faces(
             src_B, formats.input_format, tilize=True, input_dimensions=input_dimensions
         )
-        src_B_golden = transpose_matrix.within_faces(
+        src_B_golden = t_matrix.transpose_within_faces(
             src_B_golden,
             formats.input_format,
             untilize=True,

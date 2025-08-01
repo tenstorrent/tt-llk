@@ -241,7 +241,7 @@ class TransposeGolden:
     def __init__(self):
         pass  # Removed ops dict since __call__ is no longer used
 
-    def within_faces(
+    def transpose_within_faces(
         self,
         operand,
         data_format,
@@ -265,7 +265,7 @@ class TransposeGolden:
                 f"Tensor size {total_elements} must be divisible by 4 for tile structure"
             )
         face_size = total_elements // 4
-        face_dim = int(math.sqrt(face_size))
+        face_dim = int(math.isqrt(face_size))
         if face_dim * face_dim != face_size:
             raise ValueError(
                 f"Each face must be square. Face size {face_size} is not a perfect square"
@@ -294,7 +294,7 @@ class TransposeGolden:
             result = untilize(result, data_format, input_dimensions).flatten()
         return result.to(format_dict[data_format])
 
-    def faces(
+    def transpose_faces(
         self,
         operand,
         data_format,
