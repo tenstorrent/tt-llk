@@ -1,4 +1,4 @@
-name: 🚀 Run tt-metal integration tests
+name: 🚀 Run tt-metal post-commit tests
 
 on:
   pull_request:
