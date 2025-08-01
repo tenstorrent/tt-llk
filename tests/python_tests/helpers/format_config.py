@@ -70,6 +70,44 @@ class DataFormat(Enum):
         }
 
 
+class BroadcastType(Enum):
+    """
+    Enum for broadcast types in LLK kernels.
+    """
+
+    None_ = "NONE"
+    Column = "COL"
+    Row = "ROW"
+    Scalar = "SCALAR"
+
+
+class EltwiseBinaryReuseDestType(Enum):
+    """
+    Enum for destination reuse types in elementwise binary ops.
+    """
+
+    NONE = 0
+    DEST_TO_SRCA = 1
+    DEST_TO_SRCB = 2
+
+
+class StochasticRoundingType(Enum):
+    """
+    Enum for stochastic rounding types.
+    """
+
+    NONE = 0
+    Fpu = 1
+    Pack = 2
+    All = 0xF
+
+    def __str__(self):
+        """Custom string conversion for C++ template generation"""
+        if self.name == "NONE":
+            return "None"  # Convert NONE to None for C++
+        return self.name
+
+
 @dataclass
 class FormatConfig:
     """
