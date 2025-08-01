@@ -213,7 +213,7 @@ jobs:
           fi
 
   trigger-tt-metal-tests:
-    name: "🚀 Run integration tests"
+    name: "🚀 Run post-commit tests"
     needs: [setup-branch, wait-for-mirror, detect-changes]
     if: |
       always() &&
