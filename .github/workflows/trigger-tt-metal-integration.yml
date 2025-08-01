@@ -1,9 +1,5 @@
 name: 🚀 Trigger tt-metal integration tests
 
-# This workflow triggers comprehensive integration tests in the tt-metal repository
-# when labels are added to PRs. It handles fork branch mirroring, analyzes file changes
-# to determine which tests to run, and uses workflow_call to trigger the tt-metal workflow.
-
 on:
   pull_request:
     types: [labeled, synchronize]
@@ -103,7 +99,7 @@ jobs:
     name: "⏳ Wait for mirror completion"
     needs: setup-branch
     if: |
-      (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
        github.event_name == 'workflow_dispatch') &&
       needs.setup-branch.outputs.is-fork == 'true'
     runs-on: ubuntu-latest
@@ -146,7 +142,7 @@ jobs:
     needs: [setup-branch, wait-for-mirror]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
        github.event_name == 'workflow_dispatch') &&
       (needs.setup-branch.outputs.is-fork == 'false' || needs.wait-for-mirror.result != 'failure')
     runs-on: ubuntu-latest
@@ -206,11 +202,11 @@ jobs:
           echo "  - Wormhole tests: $RUN_WORMHOLE"
 
   trigger-tt-metal-tests:
-    name: "🚀 Trigger tt-metal integration tests"
+    name: "🚀 Run tt-metal integration tests"
     needs: [setup-branch, wait-for-mirror, detect-changes]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
       github.event_name == 'workflow_dispatch') &&
       needs.detect-changes.result == 'success'
     uses: tenstorrent/tt-metal/.github/workflows/test-llk-metal-integration.yaml@fvranicTT/add-llk-metal-integration-testing-workflow
@@ -219,14 +215,14 @@ jobs:
       mirrored_branch: ${{ needs.setup-branch.outputs.branch-to-run }}
       run_all_post_commit: ${{ needs.detect-changes.outputs.run-wormhole == 'true' }}
       run_blackhole_post_commit: ${{ needs.detect-changes.outputs.run-blackhole == 'true' }}
-      workflow_timeout: 240
+      workflow_timeout: 360
 
   post-comment:
     name: "💬 Post workflow status comment"
     needs: [setup-branch, detect-changes, trigger-tt-metal-tests]
     if: |
       always() &&
-      (contains(github.event.pull_request.labels.*.name, 'tt-metal-integration-tests') ||
+      (contains(github.event.pull_request.labels.*.name, 'integration-tests') ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     outputs:
@@ -306,18 +302,13 @@ jobs:
 
             **Status:** ${{
               needs.trigger-tt-metal-tests.result == 'success' &&
-              '✅ Successfully triggered' || '❌ Failed to trigger' }}
+              '✅ Tests Passed' || '❌ Tests Failed' }}
 
             ## 🔗 Links
-            ${{
-              steps.find-run.outputs.run-url != '' &&
-              format('🎯 **tt-metal Integration Tests:** [View Run]({0})', steps.find-run.outputs.run-url) ||
-              '🔗 **Monitor progress:** [tt-metal Actions](https://github.com/tenstorrent/tt-metal/actions)'
-            }}
-            📊 **This workflow:** [Run #${{ github.run_id }}](${{
+            📊 **Integration tests:** [#${{ github.run_id }}](${{
               github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             ${{
               needs.trigger-tt-metal-tests.result != 'success' &&
-              '⚠️ The workflow trigger failed. Please check the logs above.' || ''
+              '⚠️ Some of the integration tests have failed. Please check the logs above.' || ''
             }}
