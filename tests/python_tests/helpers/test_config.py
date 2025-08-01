@@ -17,7 +17,6 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
-    Haloize,
     L1BufferLocations,
     MathFidelity,
     MathOperation,
@@ -121,7 +120,7 @@ def generate_build_header(
 
     # Unpack transpose within face
     unpack_transpose_within_face = str(
-        test_config.get("unpack_transpose_within_face", Haloize.No.value)
+        test_config.get("unpack_transpose_within_face", Transpose.No.value)
     ).lower()
     header_content.append(
         f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face};"
