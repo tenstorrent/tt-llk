@@ -436,7 +436,7 @@ inline void reduce_configure_mop()
     }
 }
 
-template <PoolType type, ReduceDim dim, int MATH_FIDELITY_DESC = 0>
+template <PoolType type, ReduceDim dim, int MATH_FIDELITY_DESC = 0, bool fp32_transpose = false>
 inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0)
 { // within_face_16x16_transpose used for unpack, ignored by math
 
@@ -449,6 +449,11 @@ inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpo
         reduce_configure_mop<dim, MATH_FIDELITY_PHASES>();
     }
 
+    if constexpr (fp32_transpose)
+    {
+        // MOVB2D depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float16_b);
+    }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
