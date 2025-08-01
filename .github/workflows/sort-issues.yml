@@ -174,10 +174,10 @@ jobs:
           echo "$CHANGED_FILES"
 
           # Check if any files in tt_llk_blackhole directory are changed
-          BLACKHOLE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^tt_llk_blackhole/" || false)
+          BLACKHOLE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^tt_llk_blackhole/" || true)
 
           # Check if any files in tt_llk_wormhole_b0 directory are changed
-          WORMHOLE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^tt_llk_wormhole_b0/" || false)
+          WORMHOLE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^tt_llk_wormhole_b0/" || true)
 
           # Determine which tests to run
           RUN_BLACKHOLE="false"
