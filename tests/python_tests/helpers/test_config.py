@@ -126,7 +126,6 @@ def generate_build_header(
         f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face};"
     )
 
-
     # Throttle level
     throttle = test_config.get("throttle", 0)
     header_content.append(f"constexpr int THROTTLE_LEVEL = {throttle};")
@@ -136,7 +135,6 @@ def generate_build_header(
     header_content.append(
         f"constexpr bool MATH_TRANSPOSE_FACES = {math_transpose_faces};"
     )
-
 
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
