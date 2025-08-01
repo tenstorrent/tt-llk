@@ -111,6 +111,7 @@ def get_golden_generator(cls):
     return golden_registry[cls]
 
 
+
 class FidelityMasking:
     def _apply_fidelity_masking(
         self, operand1, operand2, math_fidelity_phase, data_format

@@ -177,6 +177,39 @@ class MathFidelity(Enum):
     HiFi4 = 3
 
 
+class StochasticRnd(Enum):
+    No = "StochRndType::None"
+    Fpu = "StochRndType::Fpu"
+    Pack = "StochRndType::Pack"
+    All = "StochRndType::All"
+
+
+class Transpose(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class Haloize(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class NarrowTile(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class FaceRDim(Enum):
+    Face16 = 16
+    Face32 = 32  # Default FACE_R_DIM
+
+
+class NumFaces(Enum):
+    One = 1
+    Two = 2
+    Four = 4  # Default
+
+
 class Mailbox(Enum):
     Unpacker = 0x19FFC
     Math = 0x19FF8
