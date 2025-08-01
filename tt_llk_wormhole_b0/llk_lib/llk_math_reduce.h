@@ -451,7 +451,7 @@ inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpo
 
     if constexpr (fp32_transpose)
     {
-        // MOVB2D depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32
+        // MOVB2D depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32 (only on WH)
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float16_b);
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
