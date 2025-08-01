@@ -329,5 +329,5 @@ jobs:
 
             ${{
               needs.trigger-tt-metal-tests.result == 'failure' &&
-              '⚠️ The workflow trigger failed. Please check the logs above.' || ''
+              '⚠️ Some of the integration tests have failed. Please check the logs above.' || ''
             }}
