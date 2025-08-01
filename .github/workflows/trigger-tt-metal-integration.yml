@@ -23,6 +23,7 @@ permissions:
   pull-requests: write
   actions: write
   issues: write
+  checks: read
 
 jobs:
   setup-branch:
