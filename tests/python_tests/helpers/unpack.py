@@ -91,14 +91,12 @@ def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
     return bfloat16_values
 
 
-def unpack_bfp8_b(bfp8_block, sfpu=False):
+def unpack_bfp8_b(bfp8_block, tile_dimensions=[32, 32]):
+    tile_elements = tile_dimensions[0] * tile_dimensions[1]
+    num_exponents = tile_elements // 16
 
-    if not sfpu:
-        exponents = bfp8_block[:64]
-        mantissas = bfp8_block[64:]
-    else:
-        exponents = bfp8_block[:16]
-        mantissas = bfp8_block[16:272]
+    exponents = bfp8_block[:num_exponents]
+    mantissas = bfp8_block[num_exponents:]
 
     unpacked_bfp8 = {}
 
@@ -146,7 +144,10 @@ def unpack_res_tiles(
         raise IndexError("Buffer access out of bounds")
 
     if output_format == DataFormat.Bfp8_b:
-        unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
+        if sfpu:
+            unpack_func = unpack_bfp16
+        else:
+            unpack_func = lambda tile_data: unpack_bfp8_b(tile_data, tile_dimensions)
     else:
         unpack_func = _UNPACKERS[output_format]
 
