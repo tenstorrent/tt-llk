@@ -77,7 +77,7 @@ Add one or more of these labels to your pull request to trigger the correspondin
 
 - **`metal-post-commit-tests`** - **Smart detection** - Automatically determines which tests to run based on your file changes:
   - If you modify files in `tt_llk_blackhole/`, runs Blackhole integration tests
-  - If you modify files in `tt_llk_wormhole_b0/`, runs Wormhole integration tests  
+  - If you modify files in `tt_llk_wormhole_b0/`, runs Wormhole integration tests
   - If you modify both directories, runs both test suites
   - If no relevant changes detected, skips testing
 
