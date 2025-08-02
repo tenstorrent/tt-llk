@@ -43,14 +43,22 @@ def test_pack_untilize(test_name, formats):
     input_dimensions = [32, 128]
 
     src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     generate_golden = get_golden_generator(UntilizeGolden)
     golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
 
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+        tile_dimensions=[32, 32],
     )
 
     test_config = {
@@ -63,7 +71,9 @@ def test_pack_untilize(test_name, formats):
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, tile_dimensions=[32, 32]
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])

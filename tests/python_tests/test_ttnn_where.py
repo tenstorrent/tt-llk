@@ -172,7 +172,9 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
     run_test(test_config)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tile_count=1, address=0x1D000)
+    res_from_L1 = collect_results(
+        formats, tile_count=1, address=0x1D000, tile_dimensions=[32, 32]
+    )
     res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden)
 
@@ -273,7 +275,9 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
     run_test(test_config)
 
     wait_for_tensix_operations_finished()
-    res_from_L1 = collect_results(formats, tile_count=1, address=0x1D000)
+    res_from_L1 = collect_results(
+        formats, tile_count=1, address=0x1D000, tile_dimensions=[32, 32]
+    )
     res_from_L1 = res_from_L1[:1024]
 
     golden_tensor = torch.tensor(

@@ -16,12 +16,12 @@ from .format_arg_mapping import (
     SFPU_BINARY_OPERATIONS,
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
+    DataFormat,
     DestAccumulation,
     L1BufferLocations,
     MathFidelity,
     MathOperation,
     Transpose,
-    format_tile_sizes,
 )
 from .format_config import FormatConfig, InputOutputFormat
 from .utils import run_shell_command
@@ -199,6 +199,9 @@ def generate_build_header(
 
     tile_cnt = test_config.get("tile_cnt", 1)
 
+    # Get tile dimensions from test config, default to 32x32 for backward compatibility
+    tile_dimensions = test_config.get("tile_dimensions", [32, 32])
+
     header_content.append("")
     # Multi-tile test configuration
     header_content.append("// Multi-tile test configuration")
@@ -214,16 +217,23 @@ def generate_build_header(
     buffer_res_array = []
 
     if formats is not None:
+        # Calculate tile sizes dynamically based on tile dimensions
+        tile_elements = tile_dimensions[0] * tile_dimensions[1]
+
+        # Calculate tile size in bytes for input format
+        input_tile_size = formats.input_format.size * tile_elements
+        if formats.input_format == DataFormat.Bfp8_b:
+            input_tile_size += tile_elements // 16
+
+        # Calculate tile size in bytes for output format
+        output_tile_size = formats.output_format.size * tile_elements
+        if formats.output_format == DataFormat.Bfp8_b:
+            output_tile_size += tile_elements // 16
+
         for i in range(tile_cnt):
-            buffer_A_array.append(
-                buffer_A_address + i * format_tile_sizes[formats.input_format]
-            )
-            buffer_B_array.append(
-                buffer_B_address + i * format_tile_sizes[formats.input_format]
-            )
-            buffer_res_array.append(
-                result_buffer_address + i * format_tile_sizes[formats.output_format]
-            )
+            buffer_A_array.append(buffer_A_address + i * input_tile_size)
+            buffer_B_array.append(buffer_B_address + i * input_tile_size)
+            buffer_res_array.append(result_buffer_address + i * output_tile_size)
 
     buffer_A_str = ", ".join(
         f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_A_array

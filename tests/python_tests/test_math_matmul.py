@@ -57,7 +57,10 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
     input_dimensions = [32, 32]  # Will be sweeping over dimensions
 
     src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
     src_B_golden = src_B
     if transpose == Transpose.Yes:
@@ -106,6 +109,7 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
         formats.input_format,
         formats.input_format,
         tile_count=tile_cnt,
+        tile_dimensions=[32, 32],
     )
 
     test_config = {
@@ -122,7 +126,9 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, tile_dimensions=[32, 32]
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)

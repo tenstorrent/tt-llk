@@ -80,11 +80,19 @@ def test_fast_tilize_perf(
     input_dimensions = [input_height * 32, input_width * 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
-        input_format, input_format, input_dimensions=input_dimensions
+        input_format,
+        input_format,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     res_address = write_stimuli_to_l1(
-        src_A, src_B, input_format, input_format, tile_count=tile_cnt
+        src_A,
+        src_B,
+        input_format,
+        input_format,
+        tile_count=tile_cnt,
+        tile_dimensions=[32, 32],
     )
 
     formats = InputOutputFormat(input_format, output_format)

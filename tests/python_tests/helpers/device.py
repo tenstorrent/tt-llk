@@ -23,7 +23,6 @@ from .format_arg_mapping import (
     DestAccumulation,
     L1BufferLocations,
     Mailbox,
-    format_tile_sizes,
 )
 from .format_config import DataFormat, FormatConfig
 from .pack import (
@@ -66,11 +65,26 @@ def collect_results(
     address: int = 0x1C000,
     core_loc: str = "0,0",
     sfpu: bool = False,
+    tile_dimensions=[32, 32],
 ):
+    # Calculate tile elements based on tile dimensions instead of hardcoding 1024
+    tile_elements = tile_dimensions[0] * tile_dimensions[1]
 
-    read_bytes_cnt = format_tile_sizes[formats.output_format] * tile_count
+    # Calculate bytes needed based on format and actual tile size
+    read_bytes_cnt = formats.output_format.size * tile_elements * tile_count
+
+    # Add exponent bytes for Bfp8_b format
+    if formats.output_format == DataFormat.Bfp8_b:
+        read_bytes_cnt += (tile_elements // 16) * tile_count
+
     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
-    res_from_L1 = unpack_res_tiles(read_data, formats, tile_count=tile_count, sfpu=sfpu)
+    res_from_L1 = unpack_res_tiles(
+        read_data,
+        formats,
+        tile_count=tile_count,
+        sfpu=sfpu,
+        tile_dimensions=tile_dimensions,
+    )
     return res_from_L1
 
 
@@ -121,12 +135,21 @@ def write_stimuli_to_l1(
     stimuli_B_format,
     core_loc="0,0",
     tile_count=1,
+    tile_dimensions=[32, 32],
 ):
 
-    TILE_ELEMENTS = 1024
+    # Calculate tile elements based on tile dimensions instead of hardcoding 1024
+    TILE_ELEMENTS = tile_dimensions[0] * tile_dimensions[1]
 
-    TILE_SIZE_A = format_tile_sizes.get(stimuli_A_format, 2048)
-    TILE_SIZE_B = format_tile_sizes.get(stimuli_A_format, 2048)
+    exponents_A = 0
+    exponents_B = 0
+    if stimuli_A_format == DataFormat.Bfp8_b:
+        exponents_A = TILE_ELEMENTS // 16
+    if stimuli_B_format == DataFormat.Bfp8_b:
+        exponents_B = TILE_ELEMENTS // 16
+
+    TILE_SIZE_A = TILE_ELEMENTS * stimuli_A_format.size + exponents_A
+    TILE_SIZE_B = TILE_ELEMENTS * stimuli_B_format.size + exponents_B
 
     # beginning addresses of srcA, srcB and result buffers in L1
     buffer_A_address = 0x1A000

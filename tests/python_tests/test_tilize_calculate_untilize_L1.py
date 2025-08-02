@@ -51,7 +51,10 @@ def test_tilize_calculate_untilize_L1(
     input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
@@ -64,8 +67,8 @@ def test_tilize_calculate_untilize_L1(
         src_B,
         formats.input_format,
         formats.input_format,
-        "0,0",
         tile_count=tile_cnt,
+        tile_dimensions=[32, 32],
     )
 
     test_config = {
@@ -80,7 +83,9 @@ def test_tilize_calculate_untilize_L1(
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, tile_dimensions=[32, 32]
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])

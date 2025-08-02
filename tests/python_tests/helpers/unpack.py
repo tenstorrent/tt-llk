@@ -11,7 +11,7 @@ import torch
 from helpers.format_arg_mapping import format_dict
 from helpers.format_config import DataFormat
 
-from .format_arg_mapping import format_dict, format_tile_sizes
+from .format_arg_mapping import format_dict
 
 
 def unpack_fp16(packed_list):
@@ -126,9 +126,19 @@ _UNPACKERS = {
 }
 
 
-def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False):
+def unpack_res_tiles(
+    packed_list, formats, tile_count=1, sfpu=False, tile_dimensions=[32, 32]
+):
     output_format = formats.output_format
-    tile_size = format_tile_sizes[output_format]
+
+    # Calculate tile size based on tile dimensions and format
+    tile_elements = tile_dimensions[0] * tile_dimensions[1]
+    tile_size = output_format.size * tile_elements
+
+    # Add exponent bytes for Bfp8_b format
+    if output_format == DataFormat.Bfp8_b:
+        tile_size += tile_elements // 16
+
     output_dtype = format_dict[output_format]
 
     total_elements_needed = tile_count * tile_size

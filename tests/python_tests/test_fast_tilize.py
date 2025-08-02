@@ -70,14 +70,22 @@ def test_fast_tilize(test_name, formats, dest_acc, dimensions):
     input_dimensions = [input_height * 32, input_width * 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input, formats.input, input_dimensions=input_dimensions
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     generate_golden = get_golden_generator(TilizeGolden)
     golden_tensor = generate_golden(src_A, input_dimensions, formats.output)
 
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input, formats.input, tile_count=tile_cnt
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+        tile_dimensions=[32, 32],
     )
 
     test_config = {
@@ -90,7 +98,9 @@ def test_fast_tilize(test_name, formats, dest_acc, dimensions):
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, tile_dimensions=[32, 32]
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output])
