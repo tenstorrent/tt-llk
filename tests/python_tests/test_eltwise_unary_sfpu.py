@@ -58,6 +58,7 @@ from helpers.utils import passed_test
         MathOperation.Exp,
         MathOperation.Exp2,
         MathOperation.Hardsigmoid,
+        MathOperation.Rsqrt,
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
@@ -81,6 +82,12 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
         pytest.skip(
             reason="Exp-related operations are not supported for bf8_b format in approximation mode."
         )
+    if (
+        mathop == MathOperation.Rsqrt
+        and formats.input_format == DataFormat.Bfp8_b
+        or formats.output_format == DataFormat.Bfp8_b
+    ):
+        pytest.skip(reason="Rsqrt is not supported for bf8_b format")
 
     eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
 
