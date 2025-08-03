@@ -323,12 +323,37 @@ class TransposeGolden:
 class MatmulGolden(FidelityMasking):
 
     def __call__(
-        self, operand1, operand2, data_format, math_fidelity, input_dimensions=[32, 32]
+        self,
+        operand1,
+        operand2,
+        data_format,
+        math_fidelity,
+        input_dimensions=[32, 32],
+        input_A_dimensions=None,
+        input_B_dimensions=None,
     ):
         torch_format = format_dict[data_format]
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
+
+        # Handle multi-tile matmul with different operand dimensions
+        if input_A_dimensions is not None and input_B_dimensions is not None:
+            # Multi-tile matmul: A[M,K] × B[K,N] = C[M,N]
+            M, K1 = input_A_dimensions[0], input_A_dimensions[1]
+            K2, N = input_B_dimensions[0], input_B_dimensions[1]
+
+            # Verify K dimensions match for valid matmul
+            assert (
+                K1 == K2
+            ), f"Matrix dimensions incompatible: A[{M},{K1}] × B[{K2},{N}]"
+
+            output_dimensions = [M, N]
+        else:
+            # Legacy single-tile case
+            M, K1 = input_dimensions[0], input_dimensions[1]
+            K2, N = input_dimensions[0], input_dimensions[1]  # assume square
+            output_dimensions = input_dimensions
 
         num_fidelity_phases = math_fidelity.value
 
@@ -337,12 +362,10 @@ class MatmulGolden(FidelityMasking):
         if num_fidelity_phases == 0:
 
             t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res = (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
@@ -351,24 +374,20 @@ class MatmulGolden(FidelityMasking):
         elif num_fidelity_phases == 1:
 
             t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res = (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
             t1 = to_tensor(operand1, data_format)
             t2 = to_tensor(operand2, data_format)
             t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res += (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
@@ -377,24 +396,20 @@ class MatmulGolden(FidelityMasking):
         elif num_fidelity_phases == 2:
 
             t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res = (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
             t1 = to_tensor(operand1, data_format)
             t2 = to_tensor(operand2, data_format)
             t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res += (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
@@ -403,18 +418,16 @@ class MatmulGolden(FidelityMasking):
             # t1 = to_tensor(operand1, data_format)
             # t2 = to_tensor(operand2, data_format)
             # t1, t2 = self._apply_fidelity_masking(t1, t2, 2, data_format)
-            # t1,t2 = t1.view(input_dimensions[0],input_dimensions[1]), t2.view(input_dimensions[0],input_dimensions[1])
-            # res +=  torch.matmul(t1, t2).view(input_dimensions[0] * input_dimensions[1]).to(torch_format)
+            # t1,t2 = t1.view(M, K1), t2.view(K2, N)
+            # res +=  torch.matmul(t1, t2).view(output_dimensions[0] * output_dimensions[1]).to(torch_format)
 
             return res
         elif num_fidelity_phases == 3:
 
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res = (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 

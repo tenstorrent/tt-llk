@@ -64,7 +64,6 @@ def test_tilize_calculate_untilize_L1(
         src_B,
         formats.input_format,
         formats.input_format,
-        "0,0",
         tile_count=tile_cnt,
     )
 
