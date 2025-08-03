@@ -250,10 +250,16 @@ def generate_build_header(
         "volatile uint32_t* buffer_Res[TILE_CNT] = {" + buffer_res_str + "}; \n"
         "#endif\n"
     )
+    input_dimensions = test_config.get("input_dimensions", False)
+    if input_dimensions:
+        input_A_dimensions = input_dimensions
+        input_B_dimensions = input_dimensions
+    else:
+        input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
+        input_B_dimensions = test_config.get("input_B_dimensions", [32, 32])
 
-    input_dimensions = test_config.get("input_dimensions", [32, 32])
-    block_ct_dim = input_dimensions[1] // 32
-    block_rt_dim = input_dimensions[0] // 32
+    block_rt_dim = input_A_dimensions[0] // 32
+    block_ct_dim = input_B_dimensions[1] // 32
 
     header_content.extend(
         [
@@ -263,6 +269,16 @@ def generate_build_header(
             "#endif",
         ]
     )
+
+    # Add matrix multiplication tile dimensions if they exist
+    if "rt_dim" in test_config:
+        header_content.append(f"constexpr uint32_t RT_DIM = {test_config['rt_dim']};")
+    if "ct_dim" in test_config:
+        header_content.append(f"constexpr uint32_t CT_DIM = {test_config['ct_dim']};")
+    if "kt_dim" in test_config:
+        header_content.append(f"constexpr uint32_t KT_DIM = {test_config['kt_dim']};")
+
+    header_content.append("")
 
     if perf_run_type := test_config.get("perf_run_type"):
         header_content.append("")

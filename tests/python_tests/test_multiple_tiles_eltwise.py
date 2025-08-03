@@ -65,7 +65,6 @@ def test_multiple_tiles(
         src_B,
         formats.input_format,
         formats.input_format,
-        "0,0",
         tile_count=tile_cnt,
     )
 
