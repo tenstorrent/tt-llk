@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Octokit} from '@octokit/rest';
-import {writeFileSync} from 'fs';
+import {readFileSync, writeFileSync} from 'fs';
 
 // Environment variables
 const token       = process.env.GITHUB_TOKEN;
@@ -17,6 +17,27 @@ if (!token || !currentRepo)
 
 const [defaultOwner, defaultRepoName] = currentRepo.split('/');
 const octokit                         = new Octokit({auth: token});
+
+// GitHub Project configuration
+const PROJECT_ORG    = 'tenstorrent';
+const PROJECT_NUMBER = 166; // From the URL https://github.com/orgs/tenstorrent/projects/166
+
+// Load reviewers list
+const loadReviewers = () => {
+    try
+    {
+        const reviewersContent = readFileSync('reviewers.txt', 'utf8');
+        return reviewersContent.split('\n').filter(line => line.trim().length > 0);
+    }
+    catch (error)
+    {
+        console.warn('⚠️ Could not load reviewers.txt, using empty list:', error.message);
+        return [];
+    }
+};
+
+const REVIEWERS_LIST = loadReviewers();
+console.log(`📋 Loaded ${REVIEWERS_LIST.length} reviewers:`, REVIEWERS_LIST.join(', '));
 
 // Constants for priority and overdue thresholds
 const PRIORITY_RANK = {
@@ -64,6 +85,84 @@ const fetchIssues = async ({owner, repo, filterLabel = null, tag, state = 'open'
         .filter((issue) => !issue.pull_request) // Exclude pull requests
         .filter((issue) => !filterLabel || issue.labels.some((l) => typeof l.name === 'string' && l.name === filterLabel))
         .map((issue) => ({...issue, _sourceRepo: tag}));
+};
+
+const fetchPullRequests = async ({owner, repo, filterLabel = null, filterReviewers = false, tag, state = 'open'}) => {
+    const allPRs = await octokit.paginate(octokit.rest.pulls.list, {
+        owner,
+        repo,
+        state,
+        per_page: 100,
+    });
+
+    let filteredPRs = allPRs;
+
+    // Filter by label if specified
+    if (filterLabel)
+    {
+        filteredPRs = filteredPRs.filter((pr) => pr.labels.some((l) => typeof l.name === 'string' && l.name === filterLabel));
+    }
+
+    // Filter by reviewers if specified
+    if (filterReviewers && REVIEWERS_LIST.length > 0)
+    {
+        console.log(`🔍 Filtering ${filteredPRs.length} PRs by reviewers from ${owner}/${repo}...`);
+        const prWithReviewers = [];
+
+        for (const pr of filteredPRs)
+        {
+            try
+            {
+                // Get review requests for this PR
+                const reviewRequests = await octokit.rest.pulls.listRequestedReviewers({
+                    owner,
+                    repo,
+                    pull_number: pr.number,
+                });
+
+                // Check if any pending reviewer is from our team
+                const hasRequestedReviewer = reviewRequests.data.users.some(user => REVIEWERS_LIST.includes(user.login));
+
+                // Check if any completed reviewer is from our team
+                const reviews = await octokit.rest.pulls.listReviews({
+                    owner,
+                    repo,
+                    pull_number: pr.number,
+                });
+
+                const hasCompletedReviewer = reviews.data.some(review => REVIEWERS_LIST.includes(review.user.login));
+
+                if (hasRequestedReviewer || hasCompletedReviewer)
+                {
+                    prWithReviewers.push(pr);
+                }
+            }
+            catch (error)
+            {
+                console.warn(`⚠️ Could not fetch reviewers for PR #${pr.number}:`, error.message);
+                // Include PR if we can't check reviewers (fail-safe)
+                prWithReviewers.push(pr);
+            }
+        }
+
+        console.log(`✅ Found ${prWithReviewers.length} PRs with our reviewers from ${owner}/${repo}`);
+        filteredPRs = prWithReviewers;
+    }
+
+    return filteredPRs.map((pr) => ({
+                               ...pr,
+                               _sourceRepo: tag,
+                               _type: 'pr',
+                               // Normalize PR structure to match issue structure
+                               html_url: pr.html_url,
+                               created_at: pr.created_at,
+                               closed_at: pr.closed_at,
+                               labels: pr.labels || [],
+                               assignees: pr.assignees || [],
+                               user: pr.user,
+                               title: pr.title,
+                               number: pr.number
+                           }));
 };
 
 const calculateClosedIssuesStats = (issues) => {
@@ -125,6 +224,103 @@ const generateIssueRow = (issue) => {
     <td>${assignees}</td>
   </tr>
 `;
+};
+
+// GitHub Projects v2 API functions
+const getProjectId = async () => {
+    const query = `
+        query {
+            organization(login: "${PROJECT_ORG}") {
+                projectV2(number: ${PROJECT_NUMBER}) {
+                    id
+                    title
+                }
+            }
+        }
+    `;
+
+    try
+    {
+        const response = await octokit.graphql(query);
+        return response.organization.projectV2.id;
+    }
+    catch (error)
+    {
+        console.error('❌ Failed to get project ID:', error);
+        throw error;
+    }
+};
+
+const addItemToProject = async (projectId, contentId) => {
+    const mutation = `
+        mutation {
+            addProjectV2ItemById(input: {projectId: "${projectId}", contentId: "${contentId}"}) {
+                item {
+                    id
+                }
+            }
+        }
+    `;
+
+    try
+    {
+        const response = await octokit.graphql(mutation);
+        return response.addProjectV2ItemById.item.id;
+    }
+    catch (error)
+    {
+        // If item already exists, it will return the existing item ID
+        if (error.message && error.message.includes('already exists'))
+        {
+            console.log(`✅ Item ${contentId} already exists in project`);
+            return null;
+        }
+        console.error('❌ Failed to add item to project:', error);
+        throw error;
+    }
+};
+
+const addItemsToProject = async (items) => {
+    try
+    {
+        console.log('🔄 Getting project ID...');
+        const projectId = await getProjectId();
+        console.log(`✅ Project ID: ${projectId}`);
+
+        console.log(`🔄 Adding ${items.length} items to project...`);
+        let addedCount    = 0;
+        let existingCount = 0;
+
+        for (const item of items)
+        {
+            try
+            {
+                const itemId = await addItemToProject(projectId, item.node_id);
+                if (itemId)
+                {
+                    addedCount++;
+                    console.log(`✅ Added ${item._type} #${item.number}: ${item.title}`);
+                }
+                else
+                {
+                    existingCount++;
+                }
+
+                // Add a small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            catch (error)
+            {
+                console.error(`❌ Failed to add ${item._type} #${item.number}:`, error.message);
+            }
+        }
+
+        console.log(`✅ Project update complete: ${addedCount} added, ${existingCount} already existed`);
+    }
+    catch (error)
+    {
+        console.error('❌ Failed to update project:', error);
+    }
 };
 
 const generateHTMLReport = (rows, priorityCounts, closedIssuesStats, bountyCounts) => `
@@ -294,7 +490,8 @@ footer {
 </tbody>
 </table>
 <footer>
-  Generated by LLK Issue Tracker © 2025
+  Generated by LLK Issue Tracker © 2025 | PRs automatically added to <a href="https://github.com/orgs/${PROJECT_ORG}/projects/${
+    PROJECT_NUMBER}" target="_blank">GitHub Project #${PROJECT_NUMBER}</a>
 </footer>
 <script>
 const ctx = document.getElementById('priorityChart').getContext('2d');
@@ -380,6 +577,25 @@ new Chart(ctx, {
         const closedIssues      = [...localClosedIssues, ...ttMetalClosedIssues];
         const closedIssuesStats = calculateClosedIssuesStats(closedIssues);
         const bountyCounts      = countBounties(combinedIssues, closedIssues);
+
+        // Fetch open pull requests
+        const localPRs = await fetchPullRequests({
+            owner: defaultOwner,
+            repo: defaultRepoName,
+            tag: 'tt-llk',
+        });
+
+        const ttMetalPRs = await fetchPullRequests({
+            owner: 'tenstorrent',
+            repo: 'tt-metal',
+            filterReviewers: true,
+            tag: 'tt-metal',
+        });
+
+        // Add PRs to GitHub project
+        const allPRs = [...localPRs, ...ttMetalPRs];
+        console.log(`🔄 Adding ${allPRs.length} PRs to GitHub project...`);
+        await addItemsToProject(allPRs);
 
         // Generate HTML report
         const rows = sortedIssues.map(generateIssueRow).join('');
