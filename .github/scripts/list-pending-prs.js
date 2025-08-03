@@ -20,6 +20,10 @@ if (!token || !currentRepo)
 const [defaultOwner, defaultRepoName] = currentRepo.split('/');
 const octokit                         = new Octokit({auth: token});
 
+// GitHub Project configuration
+const PROJECT_ORG    = 'tenstorrent';
+const PROJECT_NUMBER = 166; // From the URL https://github.com/orgs/tenstorrent/projects/166
+
 const getDaysOpen = (createdAt) => Math.floor((new Date() - new Date(createdAt)) / (1000 * 60 * 60 * 24));
 
 const getStyledLabels = (labels) => labels.map((label) => `<span class="label" style="background-color:#${label.color}">${label.name}</span>`).join(' ');
@@ -97,6 +101,105 @@ const generatePRRow = (pr) => {
 };
 
 const formattedDate = new Intl.DateTimeFormat('en-GB', {day: '2-digit', month: 'long', year: 'numeric'}).format(new Date());
+
+// ============================================================================
+// GITHUB PROJECTS API
+// ============================================================================
+
+const getProjectId = async () => {
+    const query = `
+        query {
+            organization(login: "${PROJECT_ORG}") {
+                projectV2(number: ${PROJECT_NUMBER}) {
+                    id
+                    title
+                }
+            }
+        }
+    `;
+
+    try
+    {
+        const response = await octokit.graphql(query);
+        return response.organization.projectV2.id;
+    }
+    catch (error)
+    {
+        console.error('❌ Failed to get project ID:', error);
+        throw error;
+    }
+};
+
+const addItemToProject = async (projectId, contentId) => {
+    const mutation = `
+        mutation {
+            addProjectV2ItemById(input: {projectId: "${projectId}", contentId: "${contentId}"}) {
+                item {
+                    id
+                }
+            }
+        }
+    `;
+
+    try
+    {
+        const response = await octokit.graphql(mutation);
+        return response.addProjectV2ItemById.item.id;
+    }
+    catch (error)
+    {
+        // If item already exists, it will return the existing item ID
+        if (error.message && error.message.includes('already exists'))
+        {
+            console.log(`✅ Item ${contentId} already exists in project`);
+            return null;
+        }
+        throw error;
+    }
+};
+
+const addItemsToProject = async (items) => {
+    try
+    {
+        console.log('🔄 Getting project ID...');
+        const projectId = await getProjectId();
+        console.log(`✅ Project ID: ${projectId}`);
+
+        console.log(`🔄 Adding ${items.length} PRs to GitHub project...`);
+        let addedCount    = 0;
+        let existingCount = 0;
+
+        for (const item of items)
+        {
+            try
+            {
+                const itemId = await addItemToProject(projectId, item.node_id);
+                if (itemId)
+                {
+                    addedCount++;
+                    console.log(`✅ Added ${item._type} #${item.number}: ${item.title}`);
+                }
+                else
+                {
+                    existingCount++;
+                }
+
+                // Add a small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            catch (error)
+            {
+                console.error(`❌ Failed to add ${item._type} #${item.number}:`, error.message);
+            }
+        }
+
+        console.log(`✅ Project update complete: ${addedCount} added, ${existingCount} already existed`);
+    }
+    catch (error)
+    {
+        console.error('❌ Failed to update project:', error);
+    }
+};
 
 const generateHTMLReport = (rows, allLabels, llkReviewers, allAuthors, authorStats, reviewerStats) => `
 <!DOCTYPE html>
@@ -629,7 +732,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const combinedPRs = [...localPRs, ...relevantTtMetalPRs];
-        const sortedPRs   = combinedPRs.sort((a, b) => getDaysOpen(b.created_at) - getDaysOpen(a.created_at));
+
+        // Add all PRs to GitHub project
+        console.log(`🔄 Adding ${combinedPRs.length} PRs to GitHub project...`);
+        await addItemsToProject(combinedPRs);
+
+        const sortedPRs = combinedPRs.sort((a, b) => getDaysOpen(b.created_at) - getDaysOpen(a.created_at));
 
         const allLabels = [...new Set(combinedPRs.flatMap(pr => pr.labels.map(label => label.name)))].sort();
 
