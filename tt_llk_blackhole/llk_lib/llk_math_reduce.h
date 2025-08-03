@@ -122,7 +122,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // we avoid clobbering weights in src B by moving to rows 16 - 31
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
             /*
-            if constexpr (fp32_dest_accumulation == DestAccumulation::Enable) {
+            if constexpr (fp32_dest_accumulation) {
                 if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                     TTI_SFPLOAD(0, 0, 3, 0);
@@ -250,7 +250,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 // Move back to B and transpose
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
                 /*
-                if constexpr (fp32_dest_accumulation == DestAccumulation::Enable) {
+                if constexpr (fp32_dest_accumulation) {
                     if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                         TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                         TTI_SFPLOAD(0, 0, 3, 0);

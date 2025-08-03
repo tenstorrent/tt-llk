@@ -67,7 +67,7 @@ template <bool APPROXIMATION_MODE, int ITERATIONS, DestAccumulation fp32_dest_ac
         }
         v_endif;
 
-        if constexpr ((fp32_dest_accumulation == DestAccumulation::Enable) || APPROXIMATION_MODE)
+        if constexpr (fp32_dest_accumulation || APPROXIMATION_MODE)
         {
             sfpi::dst_reg[0] = out;
         }

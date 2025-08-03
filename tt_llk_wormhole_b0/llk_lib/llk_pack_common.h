@@ -38,13 +38,13 @@ inline void _llk_pack_dest_section_done_()
 
     if constexpr (Dst == DstSync::SyncFull)
     {
-        constexpr uint32_t CLEAR_MODE = (fp32_dest_accumulation == DestAccumulation::Enable) ? p_zeroacc::CLR_ALL_32B : p_zeroacc::CLR_ALL;
+        constexpr uint32_t CLEAR_MODE = fp32_dest_accumulation ? p_zeroacc::CLR_ALL_32B : p_zeroacc::CLR_ALL;
         TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, 0);
     }
     else
     {
         static_assert(Dst == DstSync::SyncHalf);
-        constexpr uint32_t CLEAR_MODE = (fp32_dest_accumulation == DestAccumulation::Enable) ? p_zeroacc::CLR_HALF_32B : p_zeroacc::CLR_HALF;
+        constexpr uint32_t CLEAR_MODE = fp32_dest_accumulation ? p_zeroacc::CLR_HALF_32B : p_zeroacc::CLR_HALF;
         TT_ZEROACC(CLEAR_MODE, ADDR_MOD_1, (dest_offset_id) % 2);
     }
 

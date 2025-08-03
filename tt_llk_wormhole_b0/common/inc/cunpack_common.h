@@ -257,7 +257,7 @@ inline void configure_unpack_AB(
 
     alu_config_u alu_payload = {.val = 0};
 
-    uint32_t fp32_dest_acc_en  = (fp32_dest_accumulation == DestAccumulation::Enable) ? (1) : (0);
+    uint32_t fp32_dest_acc_en  = (fp32_dest_accumulation) ? (1) : (0);
     uint32_t int8_math_enabled = ((uint)(unpA_dst_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(unpB_dst_format & 0xF) == (uint)DataFormat::Int8) ||
                                  ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
 
@@ -384,7 +384,7 @@ inline void configure_unpack_AB(
 
     /*
     // Workaround for HW bug (fp32 dest and movd2a/b is used with srcA/B configured with 5-bit exponent)
-    if ((fp32_dest_accumulation == DestAccumulation::Enable)  && (exp_width == 0)) {
+    if ((fp32_dest_accumulation)  && (exp_width == 0)) {
         reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1<<11); // Set debug feature disable bit 11
                                                                // workaround for bug tenstorrent/budabackend#1372
     }

@@ -113,7 +113,7 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
     {
-        static_assert(fp32_dest_accumulation == DestAccumulation::Enable, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
+        static_assert(fp32_dest_accumulation, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcAUnsigned_RMW>(((uint)unpack_src_format == (uint)DataFormat::UInt8) ? 1 : 0);
     }
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
@@ -128,7 +128,7 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
     {
-        static_assert(fp32_dest_accumulation == DestAccumulation::Enable, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
+        static_assert(fp32_dest_accumulation, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcBUnsigned_RMW>(((uint)unpack_src_format == (uint)DataFormat::UInt8) ? 1 : 0);
     }
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);

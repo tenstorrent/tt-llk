@@ -164,8 +164,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         uint innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
         uint outerloop = tilize ? 1 : num_faces;
 
-        if (((fp32_dest_accumulation == DestAccumulation::Enable || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) ||
-            (dst_format == (uint)DataFormat::UInt8))
+        if (((fp32_dest_accumulation || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) || (dst_format == (uint)DataFormat::UInt8))
         {
             // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
@@ -260,7 +259,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
     }
     else if constexpr (type == B2D)
     {
-        eltwise_unary_configure_mop<type, DestAccumulation::Disable, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
+        eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
     }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);

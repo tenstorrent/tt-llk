@@ -380,7 +380,7 @@ inline void _llk_pack_fast_tilize_uninit_(
     const bool narrow_tile         = false)
 {
     // restore PCK_DEST_RD_CTRL_Read_32b_data to the original value
-    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(fp32_dest_accumulation == ckernel::DestAccumulation::Disable ? 0 : 1);
+    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(fp32_dest_accumulation);
 
     // restore default packer dest offsets
     _llk_init_packer_dest_offset_registers_<Dst, DstTileFaceLayout::RowMajor>();

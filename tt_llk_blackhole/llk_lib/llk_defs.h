@@ -154,10 +154,25 @@ enum InstrModCast
     INT_SIGN_MAGN_TO_INT32_2S_COMP = 3
 };
 
-enum class DestAccumulation
-{
-    Disable = 0,
-    Enable  = 1,
+class DestAccumulation {
+public:
+  static const DestAccumulation Enable;
+  static const DestAccumulation Disable;
+
+  constexpr bool operator==(DestAccumulation a) const { return value == a.value; }
+  constexpr bool operator!=(DestAccumulation a) const { return !(*this == a); }
+
+  constexpr operator bool() const {
+    return value;
+}
+
+private:
+  constexpr explicit DestAccumulation(bool value) : value(value) {}
+  bool value;
 };
+
+// static members
+constexpr inline DestAccumulation DestAccumulation::Enable{true};
+constexpr inline DestAccumulation DestAccumulation::Disable{false};
 
 } // namespace ckernel

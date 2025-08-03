@@ -145,10 +145,25 @@ enum InstrModLoadStore
     HI16_ONLY     = 15
 };
 
-enum class DestAccumulation
-{
-    Disable = 0,
-    Enable  = 1,
+class DestAccumulation {
+public:
+  static const DestAccumulation Enable;
+  static const DestAccumulation Disable;
+
+  constexpr bool operator==(DestAccumulation a) const { return value == a.value; }
+  constexpr bool operator!=(DestAccumulation a) const { return !(*this == a); }
+
+  constexpr operator bool() const {
+    return value;
+}
+
+private:
+  constexpr explicit DestAccumulation(bool value) : value(value) {}
+  bool value;
 };
+
+// static members
+constexpr inline DestAccumulation DestAccumulation::Enable{true};
+constexpr inline DestAccumulation DestAccumulation::Disable{false};
 
 } // namespace ckernel

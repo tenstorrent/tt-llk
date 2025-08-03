@@ -74,7 +74,7 @@ constexpr bool is_exponentB(DataFormat format)
  */
 constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, DestAccumulation fp32_dest_accumulation)
 {
-    return (is_exponentB(input) && output == DataFormat::Float16 && fp32_dest_accumulation == ckernel::DestAccumulation::Disable);
+    return (is_exponentB(input) && output == DataFormat::Float16 && !fp32_dest_accumulation);
 }
 
 /**

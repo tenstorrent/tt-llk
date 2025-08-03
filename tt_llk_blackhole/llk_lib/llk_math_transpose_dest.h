@@ -46,7 +46,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-        if constexpr (fp32_dest_accumulation == DestAccumulation::Enable)
+        if constexpr (fp32_dest_accumulation)
         {
             // Needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
@@ -61,7 +61,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
             // 4x 32b face transpositions.
             ckernel_unpack_template::run(instrn_buffer, 4, 0);
         }
-        if constexpr (fp32_dest_accumulation == DestAccumulation::Enable)
+        if constexpr (fp32_dest_accumulation)
         {
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
         }

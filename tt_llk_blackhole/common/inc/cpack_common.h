@@ -225,7 +225,7 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     config.f.in_data_format  = pack_output_src_format;
 
     // Workaround for bug in HW: tenstorrent/budabackend#1394
-    if constexpr (fp32_dest_accumulation == DestAccumulation::Enable)
+    if constexpr (fp32_dest_accumulation)
     {
         uint exp_threshold_en  = 0;
         uint exp_threshold_val = 0;
@@ -273,8 +273,8 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
                          pack_src_format == static_cast<DataFormatType>(DataFormat::Float32);
     bool is_int8_format = pack_src_format == static_cast<DataFormatType>(DataFormat::Int8) || pack_src_format == static_cast<DataFormatType>(DataFormat::UInt8);
 
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || (fp32_dest_accumulation == DestAccumulation::Enable);
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !((fp32_dest_accumulation == DestAccumulation::Enable) || is_32b_format) && is_int8_format;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || fp32_dest_accumulation;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(fp32_dest_accumulation || is_32b_format) && is_int8_format;
 
     if (pack_dst_format == static_cast<DataFormatType>(DataFormat::UInt8))
     {
@@ -282,7 +282,7 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     }
 
     // Round to 10 bit mantissa from fp32 dest
-    if ((fp32_dest_accumulation == DestAccumulation::Enable) && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
+    if (fp32_dest_accumulation && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -322,15 +322,16 @@ inline void reconfig_packer_data_format(
                          pack_src_format == static_cast<DataFormatType>(DataFormat::Float32);
     bool is_int8_format = pack_src_format == static_cast<DataFormatType>(DataFormat::Int8) || pack_src_format == static_cast<DataFormatType>(DataFormat::UInt8);
 
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || (fp32_dest_accumulation == DestAccumulation::Enable);
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !((fp32_dest_accumulation == DestAccumulation::Enable) || is_32b_format) && is_int8_format;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || fp32_dest_accumulation;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(fp32_dest_accumulation || is_32b_format) && is_int8_format;
 
     if (pack_dst_format == static_cast<DataFormatType>(DataFormat::UInt8))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_unsigned = 1;
     }
     // Round to 10 bit mantissa from fp32 dest
-    if ((fp32_dest_accumulation == DestAccumulation::Enable) && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
+    if (fp32_dest_accumulation && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
+
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -352,7 +353,7 @@ inline void reconfig_packer_data_format(
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
     // Workaround for HW bug: tenstorrent/budabackend#1394
-    if constexpr (fp32_dest_accumulation == DestAccumulation::Enable)
+    if constexpr (fp32_dest_accumulation)
     {
         uint exp_threshold_en  = 0;
         uint exp_threshold_val = 0;

@@ -66,7 +66,7 @@ inline void _calculate_reciprocal_(const int iterations)
         }
         v_endif;
 
-        if constexpr (fp32_dest_accumulation == DestAccumulation::Enable || APPROXIMATION_MODE)
+        if constexpr (fp32_dest_accumulation || APPROXIMATION_MODE)
         {
             sfpi::dst_reg[0] = out;
         }

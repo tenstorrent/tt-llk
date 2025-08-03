@@ -132,8 +132,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         uint innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
         uint outerloop = num_faces;
 
-        if (((fp32_dest_accumulation == DestAccumulation::Enable || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) ||
-            (dst_format == (uint)DataFormat::UInt8))
+        if (((fp32_dest_accumulation || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) || (dst_format == (uint)DataFormat::UInt8))
         {
             // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
@@ -332,7 +331,7 @@ inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
     // still not sure why this CFG_STATE_ID_StateID manipulation is needed
     if (unpack_dst_format != (uint)DataFormat::Tf32)
     {
-        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(fp32_dest_accumulation == DestAccumulation::Disable ? 0 : 1);
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(fp32_dest_accumulation);
         TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 0);
         TTI_NOP;
         TTI_NOP;
