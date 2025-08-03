@@ -7,6 +7,10 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
+from helpers.dimensions import (
+    calculate_matmul_dimensions,
+    generate_matmul_dimension_combinations,
+)
 from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -19,6 +23,14 @@ from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
+# Generate all valid dimension combinations for both dest_acc modes
+ALL_MATMUL_COMBINATIONS = [
+    (DestAccumulation.No, dims) for dims in generate_matmul_dimension_combinations(8)
+]  # When 16-bit datums in dest can fit 8 tiles
++[
+    (DestAccumulation.Yes, dims) for dims in generate_matmul_dimension_combinations(4)
+]  # When 32 bit datums in dest can fit 4 tiles
+
 
 @parametrize(
     test_name="matmul_test",
@@ -26,26 +38,33 @@ from helpers.utils import passed_test
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
-            # DataFormat.Bfp8_b,
             DataFormat.Float32,
         ]
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
+    dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-def test_matmul(test_name, formats, dest_acc, math_fidelity):
+def test_matmul(test_name, formats, math_fidelity, dest_acc_and_dims):
     torch_format = format_dict[formats.output_format]
 
-    input_dimensions = [64, 64]
+    dest_acc = dest_acc_and_dims[0]
+    input_A_dimensions = dest_acc_and_dims[1][0]
+    input_B_dimensions = dest_acc_and_dims[1][1]
 
-    src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+    src_A, _, tile_cnt_A = generate_stimuli(
+        formats.input_format, formats.input_format, input_dimensions=input_A_dimensions
     )
+    src_B, _, tile_cnt_B = generate_stimuli(
+        formats.input_format, formats.input_format, input_dimensions=input_B_dimensions
+    )
+
+    # Calculate all matmul dimensions using helper function
+    matmul_dims = calculate_matmul_dimensions(input_A_dimensions, input_B_dimensions)
 
     generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(
@@ -53,31 +72,36 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity):
         src_B,
         formats.output_format,
         math_fidelity,
-        input_dimensions=input_dimensions,
+        input_A_dimensions=input_A_dimensions,
+        input_B_dimensions=input_B_dimensions,
     )
     golden_tensor = tilize_block(
-        golden_tensor, dimensions=input_dimensions, stimuli_format=formats.output_format
+        golden_tensor,
+        dimensions=matmul_dims["output_dimensions"],
+        stimuli_format=formats.output_format,
     ).to(torch_format)
     golden_tensor = golden_tensor.flatten()
 
     if formats.input_format != DataFormat.Bfp8_b:
         tilized_A = tilize_block(
-            src_A, dimensions=input_dimensions, stimuli_format=formats.input_format
+            src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
         )
         tilized_B = tilize_block(
-            src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
+            src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
         )
     else:
         # BFP8 format requires special handling for tilization
         tilized_A = src_A
         tilized_B = src_B
 
+    # Use the new helper function for writing stimuli
     res_address = write_stimuli_to_l1(
         tilized_A.flatten(),
         tilized_B.flatten(),
         formats.input_format,
         formats.input_format,
-        tile_count=tile_cnt,
+        tile_cnt_A,
+        tile_cnt_B,
     )
 
     test_config = {
@@ -85,13 +109,20 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity):
         "testname": test_name,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
-        "tile_cnt": tile_cnt,
-        "input_dimensions": input_dimensions,
+        "tile_cnt": matmul_dims["output_tile_cnt"],
+        "input_A_dimensions": input_A_dimensions,
+        "input_B_dimensions": input_B_dimensions,
+        "output_dimensions": matmul_dims["output_dimensions"],
+        "rt_dim": matmul_dims["rt_dim"],
+        "ct_dim": matmul_dims["ct_dim"],
+        "kt_dim": matmul_dims["kt_dim"],
     }
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=matmul_dims["output_tile_cnt"], address=res_address
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
