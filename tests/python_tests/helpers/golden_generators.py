@@ -445,9 +445,21 @@ class MatmulGolden(FidelityMasking):
 
 @register_golden
 class DataCopyGolden:
-    def __call__(self, operand1, data_format):
+    def __call__(self, operand1, data_format, num_faces, input_dimensions):
         torch_format = format_dict[data_format]
-        return torch.tensor(operand1, dtype=torch_format)
+        operand1_tensor = torch.tensor(operand1, dtype=torch_format)
+        golden_tensor = torch.zeros_like(operand1_tensor, dtype=torch_format)
+
+        tile_size = 1024
+        # Find the index from which the resulting tile will be zeroed out if copying less than all faces per tile
+        cutoff = int((tile_size/4) * num_faces)
+
+        tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
+        # Define the golden tensor by writing only values from the faces which are being copied for each tile
+        for tile in range(tile_cnt):
+            golden_tensor[tile*tile_size : (cutoff + tile*tile_size)] = operand1_tensor[tile*tile_size : (cutoff + tile*tile_size)] 
+
+        return golden_tensor
 
 
 @register_golden
