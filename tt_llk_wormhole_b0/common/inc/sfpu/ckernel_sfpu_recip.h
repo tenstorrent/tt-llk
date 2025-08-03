@@ -52,7 +52,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     return setexp(result, new_exp);
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, DestAccumulation fp32_dest_accumulation inline void _calculate_reciprocal_(const int iterations)
+template <bool APPROXIMATION_MODE, int ITERATIONS, DestAccumulation fp32_dest_accumulation> inline void _calculate_reciprocal_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
