@@ -38,7 +38,7 @@ inline void _llk_pack_dest_section_done_()
 
     if constexpr (Dst == DstSync::SyncFull)
     {
-        TT_ZEROACC(p_zeroacc::CLR_ALL, (fp32_dest_accumulation == DestAccumulation::Disable) ? 0 : 1, , 0, ADDR_MOD_1, 0);
+        TT_ZEROACC(p_zeroacc::CLR_ALL, fp32_dest_accumulation != DestAccumulation::Disable, 0, ADDR_MOD_1, 0);
     }
     else
     {
