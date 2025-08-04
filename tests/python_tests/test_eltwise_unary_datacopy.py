@@ -47,6 +47,7 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
     golden_tensor = generate_golden(
         src_A, formats.output_format, num_faces, input_dimensions
     )
+
     res_address = write_stimuli_to_l1(
         src_A,
         src_B,
@@ -91,9 +92,4 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    for tile in range(tile_cnt):
-        assert passed_test(
-            golden_tensor[tile * 1024 : tile * 1024 + num_faces * 256],
-            res_tensor[tile * 1024 : tile * 1024 + num_faces * 256],
-            formats.output_format,
-        )
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
