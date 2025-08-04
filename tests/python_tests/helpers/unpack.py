@@ -95,13 +95,7 @@ def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
 
     if not sfpu:
         exponents = bfp8_block[: int(64 / (4 / num_faces))]
-        mantissas = bfp8_block[
-            int(64 / (4 / num_faces)) : int(num_faces * 256 + 64 / (4 / num_faces))
-        ]
-        exp_padding = b"\00" * (64 - int(64 / (4 / num_faces)))
-        exponents = exponents + exp_padding
-        mantissa_padding = b"\00" * (1088 - int(num_faces * 256 + 64 / (4 / num_faces)))
-        mantissas = mantissas + mantissa_padding
+        mantissas = bfp8_block[int(64 / (4 / num_faces)) :]
     else:
         exponents = bfp8_block[:16]
         mantissas = bfp8_block[16:272]
@@ -137,7 +131,7 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4
     tile_size = format_tile_sizes[output_format]
     output_dtype = format_dict[output_format]
 
-    total_elements_needed = tile_count * tile_size
+    total_elements_needed = int(tile_count * (tile_size / (4 / num_faces)))
     if total_elements_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
 
@@ -146,11 +140,16 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4
     else:
         unpack_func = _UNPACKERS[output_format]
 
-    all_tiles_data = packed_list[:total_elements_needed]
+    all_tiles_data = []
+    helper = int(tile_size / (4 / num_faces))
+    for tile in range(tile_count):
+        all_tiles_data[tile * helper : (tile + 1) * helper] = packed_list[
+            tile * tile_size : (tile * tile_size + helper)
+        ]
 
     reshaped_data = [
-        all_tiles_data[i : i + tile_size]
-        for i in range(0, total_elements_needed, tile_size)
+        all_tiles_data[i : i + int(tile_size / (4 / num_faces))]
+        for i in range(0, total_elements_needed, int(tile_size / (4 / num_faces)))
     ]
 
     if unpack_func == unpack_bfp8_b:
