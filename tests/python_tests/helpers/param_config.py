@@ -91,7 +91,8 @@ class TestParamsConfig(TypedDict):
     reduce_dim: Optional[List[str]] = None
     pool_type: Optional[List[str]] = None
     num_faces: Optional[List[int]] = None
-    dest_sync: Optional[DestSync] = None
+    dest_sync: Optional[DstSync] = None
+    tilize_en: Optional[bool] = None
 
 
 def generate_params(**kwargs: any) -> List[tuple]:

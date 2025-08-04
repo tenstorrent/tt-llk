@@ -31,9 +31,10 @@ from helpers.utils import passed_test
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     num_faces=[1, 2, 4],
-    dest_sync=[DestSync.Half, DestSync.Full],
+    dest_sync=[DstSync.SyncHalf, DstSync.SyncFull],
+    tilize_en=[True, False],
 )
-def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
+def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync, tilize_en):
 
     input_dimensions = [64, 64]
 
@@ -67,6 +68,7 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
         "tile_cnt": tile_cnt,
         "num_faces": num_faces,
         "dest_sync": dest_sync,
+        "tilize_en": tilize_en,
     }
 
     run_test(test_config)
