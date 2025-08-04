@@ -324,7 +324,7 @@ jobs:
             }}
 
             ## 🔗 Links
-            📊 **Post-commit tests:** [#${{ github.run_id }}](${{
+            📊 **Post-commit workflow:** [#${{ github.run_id }}](${{
               github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             ${{
