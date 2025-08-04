@@ -448,24 +448,19 @@ class DataCopyGolden:
     def __call__(self, operand1, data_format, num_faces, input_dimensions):
         torch_format = format_dict[data_format]
         tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
-        tile_size = 1024
-        face_size = tile_size / 4
-        size_of_faces_needed = int(face_size * num_faces)
+        tile_size = input_dimensions[0] * input_dimensions[1] // tile_cnt
+        face_size = tile_size // 4
+        # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
+        elements_per_tile_needed = face_size * num_faces
 
-        operand1_tensor = torch.tensor(operand1, dtype=torch_format)
-        golden_tensor = torch.zeros(
-            int(tile_cnt * (tile_size / (4 / num_faces))), dtype=torch_format
-        )
-
-        # Define the golden tensor by writing only values from the faces which are being copied for each tile
+        golden = []
+        # Define the golden tensor by writing only values from the selected faces for each tile
         for tile in range(tile_cnt):
-            golden_tensor[
-                tile * size_of_faces_needed : (tile + 1) * size_of_faces_needed
-            ] = operand1_tensor[
-                tile * tile_size : (tile * tile_size + size_of_faces_needed)
-            ]
+            golden.extend(
+                operand1[tile * tile_size : tile * tile_size + elements_per_tile_needed]
+            )
 
-        return golden_tensor
+        return torch.tensor(golden, dtype=torch_format)
 
 
 @register_golden

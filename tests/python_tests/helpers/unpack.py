@@ -94,8 +94,8 @@ def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
 def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
 
     if not sfpu:
-        exponents = bfp8_block[: int(64 / (4 / num_faces))]
-        mantissas = bfp8_block[int(64 / (4 / num_faces)) :]
+        exponents = bfp8_block[: int(16 * num_faces)]
+        mantissas = bfp8_block[int(16 * num_faces) :]
     else:
         exponents = bfp8_block[:16]
         mantissas = bfp8_block[16:272]
@@ -128,10 +128,13 @@ _UNPACKERS = {
 
 def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4):
     output_format = formats.output_format
-    tile_size = format_tile_sizes[output_format]
     output_dtype = format_dict[output_format]
+    tile_size = format_tile_sizes[output_format]
+    face_size = tile_size // 4
 
-    total_elements_needed = int(tile_count * (tile_size / (4 / num_faces)))
+    # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
+    elements_per_tile_needed = face_size * num_faces
+    total_elements_needed = tile_count * elements_per_tile_needed
     if total_elements_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
 
@@ -140,16 +143,18 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4
     else:
         unpack_func = _UNPACKERS[output_format]
 
+    # Define all_tiles_data by writing only values from the selected faces for each tile
     all_tiles_data = []
-    helper = int(tile_size / (4 / num_faces))
     for tile in range(tile_count):
-        all_tiles_data[tile * helper : (tile + 1) * helper] = packed_list[
-            tile * tile_size : (tile * tile_size + helper)
-        ]
+        all_tiles_data.extend(
+            packed_list[
+                tile * tile_size : (tile * tile_size + elements_per_tile_needed)
+            ]
+        )
 
     reshaped_data = [
-        all_tiles_data[i : i + int(tile_size / (4 / num_faces))]
-        for i in range(0, total_elements_needed, int(tile_size / (4 / num_faces)))
+        all_tiles_data[i : i + elements_per_tile_needed]
+        for i in range(0, total_elements_needed, elements_per_tile_needed)
     ]
 
     if unpack_func == unpack_bfp8_b:
