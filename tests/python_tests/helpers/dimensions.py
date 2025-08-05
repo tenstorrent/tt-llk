@@ -62,11 +62,6 @@ def calculate_matmul_dimensions(
         "kt_dim": kt_dim,
         "output_dimensions": output_dimensions,
         "output_tile_cnt": output_tile_cnt,
-        "tile_cnt_A": tile_cnt_A,
-        "tile_cnt_B": tile_cnt_B,
-        "M": M,
-        "K": K1,
-        "N": N,
     }
 
 
