@@ -165,7 +165,7 @@ class DestAccumulation(Enum):
     No = "false"
 
 
-class StochasticRnd(Enum):
+class StochasticRounding(Enum):
     No = "StochRndType::None"
     Fpu = "StochRndType::Fpu"
     Pack = "StochRndType::Pack"

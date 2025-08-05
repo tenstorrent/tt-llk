@@ -20,7 +20,7 @@ from .format_arg_mapping import (
     L1BufferLocations,
     MathFidelity,
     MathOperation,
-    StochasticRnd,
+    StochasticRounding,
     Transpose,
     format_tile_sizes,
 )
@@ -137,7 +137,7 @@ def generate_build_header(
         f"constexpr bool MATH_TRANSPOSE_FACES = {math_transpose_faces};"
     )
     # Stochastic Rounding
-    stochastic_rnd = test_config.get("stochastic_rnd", StochasticRnd.No)
+    stochastic_rnd = test_config.get("stochastic_rnd", StochasticRounding.No)
     header_content.append(
         f"constexpr auto STOCHASTIC_RND = ckernel::{stochastic_rnd.value};"
     )

@@ -10,7 +10,7 @@ from helpers.device import (
 from helpers.format_arg_mapping import (
     DestAccumulation,
     MathFidelity,
-    StochasticRnd,
+    StochasticRounding,
     Transpose,
     format_dict,
 )
@@ -47,10 +47,10 @@ from helpers.utils import passed_test
         MathFidelity.HiFi4,
     ],
     stochastic_rnd=[
-        StochasticRnd.Fpu,
-        StochasticRnd.Pack,
-        StochasticRnd.All,
-        StochasticRnd.No,
+        StochasticRounding.Fpu,
+        StochasticRounding.Pack,
+        StochasticRounding.All,
+        StochasticRounding.No,
     ],
     transpose=[Transpose.Yes, Transpose.No],
 )
