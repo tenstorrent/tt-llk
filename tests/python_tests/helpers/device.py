@@ -123,6 +123,7 @@ def run_elf_files(testname, core_loc="0,0"):
 
 
 def write_stimuli_to_l1(
+    test_config,
     buffer_A,
     buffer_B,
     stimuli_A_format,
@@ -146,7 +147,7 @@ def write_stimuli_to_l1(
     Returns:
         int: Address where result will be stored
     """
-    from .format_arg_mapping import L1BufferLocations, format_tile_sizes
+    from .format_arg_mapping import format_tile_sizes
 
     tile_cnt_A = tile_count
     if tile_cnt_B is None:
@@ -206,18 +207,10 @@ def write_stimuli_to_l1(
         buffer_B, tile_cnt_B, pack_function_B, buffer_B_address, tile_size_B_bytes
     )
 
-    # Set buffer addresses in device
-    write_to_device(
-        core_loc, L1BufferLocations.srcA.value, buffer_A_address.to_bytes(4, "little")
-    )
-    write_to_device(
-        core_loc, L1BufferLocations.srcB.value, buffer_B_address.to_bytes(4, "little")
-    )
-    write_to_device(
-        core_loc,
-        L1BufferLocations.Result.value,
-        result_buffer_address.to_bytes(4, "little"),
-    )
+    # Set buffer addresses in device to be defined in build header
+    test_config["buffer_A_address"] = buffer_A_address
+    test_config["buffer_B_address"] = buffer_B_address
+    test_config["result_buffer_address"] = result_buffer_address
 
     return result_buffer_address
 

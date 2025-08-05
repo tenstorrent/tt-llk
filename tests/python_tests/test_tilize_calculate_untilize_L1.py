@@ -59,14 +59,6 @@ def test_tilize_calculate_untilize_L1(
         mathop, tilize(src_A), tilize(src_B), formats.output_format, math_fidelity
     )
 
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-    )
-
     test_config = {
         "formats": formats,
         "testname": test_name,
@@ -76,6 +68,15 @@ def test_tilize_calculate_untilize_L1(
         "tile_cnt": tile_cnt,
         "L1_to_L1_iterations": 2,  # Fused L1 to L1 test has multiple L1-L1 runs: output of first run is used as input for the second run ... This flag marks the number of L1-L1 runs in the test
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+    )
 
     run_test(test_config)
 

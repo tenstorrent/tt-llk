@@ -49,10 +49,6 @@ def test_pack_untilize(test_name, formats):
     generate_golden = get_golden_generator(UntilizeGolden)
     golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
 
-    res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
-    )
-
     test_config = {
         "formats": formats,
         "testname": test_name,
@@ -60,6 +56,15 @@ def test_pack_untilize(test_name, formats):
         "input_dimensions": input_dimensions,
         "unpack_to_dest": formats.input_format.is_32_bit(),
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+    )
 
     run_test(test_config)
 

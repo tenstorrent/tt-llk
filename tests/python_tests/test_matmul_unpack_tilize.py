@@ -52,13 +52,6 @@ def test_matmul_unpack_tilize(test_name, formats, dest_acc, math_fidelity):
     )
     golden_tensor = golden_tensor.to(torch_format)
 
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-    )
-    buffer_dest_address = 0x1E000
     test_config = {
         "formats": formats,
         "testname": test_name,
@@ -66,6 +59,14 @@ def test_matmul_unpack_tilize(test_name, formats, dest_acc, math_fidelity):
         "math_fidelity": math_fidelity,
         "L1_to_L1_iterations": 2,
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+    )
 
     run_test(test_config)
 

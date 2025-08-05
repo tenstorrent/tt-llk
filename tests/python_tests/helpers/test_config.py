@@ -5,10 +5,6 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from ttexalens.tt_exalens_lib import (
-    read_word_from_device,
-)
-
 from .device import run_elf_files, wait_for_tensix_operations_finished
 from .format_arg_mapping import (
     FPU_BINARY_OPERATIONS,
@@ -17,7 +13,6 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
-    L1BufferLocations,
     MathFidelity,
     MathOperation,
     StochasticRounding,
@@ -210,10 +205,10 @@ def generate_build_header(
     header_content.append("// Multi-tile test configuration")
     header_content.append(f"constexpr int TILE_CNT = {tile_cnt};")
 
-    # Unpack an result buffer addresses arrays generations
-    buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
-    buffer_B_address = read_word_from_device("0,0", L1BufferLocations.srcB.value)
-    result_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
+    # Unpack + result buffer addresses arrays generations
+    buffer_A_address = test_config.get("buffer_A_address", 0x1A000)
+    buffer_B_address = test_config.get("buffer_B_address", 0x1B000)
+    result_buffer_address = test_config.get("result_buffer_address", 0x1C000)
 
     buffer_A_array = []
     buffer_B_array = []

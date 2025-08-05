@@ -52,20 +52,21 @@ def test_matmul_pack_untilize(test_name, formats, dest_acc, math_fidelity):
     generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(src_A, src_B, formats.output_format, math_fidelity)
 
-    res_address = write_stimuli_to_l1(
-        tilize(src_A, formats.input_format),
-        tilize(src_B, formats.input_format),
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-    )
-
     test_config = {
         "testname": test_name,
         "formats": formats,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        tilize(src_A, formats.input_format),
+        tilize(src_B, formats.input_format),
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+    )
 
     run_test(test_config)
 
