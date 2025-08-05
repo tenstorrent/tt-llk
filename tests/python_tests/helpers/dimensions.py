@@ -8,31 +8,6 @@ Helper functions for dimension-related calculations in matrix operations.
 from typing import List
 
 
-def calculate_dimension_properties(
-    input_dimensions: List[int], format_size: int
-) -> dict:
-    """
-    Calculate all dimension-related properties for a given input.
-
-    Args:
-        input_dimensions: List containing [rows, cols] dimensions
-        format_size: Size of the data format in bytes
-
-    Returns:
-        Dictionary containing all calculated properties:
-        - num_rows: Hardware-specific row count for LLK functions
-        - faces: Number of unpack faces (each face is 16x16)
-        - face_r_dim: Row dimension for face calculations
-        - partial_face: Whether this represents a partial face (row dimension < 16)
-    """
-    return {
-        "num_rows": calculate_num_rows(input_dimensions, format_size),
-        "faces": calculate_unpack_faces(input_dimensions),
-        "face_r_dim": get_face_r_dimension(input_dimensions),
-        "partial_face": is_partial_face(input_dimensions),
-    }
-
-
 def calculate_matmul_dimensions(
     input_A_dimensions: List[int], input_B_dimensions: List[int]
 ) -> dict:
@@ -68,13 +43,17 @@ def calculate_matmul_dimensions(
     output_dimensions = [M, N]
 
     # Calculate tile dimensions (each tile is 32×32)
-    rt_dim = M // 32  # Row tiles in result
-    ct_dim = N // 32  # Column tiles in result
-    kt_dim = K1 // 32  # Inner dimension tiles
+    num_rows = 32  # matrix A
+    num_cols = 32  # matrix B
+    rt_dim = M // num_cols  # Row tiles in result
+    ct_dim = N // num_rows  # Column tiles in result
+    kt_dim = (
+        K1 // num_cols
+    )  # Inner dimension tiles rt_dim (matrix A) = kt_dim = ct_dim (matrix B) = 1
 
     # Calculate tile counts
-    tile_cnt_A = (M // 32) * (K1 // 32)
-    tile_cnt_B = (K2 // 32) * (N // 32)
+    tile_cnt_A = rt_dim * kt_dim
+    tile_cnt_B = kt_dim * ct_dim
     output_tile_cnt = rt_dim * ct_dim
 
     return {
@@ -123,6 +102,8 @@ def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
 
 def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
     valid_combinations = []
+    tile_rows = 32
+    tile_cols = 32
 
     for m_tiles in range(1, max_tiles + 1):
         for k_tiles in range(1, max_tiles + 1):
@@ -142,9 +123,9 @@ def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
             # Generate all valid n_tiles values
             for n_tiles in range(1, max_n_tiles + 1):
                 # Convert tile counts to actual dimensions
-                m_dim = m_tiles * 32
-                k_dim = k_tiles * 32
-                n_dim = n_tiles * 32
+                m_dim = m_tiles * tile_cols
+                k_dim = k_tiles * tile_cols
+                n_dim = n_tiles * tile_rows
 
                 inputA_dims = [m_dim, k_dim]
                 inputB_dims = [k_dim, n_dim]
