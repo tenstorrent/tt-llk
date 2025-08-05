@@ -106,13 +106,6 @@ def test_matmul_and_unary_sfpu(
     )
     golden_tensor = golden_tensor.to(torch_format)
 
-    res_address = write_stimuli_to_l1(
-        tilize(src_A, formats.input_format),
-        tilize(src_B, formats.input_format),
-        formats.input_format,
-        formats.input_format,
-    )
-
     test_config = {
         "formats": formats,
         "testname": test_name,
@@ -122,6 +115,14 @@ def test_matmul_and_unary_sfpu(
         "mathop": mathop,
         "L1_to_L1_iterations": 2,  # This is a fused test does two runs of L1-L1, result tensor from first run (matmul) is used as input for second run (sfpu operation)
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        tilize(src_A, formats.input_format),
+        tilize(src_B, formats.input_format),
+        formats.input_format,
+        formats.input_format,
+    )
 
     run_test(test_config)
 

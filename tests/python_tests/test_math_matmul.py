@@ -100,13 +100,6 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
     tilized_B = tilize_block(
         src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
     )
-    res_address = write_stimuli_to_l1(
-        tilized_A.flatten(),
-        tilized_B.flatten(),
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-    )
 
     test_config = {
         "formats": formats,
@@ -119,6 +112,15 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
         "unpack_transpose_within_face": transpose.value,  # matmul transposes both faces and within faces, there is no option for one or the other
         "throttle": throttle,
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        tilized_A.flatten(),
+        tilized_B.flatten(),
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+    )
 
     run_test(test_config)
 
