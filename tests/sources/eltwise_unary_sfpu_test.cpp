@@ -39,10 +39,10 @@ void run_kernel()
 #ifdef LLK_TRISC_MATH
 
 #include "ckernel_sfpu.h"
+#include "ckernel_sfpu_comp.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
-#include "ckernel_sfpu_comp.h"
 #include "params.h"
 
 using namespace ckernel;

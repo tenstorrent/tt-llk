@@ -889,6 +889,7 @@ class UnarySFPUGolden:
         return x != y
 >>>>>>> 5260d5b1 (Fix and add test for unary comp ops)
 
+
 @register_golden
 class EltwiseBinaryGolden(FidelityMasking):
     def __init__(self):
