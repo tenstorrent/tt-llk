@@ -177,13 +177,6 @@ class MathFidelity(Enum):
     HiFi4 = 3
 
 
-class StochasticRnd(Enum):
-    No = "StochRndType::None"
-    Fpu = "StochRndType::Fpu"
-    Pack = "StochRndType::Pack"
-    All = "StochRndType::All"
-
-
 class Transpose(Enum):
     Yes = "true"
     No = "false"

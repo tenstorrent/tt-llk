@@ -169,11 +169,11 @@ def generate_build_header(
 
     if "disable_src_zero_flag" in test_config:
         disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
-        header_content.append(f"#define disable_src_zero_flag {disable_src_zero_flag}")
+        header_content.append(f"constexpr bool disable_src_zero_flag = {disable_src_zero_flag};")
 
     if "num_faces" in test_config:
         num_faces = test_config["num_faces"]
-        header_content.append(f"#define NUM_FACES {num_faces}")
+        header_content.append(f"constexpr std::uint32_t NUM_FACES = {num_faces};")
 
     # Math fidelity & Approximation mode
     header_content.append(
