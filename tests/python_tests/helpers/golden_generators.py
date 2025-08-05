@@ -268,11 +268,10 @@ class TransposeGolden:
         face_dim = math.isqrt(face_size)
         if face_dim * face_dim != face_size:
             raise ValueError(
-                f"Each face must be square. Face size {face_size} is not a perfect square"
+                f"Each face must be square (for now). Face size {face_size} is not a perfect square"
             )
 
         # Split the tensor into 4 faces dynamically
-        # faces = torch.tensor_split(tensor, 4)
         # Transpose each face using the helper function
         result = tensor.view(4, face_dim, face_dim).transpose(-2, -1).flatten()
         if untilize:
@@ -309,7 +308,8 @@ class TransposeGolden:
         total_elements = tensor.numel()
         if total_elements % 4 != 0:
             raise ValueError(
-                f"Tensor size {total_elements} must be divisible by 4 for tile structure"
+                f"Invalid tensor size {total_elements}. A valid tile structure requires the tensor to represent "
+                f"4 equal faces, so the total number of elements must be divisible by 4."
             )
         face_size = total_elements // 4
         # Split the tensor into 4 faces
