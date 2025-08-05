@@ -19,6 +19,29 @@ namespace ckernel
 namespace sfpu
 {
 
+// These constants and function should ideally go to SFPI
+// Copied from ckernel_sfpu_int_sum.h to avoid dependency complications
+#ifndef SFPU_SIGN_MAG_TO_TWOS_COMP_DEFINED
+#define SFPU_SIGN_MAG_TO_TWOS_COMP_DEFINED
+
+#define BIT_MASK_32 0xFFFFFFFF
+#define SIGN        0x80000000
+#define MAGNITUDE   0x7FFFFFFF
+
+// Convert from sign-magnitude to two's complement format
+sfpi_inline sfpi::vInt sfpu_sign_mag_to_twos_comp(sfpi::vInt value)
+{
+    v_if (value& SIGN)
+    {
+        sfpi::vInt magnitude = value & MAGNITUDE;
+        value                = (~magnitude + 1) & BIT_MASK_32;
+    }
+    v_endif;
+    return value;
+}
+
+#endif // SFPU_SIGN_MAG_TO_TWOS_COMP_DEFINED
+
 sfpi_inline void _calculate_comp_init_flag_(bool check, sfpi::vFloat& flag1, sfpi::vFloat& flag2, float init)
 {
     flag1 = init;
@@ -191,7 +214,7 @@ inline void apply_zero_comp<SfpuType::less_than_equal_zero>(sfpi::vFloat& v, uin
     v_endif;
 }
 
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_zero_comp_(uint exponent_size_8)
 {
     for (int d = ZERO; d < ITERATIONS; d++)
@@ -290,7 +313,7 @@ inline void apply_zero_comp_int<SfpuType::greater_than_equal_zero>(sfpi::vInt& v
     v_endif;
 }
 
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_zero_comp_int_()
 {
     for (int d = ZERO; d < ITERATIONS; d++)
@@ -303,238 +326,89 @@ inline void _calculate_zero_comp_int_()
 }
 
 template <SfpuType COMP_MODE>
-inline void apply_unary_comp_int(sfpi::vInt& val, const sfpi::vInt& v, const int scalar);
+inline void apply_unary_comp_int(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar);
 
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_ne>(sfpi::vInt& val, const sfpi::vInt& v, const int scalar)
+inline void apply_unary_comp_int<SfpuType::unary_ne>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
 {
-    sfpi::vInt s = scalar;
-    v_if (v >= 0)
-    {
-        v_if (v != scalar)
-        {
-            val = ONE;
-        }
-        v_endif;
-    }
-    v_else
-    {
-        v_if (s < 0)
-        {
-            sfpi::vInt xor_val = sfpi::reinterpret<sfpi::vInt>(sfpi::abs(sfpi::reinterpret<sfpi::vFloat>(v))) ^ -s;
-            v_if (xor_val != 0)
-            {
-                val = ONE;
-            }
-            v_endif;
-        }
-        v_else
-        {
-            val = ONE;
-        }
-        v_endif;
-    }
-    v_endif;
-}
-
-template <>
-inline void apply_unary_comp_int<SfpuType::unary_eq>(sfpi::vInt& val, const sfpi::vInt& v, const int scalar)
-{
-    sfpi::vInt s = scalar;
-    v_if (v >= 0)
-    {
-        v_if (v == scalar)
-        {
-            val = ONE;
-        }
-        v_endif;
-    }
-    v_else
-    {
-        v_if (s < 0)
-        {
-            sfpi::vInt xor_val = sfpi::reinterpret<sfpi::vInt>(sfpi::abs(sfpi::reinterpret<sfpi::vFloat>(v))) ^ -s;
-            v_if (xor_val == 0)
-            {
-                val = ONE;
-            }
-            v_endif;
-        }
-        v_else
-        {
-            val = ZERO;
-        }
-        v_endif;
-    }
-    v_endif;
-}
-
-template <>
-inline void apply_unary_comp_int<SfpuType::unary_gt>(sfpi::vInt& val, const sfpi::vInt& v, const int scalar)
-{
-    sfpi::vInt s = scalar;
-    v_if (v >= 0 && s < 0)
+    v_if (v != scalar)
     {
         val = ONE;
     }
-    v_elseif (v >= 0)
+    v_endif;
+}
+
+template <>
+inline void apply_unary_comp_int<SfpuType::unary_eq>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
+{
+    v_if (v == scalar)
     {
-        v_if (v > s)
-        {
-            val = ONE;
-        }
-        v_endif;
-    }
-    v_else
-    {
-        v_if (s < 0)
-        {
-            sfpi::vInt pos_val = setsgn(v, 0);
-            sfpi::vInt pos_s   = 0 - s;
-            v_if (pos_val < pos_s)
-            {
-                val = ONE;
-            }
-            v_endif;
-        }
-        v_else
-        {
-            val = ZERO;
-        }
-        v_endif;
+        val = ONE;
     }
     v_endif;
 }
 
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_lt>(sfpi::vInt& val, const sfpi::vInt& v, const int scalar)
+inline void apply_unary_comp_int<SfpuType::unary_gt>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
 {
-    sfpi::vInt s = scalar;
-    v_if (v < 0 && s >= 0) // edge case comparison with different sign of lhs and rhs are not comparing properly
+    v_if (v > scalar)
     {
         val = ONE;
-    }
-    v_elseif (v >= 0 && s < 0)
-    {
-        val = ZERO;
-    }
-    v_elseif (v >= 0)
-    {
-        v_if (v < s)
-        {
-            val = ONE;
-        }
-        v_endif;
-    }
-    v_else
-    {
-        v_if (s < 0)
-        {
-            sfpi::vInt pos_val = setsgn(v, 0);
-            sfpi::vInt pos_s   = 0 - s;
-            v_if (pos_val > pos_s)
-            {
-                val = ONE;
-            }
-            v_endif;
-        }
-        v_else
-        {
-            val = ZERO;
-        }
-        v_endif;
     }
     v_endif;
 }
 
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_ge>(sfpi::vInt& val, const sfpi::vInt& v, const int scalar)
+inline void apply_unary_comp_int<SfpuType::unary_lt>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
 {
-    sfpi::vInt s = scalar;
-    v_if (v >= 0 && s < 0)
+    v_if (v < scalar)
     {
         val = ONE;
-    }
-    v_elseif (v >= 0)
-    {
-        v_if (v >= s)
-        {
-            val = ONE;
-        }
-        v_endif;
-    }
-    v_else
-    {
-        v_if (s < 0)
-        {
-            sfpi::vInt pos_val = setsgn(v, 0);
-            sfpi::vInt pos_s   = 0 - s;
-            v_if (pos_val <= pos_s)
-            {
-                val = ONE;
-            }
-            v_endif;
-        }
-        v_else
-        {
-            val = ZERO;
-        }
-        v_endif;
     }
     v_endif;
 }
 
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_le>(sfpi::vInt& val, const sfpi::vInt& v, const int scalar)
+inline void apply_unary_comp_int<SfpuType::unary_ge>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
 {
-    sfpi::vInt s = scalar;
-    v_if (v < 0 && s >= 0)
+    v_if (v >= scalar)
     {
         val = ONE;
-    }
-    v_elseif (v >= 0 && s < 0)
-    {
-        val = ZERO;
-    }
-    v_elseif (v >= 0)
-    {
-        v_if (v <= s)
-        {
-            val = ONE;
-        }
-        v_endif;
-    }
-    v_else
-    {
-        v_if (s < 0)
-        {
-            sfpi::vInt pos_val = setsgn(v, 0);
-            sfpi::vInt pos_s   = 0 - s;
-            v_if (pos_val >= pos_s)
-            {
-                val = ONE;
-            }
-            v_endif;
-        }
-        v_else
-        {
-            val = ZERO;
-        }
-        v_endif;
     }
     v_endif;
 }
 
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+template <>
+inline void apply_unary_comp_int<SfpuType::unary_le>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
+{
+    v_if (v <= scalar)
+    {
+        val = ONE;
+    }
+    v_endif;
+}
+
+template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_comp_unary_int_(int scalar)
 {
+    // Convert both operands to two's complement format
+    //
+    // LOGIC:
+    // - Scalar is already in two's complement (from host)
+    // - Convert SFPU input data from sign-magnitude to two's complement
+    // - Perform comparison with both in two's complement format
+
+    // Scalar stays in original two's complement format
+    sfpi::vInt converted_scalar = scalar;
 #pragma GCC unroll 8
     for (int d = ZERO; d < ITERATIONS; d++)
     {
         sfpi::vInt v   = sfpi::dst_reg[0];
         sfpi::vInt val = ZERO;
 
-        apply_unary_comp_int<COMP_MODE>(val, v, scalar);
+        v = sfpu_sign_mag_to_twos_comp(v);
+
+        apply_unary_comp_int<COMP_MODE>(val, v, converted_scalar);
 
         sfpi::dst_reg[0] = val;
         sfpi::dst_reg++;
@@ -628,7 +502,7 @@ inline void apply_unary_comp_float<SfpuType::unary_le>(sfpi::vFloat& val, const 
     v_endif;
 }
 
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_comp_unary_(uint value)
 {
     sfpi::vFloat s = value;
