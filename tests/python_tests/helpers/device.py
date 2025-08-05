@@ -164,17 +164,17 @@ def write_stimuli_to_l1(
     # Helper function to get packer
     def get_packer(data_format):
         packers = {
-            "Float16": pack_fp16,
-            "Float16_b": pack_bfp16,
-            "Float32": pack_fp32,
-            "Bfp8_b": pack_bfp8_b,
-            "Int32": pack_int32,
-            "UInt32": pack_uint32,
-            "UInt16": pack_uint16,
-            "Int8": pack_int8,
-            "UInt8": pack_uint8,
+            DataFormat.Float16: pack_fp16,
+            DataFormat.Float16_b: pack_bfp16,
+            DataFormat.Float32: pack_fp32,
+            DataFormat.Bfp8_b: pack_bfp8_b,
+            DataFormat.Int32: pack_int32,
+            DataFormat.UInt32: pack_uint32,
+            DataFormat.UInt16: pack_uint16,
+            DataFormat.Int8: pack_int8,
+            DataFormat.UInt8: pack_uint8,
         }
-        return packers.get(data_format.name)
+        return packers.get(data_format)
 
     pack_function_A = get_packer(stimuli_A_format)
     pack_function_B = get_packer(stimuli_B_format)
