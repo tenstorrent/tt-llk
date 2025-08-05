@@ -2,6 +2,74 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file cpack_common.h
+ * @brief Pack Operation Infrastructure for Wormhole B0 Tensix
+ *
+ * This header provides the complete infrastructure for pack operations on
+ * Wormhole B0 Tensix cores. Pack operations handle data compression, formatting,
+ * and output to L1 memory, serving as the final stage in the compute pipeline.
+ *
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
+ *
+ * # Key Components
+ *
+ * - **Configuration Structures**: Pack configuration, ReLU settings, destination control
+ * - **Hardware Abstraction**: Register field definitions and control interfaces
+ * - **Utility Functions**: Helper functions for pack configuration and control
+ * - **Format Support**: Multiple data formats including BFP, Float16, Float32, Int8/32
+ * - **Edge Processing**: Specialized edge offset handling for convolution operations
+ *
+ * # Pack Pipeline Architecture
+ *
+ * The pack pipeline processes data through several stages:
+ *
+ * 1. **Source Data**: Read from destination registers or accumulator
+ * 2. **Format Conversion**: Convert between internal and output data formats
+ * 3. **Compression**: Apply block floating point (BFP) compression if enabled
+ * 4. **ReLU Processing**: Apply ReLU activation if configured
+ * 5. **Edge Handling**: Apply edge masks for convolution boundary conditions
+ * 6. **L1 Output**: Write final data to L1 memory
+ *
+ * # Data Format Support
+ *
+ * Supported input formats: Float32, Float16, Int32, Int8, BFP8/16
+ * Supported output formats: Float32, Float16, Int32, Int8, BFP8/16
+ *
+ * # Usage Pattern
+ *
+ * ```cpp
+ * #include "cpack_common.h"
+ *
+ * // Configure pack operation
+ * pack_config_u config = {};
+ * config.f.out_data_format = static_cast<uint32_t>(DataFormat::Float16);
+ * config.f.in_data_format = static_cast<uint32_t>(DataFormat::Float32);
+ * config.f.l1_dest_addr = dest_address;
+ *
+ * // Configure ReLU if needed
+ * relu_config_u relu = {};
+ * relu.r.STACC_RELU_ApplyRelu = 0xF; // Apply to all lanes
+ *
+ * // Execute pack operation
+ * configure_pack(config);
+ * if (relu_enabled) configure_relu(relu);
+ * execute_pack();
+ * ```
+ *
+ * @warning Pack operations directly control hardware. Incorrect configuration
+ *          can cause data corruption or hardware lockups.
+ *
+ * @note This header contains low-level pack infrastructure. Use high-level
+ *       LLK pack APIs when possible for better abstraction and safety.
+ *
+ * @see llk_pack.h for high-level pack operations
+ * @see ckernel.h for core infrastructure
+ * @see DataFormat for supported data format constants
+ */
+
 #pragma once
 
 #include <array>
@@ -13,79 +81,235 @@
 #include "ckernel_globals.h"
 #include "llk_defs.h"
 
+/**
+ * @namespace ckernel::packer
+ * @brief Pack operation infrastructure and utilities
+ *
+ * Contains all pack-related functionality including configuration structures,
+ * hardware register definitions, and utility functions for pack operations.
+ */
 namespace ckernel::packer
 {
+
+/**
+ * @brief Type alias for underlying data format enumeration
+ *
+ * Provides access to the underlying integer type of the DataFormat enumeration,
+ * useful for configuration structures that require numeric format values.
+ */
 using DataFormatType = std::underlying_type_t<DataFormat>;
 
-constexpr uint32_t PACK_CNT    = 4;
-constexpr uint32_t NUM_PACKERS = 4; // Number of packers
+/**
+ * @defgroup PackConstants Pack Operation Constants
+ * @brief Core constants for pack operation configuration
+ * @{
+ */
 
+constexpr uint32_t PACK_CNT    = 4; ///< Number of elements in a pack operation
+constexpr uint32_t NUM_PACKERS = 4; ///< Total number of hardware packers available
+
+/** @} */ // end of PackConstants group
+
+/**
+ * @defgroup PackUtilities Pack Utility Functions
+ * @brief Helper functions for pack operation configuration
+ * @{
+ */
+
+/**
+ * @brief Generate pack selection mask based on pack count
+ *
+ * Converts a pack count to the appropriate hardware selection mask
+ * for enabling the correct number of packers.
+ *
+ * @param pack_count Number of packers to enable (1, 2, or 4)
+ * @return Hardware selection mask:
+ *         - 1 packer: 0x1 (bit 0)
+ *         - 2 packers: 0x3 (bits 0-1)
+ *         - 4 packers: 0xF (bits 0-3)
+ *         - Invalid: 0x0
+ *
+ * @note Only 1, 2, and 4 packer configurations are supported
+ */
 constexpr uint PACK_SEL(const uint pack_count)
 {
     return (pack_count == 1) ? 0x1 : (pack_count == 2) ? 0x3 : (pack_count == 4) ? 0xF : 0x0;
 }
 
-constexpr uint replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
-                                       // fist 16 for sfpu, next 16 for fpu
+/**
+ * @brief Replay buffer offset for FPU operations
+ *
+ * The replay buffer is split between SFPU and FPU operations:
+ * - First 16 slots: SFPU operations
+ * - Next 16 slots: FPU operations
+ *
+ * This offset points to the start of FPU replay buffer section.
+ */
+constexpr uint replay_buf_offset = 16;
 
-// Pack config
+/** @} */ // end of PackUtilities group
+
+/**
+ * @defgroup PackConfigurationStructures Pack Configuration Structures
+ * @brief Hardware register structures for pack operation control
+ * @{
+ */
+
+/**
+ * @struct pack_config_t
+ * @brief Primary pack operation configuration structure
+ *
+ * This structure directly maps to the hardware pack configuration registers,
+ * controlling all aspects of the pack operation including data formats,
+ * addressing, compression, and output control.
+ *
+ * # Register Layout (4 words, 128 bits total)
+ *
+ * **Word 0**: Compression control
+ * - Row pointer section size for BFP compression
+ * - Exponent section size for BFP compression
+ *
+ * **Word 1**: L1 addressing
+ * - Destination address in L1 memory
+ *
+ * **Word 2**: Format and source control
+ * - Data format conversion settings
+ * - Source interface selection
+ * - Pack counts per XY plane
+ * - L1 source addressing
+ *
+ * **Word 3**: Advanced processing
+ * - Downsample mask and shift control
+ * - Read mode and thresholding
+ * - Accumulator control flags
+ *
+ * # Usage Example
+ * ```cpp
+ * pack_config_t config = {};
+ * config.out_data_format = static_cast<uint32_t>(DataFormat::Float16);
+ * config.in_data_format = static_cast<uint32_t>(DataFormat::Float32);
+ * config.l1_dest_addr = 0x1000;
+ * config.pack_per_xy_plane = 16;
+ * ```
+ */
 typedef struct
 {
-    // word 0
-    uint32_t row_ptr_section_size : 16;
-    uint32_t exp_section_size     : 16;
-    // word 1
-    uint32_t l1_dest_addr : 32;
-    // word 2
-    uint32_t uncompress              : 1;
-    uint32_t add_l1_dest_addr_offset : 1;
-    uint32_t reserved_0              : 2;
-    uint32_t out_data_format         : 4;
-    uint32_t in_data_format          : 4;
-    uint32_t reserved_1              : 4;
-    uint32_t src_if_sel              : 1;
-    uint32_t pack_per_xy_plane       : 7;
-    uint32_t l1_src_addr             : 8;
-    // word 3
-    uint32_t downsample_mask                    : 16;
-    uint32_t downsample_shift_count             : 3;
-    uint32_t read_mode                          : 1;
-    uint32_t exp_threshold_en                   : 1;
-    uint32_t pack_l1_acc_disable_pack_zero_flag : 2;
-    uint32_t reserved_2                         : 1;
-    uint32_t exp_threshold                      : 8;
+    // word 0 - BFP Compression Control
+    uint32_t row_ptr_section_size : 16; ///< Row pointer section size for BFP compression
+    uint32_t exp_section_size     : 16; ///< Exponent section size for BFP compression
+
+    // word 1 - L1 Destination Addressing
+    uint32_t l1_dest_addr : 32; ///< L1 memory destination address
+
+    // word 2 - Format and Source Control
+    uint32_t uncompress              : 1; ///< Enable uncompression mode
+    uint32_t add_l1_dest_addr_offset : 1; ///< Add offset to L1 destination address
+    uint32_t reserved_0              : 2; ///< Reserved bits
+    uint32_t out_data_format         : 4; ///< Output data format (see DataFormat enum)
+    uint32_t in_data_format          : 4; ///< Input data format (see DataFormat enum)
+    uint32_t reserved_1              : 4; ///< Reserved bits
+    uint32_t src_if_sel              : 1; ///< Source interface selection (0=dest, 1=intermediate)
+    uint32_t pack_per_xy_plane       : 7; ///< Number of packs per XY plane
+    uint32_t l1_src_addr             : 8; ///< L1 source address (high bits)
+
+    // word 3 - Advanced Processing Control
+    uint32_t downsample_mask                    : 16; ///< Downsample mask for data reduction
+    uint32_t downsample_shift_count             : 3;  ///< Shift count for downsampling
+    uint32_t read_mode                          : 1;  ///< Read mode selection
+    uint32_t exp_threshold_en                   : 1;  ///< Enable exponent thresholding
+    uint32_t pack_l1_acc_disable_pack_zero_flag : 2;  ///< Disable pack zero flag for L1 accumulator
+    uint32_t reserved_2                         : 1;  ///< Reserved bit
+    uint32_t exp_threshold                      : 8;  ///< Exponent threshold value
 
 } pack_config_t;
 
 static_assert(sizeof(pack_config_t) == (sizeof(uint32_t) * 4));
 
+/**
+ * @union pack_config_u
+ * @brief Pack configuration union for register access
+ *
+ * Provides both structured field access and raw register value access
+ * for pack configuration. This is essential for hardware register
+ * programming where both individual field control and bulk register
+ * writes are needed.
+ *
+ * # Usage Example
+ * ```cpp
+ * pack_config_u config = {};
+ *
+ * // Access via structured fields
+ * config.f.out_data_format = static_cast<uint32_t>(DataFormat::Float16);
+ * config.f.l1_dest_addr = dest_address;
+ *
+ * // Access via raw values for register writes
+ * for (int i = 0; i < 4; i++) {
+ *     write_register(PACK_CONFIG_BASE + i, config.val[i]);
+ * }
+ * ```
+ */
 typedef union
 {
-    uint32_t val[4];
-    pack_config_t f;
+    uint32_t val[4]; ///< Raw register values for hardware programming
+    pack_config_t f; ///< Structured field access
 } pack_config_u;
 
-// Relu Config
+/**
+ * @struct relu_config_t
+ * @brief ReLU activation configuration for pack operations
+ *
+ * Controls ReLU (Rectified Linear Unit) activation function application
+ * during pack operations. ReLU is commonly used in neural networks to
+ * introduce non-linearity by setting negative values to zero.
+ *
+ * # ReLU Function
+ * ```
+ * output = max(0, input - threshold)
+ * ```
+ *
+ * # Lane-wise Control
+ * The STACC_RELU_ApplyRelu field provides 4-bit control for applying
+ * ReLU to individual SIMD lanes:
+ * - Bit 0: Lane 0 ReLU enable
+ * - Bit 1: Lane 1 ReLU enable
+ * - Bit 2: Lane 2 ReLU enable
+ * - Bit 3: Lane 3 ReLU enable
+ *
+ * # Usage Example
+ * ```cpp
+ * relu_config_t relu = {};
+ * relu.STACC_RELU_ApplyRelu = 0xF;      // Apply to all lanes
+ * relu.STACC_RELU_ReluThreshold = 0;     // Standard ReLU (threshold = 0)
+ * relu.ALU_ACC_CTRL_Zero_Flag_disabled_src = 0; // Enable zero flag for source
+ * ```
+ */
 typedef struct
 {
-    uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_src      : 1;
-    uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_dst      : 1;
-    uint32_t STACC_RELU_ApplyRelu                     : 4;
-    uint32_t STACC_RELU_ReluThreshold                 : 16;
-    uint32_t DISABLE_RISC_BP_Disable_main             : 1;
-    uint32_t DISABLE_RISC_BP_Disable_trisc            : 3;
-    uint32_t DISABLE_RISC_BP_Disable_ncrisc           : 1;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_main   : 1;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_trisc  : 3;
-    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_ncrisc : 1;
+    uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_src      : 1;  ///< Disable zero flag for source operand
+    uint32_t ALU_ACC_CTRL_Zero_Flag_disabled_dst      : 1;  ///< Disable zero flag for destination operand
+    uint32_t STACC_RELU_ApplyRelu                     : 4;  ///< ReLU enable mask (per-lane, 4 bits)
+    uint32_t STACC_RELU_ReluThreshold                 : 16; ///< ReLU threshold value (16-bit)
+    uint32_t DISABLE_RISC_BP_Disable_main             : 1;  ///< Disable main RISC back-pressure
+    uint32_t DISABLE_RISC_BP_Disable_trisc            : 3;  ///< Disable TRISC back-pressure (3 cores)
+    uint32_t DISABLE_RISC_BP_Disable_ncrisc           : 1;  ///< Disable NCRISC back-pressure
+    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_main   : 1;  ///< Disable bitmap clear main back-pressure
+    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_trisc  : 3;  ///< Disable bitmap clear TRISC back-pressure (3 cores)
+    uint32_t DISABLE_RISC_BP_Disable_bmp_clear_ncrisc : 1;  ///< Disable bitmap clear NCRISC back-pressure
 } relu_config_t;
 
 static_assert(sizeof(relu_config_t) == (sizeof(uint32_t)));
 
+/**
+ * @union relu_config_u
+ * @brief ReLU configuration union for register access
+ *
+ * Provides both structured field access and raw register value access
+ * for ReLU configuration.
+ */
 typedef union
 {
-    uint32_t val[1];
-    relu_config_t r;
+    uint32_t val[1]; ///< Raw register value for hardware programming
+    relu_config_t r; ///< Structured field access
 } relu_config_u;
 
 // Dest rd control
@@ -806,5 +1030,7 @@ inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters()
 
     return counters_vec;
 }
+
+/** @} */ // end of PackConfigurationStructures group
 
 } // namespace ckernel::packer
