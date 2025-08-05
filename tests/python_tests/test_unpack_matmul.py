@@ -26,7 +26,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import tilize_block, untilize_block
+from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 
@@ -68,19 +68,16 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, stochastic_rnd, tra
         # In hw we tilize inputs for matmul and then transpose on src_B
         # We must first tilize src_B before transpose + haloize
         # However, torch works with row major data so we untilize this for now in order to properly compute golden
-        transpose_function = get_golden_generator(TransposeGolden)
-        src_B_golden = tilize_block(
-            src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
-        ).flatten()
-        src_B_golden = transpose_function("faces", src_B_golden, formats.input_format)
-        src_B_golden = transpose_function(
-            "within_faces", src_B_golden, formats.input_format
+        t_matrix = get_golden_generator(TransposeGolden)
+        src_B_golden = t_matrix.transpose_faces(
+            src_B, formats.input_format, tilize=True, input_dimensions=input_dimensions
         )
-        src_B_golden = untilize_block(
+        src_B_golden = t_matrix.transpose_within_faces(
             src_B_golden,
-            dimensions=input_dimensions,
-            stimuli_format=formats.input_format,
-        ).flatten()
+            formats.input_format,
+            untilize=True,
+            input_dimensions=input_dimensions,
+        )
 
     generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(

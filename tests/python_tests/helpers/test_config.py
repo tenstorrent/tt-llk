@@ -17,10 +17,10 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
-    Haloize,
     L1BufferLocations,
     MathFidelity,
     MathOperation,
+    StochasticRnd,
     Transpose,
     format_tile_sizes,
 )
