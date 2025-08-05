@@ -139,7 +139,7 @@ def write_stimuli_to_l1(
         buffer_B: Flattened tensor data for matrix B
         stimuli_A_format: DataFormat for matrix A
         stimuli_B_format: DataFormat for matrix B
-        tile_cnt_A: Number of tiles in matrix A
+        tile_count: Number of tiles in matrix A
         tile_cnt_B: Number of tiles in matrix B
         core_loc: Core location string
 
@@ -184,21 +184,27 @@ def write_stimuli_to_l1(
             f"Unsupported data formats: {stimuli_A_format.name}, {stimuli_B_format.name}"
         )
 
-    # Write Matrix A
-    for i in range(tile_cnt_A):
-        start_idx = TILE_ELEMENTS * i
-        end_idx = start_idx + TILE_ELEMENTS
-        tile_data = buffer_A[start_idx:end_idx]
-        packed_data = pack_function_A(tile_data)
-        write_to_device(core_loc, buffer_A_address + i * tile_size_A_bytes, packed_data)
+    def write_matrix(buffer, tile_count, pack_function, base_address, tile_size):
+        addresses = []
+        packed_data_list = []
 
-    # Write Matrix B
-    for i in range(tile_cnt_B):
-        start_idx = TILE_ELEMENTS * i
-        end_idx = start_idx + TILE_ELEMENTS
-        tile_data = buffer_B[start_idx:end_idx]
-        packed_data = pack_function_B(tile_data)
-        write_to_device(core_loc, buffer_B_address + i * tile_size_B_bytes, packed_data)
+        for i in range(tile_count):
+            start_idx = TILE_ELEMENTS * i
+            tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
+            packed_data = pack_function(tile_data)
+
+            addresses.append(base_address + i * tile_size)
+            packed_data_list.append(packed_data)
+
+        for addr, data in zip(addresses, packed_data_list):
+            write_to_device(core_loc, addr, data)
+
+    write_matrix(
+        buffer_A, tile_cnt_A, pack_function_A, buffer_A_address, tile_size_A_bytes
+    )
+    write_matrix(
+        buffer_B, tile_cnt_B, pack_function_B, buffer_B_address, tile_size_B_bytes
+    )
 
     # Set buffer addresses in device
     write_to_device(

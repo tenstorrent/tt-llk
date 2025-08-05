@@ -344,9 +344,10 @@ class MatmulGolden(FidelityMasking):
             K2, N = input_B_dimensions[0], input_B_dimensions[1]
 
             # Verify K dimensions match for valid matmul
-            assert (
-                K1 == K2
-            ), f"Matrix dimensions incompatible: A[{M},{K1}] × B[{K2},{N}]"
+            if K1 != K2:
+                raise AssertionError(
+                    f"Matrix dimensions incompatible: A[{M},{K1}] × B[{K2},{N}]"
+                )
 
             output_dimensions = [M, N]
         else:
