@@ -24,7 +24,7 @@ from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 # Generate all valid dimension combinations for both dest_acc modes
-# When 16-bit datums in dest can fit 8 tiles and 4 tiles for 32-bit datums
+# When 16-bit datums in dest can fit max 8 tiles and 4 tiles for 32-bit datums
 ALL_MATMUL_COMBINATIONS = [
     (DestAccumulation.No, dims) for dims in generate_matmul_dimension_combinations(8)
 ] + [(DestAccumulation.Yes, dims) for dims in generate_matmul_dimension_combinations(4)]
