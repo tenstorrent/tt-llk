@@ -270,25 +270,11 @@ class TransposeGolden:
             raise ValueError(
                 f"Each face must be square. Face size {face_size} is not a perfect square"
             )
+
         # Split the tensor into 4 faces dynamically
-        f0 = tensor[:face_size].view(face_dim, face_dim)
-        f1 = tensor[face_size : 2 * face_size].view(face_dim, face_dim)
-        f2 = tensor[2 * face_size : 3 * face_size].view(face_dim, face_dim)
-        f3 = tensor[3 * face_size :].view(face_dim, face_dim)
+        # faces = torch.tensor_split(tensor, 4)
         # Transpose each face using the helper function
-        f0_transposed = transpose_tensor(f0)
-        f1_transposed = transpose_tensor(f1)
-        f2_transposed = transpose_tensor(f2)
-        f3_transposed = transpose_tensor(f3)
-        # Flatten each face and concatenate back into a single tensor
-        result = torch.cat(
-            [
-                f0_transposed.flatten(),
-                f1_transposed.flatten(),
-                f2_transposed.flatten(),
-                f3_transposed.flatten(),
-            ]
-        )
+        result = tensor.view(4, face_dim, face_dim).transpose(-2, -1).flatten()
         if untilize:
             untilize = get_golden_generator(UntilizeGolden)
             result = untilize(result, data_format, input_dimensions).flatten()
@@ -327,12 +313,9 @@ class TransposeGolden:
             )
         face_size = total_elements // 4
         # Split the tensor into 4 faces
-        f0 = tensor[:face_size]
-        f1 = tensor[face_size : 2 * face_size]
-        f2 = tensor[2 * face_size : 3 * face_size]
-        f3 = tensor[3 * face_size :]
+        faces = torch.tensor_split(tensor, 4)
         # Transpose the face arrangement: f0,f1,f2,f3 -> f0,f2,f1,f3
-        result = torch.cat([f0, f2, f1, f3])
+        result = torch.cat([faces[0], faces[2], faces[1], faces[3]])
         return result.to(format_dict[data_format])
 
 
