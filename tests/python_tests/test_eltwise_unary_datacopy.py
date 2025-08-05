@@ -44,7 +44,7 @@ def test_unary_datacopy(test_name, formats, dest_acc):
     generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(src_A, formats.output_format)
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_cnt
+        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
     )
 
     unpack_to_dest = formats.input_format.is_32_bit()
