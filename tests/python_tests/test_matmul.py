@@ -92,16 +92,6 @@ def test_matmul(test_name, formats, math_fidelity, dest_acc_and_dims):
         tilized_A = src_A
         tilized_B = src_B
 
-    # Use the new helper function for writing stimuli
-    res_address = write_stimuli_to_l1(
-        tilized_A.flatten(),
-        tilized_B.flatten(),
-        formats.input_format,
-        formats.input_format,
-        tile_cnt_A,
-        tile_cnt_B,
-    )
-
     test_config = {
         "formats": formats,
         "testname": test_name,
@@ -115,6 +105,17 @@ def test_matmul(test_name, formats, math_fidelity, dest_acc_and_dims):
         "ct_dim": matmul_dims["ct_dim"],
         "kt_dim": matmul_dims["kt_dim"],
     }
+
+    # Use the new helper function for writing stimuli
+    res_address = write_stimuli_to_l1(
+        test_config,
+        tilized_A.flatten(),
+        tilized_B.flatten(),
+        formats.input_format,
+        formats.input_format,
+        tile_cnt_A,
+        tile_cnt_B,
+    )
 
     run_test(test_config)
 
