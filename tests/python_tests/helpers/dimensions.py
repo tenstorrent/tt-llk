@@ -108,52 +108,46 @@ def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
         List of tuples: Each tuple contains (inputA_dimensions, inputB_dimensions)
         where inputA_dimensions and inputB_dimensions are [rows, cols] lists
 
+    Note: When 16-bit datums in dest can fit max 8 tiles and 4 tiles for 32-bit datums
     Example:
         For max_tiles=4:
         Returns combinations like:
         ([32, 32], [32, 32])    # 1×1 tiles each, result: 1×1 = 1 tile
         ([32, 64], [64, 32])    # 1×2 and 2×1 tiles, result: 1×1 = 1 tile
-        ([64, 64], [64, 64])    # 2×2 tiles each, result: 2×2 = 4 tiles
-        ([32, 128], [128, 32])  # 1×4 and 4×1 tiles, result: 1×1 = 1 tile
+        ([64, 128], [128, 128])    # result: 2×4 = 8 tiles, works for 16-bit datums
+        ([32, 32], [32, 128])  # 1×1 and 1×4 tiles, result: 1×4 = 4 tiles, works for 16-bit and 32-bit datums
 
-        But NOT ([256, 32], [32, 256]) because result would be 8×8 = 64 tiles > 4
+        But NOT ([256, 32], [32, 256]) because result would be 8×8 = 64 tiles > 4 for 32-bit datums and >8 for 16-bit datums
     """
 
-    def generate_all_matrix_dimensions(max_tiles: int) -> List[List[int]]:
-        """Generate all possible matrix dimensions up to max_tiles."""
-        dimensions = []
 
-        # Generate all combinations of (row_tiles, col_tiles) where product <= max_tiles
-        for row_tiles in range(1, max_tiles + 1):
-            for col_tiles in range(1, max_tiles + 1):
-                if row_tiles * col_tiles <= max_tiles:
-                    rows = row_tiles * 32
-                    cols = col_tiles * 32
-                    dimensions.append([rows, cols])
-
-        return dimensions
-
-    # Generate all possible matrix dimensions
-    all_dimensions = generate_all_matrix_dimensions(max_tiles)
-
-    # Find all valid matmul combinations
+def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
     valid_combinations = []
 
-    for inputA_dims in all_dimensions:
-        for inputB_dims in all_dimensions:
-            # Check if matrices are compatible for multiplication: A[M,K] × B[K,N]
-            if inputA_dims[1] == inputB_dims[0]:  # K dimensions must match
+    for m_tiles in range(1, max_tiles + 1):
+        for k_tiles in range(1, max_tiles + 1):
+            # Check if matrix A is valid: m_tiles * k_tiles <= max_tiles
+            if m_tiles * k_tiles > max_tiles:
+                break  # Early termination - larger k_tiles will also be invalid
 
-                # Calculate result matrix dimensions and tile count
-                M = inputA_dims[0]  # Rows in A
-                K = inputA_dims[1]  # Cols in A (= Rows in B)
-                N = inputB_dims[1]  # Cols in B
+            # Calculate maximum valid n_tiles based on constraints
+            max_n_from_B = (
+                max_tiles // k_tiles
+            )  # From B constraint: k_tiles * n_tiles <= max_tiles
+            max_n_from_C = (
+                max_tiles // m_tiles
+            )  # From C constraint: m_tiles * n_tiles <= max_tiles
+            max_n_tiles = min(max_n_from_B, max_n_from_C)
 
-                # Result matrix C will be [M, N]
-                result_tiles = (M // 32) * (N // 32)
+            # Generate all valid n_tiles values
+            for n_tiles in range(1, max_n_tiles + 1):
+                # Convert tile counts to actual dimensions
+                m_dim = m_tiles * 32
+                k_dim = k_tiles * 32
+                n_dim = n_tiles * 32
 
-                # Only include if result matrix also fits within max_tiles
-                if result_tiles <= max_tiles:
-                    valid_combinations.append((inputA_dims, inputB_dims))
+                inputA_dims = [m_dim, k_dim]
+                inputB_dims = [k_dim, n_dim]
+                valid_combinations.append((inputA_dims, inputB_dims))
 
     return valid_combinations
