@@ -675,6 +675,7 @@ class UnarySFPUGolden:
     def _ne(self, x, y=5):
         return x != y
 
+
 @register_golden
 class EltwiseBinaryGolden(FidelityMasking):
     def __init__(self):
