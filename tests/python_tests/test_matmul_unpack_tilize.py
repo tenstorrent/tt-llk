@@ -64,6 +64,8 @@ def test_matmul_unpack_tilize(test_name, formats, dest_acc, math_fidelity):
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "math_fidelity": math_fidelity,
         "L1_to_L1_iterations": 2,
     }

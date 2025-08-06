@@ -64,6 +64,8 @@ def test_matmul_pack_untilize(test_name, formats, dest_acc, math_fidelity):
         "testname": test_name,
         "formats": formats,
         "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "math_fidelity": math_fidelity,
     }
 

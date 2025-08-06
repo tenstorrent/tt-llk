@@ -63,6 +63,8 @@ def test_tilize_calculate_untilize_L1(
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "math_fidelity": math_fidelity,
         "mathop": mathop,
         "tile_cnt": tile_cnt,

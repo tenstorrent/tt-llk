@@ -115,6 +115,8 @@ def test_matmul_and_unary_sfpu(
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "math_fidelity": math_fidelity,
         "approx_mode": approx_mode,
         "mathop": mathop,

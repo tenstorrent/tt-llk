@@ -80,7 +80,8 @@ def test_fast_tilize(test_name, formats, dest_acc, dimensions):
         "formats": formats,
         "testname": test_name,
         "tile_cnt": tile_cnt,
-        "input_dimensions": input_dimensions,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "dest_acc": dest_acc,
     }
 

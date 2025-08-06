@@ -125,6 +125,8 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "mathop": mathop,
         "approx_mode": approx_mode,
         "unpack_to_dest": unpack_to_dest,

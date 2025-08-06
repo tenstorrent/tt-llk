@@ -89,7 +89,8 @@ def test_fast_tilize_perf(
         "formats": formats,
         "testname": TEST_NAME,
         "tile_cnt": input_height * input_width,
-        "input_dimensions": input_dimensions,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "dest_acc": fp32_dest,
     }
 

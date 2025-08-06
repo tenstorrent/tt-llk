@@ -50,6 +50,8 @@ def test_unary_datacopy(test_name, formats, dest_acc):
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
     }

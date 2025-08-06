@@ -108,7 +108,8 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
-        "input_dimensions": input_dimensions,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "unpack_transpose_faces": transpose.value,
         "unpack_transpose_within_face": transpose.value,  # matmul transposes both faces and within faces, there is no option for one or the other
         "throttle": throttle,

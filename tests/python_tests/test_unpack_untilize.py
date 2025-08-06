@@ -59,7 +59,8 @@ def test_unpack_untilize(test_name, formats):
         "formats": formats,
         "testname": test_name,
         "tile_cnt": tile_cnt,
-        "input_dimensions": input_dimensions,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
     }
 
     res_address = write_stimuli_to_l1(
