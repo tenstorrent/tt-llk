@@ -37,7 +37,7 @@ from helpers.utils import passed_test
             # DataFormat.Bfp8_b,      # Commented out for initial testing
         ]
     ),
-    stoch_rnd_types=[
+    stoch_rnd_type=[
         StochasticRoundingType.NONE,
         StochasticRoundingType.Fpu,
         StochasticRoundingType.Pack,
@@ -52,7 +52,7 @@ from helpers.utils import passed_test
 def test_unpack_tilize_comprehensive(
     test_name,
     formats,
-    stoch_rnd_types,
+    stoch_rnd_type,
     transpose,
     narrow_tile,
     dest_acc,
@@ -99,7 +99,7 @@ def test_unpack_tilize_comprehensive(
         "tile_cnt": tile_cnt,
         "input_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
-        "stoch_rnd_type": stoch_rnd_types,
+        "stoch_rnd_type": stoch_rnd_type,
         "unpack_transpose_faces": transpose.value,
         "unpack_transpose_within_face": transpose.value,
         "dest_acc": dest_acc,
