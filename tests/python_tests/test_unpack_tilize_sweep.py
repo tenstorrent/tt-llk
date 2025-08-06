@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import pytest
 import torch
 
 from helpers.chip_architecture import get_chip_architecture
@@ -27,9 +26,10 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
+
 @parametrize(
     test_name="unpack_tilize_sweep_test",
-    formats=input_output_formats(    
+    formats=input_output_formats(
         [
             DataFormat.Float32,
             DataFormat.Float16,
@@ -37,7 +37,7 @@ from helpers.utils import passed_test
             # DataFormat.Bfp8_b,      # Commented out for initial testing
         ]
     ),
-    stoch_rnd_types = [
+    stoch_rnd_types=[
         StochasticRoundingType.NONE,
         StochasticRoundingType.Fpu,
         StochasticRoundingType.Pack,
@@ -49,7 +49,6 @@ from helpers.utils import passed_test
     face_r_dim=[FaceRDim.Face16, FaceRDim.Face32],
     num_faces=[NumFaces.Four, NumFaces.Two, NumFaces.One],
 )
-
 def test_unpack_tilize_comprehensive(
     test_name,
     formats,
@@ -86,8 +85,7 @@ def test_unpack_tilize_comprehensive(
         input_dimensions,
         formats.output_format,
     )
-    
-    
+
     golden_tensor = golden_tensor.to(torch_format)
     # Write stimuli to L1
     res_address = write_stimuli_to_l1(

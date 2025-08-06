@@ -77,10 +77,12 @@ void run_kernel()
     // Copy srca to dest with tilize flag
 #ifdef ARCH_BLACKHOLE
     // Set tilize flag to true for Blackhole architecture
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
+        UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES, formats.math);
 #else
     // Wormhole and other architectures
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(
+        UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES, formats.math);
 #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
