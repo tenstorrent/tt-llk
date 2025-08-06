@@ -13,10 +13,11 @@ from helpers.format_arg_mapping import (
     FaceRDim,
     NarrowTile,
     NumFaces,
+    StochasticRounding,
     Transpose,
     format_dict,
 )
-from helpers.format_config import DataFormat, StochasticRoundingType
+from helpers.format_config import DataFormat
 from helpers.golden_generators import TilizeGolden, get_golden_generator
 from helpers.param_config import (
     input_output_formats,
@@ -38,10 +39,10 @@ from helpers.utils import passed_test
         ]
     ),
     stoch_rnd_type=[
-        StochasticRoundingType.NONE,
-        StochasticRoundingType.Fpu,
-        StochasticRoundingType.Pack,
-        StochasticRoundingType.All,
+        StochasticRounding.No,
+        StochasticRounding.Fpu,
+        StochasticRounding.Pack,
+        StochasticRounding.All,
     ],
     transpose=[Transpose.No],
     narrow_tile=[NarrowTile.No],

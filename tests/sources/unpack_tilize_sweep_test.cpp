@@ -25,7 +25,7 @@ void run_kernel()
 {
     // Use parameters from build.h that are set by the Python test
 
-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, STOCH_RND_TYPE>(
+    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND>(
         formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
 
     // Initialize tilize unpacker

@@ -171,12 +171,7 @@ def generate_build_header(
             f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{reuse_dest.name};"
         )
 
-    if "stoch_rnd_type" in test_config:
-        stoch_rnd_type = test_config["stoch_rnd_type"]
-        name = "None" if stoch_rnd_type.name == "NONE" else stoch_rnd_type.name
-        header_content.append(
-            f"constexpr auto STOCH_RND_TYPE = ckernel::StochRndType::{name};"
-        )
+
 
     if "disable_src_zero_flag" in test_config:
         disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
