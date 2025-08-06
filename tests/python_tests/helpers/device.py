@@ -5,7 +5,6 @@ import inspect
 import os
 import time
 from pathlib import Path
-from typing import Optional
 
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.tt_exalens_lib import (
@@ -71,11 +70,9 @@ def collect_results(
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
 
     # Calculate bytes needed based on format and actual tile size
-    read_bytes_cnt = formats.output_format.size * tile_elements * tile_count
-
-    # Add exponent bytes for Bfp8_b format
-    if formats.output_format == DataFormat.Bfp8_b:
-        read_bytes_cnt += (tile_elements // 16) * tile_count
+    read_bytes_cnt = (
+        formats.output_format.num_bytes_per_tile(tile_elements) * tile_count
+    )
 
     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
     res_from_L1 = unpack_res_tiles(read_data, formats, tile_count=tile_count, sfpu=sfpu)
@@ -126,10 +123,10 @@ def write_stimuli_to_l1(
     test_config,
     buffer_A,
     buffer_B,
-    stimuli_A_format,
-    stimuli_B_format,
-    tile_count=1,
-    tile_cnt_B: Optional[int] = None,
+    stimuli_A_format: DataFormat,
+    stimuli_B_format: DataFormat,
+    tile_count_A: int = 1,
+    tile_count_B: int = None,
     core_loc="0,0",
 ):
     """
@@ -140,27 +137,22 @@ def write_stimuli_to_l1(
         buffer_B: Flattened tensor data for matrix B
         stimuli_A_format: DataFormat for matrix A
         stimuli_B_format: DataFormat for matrix B
-        tile_count: Number of tiles in matrix A
-        tile_cnt_B: Number of tiles in matrix B
+        tile_count_A: Number of tiles in matrix A
+        tile_count_B: Number of tiles in matrix B
         core_loc: Core location string
 
     Returns:
         int: Address where result will be stored
     """
-    from .format_arg_mapping import format_tile_sizes
-
-    tile_cnt_A = tile_count
-    if tile_cnt_B is None:
-        tile_cnt_B = tile_cnt_A
 
     TILE_ELEMENTS = 1024
 
     # Calculate L1 addresses
+    tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
+    tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
     buffer_A_address = 0x1A000
-    tile_size_A_bytes = format_tile_sizes[stimuli_A_format]
-    tile_size_B_bytes = format_tile_sizes[stimuli_B_format]
-    buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_cnt_A
-    result_buffer_address = buffer_B_address + tile_size_B_bytes * tile_cnt_B
+    buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_count_A
+    result_buffer_address = buffer_B_address + tile_size_B_bytes * tile_count_B
 
     # Helper function to get packer
     def get_packer(data_format):
@@ -201,10 +193,10 @@ def write_stimuli_to_l1(
             write_to_device(core_loc, addr, data)
 
     write_matrix(
-        buffer_A, tile_cnt_A, pack_function_A, buffer_A_address, tile_size_A_bytes
+        buffer_A, tile_count_A, pack_function_A, buffer_A_address, tile_size_A_bytes
     )
     write_matrix(
-        buffer_B, tile_cnt_B, pack_function_B, buffer_B_address, tile_size_B_bytes
+        buffer_B, tile_count_B, pack_function_B, buffer_B_address, tile_size_B_bytes
     )
 
     # Set buffer addresses in device to be defined in build header
