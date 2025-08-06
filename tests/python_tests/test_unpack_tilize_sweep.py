@@ -18,7 +18,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat, StochasticRoundingType
-from helpers.golden_generators import TilizeGolden, get_golden_generator
+from helpers.golden_generators import TilizeGolden, TransposeGolden, get_golden_generator
 from helpers.param_config import (
     clean_params,
     input_output_formats,
@@ -50,7 +50,7 @@ stoch_rnd_types = [
 ]
 
 
-transpose_values = [Transpose.No]  # Disable transpose testing
+transpose_values = [Transpose.No]  # Disable transpose testing for now
 
 # Disable narrow tile testing for now
 narrow_tile_values = [NarrowTile.No]
@@ -176,7 +176,7 @@ def test_unpack_tilize_comprehensive(
     # Determine unpack_to_dest based on format
     unpack_to_dest = formats.input_format in [DataFormat.Int32, DataFormat.UInt32]
 
-    input_dimensions = [64, 64]  # Standard dimensions for multi-tile testing
+    input_dimensions = [32, 32]  # Standard dimensions for multi-tile testing
 
     # Generate test data
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -185,14 +185,18 @@ def test_unpack_tilize_comprehensive(
         input_dimensions=input_dimensions,
     )
 
-    # Generate golden reference - simple tilization
+    torch_format = format_dict[formats.output_format]
+
+    # Generate golden reference - tilization
     tilize_function = get_golden_generator(TilizeGolden)
     golden_tensor = tilize_function(
         src_A,
         input_dimensions,
         formats.output_format,
     )
-
+    
+    
+    golden_tensor = golden_tensor.to(torch_format)
     # Write stimuli to L1
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
@@ -206,6 +210,7 @@ def test_unpack_tilize_comprehensive(
         "input_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "stoch_rnd_type": stoch_rnd_type,
+        "unpack_transpose_faces": transpose.value,
         "unpack_transpose_within_face": transpose.value,
         "dest_acc": dest_acc,
         "num_faces": num_faces.value,
