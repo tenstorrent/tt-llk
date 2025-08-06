@@ -91,23 +91,6 @@ class EltwiseBinaryReuseDestType(Enum):
     DEST_TO_SRCB = 2
 
 
-class StochasticRoundingType(Enum):
-    """
-    Enum for stochastic rounding types.
-    """
-
-    NONE = 0
-    Fpu = 1
-    Pack = 2
-    All = 0xF
-
-    def __str__(self):
-        """Custom string conversion for C++ template generation"""
-        if self.name == "NONE":
-            return "None"  # Convert NONE to None for C++
-        return self.name
-
-
 @dataclass
 class FormatConfig:
     """

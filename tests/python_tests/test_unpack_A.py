@@ -11,12 +11,11 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, format_dict
+from helpers.format_arg_mapping import DestAccumulation, StochasticRounding, format_dict
 from helpers.format_config import (
     BroadcastType,
     DataFormat,
     EltwiseBinaryReuseDestType,
-    StochasticRoundingType,
 )
 from helpers.golden_generators import (
     DataCopyGolden,
@@ -50,11 +49,11 @@ dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
 disable_src_zero_flags = [False]  # todo: True
 # is_fp32_dest_acc_flags removed - it's automatically handled in params.h
 acc_to_dest_flags = [False]  # todo: True
-stoch_rounding_types = [
-    StochasticRoundingType.NONE,
-    StochasticRoundingType.Fpu,
-    StochasticRoundingType.Pack,
-    StochasticRoundingType.All,
+stochastic_rnd = [
+    StochasticRounding.No,
+    StochasticRounding.Fpu,
+    StochasticRounding.Pack,
+    StochasticRounding.All,
 ]
 reuse_dest_types = [
     EltwiseBinaryReuseDestType.NONE
@@ -74,7 +73,7 @@ unpack_A_param_combinations = generate_unpack_A_params(
     disable_src_zero_flags=disable_src_zero_flags,
     # is_fp32_dest_acc_flags removed - handled automatically in params.h
     acc_to_dest_flags=acc_to_dest_flags,
-    stoch_rounding_types=stoch_rounding_types,
+    stoch_rounding_types=stochastic_rnd,
     reuse_dest_types=reuse_dest_types,
     transpose_of_faces_values=transpose_of_faces_values,
     within_face_16x16_transpose_values=within_face_16x16_transpose_values,
@@ -105,7 +104,7 @@ for base_param in base_params:
         broadcast_type = unpack_params[0]
         disable_src_zero = unpack_params[1]
         acc_to_dest = unpack_params[2]
-        stoch_rnd_type = unpack_params[3]
+        stochastic_rnd = unpack_params[3]
         reuse_dest = unpack_params[4]
         transpose_of_faces = unpack_params[5]
         within_face_16x16_transpose = unpack_params[6]
@@ -118,7 +117,7 @@ for base_param in base_params:
             broadcast_type,  # broadcast_type
             disable_src_zero,  # disable_src_zero
             acc_to_dest,  # acc_to_dest
-            stoch_rnd_type,  # stoch_rnd_type
+            stochastic_rnd,  # stochastic_rnd
             reuse_dest,  # reuse_dest
             transpose_of_faces,  # transpose_of_faces
             within_face_16x16_transpose,  # within_face_16x16_transpose
@@ -142,7 +141,7 @@ def filter_params_with_z3(all_params):
             broadcast_type,
             disable_src_zero,
             acc_to_dest,
-            stoch_rnd_type,
+            stochastic_rnd,
             reuse_dest,
             transpose_of_faces,
             within_face_16x16_transpose,
@@ -163,7 +162,7 @@ def filter_params_with_z3(all_params):
             )
 
         reuse_dest_val = reuse_dest.value if hasattr(reuse_dest, "value") else 0
-        stoch_rnd_val = stoch_rnd_type.value if hasattr(stoch_rnd_type, "value") else 0
+        stoch_rnd_val = stochastic_rnd.value if hasattr(stochastic_rnd, "value") else 0
 
         # Z3 variables representing our parameters
         broadcast = IntVal(broadcast_val)  # 0=NONE, 1=COL, 2=ROW, 3=SCALAR
@@ -385,7 +384,7 @@ def create_simple_ids(all_params):
         broadcast_type = params[2]
         disable_src_zero = params[3]
         acc_to_dest = params[4]
-        stoch_rnd_type = params[5]
+        stochastic_rnd = params[5]
         reuse_dest = params[6]
         transpose_of_faces = params[7]
         within_face_16x16_transpose = params[8]
@@ -398,7 +397,7 @@ def create_simple_ids(all_params):
             f"bcast_{broadcast_type.name}",
             f"disable_src_zero_{disable_src_zero}",
             f"acc_to_dest_{acc_to_dest}",
-            f"stoch_rnd_{stoch_rnd_type.name}",
+            f"stoch_rnd_{stochastic_rnd.name}",
             f"reuse_dest_{reuse_dest.name}",
             f"transpose_faces_{transpose_of_faces}",
             f"within_face_transpose_{within_face_16x16_transpose}",
@@ -417,7 +416,7 @@ param_ids = create_simple_ids(all_params)
 
 @pytest.mark.parametrize(
     "testname, formats, broadcast_type, disable_src_zero, acc_to_dest, "
-    "stoch_rnd_type, reuse_dest, transpose_of_faces, "
+    "stochastic_rnd, reuse_dest, transpose_of_faces, "
     "within_face_16x16_transpose, num_faces",
     clean_params(all_params),
     ids=param_ids,
@@ -428,7 +427,7 @@ def test_unpack_comprehensive(
     broadcast_type,
     disable_src_zero,
     acc_to_dest,
-    stoch_rnd_type,
+    stochastic_rnd,
     reuse_dest,
     transpose_of_faces,
     within_face_16x16_transpose,
@@ -450,12 +449,32 @@ def test_unpack_comprehensive(
         input_dimensions=input_dimensions,
     )
 
-    # generate golden generator - use transpose golden when transpose_of_faces is 1
-    if transpose_of_faces == 1:
-        generate_golden = get_golden_generator(TransposeGolden)
+    # generate golden tensor with proper transpose handling
+    # Both transpose_of_faces and within_face_16x16_transpose are mutually inclusive
+    if transpose_of_faces == 1 and within_face_16x16_transpose == 1:
+        # Apply both transpose operations
+        transpose_golden = get_golden_generator(TransposeGolden)
+        # First apply within-face transpose, then face transpose
+        temp_tensor = transpose_golden.transpose_within_faces(
+            src_A, formats.output_format
+        )
+        golden_tensor = transpose_golden.transpose_faces(
+            temp_tensor, formats.output_format
+        )
+    elif transpose_of_faces == 1:
+        # Only face transpose (should not happen due to mutual inclusivity constraint)
+        transpose_golden = get_golden_generator(TransposeGolden)
+        golden_tensor = transpose_golden.transpose_faces(src_A, formats.output_format)
+    elif within_face_16x16_transpose == 1:
+        # Only within-face transpose (should not happen due to mutual inclusivity constraint)
+        transpose_golden = get_golden_generator(TransposeGolden)
+        golden_tensor = transpose_golden.transpose_within_faces(
+            src_A, formats.output_format
+        )
     else:
+        # No transpose - use data copy
         generate_golden = get_golden_generator(DataCopyGolden)
-    golden_tensor = generate_golden(src_A, formats.output_format)
+        golden_tensor = generate_golden(src_A, formats.output_format)
 
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
@@ -472,7 +491,7 @@ def test_unpack_comprehensive(
         "acc_to_dest": acc_to_dest,
         "reuse_dest": reuse_dest,
         "unpack_to_dest": unpack_to_dest,
-        "stoch_rnd_type": stoch_rnd_type,
+        "stochastic_rnd": stochastic_rnd,
         "dest_acc": DestAccumulation.Yes if acc_to_dest else DestAccumulation.No,
         # "is_fp32_dest_acc_en": is_fp32_dest_acc,
         "disable_src_zero_flag": disable_src_zero,
