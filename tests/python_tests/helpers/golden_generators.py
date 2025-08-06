@@ -843,8 +843,23 @@ class UntilizeGolden:
 
 @register_golden
 class TilizeGolden:
-    def __call__(self, operand, dimensions, data_format):
+    def __call__(self, operand, dimensions, data_format, num_faces=4):
         from helpers.tilize_untilize import tilize_block
 
+        torch_format = format_dict[data_format]
+        tile_cnt = dimensions[0] // 32 * dimensions[1] // 32
+        tile_size = dimensions[0] * dimensions[1] // tile_cnt
+        face_size = tile_size // 4
+        # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
+        elements_per_tile_needed = face_size * num_faces
+
         result = tilize_block(operand, dimensions, data_format)
-        return result.flatten()
+        result = result.flatten()
+
+        golden = []
+        # Define the golden tensor by writing only values from the selected faces for each tile
+        for tile in range(tile_cnt):
+            golden.extend(
+                result[tile * tile_size : tile * tile_size + elements_per_tile_needed]
+            )
+        return torch.tensor(golden, dtype=torch_format)
