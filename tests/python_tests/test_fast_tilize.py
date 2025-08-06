@@ -85,7 +85,13 @@ def test_fast_tilize(test_name, formats, dest_acc, dimensions):
     }
 
     res_address = write_stimuli_to_l1(
-        test_config, src_A, src_B, formats.input, formats.input, tile_count=tile_cnt
+        test_config,
+        src_A,
+        src_B,
+        formats.input,
+        formats.input,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
     )
 
     run_test(test_config)
