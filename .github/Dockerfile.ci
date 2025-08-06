@@ -14,3 +14,6 @@ RUN ./home/install-tests-dependencies.sh
 
 # Install tt-exalens
 RUN ./home/install-exalens.sh
+
+# Install tt-smi
+RUN ./home/install-smi.sh
