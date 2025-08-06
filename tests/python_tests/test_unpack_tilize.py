@@ -69,7 +69,8 @@ def unpack_tilize(test_name, formats):
         src_B,
         formats.input_format,
         formats.input_format,
-        tile_count=tile_cnt,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
     )
 
     run_test(test_config)

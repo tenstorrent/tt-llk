@@ -94,7 +94,13 @@ def test_fast_tilize_perf(
     }
 
     res_address = write_stimuli_to_l1(
-        test_config, src_A, src_B, input_format, input_format, tile_count=tile_cnt
+        test_config,
+        src_A,
+        src_B,
+        input_format,
+        input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
     )
 
     results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], 2)
