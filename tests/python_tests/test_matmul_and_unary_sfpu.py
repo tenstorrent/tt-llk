@@ -96,7 +96,12 @@ def test_matmul_and_unary_sfpu(
 
     generate_matmul_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_matmul_golden(
-        src_A, src_B, formats.output_format, math_fidelity
+        src_A,
+        src_B,
+        formats.output_format,
+        math_fidelity,
+        input_A_dimensions=input_dimensions,
+        input_B_dimensions=input_dimensions,
     )
     golden_tensor = tilize(golden_tensor, formats.output_format)
 

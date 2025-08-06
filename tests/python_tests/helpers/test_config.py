@@ -246,13 +246,9 @@ def generate_build_header(
         "volatile uint32_t* buffer_Res[TILE_CNT] = {" + buffer_res_str + "}; \n"
         "#endif\n"
     )
-    input_dimensions = test_config.get("input_dimensions", False)
-    if input_dimensions:
-        input_A_dimensions = input_dimensions
-        input_B_dimensions = input_dimensions
-    else:
-        input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
-        input_B_dimensions = test_config.get("input_B_dimensions", [32, 32])
+
+    input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
+    input_B_dimensions = test_config.get("input_B_dimensions", [32, 32])
 
     num_rows = 32
     num_cols = 32
