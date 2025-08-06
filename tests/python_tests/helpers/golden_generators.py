@@ -328,7 +328,6 @@ class MatmulGolden(FidelityMasking):
         operand2,
         data_format,
         math_fidelity,
-        input_dimensions=[32, 32],
         input_A_dimensions=None,
         input_B_dimensions=None,
     ):
@@ -350,11 +349,6 @@ class MatmulGolden(FidelityMasking):
                 )
 
             output_dimensions = [M, N]
-        else:
-            # Legacy single-tile case
-            M, K1 = input_dimensions[0], input_dimensions[1]
-            K2, N = input_dimensions[0], input_dimensions[1]  # assume square
-            output_dimensions = input_dimensions
 
         num_fidelity_phases = math_fidelity.value
 
