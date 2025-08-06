@@ -53,6 +53,7 @@
 #include "sfpu/ckernel_sfpu_trigonometry.h"
 #include "sfpu/ckernel_sfpu_typecast.h"
 #include "sfpu/ckernel_sfpu_where.h"
+#include "sfpu/ckernel_sfpu_welfords.h"
 
 // namespace ckernel
 // {
