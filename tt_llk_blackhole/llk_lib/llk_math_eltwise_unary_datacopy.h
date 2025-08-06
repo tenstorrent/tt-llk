@@ -43,14 +43,12 @@ inline void _llk_math_eltwise_unary_datacopy_(
         for (std::uint32_t i = 0; i < num_faces; i++)
         {
             // Clears zero flags in DEST for one face.
-            if (dst_format == (uint)DataFormat::Float32)
-            {
-                TT_ZEROACC(p_zeroacc::CLR_16, 1, 1 /*clear zero flags*/, ADDR_MOD_3, dest_base_offset_in_faces + dst_index_in_faces + i);
-            }
-            else
-            {
-                TT_ZEROACC(p_zeroacc::CLR_16, 0, 1 /*clear zero flags*/, ADDR_MOD_3, dest_base_offset_in_faces + dst_index_in_faces + i);
-            }
+            TT_ZEROACC(
+                p_zeroacc::CLR_16,
+                static_cast<int>(dst_format == (uint)DataFormat::Float32),
+                1 /*clear zero flags*/,
+                ADDR_MOD_3,
+                dest_base_offset_in_faces + dst_index_in_faces + i);
         }
     }
     else

@@ -94,8 +94,8 @@ def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
 def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
 
     if not sfpu:
-        exponents = bfp8_block[: int(16 * num_faces)]
-        mantissas = bfp8_block[int(16 * num_faces) :]
+        exponents = bfp8_block[: 16 * num_faces]
+        mantissas = bfp8_block[16 * num_faces :]
     else:
         exponents = bfp8_block[:16]
         mantissas = bfp8_block[16:272]
