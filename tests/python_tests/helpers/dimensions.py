@@ -8,6 +8,12 @@ Helper functions for dimension-related calculations in matrix operations.
 from typing import List
 
 
+def validate_tile_dimensions(dimension: int, row_col_dim: int):
+    """Validate that dimension is divisible by row/col."""
+    if dimension % row_col_dim != 0:
+        raise AssertionError(f"{dimension} must be divisible by {row_col_dim}")
+
+
 def calculate_matmul_dimensions(
     input_A_dimensions: List[int], input_B_dimensions: List[int]
 ) -> dict:
@@ -45,6 +51,11 @@ def calculate_matmul_dimensions(
     # Calculate tile dimensions (each tile is 32×32)
     num_rows = 32  # matrix A
     num_cols = 32  # matrix B
+
+    validate_tile_dimensions(M, num_cols)
+    validate_tile_dimensions(N, num_rows)
+    validate_tile_dimensions(K1, num_cols)
+
     rt_dim = M // num_cols  # Row tiles in result
     ct_dim = N // num_rows  # Column tiles in result
     kt_dim = (
