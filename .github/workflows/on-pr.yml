@@ -156,7 +156,7 @@ jobs:
     name: "🕳️ Perform checks (Blackhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: [build-images, detect-changes]
-    if: ${{ (needs.detect-changes.outputs.wormhole == 'true' ||
+    if: ${{ (needs.detect-changes.outputs.blackhole == 'true' ||
             needs.detect-changes.outputs.tests == 'true' ||
             needs.detect-changes.outputs.github == 'true') &&
             github.event.action != 'destroyed' }}
