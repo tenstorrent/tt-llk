@@ -199,9 +199,9 @@ class MathFidelity(Enum):
     HiFi4 = 3
 
 
-class DstSync(Enum):
-    SyncHalf = 0
-    SyncFull = 1
+class DestSync(Enum):
+    Half = 0
+    Full = 1
 
 
 class Mailbox(Enum):
