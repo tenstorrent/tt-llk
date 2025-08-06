@@ -53,7 +53,8 @@ def test_pack_untilize(test_name, formats):
         "formats": formats,
         "testname": test_name,
         "tile_cnt": tile_cnt,
-        "input_dimensions": input_dimensions,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "unpack_to_dest": formats.input_format.is_32_bit(),
     }
 
