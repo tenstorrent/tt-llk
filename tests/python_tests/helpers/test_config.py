@@ -14,7 +14,7 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
-    DstSync,
+    DestSync,
     MathFidelity,
     MathOperation,
     StochasticRounding,
@@ -162,9 +162,9 @@ def generate_build_header(
     header_content.append(f"constexpr int num_faces = {num_faces};")
 
     # Dest synchronisation mode
-    dest_sync = test_config.get("dest_sync", DstSync.SyncHalf)
+    dest_sync = test_config.get("dest_sync", DestSync.Half)
     header_content.append(
-        f"constexpr ckernel::DstSync dest_sync = ckernel::DstSync::{dest_sync.name};"
+        f"constexpr ckernel::DstSync dest_sync = ckernel::DstSync::Sync{dest_sync.name};"
     )
 
     # Data format configuration
