@@ -29,6 +29,7 @@ concurrency:
 
 jobs:
   pre-commit:
+    if: ${{ github.event.action != 'destroyed' }}
     name: "🔍 Static checks"
     uses: ./.github/workflows/pre-commit.yml
 
