@@ -81,7 +81,8 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
         src_B_golden,  # needs to be transposed and tilized
         formats.output_format,
         math_fidelity,
-        input_dimensions=input_dimensions,
+        input_A_dimensions=input_dimensions,
+        input_B_dimensions=input_dimensions,
     )
     # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
     golden_tensor = (
