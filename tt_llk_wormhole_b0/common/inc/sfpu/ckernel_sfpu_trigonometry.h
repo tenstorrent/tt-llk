@@ -15,209 +15,304 @@ namespace ckernel
 namespace sfpu
 {
 
+// Mathematical constants for trigonometric functions
+namespace trig_constants
+{
+constexpr float PI     = 3.141592653589793f;
+constexpr float INV_PI = 0.318309886183791f; // 1/PI
+
+// Maclaurin series coefficients
+namespace sine
+{
+constexpr float COEFF_X3  = -0.166666666f;   // -1/3!
+constexpr float COEFF_X5  = 0.0083333333f;   // 1/5!
+constexpr float COEFF_X7  = -0.0001984126f;  // -1/7!
+constexpr float COEFF_X9  = 0.0000027557f;   // 1/9!
+constexpr float COEFF_X11 = -0.00000002505f; // -1/11!
+} // namespace sine
+
+namespace cosine
+{
+constexpr float COEFF_X2  = -0.5f;          // -1/2!
+constexpr float COEFF_X4  = 0.0416666666f;  // 1/4!
+constexpr float COEFF_X6  = -0.0013888888f; // -1/6!
+constexpr float COEFF_X8  = 0.0000248015f;  // 1/8!
+constexpr float COEFF_X10 = -0.0000002755f; // -1/10!
+} // namespace cosine
+} // namespace trig_constants
+
+// Helper function: Reduce input to [-pi, pi] range and handle periodicity
+sfpi_inline sfpi::vFloat _reduce_to_pi_range_(sfpi::vFloat input, sfpi::vInt& period_count)
+{
+    // Convert input to units of pi: input_in_pi = input / pi
+    sfpi::vFloat input_in_pi = trig_constants::INV_PI * input;
+
+    // Extract integer part (number of pi periods)
+    period_count              = float_to_int16(input_in_pi, 0);
+    sfpi::vFloat period_float = int32_to_float(period_count, 0);
+
+    // Get fractional part and convert back to radians: frac * pi
+    sfpi::vFloat fractional_part = input_in_pi - period_float;
+    return fractional_part * trig_constants::PI;
+}
+
+// Sine Maclaurin series implementation
 template <bool APPROXIMATION_MODE>
 sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
 {
-    // Good for [-pi:pi]
-    // Mclauren series = x - x^3/3! + x^5/5! - x^7/7! + x^9/9! - x^11/11!
-    sfpi::vFloat tmp = val;
-    // x
-    sfpi::vFloat output = tmp;
-    // x^3/3!
-    tmp = tmp * val * val;
-    output += -0.166666666 * tmp;
-    // x^5/5!
-    tmp = tmp * val * val;
-    output += 0.0083333333 * tmp;
-    // x^7/7!
-    tmp = tmp * val * val;
-    output += -0.0001984126 * tmp;
+    // Maclaurin series for sin(x): x - x^3/3! + x^5/5! - x^7/7! + x^9/9! - x^11/11!
+    // Valid for [-pi, pi] range
+
+    sfpi::vFloat x_squared = val * val;
+    sfpi::vFloat term      = val;
+    sfpi::vFloat result    = term; // x term
+
+    // x^3/3! term
+    term *= x_squared;
+    result += trig_constants::sine::COEFF_X3 * term;
+
+    // x^5/5! term
+    term *= x_squared;
+    result += trig_constants::sine::COEFF_X5 * term;
+
+    // x^7/7! term
+    term *= x_squared;
+    result += trig_constants::sine::COEFF_X7 * term;
+
     if constexpr (not APPROXIMATION_MODE)
     {
-        // x^9/9!
-        tmp = tmp * val * val;
-        output += 0.0000027557 * tmp;
-        // x^11/11!
-        tmp = tmp * val * val;
-        output += -0.00000002505 * tmp;
+        // Higher precision terms for accurate mode
+        // x^9/9! term
+        term *= x_squared;
+        result += trig_constants::sine::COEFF_X9 * term;
+
+        // x^11/11! term
+        term *= x_squared;
+        result += trig_constants::sine::COEFF_X11 * term;
     }
 
-    // Write out output
-    return output;
+    return result;
 }
 
+// Cosine Maclaurin series implementation
 template <bool APPROXIMATION_MODE>
 sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
 {
-    // Good for [-pi:pi]
-    // Mclauren series = 1 - x^2/2! + x^4/4! - x^6/6! + x^8/8! - x^10/10! + x^12/12!
-    // 1
-    sfpi::vFloat output = 1.0f;
-    // x^2/2!
-    sfpi::vFloat tmp = val * val;
-    output += -0.5 * tmp;
-    // x^4/4!
-    tmp = tmp * val * val;
-    output += 0.0416666666 * tmp;
-    // x^6/6!
-    tmp = tmp * val * val;
-    output += -0.0013888888 * tmp;
+    // Maclaurin series for cos(x): 1 - x^2/2! + x^4/4! - x^6/6! + x^8/8! - x^10/10!
+    // Valid for [-pi, pi] range
+
+    sfpi::vFloat x_squared = val * val;
+    sfpi::vFloat term      = x_squared;
+    sfpi::vFloat result    = 1.0f; // Constant term
+
+    // x^2/2! term
+    result += trig_constants::cosine::COEFF_X2 * term;
+
+    // x^4/4! term
+    term *= x_squared;
+    result += trig_constants::cosine::COEFF_X4 * term;
+
+    // x^6/6! term
+    term *= x_squared;
+    result += trig_constants::cosine::COEFF_X6 * term;
+
     if constexpr (not APPROXIMATION_MODE)
     {
-        // x^8/8!
-        tmp = tmp * val * val;
-        output += 0.0000248015 * tmp;
-        // x^10/10!
-        tmp = tmp * val * val;
-        output += -0.0000002755 * tmp;
+        // Higher precision terms for accurate mode
+        // x^8/8! term
+        term *= x_squared;
+        result += trig_constants::cosine::COEFF_X8 * term;
+
+        // x^10/10! term
+        term *= x_squared;
+        result += trig_constants::cosine::COEFF_X10 * term;
     }
 
-    // Write out output
-    return output;
+    return result;
 }
 
-// Legacy implementation.
-// Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+// Unified trigonometric function implementation
+// Handles both sine and cosine with template parameter
+template <bool IS_SINE, bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_trigonometric_(const int iterations)
+{
+    for (int d = 0; d < iterations; d++)
+    {
+        sfpi::vFloat input = sfpi::dst_reg[0];
+
+        // Reduce input to [-pi, pi] range and track periods
+        sfpi::vInt period_count;
+        sfpi::vFloat reduced_input = _reduce_to_pi_range_(input, period_count);
+
+        // Calculate the trigonometric function value
+        sfpi::vFloat result;
+        if constexpr (IS_SINE)
+        {
+            result = _sfpu_sine_maclaurin_series_<APPROXIMATION_MODE>(reduced_input);
+        }
+        else
+        {
+            result = _sfpu_cosine_maclaurin_series_<APPROXIMATION_MODE>(reduced_input);
+        }
+
+        // Handle sign changes due to periodicity
+        // For sine: odd periods flip sign, for cosine: odd periods flip sign
+        sfpi::vInt is_odd_period = period_count & 0x1;
+        v_if (is_odd_period != 0)
+        {
+            result *= -1.0f; // Flip sign for odd periods
+        }
+        v_endif;
+
+        sfpi::dst_reg[0] = result;
+        sfpi::dst_reg++;
+    }
+}
+
+// Sine function - wrapper for unified implementation
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_sine_(const int iterations)
 {
-    // SFPU microcode
-    for (int d = 0; d < iterations; d++)
-    {
-        sfpi::vFloat v             = sfpi::dst_reg[0];
-        v                          = 0.318309886183791f * v; // *1/pi to get number of pi rads.
-        sfpi::vInt whole_v         = float_to_int16(v, 0);
-        sfpi::vFloat whole_v_float = int32_to_float(whole_v, 0);
-        v                          = v - whole_v_float;
-        v *= 3.141592653589793f; // fractional * pi to get it in [-pi:pi]
-        v       = _sfpu_sine_maclaurin_series_<APPROXIMATION_MODE>(v);
-        whole_v = whole_v & 0x1;
-        v_if (whole_v != 0)
-        {
-            // odd so flip the sign
-            v *= -1;
-        }
-        v_endif;
-        sfpi::dst_reg[0] = v;
-        sfpi::dst_reg++;
-    }
+    _calculate_trigonometric_<true, APPROXIMATION_MODE, ITERATIONS>(iterations);
 }
 
-// Legacy implementation.
-// Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
+// Cosine function - wrapper for unified implementation
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_cosine_(const int iterations)
 {
-    // SFPU microcode
-    for (int d = 0; d < iterations; d++)
-    {
-        sfpi::vFloat v             = sfpi::dst_reg[0];
-        v                          = 0.318309886183791f * v; // *1/pi to get number of pi rads.
-        sfpi::vInt whole_v         = float_to_int16(v, 0);
-        sfpi::vFloat whole_v_float = int32_to_float(whole_v, 0);
-        v                          = v - whole_v_float;
-        v *= 3.141592653589793f; // fractional * pi to get it in [-pi:pi]
-        v       = _sfpu_cosine_maclaurin_series_<APPROXIMATION_MODE>(v);
-        whole_v = whole_v & 0x1;
-        v_if (whole_v != 0)
-        {
-            // odd so flip the sign
-            v *= -1;
-        }
-        v_endif;
-        sfpi::dst_reg[0] = v;
-        sfpi::dst_reg++;
-    }
+    _calculate_trigonometric_<false, APPROXIMATION_MODE, ITERATIONS>(iterations);
 }
 
-// https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Definitions_in_terms_of_logarithms
-// acosh(x) = log(x + sqrt(x^2 - 1))
+// Helper function: Calculate acosh for valid input (x >= 1)
+// Formula: acosh(x) = log(x + sqrt(x^2 - 1))
+// Helper function is not used in the code, but it is here for reference.
+sfpi_inline sfpi::vFloat _calculate_acosh_core_(sfpi::vFloat x)
+{
+    sfpi::vFloat x_squared_minus_one = x * x - sfpi::vConst1;
+    sfpi::vFloat sqrt_term           = _calculate_sqrt_body_<false, 2>(x_squared_minus_one);
+    sfpi::vFloat log_arg             = x + sqrt_term;
+    return _calculate_log_body_no_init_(log_arg);
+}
+
+// Inverse hyperbolic cosine: acosh(x) = log(x + sqrt(x^2 - 1))
+// Domain: x >= 1, Range: [0, +∞)
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_acosh_()
 {
-    // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat inp = sfpi::dst_reg[0];
-        v_if (inp < sfpi::vConst1)
+        sfpi::vFloat input = sfpi::dst_reg[0];
+
+        // Handle edge cases and domain validation
+        v_if (input < sfpi::vConst1)
         {
-            sfpi::dst_reg[0] = std::numeric_limits<float>::quiet_NaN();
+            sfpi::dst_reg[0] = std::numeric_limits<float>::quiet_NaN(); // Undefined for x < 1
         }
-        v_elseif (inp == sfpi::vConst1)
+        v_elseif (input == sfpi::vConst1)
         {
-            sfpi::dst_reg[0] = sfpi::vConst0;
+            sfpi::dst_reg[0] = sfpi::vConst0; // acosh(1) = 0
         }
         v_else
         {
-            sfpi::vFloat tmp = inp * inp;
-            tmp              = tmp - sfpi::vConst1;
-            tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(tmp);
-            tmp              = tmp + inp;
-            sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
+            // Standard calculation
+            sfpi::vFloat x_squared_minus_one = input * input - sfpi::vConst1;
+            sfpi::vFloat sqrt_term           = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(x_squared_minus_one);
+            sfpi::vFloat log_arg             = input + sqrt_term;
+            sfpi::dst_reg[0]                 = _calculate_log_body_no_init_(log_arg);
         }
         v_endif;
         sfpi::dst_reg++;
     }
 }
 
-// asinh(x) = log(x + sqrt(x^2 + 1))
+// Inverse hyperbolic sine: asinh(x) = log(x + sqrt(x^2 + 1))
+// Domain: all real numbers, Range: all real numbers
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_asinh_()
 {
-    // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat inp = sfpi::dst_reg[0];
-        sfpi::vFloat tmp = inp * inp + sfpi::vConst1;
-        tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(tmp);
-        tmp              = tmp + sfpi::abs(inp);
-        sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
-        v_if (inp < sfpi::vConst0)
+        sfpi::vFloat input = sfpi::dst_reg[0];
+
+        // Calculate sqrt(x^2 + 1)
+        sfpi::vFloat x_squared_plus_one = input * input + sfpi::vConst1;
+        sfpi::vFloat sqrt_term          = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(x_squared_plus_one);
+
+        // Use |x| + sqrt(x^2 + 1) for numerical stability
+        sfpi::vFloat log_arg = sfpi::abs(input) + sqrt_term;
+        sfpi::vFloat result  = _calculate_log_body_no_init_(log_arg);
+
+        // Preserve sign: asinh(-x) = -asinh(x)
+        v_if (input < sfpi::vConst0)
         {
-            sfpi::dst_reg[0] = -sfpi::dst_reg[0];
+            result = -result;
         }
         v_endif;
+
+        sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
     }
 }
 
-// atanh[x] = 0.5 * ln((1 + x) / (1 - x))
+// Helper function: Calculate atanh for valid input (|x| < 1)
+// Formula: atanh(x) = 0.5 * ln((1 + x) / (1 - x))
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en>
+sfpi_inline sfpi::vFloat _calculate_atanh_core_(sfpi::vFloat x)
+{
+    sfpi::vFloat numerator   = sfpi::vConst1 + x; // 1 + x
+    sfpi::vFloat denominator = sfpi::vConst1 - x; // 1 - x
+
+    // Calculate reciprocal of denominator for division
+    sfpi::vFloat recip = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(denominator);
+    recip              = sfpi::setsgn(recip, denominator); // Preserve sign
+
+    // Handle precision based on accumulation mode
+    if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+    {
+        denominator = recip;
+    }
+    else
+    {
+        denominator = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(recip, 0));
+    }
+
+    // Calculate (1 + x) / (1 - x)
+    sfpi::vFloat ratio = numerator * denominator;
+
+    // Calculate ln(ratio) and multiply by 0.5
+    sfpi::vFloat log_result = _calculate_log_body_no_init_(ratio);
+    return 0.5f * log_result;
+}
+
+// Inverse hyperbolic tangent: atanh(x) = 0.5 * ln((1 + x) / (1 - x))
+// Domain: (-1, 1), Range: all real numbers
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
 inline void _calculate_atanh_()
 {
-    // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat inp     = sfpi::dst_reg[0];
-        sfpi::vFloat abs_inp = sfpi::abs(inp);
-        v_if (abs_inp > sfpi::vConst1)
+        sfpi::vFloat input     = sfpi::dst_reg[0];
+        sfpi::vFloat abs_input = sfpi::abs(input);
+        sfpi::vFloat result;
+
+        // Handle edge cases and domain validation
+        v_if (abs_input > sfpi::vConst1)
         {
-            sfpi::dst_reg[0] = std::numeric_limits<float>::quiet_NaN();
+            result = std::numeric_limits<float>::quiet_NaN(); // Undefined for |x| > 1
         }
-        v_elseif (abs_inp == sfpi::vConst1)
+        v_elseif (abs_input == sfpi::vConst1)
         {
+            // atanh(±1) = ±∞
             sfpi::vFloat inf = std::numeric_limits<float>::infinity();
-            sfpi::dst_reg[0] = sfpi::setsgn(inf, inp);
+            result           = sfpi::setsgn(inf, input);
         }
         v_else
         {
-            sfpi::vFloat num = sfpi::vConst1 + inp;
-            sfpi::vFloat den = sfpi::vConst1 - inp;
-            sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(den);
-            tmp              = sfpi::setsgn(tmp, den);
-            if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
-            {
-                den = tmp;
-            }
-            else
-            {
-                den = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
-            }
-            num              = num * den;
-            den              = _calculate_log_body_no_init_(num);
-            sfpi::dst_reg[0] = 0.5f * den;
+            result = _calculate_atanh_core_<APPROXIMATION_MODE, is_fp32_dest_acc_en>(input);
         }
         v_endif;
+
+        sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
     }
 }
