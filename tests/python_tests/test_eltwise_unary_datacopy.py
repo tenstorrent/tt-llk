@@ -7,7 +7,7 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, DstSync, format_dict
+from helpers.format_arg_mapping import DestAccumulation, DestSync, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, get_golden_generator
 from helpers.param_config import (
@@ -31,7 +31,7 @@ from helpers.utils import passed_test
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     num_faces=[1, 2, 4],
-    dest_sync=[DstSync.SyncHalf, DstSync.SyncFull],
+    dest_sync=[DestSync.Half, DestSync.Full],
 )
 def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
 
