@@ -25,7 +25,7 @@ void run_kernel()
 {
     _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
         UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCH_RND_TYPE, disable_src_zero_flag>(
+    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND, disable_src_zero_flag>(
         formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
 
     for (int i = 0; i < TILE_CNT; ++i)
