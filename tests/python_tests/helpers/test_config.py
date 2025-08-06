@@ -6,6 +6,7 @@ from enum import Enum
 from pathlib import Path
 
 from .device import run_elf_files, wait_for_tensix_operations_finished
+from .dimensions import validate_tile_dimensions
 from .format_arg_mapping import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -253,8 +254,12 @@ def generate_build_header(
         input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
         input_B_dimensions = test_config.get("input_B_dimensions", [32, 32])
 
-    block_rt_dim = input_A_dimensions[0] // 32
-    block_ct_dim = input_B_dimensions[1] // 32
+    num_rows = 32
+    num_cols = 32
+    validate_tile_dimensions(input_A_dimensions[0], num_cols)
+    validate_tile_dimensions(input_B_dimensions[1], num_rows)
+    block_rt_dim = input_A_dimensions[0] // num_cols
+    block_ct_dim = input_B_dimensions[1] // num_rows
 
     header_content.extend(
         [

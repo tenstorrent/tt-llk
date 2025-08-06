@@ -5,7 +5,7 @@
 Helper functions for dimension-related calculations in matrix operations.
 """
 
-from typing import List
+from typing import List, Tuple
 
 
 def validate_tile_dimensions(dimension: int, row_col_dim: int):
@@ -15,7 +15,7 @@ def validate_tile_dimensions(dimension: int, row_col_dim: int):
 
 
 def calculate_matmul_dimensions(
-    input_A_dimensions: List[int], input_B_dimensions: List[int]
+    input_A_dimensions: Tuple[int, int], input_B_dimensions: Tuple[int, int]
 ) -> dict:
     """
     Calculate matrix multiplication tile dimensions.
@@ -46,7 +46,7 @@ def calculate_matmul_dimensions(
     ), f"Matrix dimensions incompatible for multiplication: A[{M},{K1}] × B[{K2},{N}]"
 
     # Calculate output dimensions: A[M,K] × B[K,N] = C[M,N]
-    output_dimensions = [M, N]
+    output_dimensions = (M, N)
 
     # Calculate tile dimensions (each tile is 32×32)
     num_rows = 32  # matrix A
