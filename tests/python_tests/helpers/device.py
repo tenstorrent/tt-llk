@@ -175,28 +175,38 @@ def write_stimuli_to_l1(
         pack_function_A = packers.get(stimuli_A_format)
         pack_function_B = packers.get(stimuli_B_format)
 
-        if stimuli_A_format == DataFormat.Bfp8_b:
-            write_to_device(
-                core_loc,
-                buffer_A_address,
-                pack_function_A(buffer_A_tile, num_faces=num_faces),
-            )
-        else:
-            write_to_device(core_loc, buffer_A_address, pack_function_A(buffer_A_tile))
-
-        if stimuli_B_format == DataFormat.Bfp8_b:
-            write_to_device(
-                core_loc,
-                buffer_B_address,
-                pack_function_B(buffer_B_tile, num_faces=num_faces),
-            )
-        else:
-            write_to_device(core_loc, buffer_B_address, pack_function_B(buffer_B_tile))
+        write_buffer_data(
+            core_loc,
+            buffer_A_address,
+            pack_function_A,
+            buffer_A_tile,
+            stimuli_A_format,
+            num_faces,
+        )
+        write_buffer_data(
+            core_loc,
+            buffer_B_address,
+            pack_function_B,
+            buffer_B_tile,
+            stimuli_B_format,
+            num_faces,
+        )
 
         buffer_A_address += TILE_SIZE_A
         buffer_B_address += TILE_SIZE_B
 
     return result_buffer_address  # return address where result will be stored
+
+
+def write_buffer_data(
+    core_loc, buffer_address, pack_function, buffer_tile, stimuli_format, num_faces=4
+):
+    if stimuli_format == DataFormat.Bfp8_b:
+        packed_data = pack_function(buffer_tile, num_faces=num_faces)
+    else:
+        packed_data = pack_function(buffer_tile)
+
+    write_to_device(core_loc, buffer_address, packed_data)
 
 
 def get_result_from_device(
