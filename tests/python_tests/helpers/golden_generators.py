@@ -226,6 +226,99 @@ def to_tensor(operand, data_format):
     return operand.clone().detach().to(torch_format)
 
 
+def transpose_tensor(tensor):
+    """Transpose a PyTorch tensor.
+    Args:
+        tensor: Input PyTorch tensor to transpose
+    Returns:
+        torch.Tensor: Transposed tensor
+    """
+    return tensor.T
+
+
+@register_golden
+class TransposeGolden:
+    def __init__(self):
+        pass  # Removed ops dict since __call__ is no longer used
+
+    def transpose_within_faces(
+        self,
+        operand,
+        data_format,
+        untilize: bool = False,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        """Transpose a tile tensor by transposing within each of the four faces.
+        A tile tensor consists of 4 equal faces arranged in a tile.
+        This function dynamically splits the tensor into 4 faces, transposes each face
+        individually, and reassembles the tile.
+        Args:
+            operand: Input tensor to transpose
+            data_format: Data format for the result
+        Returns:
+            torch.Tensor: Tensor with each face transposed, flattened back to original size
+        """
+        tensor = to_tensor(operand, data_format)
+        total_elements = tensor.numel()
+        if total_elements % 4 != 0:
+            raise ValueError(
+                f"Tensor size {total_elements} must be divisible by 4 for tile structure"
+            )
+        face_size = total_elements // 4
+        face_dim = math.isqrt(face_size)
+        if face_dim * face_dim != face_size:
+            raise ValueError(
+                f"Each face must be square (for now). Face size {face_size} is not a perfect square"
+            )
+
+        # Split the tensor into 4 faces dynamically
+        # Transpose each face using the helper function
+        result = tensor.view(4, face_dim, face_dim).transpose(-2, -1).flatten()
+        if untilize:
+            untilize = get_golden_generator(UntilizeGolden)
+            result = untilize(result, data_format, input_dimensions).flatten()
+        return result.to(format_dict[data_format])
+
+    def transpose_faces(
+        self,
+        operand,
+        data_format,
+        tilize: bool = False,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        """Transpose the arrangement of the four faces in a tile tensor.
+        Treats each face as a single element and transposes their arrangement.
+        If faces are arranged as:
+        f0 f1
+        f2 f3
+        After transposition:
+        f0 f2
+        f1 f3
+        Args:
+            operand: Input tensor to transpose
+            data_format: Data format for the result
+        Returns:
+            torch.Tensor: Tensor with faces rearranged in transposed order
+        """
+        if tilize:
+            tilize = get_golden_generator(TilizeGolden)
+            operand = tilize(operand, input_dimensions, data_format).flatten()
+
+        tensor = to_tensor(operand, data_format)
+        total_elements = tensor.numel()
+        if total_elements % 4 != 0:
+            raise ValueError(
+                f"Invalid tensor size {total_elements}. A valid tile structure requires the tensor to represent "
+                f"4 equal faces, so the total number of elements must be divisible by 4."
+            )
+        face_size = total_elements // 4
+        # Split the tensor into 4 faces
+        faces = torch.tensor_split(tensor, 4)
+        # Transpose the face arrangement: f0,f1,f2,f3 -> f0,f2,f1,f3
+        result = torch.cat([faces[0], faces[2], faces[1], faces[3]])
+        return result.to(format_dict[data_format])
+
+
 @register_golden
 class MatmulGolden(FidelityMasking):
 
@@ -785,7 +878,9 @@ class UntilizeGolden:
     def __call__(self, operand, data_format, dimensions=[32, 32]):
         from helpers.tilize_untilize import untilize_block
 
-        result = untilize_block(operand, data_format, dimensions=dimensions)
+        result = untilize_block(
+            operand, stimuli_format=data_format, dimensions=dimensions
+        )
         return result.flatten()
 
 

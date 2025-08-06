@@ -165,7 +165,29 @@ class DestAccumulation(Enum):
     No = "false"
 
 
+class StochasticRounding(Enum):
+    No = "StochRndType::None"
+    Fpu = "StochRndType::Fpu"
+    Pack = "StochRndType::Pack"
+    All = "StochRndType::All"
+
+
+class Transpose(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class Haloize(Enum):
+    Yes = "true"
+    No = "false"
+
+
 class ApproximationMode(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class Transpose(Enum):
     Yes = "true"
     No = "false"
 
