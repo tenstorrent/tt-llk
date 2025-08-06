@@ -28,8 +28,8 @@ def calculate_matmul_dimensions(
     - output_tile_cnt: Number of tiles in result
 
     Args:
-        input_A_dimensions: List containing [rows, cols] for matrix A
-        input_B_dimensions: List containing [rows, cols] for matrix B
+        input_A_dimensions: (rows, cols) for matrix A
+        input_B_dimensions: (rows, cols) for matrix B
 
     Returns:
         dict: Dictionary containing all calculated dimensions
@@ -63,8 +63,6 @@ def calculate_matmul_dimensions(
     )  # Inner dimension tiles rt_dim (matrix A) = kt_dim = ct_dim (matrix B) = 1
 
     # Calculate tile counts
-    tile_cnt_A = rt_dim * kt_dim
-    tile_cnt_B = kt_dim * ct_dim
     output_tile_cnt = rt_dim * ct_dim
 
     return {
@@ -81,13 +79,12 @@ def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
     Generate all valid matrix multiplication dimension combinations.
 
     Creates all possible combinations of (inputA_dimensions, inputB_dimensions) where:
-    - Each input matrix has at most max_tiles tiles (each tile is 32×32)
     - The result matrix also has at most max_tiles tiles
     - Matrix multiplication is valid: inputA[1] == inputB[0] (K dimensions match)
     - Returns combinations that can be used for comprehensive matmul testing
 
     Args:
-        max_tiles: Maximum number of tiles allowed per matrix (inputs AND result)
+        max_tiles: Maximum number of tiles allowed per result matrix
 
     Returns:
         List of tuples: Each tuple contains (inputA_dimensions, inputB_dimensions)
