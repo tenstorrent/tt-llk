@@ -171,8 +171,6 @@ def generate_build_header(
             f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{reuse_dest.name};"
         )
 
-
-
     if "disable_src_zero_flag" in test_config:
         disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
         header_content.append(
