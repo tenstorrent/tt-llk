@@ -5,5 +5,10 @@
 
 set -e
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-pip install --no-cache-dir git+https://github.com/tenstorrent/tt-smi.git
+SM_VERSION="3.0.27"
+SM_WHEEL="tt_smi-${SM_VERSION}-py3-none-any.whl"
+
+wget -O ${SM_WHEEL} \
+    https://github.com/tenstorrent/tt-smi/releases/download/v${SM_VERSION}/${SM_WHEEL}
+pip install --no-cache-dir ${SM_WHEEL}
+rm ${SM_WHEEL}
