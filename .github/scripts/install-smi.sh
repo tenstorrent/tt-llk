@@ -5,10 +5,10 @@
 
 set -e
 
-SM_VERSION="3.0.27"
-SM_WHEEL="tt_smi-${SM_VERSION}-py3-none-any.whl"
+TT_SMI_VERSION="3.0.27"
+TT_SMI_WHEEL="tt_smi-${TT_SMI_VERSION}-py3-none-any.whl"
 
-wget -O ${SM_WHEEL} \
-    https://github.com/tenstorrent/tt-smi/releases/download/v${SM_VERSION}/${SM_WHEEL}
-pip install --no-cache-dir ${SM_WHEEL}
-rm ${SM_WHEEL}
+wget -O ${TT_SMI_WHEEL} \
+    https://github.com/tenstorrent/tt-smi/releases/download/v${TT_SMI_VERSION}/${TT_SMI_WHEEL}
+pip install --no-cache-dir ${TT_SMI_WHEEL}
+rm ${TT_SMI_WHEEL}
