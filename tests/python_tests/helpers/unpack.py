@@ -4,7 +4,6 @@
 # unpack.py
 
 import struct
-from itertools import chain
 
 import torch
 
@@ -143,30 +142,19 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4
     else:
         unpack_func = _UNPACKERS[output_format]
 
-    # Define all_tiles_data by writing only values from the selected faces for each tile
-    all_tiles_data = []
+    unpacked_data = []
+
+    # Write only values from the selected faces into unpacked_tile
     for tile in range(tile_count):
-        all_tiles_data.extend(
-            packed_list[
-                tile * tile_size : (tile * tile_size + elements_per_tile_needed)
-            ]
-        )
+        start_idx = tile * tile_size
+        end_idx = start_idx + elements_per_tile_needed
+        tile_data = packed_list[start_idx:end_idx]
 
-    reshaped_data = [
-        all_tiles_data[i : i + elements_per_tile_needed]
-        for i in range(0, total_elements_needed, elements_per_tile_needed)
-    ]
+        if unpack_func == unpack_bfp8_b:
+            unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
+        else:
+            unpacked_tile = unpack_func(tile_data)
 
-    if unpack_func == unpack_bfp8_b:
-        unpacked_data = list(
-            chain.from_iterable(
-                unpack_func(tile_data, num_faces=num_faces)
-                for tile_data in reshaped_data
-            )
-        )
-    else:
-        unpacked_data = list(
-            chain.from_iterable(unpack_func(tile_data) for tile_data in reshaped_data)
-        )
+        unpacked_data.extend(unpacked_tile)
 
     return torch.tensor(unpacked_data, dtype=output_dtype)
