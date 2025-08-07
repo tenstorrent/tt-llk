@@ -25,8 +25,13 @@ void run_kernel()
 {
     // Use parameters from build.h that are set by the Python test
 
+    // Hard code NUM_FACES = 4 for Wormhole to avoid tilize issue with fewer faces
+#ifdef ARCH_BLACKHOLE
     _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND>(
         formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
+#else
+    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, 4);
+#endif
 
     // Initialize tilize unpacker
     _llk_unpack_tilize_init_(
@@ -44,6 +49,8 @@ void run_kernel()
     {
         for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
         {
+            // Hard code NUM_FACES = 4 for Wormhole to avoid tilize issue with fewer faces
+#ifdef ARCH_BLACKHOLE
             _llk_unpack_tilize_(
                 L1_ADDRESS(buffer_A[read_offset]),
                 j,
@@ -53,6 +60,17 @@ void run_kernel()
                 NUM_FACES,
                 false // narrow_tile disabled for now
             );
+#else
+            _llk_unpack_tilize_(
+                L1_ADDRESS(buffer_A[read_offset]),
+                j,
+                formats.unpack_src,
+                BLOCK_CT_DIM,
+                FACE_R_DIM,
+                4,
+                false // narrow_tile disabled for now
+            );
+#endif
         }
         read_offset += BLOCK_RT_DIM;
     }
@@ -80,9 +98,9 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
         UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES, formats.math);
 #else
-    // Wormhole and other architectures
+    // Hard code NUM_FACES = 4 for Wormhole to avoid tilize issue with fewer faces
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(
-        UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES, formats.math);
+        UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, 4, formats.math);
 #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -114,7 +132,8 @@ void run_kernel()
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * NUM_FACES);
+    // Hard code NUM_FACES = 4 for Wormhole to avoid tilize issue with fewer faces
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif

@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 
 from helpers.chip_architecture import get_chip_architecture
@@ -35,7 +36,7 @@ from helpers.utils import passed_test
             DataFormat.Float32,
             DataFormat.Float16,
             DataFormat.Float16_b,
-            # DataFormat.Bfp8_b,      # Commented out for initial testing
+            DataFormat.Bfp8_b,  # Commented out for initial testing
         ]
     ),
     stoch_rnd_type=[
@@ -61,6 +62,9 @@ def test_unpack_tilize_comprehensive(
     num_faces,
 ):
     """Comprehensive parameter sweep test for unpack_tilize operation."""
+
+    if formats.input_format == DataFormat.Bfp8_b:
+        pytest.skip("Unpack tilize does not support Bfp8_b")
 
     # Get architecture
     arch = get_chip_architecture()
