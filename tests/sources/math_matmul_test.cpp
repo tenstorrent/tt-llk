@@ -21,9 +21,9 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    std::uint32_t ct_dim    = BLOCK_CT_DIM;
-    std::uint32_t rt_dim    = BLOCK_RT_DIM;
-    std::uint32_t kt_dim    = BLOCK_CT_DIM; // for square matrices, kt_dim == ct_dim
+    std::uint32_t ct_dim    = CT_DIM;
+    std::uint32_t rt_dim    = RT_DIM;
+    std::uint32_t kt_dim    = KT_DIM;
     std::uint32_t tile_size = 128;
 
     if constexpr (static_cast<DataFormat>(formats.unpack_src) == DataFormat::Bfp8_b)
@@ -77,9 +77,9 @@ void run_kernel()
 
 void run_kernel()
 {
-    std::uint32_t ct_dim = BLOCK_CT_DIM;
-    std::uint32_t rt_dim = BLOCK_RT_DIM;
-    std::uint32_t kt_dim = BLOCK_CT_DIM; // for square matrices, kt_dim == ct_dim
+    std::uint32_t ct_dim = CT_DIM;
+    std::uint32_t rt_dim = RT_DIM;
+    std::uint32_t kt_dim = KT_DIM;
 
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
         TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, UNPACK_TRANSPOSE_FACES, ct_dim, rt_dim, kt_dim);
