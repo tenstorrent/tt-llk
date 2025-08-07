@@ -211,6 +211,7 @@ format_tile_sizes = {
     DataFormat.Float16_b: 2048,
     DataFormat.Float32: 4096,
     DataFormat.Int32: 4096,
+    DataFormat.Int8: 1024,
 }
 
 

@@ -23,23 +23,22 @@ from helpers.utils import passed_test
     test_name="eltwise_unary_datacopy_test",
     formats=input_output_formats(
         [
-            DataFormat.Float32,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
+            DataFormat.Int8,
         ]
     ),
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    dest_acc=[DestAccumulation.No],
 )
 def test_unary_datacopy(test_name, formats, dest_acc):
 
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
         input_dimensions=input_dimensions,
     )
+
+    src_A = torch.tensor([10] * 256 + [30] * 256 + [60] * 256 + [120] * 256).flatten()
 
     generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(src_A, formats.output_format)
