@@ -133,6 +133,7 @@ def write_stimuli_to_l1(
     Write matmul stimuli to L1 with different matrix sizes.
 
     Args:
+        test_config: Used to store addresses of A B and Result
         buffer_A: Flattened tensor data for matrix A
         buffer_B: Flattened tensor data for matrix B
         stimuli_A_format: DataFormat for matrix A
