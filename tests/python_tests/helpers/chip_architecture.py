@@ -26,7 +26,7 @@ class ChipArchitecture(Enum):
 
 def get_chip_architecture():
     context = check_context()
-    if len(context.devices) == 0:
+    if not context.devices:
         raise RuntimeError(
             "No devices found. Please ensure a device is connected and tt-smi is working correctly."
         )
