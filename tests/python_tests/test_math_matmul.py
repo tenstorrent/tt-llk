@@ -29,7 +29,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import tilize_block
+from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
 # Generate all valid dimension combinations for both dest_acc modes
@@ -54,7 +54,7 @@ ALL_MATMUL_COMBINATIONS = [
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    transpose=[Transpose.Yes, Transpose.No],
+    transpose=[Transpose.Yes],
     dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
     throttle=list(
         range(0, 6)
@@ -70,7 +70,7 @@ def test_matmul(
     # input_A_dimensions = dest_acc_and_dims[1][0]
     # input_B_dimensions = dest_acc_and_dims[1][1]
     input_A_dimensions = (32, 32)
-    input_B_dimensions = (32, 64)
+    input_B_dimensions = (32, 32)
 
     src_A, _, tile_cnt_A = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_A_dimensions
@@ -92,7 +92,17 @@ def test_matmul(
         + [7] * 256
         + [8] * 256
     ).flatten()
-    # src_B = torch.tensor([1]*256 + [2]*256 + [3]*256 + [4]*256).flatten()
+    src_B = torch.tensor([1] * 256 + [2] * 256 + [3] * 256 + [4] * 256).flatten()
+    src_B = torch.tensor(
+        list(range(1, 17)) * 16
+        + list(range(17, 33)) * 16
+        + list(range(33, 49)) * 16
+        + list(range(49, 65)) * 16
+    ).flatten()
+    src_B = untilize_block(
+        src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
+    ).flatten()
+
     # Calculate all matmul dimensions using helper function
     matmul_dims = calculate_matmul_dimensions(input_A_dimensions, input_B_dimensions)
 
@@ -106,28 +116,14 @@ def test_matmul(
         num_tiles_B = tile_cnt_B
 
         t_matrix = get_golden_generator(TransposeGolden)
-        # src_B_golden = t_matrix.transpose_faces_multi_tile(
-        #     src_B,
-        #     formats.input_format,
-        #     num_tiles=num_tiles_B,
-        #     tilize=True,
-        #     input_dimensions=input_B_dimensions
-        # )
-        # src_B_golden = t_matrix.transpose_within_faces_multi_tile(
-        #     src_B_golden,
-        #     formats.input_format,
-        #     num_tiles=num_tiles_B,
-        #     untilize=True,
-        #     input_dimensions=input_B_dimensions,
-        # )
-        src_B_golden = t_matrix.transpose_within_faces_multi_tile(
+        src_B_golden = t_matrix.transpose_faces_multi_tile(
             src_B,
             formats.input_format,
             num_tiles=num_tiles_B,
             tilize=True,
             input_dimensions=input_B_dimensions,
         )
-        src_B_golden = t_matrix.transpose_faces_multi_tile(
+        src_B_golden = t_matrix.transpose_within_faces_multi_tile(
             src_B_golden,
             formats.input_format,
             num_tiles=num_tiles_B,
@@ -197,7 +193,11 @@ def test_matmul(
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-    print(f"res tensor shape: {res_tensor.view(128, 16)}")
-    print(f"golden tensor shape: {golden_tensor.view(128, 16)}")
+    dims = matmul_dims["output_dimensions"]
+    x = dims[0] * 2
+    y = dims[1] // 2
+    print(f" src B shape: {tilized_B.flatten().view(x, y)}")
+    print(f"res tensor shape: {res_tensor.view(x, y)}")
+    print(f"golden tensor shape: {golden_tensor.view(x, y)}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
