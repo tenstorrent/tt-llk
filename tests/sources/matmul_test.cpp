@@ -72,7 +72,7 @@ void run_kernel()
     std::uint32_t rt_dim = BLOCK_RT_DIM;
     std::uint32_t kt_dim = BLOCK_CT_DIM; // for square matrices, kt_dim == ct_dim
 
-    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, ct_dim, rt_dim, kt_dim);
+    _llk_math_matmul_init_<DstSync::SyncHalf, false, MATH_FIDELITY, DstTileFaceLayout::RowMajor>(false, 16, false, 4, 0, 0, 0, 0);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();

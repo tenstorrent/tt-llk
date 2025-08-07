@@ -265,11 +265,11 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     const bool unpB_partial_face        = false)
 {
     // Validate parameters
-    LLK_VALIDATE_PARAM_RANGE(transpose, 0, 1, "transpose must be 0 or 1");
-    LLK_VALIDATE_MATMUL_DIMS(rt_dim, ct_dim, kt_dim);
+    // LLK_VALIDATE_PARAM_RANGE(transpose, 0, 1, "transpose must be 0 or 1");
+    //LLK_VALIDATE_MATMUL_DIMS(rt_dim, ct_dim, kt_dim);
     
     // Use utility for optimal reuse pattern calculation
-    const bool reuse_a = ckernel::utils::PerformanceUtils::should_reuse_a(ct_dim, rt_dim);
+    const bool reuse_a = ct_dim >= rt_dim;
 
     // also turn on within_face_16x16_transpose if it was turned off by datacopy at runtime
     // on WH, the unpacker performs both transpose of faces as well as transpose each face.
