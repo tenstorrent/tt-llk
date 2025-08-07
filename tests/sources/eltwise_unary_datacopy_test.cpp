@@ -24,7 +24,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    if (!TILIZE)
+    if (!tilize_en)
     {
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             0, 0, FACE_R_DIM, num_faces, formats.unpack_src, formats.unpack_dst);
@@ -74,7 +74,8 @@ void run_kernel()
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, num_faces, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, tilize_en, is_int_fpu_en>(
+        0, 0, num_faces, formats.math);
 #else
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, num_faces, formats.math);
 #endif
@@ -84,7 +85,6 @@ void run_kernel()
     for (int i = 0; i < TILE_CNT; ++i)
     {
 #ifdef ARCH_BLACKHOLE
-        //_llk_math_wait_for_dest_available_<dest_sync>();
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math, num_faces);
 #else
@@ -106,8 +106,8 @@ void run_kernel()
 void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, num_faces);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, num_faces);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, tilize_en>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, num_faces);
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, tilize_en>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, num_faces);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, num_faces);
