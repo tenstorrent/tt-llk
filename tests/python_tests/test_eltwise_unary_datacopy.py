@@ -11,7 +11,7 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import DestAccumulation, DestSync, format_dict
 from helpers.format_config import DataFormat
-from helpers.golden_generators import DataCopyGolden, get_golden_generator
+from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -87,6 +87,7 @@ def unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync, tilize_en
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
+        "input_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
         "num_faces": num_faces,
