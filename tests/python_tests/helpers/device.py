@@ -201,11 +201,13 @@ def write_stimuli_to_l1(
 def write_buffer_data(
     core_loc, buffer_address, pack_function, buffer_tile, stimuli_format, num_faces=4
 ):
-    if stimuli_format == DataFormat.Bfp8_b:
-        packed_data = pack_function(buffer_tile, num_faces=num_faces)
-    else:
-        packed_data = pack_function(buffer_tile)
 
+    pack_func = lambda buffer_tile: (
+        pack_function(buffer_tile, num_faces=num_faces)
+        if stimuli_format == DataFormat.Bfp8_b
+        else pack_function(buffer_tile)
+    )
+    packed_data = pack_func(buffer_tile)
     write_to_device(core_loc, buffer_address, packed_data)
 
 
