@@ -164,7 +164,7 @@ def generate_build_header(
     # Dest synchronisation mode
     dest_sync = test_config.get("dest_sync", DestSync.Half)
     header_content.append(
-        f"constexpr ckernel::DstSync dest_sync = ckernel::DstSync::Sync{dest_sync.name};"
+        f"constexpr auto dest_sync = ckernel::DstSync::Sync{dest_sync.name};"
     )
 
     # Data format configuration
