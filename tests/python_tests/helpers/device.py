@@ -4,15 +4,16 @@
 import inspect
 import os
 import time
+from enum import Enum, IntEnum
 from pathlib import Path
 
 from ttexalens.coordinate import OnChipCoordinate
+from ttexalens.debug_tensix import TensixDebug
 from ttexalens.tt_exalens_lib import (
     check_context,
     load_elf,
     read_from_device,
     read_word_from_device,
-    run_elf,
     write_to_device,
     write_words_to_device,
 )
@@ -58,6 +59,19 @@ TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack) and
 KERNEL_COMPLETE = 1  # Kernel completed its run
 
 
+class BootMode(Enum):
+    BRSIC = "brisc"
+    TRISC = "trisc"
+    EXALENS = "exalens"
+
+
+class RiscCore(IntEnum):
+    BRISC = 11
+    TRISC0 = 12
+    TRISC1 = 13
+    TRISC2 = 14
+
+
 def collect_results(
     formats: FormatConfig,
     tile_count: int,
@@ -92,7 +106,48 @@ def perform_tensix_soft_reset(core_loc="0,0"):
     register_store.write_register("RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset)
 
 
-def run_elf_files(testname, core_loc="0,0"):
+def run_cores(cores: list[RiscCore], core_loc="0,0"):
+    context = check_context()
+    device = context.devices[0]
+    chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
+    noc_block = device.get_block(chip_coordinate)
+    register_store = noc_block.get_register_store()
+
+    core_mask = 0
+    for core in cores:
+        core_mask |= 1 << core.value
+
+    soft_reset = register_store.read_register("RISCV_DEBUG_REG_SOFT_RESET_0")
+    soft_reset &= ~core_mask
+    register_store.write_register("RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset)
+
+
+def exalens_device_setup(chip_arch, core_loc="0,0"):
+    context = check_context()
+    device = context.devices[0]
+    chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
+    noc_block = device.get_block(chip_coordinate)
+    register_store = noc_block.get_register_store()
+    debug_tensix = TensixDebug(chip_coordinate, 0, context)
+    ops = debug_tensix.device.instructions
+
+    if chip_arch == "blackhole":
+        register_store.write_register("RISCV_DEBUG_REG_DEST_CG_CTRL", 0)
+        debug_tensix.inject_instruction(ops.TT_OP_ZEROACC(3, 0, 0, 1, 0), 0)
+    else:
+        debug_tensix.inject_instruction(ops.TT_OP_ZEROACC(3, 0, 0), 0)
+
+    debug_tensix.inject_instruction(ops.TT_OP_SFPENCC(3, 0, 0, 10), 0)
+    debug_tensix.inject_instruction(ops.TT_OP_NOP(), 0)
+
+    debug_tensix.inject_instruction(ops.TT_OP_SFPCONFIG(0, 11, 1), 0)
+
+    debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 2), 0)
+    debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 7), 0)
+    debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
+
+
+def run_elf_files(testname, core_loc="0,0", boot_mode=BootMode.BRSIC):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
@@ -114,9 +169,20 @@ def run_elf_files(testname, core_loc="0,0"):
     TRISC_PROFILER_BARRIE_ADDRESS = 0x16AFF4
     write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
 
-    # Run BRISC
-    brisc_elf_path = BUILD_DIR / "shared" / "elf" / "brisc.elf"
-    run_elf(str(brisc_elf_path.absolute()), core_loc, risc_name="brisc")
+    match boot_mode:
+        case BootMode.BRSIC:
+            brisc_elf_path = BUILD_DIR / "shared" / "elf" / "brisc.elf"
+            load_elf(
+                elf_file=str(brisc_elf_path.absolute()),
+                core_loc=core_loc,
+                risc_name="brisc",
+            )
+            run_cores([RiscCore.BRISC], core_loc)
+        case BootMode.TRISC:
+            run_cores([RiscCore.TRISC0], core_loc)
+        case BootMode.EXALENS:
+            exalens_device_setup(CHIP_ARCH, core_loc)
+            run_cores([RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], core_loc)
 
 
 def write_stimuli_to_l1(
