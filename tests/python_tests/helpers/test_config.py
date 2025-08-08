@@ -52,7 +52,7 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
 def generate_build_header(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRSIC,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
     """
     Generate the contents of a C++ header file (build.h) with all configuration defines.
@@ -102,8 +102,8 @@ def generate_build_header(
     if profiler_build == ProfilerBuild.Yes:
         header_content.append("#define LLK_PROFILER")
 
-    if boot_mode == BootMode.BRSIC:
-        header_content.append("#define LLK_BOOT_MODE_BRSIC")
+    if boot_mode == BootMode.BRISC:
+        header_content.append("#define LLK_BOOT_MODE_BRISC")
     elif boot_mode == BootMode.TRISC:
         header_content.append("#define LLK_BOOT_MODE_TRISC")
 
@@ -297,7 +297,7 @@ def generate_build_header(
 def write_build_header(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRSIC,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
     header_content = generate_build_header(
         test_config, profiler_build, boot_mode=boot_mode
@@ -323,7 +323,7 @@ def generate_make_command(
 def build_test(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRSIC,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
     """Only builds the files required to run a test"""
 

@@ -60,7 +60,7 @@ KERNEL_COMPLETE = 1  # Kernel completed its run
 
 
 class BootMode(Enum):
-    BRSIC = "brisc"
+    BRISC = "brisc"
     TRISC = "trisc"
     EXALENS = "exalens"
 
@@ -147,7 +147,7 @@ def exalens_device_setup(chip_arch, core_loc="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, core_loc="0,0", boot_mode=BootMode.BRSIC):
+def run_elf_files(testname, core_loc="0,0", boot_mode=BootMode.BRISC):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
@@ -170,7 +170,7 @@ def run_elf_files(testname, core_loc="0,0", boot_mode=BootMode.BRSIC):
     write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
 
     match boot_mode:
-        case BootMode.BRSIC:
+        case BootMode.BRISC:
             brisc_elf_path = BUILD_DIR / "shared" / "elf" / "brisc.elf"
             load_elf(
                 elf_file=str(brisc_elf_path.absolute()),
