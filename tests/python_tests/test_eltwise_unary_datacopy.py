@@ -7,7 +7,7 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, format_dict
+from helpers.format_arg_mapping import DestAccumulation, DestSync, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, get_golden_generator
 from helpers.param_config import (
@@ -30,8 +30,10 @@ from helpers.utils import passed_test
         ]
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    num_faces=[1, 2, 4],
+    dest_sync=[DestSync.Half, DestSync.Full],
 )
-def test_unary_datacopy(test_name, formats, dest_acc):
+def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
 
     input_dimensions = [64, 64]
 
@@ -42,9 +44,17 @@ def test_unary_datacopy(test_name, formats, dest_acc):
     )
 
     generate_golden = get_golden_generator(DataCopyGolden)
-    golden_tensor = generate_golden(src_A, formats.output_format)
+    golden_tensor = generate_golden(
+        src_A, formats.output_format, num_faces, input_dimensions
+    )
+
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+        num_faces=num_faces,
     )
 
     unpack_to_dest = formats.input_format.is_32_bit()
@@ -55,11 +65,16 @@ def test_unary_datacopy(test_name, formats, dest_acc):
         "dest_acc": dest_acc,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
+        "num_faces": num_faces,
+        "dest_sync": dest_sync,
     }
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces
+    )
+
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]
