@@ -181,6 +181,10 @@ def generate_build_header(
         num_faces = test_config["num_faces"]
         header_content.append(f"constexpr std::uint32_t NUM_FACES = {num_faces};")
 
+    if "narrow_tile" in test_config:
+        narrow_tile = str(test_config["narrow_tile"]).lower()
+        header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
+
     # Math fidelity & Approximation mode
     header_content.append(
         f"constexpr std::uint32_t MATH_FIDELITY = {test_config.get('math_fidelity', MathFidelity.LoFi).value};"

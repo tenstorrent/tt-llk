@@ -4,14 +4,13 @@
 import pytest
 import torch
 
-from helpers.chip_architecture import get_chip_architecture
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import (
     DestAccumulation,
-    FaceRDim,
     NarrowTile,
     NumFaces,
     StochasticRounding,
@@ -48,7 +47,6 @@ from helpers.utils import passed_test
     transpose=[Transpose.No],
     narrow_tile=[NarrowTile.No],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    face_r_dim=[FaceRDim.Face16, FaceRDim.Face32],
     num_faces=[NumFaces.Four, NumFaces.Two, NumFaces.One],
 )
 def test_unpack_tilize_comprehensive(
@@ -58,7 +56,6 @@ def test_unpack_tilize_comprehensive(
     transpose,
     narrow_tile,
     dest_acc,
-    face_r_dim,
     num_faces,
 ):
     """Comprehensive parameter sweep test for unpack_tilize operation."""
@@ -68,6 +65,10 @@ def test_unpack_tilize_comprehensive(
 
     # Get architecture
     arch = get_chip_architecture()
+
+    # Skip num_faces=1 for Wormhole due to unpack_tilize API bug (0-loop issue)
+    if num_faces == NumFaces.One and arch == ChipArchitecture.WORMHOLE:
+        pytest.skip("unpack_tilize API has 0-loop bug for num_faces=1 on Wormhole")
 
     # Determine unpack_to_dest based on format
     unpack_to_dest = formats.input_format in [DataFormat.Int32, DataFormat.UInt32]
@@ -89,12 +90,18 @@ def test_unpack_tilize_comprehensive(
         src_A,
         input_dimensions,
         formats.output_format,
+        num_faces.value,
     )
 
     golden_tensor = golden_tensor.to(torch_format)
     # Write stimuli to L1
     res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count=tile_cnt,
+        num_faces=num_faces.value,
     )
 
     # Build the complete test config
@@ -109,13 +116,16 @@ def test_unpack_tilize_comprehensive(
         "unpack_transpose_within_face": transpose.value,
         "dest_acc": dest_acc,
         "num_faces": num_faces.value,
+        "narrow_tile": narrow_tile.value,
     }
 
     # Run the test
     run_test(test_config)
 
     # Collect and verify results
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces.value
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])

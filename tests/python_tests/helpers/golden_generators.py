@@ -831,8 +831,28 @@ class UntilizeGolden:
 
 @register_golden
 class TilizeGolden:
-    def __call__(self, operand, dimensions, data_format):
+    def __call__(self, operand, dimensions, data_format, num_faces=4):
+        from helpers.format_arg_mapping import format_dict
         from helpers.tilize_untilize import tilize_block
 
-        result = tilize_block(operand, dimensions, data_format)
-        return result.flatten()
+        # Always do full tilization first
+        result = tilize_block(
+            operand, dimensions, data_format, 4
+        )  # Always tilize 4 faces
+
+        # Then select the appropriate number of faces from the tilized result
+        if num_faces < 4:
+            torch_format = format_dict[data_format]
+            height, width = dimensions[0], dimensions[1]
+            tile_cnt = (height // 32) * (width // 32)
+            elements_per_face = 256  # 16x16
+            elements_per_tile_needed = elements_per_face * num_faces
+
+            # Reshape to tiles and select first N faces per tile
+            tilized_reshaped = result.view(
+                tile_cnt, 1024
+            )  # 1024 = 4 faces * 256 elements
+            selected = tilized_reshaped[:, :elements_per_tile_needed]
+            return selected.flatten().to(torch_format)
+        else:
+            return result.flatten()
