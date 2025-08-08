@@ -18,7 +18,7 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
-from helpers.chip_architecture import get_chip_architecture
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 
 from .format_arg_mapping import (
     DestAccumulation,
@@ -131,7 +131,7 @@ def exalens_device_setup(chip_arch, core_loc="0,0"):
     debug_tensix = TensixDebug(chip_coordinate, 0, context)
     ops = debug_tensix.device.instructions
 
-    if chip_arch == "blackhole":
+    if chip_arch == ChipArchitecture.BLACKHOLE:
         register_store.write_register("RISCV_DEBUG_REG_DEST_CG_CTRL", 0)
         debug_tensix.inject_instruction(ops.TT_OP_ZEROACC(3, 0, 0, 1, 0), 0)
     else:
