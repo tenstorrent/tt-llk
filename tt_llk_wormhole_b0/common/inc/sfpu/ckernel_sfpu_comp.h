@@ -326,70 +326,112 @@ inline void _calculate_zero_comp_int_()
 }
 
 template <SfpuType COMP_MODE>
-inline void apply_unary_comp_int(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar);
+inline void apply_unary_comp_int(const sfpi::vInt& v, const sfpi::vInt& scalar, sfpi::vInt& val);
 
+// a[i] != scalar
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_ne>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
+inline void apply_unary_comp_int<SfpuType::unary_ne>(const sfpi::vInt& v, const sfpi::vInt& scalar, sfpi::vInt& out_val)
 {
     v_if (v != scalar)
     {
-        val = ONE;
+        out_val = ONE;
     }
     v_endif;
 }
 
+// a[i] == scalar
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_eq>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
+inline void apply_unary_comp_int<SfpuType::unary_eq>(const sfpi::vInt& v, const sfpi::vInt& scalar, sfpi::vInt& out_val)
 {
     v_if (v == scalar)
     {
-        val = ONE;
+        out_val = ONE;
     }
     v_endif;
 }
 
+// a[i] > scalar
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_gt>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
+inline void apply_unary_comp_int<SfpuType::unary_gt>(const sfpi::vInt& v, const sfpi::vInt& scalar, sfpi::vInt& out_val)
 {
-    v_if (v > scalar)
+    v_if (v >= ZERO && scalar < ZERO)
     {
-        val = ONE;
+        out_val = ONE;
+    }
+    v_elseif (v < ZERO && scalar >= ZERO)
+    {
+        out_val = ZERO;
+    }
+    v_elseif (v > scalar)
+    {
+        out_val = ONE;
     }
     v_endif;
 }
 
+// a[i] < scalar
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_lt>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
+inline void apply_unary_comp_int<SfpuType::unary_lt>(const sfpi::vInt& v, const sfpi::vInt& scalar, sfpi::vInt& out_val)
 {
-    v_if (v < scalar)
+    v_if (v >= ZERO && scalar < ZERO)
     {
-        val = ONE;
+        out_val = ZERO;
+    }
+    v_elseif (v < ZERO && scalar >= ZERO)
+    {
+        out_val = ONE;
+    }
+    v_elseif (v < scalar)
+    {
+        out_val = ONE;
     }
     v_endif;
 }
 
+// a[i] >= scalar
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_ge>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
+inline void apply_unary_comp_int<SfpuType::unary_ge>(const sfpi::vInt& v, const sfpi::vInt& scalar, sfpi::vInt& out_val)
 {
-    v_if (v >= scalar)
+    v_if (v >= ZERO && scalar < ZERO)
     {
-        val = ONE;
+        out_val = ONE;
+    }
+    v_elseif (v < ZERO && scalar >= ZERO)
+    {
+        out_val = ZERO;
+    }
+    v_elseif (v >= scalar)
+    {
+        out_val = ONE;
     }
     v_endif;
 }
 
+// a[i] <= scalar
 template <>
-inline void apply_unary_comp_int<SfpuType::unary_le>(sfpi::vInt& val, const sfpi::vInt& v, const sfpi::vInt& scalar)
+inline void apply_unary_comp_int<SfpuType::unary_le>(const sfpi::vInt& v, const sfpi::vInt& scalar, sfpi::vInt& out_val)
 {
-    v_if (v <= scalar)
+    v_if (v < ZERO && scalar >= ZERO)
     {
-        val = ONE;
+        out_val = ONE;
+    }
+    v_elseif (v >= ZERO && scalar < ZERO)
+    {
+        out_val = ZERO;
+    }
+    v_elseif (v <= scalar)
+    {
+        out_val = ONE;
+    }
+    v_else
+    {
+        out_val = ZERO;
     }
     v_endif;
 }
 
 template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
-inline void _calculate_comp_unary_int_(int scalar)
+inline void _calculate_comp_unary_int_(uint scalar)
 {
     // Convert both operands to two's complement format
     //
@@ -408,7 +450,7 @@ inline void _calculate_comp_unary_int_(int scalar)
 
         v = sfpu_sign_mag_to_twos_comp(v);
 
-        apply_unary_comp_int<COMP_MODE>(val, v, converted_scalar);
+        apply_unary_comp_int<COMP_MODE>(v, converted_scalar, val);
 
         sfpi::dst_reg[0] = val;
         sfpi::dst_reg++;
@@ -505,7 +547,7 @@ inline void apply_unary_comp_float<SfpuType::unary_le>(sfpi::vFloat& val, const 
 template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_comp_unary_(uint value)
 {
-    sfpi::vFloat s = value;
+    sfpi::vFloat s = Converter::as_float(value);
 
 #pragma GCC unroll 8
     for (int d = ZERO; d < ITERATIONS; d++)
