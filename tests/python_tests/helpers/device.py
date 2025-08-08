@@ -66,11 +66,14 @@ def collect_results(
     address: int = 0x1C000,
     core_loc: str = "0,0",
     sfpu: bool = False,
+    num_faces: int = 4,
 ):
 
     read_bytes_cnt = format_tile_sizes[formats.output_format] * tile_count
     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
-    res_from_L1 = unpack_res_tiles(read_data, formats, tile_count=tile_count, sfpu=sfpu)
+    res_from_L1 = unpack_res_tiles(
+        read_data, formats, tile_count=tile_count, sfpu=sfpu, num_faces=num_faces
+    )
     return res_from_L1
 
 
@@ -121,6 +124,7 @@ def write_stimuli_to_l1(
     stimuli_B_format,
     core_loc="0,0",
     tile_count=1,
+    num_faces=4,
 ):
 
     TILE_ELEMENTS = 1024
@@ -171,13 +175,40 @@ def write_stimuli_to_l1(
         pack_function_A = packers.get(stimuli_A_format)
         pack_function_B = packers.get(stimuli_B_format)
 
-        write_to_device(core_loc, buffer_A_address, pack_function_A(buffer_A_tile))
-        write_to_device(core_loc, buffer_B_address, pack_function_B(buffer_B_tile))
+        write_buffer_data(
+            core_loc,
+            buffer_A_address,
+            pack_function_A,
+            buffer_A_tile,
+            stimuli_A_format,
+            num_faces,
+        )
+        write_buffer_data(
+            core_loc,
+            buffer_B_address,
+            pack_function_B,
+            buffer_B_tile,
+            stimuli_B_format,
+            num_faces,
+        )
 
         buffer_A_address += TILE_SIZE_A
         buffer_B_address += TILE_SIZE_B
 
     return result_buffer_address  # return address where result will be stored
+
+
+def write_buffer_data(
+    core_loc, buffer_address, pack_function, buffer_tile, stimuli_format, num_faces=4
+):
+
+    pack_func = lambda buffer_tile: (
+        pack_function(buffer_tile, num_faces=num_faces)
+        if stimuli_format == DataFormat.Bfp8_b
+        else pack_function(buffer_tile)
+    )
+    packed_data = pack_func(buffer_tile)
+    write_to_device(core_loc, buffer_address, packed_data)
 
 
 def get_result_from_device(

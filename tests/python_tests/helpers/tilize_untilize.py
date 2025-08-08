@@ -7,7 +7,9 @@ from .format_arg_mapping import format_dict
 from .format_config import DataFormat
 
 
-def tilize_block(input_tensor, dimensions, stimuli_format=DataFormat.Float16_b):
+def tilize_block(
+    input_tensor, dimensions, stimuli_format=DataFormat.Float16_b, num_faces=4
+):
     if input_tensor.numel() != dimensions[0] * dimensions[1]:
         raise ValueError(
             f"Cannot reshape tensor of size {input_tensor.numel()} to shape {dimensions}."
@@ -41,30 +43,53 @@ def tilize_block(input_tensor, dimensions, stimuli_format=DataFormat.Float16_b):
     flat_blocks = all_blocks.reshape(total_blocks, -1)
 
     tilized_blocks = torch.stack(
-        [tilize(block, stimuli_format=stimuli_format) for block in flat_blocks]
+        [
+            tilize(block, stimuli_format=stimuli_format, num_faces=num_faces)
+            for block in flat_blocks
+        ]
     )
 
     # Reshape tilized blocks back to original dimensions
+    # Note: For num_faces < 4, the output size will be smaller
+    elements_per_face = 256  # 16x16
+    elements_per_tile = elements_per_face * num_faces
+    expected_elements = total_blocks * elements_per_tile
+
     tilized_output = (
-        tilized_blocks.flatten().reshape(rows, cols).to(format_dict[stimuli_format])
+        tilized_blocks.flatten()[:expected_elements]
+        .reshape(total_blocks, elements_per_tile)
+        .to(format_dict[stimuli_format])
     )
 
     return tilized_output
 
 
-def tilize(original_tensor, stimuli_format=DataFormat.Float16_b):
+def tilize(original_tensor, stimuli_format=DataFormat.Float16_b, num_faces=4):
 
     if original_tensor.size(0) != 1024:
         raise ValueError("Input tensor must have 1024 elements.")
 
     matrix = original_tensor.view(32, 32)
 
+    # Extract all 4 faces
     f0 = matrix[:16, :16]
     f1 = matrix[:16, 16:32]
     f2 = matrix[16:32, :16]
     f3 = matrix[16:32, 16:32]
 
-    result = torch.cat((f0.reshape(-1), f1.reshape(-1), f2.reshape(-1), f3.reshape(-1)))
+    # Select faces based on num_faces parameter
+    if num_faces == 1:
+        result = f0.reshape(-1)
+    elif num_faces == 2:
+        result = torch.cat((f0.reshape(-1), f1.reshape(-1)))
+    elif num_faces == 4:
+        result = torch.cat(
+            (f0.reshape(-1), f1.reshape(-1), f2.reshape(-1), f3.reshape(-1))
+        )
+    else:
+        raise ValueError(
+            f"Unsupported num_faces value: {num_faces}. Supported values: 1, 2, 4"
+        )
 
     return result.to(dtype=format_dict[stimuli_format])
 
