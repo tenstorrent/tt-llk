@@ -191,7 +191,7 @@ inline void apply_zero_comp<SfpuType::less_than_equal_zero>(sfpi::vFloat& v, uin
     v_endif;
 }
 
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_zero_comp_(uint exponent_size_8)
 {
     for (int d = ZERO; d < ITERATIONS; d++)
@@ -290,7 +290,7 @@ inline void apply_zero_comp_int<SfpuType::greater_than_equal_zero>(sfpi::vInt& v
     v_endif;
 }
 
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_zero_comp_int_()
 {
     for (int d = ZERO; d < ITERATIONS; d++)
@@ -411,7 +411,7 @@ inline void apply_unary_int_comp<SfpuType::unary_le>(sfpi::vInt& v, int scalar, 
     v_endif;
 }
 
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_comp_unary_int_(int scalar)
 {
 #pragma GCC unroll 8
@@ -520,7 +520,7 @@ inline void apply_unary_float_comp<SfpuType::unary_le>(sfpi::vFloat v, sfpi::vFl
     v_endif;
 }
 
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS>
 inline void _calculate_comp_unary_(uint value)
 {
     const sfpi::vFloat s = value;
