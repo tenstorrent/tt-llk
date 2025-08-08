@@ -60,15 +60,19 @@ def test_unpack_tilize_comprehensive(
 ):
     """Comprehensive parameter sweep test for unpack_tilize operation."""
 
-    if formats.input_format == DataFormat.Bfp8_b:
-        pytest.skip("Unpack tilize does not support Bfp8_b")
-
     # Get architecture
     arch = get_chip_architecture()
 
-    # Skip num_faces=1 for Wormhole due to unpack_tilize API bug (0-loop issue)
+    # Skip num_faces=1 for Wormhole due to unpack_tilize API (0-loop issue)
     if num_faces == NumFaces.One and arch == ChipArchitecture.WORMHOLE:
         pytest.skip("unpack_tilize API has 0-loop bug for num_faces=1 on Wormhole")
+
+    # Skip BFP8_b format (input or output) for Blackhole
+    if (
+        formats.input_format == DataFormat.Bfp8_b
+        or formats.output_format == DataFormat.Bfp8_b
+    ) and arch == ChipArchitecture.BLACKHOLE:
+        pytest.skip("BFP8_b format not supported on Blackhole")
 
     # Determine unpack_to_dest based on format
     unpack_to_dest = formats.input_format in [DataFormat.Int32, DataFormat.UInt32]
