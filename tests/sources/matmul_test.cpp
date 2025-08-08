@@ -93,12 +93,23 @@ void run_kernel()
 
 void run_kernel()
 {
+    std::uint32_t tile_size = 128;
+
+    if constexpr (static_cast<DataFormat>(formats.pack_dst) == DataFormat::Bfp8_b)
+    {
+        tile_size = 68;
+    }
+    else if constexpr (static_cast<DataFormat>(formats.pack_dst) == DataFormat::Float32)
+    {
+        tile_size = 256;
+    }
+
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, tile_size);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, tile_size);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif

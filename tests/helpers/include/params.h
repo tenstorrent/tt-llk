@@ -52,6 +52,7 @@ constexpr FormatConfig formats     = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MAT
 #endif
 
 // Tile count validation - applies to all kernel variants (UNPACK, MATH, PACK)
+#if defined(RT_DIM) && defined(CT_DIM)
 constexpr uint32_t tile_count          = RT_DIM * CT_DIM;
 constexpr uint32_t max_tiles_fp32_dest = 4; // 32-bit dest accumulation limit
 constexpr uint32_t max_tiles_fp16_dest = 8; // 16-bit dest accumulation limit
@@ -63,3 +64,4 @@ static_assert(tile_count <= max_tiles_fp16_dest, "Tile count exceeds hardware li
 static_assert(
     !is_fp32_dest_acc_en || (tile_count <= max_tiles_fp32_dest),
     "FP32 dest accumulation requires RT_DIM * CT_DIM <= 4 (current configuration exceeds this limit)");
+#endif
