@@ -101,4 +101,5 @@ enum class SfpuType
     atanh,
     asinh,
     acosh,
+    rpow,
 };
