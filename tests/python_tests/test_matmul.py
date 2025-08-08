@@ -9,12 +9,12 @@ from helpers.device import (
 )
 from helpers.dimensions import (
     calculate_matmul_dimensions,
-    generate_matmul_dimension_combinations,
 )
-from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
+from helpers.format_arg_mapping import MathFidelity, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.param_config import (
+    generate_format_aware_matmul_combinations,
     input_output_formats,
     parametrize,
 )
@@ -23,36 +23,35 @@ from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
-# Generate all valid dimension combinations for both dest_acc modes
-# When 16-bit datums in dest can fit max 8 tiles and 4 tiles for 32-bit datums
-ALL_MATMUL_COMBINATIONS = [
-    (DestAccumulation.No, dims) for dims in generate_matmul_dimension_combinations(8)
-] + [(DestAccumulation.Yes, dims) for dims in generate_matmul_dimension_combinations(4)]
+# Generate format-aware combinations
+MATMUL_FORMATS = input_output_formats(
+    [
+        DataFormat.Float16_b,
+        DataFormat.Float16,
+        DataFormat.Float32,
+    ]
+)
+
+ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMATS)
 
 
 @parametrize(
     test_name="matmul_test",
-    formats=input_output_formats(
-        [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,
-        ]
-    ),
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
+    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-def test_matmul(test_name, formats, math_fidelity, dest_acc_and_dims):
-    torch_format = format_dict[formats.output_format]
+def test_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
+    torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
 
-    dest_acc = dest_acc_and_dims[0]
-    input_A_dimensions = dest_acc_and_dims[1][0]
-    input_B_dimensions = dest_acc_and_dims[1][1]
+    formats = format_dest_acc_and_dims[0]
+    dest_acc = format_dest_acc_and_dims[1]
+    input_A_dimensions = format_dest_acc_and_dims[2][0]
+    input_B_dimensions = format_dest_acc_and_dims[2][1]
 
     src_A, _, tile_cnt_A = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_A_dimensions
