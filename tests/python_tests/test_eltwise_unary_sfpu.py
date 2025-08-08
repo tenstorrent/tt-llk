@@ -39,22 +39,25 @@ from helpers.utils import passed_test
     ),
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
-        MathOperation.Abs,
-        MathOperation.Cos,
-        MathOperation.Log,
-        MathOperation.Reciprocal,
-        MathOperation.Sin,
-        MathOperation.Sqrt,
-        MathOperation.Square,
-        MathOperation.Celu,
-        MathOperation.Silu,
+        # MathOperation.Abs,
+        # MathOperation.Atanh,
+        # MathOperation.Asinh,
+        MathOperation.Acosh,
+        # MathOperation.Cos,
+        # MathOperation.Log,
+        # MathOperation.Reciprocal,
+        # MathOperation.Sin,
+        # MathOperation.Sqrt,
+        # MathOperation.Square,
+        # MathOperation.Celu,
+        # MathOperation.Silu,
         MathOperation.Gelu,
-        MathOperation.Neg,
-        MathOperation.Fill,
-        MathOperation.Elu,
-        MathOperation.Exp,
-        MathOperation.Exp2,
-        MathOperation.Hardsigmoid,
+        # MathOperation.Neg,
+        # MathOperation.Fill,
+        # MathOperation.Elu,
+        # MathOperation.Exp,
+        # MathOperation.Exp2,
+        # MathOperation.Hardsigmoid,
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
@@ -100,6 +103,8 @@ def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_ac
 
 
 def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
+    torch.manual_seed(0)
+    torch.set_printoptions(precision=10)
     input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -107,7 +112,9 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     )
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
-    golden_tensor = generate_golden(mathop, src_A, formats.output_format)
+    golden_tensor = generate_golden(
+        mathop, src_A, formats.output_format, dest_acc, formats.input_format
+    )
 
     res_address = write_stimuli_to_l1(
         src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt

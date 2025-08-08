@@ -2,132 +2,46 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_instr_params.h
- * @brief Parameter encoding definitions for Tensix hardware instructions
- *
- * @details This file provides comprehensive parameter encoding definitions for common
- * Tensix hardware instructions used in compute kernels. It contains hand-coded parameter
- * structures that define the bit-field encoding and semantic meaning of instruction
- * parameters, enabling type-safe and efficient instruction generation.
- *
- * **Parameter Encoding Architecture:**
- * Each instruction type has associated parameter structures that define:
- * - **Bit Field Layout**: Precise bit positions for each parameter component
- * - **Semantic Meaning**: Named constants for common parameter combinations
- * - **Type Safety**: Compile-time validation of parameter values
- * - **Hardware Mapping**: Direct correspondence to hardware instruction encoding
- *
- * **Core Instruction Categories:**
- * - **SETRWC**: Set Row/Column/Dimension parameters for matrix operations
- * - **SETIBRWC**: Set Index-Based Row/Column parameters with bias handling
- * - **Address Generation**: Memory addressing mode configuration
- * - **Data Movement**: Transfer parameter encoding for optimal throughput
- * - **Synchronization**: Semaphore and mutex parameter definitions
- *
- * **Encoding Benefits:**
- * - **Performance**: Direct bit-field encoding eliminates runtime computation
- * - **Safety**: Named constants prevent parameter encoding errors
- * - **Maintainability**: Centralized parameter definitions improve code clarity
- * - **Hardware Correspondence**: Direct mapping to actual instruction encoding
- *
- * **Usage Pattern:**
- * ```cpp
- * // Type-safe parameter encoding
- * TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
- * 
- * // Clear and set combinations
- * TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_ABD, 16, 8, 4, p_setrwc::SET_ABD_F);
- * ```
- *
- * **Hardware Integration:**
- * These parameter encodings map directly to Tensix hardware instruction formats:
- * - **Matrix Unit**: Row/column/dimension parameter encoding for linear algebra
- * - **Vector Unit**: Lane and element parameter configuration
- * - **Memory System**: Address generation and stride parameter encoding
- * - **Synchronization**: Thread coordination parameter definitions
- *
- * **Performance Characteristics:**
- * - **Zero Runtime Cost**: All encoding resolved at compile time
- * - **Optimal Instruction Generation**: Direct hardware bit-field mapping
- * - **Type Safety**: Compile-time parameter validation
- * - **Code Clarity**: Named constants improve readability and maintainability
- */
-
 #pragma once
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
-/**
- * @namespace ckernel
- * @brief Core kernel framework namespace containing instruction parameter definitions
- */
+
+// Hand-coded parameter encoding for various common instructions
 namespace ckernel
 {
 
-/**
- * @struct p_setrwc
- * @brief Parameter encoding for SETRWC (Set Row/Width/Column) instruction
- *
- * @details This structure provides named constants for encoding SETRWC instruction
- * parameters, which control matrix operation dimensions and register allocation.
- * The SETRWC instruction is fundamental for configuring matrix operations in the
- * Tensix architecture.
- *
- * **Parameter Categories:**
- * - **CLR_***: Clear (reset) specific register sets before operation
- * - **SET_***: Set (allocate) specific register sets for operation  
- * - **CR_***: Configure row/column parameters for matrix operations
- *
- * **Register Set Encoding:**
- * - **A**: Source A operand registers
- * - **B**: Source B operand registers
- * - **D**: Destination operand registers
- * - **F**: Special function/format registers
- *
- * **Usage Examples:**
- * ```cpp
- * // Clear nothing, set D register, configure for D operations
- * TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
- * 
- * // Clear A and B, set all registers with format support
- * TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_ABD, 16, 8, 4, p_setrwc::SET_ABD_F);
- * ```
- */
 struct p_setrwc
 {
-    // Clear parameter encodings
-    constexpr static uint CLR_A    = 0x1; ///< Clear A register set
-    constexpr static uint CLR_B    = 0x2; ///< Clear B register set  
-    constexpr static uint CLR_AB   = 0x3; ///< Clear both A and B register sets
-    constexpr static uint CLR_NONE = 0x0; ///< Clear no register sets
+    constexpr static uint CLR_A    = 0x1;
+    constexpr static uint CLR_B    = 0x2;
+    constexpr static uint CLR_AB   = 0x3;
+    constexpr static uint CLR_NONE = 0x0;
 
-    // Set parameter encodings  
-    constexpr static uint SET_A     = 0x1; ///< Set A register set
-    constexpr static uint SET_B     = 0x2; ///< Set B register set
-    constexpr static uint SET_AB    = 0x3; ///< Set A and B register sets
-    constexpr static uint SET_D     = 0x4; ///< Set D (destination) register set
-    constexpr static uint SET_AD    = 0x5; ///< Set A and D register sets
-    constexpr static uint SET_BD    = 0x6; ///< Set B and D register sets
-    constexpr static uint SET_ABD   = 0x7; ///< Set A, B, and D register sets
-    constexpr static uint SET_F     = 0x8; ///< Set format/function registers
-    constexpr static uint SET_A_F   = 0x9; ///< Set A and format registers
-    constexpr static uint SET_B_F   = 0xa; ///< Set B and format registers
-    constexpr static uint SET_AB_F  = 0xb; ///< Set A, B, and format registers
-    constexpr static uint SET_D_F   = 0xc; ///< Set D and format registers
-    constexpr static uint SET_AD_F  = 0xd; ///< Set A, D, and format registers
-    constexpr static uint SET_BD_F  = 0xe; ///< Set B, D, and format registers
-    constexpr static uint SET_ABD_F = 0xf; ///< Set A, B, D, and format registers
+    constexpr static uint SET_A     = 0x1;
+    constexpr static uint SET_B     = 0x2;
+    constexpr static uint SET_AB    = 0x3;
+    constexpr static uint SET_D     = 0x4;
+    constexpr static uint SET_AD    = 0x5;
+    constexpr static uint SET_BD    = 0x6;
+    constexpr static uint SET_ABD   = 0x7;
+    constexpr static uint SET_F     = 0x8;
+    constexpr static uint SET_A_F   = 0x9;
+    constexpr static uint SET_B_F   = 0xa;
+    constexpr static uint SET_AB_F  = 0xb;
+    constexpr static uint SET_D_F   = 0xc;
+    constexpr static uint SET_AD_F  = 0xd;
+    constexpr static uint SET_BD_F  = 0xe;
+    constexpr static uint SET_ABD_F = 0xf;
 
-    // Column/Row configuration encodings
-    constexpr static uint CR_A         = 0x1; ///< Configure for A operand operations
-    constexpr static uint CR_B         = 0x2; ///< Configure for B operand operations
-    constexpr static uint CR_AB        = 0x3; ///< Configure for A and B operand operations
-    constexpr static uint CR_D         = 0x4; ///< Configure for D (destination) operations
-    constexpr static uint CR_AD        = 0x5; ///< Configure for A and D operations
-    constexpr static uint CR_BD        = 0x6; ///< Configure for B and D operations
-    constexpr static uint CR_ABD       = 0x7; ///< Configure for A, B, and D operations
-    constexpr static uint C_TO_CR_MODE = 0x8; ///< Special column-to-row conversion mode
+    constexpr static uint CR_A         = 0x1;
+    constexpr static uint CR_B         = 0x2;
+    constexpr static uint CR_AB        = 0x3;
+    constexpr static uint CR_D         = 0x4;
+    constexpr static uint CR_AD        = 0x5;
+    constexpr static uint CR_BD        = 0x6;
+    constexpr static uint CR_ABD       = 0x7;
+    constexpr static uint C_TO_CR_MODE = 0x8;
 };
 
 struct p_setibrwc

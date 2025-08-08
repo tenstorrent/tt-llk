@@ -2,44 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_relu.h
- * @brief ReLU (Rectified Linear Unit) activation function implementation for SFPU
- *
- * @details This file implements the ReLU activation function family using SFPU hardware
- * acceleration. ReLU is one of the most commonly used activation functions in neural
- * networks due to its computational simplicity and effectiveness in addressing the
- * vanishing gradient problem.
- *
- * **Mathematical Definition:**
- * - **ReLU**: f(x) = max(0, x) = x if x > 0, else 0
- * - **ReLU with Max**: f(x) = min(max(0, x), max_val) for bounded activation
- *
- * **SFPU Implementation:**
- * The implementation leverages SFPU's conditional execution capabilities:
- * 1. **Vector Comparison**: Compare input against zero using `v_if`
- * 2. **Conditional Assignment**: Set output to input or zero based on condition
- * 3. **Optional Clamping**: Apply upper bound using min operation for ReLU with max
- *
- * **Hardware Optimization:**
- * - Uses SFPU conditional execution (`v_if`/`v_endif`) for branch-free computation
- * - Processes 32 values simultaneously using SIMD vector operations
- * - Minimal instruction count for maximum throughput
- * - IEEE-754 compliant handling of special values (NaN, infinity)
- *
- * **Performance Characteristics:**
- * - **Latency**: 1-2 cycles per tile depending on variant
- * - **Throughput**: 32 elements processed per cycle
- * - **Memory**: No lookup tables required - pure computational approach
- * - **Precision**: Full FP32/FP16 precision maintained
- *
- * **Common Use Cases:**
- * - Neural network activation layers
- * - Computer vision models (CNNs)
- * - Deep learning inference and training
- * - Sparse activation pattern generation
- */
-
 #pragma once
 
 #include "ckernel_sfpu_converter.h"

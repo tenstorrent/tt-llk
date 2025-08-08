@@ -2,56 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_max_int32.h
- * @brief 32-bit integer maximum operation for SFPU hardware
- *
- * @details This file implements element-wise maximum operation on 32-bit integers
- * using SFPU hardware acceleration. The implementation handles integer comparison
- * and selection operations optimized for 32-lane SIMD processing with proper
- * integer format handling.
- *
- * **Mathematical Operation:**
- * - **Integer Maximum**: result = max(a, b) for 32-bit integers
- * - **Element-wise**: Independent maximum computation across SIMD lanes
- * - **Sign Handling**: Proper signed integer comparison semantics
- * - **Format Support**: Configurable integer representation modes
- *
- * **Integer Format Handling:**
- * - **Target Format**: INT32 two's complement for logical operations
- * - **Hardware Limitation**: Blackhole architecture limitation note:
- *   - Instruction modifier attempts two's complement mode
- *   - Hardware actually maintains sign-magnitude representation
- *   - Implementation accommodates this architectural constraint
- *
- * **SFPU Implementation:**
- * 1. **Input Loading**: Load integer operands with format-specific handling
- * 2. **Comparison**: Use SFPU comparison instructions for integer values
- * 3. **Selection**: Conditional assignment based on comparison results
- * 4. **Result Storage**: Store maximum values with proper integer format
- *
- * **Template Parameters:**
- * - **APPROXIMATION_MODE**: Precision control (not applicable for exact integer ops)
- * - **ITERATIONS**: Number of tiles to process in batched operation
- *
- * **Architecture Notes:**
- * - **Blackhole Specifics**: Integer format behavior differs from instruction intent
- * - **Sign-Magnitude Reality**: Actual hardware uses sign-magnitude despite modifiers
- * - **Compatibility**: Implementation handles format discrepancies transparently
- *
- * **Performance Characteristics:**
- * - **Latency**: 3-4 cycles per tile
- * - **Throughput**: 32 integer comparisons per cycle
- * - **Precision**: Exact integer comparison and selection
- * - **Resource Usage**: Efficient SFPU conditional execution
- *
- * **Use Cases:**
- * - Neural network quantized maximum pooling
- * - Integer array maximum finding
- * - Bounding computation for integer data
- * - Clipping operations for integer ranges
- */
-
 #pragma once
 
 #include "ckernel_addrmod.h"

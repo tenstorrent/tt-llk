@@ -2,66 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_typecast.h
- * @brief Type casting and format conversion operations for SFPU hardware
- *
- * @details This file implements comprehensive type casting and format conversion
- * operations using SFPU hardware acceleration. These operations enable efficient
- * conversion between different numerical representations, supporting the complex
- * data type requirements of modern neural networks and mixed-precision computation.
- *
- * **Supported Type Conversions:**
- * - **Floating-Point Precision**: FP32 ↔ FP16A ↔ FP16B ↔ BF16
- * - **Float to Integer**: FP32/FP16 → INT32/INT16/INT8/UINT16
- * - **Integer to Float**: INT32/INT16/INT8 → FP32/FP16
- * - **Integer Width Changes**: INT32 ↔ INT16 ↔ INT8 with sign handling
- * - **Signed/Unsigned**: Conversion between signed and unsigned integer types
- *
- * **Format Conversion Features:**
- * - **Precision Conversion**: Automatic precision adjustment with proper rounding
- * - **Range Validation**: Overflow/underflow detection and saturation handling
- * - **Sign Preservation**: Correct sign handling across format boundaries
- * - **Special Value Handling**: IEEE-754 compliant NaN, infinity, and zero handling
- *
- * **Key Conversion Functions:**
- * - **_calculate_typecast_fp16b_to_uint16_()**: FP16B to unsigned 16-bit integer
- * - **Float to Integer Casts**: Various floating-point to integer conversions
- * - **Integer Precision Changes**: Width-changing integer conversions
- * - **Format-Specific Utilities**: Specialized conversion for each format pair
- *
- * **SFPU Implementation Strategy:**
- * 1. **Format Analysis**: Determine source and target format characteristics
- * 2. **Range Validation**: Check for overflow/underflow conditions
- * 3. **Precision Adjustment**: Apply appropriate rounding for precision changes
- * 4. **Bit Manipulation**: Use SFPU bit manipulation for format conversion
- * 5. **Special Cases**: Handle edge cases (NaN, infinity, zero) appropriately
- * 6. **Result Generation**: Produce properly formatted output
- *
- * **Rounding and Saturation:**
- * - **IEEE-754 Rounding**: Standard rounding modes for floating-point conversion
- * - **Saturation Logic**: Clamp out-of-range values to target format limits
- * - **Precision Loss Handling**: Optimal truncation for precision reduction
- * - **Underflow Treatment**: Proper handling of values too small for target format
- *
- * **Template Parameters:**
- * - **APPROXIMATION_MODE**: Precision control for conversion algorithms
- * - **ITERATIONS**: Number of tiles to process in batched operation
- *
- * **Performance Characteristics:**
- * - **Latency**: 3-6 cycles per tile depending on conversion complexity
- * - **Throughput**: 32 type conversions per cycle
- * - **Accuracy**: Format-appropriate precision with minimal loss
- * - **Range Support**: Full format range with proper saturation
- *
- * **Use Cases:**
- * - Mixed-precision neural network training and inference
- * - Model quantization and compression
- * - Data pipeline format standardization
- * - Memory bandwidth optimization through precision reduction
- * - Legacy format compatibility in numerical applications
- */
-
 #pragma once
 
 #include <limits>

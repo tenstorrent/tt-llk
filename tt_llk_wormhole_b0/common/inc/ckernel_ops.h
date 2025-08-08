@@ -2,98 +2,167 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_ops.h
+ * @brief Tensix Hardware Instruction Generation Macros for Wormhole B0
+ *
+ * **AUTO-GENERATED FILE - DO NOT MODIFY DIRECTLY**
+ *
+ * This header contains the complete instruction set architecture (ISA) for
+ * Wormhole B0 Tensix cores, providing low-level instruction generation macros
+ * for every hardware operation. These macros form the foundation of the TT-LLK
+ * (Tenstorrent Low-Level Kernel) system.
+ *
+ * @author Tenstorrent AI ULC (Auto-generated)
+ * @version 1.0
+ * @date 2025
+ * @warning This file is auto-generated. Manual modifications will be lost.
+ *
+ * # Instruction Architecture
+ *
+ * Each Tensix instruction follows a consistent 32-bit encoding with an 8-bit
+ * opcode in the upper bits and instruction-specific parameters in the lower 24 bits.
+ *
+ * ## Macro Naming Convention
+ *
+ * For each instruction `XXXXX`, four related macros are provided:
+ *
+ * 1. **`TT_OP_XXXXX(params)`** - Raw instruction generation
+ *    - Generates the 32-bit instruction word
+ *    - Returns encoded instruction value
+ *    - Used for manual instruction buffer management
+ *
+ * 2. **`TT_XXXXX_VALID(params)`** - Parameter validation
+ *    - Validates all parameters fit within their bit fields
+ *    - Returns boolean result of validation
+ *    - Used for debugging and safety checks
+ *
+ * 3. **`TT_XXXXX(params)`** - Buffer instruction storage
+ *    - Stores instruction in `ckernel::instrn_buffer[0]`
+ *    - Used for MOP (Micro-Operation) programming
+ *    - Most common variant for template systems
+ *
+ * 4. **`TTI_XXXXX(params)`** - Inline instruction execution
+ *    - Directly inserts instruction into execution stream
+ *    - Uses `INSTRUCTION_WORD()` for immediate execution
+ *    - Used for direct hardware control
+ *
+ * # Usage Examples
+ *
+ * ```cpp
+ * #include "ckernel_ops.h"
+ *
+ * // Validate parameters before use
+ * if (TT_UNPACR_VALID(src, zmask, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1)) {
+ *     // Store in instruction buffer for MOP
+ *     TT_UNPACR(src, zmask, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+ *
+ *     // Or execute immediately
+ *     TTI_UNPACR(src, zmask, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+ *
+ *     // Or get raw instruction
+ *     uint32_t instr = TT_OP_UNPACR(src, zmask, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+ * }
+ * ```
+ *
+ * # Instruction Categories
+ *
+ * The instruction set covers all major Tensix hardware operations:
+ *
+ * - **Data Movement**: UNPACR, PACR, MOVB2D, MOVD2B
+ * - **Address Management**: SETADC, INCADC, ADDRCR, CLEARDVALID
+ * - **Mathematical Operations**: POOL, MATMUL, ELWADD, ELWMUL
+ * - **Configuration**: WRCFG, SETDMAREG, CFG contexts
+ * - **Synchronization**: STALLWAIT, SEMGET, SEMPOST, SEMINIT
+ * - **Special Functions**: SFPU operations, atomic operations
+ * - **Debug and Control**: NOP, ATGETM, ATRELM
+ *
+ * # Hardware Safety
+ *
+ * @warning These macros generate direct hardware instructions. Incorrect usage
+ *          can cause hardware lockups, data corruption, or system instability.
+ *
+ * @note Always use validation macros in debug builds to ensure parameter correctness.
+ *
+ * @performance Instruction generation is compile-time when parameters are constants,
+ *              providing zero runtime overhead for most use cases.
+ *
+ * @see ckernel.h for core infrastructure
+ * @see ckernel_template.h for MOP programming systems
+ * @see tensix.h for hardware register definitions
+ */
+
 //
 // Auto-generated file, do not modify!
 //
 
-/**
- * @file ckernel_ops.h
- * @brief Complete Tensix Instruction Set Architecture (ISA) for Wormhole B0
- * 
- * @details This auto-generated header provides the complete Tensix ISA implementation
- * for Wormhole B0, containing all instruction macros for direct hardware control.
- * The Tensix ISA is a custom instruction set optimized for high-throughput tensor
- * operations, executed by the 3-thread Tensix engine within the Wormhole B0 core.
- * 
- * **Wormhole B0 Tensix Engine Architecture:**
- * The Tensix engine is a multi-threaded, single-issue, in-order processor with:
- * - **3 Hardware Threads**: Thread 0 (Unpack), Thread 1 (Math), Thread 2 (Pack)
- * - **5 RISC-V Controllers**: 3 TRISC + 1 BRISC + 1 NRISC processors
- * - **Custom ISA**: Optimized for AI workload patterns and data movement
- * - **Hardware Acceleration**: 2048 multipliers, specialized EXUs, SFPU units
- * - **Memory Subsystem**: L1 SRAM, register files, sophisticated address generation
- * 
- * **Instruction Categories:**
- * - **Compute Instructions**: Matrix operations, elementwise operations, SFPU functions
- * - **Data Movement**: Unpacker, packer, register file transfers, L1 access
- * - **Address Management**: Counter manipulation, stride control, carriage return
- * - **Synchronization**: Semaphores, mutexes, barriers, thread coordination
- * - **Configuration**: CFG register access, mode switching, context management
- * - **Control Flow**: Conditional execution, loops, barriers, stall management
- * 
- * **Instruction Formats:**
- * Two primary instruction invocation methods:
- * 
- * **TTI_* Macros (Compile-Time Constants):**
- * ```cpp
- * TTI_MVMUL(0, 0, 0, 0, 0, 0);  // Embedded as 32-bit immediate in binary
- * ```
- * - **Faster Execution**: Instructions embedded directly in TRISC instruction stream
- * - **Requirement**: All parameters must be compile-time constants
- * - **Use Case**: Performance-critical code with known parameters
- * 
- * **TT_* Macros (Dynamic Construction):**
- * ```cpp
- * TT_MVMUL(dst_reg, src_a_reg, src_b_reg, transpose, acc_en, addr_mode);
- * ```
- * - **Runtime Flexibility**: Parameters can be variables or expressions
- * - **Implementation**: Generates shifts, ANDs, ORs to construct 32-bit instruction
- * - **Use Case**: Dynamic algorithms with variable parameters
- * 
- * **Hardware Integration:**
- * - **TRISC Native Recognition**: TRISC cores recognize Tensix instructions natively
- * - **MMIO Translation**: Instructions translate to MMIO stores to Tensix instruction buffers
- * - **Instruction Buffers**: Per-thread buffers queue instructions for execution
- * - **Execution Pipeline**: Instructions flow through EXU-specific pipelines
- * 
- * **Performance Optimization Features:**
- * - **MOP (Macro Operations)**: Hardware loops for instruction sequence acceleration
- * - **REPLAY Instructions**: Instruction buffer caching for repeated sequences (max 32)
- * - **Pipeline Efficiency**: Instruction issue rate decoupled from TRISC execution
- * - **EXU Specialization**: Dedicated execution units for different operation types
- * 
- * **EXU (Execution Unit) Categories:**
- * - **THCON**: General compute, GPR access, L1 loads/stores, atomics
- * - **COMPUTE**: Matrix operations, SFPU, register file management
- * - **UNPACK**: Data unpacking, format conversion, L1→registers
- * - **PACK**: Data packing, format conversion, registers→L1
- * - **CFG**: Configuration register access, mode switching
- * - **SYNC**: Semaphores, mutexes, barriers, synchronization primitives
- * 
- * **Wormhole B0 Specific Features:**
- * - **2048 Hardware Multipliers**: 5×7 bit multipliers for AI acceleration
- * - **32-Lane SFPU**: 8 instances × 4 lanes for special function processing
- * - **Dual Configuration States**: Dynamic switching between CFG State 0 and 1
- * - **Advanced Address Generation**: X,Y,Z counters with carriage return functionality
- * - **Multi-Format Support**: FP32/16, BF16, TF32, INT8/16/32, BFP2/4/8
- * 
- * **Programming Model Integration:**
- * This ISA integrates with the broader Wormhole B0 programming model:
- * - **Thread Coordination**: Instructions coordinate 3-thread pipeline execution
- * - **Memory Hierarchy**: Optimized for L1 SRAM and register file architecture
- * - **Synchronization**: Hardware primitives for efficient inter-thread communication
- * - **Performance**: Designed for sustained high utilization of 2048 multipliers
- * 
- * @warning This file is auto-generated from assembly.yaml - do not modify manually
- * @note All instruction parameters are validated for bit-width compatibility
- * @see ckernel.h for higher-level kernel programming abstractions
- * @see assembly.yaml for detailed instruction specifications and bit field definitions
- */
-
 #pragma once
 
+/**
+ * @defgroup CoreInstructionMacros Core Instruction Generation Infrastructure
+ * @brief Fundamental macros for Tensix instruction encoding and execution
+ * @{
+ */
+
+/**
+ * @brief Core instruction encoding macro
+ *
+ * Combines an 8-bit opcode with 24-bit parameter field to create a complete
+ * 32-bit Tensix instruction word. This is the foundation macro used by all
+ * instruction generation macros.
+ *
+ * @param opcode 8-bit instruction opcode (defines operation type)
+ * @param params 24-bit parameter field (instruction-specific parameters)
+ * @return 32-bit encoded instruction word
+ *
+ * @note The opcode occupies bits [31:24], parameters occupy bits [23:0]
+ *
+ * @code
+ * // Generate a NOP instruction (opcode 0x01, no parameters)
+ * uint32_t nop_instr = TT_OP(0x01, 0);
+ * @endcode
+ */
 #define TT_OP(opcode, params) ((opcode << 24) + params)
-#define INSTRUCTION_WORD(x)   __asm__ __volatile__(".ttinsn %0" : : "i"((x))) // Swizzle 32 bits into the instruction stream.
+
+/**
+ * @brief Inline instruction word insertion
+ *
+ * Directly inserts a 32-bit instruction word into the execution stream using
+ * inline assembly. This bypasses instruction buffering and executes immediately.
+ *
+ * @param x 32-bit instruction word to execute
+ *
+ * @warning This executes instructions immediately without buffering or validation.
+ *          Use with extreme caution as incorrect instructions can hang hardware.
+ *
+ * @note Uses GCC inline assembly with `.ttinsn` directive for Tensix cores
+ *
+ * @code
+ * // Execute a NOP instruction immediately
+ * INSTRUCTION_WORD(TT_OP(0x01, 0));
+ * @endcode
+ */
+#define INSTRUCTION_WORD(x) __asm__ __volatile__(".ttinsn %0" : : "i"((x))) // Swizzle 32 bits into the instruction stream.
+
+/** @} */ // end of CoreInstructionMacros group
+
+/**
+ * @defgroup InstructionSetArchitecture Tensix Instruction Set Architecture
+ * @brief Complete Wormhole B0 Tensix instruction set with generation macros
+ *
+ * The following sections contain auto-generated instruction macros organized by
+ * functional category. Each instruction follows the four-macro pattern described
+ * in the file header.
+ *
+ * @note Instructions are listed alphabetically within each category
+ * @{
+ */
+
+/**
+ * @defgroup AddressManagement Address and DMA Management Instructions
+ * @brief Instructions for address generation, DMA control, and memory management
+ * @{
+ */
 
 #define TT_OP_ADDDMAREG(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
     TT_OP(0x58, (((OpBisConst) << 23) + ((ResultRegIndex) << 12) + ((OpBRegIndex) << 6) + ((OpARegIndex) << 0)))
@@ -120,6 +189,14 @@
 #define TT_ADDRCRZW(CntSetMask, Ch1_Y, Ch1_X, Ch0_Y, Ch0_X, BitMask)  ckernel::instrn_buffer[0] = TT_OP_ADDRCRZW(CntSetMask, Ch1_Y, Ch1_X, Ch0_Y, Ch0_X, BitMask)
 #define TTI_ADDRCRZW(CntSetMask, Ch1_Y, Ch1_X, Ch0_Y, Ch0_X, BitMask) INSTRUCTION_WORD(TT_OP_ADDRCRZW(CntSetMask, Ch1_Y, Ch1_X, Ch0_Y, Ch0_X, BitMask))
 
+/** @} */ // end of AddressManagement group
+
+/**
+ * @defgroup PoolingOperations Pooling and Convolution Instructions
+ * @brief Instructions for pooling operations and convolution processing
+ * @{
+ */
+
 #define TT_OP_APOOL3S1(clear_dvalid, addr_mode, index_en, dst) TT_OP(0x25, (((clear_dvalid) << 22) + ((addr_mode) << 15) + ((index_en) << 14) + ((dst) << 0)))
 #define TT_APOOL3S1_VALID(clear_dvalid, addr_mode, index_en, dst) \
     (ckernel::is_valid(clear_dvalid, 2) && ckernel::is_valid(addr_mode, 7) && ckernel::is_valid(index_en, 1) && ckernel::is_valid(dst, 14))
@@ -131,6 +208,14 @@
     (ckernel::is_valid(clear_dvalid, 2) && ckernel::is_valid(addr_mode, 7) && ckernel::is_valid(index_en, 1) && ckernel::is_valid(dst, 14))
 #define TT_APOOL3S2(clear_dvalid, addr_mode, index_en, dst)  ckernel::instrn_buffer[0] = TT_OP_APOOL3S2(clear_dvalid, addr_mode, index_en, dst)
 #define TTI_APOOL3S2(clear_dvalid, addr_mode, index_en, dst) INSTRUCTION_WORD(TT_OP_APOOL3S2(clear_dvalid, addr_mode, index_en, dst))
+
+/** @} */ // end of PoolingOperations group
+
+/**
+ * @defgroup AtomicOperations Atomic Memory Operations and Synchronization
+ * @brief Instructions for atomic memory operations, mutex control, and synchronization
+ * @{
+ */
 
 #define TT_OP_ATCAS(MemHierSel, SwapVal, CmpVal, Sel32b, DataRegIndex, AddrRegIndex) \
     TT_OP(0x64, (((MemHierSel) << 23) + ((SwapVal) << 18) + ((CmpVal) << 14) + ((Sel32b) << 12) + ((DataRegIndex) << 6) + ((AddrRegIndex) << 0)))
@@ -225,6 +310,12 @@
 
 #define TT_OP_DMANOP TT_OP(0x60, 0)
 #define TTI_DMANOP   INSTRUCTION_WORD(TT_OP_DMANOP)
+
+/**
+ * @defgroup MathematicalOperations Mathematical and Compute Instructions
+ * @brief Instructions for mathematical operations, matrix multiplication, and element-wise operations
+ * @{
+ */
 
 #define TT_OP_DOTPV(clear_dvalid, dest_accum_en, instr_mod19, addr_mode, dst) \
     TT_OP(0x29, (((clear_dvalid) << 22) + ((dest_accum_en) << 21) + ((instr_mod19) << 19) + ((addr_mode) << 15) + ((dst) << 0)))
@@ -341,6 +432,14 @@
     (ckernel::is_valid(clear_dvalid, 2) && ckernel::is_valid(rotate_weights, 5) && ckernel::is_valid(addr_mode, 2) && ckernel::is_valid(dst, 15))
 #define TT_MFCONV3S1(clear_dvalid, rotate_weights, addr_mode, dst)  ckernel::instrn_buffer[0] = TT_OP_MFCONV3S1(clear_dvalid, rotate_weights, addr_mode, dst)
 #define TTI_MFCONV3S1(clear_dvalid, rotate_weights, addr_mode, dst) INSTRUCTION_WORD(TT_OP_MFCONV3S1(clear_dvalid, rotate_weights, addr_mode, dst))
+
+/** @} */ // end of MathematicalOperations group
+
+/**
+ * @defgroup MOPOperations Micro-Operation (MOP) Programming Instructions
+ * @brief Instructions for MOP template programming and execution control
+ * @{
+ */
 
 #define TT_OP_MOP(mop_type, loop_count, zmask_lo16)    TT_OP(0x01, (((mop_type) << 23) + ((loop_count) << 16) + ((zmask_lo16) << 0)))
 #define TT_MOP_VALID(mop_type, loop_count, zmask_lo16) (ckernel::is_valid(mop_type, 1) && ckernel::is_valid(loop_count, 7) && ckernel::is_valid(zmask_lo16, 16))
@@ -606,6 +705,12 @@
 #define TT_SETRWC(clear_ab_vld, rwc_cr, rwc_d, rwc_b, rwc_a, BitMask) \
     ckernel::instrn_buffer[0] = TT_OP_SETRWC(clear_ab_vld, rwc_cr, rwc_d, rwc_b, rwc_a, BitMask)
 #define TTI_SETRWC(clear_ab_vld, rwc_cr, rwc_d, rwc_b, rwc_a, BitMask) INSTRUCTION_WORD(TT_OP_SETRWC(clear_ab_vld, rwc_cr, rwc_d, rwc_b, rwc_a, BitMask))
+
+/**
+ * @defgroup SFPUOperations Special Function Processing Unit (SFPU) Instructions
+ * @brief Instructions for SFPU mathematical operations and special functions
+ * @{
+ */
 
 #define TT_OP_SFPABS(imm12_math, lreg_c, lreg_dest, instr_mod1) TT_OP(0x7d, (((imm12_math) << 12) + ((lreg_c) << 8) + ((lreg_dest) << 4) + ((instr_mod1) << 0)))
 #define TT_SFPABS_VALID(imm12_math, lreg_c, lreg_dest, instr_mod1) \
@@ -931,6 +1036,14 @@
 #define TT_OP_TRNSPSRCB TT_OP(0x16, 0)
 #define TTI_TRNSPSRCB   INSTRUCTION_WORD(TT_OP_TRNSPSRCB)
 
+/** @} */ // end of SFPUOperations group
+
+/**
+ * @defgroup DataMovementOperations Data Movement and Unpack/Pack Instructions
+ * @brief Instructions for data movement, unpacking, packing, and memory operations
+ * @{
+ */
+
 #define TT_OP_UNPACR(                                                                                                                              \
     Unpack_block_selection,                                                                                                                        \
     AddrMode,                                                                                                                                      \
@@ -1050,3 +1163,7 @@
     (ckernel::is_valid(zero_val, 20) && ckernel::is_valid(write_mode, 1) && ckernel::is_valid(bank_mask, 1) && ckernel::is_valid(src_mask, 2))
 #define TT_ZEROSRC(zero_val, write_mode, bank_mask, src_mask)  ckernel::instrn_buffer[0] = TT_OP_ZEROSRC(zero_val, write_mode, bank_mask, src_mask)
 #define TTI_ZEROSRC(zero_val, write_mode, bank_mask, src_mask) INSTRUCTION_WORD(TT_OP_ZEROSRC(zero_val, write_mode, bank_mask, src_mask))
+
+/** @} */ // end of DataMovementOperations group
+
+/** @} */ // end of InstructionSetArchitecture group

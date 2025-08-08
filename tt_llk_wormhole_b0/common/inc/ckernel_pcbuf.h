@@ -4,58 +4,95 @@
 
 /**
  * @file ckernel_pcbuf.h
- * @brief PC Buffer command encoding/decoding for Wormhole B0 Tensix kernel launch
+ * @brief PC Buffer Command Encoding/Decoding for Wormhole B0 Tensix
  *
- * @details This header provides functions for encoding and decoding commands written
- * to the Program Counter (PC) buffer, which is a critical component of the Wormhole B0
- * kernel launch mechanism. The PC buffer enables efficient kernel execution through
- * fast launch and parameterized command modes.
+ * This header provides utilities for encoding and decoding commands written to
+ * the PC (Program Counter) buffer. The PC buffer is used for kernel launch
+ * commands and parameter passing between firmware and kernel components.
  *
- * **Wormhole B0 PC Buffer Architecture:**
- * The PC buffer is part of the Tensix core's kernel launch infrastructure:
- * - **Fast Launch Mode**: Direct kernel execution with minimal overhead
- * - **Parameterized Mode**: Flexible kernel execution with configurable parameters
- * - **Hardware Integration**: Interfaces with TRISC processors for kernel control
- * - **Multi-Core Coordination**: Supports coordinated kernel launch across cores
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
  *
- * **Command Encoding Structure:**
- * PC buffer commands use a structured bit layout for efficient hardware decoding:
+ * # PC Buffer Command Format
+ *
+ * PC buffer commands use a 32-bit encoding format with two distinct modes:
+ *
+ * ## Fast Launch Mode (MSB = 1):
+ * - **Bit 31**: Fast launch flag (1)
+ * - **Bits 30-12**: Command address (19 bits, max 512KB)
+ * - **Bits 11-0**: Kernel ID (12 bits, max 4096 kernels)
+ *
+ * ## Standard Mode (MSB = 0):
+ * - **Bit 31**: Fast launch flag (0)
+ * - **Bits 30-16**: Iterations (15 bits, max 32768)
+ * - **Bits 15-12**: Extra parameters count (4 bits, max 16)
+ * - **Bits 11-0**: Kernel ID (12 bits, max 4096 kernels)
+ *
+ * # Usage Patterns
+ *
+ * ## Fast Launch Command
+ * ```cpp
+ * uint32_t cmd = get_pc_buf_cmd(kernel_id, command_addr);
+ * write_to_pc_buffer(cmd);
  * ```
- * Fast Launch Mode (MSB = 1):
- * [31] Fast Flag | [30:12] Command Address | [11:0] Kernel ID
- * 
- * Parameterized Mode (MSB = 0):
- * [31] Fast Flag | [30:16] Iterations | [15:12] Extra Params | [11:0] Kernel ID
+ *
+ * ## Standard Launch Command
+ * ```cpp
+ * uint32_t cmd = get_pc_buf_cmd(kernel_id, iterations, extra_params);
+ * write_to_pc_buffer(cmd);
  * ```
  *
- * **Kernel Launch Optimization:**
- * The PC buffer design supports the Wormhole B0 performance optimization strategy:
- * - **Reduced Launch Overhead**: Minimal cycles for kernel initiation
- * - **Batch Execution**: Support for iteration-based kernel execution
- * - **Parameter Passing**: Efficient parameter delivery to compute kernels
- * - **Synchronization Support**: Integration with semaphore/mutex systems
+ * ## Command Decoding
+ * ```cpp
+ * if (is_pc_buf_fast_cmd(cmd)) {
+ *     uint kernel_id, addr;
+ *     decode_pc_buf_cmd(cmd, kernel_id, addr);
+ *     // Handle fast launch
+ * } else {
+ *     uint kernel_id, iterations, extra_params;
+ *     decode_pc_buf_cmd(cmd, kernel_id, iterations, extra_params);
+ *     // Handle standard launch
+ * }
+ * ```
  *
- * **Integration with Tensix Engine:**
- * - **3-Thread Coordination**: Commands coordinate Unpack, Math, and Pack threads
- * - **Resource Management**: Kernel launch coordinates with L1 memory and register files
- * - **Performance Monitoring**: Support for performance event tracking and analysis
+ * @note All functions are inlined for performance in critical launch paths
+ * @note Command encoding must match hardware expectations exactly
+ *
+ * @see ckernel_structs.h for related communication structures
+ * @see ckernel_globals.h for PC buffer related globals
  */
 
 #pragma once
 
-// Functions for encoding and decoding PC buffer writes
+/**
+ * @namespace ckernel
+ * @brief Core kernel functionality and hardware abstraction layer
+ */
 namespace ckernel
 {
 
 /**
- * @brief Encode fast launch PC buffer command for immediate kernel execution
- * @param ckernel_id Compute kernel identifier (12-bit max)
- * @param command_addr Target address for kernel execution (19-bit)
- * @return Encoded PC buffer command with fast launch flag set
- * 
- * @details Creates a fast launch command for immediate kernel execution with
- * minimal overhead. The MSB is set to indicate fast launch mode, enabling
- * hardware to bypass parameter processing for maximum performance.
+ * @defgroup PCBufferCommands PC Buffer Command Utilities
+ * @brief Functions for encoding and decoding PC buffer commands
+ * @{
+ */
+
+/**
+ * @brief Encode fast launch PC buffer command
+ *
+ * Creates a fast launch command for the PC buffer with the specified kernel ID
+ * and command address. Fast launch commands have the MSB set to indicate
+ * immediate execution mode.
+ *
+ * @param ckernel_id Kernel identifier (0-4095, 12 bits)
+ * @param command_addr Command address for execution (0-524287, 19 bits)
+ * @return 32-bit encoded fast launch command
+ *
+ * # Command Format:
+ * - Bit 31: Fast launch flag (1)
+ * - Bits 30-12: Command address (19 bits)
+ * - Bits 11-0: Kernel ID (12 bits)
  */
 inline uint get_pc_buf_cmd(uint ckernel_id, uint command_addr)
 {
@@ -64,15 +101,21 @@ inline uint get_pc_buf_cmd(uint ckernel_id, uint command_addr)
 }
 
 /**
- * @brief Encode parameterized PC buffer command for configurable kernel execution
- * @param ckernel_id Compute kernel identifier (12-bit max)
- * @param iterations Number of iterations for batch execution (15-bit)
- * @param number_of_extra_params Count of additional parameters (4-bit)
- * @return Encoded PC buffer command for parameterized execution
- * 
- * @details Creates a parameterized command enabling flexible kernel execution
- * with configurable iteration counts and parameter passing. Supports batch
- * processing and complex kernel configurations for optimal resource utilization.
+ * @brief Encode standard PC buffer command
+ *
+ * Creates a standard launch command for the PC buffer with the specified kernel ID,
+ * iteration count, and extra parameters. Standard commands have the MSB clear.
+ *
+ * @param ckernel_id Kernel identifier (0-4095, 12 bits)
+ * @param iterations Number of iterations to execute (0-32767, 15 bits)
+ * @param number_of_extra_params Count of extra parameters (0-15, 4 bits)
+ * @return 32-bit encoded standard launch command
+ *
+ * # Command Format:
+ * - Bit 31: Fast launch flag (0)
+ * - Bits 30-16: Iterations (15 bits)
+ * - Bits 15-12: Extra parameters count (4 bits)
+ * - Bits 11-0: Kernel ID (12 bits)
  */
 inline uint get_pc_buf_cmd(uint ckernel_id, uint iterations, uint number_of_extra_params)
 {
@@ -81,12 +124,13 @@ inline uint get_pc_buf_cmd(uint ckernel_id, uint iterations, uint number_of_extr
 }
 
 /**
- * @brief Check if PC buffer command is in fast launch mode
- * @param cmd PC buffer command to analyze
- * @return true if command uses fast launch mode, false for parameterized mode
- * 
- * @details Examines the MSB to determine command type, enabling appropriate
- * decoding and execution path selection in the kernel launch pipeline.
+ * @brief Check if PC buffer command is fast launch mode
+ *
+ * Determines whether a PC buffer command is a fast launch command by
+ * checking the MSB (bit 31).
+ *
+ * @param cmd 32-bit PC buffer command
+ * @return true if fast launch command, false if standard command
  */
 inline bool is_pc_buf_fast_cmd(uint cmd)
 {
@@ -96,19 +140,13 @@ inline bool is_pc_buf_fast_cmd(uint cmd)
 
 /**
  * @brief Decode fast launch PC buffer command
- * @param cmd Encoded PC buffer command with fast launch flag set
- * @param ckernel_id Output parameter for decoded kernel identifier (12-bit)
- * @param command_addr Output parameter for decoded command address (19-bit)
- * 
- * @details Decodes a fast launch PC buffer command into its constituent parts.
- * This function is used when the MSB indicates fast launch mode, extracting
- * the kernel ID and target address for immediate execution with minimal overhead.
- * 
- * **Wormhole B0 Fast Launch Architecture:**
- * - **Zero Parameter Overhead**: No iteration counts or parameter processing
- * - **Direct Execution**: Immediate kernel launch at specified address
- * - **Hardware Optimization**: Minimal cycles from command to execution
- * - **TRISC Integration**: Efficient interface with TRISC kernel management
+ *
+ * Extracts kernel ID and command address from a fast launch PC buffer command.
+ * Should only be called after verifying the command is a fast launch command.
+ *
+ * @param cmd 32-bit fast launch PC buffer command
+ * @param ckernel_id [out] Extracted kernel identifier (12 bits)
+ * @param command_addr [out] Extracted command address (19 bits)
  */
 inline void decode_pc_buf_cmd(uint cmd, uint &ckernel_id, uint &command_addr)
 {
@@ -118,22 +156,15 @@ inline void decode_pc_buf_cmd(uint cmd, uint &ckernel_id, uint &command_addr)
 }
 
 /**
- * @brief Decode parameterized PC buffer command
- * @param cmd Encoded PC buffer command with parameterized execution
- * @param ckernel_id Output parameter for decoded kernel identifier (12-bit)
- * @param iterations Output parameter for decoded iteration count (15-bit)
- * @param number_of_extra_params Output parameter for decoded parameter count (4-bit)
- * 
- * @details Decodes a parameterized PC buffer command for flexible kernel execution.
- * This mode supports batch processing with configurable iteration counts and
- * additional parameter passing for complex kernel configurations.
- * 
- * **Wormhole B0 Parameterized Execution:**
- * - **Batch Processing**: Support for up to 32,767 iterations (15-bit)
- * - **Parameter Passing**: Up to 15 additional parameters (4-bit count)
- * - **Resource Optimization**: Amortizes kernel launch overhead across iterations
- * - **Pipeline Efficiency**: Enables sustained high-throughput computation
- * - **3-Thread Coordination**: Parameters configure Unpack, Math, and Pack operations
+ * @brief Decode standard PC buffer command
+ *
+ * Extracts kernel ID, iterations, and extra parameters from a standard PC buffer
+ * command. Should only be called after verifying the command is a standard command.
+ *
+ * @param cmd 32-bit standard PC buffer command
+ * @param ckernel_id [out] Extracted kernel identifier (12 bits)
+ * @param iterations [out] Extracted iteration count (15 bits)
+ * @param number_of_extra_params [out] Extracted extra parameters count (4 bits)
  */
 inline void decode_pc_buf_cmd(uint cmd, uint &ckernel_id, uint &iterations, uint &number_of_extra_params)
 {
@@ -142,5 +173,7 @@ inline void decode_pc_buf_cmd(uint cmd, uint &ckernel_id, uint &iterations, uint
     iterations             = (cmd >> 16) & 0x7FFF;
     number_of_extra_params = (cmd >> 12) & 0xF;
 }
+
+/** @} */ // end of PCBufferCommands group
 
 } // namespace ckernel

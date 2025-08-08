@@ -2,72 +2,253 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_instr_params.h
+ * @brief Instruction Parameter Definitions and Constants for Wormhole B0 Tensix
+ *
+ * This header provides structured parameter definitions, constants, and helper functions
+ * for Tensix instruction generation. It contains hand-coded parameter encodings for
+ * common instruction patterns, making instruction generation more readable and
+ * type-safe compared to raw numeric constants.
+ *
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
+ *
+ * # Key Components
+ *
+ * - **Parameter Structures**: Organized constant definitions for instruction fields
+ * - **Helper Functions**: Utility functions for parameter calculation and encoding
+ * - **Common Instruction Macros**: Pre-configured instruction variants for frequent patterns
+ * - **Context Management**: Address counter and configuration context definitions
+ *
+ * # Usage Pattern
+ *
+ * Instead of using raw numeric constants:
+ * ```cpp
+ * // Difficult to understand and error-prone
+ * TT_UNPACR(0, 0x3, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1);
+ * ```
+ *
+ * Use structured parameter definitions:
+ * ```cpp
+ * // Clear, readable, and type-safe
+ * TT_UNPACR(p_unpacr::UNP_A, p_setrwc::SET_AB, 0,
+ *           p_unpacr::TILE0_CFG_CONTEXT, p_unpacr::TILE0_ADDRCNT_CONTEXT,
+ *           1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+ * ```
+ *
+ * # Organization
+ *
+ * Parameter structures are organized by instruction family:
+ * - `p_setrwc` - Set Read/Write/Clear counter parameters
+ * - `p_unpacr` - Unpack operation parameters and contexts
+ * - `p_stall` - Stall and synchronization parameters
+ * - `p_setadc` - Address counter configuration parameters
+ * - And many more for specific instruction types
+ *
+ * @note These parameters must match the hardware instruction encoding exactly.
+ *       Incorrect values can cause hardware malfunctions.
+ *
+ * @warning This file contains low-level hardware parameter definitions.
+ *          Use the high-level LLK API when possible instead of direct instruction generation.
+ *
+ * @see ckernel_ops.h for instruction generation macros
+ * @see ckernel.h for core infrastructure
+ * @see ckernel_template.h for MOP programming
+ */
+
 #pragma once
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
 
-// Hand-coded parameter encoding for various common instructions
+/**
+ * @namespace ckernel
+ * @brief Core kernel functionality and hardware abstraction layer
+ */
 namespace ckernel
 {
 
+/**
+ * @defgroup InstructionParameters Instruction Parameter Definitions
+ * @brief Structured parameter constants for Tensix instruction generation
+ * @{
+ */
+
+/**
+ * @struct p_setrwc
+ * @brief Parameters for SETRWC (Set Read/Write/Clear) instruction
+ *
+ * The SETRWC instruction controls read/write counters and carriage return operations
+ * for data movement pipelines. This structure provides readable constants for the
+ * various counter and mode configurations.
+ *
+ * # Usage
+ * ```cpp
+ * // Reset A and B counters, set D counter
+ * TT_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_NONE, p_setrwc::SET_D,
+ *           p_setrwc::SET_NONE, p_setrwc::SET_NONE, bitmask);
+ * ```
+ */
 struct p_setrwc
 {
-    constexpr static uint CLR_A    = 0x1;
-    constexpr static uint CLR_B    = 0x2;
-    constexpr static uint CLR_AB   = 0x3;
-    constexpr static uint CLR_NONE = 0x0;
+    /**
+     * @defgroup ClearParameters Counter Clear Control
+     * @brief Parameters for clearing specific counters
+     * @{
+     */
 
-    constexpr static uint SET_A     = 0x1;
-    constexpr static uint SET_B     = 0x2;
-    constexpr static uint SET_AB    = 0x3;
-    constexpr static uint SET_D     = 0x4;
-    constexpr static uint SET_AD    = 0x5;
-    constexpr static uint SET_BD    = 0x6;
-    constexpr static uint SET_ABD   = 0x7;
-    constexpr static uint SET_F     = 0x8;
-    constexpr static uint SET_A_F   = 0x9;
-    constexpr static uint SET_B_F   = 0xa;
-    constexpr static uint SET_AB_F  = 0xb;
-    constexpr static uint SET_D_F   = 0xc;
-    constexpr static uint SET_AD_F  = 0xd;
-    constexpr static uint SET_BD_F  = 0xe;
-    constexpr static uint SET_ABD_F = 0xf;
+    constexpr static uint CLR_A    = 0x1; ///< Clear source A counter
+    constexpr static uint CLR_B    = 0x2; ///< Clear source B counter
+    constexpr static uint CLR_AB   = 0x3; ///< Clear both A and B counters
+    constexpr static uint CLR_NONE = 0x0; ///< Do not clear any counters
 
-    constexpr static uint CR_A         = 0x1;
-    constexpr static uint CR_B         = 0x2;
-    constexpr static uint CR_AB        = 0x3;
-    constexpr static uint CR_D         = 0x4;
-    constexpr static uint CR_AD        = 0x5;
-    constexpr static uint CR_BD        = 0x6;
-    constexpr static uint CR_ABD       = 0x7;
-    constexpr static uint C_TO_CR_MODE = 0x8;
+    /** @} */ // end of ClearParameters group
+
+    /**
+     * @defgroup SetParameters Counter Set Control
+     * @brief Parameters for setting/enabling specific counters and modes
+     * @{
+     */
+
+    constexpr static uint SET_A     = 0x1; ///< Set source A counter
+    constexpr static uint SET_B     = 0x2; ///< Set source B counter
+    constexpr static uint SET_AB    = 0x3; ///< Set both A and B counters
+    constexpr static uint SET_D     = 0x4; ///< Set destination counter
+    constexpr static uint SET_AD    = 0x5; ///< Set A and destination counters
+    constexpr static uint SET_BD    = 0x6; ///< Set B and destination counters
+    constexpr static uint SET_ABD   = 0x7; ///< Set A, B, and destination counters
+    constexpr static uint SET_F     = 0x8; ///< Set flush mode
+    constexpr static uint SET_A_F   = 0x9; ///< Set A counter with flush
+    constexpr static uint SET_B_F   = 0xa; ///< Set B counter with flush
+    constexpr static uint SET_AB_F  = 0xb; ///< Set A and B counters with flush
+    constexpr static uint SET_D_F   = 0xc; ///< Set destination counter with flush
+    constexpr static uint SET_AD_F  = 0xd; ///< Set A and destination with flush
+    constexpr static uint SET_BD_F  = 0xe; ///< Set B and destination with flush
+    constexpr static uint SET_ABD_F = 0xf; ///< Set all counters with flush
+
+    /** @} */ // end of SetParameters group
+
+    /**
+     * @defgroup CarriageReturnParameters Carriage Return Control
+     * @brief Parameters for carriage return (CR) operations
+     * @{
+     */
+
+    constexpr static uint CR_A         = 0x1; ///< Carriage return for source A
+    constexpr static uint CR_B         = 0x2; ///< Carriage return for source B
+    constexpr static uint CR_AB        = 0x3; ///< Carriage return for A and B
+    constexpr static uint CR_D         = 0x4; ///< Carriage return for destination
+    constexpr static uint CR_AD        = 0x5; ///< Carriage return for A and destination
+    constexpr static uint CR_BD        = 0x6; ///< Carriage return for B and destination
+    constexpr static uint CR_ABD       = 0x7; ///< Carriage return for all sources
+    constexpr static uint C_TO_CR_MODE = 0x8; ///< Convert C counter to CR mode
+
+    /** @} */ // end of CarriageReturnParameters group
 };
 
+/**
+ * @struct p_setibrwc
+ * @brief Parameters for SETIBRWC (Set Increment Bias Read/Write/Clear) instruction
+ *
+ * Controls bias increment behavior and carriage return settings for specialized
+ * addressing modes in convolution and other operations.
+ */
 struct p_setibrwc
 {
-    constexpr static uint SET_BIAS = 0x0;
-    constexpr static uint INC_BIAS = 0x1;
-    constexpr static uint CR_NONE  = 0x0;
-    constexpr static uint CR_BIAS  = 0x1;
+    constexpr static uint SET_BIAS = 0x0; ///< Set bias value directly
+    constexpr static uint INC_BIAS = 0x1; ///< Increment bias value
+    constexpr static uint CR_NONE  = 0x0; ///< No carriage return for bias
+    constexpr static uint CR_BIAS  = 0x1; ///< Enable carriage return for bias
 };
 
+/**
+ * @struct p_unpacr
+ * @brief Parameters for UNPACR (Unpack) instruction
+ *
+ * Defines constants for unpack operation configuration, including rarefy control,
+ * tile context management, and address counter contexts. These parameters are
+ * critical for proper data flow in the unpack pipeline.
+ *
+ * # Context Management
+ *
+ * Tiles are organized into context groups for efficient address counter management:
+ * - **Tiles 0,1**: Use address counter context 0
+ * - **Tiles 2,3**: Use address counter context 1
+ * - **All tiles**: Use configuration context 0 by default
+ *
+ * # Usage Example
+ * ```cpp
+ * // Unpack for tile 2 with rarefy disabled
+ * TT_UNPACR(p_setadc::UNP_A, 0b01, 0,
+ *           p_unpacr::TILE2_CFG_CONTEXT, p_unpacr::TILE2_ADDRCNT_CONTEXT,
+ *           1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+ * ```
+ */
 struct p_unpacr
 {
-    constexpr static uint RAREFYB_DISABLE = 0x0;
-    constexpr static uint RAREFYB_ENABLE  = 0x1;
+    /**
+     * @defgroup RarefyControl Rarefy Operation Control
+     * @brief Controls rarefy behavior for source B data
+     * @{
+     */
 
-    constexpr static uint TILE0_ADDRCNT_CONTEXT = (0); // Address counter context for tile 0
-    constexpr static uint TILE1_ADDRCNT_CONTEXT = (0); // Address counter context for tile 1
-    constexpr static uint TILE2_ADDRCNT_CONTEXT = (1); // Address counter context for tile 2
-    constexpr static uint TILE3_ADDRCNT_CONTEXT = (1); // Address counter context for tile 3
-    constexpr static uint TILE0_CFG_CONTEXT     = (0); // Config context for tile 0
-    constexpr static uint TILE1_CFG_CONTEXT     = (0); // Config context for tile 1
-    constexpr static uint TILE2_CFG_CONTEXT     = (0); // Config context for tile 2
-    constexpr static uint TILE3_CFG_CONTEXT     = (0); // Config context for tile 3
-    constexpr static uint AUTO_INC_CONTEXT      = (1); // Auto increment config context (max value set through unpacker config command)
+    constexpr static uint RAREFYB_DISABLE = 0x0; ///< Disable rarefy for source B
+    constexpr static uint RAREFYB_ENABLE  = 0x1; ///< Enable rarefy for source B (skip zeros)
+
+    /** @} */ // end of RarefyControl group
+
+    /**
+     * @defgroup TileContexts Tile Context Definitions
+     * @brief Address counter and configuration contexts for tile processing
+     * @{
+     */
+
+    constexpr static uint TILE0_ADDRCNT_CONTEXT = (0); ///< Address counter context for tile 0
+    constexpr static uint TILE1_ADDRCNT_CONTEXT = (0); ///< Address counter context for tile 1
+    constexpr static uint TILE2_ADDRCNT_CONTEXT = (1); ///< Address counter context for tile 2
+    constexpr static uint TILE3_ADDRCNT_CONTEXT = (1); ///< Address counter context for tile 3
+    constexpr static uint TILE0_CFG_CONTEXT     = (0); ///< Configuration context for tile 0
+    constexpr static uint TILE1_CFG_CONTEXT     = (0); ///< Configuration context for tile 1
+    constexpr static uint TILE2_CFG_CONTEXT     = (0); ///< Configuration context for tile 2
+    constexpr static uint TILE3_CFG_CONTEXT     = (0); ///< Configuration context for tile 3
+    constexpr static uint AUTO_INC_CONTEXT      = (1); ///< Auto increment config context (max value set through unpacker config command)
+
+    /** @} */ // end of TileContexts group
 };
 
+/**
+ * @defgroup CommonInstructionMacros Common Instruction Convenience Macros
+ * @brief Pre-configured instruction macros for frequent usage patterns
+ * @{
+ */
+
+/**
+ * @brief Common UNPACR instruction with typical parameter defaults
+ *
+ * This macro provides a simplified interface for the most common UNPACR usage pattern,
+ * setting typical defaults for most parameters while allowing control over the three
+ * most frequently varied parameters.
+ *
+ * @param Unpack_block_selection Which unpacker block to target (A or B)
+ * @param AddrMode Address mode for the unpack operation
+ * @param SetDatValid Whether to set data valid signal
+ *
+ * # Default Parameters Set:
+ * - CfgContextCntInc: 0 (no increment)
+ * - CfgContextId: 0 (default context)
+ * - AddrCntContextId: 0 (default address counter context)
+ * - OvrdThreadId: 1 (override thread ID)
+ * - srcb_bcast: 0 (no broadcast)
+ * - ZeroWrite2: 0 (normal write)
+ * - AutoIncContextID: 0 (manual context)
+ * - RowSearch: 0 (no row search)
+ * - SearchCacheFlush: 0 (no cache flush)
+ * - Last: 1 (mark as last)
+ *
+ * @note Use this macro for standard unpack operations to reduce code complexity
+ */
 #define TTI_UNPACR_COMMON(Unpack_block_selection, AddrMode, SetDatValid) \
     TTI_UNPACR(                                                          \
         Unpack_block_selection,                                          \
@@ -84,6 +265,19 @@ struct p_unpacr
         0 /*SearchCacheFlush*/,                                          \
         1 /*Last*/)
 
+/**
+ * @brief Common UNPACR instruction generation with typical defaults
+ *
+ * Instruction generation variant of TTI_UNPACR_COMMON. Creates the instruction
+ * word but does not execute it immediately.
+ *
+ * @param Unpack_block_selection Which unpacker block to target
+ * @param AddrMode Address mode for the unpack operation
+ * @param SetDatValid Whether to set data valid signal
+ * @return 32-bit instruction word
+ *
+ * @see TTI_UNPACR_COMMON for parameter details and usage patterns
+ */
 #define TT_OP_UNPACR_COMMON(Unpack_block_selection, AddrMode, SetDatValid) \
     TT_OP_UNPACR(                                                          \
         Unpack_block_selection,                                            \
@@ -100,68 +294,202 @@ struct p_unpacr
         0 /*SearchCacheFlush*/,                                            \
         1 /*Last*/)
 
+/** @} */ // end of CommonInstructionMacros group
+
+/**
+ * @struct p_unpacr_nop
+ * @brief Parameters for UNPACR_NOP (Unpack No-Operation) instruction
+ *
+ * The UNPACR_NOP instruction provides various special unpack behaviors including
+ * data source control, bank management, and data valid signaling without
+ * performing actual data unpacking.
+ *
+ * # Common Usage Patterns
+ * ```cpp
+ * // Provide zero data without unpacking
+ * TTI_UNPACR_NOP(p_unpacr_nop::UNP0, p_unpacr_nop::UNP_ZEROSRC);
+ *
+ * // Set data valid signal
+ * TTI_UNPACR_NOP(p_unpacr_nop::UNP0, p_unpacr_nop::UNP_SET_DVALID);
+ * ```
+ */
 struct p_unpacr_nop
 {
-    constexpr static uint UNP_POP = 0b000;
-    constexpr static uint UNP_NOP = 0b010;
+    /**
+     * @defgroup BasicNOPOperations Basic NOP Operations
+     * @brief Standard NOP operation types
+     * @{
+     */
 
-    constexpr static uint UNP_ZEROSRC   = 0b001;
-    constexpr static uint UNP_NEGINFSRC = 0b101;
+    constexpr static uint UNP_POP = 0b000; ///< Pop data from unpacker without processing
+    constexpr static uint UNP_NOP = 0b010; ///< Standard no-operation, maintain state
 
-    constexpr static uint UNP_SET_DVALID = 0b111;
+    /** @} */ // end of BasicNOPOperations group
 
-    constexpr static uint UNP_ZEROSRC_RESET_ALL_BANKS    = 0b1001; // default is clear current bank
-    constexpr static uint UNP_ZEROSRC_STALL_RESET_WR_RDY = 0b10001;
-    constexpr static uint UNP_ZEROSRC_SET_DVALID         = 0b1000001;
+    /**
+     * @defgroup DataSourceControl Data Source Control
+     * @brief Control data source values for unpack operations
+     * @{
+     */
 
-    constexpr static uint UNP0 = 0x0;
-    constexpr static uint UNP1 = 0x1;
+    constexpr static uint UNP_ZEROSRC   = 0b001; ///< Provide zero values as source data
+    constexpr static uint UNP_NEGINFSRC = 0b101; ///< Provide negative infinity as source data
+
+    /** @} */ // end of DataSourceControl group
+
+    /**
+     * @defgroup ControlSignals Control and Status Signals
+     * @brief Special control signals for unpack coordination
+     * @{
+     */
+
+    constexpr static uint UNP_SET_DVALID = 0b111; ///< Set data valid signal
+
+    /** @} */ // end of ControlSignals group
+
+    /**
+     * @defgroup AdvancedOperations Advanced NOP Operations
+     * @brief Complex NOP operations with bank and stall control
+     * @{
+     */
+
+    constexpr static uint UNP_ZEROSRC_RESET_ALL_BANKS    = 0b1001;    ///< Zero source with all bank reset (default: current bank only)
+    constexpr static uint UNP_ZEROSRC_STALL_RESET_WR_RDY = 0b10001;   ///< Zero source with stall reset and write ready
+    constexpr static uint UNP_ZEROSRC_SET_DVALID         = 0b1000001; ///< Zero source with data valid signal
+
+    /** @} */ // end of AdvancedOperations group
+
+    /**
+     * @defgroup UnpackerSelection Unpacker Block Selection
+     * @brief Constants for selecting unpacker blocks
+     * @{
+     */
+
+    constexpr static uint UNP0 = 0x0; ///< Select unpacker block 0 (usually source A)
+    constexpr static uint UNP1 = 0x1; ///< Select unpacker block 1 (usually source B)
+
+    /** @} */ // end of UnpackerSelection group
 };
 
+/**
+ * @struct p_srcb
+ * @brief Parameters for source B operation direction control
+ *
+ * Controls the direction of source B operations, particularly important
+ * for operations that need to process data in different directions
+ * such as convolution forward and backward passes.
+ */
 struct p_srcb
 {
-    constexpr static uint FORWARD_PASS  = 0x0;
-    constexpr static uint BACKWARD_PASS = 0x1;
+    constexpr static uint FORWARD_PASS  = 0x0; ///< Forward pass direction
+    constexpr static uint BACKWARD_PASS = 0x1; ///< Backward pass direction
 };
 
+/**
+ * @defgroup AddressCounterHelpers Address Counter Helper Functions
+ * @brief Utility functions for address counter channel configuration
+ * @{
+ */
+
+/**
+ * @brief Configure address counter for channel 0 only
+ * @param cnt Counter value
+ * @return Encoded value for channel 0
+ */
 constexpr static uint SETADC_CH0(uint cnt)
 {
     return cnt;
 }
 
+/**
+ * @brief Configure address counter for channel 1 only
+ * @param cnt Counter value
+ * @return Encoded value for channel 1 (shifted to appropriate bit position)
+ */
 constexpr static uint SETADC_CH1(uint cnt)
 {
     return cnt << 2;
 }
 
+/**
+ * @brief Configure address counter for both channels 0 and 1
+ * @param cnt Counter value
+ * @return Encoded value for both channels
+ */
 constexpr static uint SETADC_CH01(uint cnt)
 {
     return cnt << 2 | cnt;
 }
 
+/** @} */ // end of AddressCounterHelpers group
+
+/**
+ * @struct p_setadc
+ * @brief Parameters for SETADC (Set Address Counter) instruction
+ *
+ * Provides constants for configuring address counters for unpacker and packer
+ * blocks. Address counters control data addressing patterns for efficient
+ * data movement through the processing pipeline.
+ *
+ * # Coordinate System
+ * The address counter operates in a 4D coordinate system (X, Y, Z, W)
+ * where each dimension can be independently controlled and configured.
+ */
 struct p_setadc
 {
-    constexpr static uint UNP0   = 0b001;
-    constexpr static uint UNP1   = 0b010;
-    constexpr static uint UNP_A  = 0b001;
-    constexpr static uint UNP_B  = 0b010;
-    constexpr static uint UNP_AB = 0b011;
-    constexpr static uint PAC    = 0b100;
+    /**
+     * @defgroup BlockSelection Block Selection
+     * @brief Constants for selecting unpacker and packer blocks
+     * @{
+     */
 
-    constexpr static uint SET_X = 0;
-    constexpr static uint SET_Y = 1;
-    constexpr static uint SET_Z = 2;
-    constexpr static uint SET_W = 3;
+    constexpr static uint UNP0   = 0b001; ///< Unpacker block 0 (source A)
+    constexpr static uint UNP1   = 0b010; ///< Unpacker block 1 (source B)
+    constexpr static uint UNP_A  = 0b001; ///< Unpacker source A (alias for UNP0)
+    constexpr static uint UNP_B  = 0b010; ///< Unpacker source B (alias for UNP1)
+    constexpr static uint UNP_AB = 0b011; ///< Both unpacker blocks
+    constexpr static uint PAC    = 0b100; ///< Packer block
 
-    constexpr static uint X  = 1;
-    constexpr static uint Y  = 2;
-    constexpr static uint XY = 3;
-    constexpr static uint Z  = 1;
-    constexpr static uint W  = 2;
-    constexpr static uint ZW = 3;
+    /** @} */ // end of BlockSelection group
 
-    constexpr static uint CH_0 = 0;
-    constexpr static uint CH_1 = 1;
+    /**
+     * @defgroup DimensionSelection Dimension Selection for SET operations
+     * @brief Constants for selecting which dimension to set
+     * @{
+     */
+
+    constexpr static uint SET_X = 0; ///< Set X dimension
+    constexpr static uint SET_Y = 1; ///< Set Y dimension
+    constexpr static uint SET_Z = 2; ///< Set Z dimension
+    constexpr static uint SET_W = 3; ///< Set W dimension
+
+    /** @} */ // end of DimensionSelection group
+
+    /**
+     * @defgroup DimensionMasks Dimension Masks for multi-dimension operations
+     * @brief Bitmasks for enabling multiple dimensions simultaneously
+     * @{
+     */
+
+    constexpr static uint X  = 1; ///< X dimension mask
+    constexpr static uint Y  = 2; ///< Y dimension mask
+    constexpr static uint XY = 3; ///< X and Y dimensions mask
+    constexpr static uint Z  = 1; ///< Z dimension mask
+    constexpr static uint W  = 2; ///< W dimension mask
+    constexpr static uint ZW = 3; ///< Z and W dimensions mask
+
+    /** @} */ // end of DimensionMasks group
+
+    /**
+     * @defgroup ChannelSelection Channel Selection
+     * @brief Constants for selecting address counter channels
+     * @{
+     */
+
+    constexpr static uint CH_0 = 0; ///< Channel 0
+    constexpr static uint CH_1 = 1; ///< Channel 1
+
+    /** @} */ // end of ChannelSelection group
 };
 
 struct p_pacr
@@ -439,21 +767,60 @@ struct p_adddmareg
     constexpr static uint REG_PLUS_IMM = 1;
 };
 
+/**
+ * @brief Calculate FLOP index from address
+ *
+ * Converts a hardware address to a FLOP index by subtracting the base
+ * address for the THCON configuration registers.
+ *
+ * @param addr Hardware address
+ * @return FLOP index for use with REG2FLOP instructions
+ */
 constexpr static uint REG2FLOP_FLOP_INDEX(uint addr)
 {
     return addr - THCON_CFGREG_BASE_ADDR32;
 }
 
+/**
+ * @struct p_reg2flop
+ * @brief Parameters for REG2FLOP (Register to FLOP) instruction
+ *
+ * Controls the data size for register-to-FLOP transfer operations.
+ * FLOP (Floating Point Operations) units require specific data sizes
+ * for optimal performance.
+ */
 struct p_reg2flop
 {
-    constexpr static uint WRITE_16B = 0;
-    constexpr static uint WRITE_4B  = 1;
-    constexpr static uint WRITE_2B  = 2;
-    constexpr static uint WRITE_1B  = 3;
+    constexpr static uint WRITE_16B = 0; ///< Write 16 bytes (128 bits)
+    constexpr static uint WRITE_4B  = 1; ///< Write 4 bytes (32 bits)
+    constexpr static uint WRITE_2B  = 2; ///< Write 2 bytes (16 bits)
+    constexpr static uint WRITE_1B  = 3; ///< Write 1 byte (8 bits)
 };
 
+/**
+ * @brief Common REG2FLOP instruction with typical defaults
+ *
+ * Simplified interface for register-to-FLOP operations with standard defaults.
+ * Sets TargetSel, ByteOffset, and ContextId to their most common values.
+ *
+ * @param SizeSel Size of data to write (use p_reg2flop constants)
+ * @param FlopIndex Target FLOP index
+ * @param RegIndex Source register index
+ */
 #define TTI_REG2FLOP_COMMON(SizeSel, FlopIndex, RegIndex) TTI_REG2FLOP(SizeSel, 0 /*TargetSel*/, 0 /*ByteOffset*/, 0 /*ContextId*/, FlopIndex, RegIndex)
 
+/**
+ * @brief Common REG2FLOP instruction generation with typical defaults
+ *
+ * Instruction generation variant of TTI_REG2FLOP_COMMON.
+ *
+ * @param SizeSel Size of data to write (use p_reg2flop constants)
+ * @param FlopIndex Target FLOP index
+ * @param RegIndex Source register index
+ * @return 32-bit instruction word
+ */
 #define TT_OP_REG2FLOP_COMMON(SizeSel, FlopIndex, RegIndex) TT_OP_REG2FLOP(SizeSel, 0 /*TargetSel*/, 0 /*ByteOffset*/, 0 /*ContextId*/, FlopIndex, RegIndex)
+
+/** @} */ // end of InstructionParameters group
 
 } // namespace ckernel

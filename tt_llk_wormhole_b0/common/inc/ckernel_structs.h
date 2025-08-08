@@ -4,112 +4,99 @@
 
 /**
  * @file ckernel_structs.h
- * @brief Core data structures for Wormhole B0 Tensix synchronization and communication
+ * @brief Core Data Structures and Constants for Wormhole B0 Tensix Kernel
  *
- * @details This header defines fundamental data structures essential for coordinating
- * the complex 3-thread Tensix engine architecture in Wormhole B0. These structures
- * provide synchronization primitives and communication mechanisms that enable efficient
- * parallel execution across Unpack, Math, and Pack threads.
+ * This header defines fundamental data structures, constants, and enumerations
+ * used throughout the kernel system. It provides synchronization primitives,
+ * architecture-specific constants, and communication interfaces between
+ * different system components.
  *
- * **Wormhole B0 Synchronization Architecture:**
- * - **Non-Atomic Semaphores**: Resource counters (not traditional blocking semaphores)
- * - **Thread Coordination**: Manages data flow between Unpack→Math→Pack pipeline
- * - **Hardware Integration**: Maps to Tensix engine synchronization primitives
- * - **DEST Register Management**: Coordinates access to the 1024×16 or 512×16 DEST register file
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
  *
- * **Semaphore Behavior (Wormhole B0 Specific):**
- * Unlike traditional semaphores, Wormhole B0 semaphores are resource counters:
- * - **SEMPOST**: Unconditional increment (signals resource availability)
- * - **SEMGET**: Unconditional decrement (claims resource)
- * - **SEMWAIT**: Blocking wait on specific condition (zero or max value)
- * - **No Ownership**: Any thread can increment/decrement any semaphore
+ * # Key Components
  *
- * **3-Thread Pipeline Coordination:**
- * ```
- * Thread 0 (Unpack): L1 → SRCA/SRCB registers
- *     ↓ (semaphore sync)
- * Thread 1 (Math): SRCA/SRCB → Compute → DEST registers  
- *     ↓ (semaphore sync)
- * Thread 2 (Pack): DEST registers → L1
- * ```
+ * - **Synchronization Primitives**: Semaphore and mutex definitions for thread coordination
+ * - **Architecture Constants**: Hardware-specific sizing and configuration limits
+ * - **Communication Interfaces**: Message types for firmware-kernel communication
+ * - **Buffer Management**: Constants for PC buffer and semaphore organization
  *
- * **Performance Considerations:**
- * - **Double Buffering**: DEST registers support dual-bank operation
- * - **Hardware Sync**: Embedded synchronization between Unpack/Math stages
- * - **Pipeline Efficiency**: Semaphores enable overlapped execution phases
- * - **Minimal Overhead**: Optimized for high-frequency synchronization operations
+ * # Synchronization Architecture
+ *
+ * The kernel uses a sophisticated synchronization system with multiple semaphores
+ * to coordinate between different processing threads (unpack, math, pack) and
+ * ensure proper pipeline operation without data races or corruption.
+ *
+ * # Thread Coordination
+ *
+ * The synchronization primitives enable coordination between:
+ * - **Unpack ↔ Math**: Data availability and consumption
+ * - **Math ↔ Pack**: Result availability and output processing
+ * - **Firmware ↔ Kernel**: Control and configuration messages
+ * - **Multi-thread**: Atomic operations and critical sections
+ *
+ * @note These structures provide the foundation for all kernel synchronization
+ * @note Proper use of synchronization primitives is critical for correct operation
+ *
+ * @see ckernel.h for synchronization function implementations
+ * @see ckernel_globals.h for related global variable declarations
  */
 
 #pragma once
 
+/**
+ * @namespace ckernel
+ * @brief Core kernel functionality and hardware abstraction layer
+ */
 namespace ckernel
 {
 
 /**
- * @brief Semaphore definitions for Wormhole B0 Tensix 3-thread pipeline coordination
- * @details Provides semaphore constants for synchronizing the complex data flow
- * through the Unpack→Math→Pack pipeline. These are resource counters that track
- * availability rather than traditional blocking semaphores.
+ * @defgroup KernelStructures Core Kernel Data Structures
+ * @brief Fundamental structures and constants for kernel operation
+ * @{
+ */
+
+/**
+ * @struct semaphore
+ * @brief Semaphore identifier constants for inter-thread synchronization
+ *
+ * Defines semaphore identifiers used for coordinating between different processing
+ * threads in the Tensix pipeline. Each semaphore serves a specific coordination
+ * purpose and ensures proper data flow and synchronization across the pipeline.
+ *
+ * # Semaphore Architecture:
+ * - **Pipeline Coordination**: Math ↔ Pack, Unpack ↔ Math synchronization
+ * - **Performance Monitoring**: Begin/end event coordination for measurement
+ * - **Resource Management**: Operand acquisition and release coordination
+ * - **Hardware Integration**: TRISC ↔ hardware kernel synchronization
  */
 struct semaphore
 {
+    constexpr static uint32_t MATH_PACK           = 1; ///< Math ↔ Pack sync on destination register
+    constexpr static uint32_t UNPACK_TO_DEST      = 2; ///< Unpack ↔ Math sync on unpack-to-dest operations
+    constexpr static uint32_t UNPACK_OPERAND_SYNC = 3; ///< Unpack ↔ Pack,Math sync on operand get/release
+    constexpr static uint32_t PACK_DONE           = 4; ///< Pack iteration begin/end sync for perf events
+    constexpr static uint32_t UNPACK_SYNC         = 5; ///< TRISC ↔ Unpack sync on hardware kernel
     /**
-     * @brief Math↔Pack synchronization on DEST register access
-     * @details Coordinates access to the DEST register file between Math thread
-     * (Thread 1) computation and Pack thread (Thread 2) data movement to L1.
-     * Ensures proper double-buffering and prevents data races.
-     */
-    constexpr static uint32_t MATH_PACK           = 1;
-    
-    /**
-     * @brief Unpack→Math synchronization for DEST register readiness
-     * @details Synchronizes Unpack thread with Math thread when unpacking
-     * directly to DEST registers, ensuring data is ready for computation.
-     */
-    constexpr static uint32_t UNPACK_TO_DEST      = 2;
-    
-    /**
-     * @brief Operand synchronization across Unpack↔Pack and Unpack↔Math
-     * @details Manages operand availability and release across thread boundaries,
-     * coordinating when source data is ready and when results can be consumed.
-     */
-    constexpr static uint32_t UNPACK_OPERAND_SYNC = 3;
-    
-    /**
-     * @brief Pack completion synchronization for performance monitoring
-     * @details Tracks beginning and end of each pack iteration, enabling
-     * performance event recording and controlled delay insertion for debugging.
-     */
-    constexpr static uint32_t PACK_DONE           = 4;
-    
-    /**
-     * @brief TRISC↔Unpack synchronization for hardware kernel coordination
-     * @details Synchronizes TRISC processor control with Unpack thread execution,
-     * ensuring proper hardware kernel launch and completion signaling.
-     */
-    constexpr static uint32_t UNPACK_SYNC         = 5;
-    
-    /**
-     * @brief Unpack/Math completion synchronization for performance monitoring
-     * @details Tracks beginning and end of unpack or math iterations for performance
-     * event recording. Note: Should be used exclusively for either unpack OR math,
-     * not both simultaneously to avoid synchronization conflicts.
+     * @brief Unpack or Math iteration sync for performance events
+     *
+     * Used for begin/end synchronization of unpack or math iterations for
+     * performance event recording and delay insertion. Should only be used
+     * for either unpack OR math, not both simultaneously.
      */
     constexpr static uint32_t UNPACK_MATH_DONE = 6;
-    
-    /**
-     * @brief Math completion synchronization for Unpack→DEST operations
-     * @details Ensures Math thread has completed operations before Unpack
-     * thread writes new data to DEST registers, preventing data corruption.
-     */
-    constexpr static uint32_t MATH_DONE        = 7;
+    constexpr static uint32_t MATH_DONE        = 7; ///< Math completion sync when unpacking to dest
 
     /**
-     * @brief Convert semaphore index to Tensix hardware semaphore mask
-     * @param sem_index Semaphore index (0-7 for Wormhole B0)
-     * @return Hardware semaphore bit mask for Tensix instruction encoding
-     * @details Provides bit-mask encoding for Tensix semaphore instructions
-     * (SEMINIT, SEMPOST, SEMGET, SEMWAIT) compatible with hardware requirements.
+     * @brief Convert semaphore index to T6 semaphore bitmask
+     *
+     * Converts a semaphore index to the corresponding T6 hardware semaphore
+     * bitmask format used by the synchronization hardware.
+     *
+     * @param sem_index Semaphore index (0-15)
+     * @return 16-bit bitmask with bit set at sem_index position
      */
     constexpr static uint16_t t6_sem(const uint8_t sem_index)
     {
@@ -118,87 +105,45 @@ struct semaphore
 };
 
 /**
- * @brief Mutex definitions for Wormhole B0 Tensix critical section protection
- * @details Provides mutex constants for protecting critical code sections that
- * require atomic operations across the 3-thread Tensix engine. Unlike semaphores,
- * mutexes provide true test-and-set atomic primitives for mutual exclusion.
+ * @struct mutex
+ * @brief Mutex identifier constants for atomic operations
+ *
+ * Defines mutex identifiers used for atomic operations and critical sections
+ * that require exclusive access across multiple threads.
  */
 struct mutex
 {
-    /**
-     * @brief Mutex for atomic register read-modify-write operations
-     * @details Protects critical sections performing atomic register updates
-     * that must be completed without interruption from other threads.
-     * Essential for maintaining register state consistency across the
-     * Unpack, Math, and Pack threads when accessing shared resources.
-     */
-    constexpr static uint32_t REG_RMW = 0;
+    constexpr static uint32_t REG_RMW = 0; ///< Atomic register read-modify-write operations
 };
 
 /**
- * @brief Base address for semaphores in PC buffer communication
- * @details Starting address offset for semaphore operations in the PC buffer
- * system, enabling efficient communication between TRISC processors and
- * the Tensix engine threads for kernel coordination and resource management.
+ * @defgroup ArchitectureConstants Architecture-Specific Constants
+ * @brief Hardware and architecture-specific sizing and configuration constants
+ * @{
  */
-constexpr uint8_t PC_BUF_SEMAPHORE_BASE = 8;
+
+constexpr uint8_t PC_BUF_SEMAPHORE_BASE = 8;  ///< Base address for semaphores in PC buffer
+constexpr uint8_t MATH_HALF_DEST_SIZE   = 32; ///< Half destination register size (16x16 faces)
+constexpr uint8_t MAX_CONFIG_STATES     = 2;  ///< Maximum number of configuration states
+
+/** @} */ // end of ArchitectureConstants group
 
 /**
- * @brief Half-size of DEST register file in 16×16 faces (Wormhole B0 specific)
- * @details Architecture-specific constant defining half the DEST register capacity
- * in terms of 16×16 data faces. Used for double-buffering calculations where
- * DEST registers are split between Math and Pack thread access regions.
- * Total DEST capacity = 2 × 32 = 64 faces in 16-bit mode.
- */
-constexpr uint8_t MATH_HALF_DEST_SIZE   = 32;
-
-/**
- * @brief Maximum number of configuration states supported by Wormhole B0
- * @details Wormhole B0 supports dual configuration states (State 0 and State 1),
- * enabling dynamic reconfiguration without performance penalties. Each thread
- * can independently select which configuration state to use via CFG_STATE_ID.
- */
-constexpr uint8_t MAX_CONFIG_STATES     = 2;
-
-/**
- * @brief Firmware message enumeration for TRISC↔Tensix communication
- * @details Defines message types for communication between TRISC processors
- * and compute kernels, enabling coordination of configuration changes,
- * execution control, and performance monitoring across the 3-thread pipeline.
+ * @enum firmware_msg_e
+ * @brief Firmware message types for kernel communication
+ *
+ * Defines message types used for communication between firmware and kernel
+ * components. These messages control kernel execution, configuration, and
+ * performance monitoring.
  */
 enum firmware_msg_e
 {
-    /**
-     * @brief Command to flip/switch configuration state ID
-     * @details Instructs kernel to switch between dual configuration states (0↔1)
-     * for dynamic reconfiguration without pipeline stalls. Enables rapid
-     * context switching for different operation modes or data formats.
-     */
-    FLIP_STATE_ID        = 1,
-    
-    /**
-     * @brief Command to execute queued instructions
-     * @details Signals kernel to begin execution of queued Tensix instructions,
-     * coordinating the start of Unpack, Math, and Pack operations for
-     * synchronized pipeline execution.
-     */
-    RUN_INSTRUCTIONS     = 2,
-    
-    /**
-     * @brief Command to reset destination register offset identifier
-     * @details Resets DEST register addressing offset to initial state,
-     * typically used for restarting operations or clearing accumulated
-     * addressing state for fresh computation sequences.
-     */
-    RESET_DEST_OFFSET_ID = 3,
-    
-    /**
-     * @brief Command to configure performance monitoring scratch registers
-     * @details Sets up performance monitoring and debugging scratch register
-     * values for tracking execution metrics, timing analysis, and
-     * system performance characterization.
-     */
-    SET_PERF_SCRATCH     = 4
+    FLIP_STATE_ID        = 1, ///< Flip configuration state identifier
+    RUN_INSTRUCTIONS     = 2, ///< Execute kernel instructions
+    RESET_DEST_OFFSET_ID = 3, ///< Reset destination offset identifier
+    SET_PERF_SCRATCH     = 4  ///< Set performance scratch register
 };
+
+/** @} */ // end of KernelStructures group
 
 } // namespace ckernel

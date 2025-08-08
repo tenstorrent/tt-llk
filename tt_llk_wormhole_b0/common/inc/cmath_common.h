@@ -4,52 +4,69 @@
 
 /**
  * @file cmath_common.h
- * @brief Thread 1 (Math) execution utilities for Wormhole B0 Tensix compute operations
+ * @brief Math Operation Infrastructure for Wormhole B0 Tensix
  *
- * @details This header provides fundamental mathematical operations, data movement utilities,
- * and computation management functions for Thread 1 (Math) in the Wormhole B0 Tensix engine.
- * Thread 1 is the central compute thread that consumes data from SRCA/SRCB registers,
- * performs high-throughput tensor operations using 2048 hardware multipliers, and produces
- * results in DEST registers for consumption by Thread 2 (Pack).
+ * This header provides the complete infrastructure for mathematical operations
+ * on Wormhole B0 Tensix cores. It contains utility functions, constants, and
+ * management routines for the math pipeline, including data movement,
+ * synchronization, and format handling.
  *
- * **Wormhole B0 Math Thread Architecture:**
- * Thread 1 operates at the heart of the Tensix compute pipeline:
- * - **Input Sources**: SRCA (64×16 datums) and SRCB (64×16 datums) register files
- * - **Compute Engine**: 2048 hardware multipliers (5×7 bit) with fidelity phase control
- * - **Output Destination**: DEST register file (1024×16 or 512×16 datums)
- * - **SFPU Integration**: 8 SFPU instances × 4 lanes = 32-lane SIMD special functions
- * - **Thread Coordination**: Hardware sync with Thread 0 (Unpack) and Thread 2 (Pack)
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
  *
- * **Mathematical Operations Framework:**
- * - **Matrix Multiplication**: Optimized for AI workloads with high-throughput multiply-accumulate
- * - **Elementwise Operations**: SIMD operations across register file data
- * - **Fidelity Control**: 4 fidelity phases for precision vs. performance optimization
- * - **Data Format Support**: FP32, FP16A/B, BF16, TF32, INT8/16/32, BFP2/4/8
- * - **Special Functions**: Complex mathematical functions via integrated SFPU
+ * # Key Components
  *
- * **Register File Management:**
- * - **SRCA/SRCB Access**: 64×16 datum register files with 19-bit datum containers
- * - **DEST Management**: Dual-mode operation (16-bit or 32-bit datums) with double buffering
- * - **Register Window Addressing**: Hardware register window counters (RWC) for efficient access
- * - **Hardware Synchronization**: Embedded sync with unpacker data flow
+ * - **Tile Size Management**: Constants and utilities for different tile shapes
+ * - **Data Movement**: Functions for moving data between register banks
+ * - **Synchronization**: Semaphore and validity management for pipeline coordination
+ * - **Counter Management**: Read/Write/Clear counter control for addressing
+ * - **Format Support**: Format detection and math fidelity configuration
+ * - **Destination Control**: Management of destination register sections
  *
- * **Performance Optimization Features:**
- * - **Pipeline Efficiency**: Overlapped execution with Unpack and Pack threads
- * - **Double Buffering**: DEST register dual-bank design enables concurrent math/pack
- * - **Fidelity Phases**: Configurable precision for optimal performance/accuracy balance
- * - **SFPU Acceleration**: Hardware-accelerated special functions for complex operations
- * - **MOPs Integration**: Hardware macro-operations for instruction sequence optimization
+ * # Math Pipeline Architecture
  *
- * **Thread Synchronization:**
- * - **Semaphore Coordination**: Hardware semaphores for resource management with Pack thread
- * - **DEST Register Sync**: Coordination between math computation and pack operations
- * - **Pipeline Flow**: Maintains balanced throughput through Unpack→Math→Pack pipeline
+ * The math pipeline processes data through these stages:
  *
- * **Integration with Compute FPU:**
- * Thread 1 directly controls the Wormhole B0 Compute FPU components:
- * - **Math Engine**: 2048 multipliers organized for optimal matrix operations
- * - **SFPU Control**: Direct access to special function processing units
- * - **Configuration Management**: Runtime control of compute modes and precision
+ * 1. **Source Preparation**: Wait for valid data in source banks (A/B)
+ * 2. **Math Execution**: Perform mathematical operations (FPU/SFPU)
+ * 3. **Destination Management**: Control where results are written
+ * 4. **Synchronization**: Coordinate with pack pipeline via semaphores
+ * 5. **Counter Updates**: Manage addressing for next operations
+ *
+ * # Tile Shape Support
+ *
+ * Supports three tile shapes with optimized constants:
+ * - **32x32**: 64 face elements (standard)
+ * - **32x16/16x32**: 32 face elements (rectangular)
+ * - **16x16**: 16 face elements (compact)
+ *
+ * # Usage Example
+ *
+ * ```cpp
+ * #include "cmath_common.h"
+ *
+ * // Wait for source data and prepare math operation
+ * wait_bank_valid<Srcs::SrcA>();
+ * wait_bank_valid<Srcs::SrcB>();
+ *
+ * // Execute math operation (implemented by higher-level functions)
+ * perform_math_operation();
+ *
+ * // Clean up and signal completion
+ * clear_bank_valid<Srcs::SrcA>();
+ * set_math_semaphores();
+ * ```
+ *
+ * @warning Math operations directly control hardware pipelines. Incorrect
+ *          synchronization can cause data corruption or hardware lockups.
+ *
+ * @note This header contains low-level math infrastructure. Use high-level
+ *       LLK math APIs when possible for better abstraction and safety.
+ *
+ * @see llk_math_common.h for high-level math operations
+ * @see ckernel.h for core infrastructure
+ * @see ckernel_sfpu.h for SFPU-specific operations
  */
 
 #pragma once
@@ -64,76 +81,84 @@
 #include "llk_defs.h"
 
 #ifndef SFPU_OP_PARAM
-#define SFPU_OP_PARAM 0
+#define SFPU_OP_PARAM 0 ///< Default SFPU operation parameter
 #endif
 
 #ifndef FUSE_SQRT_RECIP
-#define FUSE_SQRT_RECIP 0
+#define FUSE_SQRT_RECIP 0 ///< Default fused sqrt-reciprocal setting
 #endif
 
 using namespace ckernel;
 
+/**
+ * @namespace ckernel::math
+ * @brief Math operation infrastructure and utilities
+ *
+ * Contains all math-related functionality including data movement,
+ * synchronization primitives, and utility functions for mathematical
+ * operations on Tensix hardware.
+ */
 namespace ckernel::math
 {
 
 /**
- * @brief DEST register tile size mapping for different tensor dimensions
- * @details Maps tile shape indices to the number of register entries required
- * in the DEST register file. Wormhole B0 supports flexible tile shapes to
- * optimize memory usage and computational patterns for different AI workloads.
- * 
- * **Wormhole B0 Tile Shape Support:**
- * - Index 0: 32×32 tiles (64 register entries) - Large matrix operations
- * - Index 1: 32×16 or 16×32 tiles (32 entries) - Rectangular tensor operations  
- * - Index 2: 16×16 tiles (16 entries) - Small tensor operations, memory efficiency
+ * @defgroup MathConstants Math Operation Constants
+ * @brief Core constants for math pipeline configuration
+ * @{
+ */
+
+/**
+ * @brief Destination tile sizes for different tile shapes
+ *
+ * Array indexed by DstTileShape enum values. Each entry contains the
+ * number of 16-element "faces" in the corresponding tile shape.
+ * Used for loop bounds and memory calculations.
  */
 constexpr uint DstTileSize[3] = {
-    64, // 32x32 tile shape
-    32, // 32x16, 16x32 tile shape
-    16  // 16x16 tile shape
+    64, ///< 32x32 tile shape (4 faces × 16 elements = 64)
+    32, ///< 32x16 or 16x32 tile shape (2 faces × 16 elements = 32)
+    16  ///< 16x16 tile shape (1 face × 16 elements = 16)
 };
 
 /**
- * @brief Log2 of DEST register tile sizes for efficient address calculations
- * @details Provides log2 values for tile sizes, enabling efficient bit-shift
- * address calculations and memory stride computations in the Wormhole B0
- * address generation hardware without requiring expensive division operations.
+ * @brief Log2 of destination tile sizes for efficient bit operations
+ *
+ * Companion to DstTileSize array providing log2 values for efficient
+ * multiplication/division operations using bit shifts.
  */
 constexpr uint DstTileSizeLog2[3] = {
-    6, // 32x32 tile shape (log2(64) = 6)
-    5, // 32x16, 16x32 tile shape (log2(32) = 5)
-    4  // 16x16 tile shape (log2(16) = 4)
+    6, ///< log2(64) for 32x32 tile shape
+    5, ///< log2(32) for 32x16/16x32 tile shape
+    4  ///< log2(16) for 16x16 tile shape
 };
 
 /**
- * @brief REPLAY buffer partitioning offset between FPU and SFPU usage
- * @details Defines the split point in the 32-instruction REPLAY buffer between
- * SFPU (instructions 0-15) and FPU (instructions 16-31) usage. This partitioning
- * enables concurrent SFPU and FPU instruction sequences for optimal pipeline
- * utilization in Thread 1 (Math) operations.
- * 
- * **Wormhole B0 REPLAY Buffer Architecture:**
- * - **Total Capacity**: 32 instructions maximum
- * - **SFPU Allocation**: Instructions 0-15 (first 16)
- * - **FPU Allocation**: Instructions 16-31 (next 16)
- * - **Concurrent Execution**: Enables overlapped FPU and SFPU operations
+ * @brief Replay buffer offset for FPU operations
+ *
+ * The replay buffer is partitioned between SFPU and FPU operations:
+ * - Slots 0-15: SFPU operations
+ * - Slots 16-31: FPU operations (starting at this offset)
  */
 constexpr uint replay_buf_offset = 16;
 
+/** @} */ // end of MathConstants group
+
 /**
- * @brief Reset register window counters for SRCA, SRCB, and DEST register files
- * @param setrwc Register window counter reset configuration mask
- * 
- * @details Resets the register window counters (RWC) that control addressing
- * into the SRCA, SRCB, and DEST register files. This function initializes
- * the addressing state for fresh computation sequences in Thread 1 (Math).
- * 
- * **Wormhole B0 Register Window Counter System:**
- * - **SRCA RWC**: Controls addressing into 64×16 SRCA register file
- * - **SRCB RWC**: Controls addressing into 64×16 SRCB register file  
- * - **DEST RWC**: Controls addressing into 1024×16 or 512×16 DEST register file
- * - **Carriage Return**: Each counter includes CR functionality for reuse patterns
- * - **Hardware Integration**: Counters integrate with address generation logic
+ * @defgroup CounterManagement Counter Management Functions
+ * @brief Functions for managing read/write/clear counters in math pipeline
+ * @{
+ */
+
+/**
+ * @brief Reset address counters for math operations
+ *
+ * Resets the specified address counters to their initial values without
+ * clearing validity flags. Used to restart addressing sequences for
+ * repeated operations.
+ *
+ * @param setrwc Counter selection mask (see p_setrwc constants)
+ *
+ * @note This only resets counters, not validity flags
  */
 inline void reset_counters(const uint setrwc)
 {
@@ -141,48 +166,40 @@ inline void reset_counters(const uint setrwc)
 }
 
 /**
- * @brief Increment register window counters for coordinated register access
- * @param incr_a SRCA register window counter increment value
- * @param incr_b SRCB register window counter increment value 
- * @param incr_d DEST register window counter increment value
- * @param incr_cr Carriage return counter increment value
- * 
- * @details Increments the register window counters for SRCA, SRCB, and DEST
- * register files, enabling coordinated advancement through tensor data during
- * mathematical operations. The carriage return functionality supports matrix
- * multiplication and convolution access patterns.
- * 
- * **Wormhole B0 Address Pattern Optimization:**
- * - **Coordinated Increment**: Maintains alignment between operand and result registers
- * - **Matrix Operations**: CR functionality enables efficient operand reuse
- * - **Convolution Support**: Address patterns optimized for sliding window operations
- * - **Pipeline Efficiency**: Counter updates don't stall 2048-multiplier computation
+ * @brief Increment address counters for math operations
+ *
+ * Increments the specified address counters by the given amounts.
+ * Used to advance addressing for the next set of operations.
+ *
+ * @param incr_a Increment for source A counter
+ * @param incr_b Increment for source B counter
+ * @param incr_d Increment for destination counter
+ * @param incr_cr Increment for carriage return counter
  */
 inline void incr_counters(const uint incr_a, const uint incr_b, const uint incr_d, const uint incr_cr)
 {
     TT_INCRWC(incr_cr, incr_d, incr_b, incr_a);
 }
 
+/** @} */ // end of CounterManagement group
+
 /**
- * @brief Move complete data face from DEST to SRCA register file
- * @param addrmod Address modification mode for register window counter updates
- * 
- * @details Transfers a complete 16×16 data face from DEST registers to SRCA
- * register file in 4-row chunks. This function is essential for recirculation
- * patterns where computed results need to become input operands for subsequent
- * operations, common in iterative algorithms and accumulation patterns.
- * 
- * **Wormhole B0 Data Recirculation Architecture:**
- * - **DEST→SRCA Path**: Direct data path for result recirculation
- * - **Chunk Transfer**: 4-row transfers optimize register file bandwidth
- * - **Synchronization**: Waits for SRCA validity to ensure data consistency
- * - **Halo Row Support**: Includes mathematical halo row addressing for convolution
- * - **Address Modification**: Automatic counter updates based on addressing mode
- * 
- * **Pipeline Integration:**
- * - **Thread 1 Control**: Executed by Math thread for operand preparation
- * - **Register Reuse**: Enables efficient accumulation and iterative algorithms
- * - **Memory Efficiency**: Avoids L1 memory round-trips for recirculated data
+ * @defgroup DataMovement Data Movement Functions
+ * @brief Functions for moving data between register banks in math pipeline
+ * @{
+ */
+
+/**
+ * @brief Move destination data to source A for one face (fixed pattern)
+ *
+ * Moves a complete 16x16 face from destination registers to source A
+ * in 4-row chunks. Used for operations that need to feed previous
+ * results back as source operands.
+ *
+ * @param addrmod Address mode for the move operation
+ *
+ * @note Waits for source A validity signal before proceeding
+ * @note Moves 4 rows at a time for optimal performance
  */
 inline void move_d2a_fixed_face(const uint8_t addrmod)
 {
@@ -193,28 +210,6 @@ inline void move_d2a_fixed_face(const uint8_t addrmod)
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, addrmod, p_movd2a::MOV_4_ROWS, 12);
 }
 
-/**
- * @brief Move complete data face from DEST to SRCB register file  
- * @param addrmod Address modification mode for register window counter updates
- * 
- * @details Transfers a complete 16×16 data face from DEST registers to SRCB
- * register file in 4-row chunks. This enables computed results to become
- * the second operand (B) for subsequent mathematical operations, supporting
- * complex algorithmic patterns requiring result feedback.
- * 
- * **Wormhole B0 Operand B Recirculation:**
- * - **DEST→SRCB Path**: Direct data path for result-to-operand-B flow
- * - **4-Row Optimization**: Transfers aligned with register file architecture
- * - **Synchronization**: SRCB validity ensures proper data flow coordination
- * - **Zero Offset Addressing**: Standard SRCB addressing without halo rows
- * - **Address Management**: Automatic counter updates for sequential access
- * 
- * **Mathematical Operation Support:**
- * - **Iterative Algorithms**: Enables feedback loops and accumulation patterns
- * - **Matrix Operations**: Supports complex matrix algorithmic sequences
- * - **2048 Multiplier Utilization**: Maintains high multiplier utilization efficiency
- * - **Pipeline Flow**: Integrates with Unpack→Math→Pack data flow
- */
 inline void move_d2b_fixed_face(const uint8_t addrmod)
 {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCB_VLD); // MOVD2B for a whole face assumes unpacker will set a dummy data_valid, so we want to wait on that
@@ -251,6 +246,55 @@ inline void move_a2d_fixed_face(const uint8_t addrmod)
     TTI_MOVA2D(0, p_mova2d::MATH_HALO_ROWS, addrmod, p_mova2d::MOV_8_ROWS, 0);
 }
 
+/**
+ * @brief Move destination data to source B for one face (fixed pattern)
+ *
+ * Similar to move_d2a_fixed_face but targets source B registers.
+ * Used for operations that need destination feedback to source B.
+ *
+ * @param addrmod Address mode for the move operation
+ */
+// [Implementation for move_d2b_fixed_face follows...]
+
+/**
+ * @brief Move destination data to source A with row broadcast
+ *
+ * Broadcasts the first row of destination data to all 16 rows of
+ * source A. Used for operations requiring row-wise broadcasting.
+ *
+ * @param addrmod Address mode for the move operation
+ */
+// [Implementation for move_d2a_row_broadcast_fixed_face follows...]
+
+/**
+ * @brief Move source A data to destination (fixed pattern)
+ *
+ * Moves data from source A to destination in 8-row chunks.
+ * Used for operations that store intermediate results.
+ *
+ * @param addrmod Address mode for the move operation
+ */
+// [Implementation for move_a2d_fixed_face follows...]
+
+/** @} */ // end of DataMovement group
+
+/**
+ * @defgroup BankValidityControl Bank Validity Control Functions
+ * @brief Template functions for managing source bank validity
+ * @{
+ */
+
+/**
+ * @brief Wait for valid data in specified source bank
+ *
+ * Template function that waits for the specified source register bank
+ * to contain valid data before proceeding. Essential for pipeline
+ * synchronization.
+ *
+ * @tparam SrcReg Source register selection (Srcs::SrcA or Srcs::SrcB)
+ *
+ * @note This is a blocking operation that stalls until data is valid
+ */
 template <uint SrcReg>
 inline void wait_bank_valid()
 {
@@ -264,6 +308,17 @@ inline void wait_bank_valid()
     }
 }
 
+/**
+ * @brief Clear validity flag for specified source bank
+ *
+ * Template function that clears the validity flag for the specified
+ * source register bank after consumption. Used to signal that the
+ * data has been processed.
+ *
+ * @tparam SrcReg Source register selection (Srcs::SrcA or Srcs::SrcB)
+ *
+ * @note Must be called after consuming data to maintain pipeline flow
+ */
 template <uint SrcReg>
 inline void clear_bank_valid()
 {
@@ -277,12 +332,38 @@ inline void clear_bank_valid()
     }
 }
 
+/** @} */ // end of BankValidityControl group
+
+/**
+ * @defgroup SemaphoreManagement Math Pipeline Semaphore Management
+ * @brief Functions for coordinating math and pack pipeline operations
+ * @{
+ */
+
+/**
+ * @brief Wait for space in math-to-pack pipeline
+ *
+ * Waits until the math-pack semaphore is not at maximum, indicating
+ * there is space to write new math results. This prevents math
+ * operations from overrunning the pack pipeline.
+ *
+ * @note Blocks math and SFPU threads until space is available
+ */
 inline void wait_math_semaphores()
 {
     // wait while math semaphore is on max, no room to write math results
     TTI_SEMWAIT(p_stall::STALL_MATH | p_stall::STALL_SFPU, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_MAX);
 }
 
+/**
+ * @brief Signal math operation completion to pack pipeline
+ *
+ * Posts to the math-pack semaphore to signal that new math results
+ * are available for packing. This coordinates the handoff between
+ * math and pack stages of the pipeline.
+ *
+ * @note Called after math operations complete to maintain pipeline flow
+ */
 inline void set_math_semaphores()
 {
     // Tell packer that it has something to pack
@@ -379,6 +460,25 @@ inline void set_dest_section_base()
     TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, base_addr);
 }
 
+/** @} */ // end of SemaphoreManagement group
+
+/**
+ * @defgroup UtilityFunctions Math Utility Functions
+ * @brief Helper functions for format detection and math configuration
+ * @{
+ */
+
+/**
+ * @brief Check if operation uses 32-bit input/output formats
+ *
+ * Determines whether both source and destination formats are 32-bit
+ * (Float32 or Int32). Used to optimize math operations for 32-bit
+ * data paths.
+ *
+ * @param src_format Source data format
+ * @param dst_format Destination data format
+ * @return true if both formats are 32-bit, false otherwise
+ */
 inline constexpr bool is_32bit_input(const std::uint32_t src_format, const std::uint32_t dst_format)
 {
     const uint input_df  = src_format & 0xF;
@@ -388,14 +488,35 @@ inline constexpr bool is_32bit_input(const std::uint32_t src_format, const std::
            ((output_df == (uint)DataFormat::Int32) || (output_df == (uint)DataFormat::Float32));
 }
 
+/**
+ * @brief Extract number of fidelity phases from math fidelity descriptor
+ *
+ * Math operations can be performed in multiple phases for improved
+ * accuracy. This function extracts the phase count from the fidelity
+ * configuration descriptor.
+ *
+ * @param math_fidelity_desc Math fidelity configuration descriptor
+ * @return Number of fidelity phases (0-7)
+ */
 inline constexpr int get_math_num_fidelity_phases(const int math_fidelity_desc)
 {
     return (math_fidelity_desc & 0x7);
 }
 
+/**
+ * @brief Extract fidelity increment from math fidelity descriptor
+ *
+ * Determines the increment value used between fidelity phases.
+ * This controls how the fidelity phases are stepped through.
+ *
+ * @param math_fidelity_desc Math fidelity configuration descriptor
+ * @return Fidelity increment value (1 or 2)
+ */
 inline constexpr int get_math_fidelity_increment(const int math_fidelity_desc)
 {
     return ((math_fidelity_desc >> 3) & 0x1) + 1;
 }
+
+/** @} */ // end of UtilityFunctions group
 
 } // namespace ckernel::math

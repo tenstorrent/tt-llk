@@ -2,57 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_comp.h
- * @brief Comparison and conditional operations implementation for SFPU hardware
- *
- * @details This file implements comprehensive comparison operations and conditional
- * logic for SFPU hardware, providing the foundation for element-wise comparisons,
- * conditional assignments, and boolean operations across 32-lane SIMD data. These
- * operations are essential for implementing neural network layers that require
- * conditional computation and data selection.
- *
- * **Supported Comparison Operations:**
- * - **Equality**: Element-wise equality testing (==, !=)
- * - **Relational**: Less than, greater than, less/greater equal (>, <, >=, <=)
- * - **Special Value Tests**: NaN detection, infinity checks, zero testing
- * - **Floating-Point Comparisons**: IEEE-754 compliant comparison semantics
- *
- * **Conditional Operations:**
- * - **Conditional Assignment**: Select values based on comparison results
- * - **Boolean Logic**: AND, OR, NOT operations on comparison results
- * - **Masking**: Element-wise data selection using boolean masks
- * - **Predicated Execution**: Conditional execution using SFPU `v_if`/`v_endif`
- *
- * **SFPU Implementation Features:**
- * - **Vector Comparisons**: Parallel comparison across all 32 SIMD lanes
- * - **Conditional Execution**: Hardware-accelerated predicated operations
- * - **Boolean Result Generation**: Efficient boolean result encoding
- * - **Special Value Handling**: Proper IEEE-754 NaN and infinity semantics
- *
- * **Boolean Encoding:**
- * - **TRUE**: Represented as `1` (ONE constant)
- * - **FALSE**: Represented as `0` (ZERO constant)
- * - **Consistent Representation**: Uniform boolean encoding across operations
- *
- * **Performance Optimization:**
- * - **Branch-Free Execution**: Uses conditional execution instead of branching
- * - **SIMD Parallelism**: All 32 lanes processed simultaneously
- * - **Minimal Instruction Count**: Optimized for SFPU instruction efficiency
- * - **IEEE-754 Compliance**: Hardware-accelerated floating-point comparisons
- *
- * **Integration with Other SFPU Functions:**
- * - **Zero Detection**: Leverages `ckernel_sfpu_is_fp16_zero.h` for precise zero tests
- * - **Type System**: Uses `llk_sfpu_types.h` for consistent type definitions
- * - **SFPI Interface**: Built on top of SFPI vector programming model
- *
- * **Performance Characteristics:**
- * - **Latency**: 1-3 cycles per tile depending on comparison complexity
- * - **Throughput**: 32 elements processed per cycle
- * - **Boolean Operations**: Very fast boolean logic operations
- * - **Memory**: No lookup tables required - pure computational approach
- */
-
 #pragma once
 
 #include "ckernel_sfpu_is_fp16_zero.h"

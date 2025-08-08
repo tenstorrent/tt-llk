@@ -197,60 +197,6 @@ inline void _llk_unpack_AB_matmul_hw_configure_(
     sync_regfile_write(p_gpr_unpack::TILE_SIZE_B);
 }
 
-/**
- * @brief Initialize dual unpacker operation for matrix multiplication on Wormhole B0
- * 
- * @details Configures both Unpacker 0 (operand A → SRCA) and Unpacker 1 (operand B → SRCB)
- * for efficient matrix multiplication data movement. This function optimizes the unpacker
- * configuration for GEMM workloads, including broadcast patterns, reuse strategies, and
- * address generation for maximum throughput to the 2048 hardware multipliers.
- * 
- * **Dual Unpacker Architecture:**
- * - Unpacker 0: Loads matrix A data into SRCA register file (64×16 datums)
- * - Unpacker 1: Loads matrix B data into SRCB register file (64×16 datums)
- * - Combined bandwidth: 80B/clock for optimal math unit utilization
- * 
- * **Matrix Reuse Optimization:**
- * Automatically determines optimal reuse pattern based on dimensions:
- * - A-reuse (ct_dim >= rt_dim): Reuse matrix A across multiple B columns
- * - B-reuse (rt_dim > ct_dim): Reuse matrix B across multiple A rows
- * 
- * **Broadcast Support:**
- * Template parameters enable efficient broadcast operations:
- * - kernel_broadcast_a: Enable operand A broadcast optimization
- * - kernel_broadcast_b: Enable operand B broadcast optimization
- * 
- * **Performance Features:**
- * - Optimal L1 bank interleaving for both operands
- * - Hardware address generation with carriage return
- * - Partial face support for non-standard tile sizes
- * - Format conversion during data movement
- * 
- * @tparam kernel_broadcast_a Enable broadcast optimization for operand A (0=disabled, 1=enabled)
- * @tparam kernel_broadcast_b Enable broadcast optimization for operand B (0=disabled, 1=enabled)
- * 
- * @param transpose Matrix transpose mode (0=no transpose, 1=transpose operand A)
- * @param ct_dim Column tile dimension for blocking algorithm
- * @param rt_dim Row tile dimension for blocking algorithm
- * @param kt_dim K-dimension tile count for accumulation
- * @param unpA_face_r_dim Row dimension of operand A tile face (default: FACE_R_DIM)
- * @param unpB_face_r_dim Row dimension of operand B tile face (default: FACE_R_DIM)
- * @param unpA_num_faces Number of faces in operand A tile (default: 4)
- * @param unpB_num_faces Number of faces in operand B tile (default: 4)
- * @param unpA_partial_face Enable partial face for operand A non-standard sizes
- * @param unpB_partial_face Enable partial face for operand B non-standard sizes
- * 
- * @note This function must be called once before any _llk_unpack_AB_matmul_() operations
- * @note Automatically configures optimal reuse pattern based on ct_dim vs rt_dim
- * @note Both unpackers are configured simultaneously for coordinated operation
- * 
- * @warning Matrix dimensions must be compatible with hardware tile constraints
- * @warning Broadcast template parameters affect address generation patterns
- * @warning Face dimensions must align with actual data tile organization
- * 
- * @see _llk_unpack_AB_matmul_() for per-tile execution
- * @see _llk_unpack_AB_matmul_hw_configure_() for hardware configuration
- */
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     const std::uint32_t transpose       = 0,
@@ -264,11 +210,6 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     const bool unpA_partial_face        = false,
     const bool unpB_partial_face        = false)
 {
-    // Validate parameters
-    // LLK_VALIDATE_PARAM_RANGE(transpose, 0, 1, "transpose must be 0 or 1");
-    //LLK_VALIDATE_MATMUL_DIMS(rt_dim, ct_dim, kt_dim);
-    
-    // Use utility for optimal reuse pattern calculation
     const bool reuse_a = ct_dim >= rt_dim;
 
     // also turn on within_face_16x16_transpose if it was turned off by datacopy at runtime

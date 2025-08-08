@@ -2,45 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_mul_int.h
- * @brief Integer multiplication operation for SFPU hardware
- *
- * @details This file implements integer multiplication using SFPU hardware acceleration.
- * The implementation provides efficient element-wise integer multiplication across
- * 32-lane SIMD data, optimized for scenarios where floating-point multiplication
- * hardware is used for integer operations.
- *
- * **Mathematical Operation:**
- * - **Integer Multiplication**: result = a * b (integer semantics)
- * - **SIMD Processing**: 32 integer pairs multiplied simultaneously
- * - **Overflow Handling**: Proper integer overflow semantics
- * - **Sign Preservation**: Correct handling of signed integer multiplication
- *
- * **SFPU Implementation:**
- * The implementation leverages SFPU's multiply-add capabilities:
- * 1. **Input Loading**: Load integer operands from destination registers
- * 2. **Multiplication**: Use SFPU multiply instructions with integer interpretation
- * 3. **Result Storage**: Store results back to destination registers
- * 4. **Format Handling**: Maintain integer semantics throughout computation
- *
- * **Template Parameters:**
- * - **APPROXIMATION_MODE**: Precision control (not applicable for exact integer ops)
- * - **ITERATIONS**: Number of tiles to process in batched operation
- *
- * **Performance Characteristics:**
- * - **Latency**: 2-3 cycles per tile
- * - **Throughput**: 32 integer multiplications per cycle
- * - **Precision**: Exact integer arithmetic (no approximation)
- * - **Resource Usage**: Efficient utilization of SFPU multiply units
- *
- * **Use Cases:**
- * - Neural network quantized operations
- * - Index calculations and address arithmetic
- * - Integer-based mathematical kernels
- * - Mixed-precision computation support
- */
-
 #pragma once
 
 #include "ckernel_addrmod.h"

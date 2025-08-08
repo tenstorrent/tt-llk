@@ -4,31 +4,35 @@
 
 /**
  * @file ckernel_globals.h
- * @brief Global variables for Wormhole B0 Tensix kernel configuration and state management
+ * @brief Global Variable Declarations for Wormhole B0 Tensix Kernel
  *
- * @details This header declares essential global variables used throughout the Wormhole B0
- * Tensix compute kernel framework for managing configuration state, memory buffers, and
- * inter-thread synchronization. These globals are critical for coordinating the complex
- * 3-thread architecture and dual configuration state system.
+ * This header declares global variables used throughout the kernel system for
+ * state management, configuration tracking, synchronization, and memory layout.
+ * These variables provide shared state across different kernel components and
+ * threads.
  *
- * **Wormhole B0 Configuration Architecture:**
- * - **Dual CFG States**: Two complete sets of configuration registers (State 0 and State 1)
- * - **Thread-Specific Context**: Each of the 3 threads can independently select CFG state
- * - **Dynamic Reconfiguration**: Runtime switching between states for performance optimization
- * - **Unpacker Context**: Separate configuration contexts for efficient data streaming
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
  *
- * **Memory Management:**
- * The Wormhole B0 L1 SRAM system is a multi-bank, multi-port structure:
- * - **16 Access Ports**: Shared between multiple Tensix core clients
- * - **16B Word Size**: All L1 operations aligned to 16-byte boundaries
- * - **Bank Interleaving**: 16 consecutive addresses map to different banks (configurable)
- * - **Round-Robin Arbitration**: Fair access across all requesting clients
+ * # Global Variable Categories
  *
- * **Synchronization Framework:**
- * These globals support the sophisticated Wormhole B0 synchronization model:
- * - **Hardware Semaphores**: Resource counters (not true atomics) for thread coordination
- * - **DEST Register Sync**: Coordination between Math and Pack threads on register access
- * - **Pipeline Synchronization**: Maintaining proper data flow through Unpack→Math→Pack
+ * - **Configuration State**: Variables tracking current hardware configuration
+ * - **Buffer Management**: L1 buffer allocation and management
+ * - **Synchronization**: Inter-thread synchronization variables
+ * - **Memory Layout**: Linker-defined memory region boundaries
+ *
+ * # Usage Notes
+ *
+ * These variables are defined elsewhere in the kernel implementation and are
+ * declared here for access by kernel components. They represent shared state
+ * that must be coordinated across different execution contexts.
+ *
+ * @warning Global variables require careful synchronization in multi-threaded contexts
+ * @warning Some variables are volatile and require special handling
+ *
+ * @see ckernel_structs.h for related data structure definitions
+ * @see risc_attribs.h for RISC-specific attributes
  */
 
 #pragma once
@@ -39,63 +43,115 @@
 #include "risc_attribs.h"
 
 /**
- * @brief Current configuration state ID (0 or 1) for Tensix engine
- * @details Controls which of the dual CFG register sets is currently active.
- * Wormhole B0 provides two complete configuration contexts that can be
- * switched dynamically for performance optimization and reduced reconfiguration overhead.
+ * @defgroup GlobalVariables Kernel Global Variables
+ * @brief Shared global state variables for kernel operation
+ * @{
+ */
+
+/**
+ * @defgroup ConfigurationState Configuration State Variables
+ * @brief Variables tracking current hardware configuration state
+ * @{
+ */
+
+/**
+ * @brief Current configuration state identifier
+ *
+ * Tracks the current configuration state for hardware components.
+ * Used to manage configuration context switching and state coordination
+ * across different kernel operations.
  */
 extern uint32_t cfg_state_id;
 
 /**
- * @brief Unpacker configuration context selector
- * @details Manages the current configuration context for unpacker operations.
- * Supports multiple unpacker contexts for efficient data streaming patterns
- * and pipeline optimization in the Unpack thread (Thread 0).
+ * @brief Unpacker configuration context identifier
+ *
+ * Maintains the current configuration context for unpacker operations.
+ * Used to track which unpacker configuration is currently active for
+ * proper context management and state restoration.
  */
 extern uint32_t unp_cfg_context;
 
+/** @} */ // end of ConfigurationState group
+
 /**
- * @brief L1 memory buffer array for data movement operations
- * @details Provides 16 buffer pointers for managing data in the Wormhole B0
- * L1 SRAM system. The volatile qualifier ensures proper memory access semantics
- * for hardware-visible data structures in the multi-bank L1 memory.
+ * @defgroup BufferManagement Buffer Management Variables
+ * @brief Variables for L1 buffer allocation and management
+ * @{
+ */
+
+/**
+ * @brief L1 buffer array for kernel operations
+ *
+ * Array of L1 memory pointers used for various kernel buffer management
+ * operations. The volatile qualifier ensures proper memory ordering and
+ * prevents compiler optimizations that could interfere with hardware access.
+ *
+ * @note Array size of 16 elements provides multiple buffer slots
+ * @note Volatile access ensures hardware coherency
+ * @note tt_l1_ptr attribute indicates L1 memory addressing
  */
 extern uint32_t volatile tt_l1_ptr l1_buffer[16];
 
+/** @} */ // end of BufferManagement group
+
 /**
- * @brief Pack thread synchronization pointer for DEST register access
- * @details Synchronization primitive for coordinating Pack thread (Thread 2)
- * access to DEST registers. Ensures proper data flow from Math thread
- * computation results to Pack thread L1 storage operations.
+ * @defgroup SynchronizationVariables Synchronization Variables
+ * @brief Variables for coordinating between kernel threads and operations
+ * @{
+ */
+
+/**
+ * @brief Pack synchronization destination pointer
+ *
+ * Destination pointer used for synchronizing pack operations with other
+ * pipeline stages. Ensures proper coordination between math results and
+ * pack operations.
  */
 extern uint32_t pack_sync_tile_dst_ptr;
 
 /**
- * @brief Math thread synchronization index for DEST register management
- * @details Index-based synchronization for Math thread (Thread 1) DEST
- * register operations. Coordinates with Pack thread to ensure proper
- * double-buffering and pipeline efficiency.
+ * @brief Math synchronization destination tile index
+ *
+ * Tile index used for synchronizing math operations with pack pipeline.
+ * Tracks which destination tile is currently being processed for proper
+ * pipeline coordination.
  */
 extern uint32_t math_sync_tile_dst_index;
 
+/** @} */ // end of SynchronizationVariables group
+
 /**
- * @brief Linker-provided start address of read-only data in local memory
- * @details Marks the beginning of the read-only data section in TRISC local memory.
- * Local memory provides lowest-latency access (~1 cycle vs 5-7 cycles for L1)
- * and is used for frequently accessed constants and program data.
+ * @defgroup MemoryLayout Memory Layout Variables
+ * @brief Linker-defined memory region boundaries and layout information
+ * @{
+ */
+
+/**
+ * @brief Start address of local read-only data section
+ *
+ * Linker-defined symbol marking the beginning of the local memory
+ * read-only data section. Used for memory layout management and
+ * address calculations.
  */
 extern uint32_t __local_mem_rodata_start_addr[];
 
 /**
- * @brief Linker-provided end address of read-only data in local memory
- * @details Marks the end of the read-only data section, enabling bounds
- * checking and memory layout management for the TRISC local memory space.
+ * @brief End address of local read-only data section
+ *
+ * Linker-defined symbol marking the end of the local memory
+ * read-only data section. Used to calculate section size and
+ * validate memory access boundaries.
  */
 extern uint32_t __local_mem_rodata_end_addr[];
 
 /**
- * @brief Linker-provided firmware start address
- * @details Starting address of firmware code section, used for memory
- * management and initialization of the Tensix compute kernel runtime.
+ * @brief Firmware start address
+ *
+ * Linker-defined symbol marking the start of firmware code section.
+ * Used for memory layout management and firmware loading operations.
  */
 extern uint32_t __firmware_start[];
+
+/** @} */ // end of MemoryLayout group
+/** @} */ // end of GlobalVariables group

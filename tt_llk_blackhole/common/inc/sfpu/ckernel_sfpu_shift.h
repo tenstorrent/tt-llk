@@ -2,61 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_shift.h
- * @brief Bitwise shift operations for SFPU hardware
- *
- * @details This file implements bitwise shift operations (left shift, right shift)
- * using SFPU hardware acceleration. These operations provide efficient bit manipulation
- * capabilities for integer data, supporting both logical and arithmetic shift variants
- * with configurable precision and sign handling.
- *
- * **Supported Shift Operations:**
- * - **Left Shift**: result = a << b (multiply by 2^b)
- * - **Right Shift**: result = a >> b (divide by 2^b)
- * - **Logical Shift**: Zero-fill for unsigned data
- * - **Arithmetic Shift**: Sign-extend for signed data
- *
- * **Shift Operation Semantics:**
- * - **Left Shift**: Always zero-fill from the right
- * - **Logical Right Shift**: Zero-fill from the left
- * - **Arithmetic Right Shift**: Sign-extend from the left for signed values
- * - **Overflow Handling**: Proper behavior for shift amounts ≥ data width
- *
- * **Integer Format Support:**
- * The implementation supports multiple integer representations:
- * - **Two's Complement**: Standard signed integer representation
- * - **Sign-Magnitude**: Separate sign and magnitude representation
- * - **Configurable Width**: Support for different integer bit widths
- * - **Load/Store Modes**: Flexible data movement with format conversion
- *
- * **Template Parameters:**
- * - **APPROXIMATION_MODE**: Precision control (not applicable for exact bit ops)
- * - **ITERATIONS**: Number of tiles to process in batched operation
- * - **INSTRUCTION_MODE**: Load/store instruction format selection
- * - **SIGN_MAGNITUDE_FORMAT**: Choose between sign-magnitude and two's complement
- *
- * **SFPU Implementation:**
- * 1. **Operand Loading**: Load shift operands with format-specific interpretation
- * 2. **Shift Amount**: Extract and validate shift count (typically limited to 0-31)
- * 3. **Bit Manipulation**: Execute shift using SFPU bit manipulation capabilities
- * 4. **Sign Handling**: Apply appropriate sign extension for arithmetic shifts
- * 5. **Result Storage**: Store results with appropriate format encoding
- *
- * **Performance Characteristics:**
- * - **Latency**: 3-5 cycles per tile depending on shift type and format
- * - **Throughput**: 32 shift operations per cycle
- * - **Precision**: Exact bit manipulation with proper overflow semantics
- * - **Efficiency**: Optimized for common shift amounts and patterns
- *
- * **Use Cases:**
- * - Neural network quantization operations
- * - Fixed-point arithmetic simulation
- * - Bit manipulation for hashing and encoding
- * - Power-of-2 multiplication/division optimization
- * - Custom numeric format implementation
- */
-
 #pragma once
 
 #include <type_traits>

@@ -4,54 +4,86 @@
 
 /**
  * @file cunpack_common.h
- * @brief Thread 0 (Unpack) execution utilities for Wormhole B0 Tensix data movement
+ * @brief Unpack Operation Infrastructure for Wormhole B0 Tensix
  *
- * @details This header provides essential utilities and data structures for Thread 0 (Unpack)
- * in the Wormhole B0 Tensix engine. The Unpack thread is responsible for efficiently moving
- * data from L1 SRAM to the SRCA and SRCB register files, preparing operands for consumption
- * by Thread 1 (Math). This thread is critical for maintaining high utilization of the
- * 2048 hardware multipliers by ensuring continuous data availability.
+ * This header provides the complete infrastructure for unpack operations on
+ * Wormhole B0 Tensix cores. Unpack operations handle data decompression,
+ * format conversion, and input processing, serving as the initial stage in
+ * the compute pipeline.
  *
- * **Wormhole B0 Unpack Thread Architecture:**
- * Thread 0 manages the first stage of the compute pipeline:
- * - **Data Source**: Multi-bank L1 SRAM (16B words, round-robin arbitration)
- * - **Data Destinations**: SRCA register file (64×16 datums) and SRCB register file (64×16 datums)
- * - **Bandwidth**: 64B/clock per unpacker, 80B/clock combined when both active
- * - **Synchronization**: Hardware-embedded sync with Thread 1 (Math) for pipeline efficiency
- * - **Address Generation**: Sophisticated X,Y,Z counters with stride and carriage return
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
  *
- * **Dual Unpacker System:**
- * Wormhole B0 features two independent unpacker engines:
- * - **Unpacker 0**: Feeds SRCA register file for operand A data
- * - **Unpacker 1**: Feeds SRCB register file for operand B data
- * - **Parallel Operation**: Both unpackers can operate simultaneously for maximum throughput
- * - **Independent Configuration**: Separate configuration contexts for optimal flexibility
+ * # Key Components
  *
- * **Data Format Processing:**
- * Comprehensive support for AI workload data formats:
- * - **Floating-Point**: FP32, FP16A/B, BF16, TF32 with format conversion
- * - **Block Floating-Point**: BFP8, BFP4, BFP2 (shared exponent per 16 values)
- * - **Integer**: INT8/16/32, UINT8/16 with sign-magnitude handling
- * - **Custom Formats**: Configurable exponent/mantissa widths for specialized applications
- * - **Format Conversion**: Hardware-accelerated conversion to 19-bit register file format
+ * - **Tile Descriptors**: Define tile dimensions, data formats, and layout parameters
+ * - **Configuration Structures**: Unpack configuration, ALU settings, format control
+ * - **Hardware Abstraction**: Register field definitions and control interfaces
+ * - **Utility Functions**: Helper functions for unpack configuration and control
+ * - **Format Support**: Multiple data formats including BFP, Float16, Float32, Int8/32
+ * - **Special Modes**: Haloize, tileize, upsampling, and interleaving support
  *
- * **Performance Characteristics:**
- * - **Peak Bandwidth**: 64B/clock per unpacker (128B/clock total theoretical)
- * - **Practical Bandwidth**: 80B/clock combined due to shared L1 ports
- * - **Latency**: 8 clock cycles for 16×16 FP16 tile (512B ÷ 64B/clock)
- * - **Optimization**: Larger transfer chunks amortize instruction overhead
- * - **Address Patterns**: Optimized for L1 bank interleaving and stride access
+ * # Unpack Pipeline Architecture
  *
- * **Hardware Synchronization:**
- * - **Double Buffering**: Dual register banks enable continuous operation
- * - **Data Valid Signals**: Hardware handshaking between unpack and math operations
- * - **Write Ready Protocol**: Automatic flow control prevents data overflow
- * - **Thread Coordination**: Embedded sync eliminates software synchronization overhead
+ * The unpack pipeline processes data through several stages:
  *
- * **Configuration Management:**
- * - **Tile Descriptors**: Compact 2-dword descriptions for data layout and format
- * - **Multiple Contexts**: Support for rapid context switching and configuration reuse
- * - **Dynamic Reconfiguration**: Runtime format and addressing pattern changes
+ * 1. **L1 Input**: Read data from L1 memory using tile descriptors
+ * 2. **Decompression**: Decompress BFP data if needed
+ * 3. **Format Conversion**: Convert between input and internal data formats
+ * 4. **Reordering**: Apply haloize/tileize transformations
+ * 5. **Upsampling**: Expand data through upsampling if configured
+ * 6. **Output**: Provide data to compute units (math/SFPU)
+ *
+ * # Data Format Support
+ *
+ * Supported input formats: Float32, Float16, Int32, Int8, BFP8/16
+ * Supported output formats: Float32, Float16, Int32 (for internal processing)
+ *
+ * # Dual Unpacker System
+ *
+ * Wormhole B0 has two independent unpackers:
+ * - **Unpacker A**: Typically for weights/operand A
+ * - **Unpacker B**: Typically for activations/operand B
+ *
+ * Each unpacker can be independently configured for different:
+ * - Data formats and layouts
+ * - Tile dimensions and addressing
+ * - Processing modes (haloize, tileize, etc.)
+ *
+ * # Usage Pattern
+ *
+ * ```cpp
+ * #include "cunpack_common.h"
+ *
+ * // Configure tile descriptor for input data
+ * unpack_tile_descriptor_u desc = {};
+ * desc.f.in_data_format = static_cast<uint32_t>(DataFormat::Float16);
+ * desc.f.x_dim = 32;
+ * desc.f.y_dim = 32;
+ * desc.f.z_dim = 1;
+ * desc.f.w_dim = 1;
+ *
+ * // Configure unpack operation
+ * unpack_config_u config = {};
+ * config.f.out_data_format = static_cast<uint32_t>(DataFormat::Float32);
+ * config.f.throttle_mode = 0;
+ * config.f.tileize_mode = 1;
+ *
+ * // Execute unpack operation
+ * configure_unpacker(desc, config);
+ * execute_unpack();
+ * ```
+ *
+ * @warning Unpack operations directly control hardware. Incorrect configuration
+ *          can cause data corruption, hardware lockups, or incorrect results.
+ *
+ * @note This header contains low-level unpack infrastructure. Use high-level
+ *       LLK unpack APIs when possible for better abstraction and safety.
+ *
+ * @see llk_unpack_A.h and llk_unpack_B.h for high-level unpack operations
+ * @see ckernel.h for core infrastructure
+ * @see DataFormat for supported data format constants
  */
 
 #pragma once
@@ -62,50 +94,90 @@
 #include "ckernel.h"
 #include "ckernel_globals.h"
 
+/**
+ * @namespace ckernel::unpacker
+ * @brief Unpack operation infrastructure and utilities
+ *
+ * Contains all unpack-related functionality including configuration structures,
+ * hardware register definitions, and utility functions for unpack operations.
+ */
 namespace ckernel::unpacker
 {
-/**
- * @brief Unpacker tile descriptor size in double-words
- * @details Each tile descriptor requires 2 double-words to fully specify
- * the data layout, format, and addressing information for efficient unpacking.
- */
-constexpr uint32_t TILE_DESC_SIZE = 2;
 
 /**
- * @brief Unpacker configuration context size in double-words  
- * @details Configuration contexts require 2 double-words to store
- * the complete unpacker state for rapid context switching.
+ * @defgroup UnpackConstants Unpack Operation Constants
+ * @brief Core constants for unpack operation configuration
+ * @{
  */
-constexpr uint32_t CONFIG_SIZE    = 2;
+
+constexpr uint32_t TILE_DESC_SIZE = 2; ///< Unpacker tile descriptor size in 32-bit words
+constexpr uint32_t CONFIG_SIZE    = 2; ///< Unpacker configuration size in 32-bit words
+constexpr uint32_t NUM_UNPACKERS  = 2; ///< Total number of hardware unpackers available
+
+/** @} */ // end of UnpackConstants group
 
 /**
- * @brief Number of independent unpacker engines in Wormhole B0
- * @details Wormhole B0 features 2 unpacker engines: Unpacker 0 (→SRCA) and Unpacker 1 (→SRCB)
- * for parallel data movement and maximum compute engine utilization.
+ * @defgroup UnpackConfigurationStructures Unpack Configuration Structures
+ * @brief Hardware register structures for unpack operation control
+ * @{
  */
-constexpr uint32_t NUM_UNPACKERS  = 2;
 
-// Unpack tile descriptor
+/**
+ * @struct unpack_tile_descriptor_t
+ * @brief Tile descriptor for unpack operations
+ *
+ * Defines the layout and properties of input tiles for unpacker operations.
+ * This structure describes the source data organization in L1 memory,
+ * including dimensions, format, and layout parameters.
+ *
+ * # 4D Tile Organization
+ *
+ * Tiles are organized in a 4-dimensional space:
+ * - **X dimension**: Width (innermost, fastest changing)
+ * - **Y dimension**: Height
+ * - **Z dimension**: Depth/Channels
+ * - **W dimension**: Batch/Outermost (slowest changing)
+ *
+ * # BFP Compression Support
+ *
+ * For Block Floating Point (BFP) formats, additional parameters control
+ * the compressed data layout and blob organization.
+ *
+ * # Usage Example
+ * ```cpp
+ * unpack_tile_descriptor_t desc = {};
+ * desc.in_data_format = static_cast<uint32_t>(DataFormat::Float16);
+ * desc.x_dim = 32;    // 32 elements wide
+ * desc.y_dim = 32;    // 32 elements tall
+ * desc.z_dim = 1;     // Single channel
+ * desc.w_dim = 1;     // Single batch
+ * desc.uncompressed = 1; // No BFP compression
+ * ```
+ */
 typedef struct
 {
-    // word 0
-    uint32_t in_data_format     : 4;
-    uint32_t uncompressed       : 1;
-    uint32_t reserved_0         : 3;
-    uint32_t blobs_per_xy_plane : 4;
-    uint32_t reserved_1         : 4;
-    uint32_t x_dim              : 16;
-    // word 1
-    uint32_t y_dim : 16;
-    uint32_t z_dim : 16;
-    // word 2
-    uint32_t w_dim            : 16;
-    uint32_t blobs_y_start_lo : 16;
-    // word 3
-    uint32_t blobs_y_start_hi : 16;
-    uint32_t digest_type      : 8; // Not used
-    uint32_t digest_size      : 8; // Not used
-} unpack_tile_descriptor_t;        // Unpack configuration
+    // word 0 - Format and Layout Control
+    uint32_t in_data_format     : 4;  ///< Input data format (see DataFormat enum)
+    uint32_t uncompressed       : 1;  ///< 1 = uncompressed data, 0 = BFP compressed
+    uint32_t reserved_0         : 3;  ///< Reserved bits
+    uint32_t blobs_per_xy_plane : 4;  ///< Number of BFP blobs per XY plane
+    uint32_t reserved_1         : 4;  ///< Reserved bits
+    uint32_t x_dim              : 16; ///< X dimension (width, innermost)
+
+    // word 1 - Primary Dimensions
+    uint32_t y_dim : 16; ///< Y dimension (height)
+    uint32_t z_dim : 16; ///< Z dimension (depth/channels)
+
+    // word 2 - Extended Dimensions and BFP Control
+    uint32_t w_dim            : 16; ///< W dimension (batch/outermost)
+    uint32_t blobs_y_start_lo : 16; ///< BFP blob Y start address (low 16 bits)
+
+    // word 3 - BFP Extended Control and Digest (Unused)
+    uint32_t blobs_y_start_hi : 16; ///< BFP blob Y start address (high 16 bits)
+    uint32_t digest_type      : 8;  ///< Digest type (not currently used)
+    uint32_t digest_size      : 8;  ///< Digest size (not currently used)
+
+} unpack_tile_descriptor_t;
 
 static_assert(sizeof(unpack_tile_descriptor_t) == (sizeof(uint32_t) * 4));
 
@@ -630,5 +702,7 @@ inline alu_config_t read_alu_config()
 
     return config.f;
 }
+
+/** @} */ // end of UnpackConfigurationStructures group
 
 } // namespace ckernel::unpacker

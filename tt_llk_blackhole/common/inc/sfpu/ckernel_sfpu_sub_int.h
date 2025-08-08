@@ -2,53 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_sub_int.h
- * @brief Integer subtraction operation for SFPU hardware
- *
- * @details This file implements integer subtraction using SFPU hardware acceleration
- * with support for multiple integer formats and representation modes. The implementation
- * provides efficient element-wise integer subtraction across 32-lane SIMD data with
- * configurable precision and sign representation.
- *
- * **Mathematical Operation:**
- * - **Integer Subtraction**: result = a - b (integer semantics)
- * - **SIMD Processing**: 32 integer pairs subtracted simultaneously
- * - **Multiple Formats**: Support for different integer bit widths
- * - **Sign Handling**: Configurable sign-magnitude vs. two's complement
- *
- * **Format Support:**
- * The implementation supports multiple integer representations:
- * - **Two's Complement**: Standard signed integer representation
- * - **Sign-Magnitude**: Separate sign and magnitude representation
- * - **Configurable Width**: Support for different integer bit widths
- * - **Load/Store Modes**: Flexible data movement with format conversion
- *
- * **Template Parameters:**
- * - **APPROXIMATION_MODE**: Precision control (not applicable for exact integer ops)
- * - **ITERATIONS**: Number of tiles to process in batched operation
- * - **INSTRUCTION_MODE**: Load/store instruction format selection
- * - **SIGN_MAGNITUDE_FORMAT**: Choose between sign-magnitude and two's complement
- *
- * **SFPU Implementation:**
- * 1. **Input Loading**: Load integer operands with format-specific interpretation
- * 2. **Subtraction**: Use SFPU arithmetic with proper sign handling
- * 3. **Format Conversion**: Convert between representation formats as needed
- * 4. **Result Storage**: Store results with appropriate format encoding
- *
- * **Performance Characteristics:**
- * - **Latency**: 2-4 cycles per tile depending on format conversions
- * - **Throughput**: 32 integer subtractions per cycle
- * - **Precision**: Exact integer arithmetic with proper overflow handling
- * - **Flexibility**: Runtime format selection via template parameters
- *
- * **Use Cases:**
- * - Neural network quantized operations
- * - Index calculations and offset arithmetic
- * - Integer-based difference computations
- * - Mixed-precision numerical algorithms
- */
-
 #pragma once
 
 #include <type_traits>

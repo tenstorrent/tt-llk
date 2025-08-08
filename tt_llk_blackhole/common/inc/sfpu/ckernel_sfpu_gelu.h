@@ -2,53 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_gelu.h
- * @brief GELU (Gaussian Error Linear Unit) activation function for SFPU hardware
- *
- * @details This file implements the GELU activation function using SFPU hardware
- * acceleration with multiple approximation modes. GELU has become increasingly
- * popular in transformer models and modern neural networks due to its smooth,
- * non-monotonic characteristics that can improve gradient flow.
- *
- * **Mathematical Definition:**
- * - **Exact GELU**: f(x) = x * Φ(x) = x * (1/2) * (1 + erf(x/√2))
- * - **Approximation**: f(x) ≈ 0.5 * x * (1 + tanh(√(2/π) * (x + 0.044715 * x³)))
- * - **Properties**: Smooth, non-monotonic, probabilistically motivated
- *
- * **Implementation Modes:**
- * 1. **Exact Mode** (APPROXIMATION_MODE = false):
- *    - Uses error function (erf) via cumulative distribution function
- *    - Higher accuracy but increased computational cost
- *    - Leverages `ckernel_sfpu_cdf.h` for precise CDF computation
- *
- * 2. **Approximation Mode** (APPROXIMATION_MODE = true):
- *    - Uses tanh-based polynomial approximation
- *    - Faster computation with minimal accuracy loss
- *    - Optimal for inference workloads requiring high throughput
- *
- * **SFPU Algorithm Overview:**
- * 1. **Input Analysis**: Determine computation path based on input range
- * 2. **Range Optimization**: Apply different strategies for different input ranges
- * 3. **Core Computation**: Execute exact or approximate GELU calculation
- * 4. **Special Value Handling**: IEEE-754 compliant edge case processing
- *
- * **Hardware Integration:**
- * - Leverages existing SFPU functions (exp, cdf) for complex operations
- * - Uses polynomial evaluation for efficient approximation
- * - Optimized instruction scheduling for maximum SFPU utilization
- * - Supports both FP32 and FP16 precision modes
- *
- * **Performance Characteristics:**
- * - **Latency**: 8-15 cycles per tile depending on approximation mode
- * - **Throughput**: 32 elements processed per cycle
- * - **Accuracy**: Excellent precision in exact mode, good approximation in fast mode
- * - **Resource Usage**: Moderate SFPU instruction count
- *
- * **Template Parameters:**
- * - **APPROXIMATION_MODE**: Speed vs. accuracy trade-off control
- */
-
 #pragma once
 
 #include "ckernel_sfpu_cdf.h"

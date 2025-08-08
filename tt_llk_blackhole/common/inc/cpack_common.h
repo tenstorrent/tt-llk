@@ -2,61 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file cpack_common.h
- * @brief Common utilities and data structures for the Pack thread execution
- *
- * @details This file provides fundamental data structures, configuration definitions,
- * and utility functions for the Pack execution thread in the compute kernel framework.
- * The Pack thread is responsible for output data processing, format conversion, and
- * writing results from the Math thread to L1 memory.
- *
- * **Pack Thread Architecture:**
- * The Pack thread operates as one of three specialized execution threads:
- * - **Primary Responsibility**: Output data processing and format conversion
- * - **Data Flow**: Math Thread Output → Pack Processing → L1 Memory
- * - **Key Operations**: Data compression, format conversion, tile organization
- * - **Hardware Integration**: Direct interface with Tensix data movement units
- *
- * **Core Functionality:**
- * - **Configuration Management**: Runtime setup of packing parameters
- * - **Format Conversion**: Output format conversion (FP32, FP16, BF16, INT8, etc.)
- * - **Data Compression**: Generation of compressed tile formats (BFP8, BFP4, BFP2)
- * - **Memory Management**: Efficient data movement from compute pipeline to L1
- * - **Tile Header Generation**: Creation of tile metadata for downstream processing
- *
- * **Data Format Support:**
- * - **Floating Point**: FP32, FP16A, FP16B, BF16 with IEEE-754 compliance
- * - **Integer**: INT32, INT16, INT8 with sign/magnitude and two's complement
- * - **Block Floating Point**: BFP8, BFP4, BFP2 with shared exponent generation
- * - **Custom Formats**: Lf8, Fp8_e4m3 for specialized ML workloads
- *
- * **Compression Features:**
- * - **Zero Compression**: Efficient encoding of sparse data with many zeros
- * - **Shared Exponent**: BFP format generation with optimized exponent selection
- * - **Header Generation**: Automatic tile header creation with format metadata
- * - **Size Optimization**: Dynamic compression ratio adjustment for memory efficiency
- *
- * **Performance Characteristics:**
- * - **High Throughput**: Optimized for continuous data streaming
- * - **Low Latency**: Minimal buffering for real-time processing
- * - **Memory Bandwidth**: Efficient utilization of L1 memory bandwidth
- * - **Format Conversion**: Hardware-accelerated precision conversions
- *
- * **Thread Coordination:**
- * The Pack thread coordinates with other threads through:
- * - **Semaphores**: Synchronization with Math and Unpack threads
- * - **FIFO Buffers**: Receiving data from Math thread output
- * - **Configuration Sharing**: Runtime parameter coordination
- * - **Memory Barriers**: Ensuring data consistency across threads
- *
- * **Hardware Integration:**
- * - **Tensix Data Movement**: Direct hardware acceleration for data transfer
- * - **Format Converters**: Hardware-accelerated format conversion units
- * - **Compression Units**: Hardware compression for BFP and sparse formats
- * - **Address Generators**: Efficient memory access pattern generation
- */
-
 #pragma once
 
 #include <array>
@@ -68,29 +13,13 @@
 #include "ckernel_globals.h"
 #include "llk_defs.h"
 
-/**
- * @namespace ckernel::packer
- * @brief Pack thread utilities and data structures
- *
- * @details This namespace contains all functionality related to the Pack execution
- * thread, including configuration structures, format conversion utilities, and
- * functions for output data processing and compression.
- */
 namespace ckernel::packer
 {
-/** @brief Type alias for underlying data format enumeration */
 using DataFormatType = std::underlying_type_t<DataFormat>;
 
-/** 
- * @brief Replay buffer offset for pack operations
- * @details Splits replay buffer usage between FPU and SFPU operations:
- * - First 16 entries reserved for SFPU operations
- * - Next 16 entries available for FPU operations
- */
-constexpr uint replay_buf_offset = 16;
-
-/** @brief Number of parallel packer units available */
-constexpr uint32_t NUM_PACKERS = 1;
+constexpr uint replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
+                                       // fist 16 for sfpu, next 16 for fpu
+constexpr uint32_t NUM_PACKERS = 1;    // Number of packers
 
 // Pack config
 typedef struct

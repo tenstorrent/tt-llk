@@ -2,63 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_quant.h
- * @brief Quantization operations for SFPU hardware
- *
- * @details This file implements quantization operations that convert floating-point
- * values to integer representations using SFPU hardware acceleration. Quantization
- * is essential for neural network deployment and inference optimization, enabling
- * reduced memory usage and increased computational efficiency while maintaining
- * acceptable accuracy.
- *
- * **Quantization Overview:**
- * Quantization converts continuous floating-point values to discrete integer values:
- * - **Linear Quantization**: Maps floating-point range to integer range linearly
- * - **Scaling**: Applies scale factor to control quantization range
- * - **Rounding**: Converts scaled values to nearest integer representation
- * - **Saturation**: Clamps values to target integer range limits
- *
- * **Mathematical Operation:**
- * ```
- * quantized_value = clamp(round(input * scale), min_int, max_int)
- * ```
- *
- * **Template Parameters:**
- * - **APPROXIMATION_MODE**: Precision control for intermediate computations
- * - **ITERATIONS**: Number of tiles to process in batched operation
- * - **SIGN_MAGNITUDE_FORMAT**: Output integer representation format
- *   - `true`: Sign-magnitude representation
- *   - `false`: Two's complement representation
- *
- * **SFPU Implementation:**
- * 1. **Input Processing**: Load floating-point operand A (input values)
- * 2. **Scale Application**: Multiply by quantization scale factor
- * 3. **Rounding**: Apply appropriate rounding mode for integer conversion
- * 4. **Range Clamping**: Ensure result fits in target integer range
- * 5. **Format Conversion**: Convert to specified integer representation
- * 6. **Result Storage**: Store quantized integers in destination register
- *
- * **Rounding Modes:**
- * - **Round to Nearest**: Standard rounding for balanced quantization error
- * - **Round Down**: Floor operation for specific quantization schemes
- * - **Round Up**: Ceiling operation for conservative quantization
- * - **Truncation**: Simple truncation for fast approximation
- *
- * **Performance Characteristics:**
- * - **Latency**: 4-6 cycles per tile depending on format and rounding
- * - **Throughput**: 32 quantization operations per cycle
- * - **Precision**: Configurable rounding for accuracy vs. speed trade-offs
- * - **Range Support**: Full floating-point to integer conversion range
- *
- * **Use Cases:**
- * - Neural network quantization for deployment
- * - Model compression for edge devices
- * - Mixed-precision training support
- * - Integer inference optimization
- * - Memory bandwidth reduction
- */
-
 #pragma once
 
 #include "ckernel_addrmod.h"

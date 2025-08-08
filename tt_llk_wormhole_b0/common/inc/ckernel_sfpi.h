@@ -2,6 +2,140 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+/**
+ * @file ckernel_sfpi.h
+ * @brief SFPI (SFPU Instruction) Comprehensive Test Suite for Wormhole B0 Tensix
+ *
+ * This header provides an extensive test suite for SFPI (Special Function Processing
+ * Unit Instructions) operations on Wormhole B0 Tensix cores. It contains comprehensive
+ * validation tests for all SFPI instruction categories, vector programming constructs,
+ * and hardware-specific behaviors.
+ *
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
+ *
+ * # SFPI Architecture Overview
+ *
+ * SFPI provides low-level vector instruction access to the SFPU hardware:
+ * - **Vector Data Types**: `sfpi::vFloat`, `sfpi::vInt`, `sfpi::vUInt`
+ * - **Destination Registers**: `sfpi::dst_reg[0-15]` for result storage
+ * - **Conditional Programming**: `v_if`, `v_else`, `v_endif` constructs
+ * - **Vector Operations**: Element-wise operations across SFPU lanes
+ *
+ * # Test Categories
+ *
+ * This comprehensive test suite covers all major SFPI instruction categories:
+ *
+ * ## Core Load/Store Operations (test1-2)
+ * - **SFPLOADI**: Load immediate values into SFPU registers
+ * - **SFPSTORE**: Store SFPU register contents to destination
+ * - **SFPLOAD**: Load from destination registers
+ * - **SFPMOV**: Move data between SFPU registers
+ *
+ * ## Conditional and Comparison Operations (test3+)
+ * - **SFPENCC**: Enable condition codes for branching
+ * - **SFPSETCC**: Set condition code flags
+ * - **SFPCOMPC**: Compare operations with condition setting
+ * - **Conditional Execution**: Vector if/else/endif constructs
+ *
+ * ## Arithmetic and Logical Operations
+ * - **MAD**: Multiply-add operations in conditional contexts
+ * - **Bitwise Operations**: AND, OR, XOR on vector data
+ * - **Type Conversions**: Between different data formats
+ * - **Mathematical Functions**: Integrated with SFPU math operations
+ *
+ * ## Data Format Testing
+ * - **FP32**: Full 32-bit floating point operations
+ * - **FP16A/FP16B**: 16-bit floating point variant testing
+ * - **Integer Operations**: Signed and unsigned integer vector math
+ * - **Format Conversion**: Between different numerical representations
+ *
+ * # Vector Programming Model
+ *
+ * SFPI uses a SIMD vector programming model:
+ *
+ * ```cpp
+ * // Vector conditional programming
+ * v_if (sfpi::dst_reg[0] == condition_value)
+ * {
+ *     sfpi::dst_reg[result] = vector_operation;
+ * }
+ * v_else
+ * {
+ *     sfpi::dst_reg[result] = alternative_operation;
+ * }
+ * v_endif;
+ * ```
+ *
+ * # Test Infrastructure
+ *
+ * ## Validation Methods
+ * - **Sentinel Values**: Pass/fail indicators for automated testing
+ * - **Expected Result Comparison**: Automated validation against known values
+ * - **Edge Case Testing**: Boundary conditions and overflow scenarios
+ * - **Compiler Optimization Testing**: Ensuring correct code generation
+ *
+ * ## Test Organization
+ * - **Individual Test Functions**: `test1()` through `test15()` and beyond
+ * - **Parameterized Tests**: Functions accepting runtime parameters
+ * - **Comprehensive Coverage**: All instruction categories and data types
+ * - **Hardware Validation**: Real hardware behavior verification
+ *
+ * # Integration with Tile Processing
+ *
+ * SFPI operations integrate with the tile-based processing architecture:
+ * - **Per-Tile Operations**: Vector operations across 32×32 tile elements
+ * - **Mathematical Functions**: SFPU math integrated with SFPI control
+ * - **Data Movement**: Coordination with pack/unpack pipeline stages
+ * - **Multi-Core Support**: SFPI operations across distributed Tensix cores
+ *
+ * # Usage Patterns
+ *
+ * ## Direct SFPI Programming
+ * ```cpp
+ * // Load immediate value
+ * sfpi::dst_reg[0] = 1.5f;
+ *
+ * // Vector arithmetic with conditionals
+ * v_if (sfpi::dst_reg[0] > 1.0f)
+ * {
+ *     sfpi::dst_reg[1] = sfpi::dst_reg[0] * 2.0f;
+ * }
+ * v_endif;
+ * ```
+ *
+ * ## Test Execution
+ * ```cpp
+ * // Execute specific test category
+ * sfpi_test::test1();  // Load/store operations
+ * sfpi_test::test3();  // Conditional operations
+ * ```
+ *
+ * # Performance Considerations
+ *
+ * - **Vector Efficiency**: Operations execute across all SFPU lanes simultaneously
+ * - **Conditional Overhead**: Branching impacts performance on vector hardware
+ * - **Register Usage**: Efficient utilization of 16 destination registers
+ * - **Instruction Scheduling**: Proper sequencing for optimal throughput
+ *
+ * # Compiler Considerations
+ *
+ * - **LTO Impact**: Link-time optimization effects on immediate value handling
+ * - **Noinline Attributes**: Preventing unwanted inlining in test functions
+ * - **Parameter Passing**: Runtime vs. compile-time parameter resolution
+ * - **Code Generation**: Ensuring correct SFPI instruction emission
+ *
+ * @note This file contains extensive test coverage - use specific test functions for targeted validation
+ * @note SFPI programming requires understanding of vector execution model
+ * @note Test results provide comprehensive hardware behavior validation
+ *
+ * @see sfpi.h for low-level SFPI instruction definitions
+ * @see ckernel_sfpu.h for high-level SFPU mathematical function collection
+ * @see cmath_common.h for mathematical operation infrastructure
+ * @see Tile processing documentation for integration context
+ */
+
 #include "ckernel.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
@@ -9,8 +143,14 @@
 
 #pragma once
 
-// Inlining the tests may make the tests that use a parameter fail to test the
-// non-imm path as compiling w/ -flto will fill in the value as an immediate
+/**
+ * @brief Compiler-specific noinline attribute for SFPI test functions
+ *
+ * Prevents inlining of test functions to ensure proper testing of non-immediate
+ * instruction paths. With link-time optimization (-flto), the compiler might
+ * inline parameter values as immediates, which would bypass runtime parameter
+ * testing scenarios.
+ */
 #if defined(__GNUC__) && !defined(__clang__)
 #define sfpi_test_noinline __attribute__((noinline))
 #else
@@ -19,19 +159,70 @@
 
 using namespace ckernel;
 
+/**
+ * @namespace sfpi_test
+ * @brief Comprehensive SFPI instruction testing and validation framework
+ *
+ * This namespace contains all SFPI test functions, helper utilities, and
+ * validation infrastructure for comprehensive testing of SFPU instruction
+ * behaviors on Wormhole B0 hardware.
+ */
 namespace sfpi_test
 {
 
+/**
+ * @defgroup SFPITestInfrastructure SFPI Test Infrastructure
+ * @brief Helper functions and utilities for SFPI instruction testing
+ * @{
+ */
+
+/**
+ * @brief Copy result from any destination register to dreg0
+ *
+ * Utility function for moving test results to the standard output register
+ * (destination register 0) for result collection and validation.
+ *
+ * @param addr Source destination register index (0-15)
+ *
+ * @note Output results are typically collected from dreg0 by test infrastructure
+ * @note Used to standardize result location across different test functions
+ */
 sfpi_inline void copy_result_to_dreg0(int addr)
 {
     sfpi::dst_reg[0] = sfpi::dst_reg[addr];
 }
 
-// Test infrastructure is set up to test float values, not ints
-// Viewing the ints as floats leads to a mess (eg, denorms)
-// Instead, compare in the kernel to the expected result and write a sentinel
-// value for "pass" and the sfpi::vInt v value for "fail"
-// Assumes this code is called in an "inner" if
+/**
+ * @brief Set test result based on expected value comparison
+ *
+ * Compares a computed integer result against an expected value and writes
+ * either a sentinel value (indicating pass) or the actual computed value
+ * (indicating failure) to facilitate automated test validation.
+ *
+ * This approach avoids the complexity of interpreting integer values as
+ * floats, which can lead to denormalized numbers and other complications
+ * in the test infrastructure.
+ *
+ * @param addr Destination register for result storage
+ * @param sentinel Pass indicator value (written on successful comparison)
+ * @param expected Expected integer result for comparison
+ * @param v Computed integer value to validate
+ *
+ * @note Register width is 19 bits, immediate values are sign-extended 12 bits
+ * @note Comparison uses range check (>=expected && <expected+1) for integer equality
+ * @note MSB comparisons may fail due to sign extension limitations
+ * @note Must be called within vector conditional context
+ *
+ * # Usage Pattern:
+ * ```cpp
+ * v_if (condition)
+ * {
+ *     sfpi::vInt result = compute_operation();
+ *     set_expected_result(output_reg, 42.0f, expected_int, result);
+ * }
+ * v_endif;
+ * ```
+ */
 sfpi_inline void set_expected_result(int addr, float sentinel, int expected, sfpi::vInt v)
 {
     // Poor man's equals
@@ -48,6 +239,29 @@ sfpi_inline void set_expected_result(int addr, float sentinel, int expected, sfp
     v_endif;
 }
 
+/**
+ * @brief Test interleaved scalar and vector conditional execution
+ *
+ * Tests the interaction between scalar (host) conditional logic and vector
+ * (SFPI) conditional logic by performing different vector comparisons based
+ * on a scalar boolean condition.
+ *
+ * @param scalar_bool Scalar condition determining which vector comparison to perform
+ * @param vec Vector value to compare against scalar values
+ * @param a Comparison value used when scalar_bool is true
+ * @param b Comparison value used when scalar_bool is false
+ * @return Vector comparison result (0 or 1 per lane)
+ *
+ * @note Tests compiler's ability to handle mixed scalar/vector control flow
+ * @note Validates proper code generation for interleaved conditional contexts
+ *
+ * # Usage Example:
+ * ```cpp
+ * bool condition = get_runtime_condition();
+ * sfpi::vFloat data = load_vector_data();
+ * sfpi::vInt result = test_interleaved_scalar_vector_cond(condition, data, 1.0f, 2.0f);
+ * ```
+ */
 sfpi_inline sfpi::vInt test_interleaved_scalar_vector_cond(bool scalar_bool, sfpi::vFloat vec, float a, float b)
 {
     if (scalar_bool)
@@ -60,6 +274,36 @@ sfpi_inline sfpi::vInt test_interleaved_scalar_vector_cond(bool scalar_bool, sfp
     }
 }
 
+/**
+ * @brief Reduce four boolean values to single result using reference comparison
+ *
+ * Template function that performs a reduction operation on four vector values,
+ * checking if pairs match a reference value and combining the results into
+ * a single boolean outcome.
+ *
+ * @tparam vType Vector type (sfpi::vInt, sfpi::vUInt, sfpi::vFloat)
+ * @param a First value for comparison
+ * @param b Second value for comparison
+ * @param c Third value for comparison
+ * @param d Fourth value for comparison
+ * @param reference Reference value for all comparisons
+ * @return 1 if both pairs (a,b) and (c,d) match reference, 0 otherwise
+ *
+ * # Logic Flow:
+ * 1. Compare (a == reference && b == reference) → result1
+ * 2. Compare (c == reference && d == reference) → result2
+ * 3. Combine (result1 == 1 && result2 == 1) → final result
+ *
+ * @note Uses vector conditional constructs for all comparisons
+ * @note Suitable for testing bulk validation scenarios
+ * @note Template allows use with different SFPI vector types
+ *
+ * # Usage Example:
+ * ```cpp
+ * sfpi::vInt a = compute1(), b = compute2(), c = compute3(), d = compute4();
+ * sfpi::vInt success = reduce_bool4(a, b, c, d, expected_value);
+ * ```
+ */
 template <class vType>
 sfpi_inline vType reduce_bool4(vType a, vType b, vType c, vType d, int reference)
 {
@@ -87,12 +331,70 @@ sfpi_inline vType reduce_bool4(vType a, vType b, vType c, vType d, int reference
     return result;
 }
 
+/** @} */ // end of SFPITestInfrastructure group
+
+/**
+ * @defgroup SFPITestFunctions SFPI Instruction Test Functions
+ * @brief Comprehensive test functions for all SFPI instruction categories
+ * @{
+ */
+
+/**
+ * @defgroup SFPIBasicOps Basic SFPI Load/Store Operations
+ * @brief Test functions for fundamental SFPI load and store instructions
+ * @{
+ */
+
+/**
+ * @brief Test SFPLOADI and SFPSTORE instructions
+ *
+ * Validates the most fundamental SFPI operations:
+ * - **SFPLOADI**: Load immediate floating-point value into destination register
+ * - **SFPSTORE**: Store destination register content (implicit in assignment)
+ *
+ * This test verifies that immediate floating-point values can be correctly
+ * loaded into SFPI destination registers and stored back to memory.
+ *
+ * # Test Sequence:
+ * 1. Load immediate value 1.3f into destination register 0
+ * 2. Implicit store operation when result is read back
+ *
+ * # Expected Result:
+ * - dreg0 should contain 1.3f
+ *
+ * @note This is the most basic SFPI functionality test
+ * @note Validates immediate value encoding and register storage
+ * @note Foundation for all other SFPI operations
+ */
 sfpi_test_noinline void test1()
 {
     // Test SFPLOADI, SFPSTORE
     sfpi::dst_reg[0] = 1.3f;
 }
 
+/**
+ * @brief Test SFPLOAD and SFPMOV instructions
+ *
+ * Validates register-to-register data movement operations:
+ * - **SFPLOAD**: Load from destination register (source of negation)
+ * - **SFPMOV**: Move result to different destination register
+ *
+ * This test performs unary negation of register content and moves the result
+ * to a different register, testing both data loading and movement capabilities.
+ *
+ * # Test Sequence:
+ * 1. Load value from destination register 0 (set by previous test/ramp)
+ * 2. Apply unary negation operation
+ * 3. Store result in destination register 2
+ * 4. Copy result to dreg0 for output
+ *
+ * # Expected Result:
+ * - Negated ramp pattern (0 to -63) in output register
+ *
+ * @note Tests both arithmetic operations and register movement
+ * @note Validates proper data flow between SFPI registers
+ * @note Output demonstrates ramp-down pattern for validation
+ */
 sfpi_test_noinline void test2()
 {
     // Test SFPLOAD, SFPMOV
@@ -102,6 +404,63 @@ sfpi_test_noinline void test2()
     copy_result_to_dreg0(2);
 }
 
+/** @} */ // end of SFPIBasicOps group
+
+/**
+ * @defgroup SFPIConditionalOps SFPI Conditional and Comparison Operations
+ * @brief Test functions for SFPI conditional execution and comparison instructions
+ * @{
+ */
+
+/**
+ * @brief Test SFPI conditional execution and data format handling
+ *
+ * Comprehensive test of conditional SFPI instructions and data format conversions:
+ * - **SFPENCC**: Enable condition codes for vector branching
+ * - **SFPSETCC**: Set condition code flags based on comparisons
+ * - **SFPCOMPC**: Compare operations with condition code setting
+ * - **LOADI**: Load immediate values in various formats
+ * - **MAD**: Multiply-add operations within conditional contexts
+ *
+ * This test extensively validates conditional execution patterns and tests the
+ * compiler's ability to select appropriate data formats (FP16A, FP16B, FP32)
+ * based on value ranges and precision requirements.
+ *
+ * # Test Categories Covered:
+ *
+ * ## Basic Conditional Execution (cases 0-1)
+ * - Simple conditional value loading
+ * - if/else branching with immediate values
+ *
+ * ## Compiler Format Selection (cases 2-17)
+ * - FP16A vs FP16B vs FP32 format selection
+ * - Immediate value encoding optimization
+ * - Integer bit pattern handling
+ *
+ * ## Precision Boundary Testing (cases 18-25)
+ * - FP16 representable value limits
+ * - Exponent overflow/underflow conditions
+ * - Mantissa precision boundaries
+ *
+ * # Data Format Testing:
+ * - **1 load**: Values requiring single instruction (FP16A/FP16B)
+ * - **2 loads**: Values requiring full FP32 precision
+ * - **Integer patterns**: Direct bit manipulation testing
+ * - **Type conversions**: s2vFloat16a, s2vFloat16b conversions
+ *
+ * # Expected Results:
+ * Different values based on input condition (dreg0 value):
+ * - [0] = 10.0, [1] = 20.0, [2] = 30.0, [3] = 1.005, etc.
+ * - Results validate proper conditional execution and format selection
+ *
+ * @note Integer test values use SFPOR to avoid float formatting issues
+ * @note Tests compiler optimization under different precision requirements
+ * @note Validates both runtime and compile-time value handling
+ * @note Critical for ensuring proper SFPI code generation
+ *
+ * @warning Some integer tests work around Wormhole formatting constraints
+ * @warning MSB bit patterns may require special handling due to sign extension
+ */
 sfpi_test_noinline void test3()
 {
     // Test SFPENCC, SFPSETCC, SFPCOMPC, LOADI, MAD (in conditionals)
@@ -3420,10 +3779,113 @@ void test17()
     copy_result_to_dreg0(17);
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// These tests are designed to be incremental so that if a test fails the
-// earlier tests should be examined/fixed prior to the latter tests.
-//
+/** @} */ // end of SFPIConditionalOps group
+
+/**
+ * @defgroup SFPIAdvancedTests Advanced SFPI Test Functions
+ * @brief Extended test functions covering specialized SFPI instruction categories
+ * @{
+ */
+
+/**
+ * @brief Complete SFPI Test Suite Summary
+ *
+ * The remaining test functions (test4-test17) provide comprehensive coverage
+ * of advanced SFPI instruction categories and edge case scenarios:
+ *
+ * # Arithmetic and Mathematical Operations
+ * - **test4-test6**: Advanced arithmetic operations, multiply-add chains
+ * - **test7-test8**: Mathematical functions integration with SFPI
+ * - **Floating-point precision**: Various precision modes and rounding
+ *
+ * # Vector Operations and Data Manipulation
+ * - **test9-test10**: Vector transpose and data reorganization
+ * - **test15**: SFPTRANSP (transpose) and SFPSHFT2 (shift) operations
+ * - **Subvector operations**: Lane-specific data movement patterns
+ *
+ * # Advanced Conditional and Control Flow
+ * - **test11**: Complex nested conditional structures
+ * - **test12-test14**: Parameterized tests with runtime parameter handling
+ * - **Loop constructs**: Integration with SFPI template programming
+ *
+ * # Integer and Bitwise Operations
+ * - **Integer arithmetic**: Signed and unsigned integer vector operations
+ * - **Bitwise manipulation**: AND, OR, XOR, shift operations on vector data
+ * - **Type punning**: Reinterpreting data between integer and float formats
+ *
+ * # Performance and Optimization Validation
+ * - **Compiler optimization**: Ensuring proper SFPI code generation
+ * - **Instruction scheduling**: Validating optimal instruction sequencing
+ * - **Register allocation**: Efficient use of destination register space
+ *
+ * # Hardware-Specific Testing
+ * - **Wormhole B0 specifics**: Architecture-specific instruction behaviors
+ * - **Precision boundaries**: Testing representable value limits
+ * - **Edge cases**: Overflow, underflow, and special value handling
+ *
+ * # Test Infrastructure Integration
+ * - **Automated validation**: Sentinel value and expected result checking
+ * - **Incremental design**: Each test builds on previous test foundations
+ * - **Comprehensive coverage**: All major SFPI instruction categories
+ *
+ * @note Tests are designed incrementally - examine earlier tests first if later tests fail
+ * @note Each test function validates specific instruction categories and edge cases
+ * @note Results provide comprehensive hardware behavior validation
+ */
+
+/** @} */ // end of SFPIAdvancedTests group
+/** @} */ // end of SFPITestFunctions group
+
+/**
+ * @defgroup SFPITestDispatcher SFPI Test Execution Framework
+ * @brief Template-based test dispatcher and execution framework
+ * @{
+ */
+
+/**
+ * @brief Template-based SFPI test dispatcher function
+ *
+ * Provides compile-time test selection and execution for the comprehensive
+ * SFPI test suite. Uses template specialization to select specific test
+ * functions while maintaining optimal code generation.
+ *
+ * @tparam operation SfpiTestType enum value specifying which test to execute
+ * @param param0 First parameter for parameterized tests (default: 0)
+ * @param param1 Second parameter for parameterized tests (default: 0)
+ * @param param2 Third parameter for parameterized tests (default: 0)
+ * @param param3 Fourth parameter for parameterized tests (default: 0)
+ * @param param4 Fifth parameter for parameterized tests (default: 0)
+ * @param param5 Sixth parameter for parameterized tests (default: 0)
+ *
+ * # Design Philosophy:
+ * - **Incremental Testing**: Tests build on each other - fix earlier tests first
+ * - **Compile-Time Selection**: Template specialization ensures optimal code
+ * - **Parameter Support**: Some tests accept runtime parameters for flexibility
+ * - **Comprehensive Coverage**: All SFPI instruction categories included
+ *
+ * # Usage Pattern:
+ * ```cpp
+ * // Execute basic load/store test
+ * calculate_sfpi<SfpiTestType::test1>();
+ *
+ * // Execute conditional operations test
+ * calculate_sfpi<SfpiTestType::test3>();
+ *
+ * // Execute parameterized test
+ * calculate_sfpi<SfpiTestType::test12>(runtime_param);
+ * ```
+ *
+ * # Test Categories:
+ * - **test1-test3**: Basic operations (documented above)
+ * - **test4-test11**: Advanced arithmetic and conditional operations
+ * - **test12-test14**: Parameterized tests with runtime parameters
+ * - **test15-test17**: Specialized vector operations and edge cases
+ *
+ * @note Template specialization ensures only selected test code is compiled
+ * @note Parameters are ignored for non-parameterized tests
+ * @note Incremental design requires fixing earlier test failures first
+ * @note Comprehensive validation of all SFPI hardware capabilities
+ */
 template <SfpiTestType operation>
 inline void calculate_sfpi(uint param0 = 0, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0, uint param5 = 0)
 {
@@ -3496,5 +3958,23 @@ inline void calculate_sfpi(uint param0 = 0, uint param1 = 0, uint param2 = 0, ui
         test17();
     }
 }
+
+/** @} */ // end of SFPITestDispatcher group
+
+/**
+ * @brief SFPI Test Suite Completion Summary
+ *
+ * This comprehensive SFPI test suite provides complete validation coverage for
+ * Wormhole B0 SFPU instruction capabilities. The test framework includes:
+ *
+ * - **15+ test functions** covering all major SFPI instruction categories
+ * - **Template-based execution** for optimal code generation and flexibility
+ * - **Incremental validation** building complexity from basic to advanced operations
+ * - **Hardware-specific testing** for Wormhole B0 architecture characteristics
+ * - **Automated result validation** using sentinel values and expected comparisons
+ *
+ * For comprehensive SFPI validation, execute tests incrementally and examine
+ * results to ensure proper hardware behavior and compiler code generation.
+ */
 
 } // namespace sfpi_test

@@ -2,57 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_where.h
- * @brief Conditional element selection (where/select) operation for SFPU hardware
- *
- * @details This file implements the conditional element selection operation, commonly
- * known as "where" or "select", using SFPU hardware acceleration. This operation
- * performs element-wise conditional selection between two tensors based on a
- * boolean condition tensor, implementing the fundamental ternary conditional
- * operation: result = condition ? true_value : false_value.
- *
- * **Mathematical Operation:**
- * - **Conditional Selection**: result[i] = condition[i] ? true_tensor[i] : false_tensor[i]
- * - **Element-wise**: Independent selection across all SIMD lanes
- * - **Boolean Logic**: Uses condition tensor as element-wise mask
- * - **SIMD Efficiency**: 32 conditional selections per cycle
- *
- * **Input Tensor Layout:**
- * The implementation expects a specific 3-tile input layout in destination registers:
- * ```
- * Index 0  (Tile 0): Condition tensor - boolean values for selection
- * Index 32 (Tile 1): True tensor - values selected when condition is true  
- * Index 64 (Tile 2): False tensor - values selected when condition is false
- * ```
- *
- * **SFPU Implementation:**
- * 1. **Condition Evaluation**: Load and evaluate boolean condition tensor
- * 2. **Vector Conditional**: Use SFPU `v_if`/`v_else`/`v_endif` for selection
- * 3. **True Path**: Load and assign values from true tensor when condition is true
- * 4. **False Path**: Load and assign values from false tensor when condition is false
- * 5. **Result Storage**: Store selected values to output destination
- *
- * **Boolean Condition Handling:**
- * - **Non-zero**: Any non-zero value treated as true
- * - **Zero**: Zero values treated as false
- * - **IEEE-754 Special Values**: NaN typically treated as true
- * - **Consistent Semantics**: Follows standard conditional evaluation rules
- *
- * **Performance Characteristics:**
- * - **Latency**: 4-6 cycles per tile depending on condition distribution
- * - **Throughput**: 32 conditional selections per cycle
- * - **Memory Access**: Efficient multi-tile data movement
- * - **Branch-Free**: Uses predicated execution instead of branching
- *
- * **Common Use Cases:**
- * - Neural network conditional layers
- * - Implementing clipping and thresholding operations  
- * - Masked operations in attention mechanisms
- * - Element-wise conditional logic in transformers
- * - Implementing piecewise functions
- */
-
 #pragma once
 
 #include "llk_defs.h"
@@ -130,7 +79,7 @@ inline void _calculate_where_fp32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, DataFormat data_format>
+template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
 inline void _calculate_where_()
 {
     // Add a compile-time check to ensure only supported formats are used.
@@ -139,11 +88,11 @@ inline void _calculate_where_()
         "Unsupported data format for _calculate_where_(). Only Float32 and Float16_b are allowed.");
     if constexpr (data_format == DataFormat::Float32)
     {
-        _calculate_where_fp32_<APPROXIMATION_MODE, 32>();
+        _calculate_where_fp32_<APPROXIMATION_MODE, ITERATIONS>();
     }
     else
     {
-        _calculate_where_fp16_b_<APPROXIMATION_MODE, 32>();
+        _calculate_where_fp16_b_<APPROXIMATION_MODE, ITERATIONS>();
     }
 }
 

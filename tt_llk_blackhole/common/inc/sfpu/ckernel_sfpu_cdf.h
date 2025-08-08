@@ -2,46 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * @file ckernel_sfpu_cdf.h
- * @brief Cumulative Distribution Function (CDF) implementation for SFPU hardware
- *
- * @details This file implements the cumulative distribution function for the standard
- * normal distribution using SFPU hardware acceleration. The CDF is fundamental for
- * many statistical computations and neural network operations, particularly in
- * implementing the exact GELU activation function and other probabilistic operations.
- *
- * **Mathematical Definition:**
- * - **Standard Normal CDF**: Φ(x) = ∫_{-∞}^x (1/√(2π)) * e^(-t²/2) dt
- * - **Error Function Relation**: Φ(x) = (1/2) * (1 + erf(x/√2))
- * - **Output Range**: (0, 1) with smooth S-shaped curve
- *
- * **SFPU Implementation Strategy:**
- * The implementation uses polynomial approximation optimized for different input ranges:
- * 1. **Range Analysis**: Determine optimal computation strategy based on input magnitude
- * 2. **Polynomial Approximation**: High-accuracy polynomial series for core range
- * 3. **Symmetry Exploitation**: Use CDF(-x) = 1 - CDF(x) for negative inputs
- * 4. **Special Value Handling**: Proper handling of extreme values and edge cases
- *
- * **Algorithm Components:**
- * - **Positive Range Function**: `_calculate_pos_cdf_appx_()` for x ≥ 0
- * - **Polynomial Evaluation**: Leverages `ckernel_sfpu_polyval.h` for efficient evaluation
- * - **Range Optimization**: Different approximations for different input magnitudes
- * - **Precision Control**: Balanced accuracy and performance for SFPU constraints
- *
- * **Performance Characteristics:**
- * - **Latency**: 6-10 cycles per tile depending on input range
- * - **Throughput**: 32 elements processed per cycle
- * - **Accuracy**: High precision suitable for exact GELU and statistical computations
- * - **Range Coverage**: Full floating-point range with appropriate approximations
- *
- * **Common Use Cases:**
- * - GELU activation function (exact implementation)
- * - Statistical neural network layers
- * - Probabilistic operations in transformers
- * - Error function approximation
- */
-
 #pragma once
 
 #include "ckernel.h"

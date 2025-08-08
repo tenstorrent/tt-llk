@@ -4,101 +4,67 @@
 
 /**
  * @file ckernel_include.h
- * @brief Safe header inclusion list for Wormhole B0 firmware and compute kernel compilation
+ * @brief Common Include Collection for Wormhole B0 Tensix
  *
- * @details This header provides a curated list of header files that are safe to include
- * in both firmware and compute kernel compilation contexts on the Wormhole B0 architecture.
- * The separation ensures compatibility across different compilation environments while
- * maintaining access to essential Tensix functionality.
+ * This header provides a convenient collection of core kernel headers that are
+ * safe to include in both firmware and kernel contexts. It serves as a central
+ * include point for common kernel infrastructure without pulling in dependencies
+ * that might conflict between different execution environments.
  *
- * **Compilation Context Considerations:**
- * - **Firmware Context**: RISC-V processor code (TRISC, BRISC, NRISC)
- * - **Compute Kernel Context**: Tensix engine instruction sequences and data structures
- * - **Shared Definitions**: Common constants, structures, and interfaces
- * - **Architecture Specificity**: Wormhole B0 Tensix engine and memory layout specifics
+ * @author Tenstorrent AI ULC
+ * @version 1.0
+ * @date 2025
  *
- * **Header Categories:**
- * - **Address Management**: `ckernel_addrmod.h` - Wormhole B0 address generation and counter control
- * - **Core Definitions**: `ckernel_defs.h` - Fundamental types and constants for Tensix programming
- * - **GPR Management**: `ckernel_gpr_map.h` - General Purpose Register allocation for 3-thread model
- * - **Instruction Interface**: `ckernel_instr_params.h` - Tensix instruction parameter encoding
- * - **Data Structures**: `ckernel_structs.h` - Synchronization primitives and communication structures
- * - **Hardware Interface**: `tensix.h` - Low-level Tensix hardware definitions and macros
+ * # Purpose
  *
- * **Wormhole B0 Integration:**
- * These headers collectively provide comprehensive access to:
- * - 3-thread Tensix engine programming (Unpack, Math, Pack)
- * - 2048 hardware multiplier control and configuration
- * - Dual CFG state management and dynamic reconfiguration
- * - L1 SRAM multi-bank memory system interaction
- * - SFPU 8×4=32-lane SIMD special function programming
+ * This file addresses the need for a common set of kernel definitions that can
+ * be safely used across different compilation contexts:
+ * - **Firmware Context**: Host-side firmware code that configures and controls kernels
+ * - **Kernel Context**: Tensix-side kernel code that executes on the processing units
+ *
+ * # Included Headers
+ *
+ * This file includes only headers that provide:
+ * - Type definitions and constants
+ * - Structure definitions without implementation
+ * - Hardware register definitions
+ * - Instruction parameter definitions
+ *
+ * # Safe Inclusion Policy
+ *
+ * The headers included here are carefully selected to avoid:
+ * - Hardware-specific implementations that only work on Tensix
+ * - Inline assembly or low-level hardware operations
+ * - Thread-specific functionality that assumes kernel execution context
+ *
+ * # Usage Pattern
+ *
+ * ```cpp
+ * // In firmware code
+ * #include "ckernel_include.h"
+ * // Use definitions for kernel configuration
+ * addr_mod_t config = {.srca = {.incr = 1}};
+ *
+ * // In kernel code
+ * #include "ckernel_include.h"
+ * // Use same definitions for kernel execution
+ * configure_addressing(config);
+ * ```
+ *
+ * @note This header is intended for shared definitions only
+ * @note For kernel-specific functionality, include individual headers directly
+ *
+ * @see ckernel.h for full kernel infrastructure (kernel context only)
+ * @see Individual headers for specific functionality
  */
 
 #pragma once
 
-//
-// This file lists the includes that are safe to be included for both firmware and ckernels
-//
+// Core kernel definitions and types - safe for both firmware and kernel contexts
 
-/**
- * @brief Address generation and counter management for Wormhole B0 Tensix engine
- * @details Provides sophisticated address generation with X,Y,Z counters, stride control,
- * and carriage return functionality for efficient tensor data access patterns.
- */
-#include "ckernel_addrmod.h"
-
-/**
- * @brief Core definitions and constants for Wormhole B0 Tensix programming
- * @details Fundamental type definitions, enumerations, and utility functions
- * tailored for the Wormhole B0 architecture specifications and data format support.
- */
-#include "ckernel_defs.h"
-
-/**
- * @brief General Purpose Register allocation and management for 3-thread Tensix engine
- * @details Defines GPR usage patterns across Unpack, Math, and Pack threads,
- * ensuring proper resource allocation and thread-specific register access.
- */
-#include "ckernel_gpr_map.h"
-
-/**
- * @brief Tensix instruction parameter encoding and structure definitions
- * @details Provides parameter encoding utilities for Tensix instructions,
- * enabling efficient instruction construction and hardware interface programming.
- */
-#include "ckernel_instr_params.h"
-
-/**
- * @brief Core data structures for synchronization and inter-thread communication
- * @details Defines semaphore, mutex, and communication structures essential
- * for coordinating the 3-thread Tensix engine and RISC-V processor interactions.
- */
-#include "ckernel_structs.h"
-
-/**
- * @brief Low-level Tensix hardware interface definitions and register access
- * @details Provides direct hardware access macros, register definitions,
- * and low-level interface functions for Wormhole B0 Tensix engine programming.
- */
-#include "tensix.h"
-
-/**
- * @brief LLK validation utilities for debug-time error checking
- * @details Optional validation macros that provide runtime parameter checking
- * in debug builds while compiling to no-ops in release builds.
- */
-#include "llk_validation.h"
-
-/**
- * @brief Common LLK utilities and template patterns
- * @details Shared utilities that reduce code duplication across LLK modules
- * and provide consistent API patterns for format handling and configuration.
- */
-#include "llk_common_utils.h"
-
-/**
- * @brief Instruction parameter validation utilities
- * @details Provides validation functions for Tensix instruction parameters
- * that complement the auto-generated instruction macros in ckernel_ops.h.
- */
-#include "ckernel_instruction_validation.h"
+#include "ckernel_addrmod.h"      ///< Address modification structures and constants
+#include "ckernel_defs.h"         ///< Core kernel definitions, enums, and constants
+#include "ckernel_gpr_map.h"      ///< General Purpose Register mapping definitions
+#include "ckernel_instr_params.h" ///< Instruction parameter structures and constants
+#include "ckernel_structs.h"      ///< Common kernel data structures
+#include "tensix.h"               ///< Tensix hardware definitions and constants
