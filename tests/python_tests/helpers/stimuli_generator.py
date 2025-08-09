@@ -27,7 +27,7 @@ def generate_random_face(
                     torch.ones(size, dtype=format_dict[stimuli_format]) * const_value
                 )
             else:  # random for both faces
-                srcA_face = torch.rand(size, dtype=format_dict[stimuli_format]) + 0.1
+                srcA_face = torch.rand(size, dtype=format_dict[stimuli_format]) * 0.5
 
     else:
 
