@@ -58,7 +58,7 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMA
         StochasticRounding.All,
         StochasticRounding.No,
     ],
-    transpose=[Transpose.Yes],
+    transpose=[Transpose.Yes, Transpose.No],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
 def test_matmul(
