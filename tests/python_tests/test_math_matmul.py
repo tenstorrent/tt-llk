@@ -63,7 +63,7 @@ def test_matmul(
     dest_acc = format_dest_acc_and_dims[1]
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
-
+    dst_index = format_dest_acc_and_dims[3]
     torch_format = format_dict[formats.output_format]
 
     # Calculate all matmul dimensions using helper function
@@ -123,6 +123,7 @@ def test_matmul(
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
+        "dst_index": dst_index,
         "math_fidelity": math_fidelity,
         "tile_cnt": matmul_dims["output_tile_cnt"],
         "input_A_dimensions": input_A_dimensions,

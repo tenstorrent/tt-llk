@@ -147,6 +147,10 @@ def generate_build_header(
     else:
         header_content.append(f"constexpr std::uint32_t TILE_SIZE = 128;")
 
+    # Dest Register Index
+    dst_index = test_config.get("dst_index", 0)
+    header_content.append(f"constexpr std::uint32_t DST_INDEX = {dst_index};")
+
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
     # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor

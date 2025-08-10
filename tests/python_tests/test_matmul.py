@@ -52,6 +52,7 @@ def test_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
     dest_acc = format_dest_acc_and_dims[1]
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
+    dst_index = format_dest_acc_and_dims[3]
 
     src_A, _, tile_cnt_A = generate_stimuli(
         formats.input_format,
@@ -104,6 +105,7 @@ def test_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
         "rt_dim": matmul_dims["rt_dim"],
         "ct_dim": matmul_dims["ct_dim"],
         "kt_dim": matmul_dims["kt_dim"],
+        "dst_index": dst_index,
     }
 
     # Use the new helper function for writing stimuli

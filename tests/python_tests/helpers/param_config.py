@@ -6,7 +6,10 @@ from typing import List, Optional, Tuple, TypedDict
 
 import pytest
 
-from helpers.dimensions import generate_matmul_dimension_combinations
+from helpers.dimensions import (
+    calculate_matmul_dimensions,
+    generate_matmul_dimension_combinations,
+)
 from helpers.log_utils import add_to_format_log
 
 from .format_arg_mapping import DestAccumulation
@@ -205,38 +208,89 @@ def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]
     ]
 
 
-def generate_format_aware_matmul_combinations(formats_list):
+def _calculate_dst_index_range(result_tiles: int, max_dst_tiles: int = 8) -> range:
+    """
+    Calculate the valid dst_index range for a given number of result tiles.
+
+    Args:
+        result_tiles: Number of tiles in the result matrix
+        max_dst_tiles: Maximum tiles that can fit in dst register (default: 8)
+
+    Returns:
+        range: Valid dst_index values (0 to max_valid_index)
+    """
+    max_dst_index = max_dst_tiles - result_tiles
+    return range(max_dst_index + 1)
+
+
+def _generate_combinations_for_format(
+    fmt: InputOutputFormat, max_tiles: int, dest_acc_modes: List[DestAccumulation]
+) -> List[Tuple]:
+    """
+    Generate all combinations for a single format with given constraints.
+
+    Args:
+        fmt: InputOutputFormat to generate combinations for
+        max_tiles: Maximum tiles allowed for this format
+        dest_acc_modes: List of DestAccumulation modes to test
+
+    Returns:
+        List of tuples: (format, dest_acc, dimensions, dst_index)
+    """
+    combinations = []
+    dimensions = generate_matmul_dimension_combinations(max_tiles)
+
+    for dest_acc in dest_acc_modes:
+        for dims in dimensions:
+            # Calculate result matrix tiles
+            matmul_dims = calculate_matmul_dimensions(dims[0], dims[1])
+            result_tiles = matmul_dims["output_tile_cnt"]
+
+            # Generate dst_index sweep
+            for dst_index in _calculate_dst_index_range(result_tiles):
+                combinations.append((fmt, dest_acc, dims, dst_index))
+
+    return combinations
+
+
+def generate_format_aware_matmul_combinations(
+    formats_list: List[InputOutputFormat],
+) -> List[Tuple]:
     """
     Generate matmul dimension combinations that respect format specific / datum size and dest register constraints.
+    Also includes dst_index sweeping based on result matrix tile count.
 
     Key rules:
     1. Format outliers (Float16_b->Float16, Bfp8_b->Float16) MUST use dest_acc=Yes
     2. When dest_acc=Yes: max 4 tiles (32-bit dest register)
     3. When dest_acc=No: max 8 tiles (16-bit dest register)
+    4. dst_index sweep: if result has N tiles, sweep dst_index from 0 to (8-N)
+       - 1 tile: dst_index 0->7 (8 possible positions)
+       - 2 tiles: dst_index 0->6 (7 possible positions)
+       - etc.
 
     Args:
         formats_list: List of InputOutputFormat combinations
 
     Returns:
-        List of tuples: (format, dest_acc, dimensions)
+        List of tuples: (format, dest_acc, dimensions, dst_index)
     """
-
     combinations = []
 
     for fmt in formats_list:
+        dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
+
         if is_dest_acc_needed(fmt):
-            # Format outliers: C++ will force dest_acc --> Yes, so test both cases
-            max_tiles = 4
-            for dest_acc in [DestAccumulation.No, DestAccumulation.Yes]:
-                dimensions = generate_matmul_dimension_combinations(max_tiles)
-                for dims in dimensions:
-                    combinations.append((fmt, dest_acc, dims))
+            # Format outliers use conservative 4-tile limit for all dest_acc modes
+            combinations.extend(
+                _generate_combinations_for_format(fmt, 4, dest_acc_modes)
+            )
         else:
-            # Normal formats: test both dest accumulation modes
-            for dest_acc in [DestAccumulation.No, DestAccumulation.Yes]:
-                max_tiles = 8 if dest_acc == DestAccumulation.No else 4
-                dimensions = generate_matmul_dimension_combinations(max_tiles)
-                for dims in dimensions:
-                    combinations.append((fmt, dest_acc, dims))
+            # Normal formats: different limits per dest_acc mode
+            for dest_acc in dest_acc_modes:
+                tiles_limit = 8 if dest_acc == DestAccumulation.No else 4
+                combinations.extend(
+                    _generate_combinations_for_format(fmt, tiles_limit, [dest_acc])
+                )
 
     return combinations
