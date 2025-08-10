@@ -54,10 +54,16 @@ def test_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
     input_B_dimensions = format_dest_acc_and_dims[2][1]
 
     src_A, _, tile_cnt_A = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_A_dimensions
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_A_dimensions,
+        sfpu=False,
     )
     src_B, _, tile_cnt_B = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_B_dimensions
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_B_dimensions,
+        sfpu=False,
     )
 
     # Calculate all matmul dimensions using helper function
