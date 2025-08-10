@@ -21,7 +21,7 @@ from .format_arg_mapping import (
     Transpose,
     format_tile_sizes,
 )
-from .format_config import FormatConfig, InputOutputFormat
+from .format_config import DataFormat, FormatConfig, InputOutputFormat
 from .utils import run_shell_command
 
 
@@ -146,6 +146,23 @@ def generate_build_header(
     header_content.append(
         f"constexpr auto STOCHASTIC_RND = ckernel::{stochastic_rnd.value};"
     )
+
+    # Tile size for packing. e.g num rows in a tile
+    formats = test_config["formats"]
+    if formats.output_format == DataFormat.Bfp8_b:
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = 68;")
+    elif formats.output_format == DataFormat.Float32:
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = 256;")
+    else:
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = 128;")
+
+    # Tile size for Unpacking. e.g num rows in a tile
+    if formats.input_format == DataFormat.Bfp8_b:
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_UNPACK = 68;")
+    elif formats.input_format == DataFormat.Float32:
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_UNPACK = 256;")
+    else:
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_UNPACK = 128;")
 
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration

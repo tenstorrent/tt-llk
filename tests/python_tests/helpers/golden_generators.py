@@ -13,6 +13,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
+from helpers.tilize_untilize import tilize_block
 
 golden_registry = {}
 
@@ -245,7 +246,6 @@ class TransposeGolden:
         self,
         operand,
         data_format,
-        untilize: bool = False,
         input_dimensions: list[int] = [32, 32],
     ):
         """Transpose a tile tensor by transposing within each of the four faces.
@@ -274,16 +274,12 @@ class TransposeGolden:
         # Split the tensor into 4 faces dynamically
         # Transpose each face using the helper function
         result = tensor.view(4, face_dim, face_dim).transpose(-2, -1).flatten()
-        if untilize:
-            untilize = get_golden_generator(UntilizeGolden)
-            result = untilize(result, data_format, input_dimensions).flatten()
         return result.to(format_dict[data_format])
 
     def transpose_faces(
         self,
         operand,
         data_format,
-        tilize: bool = False,
         input_dimensions: list[int] = [32, 32],
     ):
         """Transpose the arrangement of the four faces in a tile tensor.
@@ -300,10 +296,6 @@ class TransposeGolden:
         Returns:
             torch.Tensor: Tensor with faces rearranged in transposed order
         """
-        if tilize:
-            tilize = get_golden_generator(TilizeGolden)
-            operand = tilize(operand, input_dimensions, data_format).flatten()
-
         tensor = to_tensor(operand, data_format)
         total_elements = tensor.numel()
         if total_elements % 4 != 0:
@@ -318,6 +310,137 @@ class TransposeGolden:
         result = torch.cat([faces[0], faces[2], faces[1], faces[3]])
         return result.to(format_dict[data_format])
 
+    def transpose_faces_multi_tile(
+        self,
+        operand,
+        data_format,
+        num_tiles: int,
+        tilize: bool = False,
+        untilize: bool = False,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        """Transpose the arrangement of faces for multiple tiles.
+
+        This function applies the single-tile transpose_faces operation to each tile
+        in a multi-tile tensor. Each tile is expected to have 1024 elements (32x32)
+        arranged as 4 faces of 256 elements each.
+
+        Args:
+            operand: Input tensor containing multiple tiles to transpose
+            data_format: Data format for the result
+            num_tiles: Number of tiles in the operand tensor
+            tilize: Whether to tilize the input before transposing
+            untilize: Whether to untilize the result after transposing
+            input_dimensions: Dimensions of the entire input matrix [rows, cols]
+
+        Returns:
+            torch.Tensor: Tensor with faces rearranged in transposed order for all tiles
+        """
+
+        tensor = to_tensor(operand, data_format)
+        total_elements = tensor.numel()
+
+        if tilize:
+            tilize = get_golden_generator(TilizeGolden)
+            tensor = tilize(tensor, input_dimensions, data_format).flatten()
+
+        # Validate that we have the expected number of elements for the given number of tiles
+        expected_elements = num_tiles * 1024  # Each tile has 1024 elements (32x32)
+        if total_elements != expected_elements:
+            raise ValueError(
+                f"Invalid tensor size {total_elements} for {num_tiles} tiles. "
+                f"Expected {expected_elements} elements ({num_tiles} tiles × 1024 elements/tile)."
+            )
+
+        # Process each tile separately
+        results = []
+        for tile_idx in range(num_tiles):
+            # Extract the current tile (1024 elements)
+            start_idx = tile_idx * 1024
+            end_idx = start_idx + 1024
+            tile_tensor = tensor[start_idx:end_idx]
+
+            # Apply single-tile transpose_faces to this tile
+            # Note: We pass tilize=False since we already handled tilization above
+            transposed_tile = self.transpose_faces(
+                tile_tensor,
+                data_format,
+                input_dimensions=[32, 32],  # Each tile is 32x32
+            )
+
+            results.append(transposed_tile)
+
+        # Concatenate all transposed tiles back together
+        result = torch.cat(results)
+        if untilize:
+            untilize = get_golden_generator(UntilizeGolden)
+            result = untilize(result, data_format, input_dimensions).flatten()
+        return result.to(format_dict[data_format])
+
+    def transpose_within_faces_multi_tile(
+        self,
+        operand,
+        data_format,
+        num_tiles: int,
+        tilize: bool = False,
+        untilize: bool = False,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        """Transpose within faces for multiple tiles.
+
+        This function applies the single-tile transpose_within_faces operation to each tile
+        in a multi-tile tensor. Each tile consists of 4 equal faces arranged in a tile,
+        and this function transposes within each of the four faces for all tiles.
+
+        Args:
+            operand: Input tensor containing multiple tiles to transpose
+            data_format: Data format for the result
+            num_tiles: Number of tiles in the operand tensor
+            untilize: Whether to untilize the result after transposing
+            input_dimensions: Dimensions of the entire input matrix [rows, cols]
+
+        Returns:
+            torch.Tensor: Tensor with each face transposed within all tiles
+        """
+        tensor = to_tensor(operand, data_format)
+        total_elements = tensor.numel()
+
+        if tilize:
+            tilize = get_golden_generator(TilizeGolden)
+            tensor = tilize(tensor, input_dimensions, data_format).flatten()
+
+        # Validate that we have the expected number of elements for the given number of tiles
+        expected_elements = num_tiles * 1024  # Each tile has 1024 elements (32x32)
+        if total_elements != expected_elements:
+            raise ValueError(
+                f"Invalid tensor size {total_elements} for {num_tiles} tiles. "
+                f"Expected {expected_elements} elements ({num_tiles} tiles × 1024 elements/tile)."
+            )
+
+        # Process each tile separately
+        results = []
+        for tile_idx in range(num_tiles):
+            # Extract the current tile (1024 elements)
+            start_idx = tile_idx * 1024
+            end_idx = start_idx + 1024
+            tile_tensor = tensor[start_idx:end_idx]
+
+            transposed_tile = self.transpose_within_faces(
+                tile_tensor,
+                data_format,
+                input_dimensions=[32, 32],  # Each tile is 32x32
+            )
+
+            results.append(transposed_tile)
+
+        # Concatenate all transposed tiles back together
+        result = torch.cat(results)
+        if untilize:
+            untilize = get_golden_generator(UntilizeGolden)
+            result = untilize(result, data_format, input_dimensions).flatten()
+
+        return result.to(format_dict[data_format])
+
 
 @register_golden
 class MatmulGolden(FidelityMasking):
@@ -330,6 +453,7 @@ class MatmulGolden(FidelityMasking):
         math_fidelity,
         input_A_dimensions=None,
         input_B_dimensions=None,
+        tilize: bool = False,
     ):
         torch_format = format_dict[data_format]
 
@@ -364,8 +488,6 @@ class MatmulGolden(FidelityMasking):
                 .to(torch_format)
             )
 
-            return res
-
         elif num_fidelity_phases == 1:
 
             t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
@@ -385,8 +507,6 @@ class MatmulGolden(FidelityMasking):
                 .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
-
-            return res
 
         elif num_fidelity_phases == 2:
 
@@ -416,7 +536,6 @@ class MatmulGolden(FidelityMasking):
             # t1,t2 = t1.view(M, K1), t2.view(K2, N)
             # res +=  torch.matmul(t1, t2).view(output_dimensions[0] * output_dimensions[1]).to(torch_format)
 
-            return res
         elif num_fidelity_phases == 3:
 
             t1, t2 = t1.view(M, K1), t2.view(K2, N)
@@ -426,21 +545,13 @@ class MatmulGolden(FidelityMasking):
                 .to(torch_format)
             )
 
-            return res
-
-        # Clone and detach to avoid modifying original input
-        operand1_matrix = to_tensor(operand1, data_format).view(
-            input_dimensions[0], input_dimensions[1]
-        )
-        operand2_matrix = to_tensor(operand2, data_format).view(
-            input_dimensions[0], input_dimensions[1]
-        )
-
-        return (
-            torch.matmul(operand1_matrix, operand2_matrix)
-            .view(input_dimensions[0] * input_dimensions[1])
-            .to(torch_format)
-        )
+        if tilize:
+            res = tilize_block(
+                res,
+                dimensions=(input_A_dimensions[0], input_B_dimensions[1]),
+                stimuli_format=data_format,
+            ).flatten()
+        return res
 
 
 @register_golden
