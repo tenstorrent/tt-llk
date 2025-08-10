@@ -77,13 +77,8 @@ def test_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
         math_fidelity,
         input_A_dimensions=input_A_dimensions,
         input_B_dimensions=input_B_dimensions,
+        tilize=True,  # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
     )
-    golden_tensor = tilize_block(
-        golden_tensor,
-        dimensions=matmul_dims["output_dimensions"],
-        stimuli_format=formats.output_format,
-    ).to(torch_format)
-    golden_tensor = golden_tensor.flatten()
 
     if formats.input_format != DataFormat.Bfp8_b:
         tilized_A = tilize_block(
