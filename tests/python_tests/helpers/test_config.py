@@ -277,7 +277,7 @@ def write_build_header(
         f.write(header_content)
 
 
-def generate_make_command(
+def run_make(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
 ):
@@ -287,6 +287,8 @@ def generate_make_command(
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
+
+    run_shell_command(make_cmd, cwd=TESTS_DIR)
 
     return make_cmd
 
@@ -301,11 +303,9 @@ def build_test(
     if not root:
         raise AssertionError("Environment variable LLK_HOME is not set")
 
-    TESTS_DIR = str((Path(root) / "tests").absolute())
-
+    
     write_build_header(test_config, profiler_build=profiler_build)
-    make_cmd = generate_make_command(test_config, profiler_build=profiler_build)
-    run_shell_command(make_cmd, cwd=TESTS_DIR)
+    run_make(test_config, profiler_build=profiler_build)
 
 
 def run_test(
