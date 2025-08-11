@@ -54,10 +54,10 @@ void Welfords_Math(uint InputLREG, uint32_t N){
     /*var_{N+1}temp = 1/(N+1)*/
     float inv_n_plus_1 = 1.0/((float)N+1.0);
     uint32_t bits = __builtin_bit_cast(std::uint32_t, inv_n_plus_1);
-    uint16_t high16 = static_cast<uint16_t>(bits >> 16);
-    uint16_t low16  = static_cast<uint16_t>(bits & 0xFFFF);
+    uint16_t high16_bits = static_cast<uint16_t>(bits >> 16);
+    uint16_t low16_bits  = static_cast<uint16_t>(bits & 0xFFFF);
     /*var_{N+1}temp = 1/(N+1) usage loads high 16 bits*/
-    TT_SFPLOADI(p_sfpu::LREG7, 8, high16);
+    TT_SFPLOADI(p_sfpu::LREG7, 8, high16_bits);
 
     /*mean_{N+1}temp = 1 * (InputLREG + (-mean))*/
     TTI_SFPADD(p_sfpu::LCONST_1/*LREG10 = <1>*/, InputLREG, p_sfpu::LREG4, p_sfpu::LREG6,0);
@@ -68,7 +68,7 @@ void Welfords_Math(uint InputLREG, uint32_t N){
     //Next cycle cannot read from LREG4 See tt-isa-documentation
 
     /*var_{N+1}temp = 1/(N+1) usage loads low 16 bits*/
-    TT_SFPLOADI(p_sfpu::LREG7, 10, low16);
+    TT_SFPLOADI(p_sfpu::LREG7, 10, low16_bits);
 
     /*mean_{N+1} = ((mean_{N+1} = (InputLREG-mean) * (1/N+1)) + mean_{N}*/
     TTI_SFPMAD(p_sfpu::LREG6, p_sfpu::LREG7, p_sfpu::LREG4, p_sfpu::LREG6, 0);
@@ -83,7 +83,8 @@ void Welfords_Math(uint InputLREG, uint32_t N){
     //...(1/N+1) * (((x_{N+1} - mean_{N}) * (x_{N+1} - mean_{N+1})) - var_{N})
 
     /*mean_{N} = -1 * ((-1) *mean_{N})*/
-    TTI_SFPMULI(negative_one_BF16, p_sfpu::LREG4, 0);
+    TTI_SFPMAD(p_sfpu::LREG11, p_sfpu::LREG4, InputLREG, p_sfpu::LREG4, 0);
+
     //Next cycle cannot read from LREG4 See tt-isa-documentation
 
     /*mean_{N+1} = -1 * ((-1) *mean_{N+1})*/
@@ -127,12 +128,8 @@ void _welfords_(uint32_t N, uint32_t endN, uint32_t last_run) {
     // dst1 = past_mean
     // dst2 = past_var
 
-    /*past_mean = dst1*/TTI_SFPLOAD(p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
-    /*past_var = dst2*/TTI_SFPLOAD(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
 
     //potentially not needed? Helped in SFPI Variation
-    // /*mean = 0*/TTI_SFPLOADI(p_sfpu::LREG6, , 0)
-    // /*var = 0*/TTI_SFPLOADI(p_sfpu::LREG7, , 0)
 
     //total 172 cycles
     //4 * 8 for rows calls
@@ -143,8 +140,8 @@ void _welfords_(uint32_t N, uint32_t endN, uint32_t last_run) {
     //
     //16 past writes
 
-    for(uint32_t i = 0; i < 1; i++){
-        for(uint32_t j = 0; j < 1; j++){
+    for(uint32_t i = 0; i < 2; i++){
+        for(uint32_t j = 0; j < 4; j++){
 
             /*row1*/TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, (i*32) + (4*j) );
             /*row2*/TT_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_3,(i*32) + (4*j) + 2 );
@@ -153,6 +150,20 @@ void _welfords_(uint32_t N, uint32_t endN, uint32_t last_run) {
 
             /*transposes raw mixed data to logical rows*/
             TTI_SFPTRANSP(0, 0, 0, 0);
+            if(N == 0){
+                //Needed since LREGS can maintain state between calls/maybe kernels? So setting them to zero is needed
+                TT_SFPLOADI(p_sfpu::LREG4, 0, 0);
+                TT_SFPLOADI(p_sfpu::LREG5, 0, 0);
+                TT_SFPLOADI(p_sfpu::LREG6, 0, 0);
+                TT_SFPLOADI(p_sfpu::LREG7, 0, 0);
+            }
+            else{
+            /*past_mean = dst1*/TTI_SFPLOAD(p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
+            /*past_var = dst2*/TTI_SFPLOAD(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
+            //wiping LREG 6 and 7 since they may be filled with garbage data
+            TT_SFPLOADI(p_sfpu::LREG6, 0, 0);
+            TT_SFPLOADI(p_sfpu::LREG7, 0, 0);
+            }
             //LOAD was success has been tested for L0 and L1
 
             Welfords_Math(p_sfpu::LREG0, N);
@@ -163,12 +174,12 @@ void _welfords_(uint32_t N, uint32_t endN, uint32_t last_run) {
             N++;
             Welfords_Math(p_sfpu::LREG3, N);
             N++;
+
+            //storing since SFPTRANSP will shuffle these LREGS
+            TT_SFPSTORE(p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
+            TT_SFPSTORE(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
         }
     }
-    // dst_reg[32] = past_mean;
-    // dst_reg[64] = past_var;
-    TT_SFPSTORE(p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
-    TT_SFPSTORE(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
     return;
 }
 
