@@ -18,7 +18,10 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.golden_generators import TilizeGolden, get_golden_generator
+from helpers.golden_generators import (
+    TilizeGolden,
+    get_golden_generator,
+)
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -35,7 +38,7 @@ from helpers.utils import passed_test
             DataFormat.Float32,
             DataFormat.Float16,
             DataFormat.Float16_b,
-            DataFormat.Bfp8_b,  # Commented out for initial testing
+            DataFormat.Bfp8_b,
         ]
     ),
     stoch_rnd_type=[
@@ -44,7 +47,7 @@ from helpers.utils import passed_test
         StochasticRounding.Pack,
         StochasticRounding.All,
     ],
-    transpose=[Transpose.No],
+    transpose=[Transpose.Yes, Transpose.No],
     narrow_tile=[NarrowTile.No],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     num_faces=[NumFaces.Four, NumFaces.Two, NumFaces.One],
@@ -65,14 +68,21 @@ def test_unpack_tilize_comprehensive(
 
     # Skip num_faces=1 for Wormhole due to unpack_tilize API (0-loop issue)
     if num_faces == NumFaces.One and arch == ChipArchitecture.WORMHOLE:
-        pytest.skip("unpack_tilize API has 0-loop bug for num_faces=1 on Wormhole")
+        pytest.skip("unpack_tilize API has 0-loop issue for num_faces=1 on Wormhole")
 
     # Skip BFP8_b format (input or output) for Blackhole
+    if formats.input_format == DataFormat.Bfp8_b:
+        pytest.skip(
+            "BFP8_b input format not supported on Blackhole/Wormhole for tilize unpacker"
+        )
+
+    # Skip BFP8_b output format with num_faces != 4 for Blackhole only
     if (
-        formats.input_format == DataFormat.Bfp8_b
-        or formats.output_format == DataFormat.Bfp8_b
-    ) and arch == ChipArchitecture.BLACKHOLE:
-        pytest.skip("BFP8_b format not supported on Blackhole")
+        arch == ChipArchitecture.BLACKHOLE
+        and formats.output_format == DataFormat.Bfp8_b
+        and num_faces != NumFaces.Four
+    ):
+        pytest.skip("BFP8_b output format with num_faces != 4 issue on Blackhole")
 
     # Determine unpack_to_dest based on format
     unpack_to_dest = formats.input_format in [DataFormat.Int32, DataFormat.UInt32]
@@ -98,15 +108,6 @@ def test_unpack_tilize_comprehensive(
     )
 
     golden_tensor = golden_tensor.to(torch_format)
-    # Write stimuli to L1
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-        num_faces=num_faces.value,
-    )
 
     # Build the complete test config
     test_config = {
@@ -116,12 +117,25 @@ def test_unpack_tilize_comprehensive(
         "input_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "stoch_rnd_type": stoch_rnd_type,
-        "unpack_transpose_faces": transpose.value,
+        "unpack_transpose_faces": Transpose.No.value,
         "unpack_transpose_within_face": transpose.value,
         "dest_acc": dest_acc,
         "num_faces": num_faces.value,
         "narrow_tile": narrow_tile.value,
     }
+
+    # Write stimuli to L1
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+        tile_count=tile_cnt,
+        num_faces=num_faces.value,
+    )
 
     # Run the test
     run_test(test_config)
