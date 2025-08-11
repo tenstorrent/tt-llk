@@ -48,15 +48,6 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
         src_A, formats.output_format, num_faces, input_dimensions
     )
 
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-        num_faces=num_faces,
-    )
-
     unpack_to_dest = formats.input_format.is_32_bit()
 
     test_config = {
@@ -79,6 +70,7 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        num_faces=num_faces,
     )
 
     run_test(test_config)
