@@ -13,6 +13,7 @@
 #include "cmath_common.h"
 #include "llk_math_common.h"
 #include "llk_sfpu_types.h"
+#include "llk_static_asserts.h"
 
 using namespace ckernel;
 
@@ -20,6 +21,16 @@ using namespace ckernel;
 template <SfpuType sfpu_op>
 inline void eltwise_unary_sfpu_configure_addrmod()
 {
+    // ========================================================================
+    // **SFPU OPERATION HARDWARE CONSTRAINT VALIDATION**
+    // ========================================================================
+
+    // Validate SFPU operation at compile time
+    LLK_STATIC_ASSERT_SFPU_OPERATION(sfpu_op);
+
+    // Validate address modes used in this function
+    LLK_STATIC_ASSERT_ADDR_MODE(7); // ADDR_MOD_7 used for standard operations
+    LLK_STATIC_ASSERT_ADDR_MODE(6); // ADDR_MOD_6 used for topk_local_sort
     // NOTE: this kernel is typically used in conjunction with
     //       A2D, which is using ADDR_MOD_0 and ADDR_MOD_2, so use one
     //       that doesn't conflict!
@@ -47,6 +58,8 @@ inline void eltwise_unary_sfpu_configure_mop();
 template <DstSync Dst>
 inline void _llk_math_eltwise_unary_sfpu_start_(const uint dst_index)
 {
+    // Validate DstSync parameter at compile time
+    static_assert(Dst == DstSync::SyncHalf || Dst == DstSync::SyncFull, "CRITICAL: DstSync must be SyncHalf or SyncFull for proper synchronization");
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
     math::set_addr_mod_base();
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
@@ -69,6 +82,8 @@ inline void _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_()
 template <SfpuType sfpu_op>
 inline void _llk_math_eltwise_unary_sfpu_init_()
 {
+    // Validate SFPU operation at compile time
+    LLK_STATIC_ASSERT_SFPU_OPERATION(sfpu_op);
     sfpu::_init_sfpu_config_reg();
     eltwise_unary_sfpu_configure_addrmod<sfpu_op>();
     math::reset_counters(p_setrwc::SET_ABD_F);

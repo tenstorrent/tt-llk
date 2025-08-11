@@ -11,6 +11,7 @@
 #include "ckernel_instr_params.h"
 #include "cpack_common.h"
 #include "llk_defs.h"
+#include "llk_static_asserts.h"
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -25,6 +26,10 @@ inline void _llk_packer_wait_for_math_done_()
 template <uint WaitRes = p_stall::NONE>
 inline void _llk_packer_set_math_semaphore_()
 {
+    // Validate wait result parameter
+    static_assert(
+        WaitRes == p_stall::NONE || WaitRes == p_stall::STALL_MATH || WaitRes == p_stall::STALL_SFPU || WaitRes == p_stall::STALL_PACK,
+        "CRITICAL: WaitRes must be a valid p_stall value for hardware compatibility");
     t6_semaphore_get<WaitRes>(semaphore::MATH_PACK); // Indicate that packer is done and header is written into L1
 }
 
@@ -34,6 +39,9 @@ inline void _llk_packer_set_math_semaphore_()
 template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_pack_dest_section_done_()
 {
+    // Validate template parameters for pack destination
+    static_assert(Dst == DstSync::SyncHalf || Dst == DstSync::SyncFull, "CRITICAL: DstSync must be SyncHalf or SyncFull for proper synchronization");
+    static_assert(std::is_same_v<decltype(is_fp32_dest_acc_en), bool>, "CRITICAL: is_fp32_dest_acc_en must be a boolean compile-time parameter");
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
 
     if constexpr (Dst == DstSync::SyncFull)
@@ -61,6 +69,24 @@ inline void _llk_pack_dest_section_done_()
 template <DstSync Dst, DstTileFaceLayout FaceLayout, bool untilize = false, bool diagonal = false>
 inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
 {
+    // ========================================================================
+    // **PACK OPERATION HARDWARE CONSTRAINT VALIDATION**
+    // ========================================================================
+
+    // Validate destination sync parameter
+    static_assert(Dst == DstSync::SyncHalf || Dst == DstSync::SyncFull, "CRITICAL: DstSync must be SyncHalf or SyncFull for hardware compatibility");
+
+    // Validate face layout parameter
+    static_assert(
+        FaceLayout == DstTileFaceLayout::RowMajor || FaceLayout == DstTileFaceLayout::ColMajor,
+        "CRITICAL: DstTileFaceLayout must be RowMajor or ColMajor for hardware support");
+
+    // Validate face dimension parameter (should be compile-time checkable in most cases)
+    static_assert(FACE_R_DIM == 16, "CRITICAL: Face row dimension must be 16 for Wormhole B0");
+
+    // Address mode validation for pack operations
+    LLK_STATIC_ASSERT_ADDR_MODE(1); // ADDR_MOD_1 used in this function
+
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK); // wait for pack to finish
     if constexpr (untilize)
     {

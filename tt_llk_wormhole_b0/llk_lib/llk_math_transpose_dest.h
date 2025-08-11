@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
+#include "llk_static_asserts.h"
 #include "lltt.h"
 
 using namespace ckernel;
@@ -35,6 +36,14 @@ inline void transpose_dest_configure_mop();
 template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
+    // Validate transpose configuration parameters
+    static_assert(
+        std::is_same_v<decltype(transpose_of_faces), bool> && std::is_same_v<decltype(is_32bit), bool>,
+        "CRITICAL: transpose_of_faces and is_32bit must be boolean compile-time parameters");
+
+    // Validate supported configurations based on documentation
+    static_assert(
+        !(transpose_of_faces == false && is_32bit == false), "CRITICAL: Configuration <transpose_of_faces=false, is_32bit=false> is not supported by hardware");
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
     math::reset_counters(p_setrwc::SET_ABD_F);
 
@@ -70,6 +79,9 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 template <bool is_32bit>
 inline void transpose_dest_configure_addrmod()
 {
+    // Validate 32-bit configuration parameter
+    static_assert(std::is_same_v<decltype(is_32bit), bool>, "CRITICAL: is_32bit must be a boolean compile-time parameter");
+
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
@@ -102,6 +114,14 @@ inline void transpose_dest_configure_addrmod()
 template <bool transpose_of_faces, bool is_32bit>
 inline void transpose_dest_configure_mop()
 {
+    // Validate transpose MOP configuration parameters
+    static_assert(
+        std::is_same_v<decltype(transpose_of_faces), bool> && std::is_same_v<decltype(is_32bit), bool>,
+        "CRITICAL: transpose_of_faces and is_32bit must be boolean compile-time parameters");
+
+    // Validate supported configurations for MOP
+    static_assert(
+        !(transpose_of_faces == false && is_32bit == false), "CRITICAL: MOP configuration <transpose_of_faces=false, is_32bit=false> is not supported");
     if (is_32bit)
     {
         lltt::record(16, 16);
@@ -221,6 +241,15 @@ inline void transpose_dest_configure_mop()
 template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_init_()
 {
+    // Validate transpose initialization parameters
+    static_assert(
+        std::is_same_v<decltype(transpose_of_faces), bool> && std::is_same_v<decltype(is_32bit), bool>,
+        "CRITICAL: transpose_of_faces and is_32bit must be boolean compile-time parameters");
+
+    // Validate supported configurations for initialization
+    static_assert(
+        !(transpose_of_faces == false && is_32bit == false),
+        "CRITICAL: Initialization with <transpose_of_faces=false, is_32bit=false> is not supported by hardware");
     transpose_dest_configure_addrmod<is_32bit>();
     transpose_dest_configure_mop<transpose_of_faces, is_32bit>();
 

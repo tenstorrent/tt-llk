@@ -22,3 +22,12 @@ tests/helpers/include/build.h
 
 # Ignore generated compile_flags.txt
 compile_flags.txt
+
+/docs/llk/refactor_docs/discussions on llk code 1.md
+/docs/llk/refactor_docs/discussions on llk code 2.md
+/docs/llk/refactor_docs/discussions on llk code 3.md
+/docs/llk/refactor_docs/discussions on llk code 4.md
+/docs/llk/refactor_docs/discussions on llk code 5.md
+/docs/llk/refactor_docs/discussions on llk code.md
+/docs/llk/refactor_docs/discussions on Pack and Unpack operation details vs. actual implementation.md
+docs/llk/refactor_docs/context

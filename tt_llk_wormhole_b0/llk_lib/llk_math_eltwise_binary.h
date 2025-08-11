@@ -11,6 +11,7 @@
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
+#include "llk_static_asserts.h"
 
 using namespace ckernel;
 
@@ -20,6 +21,11 @@ inline void eltwise_binary_configure_addrmod();
 template <EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void eltwise_binary_reuse_dest_as_src()
 {
+    // Validate reuse destination type at compile time
+    static_assert(
+        binary_reuse_dest == EltwiseBinaryReuseDestType::NONE || binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA ||
+            binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB,
+        "CRITICAL: EltwiseBinaryReuseDestType must be NONE, DEST_TO_SRCA, or DEST_TO_SRCB");
     if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA)
     {
         move_d2a_fixed_face(ADDR_MOD_1);
@@ -250,6 +256,18 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
 inline void eltwise_binary_configure_addrmod()
 {
+    // Validate eltwise binary operation type
+    static_assert(
+        eltwise_binary_type == ELWADD || eltwise_binary_type == ELWSUB || eltwise_binary_type == ELWMUL || eltwise_binary_type == ELWDIV,
+        "CRITICAL: EltwiseBinaryType must be ELWADD, ELWSUB, ELWMUL, or ELWDIV");
+
+    // Validate broadcast type
+    static_assert(
+        bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL || bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR,
+        "CRITICAL: BroadcastType must be NONE, COL, ROW, or SCALAR for hardware compatibility");
+
+    // Validate fidelity increment is reasonable
+    static_assert(FIDELITY_INCREMENT <= 16, "CRITICAL: FIDELITY_INCREMENT must be <= 16 for reasonable hardware behavior");
     // Use srcA for data movement
     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
     {

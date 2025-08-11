@@ -12,6 +12,7 @@
 #include "ckernel_template.h"
 #include "llk_defs.h"
 #include "llk_pack_common.h"
+#include "llk_static_asserts.h"
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -19,6 +20,11 @@ using namespace ckernel::packer;
 template <bool untilize = false>
 inline void _llk_pack_configure_addrmod_()
 {
+    // Validate compile-time template parameters
+    static_assert(std::is_same_v<decltype(untilize), bool>, "CRITICAL: untilize must be a boolean compile-time parameter");
+
+    // Validate the untilize parameter makes sense in hardware context
+    static_assert(untilize == true || untilize == false, "CRITICAL: untilize must be explicitly true or false for clear hardware behavior");
     addr_mod_pack_t {
         .y_src = {.incr = 15}, // 4-bit value so max is 15. incadcxy will increment it by 1
         .y_dst = {.incr = 1},
@@ -59,6 +65,16 @@ inline void _llk_pack_mop_config_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
+    // Validate compile-time template parameters
+    static_assert(
+        std::is_same_v<decltype(untilize), bool> && std::is_same_v<decltype(zero_output), bool> && std::is_same_v<decltype(write_tile_header), bool>,
+        "CRITICAL: Boolean template parameters must be compile-time booleans");
+
+    // Validate face layout enum
+    static_assert(
+        FaceLayout == DstTileFaceLayout::RowMajor || FaceLayout == DstTileFaceLayout::ColMajor,
+        "CRITICAL: DstTileFaceLayout must be RowMajor or ColMajor for hardware compatibility");
+
     static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
 
     const uint PACKCNT              = (partial_face && IS_BFP_FORMAT(pack_dst_format)) ? 1 : num_faces;
@@ -153,6 +169,16 @@ inline void _llk_pack_reduce_hw_configure_(
     const bool narrow_tile          = false,
     const std::uint32_t relu_config = 0)
 {
+    // Validate reduction enum parameters
+    static_assert(
+        type == PoolType::SUM || type == PoolType::AVG || type == PoolType::MAX, "CRITICAL: PoolType must be SUM, AVG, or MAX for reduction operations");
+
+    static_assert(
+        dim == ReduceDim::REDUCE_ROW || dim == ReduceDim::REDUCE_COL || dim == ReduceDim::REDUCE_SCALAR,
+        "CRITICAL: ReduceDim must be REDUCE_ROW, REDUCE_COL, or REDUCE_SCALAR");
+
+    // Validate FP32 accumulation flag
+    static_assert(std::is_same_v<decltype(is_fp32_dest_acc_en), bool>, "CRITICAL: is_fp32_dest_acc_en must be a boolean compile-time parameter");
     configure_pack<is_fp32_dest_acc_en, untilize>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
 
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();

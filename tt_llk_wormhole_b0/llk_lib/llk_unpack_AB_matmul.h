@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_static_asserts.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -28,6 +29,13 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     const bool unpA_partial_face,
     const bool unpB_partial_face)
 {
+    // Validate kernel broadcast parameters for matmul operations
+    static_assert(
+        kernel_broadcast_a <= 1 && kernel_broadcast_b <= 1, "CRITICAL: kernel_broadcast_a and kernel_broadcast_b must be 0 or 1 for matmul operations");
+
+    // Validate broadcast configuration consistency
+    static_assert(
+        !(kernel_broadcast_a == 1 && kernel_broadcast_b == 1), "CRITICAL: Cannot broadcast both operands A and B simultaneously in matmul operations");
     // in0/inA - loaded to SrcB
     // in1/inB - loaded to SrcA
 

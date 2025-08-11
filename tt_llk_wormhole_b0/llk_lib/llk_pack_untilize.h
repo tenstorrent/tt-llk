@@ -12,6 +12,7 @@
 #include "ckernel_template.h"
 #include "llk_defs.h"
 #include "llk_pack_common.h"
+#include "llk_static_asserts.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -21,6 +22,13 @@ using namespace ckernel::packer;
 template <bool diagonal = false, bool narrow_row = false>
 inline void _llk_pack_untilize_configure_addrmod_()
 {
+    // Validate pack untilize configuration parameters
+    static_assert(
+        std::is_same_v<decltype(diagonal), bool> && std::is_same_v<decltype(narrow_row), bool>,
+        "CRITICAL: diagonal and narrow_row must be boolean compile-time parameters");
+
+    // Validate parameter combination logic
+    static_assert(!(diagonal && narrow_row), "WARNING: Using both diagonal and narrow_row modes simultaneously may not be optimal for performance");
     if constexpr (diagonal || narrow_row)
     {
         addr_mod_pack_t {
@@ -132,6 +140,22 @@ template <
     std::uint32_t row_num_datums = TILE_C_DIM>
 inline void _llk_pack_untilize_init_(const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
+    // Validate pack untilize initialization parameters
+    static_assert(block_ct_dim > 0, "CRITICAL: block_ct_dim must be positive for valid tile operations");
+    static_assert(full_ct_dim > 0, "CRITICAL: full_ct_dim must be positive for valid tile operations");
+    static_assert(full_ct_dim >= block_ct_dim, "CRITICAL: full_ct_dim must be >= block_ct_dim for memory layout consistency");
+
+    // Validate boolean parameters
+    static_assert(
+        std::is_same_v<decltype(diagonal), bool> && std::is_same_v<decltype(narrow_row), bool>,
+        "CRITICAL: diagonal and narrow_row must be boolean compile-time parameters");
+
+    // Validate row datums parameter
+    static_assert(row_num_datums > 0, "CRITICAL: row_num_datums must be positive");
+    static_assert(row_num_datums <= 32, "CRITICAL: row_num_datums must not exceed 32 for hardware compatibility");
+
+    // Validate parameter combination logic
+    static_assert(!(diagonal && narrow_row), "WARNING: Using both diagonal and narrow_row modes simultaneously may cause unexpected behavior");
     _llk_pack_untilize_configure_addrmod_<diagonal, narrow_row>();
 
     _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal, narrow_row, row_num_datums>(face_r_dim, num_faces);
@@ -156,6 +180,22 @@ inline void _llk_pack_untilize_(
     const std::uint32_t num_faces       = 4 /*not used*/,
     const std::uint32_t tile_dst_offset = 0)
 {
+    // Validate pack untilize operation parameters
+    static_assert(block_ct_dim > 0, "CRITICAL: block_ct_dim must be positive for valid pack operations");
+    static_assert(full_ct_dim > 0, "CRITICAL: full_ct_dim must be positive for valid pack operations");
+    static_assert(full_ct_dim >= block_ct_dim, "CRITICAL: full_ct_dim must be >= block_ct_dim for consistent memory layout");
+
+    // Validate boolean configuration parameters
+    static_assert(
+        std::is_same_v<decltype(diagonal), bool> && std::is_same_v<decltype(narrow_row), bool>,
+        "CRITICAL: diagonal and narrow_row must be boolean compile-time parameters");
+
+    // Validate row datums parameter for hardware compatibility
+    static_assert(row_num_datums > 0, "CRITICAL: row_num_datums must be positive");
+    static_assert(row_num_datums <= 32, "CRITICAL: row_num_datums must not exceed 32 for hardware limits");
+
+    // Validate configuration consistency
+    static_assert(!(diagonal && narrow_row), "WARNING: Simultaneous diagonal and narrow_row modes may lead to undefined packing behavior");
     program_packer_untilized_destination<block_ct_dim, full_ct_dim, diagonal, row_num_datums>(address, pack_dst_format);
 
     if constexpr (narrow_row)

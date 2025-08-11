@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_static_asserts.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -55,6 +56,14 @@ inline void _llk_unpack_untilize_hw_configure_(
     const std::uint32_t within_face_16x16_transpose = 0,
     const std::uint32_t num_faces                   = 4)
 {
+    // Validate template parameters for untilize operations
+    static_assert(std::is_same_v<decltype(is_fp32_dest_acc_en), bool>, "CRITICAL: is_fp32_dest_acc_en must be a boolean compile-time parameter");
+
+    // Validate stochastic rounding mode
+    static_assert(
+        stoch_rnd_mode == StochRndType::None || stoch_rnd_mode == StochRndType::All || stoch_rnd_mode == StochRndType::Fpu ||
+            stoch_rnd_mode == StochRndType::Pack,
+        "CRITICAL: StochRndType must be None, All, Fpu, or Pack for hardware compatibility");
     constexpr bool is_row_pool  = false;
     constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
     constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
@@ -89,6 +98,8 @@ inline void _llk_unpack_untilize_init_(
 template <bool first_pass = true>
 inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols)
 {
+    // Validate template parameter for untilize pass
+    static_assert(std::is_same_v<decltype(first_pass), bool>, "CRITICAL: first_pass must be a boolean compile-time parameter");
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses

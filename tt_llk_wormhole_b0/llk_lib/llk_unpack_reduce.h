@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_static_asserts.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -19,6 +20,13 @@ using namespace ckernel::unpacker;
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_mop_config_(const std::uint32_t num_faces)
 {
+    // Validate reduction template parameters at compile time
+    static_assert(
+        type == PoolType::SUM || type == PoolType::AVG || type == PoolType::MAX, "CRITICAL: PoolType must be SUM, AVG, or MAX for reduction operations");
+
+    static_assert(
+        dim == ReduceDim::REDUCE_ROW || dim == ReduceDim::REDUCE_COL || dim == ReduceDim::REDUCE_SCALAR,
+        "CRITICAL: ReduceDim must be REDUCE_ROW, REDUCE_COL, or REDUCE_SCALAR");
     static constexpr uint unpack_srca     = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_zerosrca = TT_OP_UNPACR_NOP(p_unpacr_nop::UNP0, p_unpacr_nop::UNP_ZEROSRC);
     static constexpr uint unpack_srcb     = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -42,6 +50,14 @@ inline void _llk_unpack_reduce_hw_configure_(
     const std::uint32_t unpA_num_faces              = 4,
     const std::uint32_t unpB_num_faces              = 4)
 {
+    // Validate reduction hardware configuration parameters
+    static_assert(std::is_same_v<decltype(is_fp32_dest_acc_en), bool>, "CRITICAL: is_fp32_dest_acc_en must be a boolean compile-time parameter");
+
+    // Validate stochastic rounding mode
+    static_assert(
+        stoch_rnd_mode == StochRndType::None || stoch_rnd_mode == StochRndType::All || stoch_rnd_mode == StochRndType::Fpu ||
+            stoch_rnd_mode == StochRndType::Pack,
+        "CRITICAL: StochRndType must be None, All, Fpu, or Pack for hardware compatibility");
     constexpr bool is_row_pool  = true;
     constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
     constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
@@ -62,6 +78,13 @@ inline void _llk_unpack_reduce_hw_configure_(
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0, const std::uint32_t num_faces = 4)
 {
+    // Validate reduction initialization parameters
+    static_assert(
+        type == PoolType::SUM || type == PoolType::AVG || type == PoolType::MAX, "CRITICAL: PoolType must be SUM, AVG, or MAX for reduction operations");
+
+    static_assert(
+        dim == ReduceDim::REDUCE_ROW || dim == ReduceDim::REDUCE_COL || dim == ReduceDim::REDUCE_SCALAR,
+        "CRITICAL: ReduceDim must be REDUCE_ROW, REDUCE_COL, or REDUCE_SCALAR");
     // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
     // if we have the flag set with REDUCE_ROW, we don't need to do anything
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
@@ -75,6 +98,13 @@ inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_trans
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_(const std::uint32_t address)
 {
+    // Validate reduction operation parameters
+    static_assert(
+        type == PoolType::SUM || type == PoolType::AVG || type == PoolType::MAX, "CRITICAL: PoolType must be SUM, AVG, or MAX for reduction operations");
+
+    static_assert(
+        dim == ReduceDim::REDUCE_ROW || dim == ReduceDim::REDUCE_COL || dim == ReduceDim::REDUCE_SCALAR,
+        "CRITICAL: ReduceDim must be REDUCE_ROW, REDUCE_COL, or REDUCE_SCALAR");
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 

@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_static_asserts.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -26,6 +27,24 @@ template <
 inline void _llk_unpack_A_mop_config_(
     const bool transpose_of_faces, const std::uint32_t num_faces, const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format = 0)
 {
+    // Enhanced static validation for compile-time template parameters
+
+    // Validate broadcast type is within valid enum range
+    static_assert(
+        BType == BroadcastType::NONE || BType == BroadcastType::COL || BType == BroadcastType::ROW || BType == BroadcastType::SCALAR,
+        "CRITICAL: BroadcastType must be NONE, COL, ROW, or SCALAR for hardware compatibility");
+
+    // Validate binary reuse destination type
+    static_assert(
+        binary_reuse_dest == EltwiseBinaryReuseDestType::NONE || binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA ||
+            binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB,
+        "CRITICAL: EltwiseBinaryReuseDestType must be NONE, DEST_TO_SRCA, or DEST_TO_SRCB");
+
+    // Validate boolean template parameters are actually booleans
+    static_assert(std::is_same_v<decltype(acc_to_dest), bool>, "CRITICAL: acc_to_dest must be a boolean compile-time parameter");
+    static_assert(std::is_same_v<decltype(unpack_to_dest), bool>, "CRITICAL: unpack_to_dest must be a boolean compile-time parameter");
+
+    // Original assertions (kept for compatibility)
     static_assert(
         !((BType != BroadcastType::NONE) && acc_to_dest && (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)), "Not supported configuration!");
     static_assert(

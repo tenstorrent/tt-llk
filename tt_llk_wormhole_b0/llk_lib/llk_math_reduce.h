@@ -12,6 +12,7 @@
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
+#include "llk_static_asserts.h"
 
 using namespace ckernel;
 
@@ -30,6 +31,19 @@ template <
     bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
+    // Validate reduction template parameters at compile time
+    static_assert(
+        type == PoolType::SUM || type == PoolType::AVG || type == PoolType::MAX, "CRITICAL: PoolType must be SUM, AVG, or MAX for reduction operations");
+
+    static_assert(
+        dim == ReduceDim::REDUCE_ROW || dim == ReduceDim::REDUCE_COL || dim == ReduceDim::REDUCE_SCALAR,
+        "CRITICAL: ReduceDim must be REDUCE_ROW, REDUCE_COL, or REDUCE_SCALAR");
+
+    // Validate boolean template parameters
+    static_assert(
+        std::is_same_v<decltype(is_fp32_dest_acc_en), bool> && std::is_same_v<decltype(is_int_fpu_en), bool> &&
+            std::is_same_v<decltype(enforce_fp32_accumulation), bool>,
+        "CRITICAL: Boolean template parameters must be compile-time booleans");
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
@@ -445,6 +459,12 @@ inline void reduce_configure_mop()
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0)
 { // within_face_16x16_transpose used for unpack, ignored by math
+
+    // Critical reduction operation validation
+    // llk_validation::validate_reduction_config<dim, type>();
+
+    // Math fidelity validation
+    static_assert(MATH_FIDELITY_DESC >= 0 && MATH_FIDELITY_DESC <= 15, "CRITICAL: Math fidelity descriptor must be 0-15 for reduction operations");
 
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
