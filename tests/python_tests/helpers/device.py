@@ -177,7 +177,9 @@ def write_stimuli_to_l1(
     pack_function_A = get_packer(stimuli_A_format)
     pack_function_B = get_packer(stimuli_B_format)
 
-    def write_matrix(buffer, tile_count, pack_function, base_address, tile_size, num_faces):
+    def write_matrix(
+        buffer, tile_count, pack_function, base_address, tile_size, num_faces
+    ):
         addresses = []
         packed_data_list = []
 
@@ -196,10 +198,20 @@ def write_stimuli_to_l1(
             write_to_device(core_loc, addr, data)
 
     write_matrix(
-        buffer_A, tile_count_A, pack_function_A, buffer_A_address, tile_size_A_bytes, num_faces
+        buffer_A,
+        tile_count_A,
+        pack_function_A,
+        buffer_A_address,
+        tile_size_A_bytes,
+        num_faces,
     )
     write_matrix(
-        buffer_B, tile_count_B, pack_function_B, buffer_B_address, tile_size_B_bytes, num_faces
+        buffer_B,
+        tile_count_B,
+        pack_function_B,
+        buffer_B_address,
+        tile_size_B_bytes,
+        num_faces,
     )
 
     # Set buffer addresses in device to be defined in build header
