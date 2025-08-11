@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent Inc.
+// SPDX-FileCopyrightText: © 2023 Tenstorrent Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -53,13 +53,14 @@ void Welfords_Math(uint InputLREG, uint32_t N){
 
     /*var_{N+1}temp = 1/(N+1)*/
     float inv_n_plus_1 = 1.0/((float)N+1.0);
-    uint32_t bits = std::bit_cast<uint32_t>(inv_n_plus_1);
+    uint32_t bits = __builtin_bit_cast(std::uint32_t, inv_n_plus_1);
     uint16_t high16 = static_cast<uint16_t>(bits >> 16);
-    uint16_t low16  = static
+    uint16_t low16  = static_cast<uint16_t>(bits & 0xFFFF);
+    /*var_{N+1}temp = 1/(N+1) usage loads high 16 bits*/
     TT_SFPLOADI(p_sfpu::LREG7, 8, high16);
 
     /*mean_{N+1}temp = 1 * (InputLREG + (-mean))*/
-    TTI_SFPADD(p_sfpu::LREG10/*LREG10 = <1>*/, InputLREG, p_sfpu::LREG4, p_sfpu::LREG6,0);
+    TTI_SFPADD(p_sfpu::LCONST_1/*LREG10 = <1>*/, InputLREG, p_sfpu::LREG4, p_sfpu::LREG6,0);
     //Next cycle cannot read from LREG6 See tt-isa-documentation
 
     /*mean_{N} = -1 * ((-1) *mean_{N})*/
@@ -90,24 +91,31 @@ void Welfords_Math(uint InputLREG, uint32_t N){
     //Next cycle cannot read from LREG6 See tt-isa-documentation
 
     /*mean_{N}temp = 1 * (InputLREG + (-mean_{N}))*/
-    TTI_SFPADD(p_sfpu::LREG10/*LREG10 = <1>*/, InputLREG, p_sfpu::LREG4, p_sfpu::LREG4,0);
+    TTI_SFPADD(p_sfpu::LCONST_1/*LREG10 = <1>*/, InputLREG, p_sfpu::LREG4, p_sfpu::LREG4,0);
     //Next cycle cannot read from LREG4 See tt-isa-documentation
 
 
     /*inputLREG temp = 1 * (InputLREG + (-mean_{N}))*/
-    TTI_SFPADD(p_sfpu::LREG10/*LREG10 = <1>*/, InputLREG, p_sfpu::LREG6, InputLREG,0);
+    TTI_SFPADD(p_sfpu::LCONST_1/*LREG10 = <1>*/, InputLREG, p_sfpu::LREG6, InputLREG,0);
     //Next cycle cannot read from InputLREG See tt-isa-documentation
 
     //Calls NOP Macro since InputLREG is read next
-    TTI_NOP;
+    TTI_SFPNOP;
 
     /*InputLREG temp= (mean_{N} = (InputLREG-mean_{N}) * InputLREG =(InputLREG - mean_{N+1})) + var_{N}*/
     TTI_SFPMAD(p_sfpu::LREG4, InputLREG, p_sfpu::LREG5, InputLREG, 0);
     //Next cycle cannot read from InputLREG See tt-isa-documentation
-    TTI_NOP;
+    TTI_SFPNOP;
 
     /*var_{N+1} = (InputLREG = (see above) * var_{N+1} = (1/N+1)) + var_{N} = ()*/
     TTI_SFPMAD(InputLREG, p_sfpu::LREG7, p_sfpu::LREG5, p_sfpu::LREG5, 0);
+    //Next cycle cannot read from LREG5 See tt-isa-documentation
+
+    //keep it simple please change
+    /*mean_{N} = -1 * ((-1) *mean_{N+1})*/
+    TTI_SFPMUL(11, p_sfpu::LREG6, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
+    //Next cycle cannot read from LREG4 See tt-isa-documentation
+    TTI_SFPNOP;
 
     //var calculation end
     //Now past_mean (LREG4) is population
@@ -123,8 +131,8 @@ void _welfords_(uint32_t N, uint32_t endN, uint32_t last_run) {
     /*past_var = dst2*/TTI_SFPLOAD(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
 
     //potentially not needed? Helped in SFPI Variation
-    /*mean = 0*/TTI_SFPLOADI(p_sfpu::LREG6, , 0)
-    /*var = 0*/TTI_SFPLOADI(p_sfpu::LREG7, , 0)
+    // /*mean = 0*/TTI_SFPLOADI(p_sfpu::LREG6, , 0)
+    // /*var = 0*/TTI_SFPLOADI(p_sfpu::LREG7, , 0)
 
     //total 172 cycles
     //4 * 8 for rows calls
