@@ -188,13 +188,16 @@ def write_stimuli_to_l1(
         addresses = []
         packed_data_list = []
 
+        pack_function_lambda = lambda buffer_tile: (
+            pack_function(buffer_tile, num_faces=num_faces)
+            if pack_function == pack_bfp8_b
+            else pack_function(buffer_tile)
+        )
+
         for i in range(tile_count):
             start_idx = TILE_ELEMENTS * i
             tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
-            if pack_function == pack_bfp8_b:
-                packed_data = pack_function(tile_data, num_faces=num_faces)
-            else:
-                packed_data = pack_function(tile_data)
+            packed_data = pack_function_lambda(tile_data)
 
             addresses.append(base_address + i * tile_size)
             packed_data_list.append(packed_data)
