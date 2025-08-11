@@ -177,6 +177,11 @@ def write_stimuli_to_l1(
     pack_function_A = get_packer(stimuli_A_format)
     pack_function_B = get_packer(stimuli_B_format)
 
+    if not pack_function_A or not pack_function_B:
+        raise ValueError(
+            f"Unsupported data formats: {stimuli_A_format.name}, {stimuli_B_format.name}"
+        )
+
     def write_matrix(
         buffer, tile_count, pack_function, base_address, tile_size, num_faces
     ):
