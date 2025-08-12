@@ -108,7 +108,4 @@ def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # print(f"GOLDEN: {transpose_dest_golden}")
-    # print(f"RESULT: {res_tensor}")
-
     assert passed_test(transpose_dest_golden, res_tensor, formats.output_format)

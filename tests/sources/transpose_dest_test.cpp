@@ -70,11 +70,11 @@ void run_kernel()
 
         _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
 
-#ifdef ARCH_BLACKHOLE
+        // #ifdef ARCH_BLACKHOLE
         _llk_math_transpose_dest_<is_fp32_dest_acc_en, MATH_TRANSPOSE_FACES, is32>(i);
-#else
-        _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is32>(i);
-#endif
+        // #else
+        //         _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is32>(i);
+        // #endif
 
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
