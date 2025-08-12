@@ -18,29 +18,29 @@ template <typename T>
 constexpr bool is_supported_threshold_type_v = std::is_same_v<T, float> || std::is_same_v<T, uint32_t>;
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, typename T>
-inline void _calculate_threshold_(T param0, T param1)
+inline void _calculate_threshold_(T threshold, T value)
 {
     static_assert(is_supported_threshold_type_v<T>, "Type T must be either float or uint32_t");
 
-    sfpi::vFloat t;
-    sfpi::vFloat v;
+    sfpi::vFloat v_threshold;
+    sfpi::vFloat v_value;
     if constexpr (std::is_same_v<T, float>)
     {
-        t = param0;
-        v = param1;
+        v_threshold = threshold;
+        v_value     = value;
     }
     else if constexpr (std::is_same_v<T, uint32_t>)
     {
-        t = Converter::as_float(param0);
-        v = Converter::as_float(param1);
+        v_threshold = Converter::as_float(threshold);
+        v_value     = Converter::as_float(value);
     }
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat in     = sfpi::dst_reg[0];
-        sfpi::vFloat result = v;
+        sfpi::vFloat result = v_value;
 
-        v_if (in > t)
+        v_if (in > v_threshold)
         {
             result = in;
         }
