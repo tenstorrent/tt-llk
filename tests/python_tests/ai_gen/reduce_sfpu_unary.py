@@ -182,10 +182,4 @@ def test_reduce_sfpu_unary(config):
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[fmt.output_format])
     res_tensor = untilize(res_tensor, fmt.output_format)
 
-    # Extract the leftmost column (first column) from both tensors, reshape to 1x32, and print
-    print("res_tensor leftmost column:", res_tensor.view(32, 32)[:, 0].view(1, 32))
-    print(
-        "golden_tensor leftmost column:", golden_tensor.view(32, 32)[:, 0].view(1, 32)
-    )
-
     assert passed_test(golden_tensor, res_tensor, fmt.output_format)
