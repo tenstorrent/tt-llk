@@ -668,6 +668,7 @@ class UnarySFPUGolden:
         )
         return torch.nn.functional.threshold(input_tensor, t, v).item()
 
+
 @register_golden
 class EltwiseBinaryGolden(FidelityMasking):
     def __init__(self):
