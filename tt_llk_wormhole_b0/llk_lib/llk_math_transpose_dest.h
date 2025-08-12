@@ -32,7 +32,7 @@ inline void transpose_dest_configure_mop();
 // We may want to revisit these template parameters, and perhaps the
 // transpose_dest API generally as it's not currently widely used:
 // https://github.com/tenstorrent/tt-llk/issues/290
-template <bool transpose_of_faces = true, bool is_32bit = false>
+template <bool is_fp32_dest_acc_en, bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
@@ -59,7 +59,16 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
     }
     else
     {
+        if constexpr (is_fp32_dest_acc_en)
+        {
+            // Needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
+            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
+        }
         ckernel_unpack_template::run(instrn_buffer, 2, 2);
+        if constexpr (is_fp32_dest_acc_en)
+        {
+            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
+        }
     }
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
