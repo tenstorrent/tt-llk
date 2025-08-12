@@ -31,18 +31,16 @@ from helpers.utils import passed_test
             DataFormat.Int32,
             DataFormat.Float32,
             DataFormat.Float16,
-            DataFormat.Float32,
             DataFormat.Float16_b,
             DataFormat.Bfp8_b,
         ]
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    # unpack_transpose_faces=[False, True],
-    math_transpose_faces=[True],
+    math_transpose_faces=[True, False],
 )
 def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
 
-    if formats.output_format.is_32_bit() and not math_transpose_faces:
+    if formats.input_format.is_32_bit() == False and math_transpose_faces == False:
         pytest.skip("Not supported.")
 
     if (formats.input_format == DataFormat.Int32) ^ (
@@ -61,8 +59,6 @@ def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
     generate_datacopy_golden = get_golden_generator(DataCopyGolden)
     datacopy_tensor = generate_datacopy_golden(src_A, formats.output_format)
     t_matrix = get_golden_generator(TransposeGolden)
-    # output instead of input format passed as input format because datacopy gives a result in output format
-    # should tilize be true?
     transpose_dest_golden = t_matrix.transpose_faces(
         datacopy_tensor,
         formats.output_format,
@@ -76,15 +72,12 @@ def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
         input_dimensions=input_dimensions,
     )
 
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-    )
-
     unpack_to_dest = formats.input_format.is_32_bit()
+
+    # <math_transpose_faces=false, is_32bit=true> can be combined with unpack_transpose_faces=true.
+    unpack_transpose_faces = (
+        formats.input_format.is_32_bit() and not math_transpose_faces
+    )
 
     test_config = {
         "formats": formats,
@@ -92,9 +85,19 @@ def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
         "dest_acc": dest_acc,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
-        # "unpack_transpose_faces": unpack_transpose_faces,
+        "unpack_transpose_faces": unpack_transpose_faces,
         "math_transpose_faces": math_transpose_faces,
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+    )
 
     run_test(test_config)
 
@@ -105,7 +108,7 @@ def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    print(f"GOLDEN: {transpose_dest_golden}")
-    print(f"RESULT: {res_tensor}")
+    # print(f"GOLDEN: {transpose_dest_golden}")
+    # print(f"RESULT: {res_tensor}")
 
     assert passed_test(transpose_dest_golden, res_tensor, formats.output_format)
