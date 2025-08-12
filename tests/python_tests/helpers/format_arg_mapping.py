@@ -77,6 +77,12 @@ class MathOperation(Enum):
     Silu = OpSpec("silu", MathOpType.SFPU_UNARY)
     Sqrt = OpSpec("sqrt", MathOpType.SFPU_UNARY)
     Square = OpSpec("square", MathOpType.SFPU_UNARY)
+    Lt = OpSpec("unary_lt", MathOpType.SFPU_UNARY)
+    Gt = OpSpec("unary_gt", MathOpType.SFPU_UNARY)
+    Le = OpSpec("unary_le", MathOpType.SFPU_UNARY)
+    Ge = OpSpec("unary_ge", MathOpType.SFPU_UNARY)
+    Eq = OpSpec("unary_eq", MathOpType.SFPU_UNARY)
+    Ne = OpSpec("unary_ne", MathOpType.SFPU_UNARY)
 
     # =============================================================================
     # SFPU BINARY OPERATIONS
