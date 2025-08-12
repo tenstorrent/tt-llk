@@ -41,16 +41,22 @@ supported_formats = [
 
 # SFPU unary operations to test after datacopy
 unary_ops = [
-    MathOperation.Abs,
     MathOperation.Square,
-    MathOperation.Sqrt,
+    MathOperation.Abs,
+    MathOperation.Celu,
+    MathOperation.Cos,
+    MathOperation.Sin,
+    MathOperation.Elu,
+    MathOperation.Exp,
+    MathOperation.Exp2,
     MathOperation.Gelu,
-    MathOperation.Silu,
+    MathOperation.Hardsigmoid,
+    MathOperation.Log,
     MathOperation.Neg,
+    MathOperation.Reciprocal,
+    MathOperation.Silu,
+    MathOperation.Sqrt,
 ]
-
-# Sync options for different performance profiles
-dst_sync_options = [DstSync.SyncHalf, DstSync.SyncFull]
 
 # Generate format combinations focusing on same input/output for simplicity
 test_formats = input_output_formats(supported_formats, same=True)
@@ -70,7 +76,7 @@ all_params = [
     for dest_acc in [DestAccumulation.Yes, DestAccumulation.No]
     for approx_mode in [ApproximationMode.No, ApproximationMode.Yes]
     for un_op in unary_ops
-    for dst_sync in dst_sync_options
+    for dst_sync in [DstSync.SyncHalf, DstSync.SyncFull]
     for fidelity in [
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
@@ -129,10 +135,6 @@ def test_fused_tilize_sfpu_pack(config):
     # ):
     #     pytest.skip("FP16 approximation mode unstable for complex activations")
 
-    # if( unary_op == MathOperation.Abs and formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.Yes and approx_mode == ApproximationMode.No and math_fidelity == MathFidelity.LoFi and dst_sync == DstSync.SyncHalf):
-    #     pytest.skip("Skipping test for known hardware limitation")
-    # if( unary_op == MathOperation.Abs and formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.Yes and approx_mode == ApproximationMode.No and math_fidelity == MathFidelity.HiFi2 and dst_sync == DstSync.SyncHalf):
-    #     pytest.skip("Skipping test for known hardware limitation")
     # ---------------------------------------------------------------------
     # Generate input stimuli
     # ---------------------------------------------------------------------
@@ -146,10 +148,16 @@ def test_fused_tilize_sfpu_pack(config):
     )
     # We only use src_A for this simplified test
 
-    # Handle domain restrictions for sqrt operation
+    # Handle domain restrictions for operations that require specific input ranges
     if unary_op == MathOperation.Sqrt:
         # Ensure input will be non-negative
         src_A = src_A.abs()
+    elif unary_op == MathOperation.Log:
+        # Ensure input is positive for log operation
+        src_A = src_A.abs() + 1e-6
+    elif unary_op == MathOperation.Reciprocal:
+        # Avoid division by zero for reciprocal operation
+        src_A = torch.where(src_A.abs() < 1e-6, torch.sign(src_A) * 1e-6, src_A)
 
     # ---------------------------------------------------------------------
     # Generate golden reference
@@ -227,7 +235,7 @@ def test_fused_tilize_sfpu_pack(config):
 
     # Validate against golden reference
     assert passed_test(golden_tensor, res_tensor, formats.output_format), (
-        f"Fused tilize->binary({binary_op.name})->sfpu({unary_op.name})->pack failed "
+        f"Fused tilize->datacopy->sfpu({unary_op.name})->pack failed "
         f"for format {formats.input_format.name}->{formats.output_format.name}, "
         f"dest_acc={dest_acc.name}, fidelity={math_fidelity.name}"
     )

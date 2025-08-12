@@ -55,39 +55,15 @@ void call_sfpu_operation(SfpuType operation)
         case SfpuType::abs:
             ckernel::sfpu::_calculate_abs_<APPROX_MODE, iterations>(iterations);
             break;
-        case SfpuType::cosine:
-            ckernel::sfpu::_calculate_cosine_<APPROX_MODE, iterations>(iterations);
-            break;
-        case SfpuType::log:
-            ckernel::sfpu::_init_log_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_log_<APPROX_MODE, false, iterations>(iterations, 0);
-            break;
-        case SfpuType::reciprocal:
-            ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, iterations, is_fp32_dest_acc_en>(iterations);
-            break;
-        case SfpuType::sine:
-            ckernel::sfpu::_calculate_sine_<APPROX_MODE, iterations>(iterations);
-            break;
-        case SfpuType::sqrt:
-            ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, iterations>(iterations);
-            break;
-        case SfpuType::square:
-            ckernel::sfpu::_calculate_square_<APPROX_MODE, iterations>(iterations);
-            break;
-        case SfpuType::gelu:
-            ckernel::sfpu::_init_gelu_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();
-            break;
         case SfpuType::celu:
             ckernel::sfpu::_calculate_activation_<APPROX_MODE, ActivationType::Celu, iterations>(10, 1.0f / 10.0f);
             break;
-        case SfpuType::silu:
-            ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
+        case SfpuType::cosine:
+            ckernel::sfpu::_calculate_cosine_<APPROX_MODE, iterations>(iterations);
             break;
-        case SfpuType::neg:
-            ckernel::sfpu::_calculate_negative_<APPROX_MODE, iterations>();
+        case SfpuType::elu:
+            ckernel::sfpu::_init_elu_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_elu_<APPROX_MODE, iterations>(1);
             break;
         case SfpuType::exponential:
             ckernel::sfpu::_init_exponential_<APPROX_MODE, false /*fast_mode*/, 0x3F800000 /* exp_base_scale_factor */>();
@@ -98,13 +74,40 @@ void call_sfpu_operation(SfpuType operation)
             ckernel::sfpu::_init_exp2_<APPROX_MODE>();
             ckernel::sfpu::_calculate_exp2_<APPROX_MODE, iterations>();
             break;
-        case SfpuType::elu:
-            ckernel::sfpu::_init_elu_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_elu_<APPROX_MODE, iterations>(1);
+        case SfpuType::fill:
+            ckernel::sfpu::_calculate_fill_<APPROX_MODE, iterations>(1.0f);
+            break;
+        case SfpuType::gelu:
+            ckernel::sfpu::_init_gelu_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();
             break;
         case SfpuType::hardsigmoid:
             ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
             ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
+            break;
+        case SfpuType::log:
+            ckernel::sfpu::_init_log_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_log_<APPROX_MODE, false, iterations>(iterations, 0);
+            break;
+        case SfpuType::neg:
+            ckernel::sfpu::_calculate_negative_<APPROX_MODE, iterations>();
+            break;
+        case SfpuType::reciprocal:
+            ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, iterations, is_fp32_dest_acc_en>(iterations);
+            break;
+        case SfpuType::sine:
+            ckernel::sfpu::_calculate_sine_<APPROX_MODE, iterations>(iterations);
+            break;
+        case SfpuType::silu:
+            ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
+            break;
+        case SfpuType::sqrt:
+            ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, 0, iterations>(iterations);
+            break;
+        case SfpuType::square:
+            ckernel::sfpu::_calculate_square_<APPROX_MODE, iterations>(iterations);
             break;
         default:
             return;
