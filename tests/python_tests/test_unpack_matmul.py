@@ -11,6 +11,7 @@ from helpers.dimensions import (
     calculate_matmul_dimensions,
 )
 from helpers.format_arg_mapping import (
+    DestAccumulation,
     MathFidelity,
     StochasticRounding,
     Transpose,
@@ -58,7 +59,7 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMA
         StochasticRounding.All,
         StochasticRounding.No,
     ],
-    transpose=[Transpose.Yes, Transpose.No],
+    transpose=[Transpose.No, Transpose.Yes],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
 def test_matmul(
@@ -108,6 +109,11 @@ def test_matmul(
         )
 
     generate_golden = get_golden_generator(MatmulGolden)
+
+    # Check if stochastic rounding is enabled
+    use_stochastic_validation = stochastic_rnd != StochasticRounding.No
+
+    # Generate standard golden reference (PCC validation will handle stochastic tolerance)
     golden_tensor = generate_golden(
         src_A,  # not tilized
         src_B_golden,  # needs to be transposed and tilized
@@ -159,6 +165,25 @@ def test_matmul(
     )
     assert len(res_from_L1) == len(golden_tensor)
 
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+    bfloat_in_dest = formats.input_format in [
+        DataFormat.Float16_b,
+        DataFormat.Float32,
+    ] and formats.output_format in [
+        DataFormat.Float16_b,
+        DataFormat.Float32,
+    ]  # according to data format inference model
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+    stochastic_rounding_percision_loss = (
+        use_stochastic_validation
+        and dest_acc == DestAccumulation.No
+        and matmul_dims["kt_dim"] >= 4
+        and bfloat_in_dest
+    )
+    assert passed_test(
+        golden_tensor,
+        res_tensor,
+        formats.output_format,
+        stochastic_rounding_enabled=stochastic_rounding_percision_loss,
+        kt_dim=matmul_dims["kt_dim"],
+    )
