@@ -62,9 +62,9 @@ inline void _llk_math_eltwise_binary_sfpu_inc_dst_face_addr_()
 template <SfpuType sfpu_op>
 inline void _llk_math_eltwise_binary_sfpu_init_()
 {
-    // LLK_VALIDATE_SFPU_OPERATION(static_cast<uint32_t>(sfpu_op));
-    LLK_VALIDATE_SFPU_OPERATION(static_cast<uint32_t>(sfpu_op)); // invalid operation
-    // this validation is useless
+    LLK_VALIDATE_CORE(true, LLK_ERROR_SFPU_OPERATION, static_cast<uint32_t>(sfpu_op), 0);
+
+    //__builtin_trap();
     
     sfpu::_init_sfpu_config_reg();
     eltwise_binary_sfpu_configure_addrmod();

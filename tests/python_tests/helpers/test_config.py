@@ -92,10 +92,8 @@ def generate_build_header(
         '#include "llk_sfpu_types.h"',
         '#include "perf.h"',
         '#include "tensix_types.h"',
-        "",
-        "",
+        "#define LLK_VALIDATION_ENABLED 1",
         "// Basic configuration",
-        "#define LLK_VALIDATION_ENABLED",
         "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
     ]
 

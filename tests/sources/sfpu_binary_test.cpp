@@ -45,6 +45,7 @@ void run_kernel()
 #include "llk_math_eltwise_binary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 
+
 using namespace ckernel::sfpu;
 
 namespace
