@@ -115,8 +115,6 @@ void call_sfpu_operation(SfpuType operation)
 void run_kernel()
 {
     // Initialize math operations for datacopy->unary pipeline
-    _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
     // Initialize datacopy operation (copy src A to dest)
 #ifdef ARCH_BLACKHOLE
@@ -124,6 +122,9 @@ void run_kernel()
 #else
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, formats.math);
 #endif
+
+    _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
+    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
     // Wait for destination to be available
     _llk_math_wait_for_dest_available_<DST_SYNC>();

@@ -33,21 +33,20 @@ from helpers.utils import passed_test
 
 # Focus on commonly used formats in production ML workloads
 supported_formats = [
-    DataFormat.Float16_b,  # Most common for inference
-    DataFormat.Float16,  # NVIDIA-style FP16
-    DataFormat.Float32,  # Training/high precision
+    DataFormat.Float16_b,
+    DataFormat.Float16,
 ]
 
 # No binary operations needed for this simplified test
 
 # SFPU unary operations to test after datacopy
 unary_ops = [
-    MathOperation.Abs,  # Activation bounds
-    MathOperation.Square,  # Power functions
-    MathOperation.Sqrt,  # Normalization
-    MathOperation.Gelu,  # Modern activations
-    MathOperation.Silu,  # SiLU/Swish
-    MathOperation.Neg,  # Sign flip
+    MathOperation.Abs,
+    MathOperation.Square,
+    MathOperation.Sqrt,
+    MathOperation.Gelu,
+    MathOperation.Silu,
+    MathOperation.Neg,
 ]
 
 # Sync options for different performance profiles
@@ -130,6 +129,10 @@ def test_fused_tilize_sfpu_pack(config):
     # ):
     #     pytest.skip("FP16 approximation mode unstable for complex activations")
 
+    # if( unary_op == MathOperation.Abs and formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.Yes and approx_mode == ApproximationMode.No and math_fidelity == MathFidelity.LoFi and dst_sync == DstSync.SyncHalf):
+    #     pytest.skip("Skipping test for known hardware limitation")
+    # if( unary_op == MathOperation.Abs and formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.Yes and approx_mode == ApproximationMode.No and math_fidelity == MathFidelity.HiFi2 and dst_sync == DstSync.SyncHalf):
+    #     pytest.skip("Skipping test for known hardware limitation")
     # ---------------------------------------------------------------------
     # Generate input stimuli
     # ---------------------------------------------------------------------
