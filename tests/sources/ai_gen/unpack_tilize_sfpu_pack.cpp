@@ -117,8 +117,6 @@ void call_sfpu_operation(SfpuType operation)
 
 void run_kernel()
 {
-    // Initialize math operations for datacopy->unary pipeline
-
     // Initialize datacopy operation (copy src A to dest)
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, formats.math);
