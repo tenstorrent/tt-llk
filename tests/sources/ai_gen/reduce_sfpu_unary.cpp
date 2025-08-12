@@ -111,11 +111,31 @@ void call_sfpu_operation(SfpuType operation)
         case SfpuType::celu:
             _calculate_activation_<APPROX_MODE, ActivationType::Celu, sfpu_iterations>(10, 1.0f / 10.0f);
             break;
-        case SfpuType::silu:
-            _calculate_silu_<APPROX_MODE, sfpu_iterations>();
+        case SfpuType::elu:
+            _init_elu_<APPROX_MODE>();
+            _calculate_elu_<APPROX_MODE, sfpu_iterations>(1);
+            break;
+        case SfpuType::exponential:
+            _init_exponential_<APPROX_MODE, false /*fast_mode*/, 0x3F800000 /* exp_base_scale_factor */>();
+            _calculate_exponential_<APPROX_MODE, false /* scale_en */, sfpu_iterations, false /* fast_approx */, false /* skip_positive_check */>(
+                p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
+            break;
+        case SfpuType::exp2:
+            _init_exp2_<APPROX_MODE>();
+            _calculate_exp2_<APPROX_MODE, sfpu_iterations>();
+            break;
+        case SfpuType::fill:
+            _calculate_fill_<APPROX_MODE, sfpu_iterations>(1.0f);
+            break;
+        case SfpuType::hardsigmoid:
+            _init_hardsigmoid_<APPROX_MODE>();
+            _calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, sfpu_iterations>();
             break;
         case SfpuType::neg:
             _calculate_negative_<APPROX_MODE, sfpu_iterations>();
+            break;
+        case SfpuType::silu:
+            _calculate_silu_<APPROX_MODE, sfpu_iterations>();
             break;
         default:
             return; // Unsupported op – should never happen

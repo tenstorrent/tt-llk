@@ -18,6 +18,7 @@ from __future__ import annotations
 import pytest
 import torch
 
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_arg_mapping import (
     ApproximationMode,
@@ -34,6 +35,7 @@ from helpers.golden_generators import (
     UnarySFPUGolden,
     get_golden_generator,
 )
+from helpers.param_config import input_output_formats
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import ProfilerBuild, run_test
 from helpers.tilize_untilize import untilize
@@ -43,8 +45,14 @@ from helpers.utils import passed_test
 # 1. Parameter space definition
 # -----------------------------------------------------------------------------
 
-# Only Float16_b format requested for now
-formats_under_test = [InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16_b)]
+# Test both Float16 and Float16_b formats
+
+supported_formats = [
+    DataFormat.Float16,
+    DataFormat.Float16_b,
+]
+
+test_formats = input_output_formats(supported_formats, same=True)
 
 # Sweep across all reduce dimensions and pool types that HW supports
 reduce_dims = [
@@ -55,11 +63,24 @@ reduce_dims = [
 
 pool_types = [ReducePool.Sum, ReducePool.Max, ReducePool.Average]
 
-# A small subset of frequently used SFPU unary ops – easy to validate
+# Full sweep of all supported SFPU unary operations
 unary_ops = [
+    # MathOperation.Cos,
+    # MathOperation.Square,
+    # MathOperation.Exp,
+    # MathOperation.Exp2,
+    # MathOperation.Fill,
+    # MathOperation.Hardsigmoid,
+    # MathOperation.Log,
+    # MathOperation.Reciprocal,
+    # MathOperation.Sin,
     MathOperation.Abs,
+    MathOperation.Celu,
+    MathOperation.Elu,
+    MathOperation.Gelu,
+    MathOperation.Neg,
+    MathOperation.Silu,
     MathOperation.Sqrt,
-    MathOperation.Square,
 ]
 
 # Assemble full parameter list
@@ -70,7 +91,7 @@ all_params: list[dict] = [
         "pool_type": ptype,
         "unary_op": uop,
     }
-    for fmt in formats_under_test
+    for fmt in test_formats
     for rdim in reduce_dims
     for ptype in pool_types
     for uop in unary_ops
@@ -104,6 +125,22 @@ def test_reduce_sfpu_unary(config):
     pool_type: ReducePool = config["pool_type"]
     unary_op: MathOperation = config["unary_op"]
 
+    # ------------------------- Skip conditions -----------------------------
+
+    # Skip certain operations on Blackhole with specific format combinations
+    if (
+        fmt.input_format == fmt.output_format == DataFormat.Float16
+        and unary_op
+        in [
+            MathOperation.Log,
+            MathOperation.Sqrt,
+            MathOperation.Square,
+            MathOperation.Hardsigmoid,
+        ]
+        and get_chip_architecture() == ChipArchitecture.BLACKHOLE
+    ):
+        pytest.skip("BFP8 does not support certain operations on Blackhole")
+
     # --------------------- Generate input stimuli -------------------------
     input_dimensions = [32, 32]
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -125,6 +162,17 @@ def test_reduce_sfpu_unary(config):
             src_B = torch.full((1024,), 1 / 32)
         else:
             src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
+
+    # Handle domain restrictions for operations that require specific input ranges
+    if unary_op == MathOperation.Sqrt:
+        # Ensure input will be non-negative for sqrt
+        src_A = src_A.abs()
+    elif unary_op == MathOperation.Log:
+        # Ensure input is positive for log operation
+        src_A = src_A.abs() + 1e-6
+    elif unary_op == MathOperation.Reciprocal:
+        # Avoid division by zero for reciprocal operation
+        src_A = torch.where(src_A.abs() < 1e-6, torch.sign(src_A) * 1e-6, src_A)
 
     # --------------------- Golden computation -----------------------------
     POSITIVE_ONLY_UNARY = {MathOperation.Sqrt}
