@@ -65,15 +65,8 @@ pool_types = [ReducePool.Sum, ReducePool.Max, ReducePool.Average]
 
 # Full sweep of all supported SFPU unary operations
 unary_ops = [
-    # MathOperation.Cos,
-    # MathOperation.Square,
-    # MathOperation.Exp,
-    # MathOperation.Exp2,
-    # MathOperation.Fill,
-    # MathOperation.Hardsigmoid,
-    # MathOperation.Log,
-    # MathOperation.Reciprocal,
-    # MathOperation.Sin,
+    MathOperation.Square,
+    MathOperation.Sin,
     MathOperation.Abs,
     MathOperation.Celu,
     MathOperation.Elu,
@@ -118,6 +111,18 @@ _reduce_to_mathop = {
 @pytest.mark.parametrize("config", all_params, ids=param_ids)
 def test_reduce_sfpu_unary(config):
     """Run the fused Reduce+SFPU kernel on Tensix and compare with golden."""
+
+    if (
+        config["unary_op"] in [MathOperation.Sin]
+        and config["pool_type"] == ReducePool.Sum
+    ):
+        pytest.skip("Sin or Log operation is not supported on column or row reduce")
+    if (
+        config["unary_op"] in [MathOperation.Square]
+        and config["reduce_dim"] == ReduceDimension.Scalar
+        and config["pool_type"] == ReducePool.Sum
+    ):
+        pytest.skip("Square operation is not supported on scalar reduce")
 
     # ------------------------- Extract config ------------------------------
     fmt: InputOutputFormat = config["formats"]
