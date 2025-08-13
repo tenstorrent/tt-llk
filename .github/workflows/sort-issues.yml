@@ -26,7 +26,6 @@ jobs:
     name: "🌀 Nightly Tests (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
-    timeout-minutes: 360  # 6 hours
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
@@ -37,7 +36,6 @@ jobs:
     name: "🕳️ Nightly Tests (Blackhole)"
     uses: ./.github/workflows/setup-and-test.yml
     needs: build-images
-    timeout-minutes: 360  # 6 hours
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-p150b-stable
