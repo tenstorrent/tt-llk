@@ -108,7 +108,7 @@ void run_kernel()
     const bool fp32_transpose   = false; // No fp32 transpose on reduce path
     constexpr uint32_t math_fid = 4;
 
-    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fid>(0);
+    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid>(0);
     _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, fp32_transpose>(0);
 
     //------------------------------------------------------------------
