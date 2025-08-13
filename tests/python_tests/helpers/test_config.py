@@ -117,9 +117,9 @@ def generate_build_header(
     header_content.append(f"constexpr bool UNPACKING_TO_DEST = {unpack_to_dest};")
 
     # Unpack transpose faces
-    unpack_transpose_faces = str(
-        test_config.get("unpack_transpose_faces", False)
-    ).lower()
+    unpack_transpose_faces = test_config.get(
+        "unpack_transpose_faces", Transpose.No.value
+    )
     header_content.append(
         f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces};"
     )
