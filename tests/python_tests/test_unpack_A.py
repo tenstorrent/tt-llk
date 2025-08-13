@@ -476,10 +476,6 @@ def test_unpack_comprehensive(
         generate_golden = get_golden_generator(DataCopyGolden)
         golden_tensor = generate_golden(src_A, formats.output_format)
 
-    res_address = write_stimuli_to_l1(
-        src_A, src_B, formats.input_format, formats.input_format, tile_count=tile_cnt
-    )
-
     # BUILD THE COMPLETE TEST CONFIG
     test_config = {
         "formats": formats,
@@ -499,6 +495,16 @@ def test_unpack_comprehensive(
         "unpack_transpose_within_face": within_face_16x16_transpose,
         "num_faces": num_faces,
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+    )
 
     run_test(test_config)
 
