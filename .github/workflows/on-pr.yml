@@ -44,7 +44,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history so 'origin/main' is available
+          fetch-depth: 200
 
       - name: Detect which directories changed
         uses: dorny/paths-filter@v3
@@ -142,7 +142,7 @@ jobs:
             needs.detect-changes.outputs.github == 'true' }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
-      runs_on: tt-beta-ubuntu-2204-n150-large-stable
+      runs_on: tt-ubuntu-2204-n150-stable
       test_group: "[1, 2, 3]"
 
   setup-and-test-blackhole:
@@ -154,7 +154,7 @@ jobs:
             needs.detect-changes.outputs.github == 'true' }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
-      runs_on: tt-beta-ubuntu-2204-p150b-large-stable
+      runs_on: tt-ubuntu-2204-p150b-stable
       test_group: "[1, 2, 3]"
 
   check-all-green:
