@@ -8,7 +8,7 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, format_dict
+from helpers.format_arg_mapping import DestAccumulation, Transpose, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     DataCopyGolden,
@@ -76,7 +76,9 @@ def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
 
     # <math_transpose_faces=false, is_32bit=true> can be combined with unpack_transpose_faces=true.
     unpack_transpose_faces = (
-        formats.input_format.is_32_bit() and not math_transpose_faces
+        Transpose.Yes.value
+        if (formats.input_format.is_32_bit() and not math_transpose_faces)
+        else Transpose.No.value
     )
 
     test_config = {
