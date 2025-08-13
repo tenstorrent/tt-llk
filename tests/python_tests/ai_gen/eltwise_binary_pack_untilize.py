@@ -48,9 +48,21 @@ binary_ops = [
 
 # Unary SFPU operations to apply after binary
 unary_ops = [
-    MathOperation.Abs,
-    MathOperation.Sqrt,
+    # MathOperation.Reciprocal,
+    # MathOperation.Silu,
+    # MathOperation.Celu,
+    # MathOperation.Cos,
+    # MathOperation.Sin,
+    # MathOperation.Elu,
+    # MathOperation.Exp,
+    # MathOperation.Exp2,
+    # MathOperation.Log,
     MathOperation.Square,
+    MathOperation.Abs,
+    MathOperation.Gelu,
+    MathOperation.Hardsigmoid,
+    MathOperation.Neg,
+    MathOperation.Sqrt,
 ]
 
 dst_sync_options = [DstSync.SyncHalf, DstSync.SyncFull]
@@ -156,6 +168,8 @@ def test_sweep_test(config):
     untilize_golden_fn = get_golden_generator(UntilizeGolden)
     golden_tensor = untilize_golden_fn(unary_out, formats.output_format, [32, 32])
 
+    unpack_to_dest = formats.input_format.is_32_bit()
+
     # Load stimuli into device
     test_config = {
         "formats": formats,
@@ -166,6 +180,7 @@ def test_sweep_test(config):
         "unary_op": unary_op,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
+        "unpack_to_dest": unpack_to_dest,
     }
 
     res_address = write_stimuli_to_l1(
@@ -176,15 +191,6 @@ def test_sweep_test(config):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-    )
-
-    unpack_to_dest = formats.input_format.is_32_bit()
-
-    # Update test_config with additional parameters needed for run_test
-    test_config.update(
-        {
-            "unpack_to_dest": unpack_to_dest,
-        }
     )
 
     # Build & run on device
