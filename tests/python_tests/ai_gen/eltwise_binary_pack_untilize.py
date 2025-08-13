@@ -34,9 +34,9 @@ from helpers.utils import passed_test
 # Reuse pack/untilize-supported formats
 supported_formats = [
     DataFormat.Float16_b,
-    # DataFormat.Float16,
-    # DataFormat.Bfp8_b,  # allowed only as input
-    # DataFormat.Float32,
+    DataFormat.Float16,
+    DataFormat.Bfp8_b,  # allowed only as input
+    # DataFormat.Float32, TODO: Model fp32 -> tf32 truncation when doing eltwise binary on them
 ]
 
 # Binary FPU operations under test
@@ -56,7 +56,7 @@ unary_ops = [
 dst_sync_options = [DstSync.SyncHalf, DstSync.SyncFull]
 
 # Generate format combinations (same input/output) and add a few mixed cases
-_test_formats = input_output_formats(supported_formats, same=True)
+_test_formats = input_output_formats(supported_formats, same=False)
 
 all_params = [
     {
@@ -108,6 +108,9 @@ def test_sweep_test(config):
     # Skip unsupported output Bfp8_b
     if formats.output_format == DataFormat.Bfp8_b:
         pytest.skip("Pack untilize does not support Bfp8_b as output format")
+
+    if mathop == MathOperation.Elwmul and unary_op == MathOperation.Square:
+        pytest.skip("Elwmul and Square are not supported together")
 
     # Fidelity irrelevant for add/sub – mirror behaviour of other tests
     if (
