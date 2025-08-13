@@ -37,16 +37,13 @@ inline void _calculate_threshold_(T threshold, T value)
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat in     = sfpi::dst_reg[0];
-        sfpi::vFloat result = v_value;
-
-        v_if (in > v_threshold)
+        sfpi::vFloat in = sfpi::dst_reg[0];
+        v_if (in <= v_threshold)
         {
-            result = in;
+            sfpi::dst_reg[0] = v_value;
         }
         v_endif;
 
-        sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
     }
 }
