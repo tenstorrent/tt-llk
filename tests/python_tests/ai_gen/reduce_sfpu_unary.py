@@ -52,7 +52,7 @@ supported_formats = [
     DataFormat.Float16_b,
 ]
 
-test_formats = input_output_formats(supported_formats, same=True)
+test_formats = input_output_formats(supported_formats, same=False)
 
 # Sweep across all reduce dimensions and pool types that HW supports
 reduce_dims = [
