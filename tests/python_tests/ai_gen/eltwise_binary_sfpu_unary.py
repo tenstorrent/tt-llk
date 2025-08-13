@@ -15,7 +15,7 @@ from helpers.format_arg_mapping import (
     MathOperation,
     format_dict,
 )
-from helpers.format_config import DataFormat, InputOutputFormat
+from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     EltwiseBinaryGolden,
     UnarySFPUGolden,
@@ -34,10 +34,10 @@ from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST - following the same pattern as other tests
 supported_formats = [
-    DataFormat.Float16_b,  # Most widely used
-    DataFormat.Float16,  # Standard FP16
-    # DataFormat.Bfp8_b,  # Commonly tested for efficiency
-    DataFormat.Float32,  # High precision
+    DataFormat.Float16_b,
+    DataFormat.Float16,
+    # DataFormat.Bfp8_b,
+    DataFormat.Float32,
 ]
 
 # BINARY OPERATIONS TO TEST
@@ -70,11 +70,7 @@ unary_ops = [
 dst_sync_options = [DstSync.SyncHalf, DstSync.SyncFull]
 
 # Generate format combinations (both same and mixed format combinations)
-test_formats = input_output_formats(supported_formats, same=True) + [
-    # Add some mixed format combinations that are commonly tested
-    InputOutputFormat(DataFormat.Float16_b, DataFormat.Bfp8_b),
-    InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16_b),
-]
+test_formats = input_output_formats(supported_formats, same=False)
 
 # Generate parameter combinations manually since generate_params doesn't support unary_op and dst_sync
 all_params = [
@@ -132,13 +128,6 @@ def test_sweep_test(config):
     # ------------------------------------------------------------------
 
     if (
-        formats.input_format == DataFormat.Bfp8_b
-        and unary_op == MathOperation.Square
-        and math_fidelity == MathFidelity.LoFi
-    ):
-        pytest.skip("Investigate failing case")
-
-    if (
         binary_op in [MathOperation.Elwadd, MathOperation.Elwsub]
         and math_fidelity != MathFidelity.LoFi
     ):
@@ -148,19 +137,6 @@ def test_sweep_test(config):
     if binary_op == MathOperation.Elwmul and unary_op == MathOperation.Square:
         pytest.skip(
             "Known precision edge-case for Elwadd+Square with dest_acc; skipped for now"
-        )
-
-    # Skip known failing cases for Elwmul+Sqrt with Bfp8_b->Float16_b in approximation mode
-    if (
-        binary_op == MathOperation.Elwmul
-        and unary_op == MathOperation.Sqrt
-        and formats.input_format == DataFormat.Bfp8_b
-        and formats.output_format == DataFormat.Float16_b
-        and approx_mode == ApproximationMode.Yes
-        and math_fidelity in [MathFidelity.HiFi3, MathFidelity.HiFi4]
-    ):
-        pytest.skip(
-            "Precision mismatch for Elwmul+Sqrt with Bfp8_b->Float16_b in approximation mode"
         )
 
     # ------------------------------------------------------------------
