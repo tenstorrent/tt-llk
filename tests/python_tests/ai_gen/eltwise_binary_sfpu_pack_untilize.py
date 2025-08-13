@@ -72,7 +72,7 @@ _test_formats = input_output_formats(supported_formats, same=False)
 
 all_params = [
     {
-        "testname": "eltwise_binary_pack_untilize",
+        "testname": "eltwise_binary_sfpu_pack_untilize",
         "formats": fmt,
         "dest_acc": dest_acc,
         "mathop": bin_op,
