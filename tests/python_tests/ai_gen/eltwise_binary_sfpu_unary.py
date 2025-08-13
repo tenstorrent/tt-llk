@@ -220,20 +220,13 @@ def test_sweep_test(config):
         unary_op,
         golden_tensor,
         formats.output_format,
-        math_fidelity,
+        dest_acc,
+        formats.output_format,
     )
 
     # ------------------------------------------------------------------
     # Write stimuli to device L1 and run the HW test
     # ------------------------------------------------------------------
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-    )
-
     # Create test config based on the parametrized config
     test_config = config.copy()
     test_config.update(
@@ -242,6 +235,16 @@ def test_sweep_test(config):
             "tile_cnt": tile_cnt,
             "input_dimensions": input_dimensions,
         }
+    )
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
     )
 
     run_test(test_config, profiler_build=ProfilerBuild.No)

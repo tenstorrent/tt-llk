@@ -195,18 +195,10 @@ def test_reduce_sfpu_unary(config):
 
     gen_unary = get_golden_generator(UnarySFPUGolden)
     golden_tensor = gen_unary(
-        unary_op, reduce_out, fmt.output_format, MathFidelity.LoFi
+        unary_op, reduce_out, fmt.output_format, DestAccumulation.No, fmt.output_format
     )
 
     # --------------------- Device execution -------------------------------
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_B,
-        fmt.input_format,
-        fmt.input_format,
-        tile_count=tile_cnt,
-    )
-
     test_config = {
         "testname": "reduce_sfpu_unary",
         "formats": fmt,
@@ -220,6 +212,16 @@ def test_reduce_sfpu_unary(config):
         "tile_cnt": tile_cnt,
         "input_dimensions": input_dimensions,
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        fmt.input_format,
+        fmt.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+    )
 
     run_test(test_config, profiler_build=ProfilerBuild.No)
 

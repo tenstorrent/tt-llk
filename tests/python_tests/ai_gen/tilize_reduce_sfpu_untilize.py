@@ -182,7 +182,9 @@ def test_tilize_reduce_sfpu_untilize(config):
 
     # Step 3: Apply unary SFPU operation
     gen_unary = get_golden_generator(UnarySFPUGolden)
-    sfpu_out = gen_unary(unary_op, reduce_out, fmt.output_format, math_fidelity)
+    sfpu_out = gen_unary(
+        unary_op, reduce_out, fmt.output_format, DestAccumulation.No, fmt.output_format
+    )
 
     # Step 4: Untilize result (convert back to row-major format)
     # Calculate output dimensions after reduction
@@ -196,11 +198,6 @@ def test_tilize_reduce_sfpu_untilize(config):
     golden_tensor = untilize(sfpu_out, fmt.output_format)
 
     # --------------------- Hardware test execution ------------------------
-    # Write stimuli to L1 (in row-major format, will be tilized by kernel)
-    res_address = write_stimuli_to_l1(
-        src_A, src_B, fmt.input_format, fmt.input_format, tile_count=tile_cnt
-    )
-
     # Configure test parameters for kernel
     test_config = {
         "testname": config["testname"],
@@ -216,6 +213,17 @@ def test_tilize_reduce_sfpu_untilize(config):
         "input_dimensions": input_dimensions,
         "output_dimensions": output_dims,
     }
+
+    # Write stimuli to L1 (in row-major format, will be tilized by kernel)
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        fmt.input_format,
+        fmt.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+    )
 
     # Build and execute kernel
     run_test(test_config)

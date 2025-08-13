@@ -176,7 +176,8 @@ def test_fused_tilize_sfpu_pack(config):
         unary_op,
         datacopy_result,
         formats.output_format,
-        math_fidelity,
+        dest_acc,
+        formats.output_format,
     )
 
     # Final result remains in tile format (no untilize)
@@ -185,16 +186,6 @@ def test_fused_tilize_sfpu_pack(config):
     # ---------------------------------------------------------------------
     # Execute hardware test
     # ---------------------------------------------------------------------
-
-    # Write raw stimuli to L1 (will be tilized by unpack)
-    # Only need src_A for this simplified test
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_A,  # Dummy value for src_B parameter
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-    )
 
     # Configure test parameters for kernel
     test_config = {
@@ -209,6 +200,18 @@ def test_fused_tilize_sfpu_pack(config):
         "input_dimensions": input_dimensions,
         "unpack_to_dest": formats.input_format.is_32_bit(),
     }
+
+    # Write raw stimuli to L1 (will be tilized by unpack)
+    # Only need src_A for this simplified test
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_A,  # Dummy value for src_B parameter
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+    )
 
     # Build and execute kernel
     run_test(test_config)

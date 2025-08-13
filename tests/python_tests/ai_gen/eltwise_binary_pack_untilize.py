@@ -147,34 +147,42 @@ def test_sweep_test(config):
 
     unary_golden_fn = get_golden_generator(UnarySFPUGolden)
     unary_out = unary_golden_fn(
-        unary_op, binary_out, formats.output_format, math_fidelity
+        unary_op, binary_out, formats.output_format, dest_acc, formats.output_format
     )
 
     untilize_golden_fn = get_golden_generator(UntilizeGolden)
     golden_tensor = untilize_golden_fn(unary_out, formats.output_format, [32, 32])
 
     # Load stimuli into device
-    res_address = write_stimuli_to_l1(
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        tile_count=tile_cnt,
-    )
-
-    unpack_to_dest = formats.input_format.is_32_bit()
-
     test_config = {
         "formats": formats,
         "testname": config["testname"],
         "dest_acc": dest_acc,
+        "dst_sync": dst_sync,
         "mathop": mathop,
         "unary_op": unary_op,
-        "dst_sync": dst_sync,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
-        "unpack_to_dest": unpack_to_dest,
     }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+    )
+
+    unpack_to_dest = formats.input_format.is_32_bit()
+
+    # Update test_config with additional parameters needed for run_test
+    test_config.update(
+        {
+            "unpack_to_dest": unpack_to_dest,
+        }
+    )
 
     # Build & run on device
     run_test(test_config)
