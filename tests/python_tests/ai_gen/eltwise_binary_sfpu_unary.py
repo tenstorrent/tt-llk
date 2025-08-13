@@ -49,8 +49,20 @@ binary_ops = [
 
 # UNARY OPERATIONS TO TEST
 unary_ops = [
-    MathOperation.Abs,
+    # MathOperation.Celu,
+    # MathOperation.Cos,
+    # MathOperation.Sin,
+    # MathOperation.Elu,
+    # MathOperation.Exp,
+    # MathOperation.Exp2,
+    # MathOperation.Reciprocal,
+    # MathOperation.Log,
+    # MathOperation.Silu,
     MathOperation.Square,
+    MathOperation.Abs,
+    MathOperation.Gelu,
+    MathOperation.Hardsigmoid,
+    MathOperation.Neg,
     MathOperation.Sqrt,
 ]
 
@@ -167,12 +179,12 @@ def test_sweep_test(config):
 
     # --------------------------------------------------------------
     #  Adjust inputs if the chosen unary op requires non-negative
-    #  arguments (e.g. Sqrt) but the binary result would become
+    #  arguments (e.g. Sqrt, Log) but the binary result would become
     #  negative. We add a positive offset to src_A to shift the
     #  post-binary tensor into the valid range and then recalculate
     #  the golden reference.
     # --------------------------------------------------------------
-    POSITIVE_ONLY_UNARY = {MathOperation.Sqrt}
+    POSITIVE_ONLY_UNARY = {MathOperation.Sqrt, MathOperation.Log}
 
     def _compute_binary(tA, tB):
         gen = get_golden_generator(EltwiseBinaryGolden)
@@ -187,17 +199,31 @@ def test_sweep_test(config):
     if unary_op in POSITIVE_ONLY_UNARY:
         binary_res = _compute_binary(src_A, src_B)
         min_val = torch.min(binary_res).item()
-        if min_val < 0:
+        if min_val <= 0:
             offset = abs(min_val) + 0.1  # small positive margin
             src_A = (src_A + offset).to(src_A.dtype)
             # Re-compute binary result after the shift
             binary_res = _compute_binary(src_A, src_B)
-            # Now min should be >=0; if still negative, increase offset again
-            if torch.min(binary_res).item() < 0:
+            # Now min should be >0; if still negative or zero, increase offset again
+            if torch.min(binary_res).item() <= 0:
                 extra = abs(torch.min(binary_res).item()) + 0.1
                 src_A = (src_A + extra).to(src_A.dtype)
                 binary_res = _compute_binary(src_A, src_B)
             # Replace subsequent golden computation base tensor
+            adjusted_binary_tensor = binary_res
+
+    # Handle reciprocal operation to avoid division by zero
+    elif unary_op == MathOperation.Reciprocal:
+        binary_res = _compute_binary(src_A, src_B)
+        # Check if any values are too close to zero
+        min_abs_val = torch.min(torch.abs(binary_res)).item()
+        if min_abs_val < 1e-6:
+            # Find the smallest absolute value and ensure it's at least 1e-6
+            mask = torch.abs(binary_res) < 1e-6
+            offset = 1e-6 - min_abs_val + 0.1
+            src_A = (src_A + offset).to(src_A.dtype)
+            # Re-compute binary result after the shift
+            binary_res = _compute_binary(src_A, src_B)
             adjusted_binary_tensor = binary_res
 
     # ------------------------------------------------------------------

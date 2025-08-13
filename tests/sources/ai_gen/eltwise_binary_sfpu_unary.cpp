@@ -82,6 +82,23 @@ void call_sfpu_operation(SfpuType operation)
         case SfpuType::celu:
             ckernel::sfpu::_calculate_activation_<APPROX_MODE, ActivationType::Celu, iterations>(10, 1.0f / 10.0f);
             break;
+        case SfpuType::elu:
+            ckernel::sfpu::_init_elu_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_elu_<APPROX_MODE, iterations>(1);
+            break;
+        case SfpuType::exponential:
+            ckernel::sfpu::_init_exponential_<APPROX_MODE, false /*fast_mode*/, 0x3F800000 /* exp_base_scale_factor */>();
+            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false /* scale_en */, iterations, false /* fast_approx */, false /* skip_positive_check */>(
+                p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
+            break;
+        case SfpuType::exp2:
+            ckernel::sfpu::_init_exp2_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_exp2_<APPROX_MODE, iterations>();
+            break;
+        case SfpuType::hardsigmoid:
+            ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
+            ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
+            break;
         case SfpuType::silu:
             ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
             break;
