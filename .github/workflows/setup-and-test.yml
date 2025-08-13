@@ -32,7 +32,7 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          matrix=$(seq 1 ${{ inputs.test_splits }} | tr '\n' ',' | sed 's/,$//' | sed 's/^/[/' | sed 's/$/]/')
+          matrix=$(echo "[$(seq -s, 1 ${{ inputs.test_splits }})]")
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
   setup-and-test:
