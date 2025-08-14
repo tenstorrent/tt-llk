@@ -100,7 +100,7 @@ inline sfpi::vFloat _calculate_exponential_approx_(sfpi::vFloat in)
 }
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK>
-inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
+sfpi_inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
     // This function is used to calculate the exponential of a value in a more accurate manner.
     sfpi::vFloat result = 0.0f;

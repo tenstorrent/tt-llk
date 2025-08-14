@@ -8,7 +8,7 @@
 
 #pragma once
 
-extern volatile uint32_t __instrn_buffer[];
+#include "ckernel.h"
 
 #define TT_OP(opcode, params) ((opcode << 24) + params)
 #define INSTRUCTION_WORD(x)   __asm__ __volatile__(".ttinsn %0" : : "i"((x))) // Swizzle 32 bits into the instruction stream.
@@ -488,7 +488,7 @@ extern volatile uint32_t __instrn_buffer[];
 
 #define TT_OP_SETADCXX(CntSetMask, x_end2, x_start)    TT_OP(0x5e, (((CntSetMask) << 21) + ((x_end2) << 10) + ((x_start) << 0)))
 #define TT_SETADCXX_VALID(CntSetMask, x_end2, x_start) (ckernel::is_valid(CntSetMask, 3) && ckernel::is_valid(x_end2, 11) && ckernel::is_valid(x_start, 10))
-#define TT_SETADCXX(CntSetMask, x_end2, x_start)       __instrn_buffer[0] = TT_OP_SETADCXX(CntSetMask, x_end2, x_start)
+#define TT_SETADCXX(CntSetMask, x_end2, x_start)       ckernel::instrn_buffer[0] = TT_OP_SETADCXX(CntSetMask, x_end2, x_start)
 #define TTI_SETADCXX(CntSetMask, x_end2, x_start)      INSTRUCTION_WORD(TT_OP_SETADCXX(CntSetMask, x_end2, x_start))
 
 #define TT_OP_SETADCXY(CntSetMask, Ch1_Y, Ch1_X, Ch0_Y, Ch0_X, BitMask) \
@@ -529,7 +529,7 @@ extern volatile uint32_t __instrn_buffer[];
 
 #define TT_OP_SETC16(setc16_reg, setc16_value)    TT_OP(0xb2, (((setc16_reg) << 16) + ((setc16_value) << 0)))
 #define TT_SETC16_VALID(setc16_reg, setc16_value) (ckernel::is_valid(setc16_reg, 8) && ckernel::is_valid(setc16_value, 16))
-#define TT_SETC16(setc16_reg, setc16_value)       __instrn_buffer[0] = TT_OP_SETC16(setc16_reg, setc16_value)
+#define TT_SETC16(setc16_reg, setc16_value)       ckernel::instrn_buffer[0] = TT_OP_SETC16(setc16_reg, setc16_value)
 #define TTI_SETC16(setc16_reg, setc16_value)      INSTRUCTION_WORD(TT_OP_SETC16(setc16_reg, setc16_value))
 
 #define TT_OP_SETDMAREG(Payload_SigSelSize, Payload_SigSel, SetSignalsMode, RegIndex16b) \

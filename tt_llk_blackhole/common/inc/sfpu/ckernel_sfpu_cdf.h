@@ -12,7 +12,7 @@
 namespace ckernel::sfpu
 {
 
-inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
+sfpi_inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
 {
     //(0,2.5) interpolation polynomial coeffs  [ 0.0122792,  -0.05281024, -0.03048313,  0.41314081,  0.49866379]
     //(2.5,5) interpolation polynomial coeffs  [0.44656975,  0.58216001]
@@ -50,7 +50,7 @@ inline sfpi::vFloat _calculate_pos_cdf_appx_(sfpi::vFloat val)
 }
 
 // compute the approximate value of CDF of normal distribution
-inline sfpi::vFloat _calculate_cdf_appx_(sfpi::vFloat val, bool scaled = false)
+sfpi_inline sfpi::vFloat _calculate_cdf_appx_(sfpi::vFloat val, bool scaled = false)
 {
     sfpi::vFloat result = 0.0f;
 

@@ -5,12 +5,23 @@
 #pragma once
 
 #include "ckernel_instr_params.h"
-#include "ckernel_ops.h"
 #include "llk_defs.h"
 #include "risc_attribs.h"
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
+
+// Forward declare the extern buffer before including ckernel_ops.h
+extern volatile uint32_t __instrn_buffer[];
+
+// Define the alias in ckernel namespace before including ckernel_ops.h
+namespace ckernel
+{
+// Create a pointer alias to __instrn_buffer
+static volatile uint32_t *const instrn_buffer = __instrn_buffer;
+} // namespace ckernel
+
+#include "ckernel_ops.h"
 
 // This header is included on non-trisc builds, for reasons
 // unknown. lltt is only available on trisc
@@ -62,11 +73,8 @@ extern volatile uint tt_reg_ptr *pc_buf_base;
 extern volatile uint tt_reg_ptr *regfile;
 } // namespace ckernel
 
-extern volatile uint32_t __instrn_buffer[];
-
 namespace ckernel
 {
-constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
 extern volatile uint tt_reg_ptr *mailbox_base[4];
 extern volatile uint tt_reg_ptr *dbg_event_scratch;
 extern volatile uint tt_reg_ptr *trisc_l1_mailbox;
@@ -80,11 +88,6 @@ extern uint32_t dbg_event_end;
 extern volatile uint16_t tt_reg_ptr *debug_mailbox_base;
 extern uint8_t mailbox_index;
 const extern uint8_t mailbox_end;
-
-// Internal scope to namespace methods only (C++ does not allow namespace private ownership)
-namespace internal
-{
-}
 
 inline void tensix_sync()
 {
