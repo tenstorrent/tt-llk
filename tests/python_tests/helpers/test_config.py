@@ -341,7 +341,7 @@ def build_test(
 def run_test(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.EXALENS,  # change default boot mode here
+    boot_mode: BootMode = BootMode.BRISC,  # change default boot mode here
 ):
     """Run the test with the given configuration"""
 
