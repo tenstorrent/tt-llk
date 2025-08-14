@@ -59,16 +59,7 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
     }
     else
     {
-        if constexpr (is_fp32_dest_acc_en)
-        {
-            // Needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
-            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
-        }
         ckernel_unpack_template::run(instrn_buffer, 2, 2);
-        if constexpr (is_fp32_dest_acc_en)
-        {
-            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
-        }
     }
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);

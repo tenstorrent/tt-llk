@@ -50,6 +50,8 @@ using namespace ckernel;
 void run_kernel()
 {
     constexpr bool is32 = is_32bit_format(static_cast<DataFormat>(formats.math));
+    // constexpr bool is32 = unpack_to_dest;
+    // constexpr bool is32 = is_fp32_dest_acc_en;
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
