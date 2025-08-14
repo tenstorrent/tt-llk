@@ -12,12 +12,7 @@ namespace ckernel
 namespace sfpu
 {
 
-// See: Cezary J. Walczyk, Leonid V. Moroz, Volodymyr Samotyy, and Jan L. Cieśliński.
-// Optimal Approximation of the 1/x Function using Chebyshev Polynomials and Magic Constants.
-// https://doi.org/10.1145/3708472
-
 // Computes the reciprocal of a floating point value x.
-// Returns 0 if abs(x) > 0x1.6a09e6p+126, or if x is NaN.
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
@@ -34,11 +29,16 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
         y = y * t + y;
     }
 
-    // Handle x = 0, y = ±inf, which results in y * -x + 1.0 = nan.
+    // Handle y = nan.  This happens if:
+    // 1. x = ±0:   t = ±0 * ∓inf + 1.0 = nan
+    // 2. x = ±inf: t = ±inf * ∓0 + 1.0 = nan
+    // For performance reasons we use the conditional exponent >= 255, which is
+    // also true for y = ±inf, but in those cases the initial approximation
+    // should also be correct.
     v_if (sfpi::exexp_nodebias(y) >= 255)
     {
-        // Converts ±nan to ±inf (preserving sign).
-        y = sfpi::setman(y, 0);
+        // Replace with the initial approximation, i.e. ±inf or 0.
+        y = sfpi::approx_recip(x);
     }
     v_endif;
 
