@@ -27,9 +27,9 @@ inline void _sfpu_load_config32_(const uint dest, const uint upper16, const uint
 {
     // registers 11 through 14 are programmable "constants" which are shared across all 4 rows
     // They are updated only through the CONFIG path, which uses LREG[0] first and then copies it to the desired register location
-    TTI_SFPLOADI(0, 10, lower16); // insmod == A will write the lower bits, and not affect the upper bits;
-    TTI_SFPLOADI(0, 8, upper16);  // insmod == 8 will write the upper bits, and not affect the lower bits;
-    TTI_SFPCONFIG(0, dest, 0);
+    TT_SFPLOADI(0, 10, lower16); // insmod == A will write the lower bits, and not affect the upper bits;
+    TT_SFPLOADI(0, 8, upper16);  // insmod == 8 will write the upper bits, and not affect the lower bits;
+    TT_SFPCONFIG(0, dest, 0);
 }
 
 inline void _init_sfpu_config_reg()

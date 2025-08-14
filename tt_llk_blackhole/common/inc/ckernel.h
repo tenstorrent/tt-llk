@@ -151,7 +151,7 @@ inline void t6_semaphore_post(const uint8_t index)
         TTI_STALLWAIT(p_stall::STALL_SYNC, WaitRes);
     }
 
-    TTI_SEMPOST(semaphore::t6_sem(index));
+    TT_SEMPOST(semaphore::t6_sem(index));
 }
 
 // Tensix thread semaphore get optionally stalled
@@ -163,35 +163,35 @@ inline void t6_semaphore_get(const uint8_t index)
         TTI_STALLWAIT(p_stall::STALL_SYNC, WaitRes);
     }
 
-    TTI_SEMGET(semaphore::t6_sem(index));
+    TT_SEMGET(semaphore::t6_sem(index));
 }
 
 template <uint WaitRes>
 inline void t6_semaphore_wait_on_max(const uint8_t index)
 {
-    TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_MAX);
+    TT_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_MAX);
 }
 
 template <uint WaitRes>
 inline void t6_semaphore_wait_on_zero(const uint8_t index)
 {
-    TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_ZERO);
+    TT_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_ZERO);
 }
 
 // Tensix thread semaphore get optionally stalled
 inline void t6_semaphore_init(const uint8_t index, const uint8_t min_value, const uint8_t max_value)
 {
-    TTI_SEMINIT(max_value, min_value, semaphore::t6_sem(index));
+    TT_SEMINIT(max_value, min_value, semaphore::t6_sem(index));
 }
 
 inline void t6_mutex_acquire(const uint8_t index)
 {
-    TTI_ATGETM(index);
+    TT_ATGETM(index);
 }
 
 inline void t6_mutex_release(const uint8_t index)
 {
-    TTI_ATRELM(index);
+    TT_ATRELM(index);
 }
 
 // Return address of the current state ID register
@@ -267,7 +267,7 @@ inline uint32_t get_dest_buffer_base()
 // MOP run version without zmask
 inline void mop_run(const uint8_t type, const uint8_t count)
 {
-    TTI_MOP(type, count - 1, 0); // Run the MOP
+    TT_MOP(type, count - 1, 0); // Run the MOP
 }
 
 // Register read (workaround for bug

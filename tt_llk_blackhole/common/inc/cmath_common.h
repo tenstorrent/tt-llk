@@ -42,7 +42,7 @@ constexpr uint replay_buf_offset = 16; // split replay buffer usage between fpu/
 
 inline void reset_counters(const uint setrwc)
 {
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, setrwc);
+    TT_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, setrwc);
 }
 
 inline void incr_counters(const uint incr_a, const uint incr_b, const uint incr_d, const uint incr_cr)

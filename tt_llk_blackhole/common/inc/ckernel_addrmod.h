@@ -187,7 +187,7 @@ struct addr_mod_pack_t
     // Program source and dest registers
     __attribute__((always_inline)) inline void set(const uint8_t mod_index) const
     {
-        TTI_SETC16(addr_mod_pack_reg_addr[mod_index], pack_val());
+        TT_SETC16(addr_mod_pack_reg_addr[mod_index], pack_val());
     }
 };
 
