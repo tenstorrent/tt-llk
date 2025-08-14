@@ -70,9 +70,6 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
-    sfpi::vConstIntPrgm0   = 0x7eb504f3;
-    sfpi::vConstFloatPrgm1 = 1.94090888923f;
-    sfpi::vConstFloatPrgm2 = 1.43566017178f;
 }
 
 } // namespace sfpu
