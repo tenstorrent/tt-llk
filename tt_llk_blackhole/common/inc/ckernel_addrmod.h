@@ -137,9 +137,9 @@ struct addr_mod_t
     {
         // KCM - This gets around issue: error: impossible constraint in 'asm'
         // TTI_SETC16(addr_mod_src_reg_addr[mod_index], src_val());
-        TTI_SETC16(addr_mod_src_reg_addr[mod_index], srca.val() | (srcb.val() << 8));
-        TTI_SETC16(addr_mod_dest_reg_addr[mod_index], dest.val() | (fidelity.val() << 13));
-        TTI_SETC16(addr_mod_bias_reg_addr[mod_index], bias.val());
+        TT_SETC16(addr_mod_src_reg_addr[mod_index], srca.val() | (srcb.val() << 8));
+        TT_SETC16(addr_mod_dest_reg_addr[mod_index], dest.val() | (fidelity.val() << 13));
+        TT_SETC16(addr_mod_bias_reg_addr[mod_index], bias.val());
     }
 };
 
