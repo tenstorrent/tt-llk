@@ -10,6 +10,7 @@ from helpers.device import (
 from helpers.format_arg_mapping import (
     DestAccumulation,
     MathFidelity,
+    StochasticRounding,
     Transpose,
     format_dict,
 )
@@ -30,7 +31,7 @@ from helpers.utils import passed_test
 
 
 @parametrize(
-    test_name="math_matmul_test",
+    test_name="unpack_matmul_test",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
@@ -45,12 +46,15 @@ from helpers.utils import passed_test
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
+    stochastic_rnd=[
+        StochasticRounding.Fpu,
+        StochasticRounding.Pack,
+        StochasticRounding.All,
+        StochasticRounding.No,
+    ],
     transpose=[Transpose.Yes, Transpose.No],
-    throttle=list(
-        range(0, 6)
-    ),  # Throttle levels include 1-->5, level 0 doesn't throttle
 )
-def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle):
+def test_matmul(test_name, formats, dest_acc, math_fidelity, stochastic_rnd, transpose):
 
     torch_format = format_dict[formats.output_format]
 
@@ -110,9 +114,9 @@ def test_matmul(test_name, formats, dest_acc, math_fidelity, transpose, throttle
         "tile_cnt": tile_cnt,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
+        "stochastic_rnd": stochastic_rnd,
         "unpack_transpose_faces": transpose.value,
         "unpack_transpose_within_face": transpose.value,  # matmul transposes both faces and within faces, there is no option for one or the other
-        "throttle": throttle,
     }
 
     res_address = write_stimuli_to_l1(

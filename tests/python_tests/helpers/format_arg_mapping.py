@@ -78,7 +78,7 @@ class MathOperation(Enum):
     Silu = OpSpec("silu", MathOpType.SFPU_UNARY)
     Sqrt = OpSpec("sqrt", MathOpType.SFPU_UNARY)
     Square = OpSpec("square", MathOpType.SFPU_UNARY)
-
+    Threshold = OpSpec("threshold", MathOpType.SFPU_UNARY)
     # =============================================================================
     # SFPU BINARY OPERATIONS
     # =============================================================================
@@ -162,6 +162,23 @@ class ReducePool(Enum):
 
 
 class DestAccumulation(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class StochasticRounding(Enum):
+    No = "StochRndType::None"
+    Fpu = "StochRndType::Fpu"
+    Pack = "StochRndType::Pack"
+    All = "StochRndType::All"
+
+
+class Transpose(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class Haloize(Enum):
     Yes = "true"
     No = "false"
 

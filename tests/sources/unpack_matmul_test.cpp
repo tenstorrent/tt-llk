@@ -21,9 +21,9 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    std::uint32_t ct_dim = CT_DIM;
-    std::uint32_t rt_dim = RT_DIM;
-    std::uint32_t kt_dim = KT_DIM;
+    std::uint32_t ct_dim = BLOCK_CT_DIM;
+    std::uint32_t rt_dim = BLOCK_RT_DIM;
+    std::uint32_t kt_dim = BLOCK_CT_DIM; // for square matrices, kt_dim == ct_dim
 
     std::uint32_t tile_size = 128;
 
@@ -36,9 +36,19 @@ void run_kernel()
         tile_size = 256;
     }
 
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 0, 4, 4, tile_size, tile_size);
-    _llk_unpack_AB_matmul_init_<>(0, ct_dim, rt_dim, kt_dim, FACE_R_DIM, FACE_R_DIM);
+    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND>(
+        formats.unpack_src,
+        formats.unpack_src,
+        formats.unpack_dst,
+        formats.unpack_dst,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        UNPACK_TRANSPOSE_WITHIN_FACE,
+        4,
+        4,
+        tile_size,
+        tile_size);
+    _llk_unpack_AB_matmul_init_<>(UNPACK_TRANSPOSE_FACES, ct_dim, rt_dim, kt_dim, FACE_R_DIM, FACE_R_DIM);
     for (uint32_t j = 0; j < kt_dim; j++)
     {
         _llk_unpack_AB_matmul_<>(
@@ -68,18 +78,20 @@ void run_kernel()
 
 void run_kernel()
 {
-    std::uint32_t ct_dim = CT_DIM;
-    std::uint32_t rt_dim = RT_DIM;
-    std::uint32_t kt_dim = KT_DIM;
+    std::uint32_t ct_dim = BLOCK_CT_DIM;
+    std::uint32_t rt_dim = BLOCK_RT_DIM;
+    std::uint32_t kt_dim = BLOCK_CT_DIM; // for square matrices, kt_dim == ct_dim
 
-    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, ct_dim, rt_dim, kt_dim);
+    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(
+        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, UNPACK_TRANSPOSE_FACES, ct_dim, rt_dim, kt_dim);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < kt_dim; j++)
     {
-        _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, 0, ct_dim, rt_dim, kt_dim);
+        _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, UNPACK_TRANSPOSE_FACES, ct_dim, rt_dim, kt_dim);
     }
+
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -93,29 +105,19 @@ void run_kernel()
 
 void run_kernel()
 {
-    std::uint32_t tile_size = 128;
-
-    if constexpr (static_cast<DataFormat>(formats.pack_dst) == DataFormat::Bfp8_b)
-    {
-        tile_size = 68;
-    }
-    else if constexpr (static_cast<DataFormat>(formats.pack_dst) == DataFormat::Float32)
-    {
-        tile_size = 256;
-    }
-
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif
-    _llk_packer_wait_for_math_done_();
+
     for (int i = 0; i < TILE_CNT; i++)
     {
+        _llk_packer_wait_for_math_done_();
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
