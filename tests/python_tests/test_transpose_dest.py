@@ -28,7 +28,6 @@ from helpers.utils import passed_test
     test_name="transpose_dest_test",
     formats=input_output_formats(
         [
-            DataFormat.Int32,
             DataFormat.Float32,
             DataFormat.Float16,
             DataFormat.Float16_b,
@@ -38,15 +37,32 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     math_transpose_faces=[True, False],
 )
-def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
+def test_transpose_dest_float(test_name, formats, dest_acc, math_transpose_faces):
+    transpose_dest(test_name, formats, dest_acc, math_transpose_faces)
 
-    if formats.input_format.is_32_bit() == False and math_transpose_faces == False:
-        pytest.skip("Not supported.")
 
-    if (formats.input_format == DataFormat.Int32) ^ (
-        formats.output_format == DataFormat.Int32
-    ):
-        pytest.skip("Mixing Int32 with other formats is not supported.")
+@parametrize(
+    test_name="transpose_dest_test",
+    formats=input_output_formats([DataFormat.Int32]),
+    dest_acc=[DestAccumulation.Yes],
+    math_transpose_faces=[True, False],
+)
+def test_transpose_dest_int(test_name, formats, dest_acc, math_transpose_faces):
+    transpose_dest(test_name, formats, dest_acc, math_transpose_faces)
+
+
+def transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
+
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    )
+
+    if unpack_to_dest == False and math_transpose_faces == False:
+        # if dest_acc == DestAccumulation.No and math_transpose_faces == False:
+        pytest.skip("Not supported in h file.")
+
+    # if formats.input_format.is_32_bit() == False and math_transpose_faces == False:
+    # pytest.skip("Not supported in h file.")
 
     input_dimensions = [32, 32]
 
@@ -71,8 +87,6 @@ def test_transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
         untilize=False,
         input_dimensions=input_dimensions,
     )
-
-    unpack_to_dest = formats.input_format.is_32_bit()
 
     # <math_transpose_faces=false, is_32bit=true> can be combined with unpack_transpose_faces=true.
     unpack_transpose_faces = (
