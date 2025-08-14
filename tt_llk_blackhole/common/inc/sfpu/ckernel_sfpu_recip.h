@@ -19,14 +19,14 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
     sfpi::vFloat y = sfpi::approx_recip(x);
 
     // One iteration of Newton-Raphson.
-    sfpi::vFloat t = y * -x + sfpi::vConst1;
-    y              = y * t + y;
+    sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
+    y              = y * t;
 
     if constexpr (!APPROXIMATE)
     {
         // 2nd iteration of Newton-Raphson
-        t = y * -x + sfpi::vConst1;
-        y = y * t + y;
+        t = y * -x + sfpi::vConstFloatPrgm0;
+        y = y * t;
     }
 
     // Handle y = nan.  This happens if:
@@ -70,6 +70,7 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
+    sfpi::vConstFloatPrgm0 = 2.0f;
 }
 
 } // namespace sfpu
