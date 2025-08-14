@@ -21,33 +21,24 @@ namespace sfpu
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
-    sfpi::vFloat abs_x = sfpi::abs(x);
-    sfpi::vInt y0_bits = sfpi::vConstIntPrgm0 - sfpi::reinterpret<sfpi::vInt>(abs_x);
-    sfpi::vFloat y;
-    v_if (y0_bits >= 0)
-    {
-        y              = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(y0_bits), x);
-        sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm2;
-        y              = y * sfpi::vConstFloatPrgm1;
-        y              = y * t;
+    sfpi::vFloat y = sfpi::approx_recip(x);
 
-        if constexpr (!APPROXIMATE)
-        {
-            // 2nd iteration of Newton-Raphson
-            t = y * -x + sfpi::vConst1;
-            y = y * t + y;
-        }
-    }
-    v_else
-    {
-        // This occurs for a small portion of very large floats, infinity, and NaN.
-        y = sfpi::vConst0;
-    }
-    v_endif;
+    // One iteration of Newton-Raphson.
+    sfpi::vFloat t = y * -x + sfpi::vConst1;
+    y              = y * t + y;
 
-    v_if (x == 0)
+    if constexpr (!APPROXIMATE)
     {
-        y = sfpi::s2vFloat16b(std::numeric_limits<float>::infinity());
+        // 2nd iteration of Newton-Raphson
+        t = y * -x + sfpi::vConst1;
+        y = y * t + y;
+    }
+
+    // Handle x = 0, y = ±inf, which results in y * -x + 1.0 = nan.
+    v_if (sfpi::exexp_nodebias(y) >= 255)
+    {
+        // Converts ±nan to ±inf (preserving sign).
+        y = sfpi::setman(y, 0);
     }
     v_endif;
 
