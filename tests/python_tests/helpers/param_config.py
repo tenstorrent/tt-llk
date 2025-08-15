@@ -314,38 +314,39 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
 
     combinations = []
 
-    tilize_list = (
-        [False]
-        if get_chip_architecture() == ChipArchitecture.WORMHOLE
-        else [False, True]
-    )
+    # Determine tilize options based on chip architecture
+    chip_arch = get_chip_architecture()
+    tilize_list = [False] if chip_arch == ChipArchitecture.WORMHOLE else [False, True]
+
     for tilize_en in tilize_list:
         num_faces_list = [4] if tilize_en else [1, 2, 4]
+
         for num_faces in num_faces_list:
             for fmt in formats_list:
-                # Format outliers: C++ will force dest_acc --> Yes, so test both cases
+                # Skip invalid combination: tilize with Bfp8_b format
+                if tilize_en and fmt.input_format == DataFormat.Bfp8_b:
+                    continue
+
                 for dest_acc in [DestAccumulation.No, DestAccumulation.Yes]:
-                    # The argument passed to the calculate_edgecase_dest_indices function has to match is_fp32_dest_acc_en from C++
+                    # Calculate dest acc setting for edgecase indices calculation
                     is_fp32_dest_acc_en = (
                         dest_acc == DestAccumulation.Yes or is_dest_acc_needed(fmt)
                     )
-                    for dest_sync_and_idx in calculate_edgecase_dest_indices(
+
+                    # Generate all dest sync and index combinations
+                    for dest_sync, dest_idx in calculate_edgecase_dest_indices(
                         is_fp32_dest_acc_en, result_tiles
                     ):
-                        if tilize_en and fmt.input_format == DataFormat.Bfp8_b:
-                            # Skip: Unpack tilize does not support Bfp8_b input format
-                            pass
-                        else:
-                            combinations.append(
-                                (
-                                    fmt,
-                                    dest_acc,
-                                    num_faces,
-                                    tilize_en,
-                                    dest_sync_and_idx[0],
-                                    dest_sync_and_idx[1],
-                                )
+                        combinations.append(
+                            (
+                                fmt,
+                                dest_acc,
+                                num_faces,
+                                tilize_en,
+                                dest_sync,
+                                dest_idx,
                             )
+                        )
 
     return combinations
 
