@@ -245,7 +245,7 @@ class TransposeGolden:
     def transpose_within_faces(
         self,
         operand,
-        data_format,
+        data_format: DataFormat,
         input_dimensions: list[int] = [32, 32],
     ):
         """Transpose a tile tensor by transposing within each of the four faces.
@@ -279,7 +279,7 @@ class TransposeGolden:
     def transpose_faces(
         self,
         operand,
-        data_format,
+        data_format: DataFormat,
         input_dimensions: list[int] = [32, 32],
     ):
         """Transpose the arrangement of the four faces in a tile tensor.
@@ -310,132 +310,188 @@ class TransposeGolden:
         result = torch.cat([faces[0], faces[2], faces[1], faces[3]])
         return result.to(format_dict[data_format])
 
-    def transpose_faces_multi_tile(
+    def _apply_tile_operation_multi_tile(
         self,
-        operand,
-        data_format,
+        operand: torch.Tensor,
+        data_format: DataFormat,
         num_tiles: int,
+        operation_func: callable,
         tilize: bool = False,
         untilize: bool = False,
-        input_dimensions: list[int] = [32, 32],
-    ):
-        """Transpose the arrangement of faces for multiple tiles.
+        input_dimensions: tuple[int, int] = (32, 32),
+    ) -> torch.Tensor:
+        """
+        Apply a tile-level operation across multiple tiles in a tensor.
 
-        This function applies the single-tile transpose_faces operation to each tile
-        in a multi-tile tensor. Each tile is expected to have 1024 elements (32x32)
-        arranged as 4 faces of 256 elements each.
+        This is a generic helper function that applies any single-tile operation
+        to each tile in a multi-tile tensor, handling common preprocessing and
+        postprocessing steps.
 
         Args:
-            operand: Input tensor containing multiple tiles to transpose
-            data_format: Data format for the result
-            num_tiles: Number of tiles in the operand tensor
-            tilize: Whether to tilize the input before transposing
-            untilize: Whether to untilize the result after transposing
-            input_dimensions: Dimensions of the entire input matrix [rows, cols]
+            operand: Input tensor containing concatenated tiles to process
+            data_format: Target data format for the result tensor
+            num_tiles: Number of 32×32 tiles in the input tensor (must be positive)
+            operation_func: Function to apply to each tile (e.g., self.transpose_faces)
+            tilize: If True, applies tilization preprocessing to the input
+            untilize: If True, applies untilization postprocessing to the result
+            input_dimensions: Overall input matrix dimensions as (rows, cols)
 
         Returns:
-            torch.Tensor: Tensor with faces rearranged in transposed order for all tiles
+            Tensor with the operation applied to all tiles
+
+        Raises:
+            ValueError: If tensor size doesn't match expected size for num_tiles
+            ValueError: If num_tiles is not positive
         """
+        # Constants
+        ELEMENTS_PER_TILE = 1024  # 32 × 32
+        TILE_DIMENSIONS = (32, 32)
 
+        # Input validation
+        if num_tiles <= 0:
+            raise ValueError(f"num_tiles must be positive, got {num_tiles}")
+
+        if not callable(operation_func):
+            raise ValueError("operation_func must be callable")
+
+        # Convert and prepare tensor
         tensor = to_tensor(operand, data_format)
-        total_elements = tensor.numel()
 
+        # Apply tilization if requested
         if tilize:
-            tilize_tensor = get_golden_generator(TilizeGolden)
-            tensor = tilize_tensor(tensor, input_dimensions, data_format).flatten()
+            tilize_fn = get_golden_generator(TilizeGolden)
+            tensor = tilize_fn(tensor, input_dimensions, data_format).flatten()
 
-        # Validate that we have the expected number of elements for the given number of tiles
-        expected_elements = num_tiles * 1024  # Each tile has 1024 elements (32x32)
+        # Validate tensor dimensions
+        total_elements = tensor.numel()
+        expected_elements = num_tiles * ELEMENTS_PER_TILE
         if total_elements != expected_elements:
             raise ValueError(
-                f"Invalid tensor size {total_elements} for {num_tiles} tiles. "
-                f"Expected {expected_elements} elements ({num_tiles} tiles × 1024 elements/tile)."
+                f"Tensor size mismatch: got {total_elements} elements for {num_tiles} tiles. "
+                f"Expected {expected_elements} elements "
+                f"({num_tiles} tiles × {ELEMENTS_PER_TILE} elements/tile)"
             )
 
-        # Process each tile separately
-        ELEMENTS_PER_TILE = 32 * 32
+        # Reshape tensor for efficient batch processing
         tile_tensors = tensor.view(num_tiles, ELEMENTS_PER_TILE)
 
-        # Process all tiles in parallel using list comprehension
-        transposed_tiles = [
-            self.transpose_faces(
+        # Apply operation to all tiles
+        processed_tiles = [
+            operation_func(
                 tile_tensor,
                 data_format,
-                input_dimensions=[32, 32],
+                input_dimensions=TILE_DIMENSIONS,
             )
             for tile_tensor in tile_tensors
         ]
 
         # Concatenate results
-        result = torch.cat(transposed_tiles)
+        result = torch.cat(processed_tiles)
 
+        # Apply untilization if requested
         if untilize:
-            untilize_tensor = get_golden_generator(UntilizeGolden)
-            result = untilize_tensor(result, data_format, input_dimensions).flatten()
+            untilize_fn = get_golden_generator(UntilizeGolden)
+            result = untilize_fn(result, data_format, input_dimensions).flatten()
+
         return result.to(format_dict[data_format])
+
+    def transpose_faces_multi_tile(
+        self,
+        operand: torch.Tensor,
+        data_format: DataFormat,
+        num_tiles: int,
+        tilize: bool = False,
+        untilize: bool = False,
+        input_dimensions: tuple[int, int] = (32, 32),
+    ) -> torch.Tensor:
+        """
+        Transpose face arrangements across multiple tiles in a tensor.
+
+        This function applies face transposition to each 32×32 tile in a multi-tile tensor.
+        Each tile contains 1024 elements arranged as 4 faces of 256 elements each.
+        The operation rearranges the faces within each tile.
+
+        Args:
+            operand: Input tensor containing concatenated tiles to transpose
+            data_format: Target data format for the result tensor
+            num_tiles: Number of 32×32 tiles in the input tensor (must be positive)
+            tilize: If True, applies tilization preprocessing to the input
+            untilize: If True, applies untilization postprocessing to the result
+            input_dimensions: Overall input matrix dimensions as (rows, cols)
+
+        Returns:
+            Tensor with face arrangements transposed for all tiles
+
+        Raises:
+            ValueError: If tensor size doesn't match expected size for num_tiles
+            ValueError: If num_tiles is not positive
+
+        Example:
+            >>> # Process 4 tiles with face transposition
+            >>> result = obj.transpose_faces_multi_tile(
+            ...     tensor, "bfloat16", num_tiles=4, tilize=True
+            ... )
+        """
+        return self._apply_tile_operation_multi_tile(
+            operand=operand,
+            data_format=data_format,
+            num_tiles=num_tiles,
+            operation_func=self.transpose_faces,
+            tilize=tilize,
+            untilize=untilize,
+            input_dimensions=input_dimensions,
+        )
 
     def transpose_within_faces_multi_tile(
         self,
-        operand,
-        data_format,
+        operand: torch.Tensor,
+        data_format: DataFormat,
         num_tiles: int,
         tilize: bool = False,
         untilize: bool = False,
-        input_dimensions: list[int] = [32, 32],
-    ):
-        """Transpose within faces for multiple tiles.
+        input_dimensions: tuple[int, int] = (32, 32),
+    ) -> torch.Tensor:
+        """
+        Transpose elements within each face across multiple tiles.
 
-        This function applies the single-tile transpose_within_faces operation to each tile
-        in a multi-tile tensor. Each tile consists of 4 equal faces arranged in a tile,
-        and this function transposes within each of the four faces for all tiles.
+        This function applies within-face transposition to each 32×32 tile in a multi-tile tensor.
+        Each tile contains 4 faces of 256 elements each, and the transposition is applied
+        independently within each face of every tile, preserving face boundaries.
 
         Args:
-            operand: Input tensor containing multiple tiles to transpose
-            data_format: Data format for the result
-            num_tiles: Number of tiles in the operand tensor
-            untilize: Whether to untilize the result after transposing
-            input_dimensions: Dimensions of the entire input matrix [rows, cols]
+            operand: Input tensor containing concatenated tiles to process
+            data_format: Target data format for the result tensor
+            num_tiles: Number of 32×32 tiles in the input tensor (must be positive)
+            tilize: If True, applies tilization preprocessing to the input
+            untilize: If True, applies untilization postprocessing to the result
+            input_dimensions: Overall input matrix dimensions as (rows, cols)
 
         Returns:
-            torch.Tensor: Tensor with each face transposed within all tiles
+            Tensor with elements transposed within each face of all tiles
+
+        Raises:
+            ValueError: If tensor size doesn't match expected size for num_tiles
+            ValueError: If num_tiles is not positive
+
+        Example:
+            >>> # Process 2 tiles with within-face transposition
+            >>> result = obj.transpose_within_faces_multi_tile(
+            ...     tensor, "float32", num_tiles=2, untilize=True
+            ... )
+
+        Note:
+            The transposition occurs within each of the 4 faces per tile, preserving
+            the face boundaries but reordering elements within each face.
         """
-        tensor = to_tensor(operand, data_format)
-        total_elements = tensor.numel()
-
-        if tilize:
-            tilize_tensor = get_golden_generator(TilizeGolden)
-            tensor = tilize_tensor(tensor, input_dimensions, data_format).flatten()
-
-        # Validate that we have the expected number of elements for the given number of tiles
-        expected_elements = num_tiles * 1024  # Each tile has 1024 elements (32x32)
-        if total_elements != expected_elements:
-            raise ValueError(
-                f"Invalid tensor size {total_elements} for {num_tiles} tiles. "
-                f"Expected {expected_elements} elements ({num_tiles} tiles × 1024 elements/tile)."
-            )
-
-        # Process each tile separately
-        ELEMENTS_PER_TILE = 32 * 32
-        tile_tensors = tensor.view(num_tiles, ELEMENTS_PER_TILE)
-
-        # Process all tiles in parallel using list comprehension
-        transposed_tiles = [
-            self.transpose_within_faces(
-                tile_tensor,
-                data_format,
-                input_dimensions=[32, 32],
-            )
-            for tile_tensor in tile_tensors
-        ]
-
-        # Concatenate results
-        result = torch.cat(transposed_tiles)
-
-        if untilize:
-            untilize_tensor = get_golden_generator(UntilizeGolden)
-            result = untilize_tensor(result, data_format, input_dimensions).flatten()
-
-        return result.to(format_dict[data_format])
+        return self._apply_tile_operation_multi_tile(
+            operand=operand,
+            data_format=data_format,
+            num_tiles=num_tiles,
+            operation_func=self.transpose_within_faces,
+            tilize=tilize,
+            untilize=untilize,
+            input_dimensions=input_dimensions,
+        )
 
 
 @register_golden
