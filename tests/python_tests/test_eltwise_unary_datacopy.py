@@ -7,7 +7,7 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, DestSync, format_dict
+from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
 from helpers.param_config import (
@@ -31,19 +31,20 @@ DATACOPY_FORMATS = input_output_formats(
 
 @parametrize(
     test_name="eltwise_unary_datacopy_test",
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
-    format_num_faces_and_tilize=generate_tilize_aware_datacopy_combinations(
-        DATACOPY_FORMATS
+    datacopy_parameters=generate_tilize_aware_datacopy_combinations(
+        DATACOPY_FORMATS, result_tiles=4
     ),
-    dest_sync=[DestSync.Half, DestSync.Full],
 )
-def test_unary_datacopy(test_name, dest_acc, format_num_faces_and_tilize, dest_sync):
+def test_unary_datacopy(test_name, datacopy_parameters):
 
     input_dimensions = [64, 64]
 
-    formats = format_num_faces_and_tilize[0]
-    num_faces = format_num_faces_and_tilize[1]
-    tilize_en = format_num_faces_and_tilize[2]
+    formats = datacopy_parameters[0]
+    dest_acc = datacopy_parameters[1]
+    num_faces = datacopy_parameters[2]
+    tilize_en = datacopy_parameters[3]
+    dest_sync = datacopy_parameters[4]
+    dest_index = datacopy_parameters[5]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -77,6 +78,7 @@ def test_unary_datacopy(test_name, dest_acc, format_num_faces_and_tilize, dest_s
         "num_faces": num_faces,
         "dest_sync": dest_sync,
         "tilize": tilize_en,
+        "dest_index": dest_index,
     }
 
     res_address = write_stimuli_to_l1(
