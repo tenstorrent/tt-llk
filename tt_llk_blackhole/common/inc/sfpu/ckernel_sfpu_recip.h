@@ -36,10 +36,11 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
         {
             // Set y = ±2**-126 for all values.  For |x| > 2**126, the Newton-Raphson iteration will flush to zero.
             // For |x| = 2**126, the approximation is exactly correct and will be preserved.
-            y = sfpi::reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vInt>(x) & sfpi::vConstIntPrgm1);
+            sfpi::vFloat v = sfpi::vConstFloatPrgm1;
+            y              = sfpi::setsgn(v, y);
 
             // The above should compile to a single instruction, but a compiler bug makes it generate 3 instructions:
-            // https://github.com/tenstorrent/tt-metal/issues/26928
+            // https://github.com/tenstorrent/tt-metal/issues/26935
         }
         v_endif;
 
@@ -91,7 +92,7 @@ template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
     sfpi::vConstFloatPrgm0 = 2.0f;
-    sfpi::vConstIntPrgm1   = 0x80800000;
+    sfpi::vConstFloatPrgm1 = -1.17549435082228750797e-38f; // 2**-126
 }
 
 } // namespace sfpu
