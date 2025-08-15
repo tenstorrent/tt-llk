@@ -200,6 +200,10 @@ def generate_build_header(
         f"constexpr auto dest_sync = ckernel::DstSync::Sync{dest_sync.name};"
     )
 
+    # Tilize
+    tilize_en = str(test_config.get("tilize", False)).lower()
+    header_content.append(f"constexpr bool tilize_en = {tilize_en};")
+
     # Data format configuration
     header_content.extend(["", "// Data format configuration"])
     formats = test_config.get("formats", None)
