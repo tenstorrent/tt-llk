@@ -12,7 +12,6 @@ from helpers.dimensions import (
 )
 from helpers.format_arg_mapping import (
     MathFidelity,
-    StochasticRounding,
     Transpose,
     format_dict,
 )
@@ -52,23 +51,16 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMA
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    stochastic_rnd=[
-        StochasticRounding.Fpu,
-        StochasticRounding.Pack,
-        StochasticRounding.All,
-        StochasticRounding.No,
-    ],
     transpose=[Transpose.No, Transpose.Yes],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-def test_matmul(
-    test_name, math_fidelity, stochastic_rnd, transpose, format_dest_acc_and_dims
-):
+def test_matmul(test_name, math_fidelity, transpose, format_dest_acc_and_dims):
 
     formats = format_dest_acc_and_dims[0]
     dest_acc = format_dest_acc_and_dims[1]
-    input_A_dimensions = format_dest_acc_and_dims[2][0]
-    input_B_dimensions = format_dest_acc_and_dims[2][1]
+    stochastic_rnd = format_dest_acc_and_dims[2]
+    input_A_dimensions = format_dest_acc_and_dims[3][0]
+    input_B_dimensions = format_dest_acc_and_dims[3][1]
 
     torch_format = format_dict[formats.output_format]
 
