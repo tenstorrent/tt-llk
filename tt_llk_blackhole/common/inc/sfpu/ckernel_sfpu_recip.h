@@ -19,31 +19,13 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
     // sfpi::approx_recip(x) will return ±0 for x = ±inf or x ≥ ±2**126, and ±inf for x = ±0.
     sfpi::vFloat y = sfpi::approx_recip(x);
 
-    // Note that x = ±2**126 is an edge case, because its reciprocal is not a
-    // denormal number, unlike all larger numbers |x| > 2**126, but the initial
-    // approximation returned by sfpi::approx_recip will be ±0.
-
     // Now we improve the approximation using Newton-Raphson.
 
-    // Check x to ensure that it is not ±infinity.  For simplicity we also exclude exponent = 254.
-    // We also check that it is not ±0 within the block below for performance reasons.
+    // Check x to ensure that it is not ±infinity.
+    // We also check that x is not ±0 within the block below for performance reasons.
     sfpi::vInt exponent = sfpi::exexp_nodebias(x);
-    v_if (exponent < 254)
+    v_if (exponent < 255)
     {
-        // Now we handle the x = ±2**126 edge case.
-        // Check for |x| ≥ 2**126, i.e. exponent = 253.
-        v_if (exponent >= 253)
-        {
-            // Set y = ±2**-126 for all values.  For |x| > 2**126, the Newton-Raphson iteration will flush to zero.
-            // For |x| = 2**126, the approximation is exactly correct and will be preserved.
-            sfpi::vFloat v = sfpi::vConstFloatPrgm1;
-            y              = sfpi::setsgn(v, y);
-
-            // The above should compile to a single instruction, but a compiler bug makes it generate 3 instructions:
-            // https://github.com/tenstorrent/tt-metal/issues/26935
-        }
-        v_endif;
-
         // One iteration of Newton-Raphson.
         sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
 
