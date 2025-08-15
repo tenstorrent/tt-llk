@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2025 Jason Davies <jason@jasondavies.com>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -11,42 +12,40 @@ namespace ckernel
 namespace sfpu
 {
 
-template <int max_iter = 3>
-sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
+// Computes the reciprocal of a floating point value x.
+template <bool APPROXIMATE = false>
+sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
-    // Force sign to 1 (make number negative)
-    sfpi::vFloat val = sfpi::setsgn(in, 1);
+    // sfpi::approx_recip(x) will return ±0 for x = ±inf or x ≥ ±2**126, and ±inf for x = ±0.
+    sfpi::vFloat y = sfpi::approx_recip(x);
 
-    val = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
-    // Use 1.44 as first guess at x, ideal value would be 1.33, but we happen to have 1.44 available, so use that to avoid a load
-    sfpi::vFloat vConstLn2Recip = sfpi::vConstFloatPrgm0;
-    sfpi::vFloat two            = sfpi::vConstFloatPrgm1;
-    sfpi::vFloat result         = vConstLn2Recip * (val * vConstLn2Recip + two);
+    // Now we improve the approximation using Newton-Raphson.
 
-    for (int s_iter = 0; s_iter < (max_iter - 1); s_iter++)
+    // Check x to ensure that it is not ±infinity.
+    // We also check that x is not ±0 within the block below for performance reasons.
+    sfpi::vInt exponent = sfpi::exexp_nodebias(x);
+    v_if (exponent < 255)
     {
-        result = result * (val * result + two);
-    }
+        // One iteration of Newton-Raphson.
+        sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
 
-    sfpi::vInt orig_exp = exexp(in);
-    sfpi::vInt new_exp  = exexp(result);
+        // For performance reasons, we exclude exponent = 0 here, to hide the
+        // `sfpnop` that would otherwise be generated.
+        v_and(exponent >= 1);
 
-    // "Subtract" exponents, and re-bias.
-    // Execute: -1 - exp, then exp += 127
-    new_exp -= orig_exp;
-    new_exp += 126;
+        // -sfpi::vConst0 is used to preserve the sign of y = -0.0.
+        y = y * t - sfpi::vConst0;
 
-    v_if (new_exp < 0)
-    {
-        // If rebiased exponent is negative, we need to saturate at 0.
-        // This means the initial number was too big so reciprocal result should be 0
-        result  = 0.0F;
-        new_exp = 0;
+        if constexpr (!APPROXIMATE)
+        {
+            // 2nd iteration of Newton-Raphson.
+            t = y * -x + sfpi::vConstFloatPrgm0;
+            y = y * t - sfpi::vConst0;
+        }
     }
     v_endif;
 
-    // Set newly denormalized exponent to result exponent field
-    return setexp(result, new_exp);
+    return y;
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
@@ -56,14 +55,7 @@ inline void _calculate_reciprocal_(const int iterations)
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(in);
-
-        v_if (in < 0.0F)
-        {
-            // Invert sign on calculated value if CC=1 (number is negative)
-            out = -out;
-        }
-        v_endif;
+        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE>(in);
 
         if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
         {
@@ -81,8 +73,8 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
-    sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
-    sfpi::vConstFloatPrgm1 = 2.0f;
+    sfpi::vConstFloatPrgm0 = 2.0f;
+    sfpi::vConstFloatPrgm1 = 1.17549435082228750797e-38f; // 2**-126
 }
 
 } // namespace sfpu
