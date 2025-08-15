@@ -24,7 +24,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    if (!tilize_en)
+    if constexpr (!tilize_en)
     {
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             0, 0, FACE_R_DIM, num_faces, formats.unpack_src, formats.unpack_dst);
