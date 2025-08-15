@@ -13,7 +13,7 @@
 
 using namespace ckernel::math;
 
-template <bool untilize_en = false, bool skip_inputs = false>
+template <bool is_fp32_dest_acc_en, bool untilize_en = false, bool skip_inputs = false>
 inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
     // Need to wait for all DEST accesses to be finished before changing
@@ -34,8 +34,9 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const 
     if constexpr (skip_inputs == false)
     {
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
-        uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
-                                 ((uint)srca_data_format == (uint)DataFormat::Int32) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
+        uint int8_math_enabled = is_fp32_dest_acc_en && // only enable int8 math when 32bit DST mode is enabled
+                                 (((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
+                                  ((uint)srca_data_format == (uint)DataFormat::Int32) || ((uint)srcb_data_format == (uint)DataFormat::Int32));
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
     }
 }
@@ -115,41 +116,32 @@ inline void _llk_math_debug_dump_seek_(std::uint8_t offset)
 
 // Following functions do not need to program ALU_FORMAT_SPEC_REG0_SrcA/ALU_FORMAT_SPEC_REG1_SrcB
 // for blackhole since ALU format is inferred
-template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
+template <bool is_fp32_dest_acc_en>
 inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_format)
 {
-    if constexpr (to_from_int8)
-    {
-        static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
-        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
-        uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srca_data_format == (uint)DataFormat::Int32);
-        cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
-    }
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
+    uint int8_math_enabled = is_fp32_dest_acc_en && // only enable int8 math when 32bit DST mode is enabled
+                             (((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srca_data_format == (uint)DataFormat::Int32));
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
 }
 
-template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
+template <bool is_fp32_dest_acc_en>
 inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_format)
 {
-    if constexpr (to_from_int8)
-    {
-        static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
-        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
-        uint int8_math_enabled = ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
-        cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
-    }
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
+    uint int8_math_enabled = is_fp32_dest_acc_en && // only enable int8 math when 32bit DST mode is enabled
+                             (((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srcb_data_format == (uint)DataFormat::Int32));
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
 }
 
-template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
+template <bool is_fp32_dest_acc_en>
 inline void _llk_math_reconfig_data_format_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
-    if constexpr (to_from_int8)
-    {
-        static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
-        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
-        uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
-                                 ((uint)srca_data_format == (uint)DataFormat::Int32) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
-        cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
-    }
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
+    uint int8_math_enabled = is_fp32_dest_acc_en && // only enable int8 math when 32bit DST mode is enabled
+                             (((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
+                              ((uint)srca_data_format == (uint)DataFormat::Int32) || ((uint)srcb_data_format == (uint)DataFormat::Int32));
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
 }
 
 inline std::uint32_t _llk_math_get_compute_special_value_flags_()
