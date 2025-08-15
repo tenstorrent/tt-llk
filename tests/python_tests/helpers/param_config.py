@@ -333,6 +333,7 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
                         is_fp32_dest_acc_en, result_tiles
                     ):
                         if tilize_en and fmt.input_format == DataFormat.Bfp8_b:
+                            # Skip: Unpack tilize does not support Bfp8_b input format
                             pass
                         else:
                             combinations.append(
@@ -367,20 +368,24 @@ def calculate_edgecase_dest_indices(dest_acc, result_tiles: int):
     """
 
     combinations = []
-    divide_dest_capacity = 2 if dest_acc else 1
 
-    for dest_sync in [DestSync.Half, DestSync.Full]:
-        max_dst_tiles = (
-            8 // divide_dest_capacity
-            if dest_sync == DestSync.Half
-            else 16 // divide_dest_capacity
-        )
-        max_dst_index = max_dst_tiles - result_tiles
-        if max_dst_index < 0:
+    DEST_SYNC_TILE_LIMITS = {
+        DestSync.Half: 8,
+        DestSync.Full: 16,
+    }
+
+    capacity_divisor = 2 if dest_acc else 1
+
+    for dest_sync, base_tile_limit in DEST_SYNC_TILE_LIMITS.items():
+        max_tiles = base_tile_limit // capacity_divisor
+        max_index = max_tiles - result_tiles
+
+        if max_index < 0:
             raise ValueError(
-                "The amount of result tiles is higher than the tile capacity of dest"
+                f"Too many result tiles ({result_tiles}) for destination capacity ({max_tiles}) with {dest_sync.name}"
             )
-        combinations.append((dest_sync, 0))
-        combinations.append((dest_sync, max_dst_index))
+
+        # Add both combinations: starting at index 0 and at max allowed index
+        combinations.extend([(dest_sync, 0), (dest_sync, max_index)])
 
     return combinations
