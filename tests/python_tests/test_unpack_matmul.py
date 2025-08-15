@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 
 from helpers.device import (
@@ -43,6 +44,7 @@ MATMUL_FORMATS = input_output_formats(
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMATS)
 
 
+@pytest.mark.nightly
 @parametrize(
     test_name="unpack_matmul_test",
     math_fidelity=[
@@ -54,7 +56,7 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMA
     transpose=[Transpose.No, Transpose.Yes],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-def test_matmul(test_name, math_fidelity, transpose, format_dest_acc_and_dims):
+def test_unpack_matmul(test_name, math_fidelity, transpose, format_dest_acc_and_dims):
 
     formats = format_dest_acc_and_dims[0]
     dest_acc = format_dest_acc_and_dims[1]
@@ -103,8 +105,8 @@ def test_matmul(test_name, math_fidelity, transpose, format_dest_acc_and_dims):
 
     # Generate standard golden reference (PCC validation will handle stochastic tolerance)
     golden_tensor = generate_golden(
-        src_A,  # not tilized
-        src_B_golden,  # needs to be transposed and tilized
+        src_A,
+        src_B_golden,
         formats.output_format,
         math_fidelity,
         input_A_dimensions=input_A_dimensions,

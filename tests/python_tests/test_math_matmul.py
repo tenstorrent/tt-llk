@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 
 from helpers.device import (
@@ -41,6 +42,7 @@ MATMUL_FORMATS = input_output_formats(
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMATS)
 
 
+@pytest.mark.nightly
 @parametrize(
     test_name="math_matmul_test",
     math_fidelity=[
