@@ -43,11 +43,11 @@ void run_kernel()
 
     // Start of second unpack kernel to perform unpack matmul on now tilized input data
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
-    _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(
+    _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en>(
         formats_array[run].unpack_src,
         formats_array[run].unpack_dst,
         tile_size); // have to reconfigure unpack kernel data formats_array if they change in this run
-    _llk_unpack_reconfig_data_format_srcb_impl_<is_fp32_dest_acc_en, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
+    _llk_unpack_reconfig_data_format_srcb_impl_<is_fp32_dest_acc_en>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
     _llk_unpack_tilize_uninit_(formats_array[run].unpack_dst);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
@@ -83,7 +83,7 @@ void run_kernel()
 #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats_array[run].math, formats_array[run].math);
+    _llk_math_hw_configure_<is_fp32_dest_acc_en, false, false>(formats_array[run].math, formats_array[run].math);
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
@@ -98,9 +98,9 @@ void run_kernel()
 
     // Start of second math kernel to perform matmul on now tilized input data
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
-    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(
+    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en>(
         formats_array[run].math); // have to reconfigure math kernel data formats_array if they change in this run
-    _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en, false>(formats_array[run].math);
+    _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en>(formats_array[run].math);
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);

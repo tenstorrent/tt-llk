@@ -136,18 +136,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         else
         {
             ckernel_template tmp(outerloop, innerloop, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
-            if ((uint)(dst_format & 0xF) == (uint)DataFormat::Int8)
-            {
-                // Force fp16a view of SRC register when calling MOVA2D with int8/uint8 data formats
-                // This is only needed when ALU_ACC_CTRL_INT8_math_enabled==1 while is_fp32_dest_acc_en==0 (16bit mode DST)
-                // This is because int8/uint8 are stored in fp16a container in SRC
-                tmp.set_start_op(TT_OP_SETC16(FP16A_FORCE_Enable_ADDR32, 0x1));
-                tmp.set_end_ops(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB), TT_OP_SETC16(FP16A_FORCE_Enable_ADDR32, 0x0));
-            }
-            else
-            {
-                tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
-            }
+            tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program(instrn_buffer);
         }
     }
