@@ -15,6 +15,13 @@ from ttexalens.tt_exalens_lib import (
     run_elf,
     write_to_device,
     write_words_to_device,
+    callstack,
+)
+from ttexalens.debug_risc import RiscDebug, RiscLoc
+from ttexalens.tt_exalens_lib import (
+    check_context,
+    convert_coordinate,
+    validate_device_id,
 )
 
 from helpers.chip_architecture import get_chip_architecture
@@ -285,30 +292,15 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
         - Number of tiles that can fit in dest register depends on size of datum. If dest register is in 32 bit mode (dest accumulation is enabled), num_tiles must be ≤ 8. Otherwise, ≤ 16.
     """
 
-    from ttexalens.debug_risc import RiscDebug, RiscLoc
-    from ttexalens.tt_exalens_lib import (
-        check_context,
-        convert_coordinate,
-        validate_device_id,
-    )
-
-    risc_id = 1  # we want to use TRISC 0 for reading the destination register
-    noc_id = 0  # NOC ID for the device
     device_id = 0  # Device ID for the device
     core_loc = "0,0"  # Core location in the format "tile_id,risc_id"
     base_address = 0xFFBD8000
 
     context = check_context()
-    validate_device_id(device_id, context)
+    device = context.devices[device_id]
     coordinate = convert_coordinate(core_loc, device_id, context)
-
-    if risc_id != 1:
-        raise ValueError(
-            "Risc id is not 1. Only TRISC 0 can be halted and read from memory."
-        )
-
-    location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
-    debug_risc = RiscDebug(location=location, context=context, verbose=False)
+    block = device.get_block(coordinate)
+    debug_risc = block.get_risc_debug("trisc0")
 
     assert num_tiles <= (8 if dest_acc == DestAccumulation.Yes else 16)
 
@@ -322,7 +314,31 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     return dest_reg
 
 
-def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5):
+def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
+    # check if the core is stuck on an EBREAK instruction
+
+    context = check_context()
+    device = context.devices[device_id]
+    coordinate = convert_coordinate(core_loc, device_id, context)
+    block = device.get_block(coordinate)
+    risc_debug = block.get_risc_debug(risc_name)
+
+    if risc_debug.is_ebreak():
+        return True
+
+    return False
+
+def handle_if_assert_hit(elfs: list[str], risc_name, core_loc="0,0", device_id=0):
+    if not is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
+        return
+
+    print(callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id))
+
+    raise AssertionError(
+        "Assert was hit on device"
+    )
+
+def wait_until_tensix_complete(elfs, core_loc, mailbox_addr, timeout=30, max_backoff=5):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
 
@@ -332,6 +348,14 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
         timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds. If running on a simulator it is 600 seconds.
         max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
     """
+
+    # sstanisic todo: refactor this
+    trisc_map = {
+        Mailbox.Unpacker: "trisc0",
+        Mailbox.Math: "trisc1",
+        Mailbox.Packer: "trisc2",
+    }
+
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
 
@@ -348,15 +372,21 @@ def wait_until_tensix_complete(core_loc, mailbox_addr, timeout=30, max_backoff=5
         if not test_target.run_simulator:
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
+    handle_if_assert_hit(
+        elfs,
+        risc_name=trisc_map[mailbox_addr],
+        core_loc=core_loc,
+    )
+
     raise TimeoutError(
         f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
     )
 
 
-def wait_for_tensix_operations_finished(core_loc: str = "0,0"):
-    wait_until_tensix_complete(core_loc, Mailbox.Packer)
-    wait_until_tensix_complete(core_loc, Mailbox.Math)
-    wait_until_tensix_complete(core_loc, Mailbox.Unpacker)
+def wait_for_tensix_operations_finished(elfs, core_loc: str = "0,0"):
+    wait_until_tensix_complete(elfs, core_loc, Mailbox.Packer)
+    wait_until_tensix_complete(elfs, core_loc, Mailbox.Math)
+    wait_until_tensix_complete(elfs, core_loc, Mailbox.Unpacker)
 
 
 def reset_mailboxes():
