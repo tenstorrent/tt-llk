@@ -92,7 +92,7 @@ template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
     sfpi::vConstFloatPrgm0 = 2.0f;
-    sfpi::vConstFloatPrgm1 = -1.17549435082228750797e-38f; // 2**-126
+    sfpi::vConstFloatPrgm1 = 1.17549435082228750797e-38f; // 2**-126
 }
 
 } // namespace sfpu
