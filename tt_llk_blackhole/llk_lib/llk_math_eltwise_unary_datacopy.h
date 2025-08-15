@@ -159,7 +159,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
 
         if (is_fp32_dest_acc_en && (dst_format != (uint)DataFormat::UInt16))
         {
-            // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
+            // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program(instrn_buffer);
