@@ -11,7 +11,6 @@ from helpers.dimensions import (
     calculate_matmul_dimensions,
 )
 from helpers.format_arg_mapping import (
-    DestAccumulation,
     MathFidelity,
     StochasticRounding,
     Transpose,
@@ -110,9 +109,6 @@ def test_matmul(
 
     generate_golden = get_golden_generator(MatmulGolden)
 
-    # Check if stochastic rounding is enabled
-    use_stochastic_validation = stochastic_rnd != StochasticRounding.No
-
     # Generate standard golden reference (PCC validation will handle stochastic tolerance)
     golden_tensor = generate_golden(
         src_A,  # not tilized
@@ -174,16 +170,9 @@ def test_matmul(
     ]  # according to data format inference model
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-    stochastic_rounding_percision_loss = (
-        use_stochastic_validation
-        and dest_acc == DestAccumulation.No
-        and matmul_dims["kt_dim"] >= 4
-        and bfloat_in_dest
-    )
+
     assert passed_test(
         golden_tensor,
         res_tensor,
         formats.output_format,
-        stochastic_rounding_enabled=stochastic_rounding_percision_loss,
-        kt_dim=matmul_dims["kt_dim"],
     )
