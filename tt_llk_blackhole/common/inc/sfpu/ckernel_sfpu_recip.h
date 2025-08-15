@@ -16,29 +16,30 @@ namespace sfpu
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
-    sfpi::vFloat y = sfpi::approx_recip(x);
+    sfpi::vFloat y      = sfpi::approx_recip(x);
+    sfpi::vInt exponent = sfpi::exexp_nodebias(y);
 
-    // One iteration of Newton-Raphson.
-    sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
-    y              = y * t;
+    // Ensure that y is not ±0 or ±infinity for Newton-Raphson.
+    // If exponent = 0, then y = ±0.
+    // If exponent = 255, then y = ±infinity.
 
-    if constexpr (!APPROXIMATE)
+    v_if (exponent >= 1)
     {
-        // 2nd iteration of Newton-Raphson
-        t = y * -x + sfpi::vConstFloatPrgm0;
+        // One iteration of Newton-Raphson.
+        sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
+
+        // For performance reasons, we exclude exponent = 255 here, to hide the
+        // `sfpnop` that would otherwise be generated.
+        v_and(exponent < 255);
+
         y = y * t;
-    }
 
-    // Handle y = nan.  This happens if:
-    // 1. x = ±0:   t = ±0 * ∓inf + 1.0 = nan
-    // 2. x = ±inf: t = ±inf * ∓0 + 1.0 = nan
-    // For performance reasons we use the conditional exponent >= 255, which is
-    // also true for y = ±inf, but in those cases the initial approximation
-    // should also be correct.
-    v_if (sfpi::exexp_nodebias(y) >= 255)
-    {
-        // Replace with the initial approximation, i.e. ±inf or 0.
-        y = sfpi::approx_recip(x);
+        if constexpr (!APPROXIMATE)
+        {
+            // 2nd iteration of Newton-Raphson
+            t = y * -x + sfpi::vConstFloatPrgm0;
+            y = y * t;
+        }
     }
     v_endif;
 
