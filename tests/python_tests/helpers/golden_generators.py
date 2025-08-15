@@ -353,25 +353,22 @@ class TransposeGolden:
             )
 
         # Process each tile separately
-        results = []
-        for tile_idx in range(num_tiles):
-            # Extract the current tile (1024 elements)
-            start_idx = tile_idx * 1024
-            end_idx = start_idx + 1024
-            tile_tensor = tensor[start_idx:end_idx]
+        ELEMENTS_PER_TILE = 32 * 32
+        tile_tensors = tensor.view(num_tiles, ELEMENTS_PER_TILE)
 
-            # Apply single-tile transpose_faces to this tile
-            # Note: We pass tilize=False since we already handled tilization above
-            transposed_tile = self.transpose_faces(
+        # Process all tiles in parallel using list comprehension
+        transposed_tiles = [
+            self.transpose_faces(
                 tile_tensor,
                 data_format,
-                input_dimensions=[32, 32],  # Each tile is 32x32
+                input_dimensions=[32, 32],
             )
+            for tile_tensor in tile_tensors
+        ]
 
-            results.append(transposed_tile)
+        # Concatenate results
+        result = torch.cat(transposed_tiles)
 
-        # Concatenate all transposed tiles back together
-        result = torch.cat(results)
         if untilize:
             untilize_tensor = get_golden_generator(UntilizeGolden)
             result = untilize_tensor(result, data_format, input_dimensions).flatten()
@@ -418,23 +415,22 @@ class TransposeGolden:
             )
 
         # Process each tile separately
-        results = []
-        for tile_idx in range(num_tiles):
-            # Extract the current tile (1024 elements)
-            start_idx = tile_idx * 1024
-            end_idx = start_idx + 1024
-            tile_tensor = tensor[start_idx:end_idx]
+        ELEMENTS_PER_TILE = 32 * 32
+        tile_tensors = tensor.view(num_tiles, ELEMENTS_PER_TILE)
 
-            transposed_tile = self.transpose_within_faces(
+        # Process all tiles in parallel using list comprehension
+        transposed_tiles = [
+            self.transpose_within_faces(
                 tile_tensor,
                 data_format,
-                input_dimensions=[32, 32],  # Each tile is 32x32
+                input_dimensions=[32, 32],
             )
+            for tile_tensor in tile_tensors
+        ]
 
-            results.append(transposed_tile)
+        # Concatenate results
+        result = torch.cat(transposed_tiles)
 
-        # Concatenate all transposed tiles back together
-        result = torch.cat(results)
         if untilize:
             untilize_tensor = get_golden_generator(UntilizeGolden)
             result = untilize_tensor(result, data_format, input_dimensions).flatten()
@@ -556,21 +552,9 @@ class MatmulGolden(FidelityMasking):
 
 @register_golden
 class DataCopyGolden:
-    def __call__(self, operand1, data_format, num_faces, input_dimensions):
+    def __call__(self, operand1, data_format):
         torch_format = format_dict[data_format]
-        height, width = input_dimensions[0], input_dimensions[1]
-        tile_cnt = (height // 32) * (width // 32)
-        tile_size = height * width // tile_cnt
-        # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
-        elements_per_tile_needed = (tile_size // 4) * num_faces
-
-        if not isinstance(operand1, torch.Tensor):
-            operand1 = torch.tensor(operand1)
-
-        reshaped = operand1.view(tile_cnt, tile_size)
-        selected = reshaped[:, :elements_per_tile_needed]
-
-        return selected.flatten().to(torch_format)
+        return torch.tensor(operand1, dtype=torch_format)
 
 
 @register_golden
