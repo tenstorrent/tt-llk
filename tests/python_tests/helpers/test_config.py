@@ -204,6 +204,10 @@ def generate_build_header(
     tilize_en = str(test_config.get("tilize", False)).lower()
     header_content.append(f"constexpr bool tilize_en = {tilize_en};")
 
+    # Dest index
+    dest_index = test_config.get("dest_index", 0)
+    header_content.append(f"constexpr int dst_index = {dest_index};")
+
     # Data format configuration
     header_content.extend(["", "// Data format configuration"])
     formats = test_config.get("formats", None)

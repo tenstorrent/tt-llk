@@ -98,6 +98,7 @@ class TestParamsConfig(TypedDict):
     num_faces: Optional[List[int]] = None
     dest_sync: Optional[DestSync] = None
     tilize_en: Optional[List[bool]] = None
+    dst_idx: Optional[List[int]] = None
 
 
 def generate_params(**kwargs: any) -> List[tuple]:
@@ -292,7 +293,7 @@ def generate_format_aware_matmul_combinations(
     return combinations
 
 
-def generate_tilize_aware_datacopy_combinations(formats_list):
+def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int = 1):
     """
     Generate possible (format, num_faces, tilize) combinations that respect chip_architecture and tilize constraints.
 
@@ -322,9 +323,64 @@ def generate_tilize_aware_datacopy_combinations(formats_list):
         num_faces_list = [4] if tilize_en else [1, 2, 4]
         for num_faces in num_faces_list:
             for fmt in formats_list:
-                if tilize_en and fmt.input_format == DataFormat.Bfp8_b:
-                    pass
-                else:
-                    combinations.append((fmt, num_faces, tilize_en))
+                # Format outliers: C++ will force dest_acc --> Yes, so test both cases
+                for dest_acc in [DestAccumulation.No, DestAccumulation.Yes]:
+                    # The argument passed to the calculate_edgecase_dest_indices function has to match is_fp32_dest_acc_en from C++
+                    is_fp32_dest_acc_en = (
+                        dest_acc == DestAccumulation.Yes or is_dest_acc_needed(fmt)
+                    )
+                    for dest_sync_and_idx in calculate_edgecase_dest_indices(
+                        is_fp32_dest_acc_en, result_tiles
+                    ):
+                        if tilize_en and fmt.input_format == DataFormat.Bfp8_b:
+                            pass
+                        else:
+                            combinations.append(
+                                (
+                                    fmt,
+                                    dest_acc,
+                                    num_faces,
+                                    tilize_en,
+                                    dest_sync_and_idx[0],
+                                    dest_sync_and_idx[1],
+                                )
+                            )
+
+    return combinations
+
+
+def calculate_edgecase_dest_indices(dest_acc, result_tiles: int):
+    """
+    Generate the lowest and highest possible dest index depending on the DestSync mode and whether dest is 32bit or not.
+
+    Key rules:
+    1. The lowest possible dest index is always 0.
+    2. When DestSync.Half:  max_dst_tiles=8 (if dest is 16bit) or max_dst_tiles=4 (if dest is 32bit)
+    3. When DestSync.Full:  max_dst_tiles=16 (if dest is 16bit) or max_dst_tiles=8 (if dest is 32bit)
+
+    Args:
+        dest_acc: Dest 16/32 bit mode, has to match is_fp32_dest_acc_en from C++
+        result_tiles: Number of tiles in the result matrix
+
+    Returns:
+        List of tuples: (dest_sync, dst_index)
+    """
+
+    combinations = []
+    divide_dest_capacity = 2 if dest_acc else 1
+
+    for dest_sync in [DestSync.Half, DestSync.Full]:
+        max_dst_tiles = (
+            8 // divide_dest_capacity
+            if dest_sync == DestSync.Half
+            else 16 // divide_dest_capacity
+        )
+        max_dst_index = max_dst_tiles - result_tiles
+        if max_dst_index < 0:
+            raise ValueError(
+                "The amount of result tiles is higher than the tile capacity of dest"
+            )
+        combinations.append((dest_sync, 0))
+        combinations.append((dest_sync, max_dst_index))
 
     return combinations
