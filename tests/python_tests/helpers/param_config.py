@@ -212,7 +212,9 @@ def clean_params(all_params: List[tuple]) -> List[tuple]:
     Returns:
     List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
     """
-    return all_params
+    return [
+        tuple(param for param in params if param is not None) for params in all_params
+    ]
 
 
 def generate_param_ids(all_params: List[tuple]) -> List[str]:

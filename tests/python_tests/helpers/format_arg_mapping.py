@@ -194,6 +194,22 @@ class MathFidelity(Enum):
     HiFi4 = 3
 
 
+class NarrowTile(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class FaceRDim(Enum):
+    Face16 = 16
+    Face32 = 32  # Default FACE_R_DIM
+
+
+class NumFaces(Enum):
+    One = 1
+    Two = 2
+    Four = 4  # Default
+
+
 class DestSync(Enum):
     Half = 0
     Full = 1

@@ -51,7 +51,7 @@ void run_kernel()
                 BLOCK_CT_DIM,
                 FACE_R_DIM,
                 NUM_FACES,
-                NARROW_TILE // narrow_tile disabled for now
+                false // narrow_tile disabled for now
             );
         }
         read_offset += BLOCK_RT_DIM;
@@ -74,6 +74,7 @@ const bool is_int_fpu_en = true;
 #else
 const bool is_int_fpu_en = false;
 #endif
+
 void run_kernel()
 {
     // Copy srca to dest with tilize flag
@@ -112,7 +113,6 @@ void run_kernel()
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    // Force num_faces=4 for Wormhole due to unpack_tilize API limitation
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * NUM_FACES, FACE_R_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, NUM_FACES);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();

@@ -80,7 +80,6 @@ def collect_results(
     sfpu: bool = False,
     num_faces: int = 4,
     tile_dimensions=[32, 32],
-    num_faces: int = 4,
 ):
     # Calculate tile elements based on tile dimensions instead of hardcoding 1024
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
@@ -296,19 +295,6 @@ def write_stimuli_to_l1(
     test_config["result_buffer_address"] = result_buffer_address
 
     return result_buffer_address
-
-
-def write_buffer_data(
-    core_loc, buffer_address, pack_function, buffer_tile, stimuli_format, num_faces=4
-):
-
-    pack_func = lambda buffer_tile: (
-        pack_function(buffer_tile, num_faces=num_faces)
-        if stimuli_format == DataFormat.Bfp8_b
-        else pack_function(buffer_tile)
-    )
-    packed_data = pack_func(buffer_tile)
-    write_to_device(core_loc, buffer_address, packed_data)
 
 
 def get_result_from_device(

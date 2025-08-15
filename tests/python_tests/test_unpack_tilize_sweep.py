@@ -133,7 +133,6 @@ def test_unpack_tilize_comprehensive(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        tile_count=tile_cnt,
         num_faces=num_faces.value,
     )
 

@@ -66,30 +66,25 @@ def tilize_block(
 
 def tilize(original_tensor, stimuli_format=DataFormat.Float16_b, num_faces=4):
 
+    if num_faces not in (1, 2, 4):
+        raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+
     if original_tensor.size(0) != 1024:
         raise ValueError("Input tensor must have 1024 elements.")
 
     matrix = original_tensor.view(32, 32)
 
-    # Extract all 4 faces
-    f0 = matrix[:16, :16]
-    f1 = matrix[:16, 16:32]
-    f2 = matrix[16:32, :16]
-    f3 = matrix[16:32, 16:32]
+    # Define all face slices
+    face_slices = [
+        matrix[:16, :16],  # f0
+        matrix[:16, 16:],  # f1
+        matrix[16:, :16],  # f2
+        matrix[16:, 16:],  # f3
+    ]
 
-    # Select faces based on num_faces parameter
-    if num_faces == 1:
-        result = f0.reshape(-1)
-    elif num_faces == 2:
-        result = torch.cat((f0.reshape(-1), f1.reshape(-1)))
-    elif num_faces == 4:
-        result = torch.cat(
-            (f0.reshape(-1), f1.reshape(-1), f2.reshape(-1), f3.reshape(-1))
-        )
-    else:
-        raise ValueError(
-            f"Unsupported num_faces value: {num_faces}. Supported values: 1, 2, 4"
-        )
+    # Select and flatten required faces
+    selected_faces = [face.flatten() for face in face_slices[:num_faces]]
+    result = torch.cat(selected_faces) if len(selected_faces) > 1 else selected_faces[0]
 
     return result.to(dtype=format_dict[stimuli_format])
 
