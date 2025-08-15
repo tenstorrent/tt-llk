@@ -293,6 +293,24 @@ def generate_format_aware_matmul_combinations(
 
 
 def generate_tilize_aware_datacopy_combinations(formats_list):
+    """
+    Generate possible (format, num_faces, tilize) combinations that respect chip_architecture and tilize constraints.
+
+    Key rules:
+    1. When chip_architecture=WH: tilize_en=False
+        When testing on WH, tilize is always False because DataCopy does not have tilize argument for WH.
+    2. When tilize_en=True: num_faces=4
+        Pack does not support less than 4 faces when tilize=True.
+    3. When tilize_en=True: input_format!=Bfp8_b
+        Unpack tilize does not support input_format=Bfp8_b.
+
+    Args:
+        formats_list: List of InputOutputFormat combinations
+
+    Returns:
+        List of tuples: (format, num_faces, tilize_en)
+    """
+
     combinations = []
 
     tilize_list = (
