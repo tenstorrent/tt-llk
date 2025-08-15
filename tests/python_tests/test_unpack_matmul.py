@@ -60,9 +60,9 @@ def test_unpack_matmul(test_name, math_fidelity, transpose, format_dest_acc_and_
 
     formats = format_dest_acc_and_dims[0]
     dest_acc = format_dest_acc_and_dims[1]
-    stochastic_rnd = format_dest_acc_and_dims[2]
-    input_A_dimensions = format_dest_acc_and_dims[3][0]
-    input_B_dimensions = format_dest_acc_and_dims[3][1]
+    input_A_dimensions = format_dest_acc_and_dims[2][0]
+    input_B_dimensions = format_dest_acc_and_dims[2][1]
+    stochastic_rnd = format_dest_acc_and_dims[3]
 
     torch_format = format_dict[formats.output_format]
 

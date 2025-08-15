@@ -210,7 +210,9 @@ def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]
     ]
 
 
-def generate_format_aware_matmul_combinations(formats_list):
+def generate_format_aware_matmul_combinations(
+    formats_list, stochastic_rounding_modes: bool = False
+):
     """
     Generate matmul dimension combinations with stochastic rounding support.
 
@@ -227,12 +229,17 @@ def generate_format_aware_matmul_combinations(formats_list):
 
     Returns: List of (format, dest_acc, stochastic_rounding, dimensions) tuples
     """
-    all_stochastic_modes = [
-        StochasticRounding.No,
-        StochasticRounding.Fpu,
-        StochasticRounding.Pack,
-        StochasticRounding.All,
-    ]
+    if stochastic_rounding_modes:
+        all_stochastic_modes = [
+            StochasticRounding.No,
+            StochasticRounding.Fpu,
+            StochasticRounding.Pack,
+            StochasticRounding.All,
+        ]
+    else:
+        all_stochastic_modes = [
+            StochasticRounding.No,
+        ]
 
     combinations = []
     dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
@@ -280,6 +287,6 @@ def generate_format_aware_matmul_combinations(formats_list):
                     )
 
                     if not should_exclude:
-                        combinations.append((fmt, dest_acc, stochastic_mode, dims))
+                        combinations.append((fmt, dest_acc, dims, stochastic_mode))
 
     return combinations
