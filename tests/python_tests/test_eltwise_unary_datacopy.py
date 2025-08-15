@@ -7,7 +7,7 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, format_dict
+from helpers.format_arg_mapping import DestAccumulation, Tilize, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
 from helpers.param_config import (
@@ -52,7 +52,7 @@ def test_unary_datacopy(test_name, datacopy_parameters):
         input_dimensions=input_dimensions,
     )
 
-    if not tilize_en:
+    if tilize_en == Tilize.No:
         generate_golden = get_golden_generator(DataCopyGolden)
         golden_tensor = generate_golden(
             src_A, formats.output_format, num_faces, input_dimensions
@@ -63,7 +63,7 @@ def test_unary_datacopy(test_name, datacopy_parameters):
 
     unpack_to_dest = (
         False
-        if tilize_en and formats.input_format == DataFormat.Float32
+        if Tilize.Yes and formats.input_format == DataFormat.Float32
         else formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
