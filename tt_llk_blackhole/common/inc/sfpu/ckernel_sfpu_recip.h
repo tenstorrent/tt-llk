@@ -16,23 +16,30 @@ namespace sfpu
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
-    // This approximation will return ±0 for x=±inf or x=±2**126, and ±inf for x=±0.
+    // sfpi::approx_recip(x) will return ±0 for x = ±inf or x ≥ ±2**126, and ±inf for x = ±0.
     sfpi::vFloat y = sfpi::approx_recip(x);
 
-    // Check x to ensure that it is not ±infinity.
-    // We check that it is not ±0 within the block below for performance reasons.
+    // Note that x = ±2**126 is an edge case, because its reciprocal is not a
+    // denormal number, unlike all larger numbers |x| > 2**126, but the initial
+    // approximation returned by sfpi::approx_recip will be ±0.
 
+    // Now we improve the approximation using Newton-Raphson.
+
+    // Check x to ensure that it is not ±infinity.  For simplicity we also exclude exponent = 254.
+    // We also check that it is not ±0 within the block below for performance reasons.
     sfpi::vInt exponent = sfpi::exexp_nodebias(x);
     v_if (exponent < 254)
     {
-        // Check for |x| ≥ 2**126, i.e. exponent = 253 or 254.
+        // Now we handle the x = ±2**126 edge case.
+        // Check for |x| ≥ 2**126, i.e. exponent = 253.
         v_if (exponent >= 253)
         {
-            // The only values of x for which we can return a non-denormal number are |x| = 2**126.
-            // Here we set y = ±2**-126 for exponent = 253, and y = ±0 for exponent = 254.
-            // For |x| > 2**126, the Newton-Raphson iteration will flush to zero.
+            // Set y = ±2**-126 for all values.  For |x| > 2**126, the Newton-Raphson iteration will flush to zero.
+            // For |x| = 2**126, the approximation is exactly correct and will be preserved.
             y = sfpi::reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vInt>(x) & sfpi::vConstIntPrgm1);
-            // The above should compile to a single instruction, but a compiler bug makes it generate 3 instructions.
+
+            // The above should compile to a single instruction, but a compiler bug makes it generate 3 instructions:
+            // https://github.com/tenstorrent/tt-metal/issues/26928
         }
         v_endif;
 
