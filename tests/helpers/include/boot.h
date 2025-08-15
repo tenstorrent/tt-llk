@@ -10,7 +10,7 @@
 inline void device_setup()
 {
 #ifdef ARCH_BLACKHOLE
-    *reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_DEST_CG_CTRL) = 0;
+    ckernel::reg_write(RISCV_DEBUG_REG_DEST_CG_CTRL, 0);
     TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0, 1, 0);
 #else
     TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0);

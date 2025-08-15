@@ -106,9 +106,9 @@ def perform_tensix_soft_reset(core_loc="0,0"):
     register_store.write_register("RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset)
 
 
-def run_cores(cores: list[RiscCore], core_loc="0,0"):
+def run_cores(cores: list[RiscCore], device_id=0, core_loc="0,0"):
     context = check_context()
-    device = context.devices[0]
+    device = context.devices[device_id]
     chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
     noc_block = device.get_block(chip_coordinate)
     register_store = noc_block.get_register_store()
@@ -122,16 +122,15 @@ def run_cores(cores: list[RiscCore], core_loc="0,0"):
     register_store.write_register("RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset)
 
 
-def exalens_device_setup(chip_arch, core_loc="0,0"):
+def exalens_device_setup(chip_arch, device_id=0, core_loc="0,0"):
     context = check_context()
-    device = context.devices[0]
+    device = context.devices[device_id]
     chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
-    noc_block = device.get_block(chip_coordinate)
-    register_store = noc_block.get_register_store()
-    debug_tensix = TensixDebug(chip_coordinate, 0, context)
+    debug_tensix = TensixDebug(chip_coordinate, device_id, context)
     ops = debug_tensix.device.instructions
 
     if chip_arch == ChipArchitecture.BLACKHOLE:
+        register_store = device.get_block(chip_coordinate).get_register_store()
         register_store.write_register("RISCV_DEBUG_REG_DEST_CG_CTRL", 0)
         debug_tensix.inject_instruction(ops.TT_OP_ZEROACC(3, 0, 0, 1, 0), 0)
     else:
@@ -147,7 +146,7 @@ def exalens_device_setup(chip_arch, core_loc="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, core_loc="0,0", boot_mode=BootMode.BRISC):
+def run_elf_files(testname, device_id=0, core_loc="0,0", boot_mode=BootMode.BRISC):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
@@ -177,12 +176,14 @@ def run_elf_files(testname, core_loc="0,0", boot_mode=BootMode.BRISC):
                 core_loc=core_loc,
                 risc_name="brisc",
             )
-            run_cores([RiscCore.BRISC], core_loc)
+            run_cores([RiscCore.BRISC], device_id, core_loc)
         case BootMode.TRISC:
-            run_cores([RiscCore.TRISC0], core_loc)
+            run_cores([RiscCore.TRISC0], device_id, core_loc)
         case BootMode.EXALENS:
-            exalens_device_setup(CHIP_ARCH, core_loc)
-            run_cores([RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], core_loc)
+            exalens_device_setup(CHIP_ARCH, device_id, core_loc)
+            run_cores(
+                [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], device_id, core_loc
+            )
 
 
 def write_stimuli_to_l1(
