@@ -18,6 +18,7 @@ from .format_arg_mapping import (
     MathFidelity,
     MathOperation,
     StochasticRounding,
+    Tilize,
     Transpose,
     format_tile_sizes,
 )
@@ -201,8 +202,8 @@ def generate_build_header(
     )
 
     # Tilize
-    tilize_en = str(test_config.get("tilize", False)).lower()
-    header_content.append(f"constexpr bool tilize_en = {tilize_en};")
+    tilize_en = test_config.get("tilize", Tilize.No)
+    header_content.append(f"constexpr bool tilize_en = {tilize_en.value};")
 
     # Dest index
     dest_index = test_config.get("dest_index", 0)

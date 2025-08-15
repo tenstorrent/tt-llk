@@ -12,8 +12,7 @@ from helpers.dimensions import (
 )
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.log_utils import add_to_format_log
-
-from .format_arg_mapping import DestAccumulation, DestSync, StochasticRounding
+from .format_arg_mapping import DestAccumulation, DestSync, StochasticRounding, Tilize
 from .format_config import (
     DataFormat,
     FormatConfig,
@@ -97,7 +96,7 @@ class TestParamsConfig(TypedDict):
     pool_type: Optional[List[str]] = None
     num_faces: Optional[List[int]] = None
     dest_sync: Optional[DestSync] = None
-    tilize_en: Optional[List[bool]] = None
+    tilize_en: Optional[Tilize] = None
     dst_idx: Optional[List[int]] = None
 
 
@@ -298,11 +297,11 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
     Generate possible (format, num_faces, tilize) combinations that respect chip_architecture and tilize constraints.
 
     Key rules:
-    1. When chip_architecture=WH: tilize_en=False
+    1. When chip_architecture=WH: tilize_en=Tilize.No
         When testing on WH, tilize is always False because DataCopy does not have tilize argument for WH.
-    2. When tilize_en=True: num_faces=4
+    2. When tilize_en=Tilize.Yes: num_faces=4
         Pack does not support less than 4 faces when tilize=True.
-    3. When tilize_en=True: input_format!=Bfp8_b
+    3. When tilize_en=Tilize.Yes: input_format!=Bfp8_b
         Unpack tilize does not support input_format=Bfp8_b.
 
     Args:
@@ -316,15 +315,19 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
 
     # Determine tilize options based on chip architecture
     chip_arch = get_chip_architecture()
-    tilize_list = [False] if chip_arch == ChipArchitecture.WORMHOLE else [False, True]
+    tilize_list = (
+        [Tilize.No]
+        if chip_arch == ChipArchitecture.WORMHOLE
+        else [Tilize.No, Tilize.Yes]
+    )
 
     for tilize_en in tilize_list:
-        num_faces_list = [4] if tilize_en else [1, 2, 4]
+        num_faces_list = [4] if tilize_en == Tilize.Yes else [1, 2, 4]
 
         for num_faces in num_faces_list:
             for fmt in formats_list:
                 # Skip invalid combination: tilize with Bfp8_b format
-                if tilize_en and fmt.input_format == DataFormat.Bfp8_b:
+                if tilize_en == Tilize.Yes and fmt.input_format == DataFormat.Bfp8_b:
                     continue
 
                 for dest_acc in [DestAccumulation.No, DestAccumulation.Yes]:
