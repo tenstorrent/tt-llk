@@ -78,8 +78,8 @@ def collect_results(
     address: int = 0x1C000,
     core_loc: str = "0,0",
     sfpu: bool = False,
-    tile_dimensions=[32, 32],
     num_faces: int = 4,
+    tile_dimensions=[32, 32],
 ):
     # Calculate tile elements based on tile dimensions instead of hardcoding 1024
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
