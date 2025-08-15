@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2023 Tenstorrent Inc.
+// SPDX-FileCopyrightText: © 2023 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -97,6 +97,7 @@ enum class SfpuType
     prelu,
     reshuffle_rows,
     hardsigmoid,
+    threshold,
     where,
     atanh,
     asinh,
