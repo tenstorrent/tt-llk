@@ -474,7 +474,9 @@ def test_unpack_comprehensive(
     else:
         # No transpose - use data copy
         generate_golden = get_golden_generator(DataCopyGolden)
-        golden_tensor = generate_golden(src_A, formats.output_format)
+        golden_tensor = generate_golden(
+            src_A, formats.output_format, num_faces, input_dimensions
+        )
 
     # BUILD THE COMPLETE TEST CONFIG
     test_config = {
@@ -504,7 +506,6 @@ def test_unpack_comprehensive(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        tile_count=tile_cnt,
     )
 
     run_test(test_config)
