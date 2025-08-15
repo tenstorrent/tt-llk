@@ -341,8 +341,8 @@ class TransposeGolden:
         total_elements = tensor.numel()
 
         if tilize:
-            tilize = get_golden_generator(TilizeGolden)
-            tensor = tilize(tensor, input_dimensions, data_format).flatten()
+            tilize_tensor = get_golden_generator(TilizeGolden)
+            tensor = tilize_tensor(tensor, input_dimensions, data_format).flatten()
 
         # Validate that we have the expected number of elements for the given number of tiles
         expected_elements = num_tiles * 1024  # Each tile has 1024 elements (32x32)
@@ -373,8 +373,8 @@ class TransposeGolden:
         # Concatenate all transposed tiles back together
         result = torch.cat(results)
         if untilize:
-            untilize = get_golden_generator(UntilizeGolden)
-            result = untilize(result, data_format, input_dimensions).flatten()
+            untilize_tensor = get_golden_generator(UntilizeGolden)
+            result = untilize_tensor(result, data_format, input_dimensions).flatten()
         return result.to(format_dict[data_format])
 
     def transpose_within_faces_multi_tile(
@@ -406,8 +406,8 @@ class TransposeGolden:
         total_elements = tensor.numel()
 
         if tilize:
-            tilize = get_golden_generator(TilizeGolden)
-            tensor = tilize(tensor, input_dimensions, data_format).flatten()
+            tilize_tensor = get_golden_generator(TilizeGolden)
+            tensor = tilize_tensor(tensor, input_dimensions, data_format).flatten()
 
         # Validate that we have the expected number of elements for the given number of tiles
         expected_elements = num_tiles * 1024  # Each tile has 1024 elements (32x32)
@@ -436,8 +436,8 @@ class TransposeGolden:
         # Concatenate all transposed tiles back together
         result = torch.cat(results)
         if untilize:
-            untilize = get_golden_generator(UntilizeGolden)
-            result = untilize(result, data_format, input_dimensions).flatten()
+            untilize_tensor = get_golden_generator(UntilizeGolden)
+            result = untilize_tensor(result, data_format, input_dimensions).flatten()
 
         return result.to(format_dict[data_format])
 
