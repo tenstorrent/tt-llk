@@ -63,7 +63,7 @@ def test_unary_datacopy(test_name, datacopy_parameters):
 
     unpack_to_dest = (
         False
-        if Tilize.Yes and formats.input_format == DataFormat.Float32
+        if tilize_en == Tilize.Yes and formats.input_format == DataFormat.Float32
         else formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
