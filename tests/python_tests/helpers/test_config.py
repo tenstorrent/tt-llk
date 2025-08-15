@@ -149,21 +149,19 @@ def generate_build_header(
 
     formats = test_config.get("formats")
     if formats:
-        # Tile size for packing. e.g num rows in a tile
-        if formats.output_format == DataFormat.Bfp8_b:
-            header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = 68;")
-        elif formats.output_format == DataFormat.Float32:
-            header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = 256;")
-        else:
-            header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = 128;")
+        # Tile size mapping
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
 
-        # Tile size for Unpacking. e.g num rows in a tile
-        if formats.input_format == DataFormat.Bfp8_b:
-            header_content.append(f"constexpr std::uint32_t TILE_SIZE_UNPACK = 68;")
-        elif formats.input_format == DataFormat.Float32:
-            header_content.append(f"constexpr std::uint32_t TILE_SIZE_UNPACK = 256;")
-        else:
-            header_content.append(f"constexpr std::uint32_t TILE_SIZE_UNPACK = 128;")
+        pack_size = TILE_SIZES.get(formats.output_format, 128)
+        unpack_size = TILE_SIZES.get(formats.input_format, 128)
+
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")
+        header_content.append(
+            f"constexpr std::uint32_t TILE_SIZE_UNPACK = {unpack_size};"
+        )
 
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
