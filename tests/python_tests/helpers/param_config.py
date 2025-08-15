@@ -10,6 +10,7 @@ from helpers.dimensions import (
     calculate_matmul_dimensions,
     generate_matmul_dimension_combinations,
 )
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.log_utils import add_to_format_log
 
 from .format_arg_mapping import DestAccumulation, DestSync, StochasticRounding
@@ -287,5 +288,25 @@ def generate_format_aware_matmul_combinations(
                             for dims in dimensions_list
                         ]
                     )
+
+    return combinations
+
+
+def generate_tilize_aware_datacopy_combinations(formats_list):
+    combinations = []
+
+    tilize_list = (
+        [False]
+        if get_chip_architecture() == ChipArchitecture.WORMHOLE
+        else [False, True]
+    )
+    for tilize_en in tilize_list:
+        num_faces_list = [4] if tilize_en else [1, 2, 4]
+        for num_faces in num_faces_list:
+            for fmt in formats_list:
+                if tilize_en and fmt.input_format == DataFormat.Bfp8_b:
+                    pass
+                else:
+                    combinations.append((fmt, num_faces, tilize_en))
 
     return combinations
