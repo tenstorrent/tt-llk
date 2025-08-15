@@ -1,10 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import pytest
 import torch
 
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -13,6 +11,7 @@ from helpers.format_arg_mapping import DestAccumulation, DestSync, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
 from helpers.param_config import (
+    generate_tilize_aware_datacopy_combinations,
     input_output_formats,
     parametrize,
 )
@@ -20,38 +19,31 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
+DATACOPY_FORMATS = input_output_formats(
+    [
+        DataFormat.Float32,
+        DataFormat.Float16,
+        DataFormat.Float16_b,
+        DataFormat.Bfp8_b,
+    ]
+)
+
 
 @parametrize(
     test_name="eltwise_unary_datacopy_test",
-    formats=input_output_formats(
-        [
-            DataFormat.Float32,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
-        ]
-    ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
-    num_faces=[1, 2, 4],
+    format_num_faces_and_tilize=generate_tilize_aware_datacopy_combinations(
+        DATACOPY_FORMATS
+    ),
     dest_sync=[DestSync.Half, DestSync.Full],
-    tilize_en=[False, True],
 )
-def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync, tilize_en):
-    if get_chip_architecture() == ChipArchitecture.WORMHOLE and tilize_en:
-        pytest.skip("Datacopy has no tilize argument for WORMHOLE")
-
-    if num_faces != 4 and tilize_en:
-        pytest.skip("Pack does not support less than 4 faces when tilize = true")
-
-    if formats.input_format == DataFormat.Bfp8_b and tilize_en:
-        pytest.skip("Unpack Tilize does not support Bfp8_b input format")
-
-    unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync, tilize_en)
-
-
-def unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync, tilize_en):
+def test_unary_datacopy(test_name, dest_acc, format_num_faces_and_tilize, dest_sync):
 
     input_dimensions = [64, 64]
+
+    formats = format_num_faces_and_tilize[0]
+    num_faces = format_num_faces_and_tilize[1]
+    tilize_en = format_num_faces_and_tilize[2]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
