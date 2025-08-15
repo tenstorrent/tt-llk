@@ -12,6 +12,7 @@ from helpers.dimensions import (
     calculate_matmul_dimensions,
 )
 from helpers.format_arg_mapping import (
+    DestAccumulation,
     MathFidelity,
     Transpose,
     format_dict,
@@ -39,7 +40,10 @@ MATMUL_FORMATS = input_output_formats(
         DataFormat.Float32,
     ]
 )
-ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMATS)
+DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
+    MATMUL_FORMATS, DEST_ACC_MODES
+)
 
 
 @pytest.mark.nightly

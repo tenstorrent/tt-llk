@@ -211,7 +211,9 @@ def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]
 
 
 def generate_format_aware_matmul_combinations(
-    formats_list, stochastic_rounding_modes: bool = False
+    formats_list: List[FormatConfig],
+    dest_acc_modes: List[DestAccumulation],
+    all_stochastic_modes: List[StochasticRounding] = None,
 ):
     """
     Generate matmul dimension combinations with stochastic rounding support.
@@ -229,64 +231,60 @@ def generate_format_aware_matmul_combinations(
 
     Returns: List of (format, dest_acc, stochastic_rounding, dimensions) tuples
     """
-    if stochastic_rounding_modes:
-        all_stochastic_modes = [
-            StochasticRounding.No,
-            StochasticRounding.Fpu,
-            StochasticRounding.Pack,
-            StochasticRounding.All,
-        ]
-    else:
-        all_stochastic_modes = [
-            StochasticRounding.No,
-        ]
+    if all_stochastic_modes is None:
+        all_stochastic_modes = [StochasticRounding.No]
 
     combinations = []
-    dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
 
     for fmt in formats_list:
-        # Determine dest_acc options and tile limits
-        if is_dest_acc_needed(fmt):
-            base_max_tiles = 4
-        else:
-            base_max_tiles = 8
+        # Pre-compute format-specific values
+        base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
+        is_fpu_bfloat16 = fmt.input_format in [
+            DataFormat.Float16_b,
+            DataFormat.Float32,
+        ] and fmt.output_format in [DataFormat.Float16_b, DataFormat.Float32]
 
-        # Generate all combinations for this format
         for dest_acc in dest_acc_modes:
-            # Apply tile limit based on dest_acc
             max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
+            dimensions_list = generate_matmul_dimension_combinations(max_tiles)
 
             for stochastic_mode in all_stochastic_modes:
-                dimensions_list = generate_matmul_dimension_combinations(max_tiles)
+                # Pre-compute stochastic condition
+                is_fpu_stochastic = stochastic_mode in [
+                    StochasticRounding.Fpu,
+                    StochasticRounding.All,
+                ]
 
-                for dims in dimensions_list:
-                    # Check if we should exclude this combination
-                    inputA_dims, inputB_dims = dims
-                    matmul_info = calculate_matmul_dimensions(
-                        tuple(inputA_dims), tuple(inputB_dims)
+                # Skip early if we know all combinations will be excluded
+                if (
+                    is_fpu_stochastic
+                    and dest_acc == DestAccumulation.No
+                    and is_fpu_bfloat16
+                ):
+                    # Check if any dimensions would have k_tiles < 4
+                    valid_dimensions = []
+                    for dims in dimensions_list:
+                        inputA_dims, inputB_dims = dims
+                        matmul_info = calculate_matmul_dimensions(
+                            tuple(inputA_dims), tuple(inputB_dims)
+                        )
+                        if matmul_info["kt_dim"] < 4:
+                            valid_dimensions.append(dims)
+
+                    # Add only the valid ones
+                    combinations.extend(
+                        [
+                            (fmt, dest_acc, dims, stochastic_mode)
+                            for dims in valid_dimensions
+                        ]
                     )
-                    k_tiles = matmul_info["kt_dim"]
-
-                    # Exclusion rule: Fpu stochastic + no dest_acc + k_tiles>=4 + Float16_b/Float32
-                    is_fpu_stochastic = stochastic_mode in [
-                        StochasticRounding.Fpu,
-                        StochasticRounding.All,
-                    ]
-                    is_problematic_format = fmt.input_format in [
-                        DataFormat.Float16_b,
-                        DataFormat.Float32,
-                    ] and fmt.output_format in [
-                        DataFormat.Float16_b,
-                        DataFormat.Float32,
-                    ]
-                    should_exclude = (
-                        is_fpu_stochastic
-                        and dest_acc == DestAccumulation.No
-                        and k_tiles >= 4
-                        and is_problematic_format
+                else:
+                    # No exclusion needed for this stochastic mode, add all
+                    combinations.extend(
+                        [
+                            (fmt, dest_acc, dims, stochastic_mode)
+                            for dims in dimensions_list
+                        ]
                     )
-
-                    if not should_exclude:
-                        combinations.append((fmt, dest_acc, dims, stochastic_mode))
 
     return combinations
