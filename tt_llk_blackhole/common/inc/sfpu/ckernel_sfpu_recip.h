@@ -16,29 +16,41 @@ namespace sfpu
 template <bool APPROXIMATE = false>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
-    sfpi::vFloat y      = sfpi::approx_recip(x);
-    sfpi::vInt exponent = sfpi::exexp_nodebias(y);
+    // This approximation will return ±0 for x=±inf or x=±2**126, and ±inf for x=±0.
+    sfpi::vFloat y = sfpi::approx_recip(x);
 
-    // Ensure that y is not ±0 or ±infinity for Newton-Raphson.
-    // If exponent = 0, then y = ±0.
-    // If exponent = 255, then y = ±infinity.
+    // Check x to ensure that it is not ±infinity.
+    // We check that it is not ±0 within the block below for performance reasons.
 
-    v_if (exponent >= 1)
+    sfpi::vInt exponent = sfpi::exexp_nodebias(x);
+    v_if (exponent < 254)
     {
+        // Check for |x| ≥ 2**126, i.e. exponent = 253 or 254.
+        v_if (exponent >= 253)
+        {
+            // The only values of x for which we can return a non-denormal number are |x| = 2**126.
+            // Here we set y = ±2**-126 for exponent = 253, and y = ±0 for exponent = 254.
+            // For |x| > 2**126, the Newton-Raphson iteration will flush to zero.
+            y = sfpi::reinterpret<sfpi::vFloat>(sfpi::reinterpret<sfpi::vInt>(x) & sfpi::vConstIntPrgm1);
+            // The above should compile to a single instruction, but a compiler bug makes it generate 3 instructions.
+        }
+        v_endif;
+
         // One iteration of Newton-Raphson.
         sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
 
-        // For performance reasons, we exclude exponent = 255 here, to hide the
+        // For performance reasons, we exclude exponent = 0 here, to hide the
         // `sfpnop` that would otherwise be generated.
-        v_and(exponent < 255);
+        v_and(exponent >= 1);
 
-        y = y * t;
+        // -sfpi::vConst0 is used to preserve the sign of y = -0.0.
+        y = y * t - sfpi::vConst0;
 
         if constexpr (!APPROXIMATE)
         {
-            // 2nd iteration of Newton-Raphson
+            // 2nd iteration of Newton-Raphson.
             t = y * -x + sfpi::vConstFloatPrgm0;
-            y = y * t;
+            y = y * t - sfpi::vConst0;
         }
     }
     v_endif;
@@ -72,6 +84,7 @@ template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
     sfpi::vConstFloatPrgm0 = 2.0f;
+    sfpi::vConstIntPrgm1   = 0x80800000;
 }
 
 } // namespace sfpu
