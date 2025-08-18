@@ -8,6 +8,9 @@
     },
     "type": "module",
     "dependencies": {
-        "@octokit/rest": "^21.1.1"
+        "@actions/core": "^1.11.1",
+        "@actions/github": "^6.0.0",
+        "@octokit/rest": "^21.1.1",
+        "openai": "^4.73.0"
     }
 }

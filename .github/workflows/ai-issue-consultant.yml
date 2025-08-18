@@ -1,0 +1,106 @@
+name: 🤖 LLK AI Issue Consultant
+
+run-name: 🤖 LLK AI Issue Consultant - Issue #${{ github.event.issue.number || github.event.inputs.issue_number }}
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to process (optional - for testing)'
+        required: true
+        type: string
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  ai-consultant:
+    name: "🤖 AI Issue Analysis"
+    runs-on: ubuntu-latest
+
+    # Only run when:
+    # 1. Issue is labeled by rdjogo with "llk-ai-consultant" label, OR
+    # 2. Manually triggered by rdjogo via workflow_dispatch
+    if: |
+      (github.event_name == 'issues' &&
+       github.event.action == 'labeled' &&
+       github.actor == 'rdjogo' &&
+       github.event.label.name == 'llk-ai-consultant') ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.actor == 'rdjogo')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Get issue details
+        id: issue-details
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_INPUTS_ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+        run: node .github/scripts/get-issue-details.js
+
+      - name: Generate intelligent AI prompt
+        id: generate-prompt
+        if: vars.USE_AI_API == 'true'
+        env:
+          ISSUE_TITLE: ${{ steps.issue-details.outputs.issue_title }}
+          ISSUE_BODY: ${{ steps.issue-details.outputs.issue_body }}
+          ISSUE_AUTHOR: ${{ steps.issue-details.outputs.issue_author }}
+          ISSUE_LABELS: ${{ steps.issue-details.outputs.issue_labels }}
+          TT_CHAT_API_KEY: ${{ secrets.TT_CHAT_API_KEY }}
+          TT_CHAT_BASE_URL: ${{ secrets.TT_CHAT_BASE_URL }}
+          TT_CHAT_MODEL: ${{ secrets.TT_CHAT_MODEL }}
+        run: node .github/scripts/generate-ai-prompt.js
+
+      - name: Prepare AI consultant prompt
+        id: prepare-prompt
+        env:
+          ISSUE_NUMBER: ${{ steps.issue-details.outputs.issue_number }}
+          ISSUE_TITLE: ${{ steps.issue-details.outputs.issue_title }}
+          ISSUE_BODY: ${{ steps.issue-details.outputs.issue_body }}
+          ISSUE_AUTHOR: ${{ steps.issue-details.outputs.issue_author }}
+          ISSUE_LABELS: ${{ steps.issue-details.outputs.issue_labels }}
+          ISSUE_URL: ${{ steps.issue-details.outputs.issue_url }}
+          USE_AI_API: ${{ vars.USE_AI_API || 'false' }}
+          GENERATED_PROMPT: ${{ steps.generate-prompt.outputs.ai_prompt }}
+          PROMPT_SOURCE: ${{ steps.generate-prompt.outputs.prompt_source }}
+        run: |
+          bash ./.github/scripts/prepare-ai-response.sh
+
+      - name: Call TT-Chat API for analysis
+        if: steps.prepare-prompt.outputs.ai_use_real_api == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_PROMPT: ${{ steps.generate-prompt.outputs.ai_prompt || env.AI_PROMPT }}
+          PROMPT_SOURCE: ${{ steps.generate-prompt.outputs.prompt_source || 'default' }}
+          ISSUE_TITLE: ${{ steps.issue-details.outputs.issue_title }}
+          ISSUE_AUTHOR: ${{ steps.issue-details.outputs.issue_author }}
+          ISSUE_LABELS: ${{ steps.issue-details.outputs.issue_labels }}
+          TT_CHAT_API_KEY: ${{ secrets.TT_CHAT_API_KEY }}
+          TT_CHAT_BASE_URL: ${{ secrets.TT_CHAT_BASE_URL }}
+          TT_CHAT_MODEL: ${{ secrets.TT_CHAT_MODEL }}
+        run: node .github/scripts/call-tt-chat.js
+
+      - name: Post AI consultant response
+        if: steps.prepare-prompt.outputs.ai_response_ready == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.issue-details.outputs.issue_number }}
+        run: node .github/scripts/post-ai-comment.js
+
+      - name: Log workflow completion
+        run: |
+          echo "✅ LLK AI Issue Consultant workflow completed successfully"
+          echo "Issue #${{ steps.issue-details.outputs.issue_number }} has been processed and commented"
