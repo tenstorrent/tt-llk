@@ -33,6 +33,7 @@ jobs:
     # Only run when:
     # 1. Issue is labeled by rdjogo with "llk-ai-consultant" label, OR
     # 2. Manually triggered by rdjogo via workflow_dispatch
+    # 3. Manually triggered by rdjogo via push to rd/ai_tools branch
     if: |
       (github.event_name == 'issues' &&
        github.event.action == 'labeled' &&

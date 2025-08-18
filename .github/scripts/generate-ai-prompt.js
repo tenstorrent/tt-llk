@@ -56,10 +56,14 @@ async function main()
         // Create a meta-prompt to generate a better analysis prompt
         const metaPrompt = `You are an expert in Tenstorrent's Low Level Kernel (LLK) APIs and Tensix processor architecture.
 
+The repo you are working on is https://github.com/tenstorrent/tt-llk.
+You also know about all the information in the tt-metal repo https://github.com/tenstorrent/tt-metal, and the Tensix ISA repo https://github.com/tenstorrent/tt-isa-documentation.
+
 Given the following GitHub issue, create a specific, detailed prompt that would help analyze the issue in terms of:
 1. Relevant LLK APIs
 2. Tensix instructions that are called
 3. Tensix configuration registers that are programmed
+4. Tensix data formats that are relevant to the issue
 
 The prompt should be tailored to the specific issue content and ask for precise, technical details.
 
@@ -88,7 +92,7 @@ Return ONLY the generated prompt text, nothing else.`;
             model: model,
             stream: false,
             temperature: 0.3, // Lower temperature for more consistent prompt generation
-            max_tokens: 500   // Sufficient for a detailed prompt
+            max_tokens: 1000  // Sufficient for a detailed prompt
         });
 
         const generatedPrompt = response.choices[0]?.message?.content?.trim();
@@ -101,7 +105,7 @@ Return ONLY the generated prompt text, nothing else.`;
         }
 
         console.log(`✅ Generated specialized prompt (${generatedPrompt.length} characters)`);
-        console.log(`📝 Preview: ${generatedPrompt.substring(0, 200)}...`);
+        console.log(`📝 Prompt: ${generatedPrompt}`);
 
         // Set the generated prompt as output
         core.setOutput('ai_prompt', generatedPrompt);
