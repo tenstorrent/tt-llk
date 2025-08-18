@@ -3,6 +3,9 @@ name: 🤖 LLK AI Issue Consultant
 run-name: 🤖 LLK AI Issue Consultant - Issue #${{ github.event.issue.number || github.event.inputs.issue_number }}
 
 on:
+  push:
+    branches:
+      - rd/ai_tools
   issues:
     types: [labeled]
   workflow_dispatch:
