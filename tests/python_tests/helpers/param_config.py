@@ -288,3 +288,43 @@ def generate_format_aware_matmul_combinations(
                     )
 
     return combinations
+
+
+def generate_transpose_dest_combinations(formats_list):
+    """
+    Generate transpose dest combinations that respect constraints.
+
+    Key rules:
+    1.
+    2.
+    3.
+
+    Args:
+        formats_list: List of InputOutputFormat combinations
+
+    Returns:
+        List of tuples: (format, dest_acc, math_transpose_faces, unpack_to_dest)
+    """
+
+    combinations = []
+
+    for fmt in formats_list:
+        is_input_32bit = fmt.input_format.is_32_bit()
+        dest_acc_list = (
+            [DestAccumulation.Yes] if is_input_32bit else [DestAccumulation.No]
+        )
+        math_transpose_faces_list = [True, False] if is_input_32bit else [True]
+
+        for dest_acc in dest_acc_list:
+            for math_transpose_faces in math_transpose_faces_list:
+                if math_transpose_faces:
+                    unpack_to_dest_list = [True, False] if is_input_32bit else [False]
+                else:
+                    unpack_to_dest_list = [True]
+
+                for unpack_to_dest in unpack_to_dest_list:
+                    combinations.append(
+                        (fmt, dest_acc, math_transpose_faces, unpack_to_dest)
+                    )
+
+    return combinations

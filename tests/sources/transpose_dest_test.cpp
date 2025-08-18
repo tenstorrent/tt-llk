@@ -50,8 +50,6 @@ using namespace ckernel;
 void run_kernel()
 {
     constexpr bool is32 = is_32bit_format(static_cast<DataFormat>(formats.math));
-    // constexpr bool is32 = unpack_to_dest;
-    // constexpr bool is32 = is_fp32_dest_acc_en;
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
@@ -72,11 +70,11 @@ void run_kernel()
 
         _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
 
-        // #ifdef ARCH_BLACKHOLE
+#ifdef ARCH_BLACKHOLE
         _llk_math_transpose_dest_<is_fp32_dest_acc_en, MATH_TRANSPOSE_FACES, is32>(i);
-        // #else
-        //         _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is32>(i);
-        // #endif
+#else
+        _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is32>(i);
+#endif
 
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
