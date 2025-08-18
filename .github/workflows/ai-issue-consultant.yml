@@ -33,7 +33,9 @@ jobs:
        github.actor == 'rdjogo' &&
        github.event.label.name == 'llk-ai-consultant') ||
       (github.event_name == 'workflow_dispatch' &&
-       github.actor == 'rdjogo')
+       github.actor == 'rdjogo') ||
+      (github.event_name == 'push' &&
+       github.event.ref == 'refs/heads/rd/ai_tools')
 
     steps:
       - name: Checkout code
