@@ -326,3 +326,54 @@ def get_max_dst_index(dest_sync: DestSync, dest_acc: bool, result_tiles: int) ->
         DestSync.Full: 16 if not dest_acc else 8,
     }
     return max(DEST_SYNC_TILE_LIMITS[dest_sync] - result_tiles, 0)
+
+
+def generate_transpose_dest_combinations(formats_list):
+    """
+    Generate transpose dest combinations that respect constraints.
+    Key rules:
+    1. math_transpose_faces = Transpose.No is only supported with 32bit math formats:
+       Transpose of 32-bit values in dest with precision loss (unpack Float32 to src registers)
+       is not supported for math_transpose_faces = Transpose.No.
+       Transpose of 16-bit values in dest is not supported for math_transpose_faces = Transpose.No.
+    Covered combinations:
+    1. Lossless transpose of 32-bit values in dest -> input_format=Float32, dest_acc=DestAccumulation.Yes and unpack_to_dest=True.
+    2. Transpose of 32-bit values in dest with precision loss (unpacks Float32 to src registers, Float32 truncates to Tf32) ->
+       input_format=Float32, dest_acc=DestAccumulation.Yes and unpack_to_dest=False.
+    3. Transpose of 16-bit values in dest -> input_format=[Float16, Float16_b, Bfp8_b],
+       dest_acc=DestAccumulation.No and unpack_to_dest=False.
+    Args:
+        formats_list: List of InputOutputFormat combinations
+    Returns:
+        List of tuples: (format, dest_acc, math_transpose_faces, unpack_to_dest)
+    """
+
+    combinations = []
+
+    for fmt in formats_list:
+        is_input_32bit = fmt.input_format.is_32_bit()
+        dest_acc_list = (
+            [DestAccumulation.Yes] if is_input_32bit else [DestAccumulation.No]
+        )
+
+        # Transpose of 16-bit values in dest is supported only for math_transpose_faces = True
+        math_transpose_faces_list = (
+            [Transpose.Yes, Transpose.No] if is_input_32bit else [Transpose.Yes]
+        )
+
+        for dest_acc in dest_acc_list:
+            for math_transpose_faces in math_transpose_faces_list:
+
+                # Test both loss (unpacking to src registers) and lossless (unpacking to dest) transpose dest
+                # for 32bit inputs when math_transpose_faces = Transpose.Yes
+                if math_transpose_faces == Transpose.Yes:
+                    unpack_to_dest_list = [True, False] if is_input_32bit else [False]
+                else:
+                    unpack_to_dest_list = [True]
+
+                for unpack_to_dest in unpack_to_dest_list:
+                    combinations.append(
+                        (fmt, dest_acc, math_transpose_faces, unpack_to_dest)
+                    )
+
+    return combinations

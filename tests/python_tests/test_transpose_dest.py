@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import pytest
 import torch
 
 from helpers.device import (
@@ -16,6 +15,7 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.param_config import (
+    generate_transpose_dest_combinations,
     input_output_formats,
     parametrize,
 )
@@ -23,22 +23,31 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
+TRANSPOSE_DEST_FLOAT_FORMATS = input_output_formats(
+    [
+        DataFormat.Float32,
+        DataFormat.Float16,
+        DataFormat.Float16_b,
+        DataFormat.Bfp8_b,
+    ]
+)
+
 
 @parametrize(
     test_name="transpose_dest_test",
-    formats=input_output_formats(
-        [
-            DataFormat.Float32,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
-        ]
+    fmt_dest_acc_math_transp_unpack_to_dest=generate_transpose_dest_combinations(
+        TRANSPOSE_DEST_FLOAT_FORMATS
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    math_transpose_faces=[True, False],
 )
-def test_transpose_dest_float(test_name, formats, dest_acc, math_transpose_faces):
-    transpose_dest(test_name, formats, dest_acc, math_transpose_faces)
+def test_transpose_dest_float(test_name, fmt_dest_acc_math_transp_unpack_to_dest):
+
+    transpose_dest(
+        test_name,
+        formats=fmt_dest_acc_math_transp_unpack_to_dest[0],
+        dest_acc=fmt_dest_acc_math_transp_unpack_to_dest[1],
+        math_transpose_faces=fmt_dest_acc_math_transp_unpack_to_dest[2],
+        unpack_to_dest=fmt_dest_acc_math_transp_unpack_to_dest[3],
+    )
 
 
 @parametrize(
@@ -46,23 +55,15 @@ def test_transpose_dest_float(test_name, formats, dest_acc, math_transpose_faces
     formats=input_output_formats([DataFormat.Int32]),
     dest_acc=[DestAccumulation.Yes],
     math_transpose_faces=[True, False],
+    unpack_to_dest=[True],
 )
-def test_transpose_dest_int(test_name, formats, dest_acc, math_transpose_faces):
-    transpose_dest(test_name, formats, dest_acc, math_transpose_faces)
+def test_transpose_dest_int(
+    test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest
+):
+    transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest)
 
 
-def transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
-
-    unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-    )
-
-    if unpack_to_dest == False and math_transpose_faces == False:
-        # if dest_acc == DestAccumulation.No and math_transpose_faces == False:
-        pytest.skip("Not supported in h file.")
-
-    # if formats.input_format.is_32_bit() == False and math_transpose_faces == False:
-    # pytest.skip("Not supported in h file.")
+def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest):
 
     input_dimensions = [32, 32]
 
@@ -73,7 +74,9 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces):
     )
 
     generate_datacopy_golden = get_golden_generator(DataCopyGolden)
-    datacopy_tensor = generate_datacopy_golden(src_A, formats.output_format)
+    datacopy_tensor = generate_datacopy_golden(
+        src_A, formats.output_format, num_faces=4, input_dimensions=input_dimensions
+    )
     t_matrix = get_golden_generator(TransposeGolden)
     transpose_dest_golden = t_matrix.transpose_faces(
         datacopy_tensor,
