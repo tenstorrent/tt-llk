@@ -75,8 +75,6 @@ Issue Labels: ${issueLabels}
 Generate a prompt that is more specific and insightful than this default prompt:
 "${DEFAULT_PROMPT}"
 
-The prompt should explicitly tell the LLK to not halucinate any information, and only answer what it knows.
-
 Return ONLY the generated prompt text, nothing else.`;
 
         console.log('🧠 Asking TT-Chat to generate a specialized prompt...');
