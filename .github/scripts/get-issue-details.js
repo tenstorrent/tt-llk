@@ -31,17 +31,17 @@ async function main()
     }
     else if (context.eventName === 'workflow_dispatch')
     {
-        issueNumber = inputIssueNumber || '598'; // Default to issue 598 if not provided
+        issueNumber = inputIssueNumber || '599'; // Default to issue 599 if not provided
         console.log(`📋 Using issue number: ${issueNumber} ${!inputIssueNumber ? '(default)' : '(provided)'}`);
     }
     else if (context.eventName === 'push')
     {
-        issueNumber = '598'; // Default to issue 598 for push events (testing)
+        issueNumber = '599'; // Default to issue 599 for push events (testing)
         console.log(`📋 Using default issue number for push event: ${issueNumber}`);
     }
     else
     {
-        issueNumber = '598'; // Ultimate fallback
+        issueNumber = '599'; // Ultimate fallback
         console.log(`⚠️  Unknown event type '${context.eventName}', using default issue number: ${issueNumber}`);
     }
 

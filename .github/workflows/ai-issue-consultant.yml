@@ -4,7 +4,7 @@ run-name: >-
   🤖 LLK AI Issue Consultant - Issue #${{
     github.event.issue.number ||
     github.event.inputs.issue_number ||
-    '598'
+    '599'
   }}
 
 on:
@@ -15,7 +15,7 @@ on:
       issue_number:
         description: 'Issue number to process (optional - for testing)'
         required: false
-        default: '598'
+        default: '599'
         type: string
   push:
     branches:
