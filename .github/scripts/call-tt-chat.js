@@ -135,53 +135,15 @@ ${aiAnalysis}
     {
         console.error('❌ TT-Chat API call failed:', error.message);
 
-        // Create fallback error response
-        const promptSourceDesc = promptSource === 'generated' ? '🧠 AI-Generated Specialized Prompt' :
-                                 promptSource === 'default'   ? '🔄 Default Prompt (AI generation failed)' :
-                                                                '⚙️ Hardcoded Default Prompt';
+        // Log detailed error information
+        console.error('🔧 Configuration used:');
+        console.error(`   Base URL: ${baseUrl}`);
+        console.error(`   Model: ${model}`);
+        console.error(`   Prompt Source: ${promptSource}`);
 
-        const errorResponse = `🤖 **LLK AI Consultant Analysis**
-
-**Issue:** ${issueTitle || 'Unknown'}
-**Reporter:** @${issueAuthor || 'Unknown'}
-**Labels:** ${issueLabels || 'Unknown'}
-**Prompt:** ${promptSourceDesc}
-
----
-
-## ⚠️ Analysis Error
-
-Unfortunately, the TT-Chat AI analysis could not be completed due to a technical issue:
-
-\`\`\`
-${error.message}
-\`\`\`
-
-### Fallback Analysis Structure
-
-The issue will be manually analyzed according to the following structure:
-
-### 1. Relevant LLK APIs
-*Manual analysis required*
-
-### 2. Tensix Instructions Called
-*Manual analysis required*
-
-### 3. Tensix Configuration Registers Programmed
-*Manual analysis required*
-
----
-
-*Error occurred on ${new Date().toISOString()}*
-*Please check TT-Chat API configuration and try again*`;
-
-        // Write error response to file
-        writeFileSync('ai_response.md', errorResponse, 'utf8');
-
-        console.log('📝 Error response written to ai_response.md');
-
-        // Don't throw - let the workflow continue with error response
-        return {success: false, error: error.message};
+        // Fail the workflow with a clear error message
+        core.setFailed(`TT-Chat API analysis failed: ${error.message}`);
+        throw error;
     }
 }
 

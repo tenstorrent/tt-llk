@@ -65,7 +65,6 @@ jobs:
 
       - name: Generate intelligent AI prompt
         id: generate-prompt
-        if: vars.USE_AI_API == 'true'
         env:
           ISSUE_TITLE: ${{ steps.issue-details.outputs.issue_title }}
           ISSUE_BODY: ${{ steps.issue-details.outputs.issue_body }}
@@ -85,14 +84,12 @@ jobs:
           ISSUE_AUTHOR: ${{ steps.issue-details.outputs.issue_author }}
           ISSUE_LABELS: ${{ steps.issue-details.outputs.issue_labels }}
           ISSUE_URL: ${{ steps.issue-details.outputs.issue_url }}
-          USE_AI_API: ${{ vars.USE_AI_API || 'false' }}
           GENERATED_PROMPT: ${{ steps.generate-prompt.outputs.ai_prompt }}
           PROMPT_SOURCE: ${{ steps.generate-prompt.outputs.prompt_source }}
         run: |
           bash ./.github/scripts/prepare-ai-response.sh
 
       - name: Call TT-Chat API for analysis
-        if: steps.prepare-prompt.outputs.ai_use_real_api == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AI_PROMPT: ${{ steps.generate-prompt.outputs.ai_prompt || env.AI_PROMPT }}
@@ -106,7 +103,6 @@ jobs:
         run: node .github/scripts/call-tt-chat.js
 
       - name: Post AI consultant response
-        if: steps.prepare-prompt.outputs.ai_response_ready == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ steps.issue-details.outputs.issue_number }}
