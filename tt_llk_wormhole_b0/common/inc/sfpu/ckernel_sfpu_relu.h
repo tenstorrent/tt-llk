@@ -88,7 +88,14 @@ inline void _relu_max_(T threshold)
     }
     else if constexpr (std::is_same_v<T, uint32_t>)
     {
-        v_threshold = Converter::as_float(threshold);
+        if constexpr (std::is_same_v<VectorType, sfpi::vInt>)
+        {
+            v_threshold = (int)Converter::as_float(threshold);
+        }
+        else
+        {
+            v_threshold = Converter::as_float(threshold);
+        }
     }
     else
     {
@@ -126,7 +133,14 @@ inline void _relu_min_(T threshold)
     }
     else if constexpr (std::is_same_v<T, uint32_t>)
     {
-        v_threshold = Converter::as_float(threshold);
+        if constexpr (std::is_same_v<VectorType, sfpi::vInt>)
+        {
+            v_threshold = (int)Converter::as_float(threshold);
+        }
+        else
+        {
+            v_threshold = Converter::as_float(threshold);
+        }
     }
     else
     {
