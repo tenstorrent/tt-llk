@@ -71,7 +71,7 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    src_A = torch.ones(1024)
+    src_A = torch.ones(1024) * (2)
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
