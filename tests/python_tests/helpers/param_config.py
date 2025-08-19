@@ -6,12 +6,13 @@ from typing import List, Optional, Tuple, TypedDict
 
 import pytest
 
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.dimensions import (
     calculate_matmul_dimensions,
     generate_matmul_dimension_combinations,
 )
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.log_utils import add_to_format_log
+
 from .format_arg_mapping import DestAccumulation, DestSync, StochasticRounding, Tilize
 from .format_config import (
     DataFormat,
