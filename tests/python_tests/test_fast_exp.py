@@ -127,5 +127,5 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
         formats.output_format,
         custom_atol=0.1,
         custom_rtol=0.1,
-        one_face_check=True,
+        one_face_check=False,
     )
