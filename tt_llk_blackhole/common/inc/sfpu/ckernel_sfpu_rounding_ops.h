@@ -208,6 +208,12 @@ inline void _calculate_trunc_()
         }
         v_endif;
 
+        sfpi::vFloat sub_in = sfpi::abs(in)-sfpi::abs(in);
+        v_if(sub_in != 0.0){
+            result = in;
+        }
+        v_endif;
+
         sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
     }
