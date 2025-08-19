@@ -9,6 +9,8 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "perf.h"
+#include "profiler.h"
 
 // Globals
 uint32_t unp_cfg_context          = 0;
@@ -169,7 +171,11 @@ void run_kernel()
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
         // calling sfpu function from ckernel
         // this part is where parametrization of operation takes part
-        call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
+        {
+            ZONE_SCOPED("SFPU FUNC")
+            call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
+            tensix_sync();
+        }
 
         _llk_math_eltwise_unary_sfpu_done_();
     }

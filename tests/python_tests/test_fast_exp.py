@@ -22,11 +22,38 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
+from helpers.perf import (
+    PerfReport,
+    PerfRunType,
+    delete_benchmark_dir,
+    dump_report,
+    dump_scatter,
+    perf_benchmark,
+    update_report,
+)
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
+# Perf instrumentation setup
 
+TEST_NAME = "fast_exp_test"
+
+report = PerfReport()
+
+
+@pytest.fixture(scope="module")
+def report_fixture():
+    delete_benchmark_dir(TEST_NAME)
+    yield
+    dump_report(TEST_NAME, report)
+    dump_scatter(TEST_NAME, report)
+
+
+# ----------------------
+
+
+@pytest.mark.perf
 @parametrize(
     test_name="fast_exp_test",
     formats=input_output_formats(
@@ -120,7 +147,9 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     print("GOLDEN:")
     print(golden_tensor[0:10])
 
-    # assert 1==2
+    results = perf_benchmark(test_config, run_types=[PerfRunType.MATH_ISOLATE])
+    update_report(report, test_config, results)
+
     assert passed_test(
         golden_tensor,
         res_tensor,
