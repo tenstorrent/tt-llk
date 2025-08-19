@@ -8,7 +8,7 @@ import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.log_utils import add_to_format_log
 
-from .format_arg_mapping import DestAccumulation, DestSync, Tilize
+from .format_arg_mapping import DestAccumulation, DestSync, Tilize, Transpose
 from .format_config import (
     DataFormat,
     FormatConfig,
