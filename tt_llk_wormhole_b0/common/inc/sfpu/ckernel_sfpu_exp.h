@@ -168,6 +168,60 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
+        TTI_SFPLOADMACRO(0x0, 0x2, 0x0, 0x400);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0x1, 0x2, 0x0, 0x402);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0x2, 0x2, 0x0, 0x404);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0x3, 0x2, 0x0, 0x406);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0x0, 0x2, 0x0, 0x408);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0x1, 0x2, 0x0, 0x40A);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0x2, 0x2, 0x0, 0x40C);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0x3, 0x2, 0x0, 0x40E);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+    }
+    else
+    {
+        // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
+        for (int d = 0; d < ITERATIONS; d++)
+        {
+            sfpi::vFloat val    = sfpi::dst_reg[0];
+            sfpi::vFloat result = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(val, exp_base_scale_factor);
+            sfpi::dst_reg[0]    = result;
+            sfpi::dst_reg++;
+        }
+    }
+}
+
+constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
+constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
+constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
+
+template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
+inline void _init_exponential_()
+{
+    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    {
         TTI_SFPLOADI(0, 0xA, 0x3333);
         TTI_SFPLOADI(0, 0x8, 0xC2AD);
         TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14]         =    -86.6               = 0xC2AD_3333
@@ -216,82 +270,6 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         // Invert the direction of SFPSWAP instructions so we put the larger operand in
         // the register the MAD will pick up as SrcB
         TTI_SFPCONFIG(0x0100, 0xF, 0x1);
-
-        TTI_SFPLOADMACRO(0x0, 0x2, 0x0, 0x400);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0x1, 0x2, 0x0, 0x402);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0x2, 0x2, 0x0, 0x404);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0x3, 0x2, 0x0, 0x406);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-    }
-    else
-    {
-        // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
-        for (int d = 0; d < ITERATIONS; d++)
-        {
-            sfpi::vFloat val    = sfpi::dst_reg[0];
-            sfpi::vFloat result = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(val, exp_base_scale_factor);
-            sfpi::dst_reg[0]    = result;
-            sfpi::dst_reg++;
-        }
-    }
-}
-
-constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
-constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
-constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
-
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
-inline void _init_exponential_()
-{
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
-    {
-        // Algorithm is adapted from:
-        //      A Fast, Compact Approximation of the Exponential Function
-        //      Nicol N. Schraudolph
-        //      IDSIA, Lugano, Switzerland
-
-        // First, set up constant values which are needed for the computation
-        //      We will first sanitize the input values (y) to be in the range that won't cause underflow, which for our hardware means we need to limit
-        //      negative values to be greater than or equal to -88.5 The computation that is needed is (A * y) + (B - C) , where A = (2^8)/ln(2) , B = 127 *
-        //      (2^8) , C = Adjustment parameter of roughly 11.2 to minimize error
-        //          - NOTE: we would like to be able to use 2^23 instead of 2^8 and compute a 32-bit quantity, but our hardware only supports rounding FP32 into
-        //          a 16-bit integer, so we use 2^8 and then shift left by 15 bits after rounding
-        //      So we will set up the following constants:
-        //          LREG[14] =       =    -88.5               = 0xc2b10000
-        //          LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
-        //          LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
-
-        constexpr float LN2_RECIP = 1.4426950408889634f;
-        constexpr float A         = 256.0f * LN2_RECIP;
-        constexpr float B_minus_C = 32500.818359375f;
-        constexpr float THRESHOLD = -88.5f;
-
-        constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
-
-        constexpr float A_scaled         = A * scale_fp32;
-        constexpr float THRESHOLD_scaled = THRESHOLD / scale_fp32;
-
-        TTI_SFPLOADI(7, 0xA, lo16(THRESHOLD_scaled));
-        TTI_SFPLOADI(7, 0x8, hi16(THRESHOLD_scaled));
-        // TTI_SFPCONFIG(0, 7, 0); // SFPCONFIG Dest 14 = LREG[14] =            -88.5               = 0xc2b10000
-
-        TTI_SFPLOADI(6, 0xA, lo16(A_scaled));
-        TTI_SFPLOADI(6, 0x8, hi16(A_scaled));
-        // TTI_SFPCONFIG(0, 6, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
-
-        TTI_SFPLOADI(5, 0xA, lo16(B_minus_C));
-        TTI_SFPLOADI(5, 0x8, hi16(B_minus_C));
-        // TTI_SFPCONFIG(0, 5, 0); // SFPCONFIG Dest 13 = LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
     }
     else if constexpr (APPROXIMATION_MODE)
     {
