@@ -89,7 +89,7 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to
     # <math_transpose_faces=false, is_32bit=true> can be combined with unpack_transpose_faces=true.
     unpack_transpose_faces = (
         Transpose.Yes.value
-        if (formats.input_format.is_32_bit() and not math_transpose_faces)
+        if (unpack_to_dest and not math_transpose_faces)
         else Transpose.No.value
     )
 
