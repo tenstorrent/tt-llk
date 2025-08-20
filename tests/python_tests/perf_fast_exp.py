@@ -33,7 +33,7 @@ from helpers.stimuli_generator import generate_stimuli
 
 # Perf instrumentation setup
 
-TEST_NAME = "fast_exp_test"
+TEST_NAME = "perf_fast_exp_test"
 
 report = PerfReport()
 
@@ -51,7 +51,7 @@ def report_fixture():
 
 @pytest.mark.perf
 @parametrize(
-    test_name="fast_exp_test",
+    test_name=TEST_NAME,
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
