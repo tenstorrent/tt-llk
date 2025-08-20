@@ -86,7 +86,10 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to
         input_dimensions=input_dimensions,
     )
 
-    # <math_transpose_faces=false, is_32bit=true> can be combined with unpack_transpose_faces=true.
+    # <math_transpose_faces=false, is_32bit=true> can be combined with unpack_transpose_faces=true
+    # <math_transpose_faces=false, is_32bit=false>: not supported
+    # Make sure to set unpack_transpose_faces = Transpose.No for cases where Float32 is truncated due to unpacking to src registers
+    # because is_32bit will be false for these cases
     unpack_transpose_faces = (
         Transpose.Yes.value
         if (unpack_to_dest and not math_transpose_faces)
