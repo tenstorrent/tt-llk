@@ -5,7 +5,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .device import run_elf_files, wait_for_tensix_operations_finished
+from .device import BootMode, run_elf_files, wait_for_tensix_operations_finished
 from .dimensions import validate_tile_dimensions
 from .format_arg_mapping import (
     FPU_BINARY_OPERATIONS,
@@ -14,13 +14,14 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     StochasticRounding,
     Transpose,
     format_tile_sizes,
 )
-from .format_config import FormatConfig, InputOutputFormat
+from .format_config import DataFormat, FormatConfig, InputOutputFormat
 from .utils import run_shell_command
 
 
@@ -50,7 +51,9 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
 
 
 def generate_build_header(
-    test_config, profiler_build: ProfilerBuild = ProfilerBuild.No
+    test_config,
+    profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
     """
     Generate the contents of a C++ header file (build.h) with all configuration defines.
@@ -69,6 +72,7 @@ def generate_build_header(
     Args:
         test_config (dict): Dictionary containing test configuration parameters.
         profiler_build (ProfilerBuild, optional): Whether to enable profiler defines.
+        boot_mode (BootMode, optional): Which core / host performs initial device setup.
 
     Returns:
         str: The complete contents of the build.h header file as a string.
@@ -98,6 +102,11 @@ def generate_build_header(
     # Profiler configuration
     if profiler_build == ProfilerBuild.Yes:
         header_content.append("#define LLK_PROFILER")
+
+    if boot_mode == BootMode.BRISC:
+        header_content.append("#define LLK_BOOT_MODE_BRISC")
+    elif boot_mode == BootMode.TRISC:
+        header_content.append("#define LLK_BOOT_MODE_TRISC")
 
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
@@ -138,6 +147,22 @@ def generate_build_header(
         f"constexpr auto STOCHASTIC_RND = ckernel::{stochastic_rnd.value};"
     )
 
+    formats = test_config.get("formats")
+    if formats:
+        # Tile size mapping
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
+
+        pack_size = TILE_SIZES.get(formats.output_format, 128)
+        unpack_size = TILE_SIZES.get(formats.input_format, 128)
+
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")
+        header_content.append(
+            f"constexpr std::uint32_t TILE_SIZE_UNPACK = {unpack_size};"
+        )
+
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
     # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
@@ -154,6 +179,16 @@ def generate_build_header(
     )
     header_content.append(
         f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
+    )
+
+    # Number of faces
+    num_faces = test_config.get("num_faces", 4)
+    header_content.append(f"constexpr int num_faces = {num_faces};")
+
+    # Dest synchronisation mode
+    dest_sync = test_config.get("dest_sync", DestSync.Half)
+    header_content.append(
+        f"constexpr auto dest_sync = ckernel::DstSync::Sync{dest_sync.name};"
     )
 
     # Data format configuration
@@ -309,8 +344,11 @@ def generate_build_header(
 def write_build_header(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
-    header_content = generate_build_header(test_config, profiler_build)
+    header_content = generate_build_header(
+        test_config, profiler_build, boot_mode=boot_mode
+    )
     with open("../helpers/include/build.h", "w") as f:
         f.write(header_content)
 
@@ -332,6 +370,7 @@ def generate_make_command(
 def build_test(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
     """Only builds the files required to run a test"""
 
@@ -341,7 +380,7 @@ def build_test(
 
     TESTS_DIR = str((Path(root) / "tests").absolute())
 
-    write_build_header(test_config, profiler_build=profiler_build)
+    write_build_header(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
     make_cmd = generate_make_command(test_config, profiler_build=profiler_build)
     run_shell_command(make_cmd, cwd=TESTS_DIR)
 
@@ -349,11 +388,12 @@ def build_test(
 def run_test(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,  # change default boot mode here
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, profiler_build=profiler_build)
+    build_test(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
 
     # run test
-    run_elf_files(test_config["testname"])
+    run_elf_files(test_config["testname"], boot_mode=boot_mode)
     wait_for_tensix_operations_finished()
