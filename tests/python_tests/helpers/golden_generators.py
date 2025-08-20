@@ -844,7 +844,6 @@ class UnarySFPUGolden:
         )
         return torch.nn.functional.hardsigmoid(input_tensor).item()
 
-<<<<<<< HEAD
     def _threshold(self, x, t=5, v=10):
         input_tensor = (
             x
@@ -869,7 +868,6 @@ class UnarySFPUGolden:
         )
         return torch.max(input_tensor, torch.tensor(threshold)).item()
 
-=======
     def _lt(self, x, y=5):
         return x < y
 
@@ -887,7 +885,6 @@ class UnarySFPUGolden:
 
     def _ne(self, x, y=5):
         return x != y
->>>>>>> 5260d5b1 (Fix and add test for unary comp ops)
 
 
 @register_golden
