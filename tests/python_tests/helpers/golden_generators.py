@@ -1259,6 +1259,7 @@ class TilizeGolden:
 
         # Always do full tilization first
         result = tilize_block(operand, dimensions, data_format)
+<<<<<<< HEAD
         torch_format = format_dict[data_format]
 
         # Then select the appropriate number of faces from the tilized result
@@ -1270,3 +1271,6 @@ class TilizeGolden:
             ]
 
         return result.flatten().to(torch_format)
+=======
+        return result.flatten()
+>>>>>>> 8a2f4222 (Clean up)
