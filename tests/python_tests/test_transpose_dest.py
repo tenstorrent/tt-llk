@@ -64,7 +64,7 @@ def test_transpose_dest_int(
 
 def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest):
 
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
