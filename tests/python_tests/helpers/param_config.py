@@ -295,14 +295,17 @@ def generate_transpose_dest_combinations(formats_list):
     Generate transpose dest combinations that respect constraints.
 
     Key rules:
-    1. math_transpose_faces = False is only supported with 32bit math formats, which means that:
-       Transpose of 32-bit values in dest with precision loss (Float32 truncates to Tf32)
+    1. math_transpose_faces = False is only supported with 32bit math formats:
+       Transpose of 32-bit values in dest with precision loss (unpack Float32 to src registers)
        is not supported for math_transpose_faces = False.
        Transpose of 16-bit values in dest is not supported for math_transpose_faces = False.
-    2. Test lossless transpose of 32-bit values in dest -> dest_acc = DestAccumulation.Yes and unpack_to_dest = True.
-    3. Test transpose of 32-bit values in dest with precision loss (Float32 truncates to Tf32) ->
-       dest_acc = DestAccumulation.Yes and unpack_to_dest = False.
-    4. Transpose of 16-bit values in dest is supported when dest_acc = DestAccumulation.No and unpack_to_dest = False.
+
+    Covered combinations:
+    1. Lossless transpose of 32-bit values in dest -> input_format=Float32, dest_acc=DestAccumulation.Yes and unpack_to_dest=True.
+    2. Transpose of 32-bit values in dest with precision loss (unpacks Float32 to src registers, Float32 truncates to Tf32) ->
+       input_format=Float32, dest_acc=DestAccumulation.Yes and unpack_to_dest=False.
+    3. Transpose of 16-bit values in dest -> input_format=[Float16, Float16_b, Bfp8_b],
+       dest_acc=DestAccumulation.No and unpack_to_dest=False.
 
     Args:
         formats_list: List of InputOutputFormat combinations
