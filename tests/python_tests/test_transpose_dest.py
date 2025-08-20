@@ -64,7 +64,7 @@ def test_transpose_dest_int(
 
 def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest):
 
-    input_dimensions = [32, 32]
+    input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -73,15 +73,17 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to
     )
 
     t_matrix = get_golden_generator(TransposeGolden)
-    golden_tensor = t_matrix.transpose_faces(
+    golden_tensor = t_matrix.transpose_faces_multi_tile(
         src_A,
         formats.output_format,
+        num_tiles=tile_cnt,
         tilize=False,
         input_dimensions=input_dimensions,
     )
-    golden_tensor = t_matrix.transpose_within_faces(
+    golden_tensor = t_matrix.transpose_within_faces_multi_tile(
         golden_tensor,
         formats.output_format,
+        num_tiles=tile_cnt,
         untilize=False,
         input_dimensions=input_dimensions,
     )
