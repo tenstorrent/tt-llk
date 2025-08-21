@@ -4,20 +4,21 @@
 import inspect
 import os
 import time
+from enum import Enum, IntEnum
 from pathlib import Path
 
 from ttexalens.coordinate import OnChipCoordinate
+from ttexalens.debug_tensix import TensixDebug
 from ttexalens.tt_exalens_lib import (
     check_context,
     load_elf,
     read_from_device,
     read_word_from_device,
-    run_elf,
     write_to_device,
     write_words_to_device,
 )
 
-from helpers.chip_architecture import get_chip_architecture
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 
 from .format_arg_mapping import (
     DestAccumulation,
@@ -58,6 +59,19 @@ TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack) and
 KERNEL_COMPLETE = 1  # Kernel completed its run
 
 
+class BootMode(Enum):
+    BRISC = "brisc"
+    TRISC = "trisc"
+    EXALENS = "exalens"
+
+
+class RiscCore(IntEnum):
+    BRISC = 11
+    TRISC0 = 12
+    TRISC1 = 13
+    TRISC2 = 14
+
+
 def collect_results(
     formats: FormatConfig,
     tile_count: int,
@@ -65,6 +79,7 @@ def collect_results(
     core_loc: str = "0,0",
     sfpu: bool = False,
     tile_dimensions=[32, 32],
+    num_faces: int = 4,
 ):
     # Calculate tile elements based on tile dimensions instead of hardcoding 1024
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
@@ -75,7 +90,9 @@ def collect_results(
     )
 
     read_data = read_from_device(core_loc, address, num_bytes=read_bytes_cnt)
-    res_from_L1 = unpack_res_tiles(read_data, formats, tile_count=tile_count, sfpu=sfpu)
+    res_from_L1 = unpack_res_tiles(
+        read_data, formats, tile_count=tile_count, sfpu=sfpu, num_faces=num_faces
+    )
     return res_from_L1
 
 
@@ -92,7 +109,47 @@ def perform_tensix_soft_reset(core_loc="0,0"):
     register_store.write_register("RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset)
 
 
-def run_elf_files(testname, core_loc="0,0"):
+def run_cores(cores: list[RiscCore], device_id=0, core_loc="0,0"):
+    context = check_context()
+    device = context.devices[device_id]
+    chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
+    noc_block = device.get_block(chip_coordinate)
+    register_store = noc_block.get_register_store()
+
+    core_mask = 0
+    for core in cores:
+        core_mask |= 1 << core.value
+
+    soft_reset = register_store.read_register("RISCV_DEBUG_REG_SOFT_RESET_0")
+    soft_reset &= ~core_mask
+    register_store.write_register("RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset)
+
+
+def exalens_device_setup(chip_arch, device_id=0, core_loc="0,0"):
+    context = check_context()
+    device = context.devices[device_id]
+    chip_coordinate = OnChipCoordinate.create(core_loc, device=device)
+    debug_tensix = TensixDebug(chip_coordinate, device_id, context)
+    ops = debug_tensix.device.instructions
+
+    if chip_arch == ChipArchitecture.BLACKHOLE:
+        register_store = device.get_block(chip_coordinate).get_register_store()
+        register_store.write_register("RISCV_DEBUG_REG_DEST_CG_CTRL", 0)
+        debug_tensix.inject_instruction(ops.TT_OP_ZEROACC(3, 0, 0, 1, 0), 0)
+    else:
+        debug_tensix.inject_instruction(ops.TT_OP_ZEROACC(3, 0, 0), 0)
+
+    debug_tensix.inject_instruction(ops.TT_OP_SFPENCC(3, 0, 0, 10), 0)
+    debug_tensix.inject_instruction(ops.TT_OP_NOP(), 0)
+
+    debug_tensix.inject_instruction(ops.TT_OP_SFPCONFIG(0, 11, 1), 0)
+
+    debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 2), 0)
+    debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 7), 0)
+    debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
+
+
+def run_elf_files(testname, device_id=0, core_loc="0,0", boot_mode=BootMode.BRISC):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
@@ -114,9 +171,22 @@ def run_elf_files(testname, core_loc="0,0"):
     TRISC_PROFILER_BARRIE_ADDRESS = 0x16AFF4
     write_words_to_device(core_loc, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
 
-    # Run BRISC
-    brisc_elf_path = BUILD_DIR / "shared" / "elf" / "brisc.elf"
-    run_elf(str(brisc_elf_path.absolute()), core_loc, risc_name="brisc")
+    match boot_mode:
+        case BootMode.BRISC:
+            brisc_elf_path = BUILD_DIR / "shared" / "elf" / "brisc.elf"
+            load_elf(
+                elf_file=str(brisc_elf_path.absolute()),
+                core_loc=core_loc,
+                risc_name="brisc",
+            )
+            run_cores([RiscCore.BRISC], device_id, core_loc)
+        case BootMode.TRISC:
+            run_cores([RiscCore.TRISC0], device_id, core_loc)
+        case BootMode.EXALENS:
+            exalens_device_setup(CHIP_ARCH, device_id, core_loc)
+            run_cores(
+                [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], device_id, core_loc
+            )
 
 
 def write_stimuli_to_l1(
@@ -128,6 +198,7 @@ def write_stimuli_to_l1(
     tile_count_A: int = 1,
     tile_count_B: int = None,
     core_loc="0,0",
+    num_faces=4,
 ):
     """
     Write matmul stimuli to L1 with different matrix sizes.
@@ -178,14 +249,22 @@ def write_stimuli_to_l1(
             f"Unsupported data formats: {stimuli_A_format.name}, {stimuli_B_format.name}"
         )
 
-    def write_matrix(buffer, tile_count, pack_function, base_address, tile_size):
+    def write_matrix(
+        buffer, tile_count, pack_function, base_address, tile_size, num_faces
+    ):
         addresses = []
         packed_data_list = []
+
+        pack_function_lambda = lambda buffer_tile: (
+            pack_function(buffer_tile, num_faces=num_faces)
+            if pack_function == pack_bfp8_b
+            else pack_function(buffer_tile)
+        )
 
         for i in range(tile_count):
             start_idx = TILE_ELEMENTS * i
             tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
-            packed_data = pack_function(tile_data)
+            packed_data = pack_function_lambda(tile_data)
 
             addresses.append(base_address + i * tile_size)
             packed_data_list.append(packed_data)
@@ -194,10 +273,20 @@ def write_stimuli_to_l1(
             write_to_device(core_loc, addr, data)
 
     write_matrix(
-        buffer_A, tile_count_A, pack_function_A, buffer_A_address, tile_size_A_bytes
+        buffer_A,
+        tile_count_A,
+        pack_function_A,
+        buffer_A_address,
+        tile_size_A_bytes,
+        num_faces,
     )
     write_matrix(
-        buffer_B, tile_count_B, pack_function_B, buffer_B_address, tile_size_B_bytes
+        buffer_B,
+        tile_count_B,
+        pack_function_B,
+        buffer_B_address,
+        tile_size_B_bytes,
+        num_faces,
     )
 
     # Set buffer addresses in device to be defined in build header

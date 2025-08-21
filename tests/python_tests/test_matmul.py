@@ -4,13 +4,14 @@
 import torch
 
 from helpers.device import (
+    BootMode,
     collect_results,
     write_stimuli_to_l1,
 )
 from helpers.dimensions import (
     calculate_matmul_dimensions,
 )
-from helpers.format_arg_mapping import MathFidelity, format_dict
+from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.param_config import (
@@ -19,7 +20,7 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
+from helpers.test_config import ProfilerBuild, run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
@@ -32,7 +33,10 @@ MATMUL_FORMATS = input_output_formats(
     ]
 )
 
-ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMATS)
+DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
+    MATMUL_FORMATS, DEST_ACC_MODES
+)
 
 
 @parametrize(
@@ -45,7 +49,10 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(MATMUL_FORMA
     ],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-def test_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
+# Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
+def test_matmul(
+    test_name, math_fidelity, format_dest_acc_and_dims, boot_mode=BootMode.BRISC
+):
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
 
     formats = format_dest_acc_and_dims[0]
@@ -77,13 +84,8 @@ def test_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
         math_fidelity,
         input_A_dimensions=input_A_dimensions,
         input_B_dimensions=input_B_dimensions,
+        tilize=True,  # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
     )
-    golden_tensor = tilize_block(
-        golden_tensor,
-        dimensions=matmul_dims["output_dimensions"],
-        stimuli_format=formats.output_format,
-    ).to(torch_format)
-    golden_tensor = golden_tensor.flatten()
 
     if formats.input_format != DataFormat.Bfp8_b:
         tilized_A = tilize_block(
@@ -122,7 +124,7 @@ def test_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
         tile_cnt_B,
     )
 
-    run_test(test_config)
+    run_test(test_config, ProfilerBuild.No, boot_mode)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims["output_tile_cnt"], address=res_address
