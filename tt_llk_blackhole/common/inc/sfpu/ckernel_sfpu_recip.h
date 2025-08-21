@@ -13,37 +13,39 @@ namespace sfpu
 {
 
 // Computes the reciprocal of a floating point value x.
-template <bool APPROXIMATE = false>
+template <int max_iter = 2>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
     // sfpi::approx_recip(x) will return ±0 for x = ±inf or x ≥ ±2**126, and ±inf for x = ±0.
     sfpi::vFloat y = sfpi::approx_recip(x);
 
     // Now we improve the approximation using Newton-Raphson.
-
-    // Check x to ensure that it is not ±infinity.
-    // We also check that x is not ±0 within the block below for performance reasons.
-    sfpi::vInt exponent = sfpi::exexp_nodebias(x);
-    v_if (exponent < 255)
+    if constexpr (max_iter > 0)
     {
-        // One iteration of Newton-Raphson.
-        sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
-
-        // For performance reasons, we exclude exponent = 0 here, to hide the
-        // `sfpnop` that would otherwise be generated.
-        v_and(exponent >= 1);
-
-        // -sfpi::vConst0 is used to preserve the sign of y = -0.0.
-        y = y * t - sfpi::vConst0;
-
-        if constexpr (!APPROXIMATE)
+        // Check x to ensure that it is not ±infinity.
+        // We also check that x is not ±0 within the block below for performance reasons.
+        sfpi::vInt exponent = sfpi::exexp_nodebias(x);
+        v_if (exponent < 255)
         {
-            // 2nd iteration of Newton-Raphson.
-            t = y * -x + sfpi::vConstFloatPrgm0;
+            // One iteration of Newton-Raphson.
+            sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
+
+            // For performance reasons, we exclude exponent = 0 here, to hide the
+            // `sfpnop` that would otherwise be generated.
+            v_and(exponent >= 1);
+
+            // -sfpi::vConst0 is used to preserve the sign of y = -0.0.
             y = y * t - sfpi::vConst0;
+
+            if constexpr (max_iter > 1)
+            {
+                // 2nd iteration of Newton-Raphson.
+                t = y * -x + sfpi::vConstFloatPrgm0;
+                y = y * t - sfpi::vConst0;
+            }
         }
+        v_endif;
     }
-    v_endif;
 
     return y;
 }
@@ -55,15 +57,22 @@ inline void _calculate_reciprocal_(const int iterations)
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE>(in);
 
-        if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+        if constexpr (APPROXIMATION_MODE)
         {
-            sfpi::dst_reg[0] = out;
+            sfpi::dst_reg[0] = _sfpu_reciprocal_<0>(in);
         }
         else
         {
-            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
+            if constexpr (is_fp32_dest_acc_en)
+            {
+                sfpi::dst_reg[0] = _sfpu_reciprocal_<2>(in);
+            }
+            else
+            {
+                sfpi::vFloat out = _sfpu_reciprocal_<1>(in);
+                sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
+            }
         }
 
         sfpi::dst_reg++;
@@ -73,8 +82,10 @@ inline void _calculate_reciprocal_(const int iterations)
 template <bool APPROXIMATION_MODE>
 inline void _init_reciprocal_()
 {
-    sfpi::vConstFloatPrgm0 = 2.0f;
-    sfpi::vConstFloatPrgm1 = 1.17549435082228750797e-38f; // 2**-126
+    if constexpr (!APPROXIMATION_MODE)
+    {
+        sfpi::vConstFloatPrgm0 = 2.0f;
+    }
 }
 
 } // namespace sfpu
