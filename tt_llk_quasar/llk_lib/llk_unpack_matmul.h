@@ -51,7 +51,7 @@ inline void _llk_unpack_matmul_mop_config_()
     }
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_instrn /*, inc_l1_instrn*/);
     temp.set_start_op(unpack_reuse_instrn);
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -119,6 +119,6 @@ inline void _llk_unpack_matmul_(const std::uint32_t start_l1_tile_idx_0, const s
         TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_unpacr::UNP_A, tile_idx_1);
 
         // Runs MOP
-        ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+        ckernel::ckernel_template::run_bank0_sw_cntl();
     }
 }
