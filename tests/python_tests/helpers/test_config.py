@@ -99,6 +99,14 @@ def generate_build_header(
         "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
     ]
 
+    # Handle custom defines from def_dict (for histogram test and others)
+    def_dict = test_config.get("def_dict")
+    if def_dict:
+        header_content.extend(["", "// Custom test defines"])
+        for define_name, define_value in def_dict.items():
+            header_content.append(f"#define {define_name} {define_value}")
+        header_content.append("")
+
     # Profiler configuration
     if profiler_build == ProfilerBuild.Yes:
         header_content.append("#define LLK_PROFILER")

@@ -3,4 +3,6 @@
 
 from ttexalens import Verbosity
 
+from .utils import run_shell_command
+
 Verbosity.set(Verbosity.ERROR)
