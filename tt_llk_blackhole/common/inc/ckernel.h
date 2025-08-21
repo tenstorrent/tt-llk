@@ -66,7 +66,7 @@ extern volatile uint32_t __instrn_buffer[];
 
 namespace ckernel
 {
-constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
+constexpr inline volatile uint32_t tt_reg_ptr *instrn_buffer = __instrn_buffer;
 extern volatile uint tt_reg_ptr *mailbox_base[4];
 extern volatile uint tt_reg_ptr *dbg_event_scratch;
 extern volatile uint tt_reg_ptr *trisc_l1_mailbox;
