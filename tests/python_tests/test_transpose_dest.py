@@ -10,6 +10,7 @@ from helpers.device import (
 from helpers.format_arg_mapping import DestAccumulation, Transpose, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
+    DataCopyGolden,
     TransposeGolden,
     get_golden_generator,
 )
@@ -64,7 +65,7 @@ def test_transpose_dest_int(
 
 def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest):
 
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -72,9 +73,13 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to
         input_dimensions=input_dimensions,
     )
 
+    generate_datacopy_golden = get_golden_generator(DataCopyGolden)
+    datacopy_tensor = generate_datacopy_golden(
+        src_A, formats.output_format, num_faces=4, input_dimensions=input_dimensions
+    )
     t_matrix = get_golden_generator(TransposeGolden)
     golden_tensor = t_matrix.transpose_faces_multi_tile(
-        src_A,
+        datacopy_tensor,
         formats.output_format,
         num_tiles=tile_cnt,
         tilize=False,
