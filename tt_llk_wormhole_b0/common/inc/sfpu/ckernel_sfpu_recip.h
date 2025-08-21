@@ -25,7 +25,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // Then negative_x = -x.
     sfpi::vFloat negative_x = sfpi::setman(sfpi::vConstNeg1, sfpi::reinterpret<sfpi::vInt>(in));
 
-    // Quadratic initial estimate: y = 140/33 - 64/11 * x + 256/99 x**2.
+    // Quadratic initial estimate: y = 70/33 - 16/11*x + 32/99*x**2.
     sfpi::vFloat y = sfpi::vConstFloatPrgm1 + sfpi::vConstFloatPrgm0 * negative_x;
 
     // Scale factor: we want 1/in = 1/x * scale.
@@ -45,22 +45,21 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // Scale factor: set mantissa to zero.
     sfpi::vFloat scale = sfpi::setman(sfpi::reinterpret<sfpi::vFloat>(scale_bits), 0);
 
-    // First iteration of Newton-Raphson: t = 1.0 - xy.
+    // First iteration of Newton-Raphson: t = 1.0 - x*y.
     sfpi::vFloat t = sfpi::vConst1 + negative_x * y;
 
     // Scale factor adjustment: scale = scale*0.5.
-    // Note that scale = ±0 and scale = ±inf will be preserved.
-    // If scale.Exp == 0, then scale = ±inf, so scale*0.5 == ±inf.
-    // If scale.Exp == 255, then scale = ±0, so scale*0.5 == ±0.
+    // If scale = ±inf, then scale*0.5 = ±inf and scale.Exp=255.
+    // If scale = ±0, then scale*0.5 = 0 and scale.Exp=0.
     // Otherwise, scale.Exp = scale.Exp-1 = 255-in.Exp-1 = 254-in.Exp.
     scale *= 0.5f;
 
-    // Continue Newton-Raphson: y = y + yt.
+    // Continue Newton-Raphson: y = y + y*t.
     y = y + y * t;
 
     if constexpr (max_iter > 1)
     {
-        // Second iteration of Newton-Raphson: t = 1.0 - xy; y = y + yt.
+        // Second iteration of Newton-Raphson: t = 1.0 - x*y; y = y + y*t.
         t = sfpi::vConst1 + negative_x * y;
         y = y + y * t;
     }
