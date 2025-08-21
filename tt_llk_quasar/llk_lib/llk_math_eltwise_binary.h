@@ -80,7 +80,7 @@ inline void _llk_math_eltwise_binary_mop_config_(const TileShape& tile_shape)
         temp.set_last_inner_loop_instr(eltwise_binary_op_clr_fidelity); // clear math fidelity
     }
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 //----------------------
@@ -147,7 +147,7 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const TileShape& tile_shape)
         temp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, p_setrwc::SET_ABD_F));
     }
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 //----------------------
@@ -234,7 +234,7 @@ inline void _llk_math_eltwise_binary_(const uint32_t tile_idx)
     _set_dst_write_addr_<DstTileShape::Tile32x32>(tile_idx);
 
     // Run MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    ckernel::ckernel_template::run_bank0_sw_cntl();
 
     // Reset all counters
     _reset_counters_<p_setrwc::SET_ABD_F>();

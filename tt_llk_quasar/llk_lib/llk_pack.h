@@ -42,7 +42,7 @@ inline void _llk_pack_mop_config_(const uint32_t num_tiles)
     }();
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -85,5 +85,5 @@ inline void _llk_pack_(
     TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_l1_tile_idx);
 
     // Runs MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    ckernel::ckernel_template::run_bank0_sw_cntl();
 }
