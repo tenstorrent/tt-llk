@@ -14,7 +14,7 @@ namespace sfpu
 
 // Computes the reciprocal of a floating point value x.
 // For max_iter = 2, this should take 20 cycles.
-// For max_iter = 1, this should take 18 cycles.
+// For max_iter = 1, this should take 16 cycles.
 template <int max_iter = 2>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
