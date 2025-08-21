@@ -12,12 +12,8 @@
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
 
-// This header is included on non-trisc builds, for reasons
-// unknown. lltt is only available on trisc
 #if defined(COMPILE_FOR_TRISC)
 #include <utility>
-
-#include "lltt.h"
 #endif
 
 // compiler hints
@@ -69,7 +65,7 @@ extern volatile uint32_t __instrn_buffer[];
 
 namespace ckernel
 {
-constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
+constexpr inline volatile uint32_t tt_reg_ptr *instrn_buffer = __instrn_buffer;
 extern volatile uint tt_reg_ptr *mailbox_base[4];
 extern volatile uint tt_reg_ptr *dbg_event_scratch;
 extern volatile uint tt_reg_ptr *trisc_l1_mailbox;
