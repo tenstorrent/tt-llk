@@ -27,10 +27,6 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 
     // Quadratic initial estimate: y = 140/33 - 64/11 * x + 256/99 x**2.
     sfpi::vFloat y = sfpi::vConstFloatPrgm1 + sfpi::vConstFloatPrgm0 * negative_x;
-    // Hide SFPNOP.
-    sfpi::vFloat two = sfpi::s2vFloat16a(2.0f);
-    // Continue with quadratic estimate.
-    y = sfpi::vConstFloatPrgm2 + y * negative_x;
 
     // Scale factor: we want 1/in = 1/x * scale.
     // For x ≠ ±0 and x ≠ ±inf, in = x * 2**-(127-in.Exp), so 1/in = 1/x * 2**(127-in.Exp).
@@ -43,12 +39,15 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // See the scale factor adjustment via scale*0.5 below for further details.
     sfpi::vInt scale_bits = ~sfpi::reinterpret<sfpi::vUInt>(in);
 
-    // First iteration of Newton-Raphson: t = 2.0 - xy.
-    sfpi::vFloat t = two + negative_x * y;
+    // Continue with quadratic estimate.
+    y = sfpi::vConstFloatPrgm2 + y * negative_x;
+
     // Scale factor: set mantissa to zero.
     sfpi::vFloat scale = sfpi::setman(sfpi::reinterpret<sfpi::vFloat>(scale_bits), 0);
-    // Continue Newton-Raphson: y = yt.
-    y = y * t;
+
+    // First iteration of Newton-Raphson: t = 1.0 - xy.
+    sfpi::vFloat t = sfpi::vConst1 + negative_x * y;
+
     // Scale factor adjustment: scale = scale*0.5.
     // Note that scale = ±0 and scale = ±inf will be preserved.
     // If scale.Exp == 0, then scale = ±inf, so scale*0.5 == ±inf.
@@ -56,11 +55,14 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // Otherwise, scale.Exp = scale.Exp-1 = 255-in.Exp-1 = 254-in.Exp.
     scale *= 0.5f;
 
+    // Continue Newton-Raphson: y = y + yt.
+    y = y + y * t;
+
     if constexpr (max_iter > 1)
     {
-        // Second iteration of Newton-Raphson: t = 2.0 - xy, y = yt.
-        t = two + negative_x * y;
-        y = y * t;
+        // Second iteration of Newton-Raphson: t = 1.0 - xy; y = y + yt.
+        t = sfpi::vConst1 + negative_x * y;
+        y = y + y * t;
     }
 
     // Apply scaling factor, and set sign to match input.
