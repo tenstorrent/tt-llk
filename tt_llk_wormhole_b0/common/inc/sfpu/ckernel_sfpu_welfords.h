@@ -16,7 +16,7 @@ using namespace sfpi;
 namespace ckernel {
 namespace sfpu {
 
-sfpi_inline void Load_Recip_N_LREG7(uint32_t N){
+sfpi_inline void Load_Recip_N_LREG7(const uint32_t N){
     /*var_{N+1}temp = 1/(N+1)*/
     float inv_n_plus_1 = 1.0/((float)N+1.0);
     uint32_t bits = __builtin_bit_cast(std::uint32_t, inv_n_plus_1);
@@ -139,7 +139,7 @@ sfpi_inline void Welfords_Load_Initial_Data() {
             TTI_SFPSTORE(p_sfpu::LREG4, 0, ADDR_MOD_3, 64); \
             TTI_SFPSTORE(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
 
-sfpi_inline void Welfords_Main(uint32_t &N, uint32_t &endN) {
+sfpi_inline void Welfords_Main(uint32_t &N,const uint32_t &endN) {
     // I, J, LOAD_PREVIOUS, N, endN. N can only be zero in first iteration
     if (N == 0) {
         lltt::replay(9, 9);
@@ -190,7 +190,7 @@ sfpi_inline void Format_Data_To_Row(){
         TTI_SFPSTORE(p_sfpu::LREG6, 0, ADDR_MOD_3, 128 + 16);
         TTI_SFPSTORE(p_sfpu::LREG7, 0, ADDR_MOD_3, 128 + 18);
 }
-void _welfords_(uint32_t N, uint32_t endN, uint32_t reformat_dst){
+void _welfords_(uint32_t N,const uint32_t endN,const uint32_t reformat_dst){
     Welfords_Main(N, endN);
     if(N == endN){
         Format_Data_To_Row();
