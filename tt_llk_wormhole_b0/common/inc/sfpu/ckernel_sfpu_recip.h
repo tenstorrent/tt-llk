@@ -13,8 +13,11 @@ namespace sfpu
 {
 
 // Computes the reciprocal of a floating point value x.
-// For max_iter = 2, this should take 20 cycles.
-// For max_iter = 1, this should take 16 cycles.
+// max_iter specifies the number of Newton-Raphson iterations.
+// max_iter = 2: sufficient for float32 precision (≤1 ulps).
+// max_iter = 1: sufficient for bfloat16/float16 precision (≤0.5 ulps).
+// max_iter = 0: this has the same effect as max_iter=1 at the moment;
+//               it may be replaced with a cheaper approximation in future.
 template <int max_iter = 2>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
