@@ -126,8 +126,8 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             ckernel::sfpu::_calculate_elu_<APPROX_MODE, iterations>(1);
             break;
         case SfpuType::exponential:
-            ckernel::sfpu::_init_exponential_<APPROX_MODE, true /*fast_mode*/, 0x3F800000 /* exp_base_scale_factor */>();
-            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false /* scale_en */, 32, true /* fast_approx */, false /* skip_positive_check */>(
+            ckernel::sfpu::_init_exponential_<true, true /*fast_mode*/, 0x3F800000 /* exp_base_scale_factor */>();
+            ckernel::sfpu::_calculate_exponential_<true, false /* scale_en */, 32, true /* fast_approx */, false /* skip_positive_check */>(
                 p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
             break;
         case SfpuType::exp2:

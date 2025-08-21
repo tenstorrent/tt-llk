@@ -168,41 +168,38 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-#pragma GCC unroll 32
-        for (int i = 0; i < 64; i += 8)
-        {
-            TTI_SFPLOADMACRO(0x0, 0x2, 0x0, i);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
+        // (*((volatile uint32_t*)0x18000)) = (uint32_t)0xdeadbeef;
+        TTI_SFPLOADMACRO(0x0, 0x2, 0x0, 0);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
 
-            TTI_SFPLOADMACRO(0x1, 0x2, 0x0, i + 2);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
+        TTI_SFPLOADMACRO(0x1, 0x2, 0x0, 2);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
 
-            TTI_SFPLOADMACRO(0x2, 0x2, 0x0, i + 4);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
+        TTI_SFPLOADMACRO(0x2, 0x2, 0x0, 4);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
 
-            TTI_SFPLOADMACRO(0x3, 0x2, 0x0, i + 6);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
-        }
+        TTI_SFPLOADMACRO(0x3, 0x2, 0x0, 6);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
 
-        // TTI_SFPLOADMACRO(0x0, 0x2, 0x0, 8);
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
+        TTI_SFPLOADMACRO(0x0, 0x2, 0x0, 8);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
 
-        // TTI_SFPLOADMACRO(0x1, 0x2, 0x0, 10);
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
+        TTI_SFPLOADMACRO(0x1, 0x2, 0x0, 10);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
 
-        // TTI_SFPLOADMACRO(0x2, 0x2, 0x0, 12);
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
+        TTI_SFPLOADMACRO(0x2, 0x2, 0x0, 12);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
 
-        // TTI_SFPLOADMACRO(0x3, 0x2, 0x0, 14);
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
+        TTI_SFPLOADMACRO(0x3, 0x2, 0x0, 14);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
     }
     else
     {
