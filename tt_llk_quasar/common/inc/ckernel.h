@@ -37,7 +37,13 @@ constexpr uint8_t UNPACK_TO_DEST_PACK_SEMAPHORE          = 7;
 volatile uint *const reg_base        = (volatile uint *)0xFFB10000;
 volatile uint *const pc_buf_base     = (volatile uint *)PC_BUF_BASE;
 volatile uint *const regfile         = (volatile uint *)REGFILE_BASE;
-volatile uint *const instrn_buffer   = (volatile uint *)INSTRN_BUF_BASE;
+} // namespace ckernel
+
+extern volatile uint32_t __instrn_buffer[];
+
+namespace ckernel
+{
+constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
 volatile uint *const mailbox_base[4] = {
     (volatile uint *)TENSIX_MAILBOX0_BASE, (volatile uint *)TENSIX_MAILBOX1_BASE, (volatile uint *)TENSIX_MAILBOX2_BASE, (volatile uint *)TENSIX_MAILBOX3_BASE};
 volatile uint *const replay_mmap = (uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
