@@ -43,10 +43,11 @@ extern volatile uint32_t __instrn_buffer[];
 
 namespace ckernel
 {
-constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
-volatile uint *const mailbox_base[4]                            = {
+constexpr inline volatile uint32_t tt_reg_ptr *instrn_buffer = __instrn_buffer;
+constexpr inline volatile uint32_t tt_reg_ptr *replay_mmap   = instrn_buffer + 256;
+
+volatile uint *const mailbox_base[4]                         = {
     (volatile uint *)TENSIX_MAILBOX0_BASE, (volatile uint *)TENSIX_MAILBOX1_BASE, (volatile uint *)TENSIX_MAILBOX2_BASE, (volatile uint *)TENSIX_MAILBOX3_BASE};
-volatile uint *const replay_mmap = (uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
 
 inline void mmio_register_write(register_space_e space, uint addr, uint data)
 {
