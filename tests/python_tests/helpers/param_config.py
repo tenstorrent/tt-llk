@@ -217,9 +217,10 @@ def generate_format_aware_matmul_combinations(
     formats_list: List[FormatConfig],
     dest_acc_modes: List[DestAccumulation],
     all_stochastic_modes: List[StochasticRounding] = None,
+    dest_sync_modes: List[DestSync] = [DestSync.Half],
 ):
     """
-    Generate matmul dimension combinations with stochastic rounding support.
+    Generate matmul dimension combinations with stochastic rounding support and dst index sweeping.
 
     Rules:
     1. Format outliers (Float16_b->Float16, Bfp8_b->Float16) MUST use dest_acc=Yes
@@ -231,8 +232,11 @@ def generate_format_aware_matmul_combinations(
         - This specific case models when we have bfloat16 in dst register, when stochastic rounding is enabled the datum lacks mantissa bits
         to absorb the accumulated precision loss from multiple matmul ops acrossmultiple tiles. And due to existence of bug, this specific case sometimes fails,
         for now we will exclude this case.
+    5. Dst register indices are swept based on dest_acc and number of tiles in dst setting:
+       - Using DestSync.Half mode:
+         - max_dst_tiles=8 (16bit) or 4 (32bit)
 
-    Returns: List of (format, dest_acc, stochastic_rounding, dimensions) tuples
+    Returns: List of (format, dest_acc, dimensions, stochastic_rounding, dst_index) tuples
     """
     if all_stochastic_modes is None:
         all_stochastic_modes = [StochasticRounding.No]
@@ -274,21 +278,108 @@ def generate_format_aware_matmul_combinations(
                         if matmul_info["kt_dim"] < 4:
                             valid_dimensions.append(dims)
 
-                    # Add only the valid ones
-                    combinations.extend(
-                        [
-                            (fmt, dest_acc, dims, stochastic_mode)
-                            for dims in valid_dimensions
-                        ]
-                    )
+                    # Add only the valid ones with dest indices
+                    for dims in valid_dimensions:
+                        inputA_dims, inputB_dims = dims
+                        matmul_info = calculate_matmul_dimensions(
+                            tuple(inputA_dims), tuple(inputB_dims)
+                        )
+                        result_tiles = matmul_info["output_tile_cnt"]
+
+                        # Get valid dest indices for this configuration
+                        max_dst_idx = calculate_edgecase_dest_indices(
+                            dest_acc == DestAccumulation.Yes,
+                            result_tiles,
+                            dest_sync_modes,
+                        )[0]
+                        combinations.extend(
+                            [
+                                (fmt, dest_acc, dims, stochastic_mode, 0),
+                                (fmt, dest_acc, dims, stochastic_mode, max_dst_idx),
+                            ]
+                        )
+
                 else:
-                    # No exclusion needed for this stochastic mode, add all
-                    combinations.extend(
-                        [
-                            (fmt, dest_acc, dims, stochastic_mode)
-                            for dims in dimensions_list
-                        ]
-                    )
+                    # No exclusion needed for this stochastic mode, add all with dest indices
+                    for dims in dimensions_list:
+                        inputA_dims, inputB_dims = dims
+                        matmul_info = calculate_matmul_dimensions(
+                            tuple(inputA_dims), tuple(inputB_dims)
+                        )
+                        result_tiles = matmul_info["output_tile_cnt"]
+
+                        # Get valid dest indices for this configuration
+                        max_dst_idx = calculate_edgecase_dest_indices(
+                            dest_acc == DestAccumulation.Yes,
+                            result_tiles,
+                            dest_sync_modes,
+                        )[0]
+                        combinations.extend(
+                            [
+                                (fmt, dest_acc, dims, stochastic_mode, 0),
+                                (fmt, dest_acc, dims, stochastic_mode, max_dst_idx),
+                            ]
+                        )
+
+    return combinations
+
+
+def _get_dest_indices_for_sync_mode(
+    dest_acc: bool, result_tiles: int, dest_sync: DestSync
+) -> list:
+    """
+    Helper function to calculate valid destination indices for a specific DestSync mode.
+
+    Args:
+        dest_acc: Whether destination accumulation is enabled (32-bit mode)
+        result_tiles: Number of tiles in the result matrix
+        dest_sync: DestSync mode to calculate indices for
+
+    Returns:
+        List of valid destination indices [0, max_index] for this mode
+    """
+    DEST_SYNC_TILE_LIMITS = {
+        DestSync.Half: 8,
+        DestSync.Full: 16,
+    }
+
+    base_tile_limit = DEST_SYNC_TILE_LIMITS[dest_sync]
+    capacity_divisor = 2 if dest_acc else 1
+    max_tiles = base_tile_limit // capacity_divisor
+    max_index = max_tiles - result_tiles
+
+    if max_index < 0:
+        raise ValueError(
+            f"Too many result tiles ({result_tiles}) for destination capacity ({max_tiles}) with {dest_sync.name}"
+        )
+
+    # Return both edge cases: starting at index 0 and at max allowed index
+    return max_index
+
+
+def calculate_edgecase_dest_indices(
+    dest_acc: bool, result_tiles: int, dest_sync_modes: List[DestSync] = [DestSync.Half]
+):
+    """
+    Generate the lowest and highest possible dest index depending on the DestSync modes and whether dest is 32bit or not.
+
+    Key rules:
+    1. The lowest possible dest index is always 0.
+    2. When DestSync.Half:  max_dst_tiles=8 (if dest is 16bit) or max_dst_tiles=4 (if dest is 32bit)
+    3. When DestSync.Full:  max_dst_tiles=16 (if dest is 16bit) or max_dst_tiles=8 (if dest is 32bit)
+
+    Args:
+        dest_acc: Dest 16/32 bit mode, has to match is_fp32_dest_acc_en from C++
+        result_tiles: Number of tiles in the result matrix
+        dest_sync_modes: List of DestSync modes to generate indices for. If None, uses [DestSync.Half]
+
+    Returns:
+        List of tuples: (dest_sync, dst_index)
+    """
+    combinations = []
+    for dest_sync in dest_sync_modes:
+        indices = _get_dest_indices_for_sync_mode(dest_acc, result_tiles, dest_sync)
+        combinations.append(indices)
 
     return combinations
 
