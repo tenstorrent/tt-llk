@@ -56,7 +56,7 @@ inline void _calculate_reciprocal_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat in  = sfpi::dst_reg[0];
+        sfpi::vFloat in = sfpi::dst_reg[0];
 
         if constexpr (APPROXIMATION_MODE)
         {
