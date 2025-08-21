@@ -65,7 +65,7 @@ inline void _llk_unpack_unary_operand_mop_config_(const uint32_t num_tiles)
         temp.set_end_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_A, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
     }
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -125,7 +125,7 @@ inline void _llk_unpack_unary_operand_transpose_mop_config_(const uint32_t num_t
         }
     }
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -178,5 +178,5 @@ inline void _llk_unpack_unary_operand_(const uint l1_tile_idx)
     TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, 0);
 
     // Runs MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    ckernel::ckernel_template::run_bank0_sw_cntl();
 }
