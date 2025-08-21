@@ -16,16 +16,40 @@ using namespace sfpi;
 namespace ckernel {
 namespace sfpu {
 
+// C++17 compatible bit_cast replacement using union
+template<typename To, typename From>
+inline To bit_cast(const From& from) noexcept {
+    static_assert(sizeof(To) == sizeof(From), "Types must have same size");
+    static_assert(std::is_trivially_copyable_v<From>, "From must be trivially copyable");
+    static_assert(std::is_trivially_copyable_v<To>, "To must be trivially copyable");
+    
+    union {
+        From f;
+        To t;
+    } u;
+    u.f = from;
+    return u.t;
+}
+
+// Optimized float to 16-bit parts conversion
+struct FloatBits {
+    uint16_t high16;
+    uint16_t low16;
+    
+    explicit FloatBits(float value) {
+        const uint32_t bits = bit_cast<uint32_t>(value);
+        high16 = static_cast<uint16_t>(bits >> 16);
+        low16 = static_cast<uint16_t>(bits & 0xFFFF);
+    }
+};
 sfpi_inline void Load_Recip_N_LREG7(const uint32_t N){
-    /*var_{N+1}temp = 1/(N+1)*/
-    float inv_n_plus_1 = 1.0/((float)N+1.0);
-    uint32_t bits = __builtin_bit_cast(std::uint32_t, inv_n_plus_1);
-    uint16_t high16_bits = static_cast<uint16_t>(bits >> 16);
-    uint16_t low16_bits  = static_cast<uint16_t>(bits & 0xFFFF);
+        /*var_{N+1}temp = 1/(N+1)*/
+    const float inv_n_plus_1 = 1.0f / static_cast<float>(current_sample + 1);
+    const FloatBits inv_bits(inv_n_plus_1);
     /*var_{N+1}temp = 1/(N+1) usage loads high 16 bits*/
-    TT_SFPLOADI(p_sfpu::LREG7, 8, high16_bits);
+    TT_SFPLOADI(p_sfpu::LREG7, 8, inv_bits.high16);
     /*var_{N+1}temp = 1/(N+1) usage loads low 16 bits*/
-    TT_SFPLOADI(p_sfpu::LREG7, 10, low16_bits);
+    TT_SFPLOADI(p_sfpu::LREG7, 10, inv_bits.low16);
 }
 sfpi_inline void Welfords_Math(){
     //=========================================
