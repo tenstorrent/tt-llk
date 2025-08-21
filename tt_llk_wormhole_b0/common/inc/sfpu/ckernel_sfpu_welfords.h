@@ -42,7 +42,7 @@ struct FloatBits {
         low16 = static_cast<uint16_t>(bits & 0xFFFF);
     }
 };
-sfpi_inline void Load_Recip_N_LREG7(const uint32_t N){
+sfpi_inline void Load_Recip_N_LREG7(const uint32_t current_sample){
         /*var_{N+1}temp = 1/(N+1)*/
     const float inv_n_plus_1 = 1.0f / static_cast<float>(current_sample + 1);
     const FloatBits inv_bits(inv_n_plus_1);
@@ -141,52 +141,52 @@ sfpi_inline void Welfords_Load_Initial_Data() {
 
 // Macro to allow returns to exit main function
 
-#define WELFORDS_LOOP_ITERATION(N, endN) \
-            Load_Recip_N_LREG7(N);\
+#define WELFORDS_LOOP_ITERATION(current_sample, final_sample) \
+            Load_Recip_N_LREG7(current_sample);\
             lltt::replay(0, 9); \
-            N++; \
-            if(N == endN) { return; }\
+            current_sample++; \
+            if(current_sample == final_sample) { return current_sample; }\
             TTI_SFPADD(p_sfpu::LCONST_1/*LREG10 = <1>*/, p_sfpu::LCONST_0, p_sfpu::LREG1, p_sfpu::LREG0,0); \
-            Load_Recip_N_LREG7(N);\
+            Load_Recip_N_LREG7(current_sample);\
             lltt::replay(0, 9); \
-            N++; \
-            if(N == endN) { return; }\
+            current_sample++; \
+            if(current_sample == final_sample) { return current_sample; }\
             TTI_SFPADD(p_sfpu::LCONST_1/*LREG10 = <1>*/, p_sfpu::LCONST_0, p_sfpu::LREG2, p_sfpu::LREG0,0); \
-            Load_Recip_N_LREG7(N);\
+            Load_Recip_N_LREG7(current_sample);\
             lltt::replay(0, 9); \
-            N++; \
-            if(N == endN) { return; }\
+            current_sample++; \
+            if(current_sample == final_sample) { return current_sample; }\
             TTI_SFPADD(p_sfpu::LCONST_1/*LREG10 = <1>*/, p_sfpu::LCONST_0, p_sfpu::LREG3, p_sfpu::LREG0,0); \
-            Load_Recip_N_LREG7(N);\
+            Load_Recip_N_LREG7(current_sample);\
             lltt::replay(0, 9); \
-            N++; \
+            current_sample++; \
             TTI_SFPSTORE(p_sfpu::LREG4, 0, ADDR_MOD_3, 64); \
             TTI_SFPSTORE(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
 
-sfpi_inline void Welfords_Main(uint32_t &N,const uint32_t &endN) {
+sfpi_inline uint32_t Welfords_Main(uint32_t current_sample,const uint32_t final_sample) {
     // I, J, LOAD_PREVIOUS, N, endN. N can only be zero in first iteration
-    if (N == 0) {
+    if (current_sample == 0) {
         lltt::replay(9, 9);
-        WELFORDS_LOOP_ITERATION(N, endN)
+        WELFORDS_LOOP_ITERATION(current_sample, final_sample)
     } else {
         Welfords_Load_Data<0,0>();
-        WELFORDS_LOOP_ITERATION(N, endN)
+        WELFORDS_LOOP_ITERATION(current_sample, final_sample)
     }
     Welfords_Load_Data<0,1>();
-    WELFORDS_LOOP_ITERATION(N, endN)
+    WELFORDS_LOOP_ITERATION(current_sample, final_sample)
     Welfords_Load_Data<0,2>();
-    WELFORDS_LOOP_ITERATION(N, endN)
+    WELFORDS_LOOP_ITERATION(current_sample, final_sample)
     Welfords_Load_Data<0,3>();
-    WELFORDS_LOOP_ITERATION(N, endN)
+    WELFORDS_LOOP_ITERATION(current_sample, final_sample)
     Welfords_Load_Data<1,0>();
-    WELFORDS_LOOP_ITERATION(N, endN)
+    WELFORDS_LOOP_ITERATION(current_sample, final_sample)
     Welfords_Load_Data<1,1>();
-    WELFORDS_LOOP_ITERATION(N, endN)
+    WELFORDS_LOOP_ITERATION(current_sample, final_sample)
     Welfords_Load_Data<1,2>();
-    WELFORDS_LOOP_ITERATION(N, endN)
+    WELFORDS_LOOP_ITERATION(current_sample, final_sample)
     Welfords_Load_Data<1,3>();
-    WELFORDS_LOOP_ITERATION(N, endN)
-    return;
+    WELFORDS_LOOP_ITERATION(current_sample, final_sample)
+    return current_sample;
 }
 #undef WELFORDS_LOOP_ITERATION
 
@@ -214,9 +214,9 @@ sfpi_inline void Format_Data_To_Row(){
         TTI_SFPSTORE(p_sfpu::LREG6, 0, ADDR_MOD_3, 128 + 16);
         TTI_SFPSTORE(p_sfpu::LREG7, 0, ADDR_MOD_3, 128 + 18);
 }
-void _welfords_(uint32_t N,const uint32_t endN,const uint32_t reformat_dst){
-    Welfords_Main(N, endN);
-    if(N == endN){
+void _welfords_(uint32_t current_sample,const uint32_t final_sample,const uint32_t reformat_dst){
+    const uint32_t sample_count = Welfords_Main(current_sample, final_sample);
+    if(sample_count == final_sample){
         Format_Data_To_Row();
     }
 }
