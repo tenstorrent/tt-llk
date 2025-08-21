@@ -145,7 +145,7 @@ inline void _llk_math_matmul_mop_config_()
     ckernel_template temp(1 /* outer loop */, FIDELITY_PHASES, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0), matmul_op);
     temp.set_last_outer_loop_instr(matmul_op_last);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -268,7 +268,7 @@ inline void _llk_math_matmul_di_mop_config_()
             temp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_B, 0, 0, p_setrwc::SET_ABD_F));
         }
     }
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -313,7 +313,7 @@ inline void _llk_math_matmul_init_()
 inline void _llk_math_matmul_tile_(const uint dst_index)
 {
     _set_dst_write_addr_<DstTileShape::Tile32x32>(dst_index);
-    ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    ckernel_template::run_bank0_sw_cntl();
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, p_setrwc::SET_ABD_F);
 }
 
@@ -342,7 +342,7 @@ inline void _llk_math_matmul_block_()
     {
         for (uint rut = 0; rut < rut_dim; rut++)
         {
-            ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+            ckernel_template::run_bank0_sw_cntl();
 
             // Clear srcB or srcA at end of reuse (once per u block row)
             if (rut == (rut_dim - 1))
