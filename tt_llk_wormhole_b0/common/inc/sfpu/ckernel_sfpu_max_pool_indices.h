@@ -33,19 +33,8 @@ inline void _calculate_max_pool_with_indices_(const uint idx_addr)
     TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_3, idx_tile_offset + 2); // odd cols
     TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_3, idx_tile_offset + 6);
 
-    // transpose to put Dest rows into separate LREGS
-    TTI_SFPTRANSP(0, 0, 0, 0);
-
-    // put max into LREG0 (index into LREG4)
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-
-    // transpose back
-    TTI_SFPTRANSP(0, 0, 0, 0);
-
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+    // sort 4 rows
+    lltt::replay(0, 7);
 
     // data
     TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 8);  // even cols
@@ -74,19 +63,8 @@ inline void _calculate_max_pool_with_indices_(const uint idx_addr)
     TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_3, idx_tile_offset + face_offset + 2); // odd cols
     TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_3, idx_tile_offset + face_offset + 6);
 
-    // transpose to put Dest rows into separate LREGS
-    TTI_SFPTRANSP(0, 0, 0, 0);
-
-    // put max into LREG0 (index into LREG4)
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-
-    // transpose back
-    TTI_SFPTRANSP(0, 0, 0, 0);
-
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+    // sort 4 rows
+    lltt::replay(0, 7);
 
     // data
     TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, face_offset + 8);  // even cols
@@ -106,7 +84,25 @@ inline void _calculate_max_pool_with_indices_(const uint idx_addr)
 
 inline void _init_max_pool_with_indices_()
 {
-    _sfpu_load_config32_(0xF, 0x0, 0x4); // Set bit [2] of the SFPU_CONTROL_REG to enable index tracking mode
+    // Set bit [2] of the SFPU_CONTROL_REG to enable index tracking mode
+    _sfpu_load_config32_(0xF, 0x0, 0x4);
+
+    // Program replay buffer
+    lltt::record(0, 7);
+
+    // transpose to put Dest rows into separate LREGS
+    TTI_SFPTRANSP(0, 0, 0, 0);
+
+    // put max into LREG0 (index into LREG4)
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
+
+    // transpose back
+    TTI_SFPTRANSP(0, 0, 0, 0);
+
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
 }
 
 } // namespace sfpu
