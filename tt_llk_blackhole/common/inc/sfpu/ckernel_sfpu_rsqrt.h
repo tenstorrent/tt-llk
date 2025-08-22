@@ -14,10 +14,10 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool layernorm_compat>
+template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool legacy_compat>
 inline void _calculate_rsqrt_(int iterations)
 {
-    if constexpr (layernorm_compat)
+    if constexpr (legacy_compat)
     {
         return _calculate_rsqrt_compat_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en>(iterations);
     }
@@ -27,14 +27,10 @@ inline void _calculate_rsqrt_(int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE, bool layernorm_compat>
+template <bool APPROXIMATION_MODE, bool legacy_compat>
 inline void _init_rsqrt_()
 {
-    if constexpr (layernorm_compat)
-    {
-        _init_rsqrt_compat_<APPROXIMATION_MODE>();
-    }
-    else
+    if constexpr (!legacy_compat)
     {
         _init_sqrt_<APPROXIMATION_MODE>();
     }

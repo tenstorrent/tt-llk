@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "ckernel_sfpu_rsqrt_compat.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -75,7 +76,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
-inline void _calculate_reciprocal_(const int iterations)
+inline void _calculate_reciprocal_internal_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
@@ -103,12 +104,28 @@ inline void _calculate_reciprocal_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en, bool legacy_compat = false>
+inline void _calculate_reciprocal_(const int iterations)
+{
+    if constexpr (legacy_compat)
+    {
+        _calculate_reciprocal_compat_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
+    }
+    else
+    {
+        _calculate_reciprocal_internal_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
+    }
+}
+
+template <bool APPROXIMATION_MODE, bool legacy_compat = false>
 inline void _init_reciprocal_()
 {
-    sfpi::vConstFloatPrgm0 = 32.0f / 99.0f;
-    sfpi::vConstFloatPrgm1 = 16.0f / 11.0f;
-    sfpi::vConstFloatPrgm2 = 70.0f / 33.0f;
+    if constexpr (!legacy_compat)
+    {
+        sfpi::vConstFloatPrgm0 = 32.0f / 99.0f;
+        sfpi::vConstFloatPrgm1 = 16.0f / 11.0f;
+        sfpi::vConstFloatPrgm2 = 70.0f / 33.0f;
+    }
 }
 
 } // namespace sfpu

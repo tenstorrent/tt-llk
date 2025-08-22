@@ -14,7 +14,7 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int RECIPROCAL_ITERATIONS>
-sfpi_inline sfpi::vFloat _calculate_sqrt_compat_(sfpi::vFloat val)
+sfpi_inline sfpi::vFloat _sqrt_compat_(sfpi::vFloat val)
 {
     sfpi::vFloat result;
     if constexpr (APPROXIMATION_MODE)
@@ -58,7 +58,7 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_compat_(sfpi::vFloat val)
 }
 
 template <int max_iter = 3>
-sfpi_inline sfpi::vFloat _calculate_reciprocal_compat_(const sfpi::vFloat in)
+sfpi_inline sfpi::vFloat _reciprocal_compat_(const sfpi::vFloat in)
 {
     // Force sign to 1 (make number negative)
     sfpi::vFloat val = sfpi::setsgn(in, 1);
@@ -103,9 +103,9 @@ inline void _calculate_rsqrt_compat_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::dst_reg[0] = _calculate_sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
+        sfpi::dst_reg[0] = _sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _calculate_reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
+        sfpi::vFloat out = _reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
         v_if (in < 0.0)
         {
             out = -out;
@@ -123,9 +123,26 @@ inline void _calculate_rsqrt_compat_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE>
-inline void _init_rsqrt_compat_()
+template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
+inline void _calculate_sqrt_compat_(const int iterations)
 {
+#pragma GCC unroll 8
+    for (int d = 0; d < iterations; d++)
+    {
+        sfpi::dst_reg[0] = _sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
+        sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
+inline void _calculate_reciprocal_compat_(const int iterations)
+{
+#pragma GCC unroll 8
+    for (int d = 0; d < iterations; d++)
+    {
+        sfpi::dst_reg[0] = _reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(sfpi::dst_reg[0]);
+        sfpi::dst_reg++;
+    }
 }
 
 } // namespace sfpu

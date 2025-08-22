@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "ckernel_sfpu_rsqrt_compat.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -123,25 +124,35 @@ inline void _calculate_sqrt_internal_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
+template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool legacy_compat>
 inline void _calculate_sqrt_(int iterations)
 {
-    _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en, false>(iterations);
-}
-
-template <bool APPROXIMATION_MODE>
-inline void _init_sqrt_()
-{
-    if (APPROXIMATION_MODE)
+    if constexpr (legacy_compat)
     {
-        sfpi::vConstIntPrgm0   = 0x5f0b3892;
-        sfpi::vConstFloatPrgm1 = 1.89099014875f;
+        return _calculate_sqrt_compat_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en>(iterations);
     }
     else
     {
-        sfpi::vConstIntPrgm0   = 0x5f1110a0;
-        sfpi::vConstFloatPrgm1 = 2.2825186f;
-        sfpi::vConstFloatPrgm2 = 2.2533049f;
+        return _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en, false>(iterations);
+    }
+}
+
+template <bool APPROXIMATION_MODE, bool legacy_compat>
+inline void _init_sqrt_()
+{
+    if constexpr (!legacy_compat)
+    {
+        if constexpr (APPROXIMATION_MODE)
+        {
+            sfpi::vConstIntPrgm0   = 0x5f0b3892;
+            sfpi::vConstFloatPrgm1 = 1.89099014875f;
+        }
+        else
+        {
+            sfpi::vConstIntPrgm0   = 0x5f1110a0;
+            sfpi::vConstFloatPrgm1 = 2.2825186f;
+            sfpi::vConstFloatPrgm2 = 2.2533049f;
+        }
     }
 }
 
