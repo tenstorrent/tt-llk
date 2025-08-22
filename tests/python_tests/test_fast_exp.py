@@ -65,13 +65,13 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
 def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
+    input_dimensions = [96, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    src_A = torch.ones(input_dimensions[0] * input_dimensions[1]) * (2)
+    # src_A = torch.ones(input_dimensions[0] * input_dimensions[1]) * (2)
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(

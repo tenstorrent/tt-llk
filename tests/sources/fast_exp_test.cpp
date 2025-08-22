@@ -80,6 +80,8 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
+    ckernel::sfpu::exp_init<true, true>();
+
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
@@ -87,8 +89,7 @@ void run_kernel()
             i, formats.math, formats.math);
 
         // calculation of sfpu operation on dest
-        _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-        ckernel::sfpu::exp_init<true, true>();
+        // _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
 
         // _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
         // // calling sfpu function from ckernel
