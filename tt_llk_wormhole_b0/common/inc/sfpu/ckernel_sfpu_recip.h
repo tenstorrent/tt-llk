@@ -29,7 +29,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // Then negative_x = -x.
     sfpi::vFloat negative_x = sfpi::setman(sfpi::vConstNeg1, sfpi::reinterpret<sfpi::vInt>(in));
 
-    // Quadratic initial estimate: y = 70/33 - 16/11*x + 32/99*x**2.
+    // Quadratic initial estimate: y = k2 - k1*x + k0*x**2.
     sfpi::vFloat y = sfpi::vConstFloatPrgm1 + sfpi::vConstFloatPrgm0 * negative_x;
 
     // Scale factor: we want 1/in = 1/x * scale.
@@ -122,9 +122,11 @@ inline void _init_reciprocal_()
 {
     if constexpr (!legacy_compat)
     {
-        sfpi::vConstFloatPrgm0 = 32.0f / 99.0f;
-        sfpi::vConstFloatPrgm1 = 16.0f / 11.0f;
-        sfpi::vConstFloatPrgm2 = 70.0f / 33.0f;
+        // The polynomial y = k2 - k1*x + k0*x**2 minimises the maximum
+        // absolute error for 1/x over the interval [1,2), found via Sollya.
+        sfpi::vConstFloatPrgm0 = 0.343145549297332763671875f;
+        sfpi::vConstFloatPrgm1 = 1.51471805572509765625f;
+        sfpi::vConstFloatPrgm2 = 2.1642131805419921875f;
     }
 }
 
