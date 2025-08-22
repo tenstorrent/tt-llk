@@ -98,8 +98,8 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             _calculate_reciprocal_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>(ITERATIONS);
             break;
         case SfpuType::rsqrt:
-            _init_rsqrt_<APPROX_MODE, false>();
-            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, false>(ITERATIONS);
+            _init_rsqrt_<APPROX_MODE>();
+            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>(ITERATIONS);
             break;
         case SfpuType::silu:
             _calculate_silu_<APPROX_MODE, ITERATIONS>();
