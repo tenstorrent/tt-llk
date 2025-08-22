@@ -235,7 +235,7 @@ public:
     static ckernel_unpack_template loopx1instr(uint instr0, uint skip0 = TT_OP_NOP);
     static ckernel_unpack_template loopx2instr(uint instr0, uint instr1, uint skip0 = TT_OP_NOP, uint skip1 = TT_OP_NOP);
 
-    void program() const;                                                  // just programs the registers
+    void program() const;                                                // just programs the registers
     static void run(const uint8_t count, const uint32_t zmask);          // runs - assumes that registers were already programmed
     static void run(const uint8_t count);                                // runs - assumes that registers were already programmed
     void program_and_run(const uint8_t count, const uint32_t zmask = 0); // calls program, then run
