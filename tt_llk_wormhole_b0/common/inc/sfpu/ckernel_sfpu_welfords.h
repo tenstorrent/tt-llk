@@ -22,7 +22,7 @@ inline To bit_cast(const From& from) noexcept {
     static_assert(sizeof(To) == sizeof(From), "Types must have same size");
     static_assert(std::is_trivially_copyable_v<From>, "From must be trivially copyable");
     static_assert(std::is_trivially_copyable_v<To>, "To must be trivially copyable");
-    
+
     union {
         From f;
         To t;
@@ -35,7 +35,7 @@ inline To bit_cast(const From& from) noexcept {
 struct FloatBits {
     uint16_t high16;
     uint16_t low16;
-    
+
     explicit FloatBits(float value) {
         const uint32_t bits = bit_cast<uint32_t>(value);
         high16 = static_cast<uint16_t>(bits >> 16);
@@ -214,9 +214,9 @@ sfpi_inline void Format_Data_To_Row(){
         TTI_SFPSTORE(p_sfpu::LREG6, 0, ADDR_MOD_3, 128 + 16);
         TTI_SFPSTORE(p_sfpu::LREG7, 0, ADDR_MOD_3, 128 + 18);
 }
-void _welfords_(uint32_t current_sample,const uint32_t final_sample,const uint32_t reformat_dst){
+void _welfords_(uint32_t current_sample,const uint32_t final_sample,const uint32_t reformat_dst_if_final_sample){
     const uint32_t sample_count = Welfords_Main(current_sample, final_sample);
-    if(sample_count == final_sample){
+    if(sample_count == final_sample && reformat_dst_if_final_sample){
         Format_Data_To_Row();
     }
 }
