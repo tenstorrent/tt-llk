@@ -160,12 +160,6 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
-    constexpr uint dst_tile_size_rows = 32;
-    constexpr float LN2_RECIP         = 1.4426950408889634f;
-    constexpr float A                 = 256.0f * LN2_RECIP;
-    constexpr float B_minus_C         = 32500.818359375f;
-    constexpr float THRESHOLD         = -88.5f;
-
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
         // (*((volatile uint32_t*)0x18000)) = (uint32_t)0xdeadbeef;
