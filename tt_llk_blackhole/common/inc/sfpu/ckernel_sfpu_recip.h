@@ -20,32 +20,35 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
     // sfpi::approx_recip(x) will return ±0 for x = ±inf or x ≥ ±2**126, and ±inf for x = ±0.
     sfpi::vFloat y = sfpi::approx_recip(x);
 
-    // Now we improve the approximation using Newton-Raphson.
-    if constexpr (max_iter > 0)
+    // Optionally improve the approximation using Newton-Raphson.
+    if (max_iter > 0)
     {
-        // Check x to ensure that it is not ±infinity.
-        // We also check that x is not ±0 within the block below for performance reasons.
-        sfpi::vInt exponent = sfpi::exexp_nodebias(x);
-        v_if (exponent < 255)
+        // Normally, t = 2.0 - x * y, but we negate this (and negate again using y = y * -t later).
+        // On Blackhole, when x=0 and y=infinity (and vice versa), t=+NaN regardless of the operand signs.
+        // Negating the meaning of t makes it easier to detect NaN using a trivial sign check t>=0.
+        // Equivalently, we could use v_if (t >= 2.0) instead, but SFPI doesn't support SFPLE/SFPGT at the moment.
+        sfpi::vFloat t = x * y - sfpi::vConstFloatPrgm0;
+
+        if (max_iter > 1)
         {
-            // One iteration of Newton-Raphson.
-            sfpi::vFloat t = y * -x + sfpi::vConstFloatPrgm0;
-
-            // For performance reasons, we exclude exponent = 0 here, to hide the
-            // `sfpnop` that would otherwise be generated.
-            v_and(exponent >= 1);
-
-            // -sfpi::vConst0 is used to preserve the sign of y = -0.0.
-            y = y * t - sfpi::vConst0;
-
-            if constexpr (max_iter > 1)
+            sfpi::vFloat y1 = y * -t - sfpi::vConst0;
+            // If t=NaN, then t>=0.  This check consumes the SFPNOP slot of the preceding SFPMAD.
+            v_if (t < 0)
             {
-                // 2nd iteration of Newton-Raphson.
-                t = y * -x + sfpi::vConstFloatPrgm0;
-                y = y * t - sfpi::vConst0;
+                t = x * y1 - sfpi::vConstFloatPrgm0;
+                y = y1 * -t - sfpi::vConst0;
             }
+            v_endif;
         }
-        v_endif;
+        else
+        {
+            // If t=NaN, then t>=0.  This check cannot be hidden in a SFPNOP slot as it depends on the result of the preceding SFPMAD.
+            v_if (t < 0)
+            {
+                y = y * -t - sfpi::vConst0;
+            }
+            v_endif;
+        }
     }
 
     return y;
