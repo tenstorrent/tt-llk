@@ -2,8 +2,7 @@ ARG FROM_TAG=latest
 FROM ghcr.io/tenstorrent/tt-llk/tt-llk-base-ubuntu-22-04:${FROM_TAG} AS ci-build
 SHELL ["/bin/bash", "-c"]
 
-ENV PATH="/root/.cargo/bin:${PATH}" \
-    GITHUB_ACTIONS="true" \
+ENV GITHUB_ACTIONS="true" \
     PYTEST_RUN_PATH="tests/python_tests"
 
 # Copy only necessary files
@@ -26,5 +25,9 @@ RUN set -e \
     # Clean up temporary files and caches
     && rm -rf /tmp/* \
     && rm -rf /root/.cache/pip \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /root/.cache/* \
+    && rm -rf /usr/share/doc/* \
+    && rm -rf /usr/share/man/* \
+    && find /usr/local -name "*.pyc" -delete \
+    && find /usr/local -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
