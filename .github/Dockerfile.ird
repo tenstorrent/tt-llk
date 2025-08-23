@@ -1,5 +1,6 @@
 FROM ghcr.io/tenstorrent/tt-metal/tt-metalium/ubuntu-22.04-dev-amd64:latest
 SHELL ["/bin/bash", "-c"]
+
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 
