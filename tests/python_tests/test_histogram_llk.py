@@ -206,7 +206,7 @@ def print_end_of_test(res, short=False):
             0
         ]
         print(
-            "version",
+            "LLK version",
             version,
             "pipeline_factor",
             pipeline_factor,
@@ -216,9 +216,9 @@ def print_end_of_test(res, short=False):
             buffer_size,
             "buckets",
             buckets,
-            "t0",
+            "buffer_correct",
             all(t0s),
-            "t1",
+            "histogram_correct",
             all(t1s),
         )
         print("******************")
@@ -232,24 +232,35 @@ BUFFER_ADDRESS = 0x20000
 BUCKET_ADDRESS = 0x30000
 
 
-def run_histogram(version, cores, pipeline_factor, buffer_size, buckets):
+def run_histogram_llk(version, cores, pipeline_factor, buffer_size, buckets):
+    """
+    Run histogram test using the LLK histogram interface.
+    Only version 18 is supported by the LLK implementation.
+    """
+    print("Running LLK Histogram Test")
     print(ttexalens.__file__)
     context = init_ttexalens()
 
-    bucket_bpp = 2 if version < 16 else 16
+    # LLK histogram uses 32-bit buckets (version 18)
+    bucket_bpp = 16
+
+    # Validate that only version 18 is used with LLK
+    if version != 18:
+        raise ValueError(
+            f"LLK histogram only supports version 18, got version {version}"
+        )
 
     img = generate_image(buffer_size, buckets)
     res = golden(img, buckets)
 
-    if version == 17:
-        res = [2 * r for r in res]
-
+    # Initialize device memory
     write_words_to_device("0,0", TIMESTAMP_ADDRESS, [0] * 4 * cores)
     write_words_to_device("0,0", START_ADDRESS, [0])
     write_words_to_device("0,0", BUFFER_ADDRESS, img)
     write_words_to_device("0,0", BUCKET_ADDRESS, [0] * ((buckets * bucket_bpp) // 4))
 
-    testname = "histogram_test"
+    # Build and run the LLK histogram test
+    testname = "histogram_llk_test"  # This corresponds to histogram_llk_test.cpp
     def_dict = {
         "HISTOGRAM_BUFFER_SIZE": buffer_size,
         "HISTOGRAM_NUM_CORES": cores,
@@ -259,40 +270,47 @@ def run_histogram(version, cores, pipeline_factor, buffer_size, buckets):
     test_config = {"testname": testname, "def_dict": def_dict}
     build_test(test_config, ProfilerBuild.No)
     run_elf_files(testname)
-    # Start all TRISC cores (equivalent to all_riscs_deassert_soft_reset)
+
+    # Start all TRISC cores
     run_cores([RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2])
 
+    # Trigger histogram computation
     write_words_to_device("0,0", START_ADDRESS, [1])
 
+    # Read back results
     buffer = read_words_from_device("0,0", BUFFER_ADDRESS, word_count=buffer_size)
     bucket = read_words_from_device(
         "0,0", BUCKET_ADDRESS, word_count=(buckets * bucket_bpp) // 4
     )
-    if bucket_bpp == 2:
-        bucket = split_words(bucket)
-    if bucket_bpp == 16:
-        bucket = merge_words(bucket)
 
-    print("img == buffer", img == buffer)
+    # Process bucket data (32-bit buckets for version 18)
+    bucket = merge_words(bucket)
+
+    print("Input preserved:", img == buffer)
     if img != buffer:
-        print("img")
-        print(img)
-        print("buffer")
-        print(buffer)
+        print("Original input:")
+        print(img[:20], "..." if len(img) > 20 else "")
+        print("Device buffer:")
+        print(buffer[:20], "..." if len(buffer) > 20 else "")
 
-    print("img == buffer", res == bucket)
+    print("Histogram correct:", res == bucket)
     if res != bucket:
-        print("res")
-        print(res)
-        print("bucket")
-        print(bucket)
-        print("sum res", sum(res))
-        print("sum bucket", sum(bucket))
+        print("Expected histogram:")
+        print(res[:20], "..." if len(res) > 20 else "")
+        print("Device histogram:")
+        print(bucket[:20], "..." if len(bucket) > 20 else "")
+        print("Expected sum:", sum(res))
+        print("Device sum:  ", sum(bucket))
 
-        print("diff")
+        print("Differences:")
+        diff_count = 0
         for i in range(len(res)):
             if res[i] != bucket[i]:
-                print("bucket", i, "res", res[i], "bucket", bucket[i])
+                print(f"bucket[{i}]: expected {res[i]}, got {bucket[i]}")
+                diff_count += 1
+                if diff_count >= 10:  # Limit output
+                    print("... (more differences)")
+                    break
 
     st, et = report_timing(TIMESTAMP_ADDRESS, buffer_size, cores)
     return (
@@ -308,14 +326,19 @@ def run_histogram(version, cores, pipeline_factor, buffer_size, buckets):
     )
 
 
-def loop_histogram(version, cores, pipeline_factor, buffer_size, buckets, loops):
+def loop_histogram_llk(version, cores, pipeline_factor, buffer_size, buckets, loops):
+    """Run multiple iterations of the LLK histogram test."""
     res = []
     for i in range(loops):
-        res.append(run_histogram(version, cores, pipeline_factor, buffer_size, buckets))
+        print(f"LLK Test iteration {i+1}/{loops}")
+        res.append(
+            run_histogram_llk(version, cores, pipeline_factor, buffer_size, buckets)
+        )
     return res
 
 
-def sweep_histogram(version, cores, pipeline_factor, buffer_size, buckets, loops):
+def sweep_histogram_llk(version, cores, pipeline_factor, buffer_size, buckets, loops):
+    """Run comprehensive sweep of LLK histogram test parameters."""
     res = []
     for v in version:
         for c in cores:
@@ -323,18 +346,52 @@ def sweep_histogram(version, cores, pipeline_factor, buffer_size, buckets, loops
                 for b in buffer_size:
                     for bck in buckets:
                         for l in loops:
-                            res.append(loop_histogram(v, c, p, b, bck, l))
+                            print(
+                                f"LLK Test: version={v}, cores={c}, pipeline={p}, buffer={b}, buckets={bck}, loops={l}"
+                            )
+                            res.append(loop_histogram_llk(v, c, p, b, bck, l))
     return res
 
 
-def test_histogram():
+def test_histogram_llk():
+    """
+    Main test function for LLK histogram.
+    Tests version 18 (the only version supported by LLK) with various configurations.
+    """
+    print("=== LLK Histogram Test Suite ===")
     res = []
 
-    # res += sweep_histogram([0, 1], [1, 4], [1, 2, 4, 8],     [4096], [256], [10])
-    # res += sweep_histogram([2, 3], [1, 4], [1, 2, 4, 8, 16], [4096], [256], [10])
+    # Test single core configurations
+    print("\n--- Single Core Tests ---")
+    res += sweep_histogram_llk([18], [1], [1, 2, 4], [3072], [256], [3])
 
-    # res += sweep_histogram([16], [1, 3], [1, 2],    [3072], [256], [1])
-    # res += sweep_histogram([17], [1, 3], [1, 2, 4], [3072], [256], [1])
-    res += sweep_histogram([17], [1, 3], [1, 2, 4], [3072], [256], [1])
+    # Test multi-core configurations
+    print("\n--- Multi-Core Tests ---")
+    res += sweep_histogram_llk([18], [2, 4], [1, 2, 4], [4096], [256], [2])
 
+    # Performance test with larger buffer
+    print("\n--- Performance Tests ---")
+    res += sweep_histogram_llk([18], [1, 4], [4], [8192], [256], [5])
+
+    print("\n=== LLK Histogram Test Results ===")
     print_end_of_test(res, True)
+
+
+def test_histogram_llk_quick():
+    """Quick test for development and CI."""
+    print("=== Quick LLK Histogram Test ===")
+    res = []
+
+    # Just test basic functionality
+    res += sweep_histogram_llk([18], [1], [1, 4], [1024], [256], [1])
+
+    print("\n=== Quick Test Results ===")
+    print_end_of_test(res, False)
+
+
+if __name__ == "__main__":
+    # Run quick test by default
+    test_histogram_llk_quick()
+
+    # Uncomment for full test suite
+    # test_histogram_llk()

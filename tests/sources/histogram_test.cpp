@@ -25,10 +25,13 @@ static constexpr uint32_t core_idx = 2;
 static constexpr uint32_t core_idx = 3;
 #endif
 
-static constexpr uint32_t timestamp_address  = 0x00019000;
-static constexpr uint32_t start_address      = 0x00019FF0;
-static constexpr uint32_t buffer_address     = 0x00020000;
-static constexpr uint32_t bucket_address     = 0x00030000;
+// l1
+static constexpr uint32_t timestamp_address = 0x00019000;
+static constexpr uint32_t start_address     = 0x00019FF0;
+static constexpr uint32_t buffer_address    = 0x00020000;
+static constexpr uint32_t bucket_address    = 0x00030000;
+
+// trisc
 static constexpr uint32_t wall_clock_address = 0xFFB121F0;
 static constexpr uint32_t regfile_address    = 0xFFE00000;
 static constexpr uint32_t pc_buf_address     = 0xFFE80000;
@@ -54,41 +57,67 @@ static constexpr uint32_t buffer_base      = buffer_address + buffer_per_core * 
 
 inline void wait_start()
 {
-    asm("la a3, %0" : : "i"(start_address) : "a3");
+    asm("la a3, %0" : : "i"(start_address) : "a3"); // load start address into a3
 start_loop:
-    asm("lw  a5, 0(a3)");
-    __asm__ goto("beq a5, zero, %l[start_loop]" : : : : start_loop);
+    asm("lw  a5, 0(a3)");                                            // read value from start address into a5
+    __asm__ goto("beq a5, zero, %l[start_loop]" : : : : start_loop); // if a5 is 0, jump to start_loop
 }
+
+// who sets the start address?
+// the start address is set to 1 in the test_histogram.py file and triggers the start of the histogram calculation
 
 inline void start_measuring()
 {
-    asm("fence");
-    asm("la a3, %0" : : "i"(wall_clock_address) : "a3");
-    asm("la a4, %0" : : "i"(timestamp_base) : "a4");
-    asm("lw a5, 0(a3)");
-    asm("sw a5, 0(a4)");
-    asm("lw a5, 8(a3)");
-    asm("sw a5, 4(a4)");
-    asm("fence");
+    asm("fence");                                        // sync
+    asm("la a3, %0" : : "i"(wall_clock_address) : "a3"); // wall_clock_address is the address of the wall clock in the trisc
+    asm("la a4, %0" : : "i"(timestamp_base) : "a4");     // timestamp_base is the address of the timestamp in the l1
+
+    // storage location in the l1 for the timestamp, calculated based on the core_idx
+    // timestamp_base = timestamp_address + 4 * sizeof(uint32_t) * core_idx
+
+    asm("lw a5, 0(a3)"); // read the wall clock
+    asm("sw a5, 0(a4)"); // write the wall clock to the timestamp
+    asm("lw a5, 8(a3)"); // read the wall clock
+    asm("sw a5, 4(a4)"); // write the wall clock to the timestamp
+
+    // wall clock is 64 bits, so we read 2 words from the wall clock
+    // 0(a3) is the low 32 bits
+    // 8(a3) is the high 32 bits
+    // 0(a4) is the low 32 bits of the timestamp
+    // 4(a4) is the high 32 bits of the timestamp
+
+    asm("fence"); // sync
 }
 
 inline void stop_measuring()
 {
-    asm("fence");
-    asm("la a3, %0" : : "i"(wall_clock_address) : "a3");
-    asm("la a4, %0" : : "i"(timestamp_base) : "a4");
-    asm("lw a5,  0(a3)");
-    asm("sw a5,  8(a4)");
-    asm("lw a5,  8(a3)");
-    asm("sw a5, 12(a4)");
-    asm("fence");
+    asm("fence");                                        // memory barrier - todo make sure you fully understand how does this barrier work on RiscV
+    asm("la a3, %0" : : "i"(wall_clock_address) : "a3"); // store the wall clock address in a3
+    asm("la a4, %0" : : "i"(timestamp_base) : "a4");     // store the timestamp address in a4
+    asm("lw a5,  0(a3)");                                // read the wall clock
+    asm("sw a5,  8(a4)");                                // write the wall clock to the timestamp
+    asm("lw a5,  8(a3)");                                // read the wall clock
+    asm("sw a5, 12(a4)");                                // write the wall clock to the timestamp
+
+    // once again, the wall clock is 64 bits, so we read the lower 32 bits and the higher 32 bits
+    // 0(a3) is the low 32 bits
+    // 8(a3) is the high 32 bits
+    // 8(a4) is the low 32 bits of the timestamp
+    // 12(a4) is the high 32 bits of the timestamp
+
+    asm("fence"); // memory barrier
 }
+
+// asm("fence"); acts as fence rw, rw instruction
+// which ensures that all prior memory reads/writes before must be completed before the fence instruction is executed
+// it stops the reordering of memory instructions
 
 #if defined(LLK_TRISC_UNPACK) || HISTOGRAM_NUM_CORES > 1
 
 void run_kernel()
 {
-    asm("addi sp, sp, -48");
+    // store the registers on the stack
+    asm("addi sp, sp, -48"); // sp is the stack pointer, 48 bytes is the size of the stack
     asm("sw   s0,   0(sp)");
     asm("sw   s1,   4(sp)");
     asm("sw   s2,   8(sp)");
@@ -104,22 +133,28 @@ void run_kernel()
 
     if constexpr (version < 16)
     {
-        asm("la a0, %0" : : "i"(buffer_base) : "a0");
-        asm("la a1, %0" : : "i"(bucket_address) : "a1");
+        asm("la a0, %0" : : "i"(buffer_base) : "a0");    // input data
+        asm("la a1, %0" : : "i"(bucket_address) : "a1"); // histogram bucket address - both in L1
     }
     else
     {
-        asm("la a0, %0" : : "i"(buffer_base / 16) : "a0");
-        asm("la a1, %0" : : "i"(bucket_address / 16) : "a1");
+        asm("la a0, %0" : : "i"(buffer_base / 16) : "a0");    // input data
+        asm("la a1, %0" : : "i"(bucket_address / 16) : "a1"); // histogram bucket address - both in L1
     }
-    asm("la a6, %0" : : "i"(regfile_address) : "a6");
-    asm("la a7, %0" : : "i"(pc_buf_address) : "a7");
 
-    asm("la t2, 1");
+    // Todo: Answer the question why are buffer base and bucket address divided by 16 when working with higher implementation versions
+    // Versions 0-15 have byte-level addressing, Versions 16 and above feature a 16-byte aligned addressing, optimized for Tensix instructions.
+    // This is also why the iterations are reduced by 16x in the higher versions (as you are going to see later in implementation)
+    // why? Tensixs TTI_ATINCGET atomically increments an integer in L1, works on 16B aligned addresses
 
-    asm("sw a0, 240(a6)");
-    asm("sw zero, 244(a6)");
-    asm("sw a1, 248(a6)");
+    asm("la a6, %0" : : "i"(regfile_address) : "a6"); // store the regfile address in a6
+    asm("la a7, %0" : : "i"(pc_buf_address) : "a7");  // store the pc_buf address in a7
+
+    asm("la t2, 1"); // store the value 1 in t2
+
+    asm("sw a0, 240(a6)");   // store the input data address in the regfile
+    asm("sw zero, 244(a6)"); // store 0 in the regfile
+    asm("sw a1, 248(a6)");   // store the histogram bucket address in the regfile
 
     wait_start();
 
@@ -129,9 +164,17 @@ void run_kernel()
     { // ERR, ERR SHIFTOPT, NERR, NERR SHIFTOPT
         for (uint32_t i = 0; i < outer_iterations; i++)
         {
+            // pipeline factor is the number of instructions that are executed per loop
+            // the total iterations are reduced propetly:
+            // outer_iterations = buffer_per_core / pipeline_factor;
             switch (pipeline_factor)
             {
                 case 16:
+                    // we've stored the input data address in the a0 reg
+                    // we've stored the input data address in the regfile in the previous step
+                    // in this step we're loading the data from the input data address into registers
+                    // these values places in registers will be used to calculate which histogram bucket each value belongs to
+                    // + we will increment the values of the appropriate bucket counters
                     asm("lw t6,  60(a0)");
                     asm("lw t5,  56(a0)");
                     asm("lw t4,  52(a0)");
@@ -156,26 +199,34 @@ void run_kernel()
             switch (pipeline_factor)
             {
                 case 16:
+                    // increment the input data address by 64 bytes
                     asm("addi a0, a0, 64");
                     break;
                 case 8:
+                    // increment the input data address by 32 bytes
                     asm("addi a0, a0, 32");
                     break;
                 case 4:
+                    // increment the input data address by 16 bytes
                     asm("addi a0, a0, 16");
                     break;
                 case 2:
+                    // increment the input data address by 8 bytes
                     asm("addi a0, a0, 8");
                     break;
                 case 1:
+                    // increment the input data address by 4 bytes
                     asm("addi a0, a0, 4");
                     break;
             }
             if constexpr (version == 0 || version == 2)
             {
+                // calculate the histogram bucket address
                 switch (pipeline_factor)
                 {
                     case 16:
+                        // the first step is to multiply each value by 2
+                        // the value is the one being read from the input data memory region in the previous step
                         asm("slli t6,  t6,  1");
                         asm("slli t5,  t5,  1");
                         asm("slli t4,  t4,  1");
@@ -184,6 +235,10 @@ void run_kernel()
                         asm("slli s10, s10, 1");
                         asm("slli s9,  s9,  1");
                         asm("slli s8,  s8,  1");
+                        // the second step is to add the multiplied value to the histogram bucket address and calculate the aligned bucket address
+                        // the multiplication is done because the histogram buckets are 16-bit counters so each one is 2 bytes long
+                        // for example, if the value is 5, we will multiply it by 2 and get 10
+                        // by adding the value to the bucket address (add t6, t6, a1) we will get the the address of bucket[10]
                         asm("add  t6,  t6,  a1");
                         asm("add  t5,  t5,  a1");
                         asm("add  t4,  t4,  a1");
@@ -216,6 +271,8 @@ void run_kernel()
             }
             else
             {
+                // this is just an optimization step to improve perf by reordering shift and add instructions with the hopes of better instruction pipelining
+                // so versions 0 and 2 are not optimized, versions 1 and 3 (else branch) should be optimized
                 switch (pipeline_factor)
                 {
                     case 16:
@@ -267,6 +324,9 @@ void run_kernel()
             }
             if constexpr (version == 0 || version == 1)
             {
+                // in this step we're loading the values from the histogram bucket address into registers and incrementing them by 1 and storing them back to
+                // the bucket again, versions 0 and 1 are not optimized where as versions 2 and 3 are optimized so the instructions never change, they are just
+                // differently ordered the version 0 being the "worst" in the terms of perf (instructions ordering) and the version 3 being the "best"
                 switch (pipeline_factor)
                 {
                     case 8:
@@ -299,6 +359,7 @@ void run_kernel()
                 }
                 switch (pipeline_factor)
                 {
+                    // store the incremented values back to the histogram bucket addresses
                     case 8:
                         asm("sh t6,  0(s7)");
                         asm("sh t5,  0(s6)");
@@ -776,6 +837,9 @@ void run_kernel()
             switch (pipeline_factor)
             {
                 case 4:
+                    // uses the immediate version of this instruction
+                    // probably used to set the increment (1) as the second argument is 1 for the bucket value increment
+                    // remember that we've previously stored the bucket address in the regfile
                     TTI_SETDMAREG(0, 1, 0, 62);
                     TTI_SETDMAREG(0, 1, 0, 60);
                     TTI_SETDMAREG(0, 1, 0, 58);
@@ -817,27 +881,57 @@ void run_kernel()
                     TTI_ADDDMAREG(0, 1, 1, 62);
                     TTI_ADDDMAREG(0, 0, 0, 62);
             }
-            switch (pipeline_factor)
+            if constexpr (version == 18)
             {
-                case 4:
-                    TTI_ATINCGET(1, 31, 1, 31, 15);
-                    TTI_ATINCGET(1, 31, 1, 30, 14);
-                    TTI_ATINCGET(1, 31, 1, 29, 13);
-                    TTI_ATINCGET(1, 31, 1, 28, 12);
-                    TTI_ATINCGET(1, 31, 1, 27, 11);
-                    TTI_ATINCGET(1, 31, 1, 26, 10);
-                    TTI_ATINCGET(1, 31, 1, 25, 9);
-                    TTI_ATINCGET(1, 31, 1, 24, 8);
-                case 2:
-                    TTI_ATINCGET(1, 31, 1, 23, 7);
-                    TTI_ATINCGET(1, 31, 1, 22, 6);
-                    TTI_ATINCGET(1, 31, 1, 21, 5);
-                    TTI_ATINCGET(1, 31, 1, 20, 4);
-                case 1:
-                    TTI_ATINCGET(1, 31, 1, 19, 3);
-                    TTI_ATINCGET(1, 31, 1, 18, 2);
-                    TTI_ATINCGET(1, 31, 1, 17, 1);
-                    TTI_ATINCGET(1, 31, 1, 16, 0);
+                switch (pipeline_factor)
+                {
+                    case 4:
+                        TTI_ATINCGET(1, 31, 1, 31, 15);
+                        TTI_ATINCGET(1, 31, 1, 30, 14);
+                        TTI_ATINCGET(1, 31, 1, 29, 13);
+                        TTI_ATINCGET(1, 31, 1, 28, 12);
+                        TTI_ATINCGET(1, 31, 1, 27, 11);
+                        TTI_ATINCGET(1, 31, 1, 26, 10);
+                        TTI_ATINCGET(1, 31, 1, 25, 9);
+                        TTI_ATINCGET(1, 31, 1, 24, 8);
+                    case 2:
+                        TTI_ATINCGET(1, 31, 1, 23, 7);
+                        TTI_ATINCGET(1, 31, 1, 22, 6);
+                        TTI_ATINCGET(1, 31, 1, 21, 5);
+                        TTI_ATINCGET(1, 31, 1, 20, 4);
+                    case 1:
+                        TTI_ATINCGET(1, 31, 1, 19, 3);
+                        TTI_ATINCGET(1, 31, 1, 18, 2);
+                        TTI_ATINCGET(1, 31, 1, 17, 1);
+                        TTI_ATINCGET(1, 31, 1, 16, 0);
+                }
+            }
+            else if constexpr (version == 19) // version == 19, fundamentally will not work, The instruction is fundamentally designed for FIFO queue
+                                              // management, not simple atomic increments.
+            {
+                switch (pipeline_factor)
+                {
+                    case 4:
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 15, 15);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 14, 14);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 14, 14);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 13, 13);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 12, 12);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 11, 11);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 10, 10);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 9, 9);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 8, 8);
+                    case 2:
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 7, 7);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 6, 6);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 5, 5);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 4, 4);
+                    case 1:
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 3, 3);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 2, 2);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 1, 1);
+                        TTI_ATINCGETPTR(1, 0, 0, 31, 1, 0, 0);
+                }
             }
         }
 
