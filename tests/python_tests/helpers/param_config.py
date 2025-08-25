@@ -295,7 +295,7 @@ def generate_format_aware_matmul_combinations(
 
 def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int = 1):
     """
-    Generate possible (format, num_faces, tilize) combinations that respect chip_architecture and tilize constraints.
+    Generate possible (format, num_faces, tilize, dest_sync, dest_index) combinations that respect chip_architecture and tilize constraints.
 
     Key rules:
     1. When chip_architecture=WH: tilize_en=Tilize.No
@@ -307,9 +307,10 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
 
     Args:
         formats_list: List of InputOutputFormat combinations
+        result_tiles: Number of tiles in the result matrix
 
     Returns:
-        List of tuples: (format, num_faces, tilize_en)
+        List of tuples: (format, num_faces, tilize_en, dest_sync, dest_index)
     """
 
     combinations = []
@@ -370,6 +371,7 @@ def calculate_edgecase_dest_indices(
     Args:
         dest_acc: Dest 16/32 bit mode, has to match is_fp32_dest_acc_en from C++
         result_tiles: Number of tiles in the result matrix
+        dest_sync_modes: List of DestSync modes to generate indices for. If None, uses [DestSync.Half]
 
     Returns:
         List of tuples: (dest_sync, dst_index)
@@ -395,6 +397,11 @@ def calculate_edgecase_dest_indices(
             )
 
         # Add both combinations: starting at index 0 and at max allowed index
-        combinations.extend([(dest_sync, 0), (dest_sync, max_index)])
+        # If max_index = 0 add only (dest_sync, 0) to avoid duplicates
+        (
+            combinations.extend([(dest_sync, 0), (dest_sync, max_index)])
+            if max_index != 0
+            else combinations.extend([(dest_sync, 0)])
+        )
 
     return combinations
