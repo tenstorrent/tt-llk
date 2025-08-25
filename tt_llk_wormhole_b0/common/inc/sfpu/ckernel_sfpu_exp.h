@@ -161,35 +161,35 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        TTI_SFPLOADMACRO(0, 2, 0, 0);
+        TTI_SFPLOADMACRO(0, 2, ADDR_MOD_0, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(1, 2, 0, 2);
+        TTI_SFPLOADMACRO(1, 2, ADDR_MOD_0, 2);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(2, 2, 0, 4);
+        TTI_SFPLOADMACRO(2, 2, ADDR_MOD_0, 4);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(3, 2, 0, 6);
+        TTI_SFPLOADMACRO(3, 2, ADDR_MOD_0, 6);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(0, 2, 0, 8);
+        TTI_SFPLOADMACRO(0, 2, ADDR_MOD_0, 8);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(1, 2, 0, 10);
+        TTI_SFPLOADMACRO(1, 2, ADDR_MOD_0, 10);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(2, 2, 0, 12);
+        TTI_SFPLOADMACRO(2, 2, ADDR_MOD_0, 12);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(3, 2, 0, 14);
+        TTI_SFPLOADMACRO(3, 2, ADDR_MOD_0, 14);
         TTI_SFPNOP;
         TTI_SFPNOP;
     }
@@ -215,20 +215,22 @@ inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
+        (*((volatile uint32_t*)0x18000)) = 0xaaaabbbb;
+
         TTI_SFPLOADI(0, 0xA, 0x3333);
         TTI_SFPLOADI(0, 0x8, 0xC2AD);
         TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14]         =    -86.6               = 0xC2AD_3333
-
-        TTI_SFPLOADI(0, 0xA, 0xAA3B);
-        TTI_SFPLOADI(0, 0x8, 0x43B8);
-        TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43B8_AA3B
 
         TTI_SFPLOADI(0, 0xA, 0x3F7A);
         TTI_SFPLOADI(0, 0x8, 0x4BC0);
         TTI_SFPCONFIG(0, 13, 0); // SFPCONFIG Dest 13 = LREG[13] = (B-C) =  32500.818359375 + 12582912*2    = 0x4BC0_3F7A
 
-        TTI_SFPSWAP(0 /*unused*/, 14, 12, 1 /*modifier*/);                                       // Input sanitization
-        TTI_SFPMAD(12 /*lreg_src_a*/, 0 /*lreg_src_b*/, 13 /*lreg_src_c*/, 13 /*lreg_dest*/, 0); // A*B + C
+        TTI_SFPLOADI(0, 0xA, 0xAA3B);
+        TTI_SFPLOADI(0, 0x8, 0x43B8);
+        TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43B8_AA3B
+
+        TTI_SFPSWAP(1 /*unused*/, 14 /*lreg_src_c*/, 0 /*lreg_dest*/, 1 /*modifier*/);            // Input sanitization
+        TTI_SFPMAD(12 /*lreg_src_a*/, 14 /*lreg_src_b*/, 13 /*lreg_src_c*/, 13 /*lreg_dest*/, 0); // A*B + C
         TTI_SFPSHFT2(16, 0 /*lreg_src_c*/, 14 /*lreg_dest*/, 6);
         TTI_SFPSTORE(15, 0, 0, 0); // store result back to dest register
 
@@ -237,8 +239,10 @@ inline void _init_exponential_()
         TTI_SFPLOADI(0x0, 0x8, 0xEFE6);
         TTI_SFPCONFIG(0x0000, 0x4, 0x0); // Load it into macro sequence register 0 (destination = 4)
 
-        TTI_SFPCONFIG(0x0010, 0x8, 0x1);
-        TTI_SFPCONFIG(0x0100, 0xF, 0x1);
+        TTI_SFPCONFIG(
+            0x0010, 0x8 /*LOADMACRO control*/, 0x1); // Specifies that the store in LOAMACRO “Sequence 0” will inherit the instr_mod0 field from the LOADMACRO
+
+        TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
     }
     else if constexpr (APPROXIMATION_MODE)
     {
