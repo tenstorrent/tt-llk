@@ -13,12 +13,14 @@ namespace sfpu
 {
 
 template <bool HAS_BASE_SCALING>
-sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor)
+sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor, const uint dst_idx = 0)
 {
+    constexpr uint dst_tile_size = 32;
+
     ////////////////////////////
     // Load From dest + "normalize to calculation range"
     ////////////////////////////
-    sfpi::vFloat in = sfpi::dst_reg[0];
+    sfpi::vFloat in = sfpi::dst_reg[dst_idx * dst_tile_size];
     sfpi::vFloat x  = setexp(in, 127); // set exp to exp bias (put in range of 1-2)
 
     // XXXXXX ask Namal? if we can derive the coefficients below to higher precision
@@ -67,7 +69,7 @@ sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor)
     }
     v_endif;
 
-    sfpi::dst_reg[0] = result;
+    sfpi::dst_reg[dst_idx * dst_tile_size] = result;
 }
 
 sfpi_inline sfpi::vFloat _calculate_log_body_no_init_(sfpi::vFloat base)
