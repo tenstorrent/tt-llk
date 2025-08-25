@@ -337,9 +337,10 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
                         dest_acc == DestAccumulation.Yes or is_dest_acc_needed(fmt)
                     )
 
+                    dest_sync_list = [DestSync.Half, DestSync.Full]
                     # Generate all dest sync and index combinations
                     for dest_sync, dest_idx in calculate_edgecase_dest_indices(
-                        is_fp32_dest_acc_en, result_tiles
+                        is_fp32_dest_acc_en, result_tiles, dest_sync_list
                     ):
                         combinations.append(
                             (
@@ -355,7 +356,9 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
     return combinations
 
 
-def calculate_edgecase_dest_indices(dest_acc, result_tiles: int):
+def calculate_edgecase_dest_indices(
+    dest_acc: bool, result_tiles: int, dest_sync_modes: List[DestSync] = [DestSync.Half]
+):
     """
     Generate the lowest and highest possible dest index depending on the DestSync mode and whether dest is 32bit or not.
 
@@ -381,7 +384,8 @@ def calculate_edgecase_dest_indices(dest_acc, result_tiles: int):
 
     capacity_divisor = 2 if dest_acc else 1
 
-    for dest_sync, base_tile_limit in DEST_SYNC_TILE_LIMITS.items():
+    for dest_sync in dest_sync_modes:
+        base_tile_limit = DEST_SYNC_TILE_LIMITS[dest_sync]
         max_tiles = base_tile_limit // capacity_divisor
         max_index = max_tiles - result_tiles
 
