@@ -61,6 +61,12 @@ from helpers.utils import passed_test
         MathOperation.Threshold,
         MathOperation.ReluMax,
         MathOperation.ReluMin,
+        MathOperation.Lt,
+        MathOperation.Gt,
+        MathOperation.Le,
+        MathOperation.Ge,
+        MathOperation.Eq,
+        MathOperation.Ne,
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
