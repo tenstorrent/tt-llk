@@ -38,9 +38,9 @@ inline void _add_int_(const uint dst_index_in0, const uint dst_index_in1, const 
         TT_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, dst_index_in0 * dst_tile_size);
         // operand B
         TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_3, dst_index_in1 * dst_tile_size);
-        TT_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
         // LREG_0 -> dest
-        TT_SFPSTORE(0, sfpload_instr_mod, ADDR_MOD_3, dst_index_out * dst_tile_size);
+        TT_SFPSTORE(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, dst_index_out * dst_tile_size);
         sfpi::dst_reg++;
     }
 }
