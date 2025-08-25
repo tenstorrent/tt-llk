@@ -15,8 +15,7 @@
     TT_OP(0x58, (((OpBisConst) << 23) + ((ResultRegIndex) << 12) + ((OpBRegIndex) << 6) + ((OpARegIndex) << 0)))
 #define TT_ADDGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
     ckernel::instrn_buffer[0] = TT_OP_ADDGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex)
-#define TTI_ADDGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
-    INSTRUCTION_WORD(TT_OP_ADDGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex))
+#define TTI_ADDGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) INSTRUCTION_WORD(TT_OP_ADDGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex))
 #define TT_OP_ATCAS(MemHierSel, SwapVal, CmpVal, Sel32b, DataRegIndex, AddrRegIndex) \
     TT_OP(0x64, (((MemHierSel) << 23) + ((SwapVal) << 18) + ((CmpVal) << 14) + ((Sel32b) << 12) + ((DataRegIndex) << 6) + ((AddrRegIndex) << 0)))
 #define TT_ATCAS(MemHierSel, SwapVal, CmpVal, Sel32b, DataRegIndex, AddrRegIndex) \
@@ -45,9 +44,8 @@
 #define TTI_ATRELM(mutex_index)   INSTRUCTION_WORD(TT_OP_ATRELM(mutex_index))
 #define TT_OP_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex) \
     TT_OP(0x63, (((MemHierSel) << 23) + ((SwapMask) << 14) + ((DataRegIndex) << 6) + ((AddrRegIndex) << 0)))
-#define TT_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex) ckernel::instrn_buffer[0] = TT_OP_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex)
-#define TTI_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex) \
-    INSTRUCTION_WORD(TT_OP_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex))
+#define TT_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex)  ckernel::instrn_buffer[0] = TT_OP_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex)
+#define TTI_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex) INSTRUCTION_WORD(TT_OP_ATSWAP(MemHierSel, SwapMask, DataRegIndex, AddrRegIndex))
 #define TT_OP_BITWOPGPR(OpBisConst, OpSel, ResultRegIndex, OpBRegIndex, OpARegIndex) \
     TT_OP(0x5b, (((OpBisConst) << 23) + ((OpSel) << 18) + ((ResultRegIndex) << 12) + ((OpBRegIndex) << 6) + ((OpARegIndex) << 0)))
 #define TT_BITWOPGPR(OpBisConst, OpSel, ResultRegIndex, OpBRegIndex, OpARegIndex) \
@@ -73,9 +71,9 @@
     CfgRegAddr, disable_mask_on_old_val, operation, mask_width, right_cshift_amt, scratch_sel)         \
     ckernel::instrn_buffer[0] = TT_OP_CFGSHIFTMASK_BUT_ALIAS_BIT_8_OF_CFG_REG_ADDR_WITH_LSB_OF_OPCODE( \
         CfgRegAddr, disable_mask_on_old_val, operation, mask_width, right_cshift_amt, scratch_sel)
-#define TTI_CFGSHIFTMASK_BUT_ALIAS_BIT_8_OF_CFG_REG_ADDR_WITH_LSB_OF_OPCODE(                                 \
-    CfgRegAddr, disable_mask_on_old_val, operation, mask_width, right_cshift_amt, scratch_sel)               \
-    INSTRUCTION_WORD(TT_OP_CFGSHIFTMASK_BUT_ALIAS_BIT_8_OF_CFG_REG_ADDR_WITH_LSB_OF_OPCODE( \
+#define TTI_CFGSHIFTMASK_BUT_ALIAS_BIT_8_OF_CFG_REG_ADDR_WITH_LSB_OF_OPCODE(                   \
+    CfgRegAddr, disable_mask_on_old_val, operation, mask_width, right_cshift_amt, scratch_sel) \
+    INSTRUCTION_WORD(TT_OP_CFGSHIFTMASK_BUT_ALIAS_BIT_8_OF_CFG_REG_ADDR_WITH_LSB_OF_OPCODE(    \
         CfgRegAddr, disable_mask_on_old_val, operation, mask_width, right_cshift_amt, scratch_sel))
 #define TT_OP_CLEARDVALID(cleardvalid, cleardvalid_S, dest_dvalid_reset, dest_dvalid_client_bank_reset, dest_pulse_last, reset)                              \
     TT_OP(                                                                                                                                                   \
@@ -173,12 +171,11 @@
 #define TTI_LOADREG(TdmaDataRegIndex, RegAddr)   INSTRUCTION_WORD(TT_OP_LOADREG(TdmaDataRegIndex, RegAddr))
 #define TT_OP_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count) \
     TT_OP(0x01, (((mop_type) << 23) + ((done) << 22) + ((loop_count) << 15) + ((zmask_lo8_or_loop_count) << 0)))
-#define TT_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count) ckernel::instrn_buffer[0] = TT_OP_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count)
-#define TTI_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count) \
-    INSTRUCTION_WORD(TT_OP_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count))
-#define TT_OP_MOP_CFG(zmask_hi24) TT_OP(0x03, (((zmask_hi24) << 0)))
-#define TT_MOP_CFG(zmask_hi24)    ckernel::instrn_buffer[0] = TT_OP_MOP_CFG(zmask_hi24)
-#define TTI_MOP_CFG(zmask_hi24)   INSTRUCTION_WORD(TT_OP_MOP_CFG(zmask_hi24))
+#define TT_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count)  ckernel::instrn_buffer[0] = TT_OP_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count)
+#define TTI_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count) INSTRUCTION_WORD(TT_OP_MOP(mop_type, done, loop_count, zmask_lo8_or_loop_count))
+#define TT_OP_MOP_CFG(zmask_hi24)                                    TT_OP(0x03, (((zmask_hi24) << 0)))
+#define TT_MOP_CFG(zmask_hi24)                                       ckernel::instrn_buffer[0] = TT_OP_MOP_CFG(zmask_hi24)
+#define TTI_MOP_CFG(zmask_hi24)                                      INSTRUCTION_WORD(TT_OP_MOP_CFG(zmask_hi24))
 #define TT_OP_MOVA2D(dest_32b_lo, src, addr_mode, instr_mod, dst) \
     TT_OP(0x12, (((dest_32b_lo) << 23) + ((src) << 17) + ((addr_mode) << 14) + ((instr_mod) << 12) + ((dst) << 0)))
 #define TT_MOVA2D(dest_32b_lo, src, addr_mode, instr_mod, dst)  ckernel::instrn_buffer[0] = TT_OP_MOVA2D(dest_32b_lo, src, addr_mode, instr_mod, dst)
@@ -204,9 +201,8 @@
     INSTRUCTION_WORD(TT_OP_MOVD2B(dest_32b_lo, src, addr_mode, instr_mod, transpose, dst))
 #define TT_OP_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst) \
     TT_OP(0x09, (((dest_32b_lo) << 23) + ((src) << 17) + ((addr_mode) << 14) + ((instr_mod) << 12) + ((dst) << 0)))
-#define TT_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst) ckernel::instrn_buffer[0] = TT_OP_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst)
-#define TTI_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst) \
-    INSTRUCTION_WORD(TT_OP_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst))
+#define TT_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst)  ckernel::instrn_buffer[0] = TT_OP_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst)
+#define TTI_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst) INSTRUCTION_WORD(TT_OP_MOVDBGA2D(dest_32b_lo, src, addr_mode, instr_mod, dst))
 #define TT_OP_MOVDBGB2D(dest_32b_lo, src, addr_mode, transfer_sz, bcast_datum0, dst) \
     TT_OP(0x0c, (((dest_32b_lo) << 23) + ((src) << 17) + ((addr_mode) << 14) + ((transfer_sz) << 12) + ((bcast_datum0) << 11) + ((dst) << 0)))
 #define TT_MOVDBGB2D(dest_32b_lo, src, addr_mode, transfer_sz, bcast_datum0, dst) \
@@ -217,8 +213,7 @@
     TT_OP(0x5a, (((OpBisConst) << 23) + ((ResultRegIndex) << 12) + ((OpBRegIndex) << 6) + ((OpARegIndex) << 0)))
 #define TT_MULGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
     ckernel::instrn_buffer[0] = TT_OP_MULGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex)
-#define TTI_MULGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
-    INSTRUCTION_WORD(TT_OP_MULGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex))
+#define TTI_MULGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) INSTRUCTION_WORD(TT_OP_MULGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex))
 #define TT_OP_MVMUL(clear_dvalid, instr_mod19, addr_mode, dst) \
     TT_OP(0x26, (((clear_dvalid) << 22) + ((instr_mod19) << 19) + ((addr_mode) << 14) + ((dst) << 0)))
 #define TT_MVMUL(clear_dvalid, instr_mod19, addr_mode, dst)  ckernel::instrn_buffer[0] = TT_OP_MVMUL(clear_dvalid, instr_mod19, addr_mode, dst)
@@ -241,8 +236,7 @@
     ckernel::instrn_buffer[0] =                                                                                                               \
         TT_OP_PACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid)
 #define TTI_PACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
-    INSTRUCTION_WORD(                                                                                                         \
-        TT_OP_PACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid))
+    INSTRUCTION_WORD(TT_OP_PACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid))
 #define TT_OP_PACR0_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
     TT_OP(                                                                                                                                                   \
         0x20,                                                                                                                                                \
@@ -252,7 +246,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                           \
         TT_OP_PACR0_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid)
 #define TTI_PACR0_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
-    INSTRUCTION_WORD(                                                                                                                     \
+    INSTRUCTION_WORD(                                                                                                                                      \
         TT_OP_PACR0_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid))
 #define TT_OP_PACR0_ROW(                                                                                                                              \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
@@ -266,7 +260,7 @@
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid)
 #define TTI_PACR0_ROW(                                                                                                                                \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
-    INSTRUCTION_WORD(TT_OP_PACR0_ROW(                                                                                                \
+    INSTRUCTION_WORD(TT_OP_PACR0_ROW(                                                                                                                 \
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid))
 #define TT_OP_PACR0_ROW_INC(                                                                                                                                  \
     Dst_Row_Idx_Inc,                                                                                                                                          \
@@ -299,23 +293,23 @@
         Src_Tile_Offset_Idx_Inc,                     \
         Buffer_Descriptor_Table_Sel,                 \
         ClrDatValid)
-#define TTI_PACR0_ROW_INC(                                 \
-    Dst_Row_Idx_Inc,                                       \
-    Src_Row_Idx_Inc,                                       \
-    Dst_Face_Idx_Inc,                                      \
-    Src_Face_Idx_Inc,                                      \
-    Dst_Tile_Offset_Idx_Inc,                               \
-    Src_Tile_Offset_Idx_Inc,                               \
-    Buffer_Descriptor_Table_Sel,                           \
-    ClrDatValid)                                           \
+#define TTI_PACR0_ROW_INC(                \
+    Dst_Row_Idx_Inc,                      \
+    Src_Row_Idx_Inc,                      \
+    Dst_Face_Idx_Inc,                     \
+    Src_Face_Idx_Inc,                     \
+    Dst_Tile_Offset_Idx_Inc,              \
+    Src_Tile_Offset_Idx_Inc,              \
+    Buffer_Descriptor_Table_Sel,          \
+    ClrDatValid)                          \
     INSTRUCTION_WORD(TT_OP_PACR0_ROW_INC( \
-        Dst_Row_Idx_Inc,                                   \
-        Src_Row_Idx_Inc,                                   \
-        Dst_Face_Idx_Inc,                                  \
-        Src_Face_Idx_Inc,                                  \
-        Dst_Tile_Offset_Idx_Inc,                           \
-        Src_Tile_Offset_Idx_Inc,                           \
-        Buffer_Descriptor_Table_Sel,                       \
+        Dst_Row_Idx_Inc,                  \
+        Src_Row_Idx_Inc,                  \
+        Dst_Face_Idx_Inc,                 \
+        Src_Face_Idx_Inc,                 \
+        Dst_Tile_Offset_Idx_Inc,          \
+        Src_Tile_Offset_Idx_Inc,          \
+        Buffer_Descriptor_Table_Sel,      \
         ClrDatValid))
 #define TT_OP_PACR0_TILE(Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, ClrDatValid) \
     TT_OP(0x0f, (((Dst_Tile_Idx) << 16) + ((Src_Tile_Idx) << 7) + ((Buffer_Descriptor_Table_Sel) << 2) + ((ClrDatValid) << 1)))
@@ -338,8 +332,7 @@
     ckernel::instrn_buffer[0] =                                                                                                               \
         TT_OP_PACR1_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid)
 #define TTI_PACR1_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
-    INSTRUCTION_WORD(                                                                                                         \
-        TT_OP_PACR1_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid))
+    INSTRUCTION_WORD(TT_OP_PACR1_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid))
 #define TT_OP_PACR1_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
     TT_OP(                                                                                                                                                   \
         0x2f,                                                                                                                                                \
@@ -349,7 +342,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                           \
         TT_OP_PACR1_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid)
 #define TTI_PACR1_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
-    INSTRUCTION_WORD(                                                                                                                     \
+    INSTRUCTION_WORD(                                                                                                                                      \
         TT_OP_PACR1_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid))
 #define TT_OP_PACR1_ROW(                                                                                                                              \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
@@ -363,7 +356,7 @@
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid)
 #define TTI_PACR1_ROW(                                                                                                                                \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid) \
-    INSTRUCTION_WORD(TT_OP_PACR1_ROW(                                                                                                \
+    INSTRUCTION_WORD(TT_OP_PACR1_ROW(                                                                                                                 \
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, ClrDatValid))
 #define TT_OP_PACR1_ROW_INC(                                                                                                                                  \
     Dst_Row_Idx_Inc,                                                                                                                                          \
@@ -396,23 +389,23 @@
         Src_Tile_Offset_Idx_Inc,                     \
         Buffer_Descriptor_Table_Sel,                 \
         ClrDatValid)
-#define TTI_PACR1_ROW_INC(                                 \
-    Dst_Row_Idx_Inc,                                       \
-    Src_Row_Idx_Inc,                                       \
-    Dst_Face_Idx_Inc,                                      \
-    Src_Face_Idx_Inc,                                      \
-    Dst_Tile_Offset_Idx_Inc,                               \
-    Src_Tile_Offset_Idx_Inc,                               \
-    Buffer_Descriptor_Table_Sel,                           \
-    ClrDatValid)                                           \
+#define TTI_PACR1_ROW_INC(                \
+    Dst_Row_Idx_Inc,                      \
+    Src_Row_Idx_Inc,                      \
+    Dst_Face_Idx_Inc,                     \
+    Src_Face_Idx_Inc,                     \
+    Dst_Tile_Offset_Idx_Inc,              \
+    Src_Tile_Offset_Idx_Inc,              \
+    Buffer_Descriptor_Table_Sel,          \
+    ClrDatValid)                          \
     INSTRUCTION_WORD(TT_OP_PACR1_ROW_INC( \
-        Dst_Row_Idx_Inc,                                   \
-        Src_Row_Idx_Inc,                                   \
-        Dst_Face_Idx_Inc,                                  \
-        Src_Face_Idx_Inc,                                  \
-        Dst_Tile_Offset_Idx_Inc,                           \
-        Src_Tile_Offset_Idx_Inc,                           \
-        Buffer_Descriptor_Table_Sel,                       \
+        Dst_Row_Idx_Inc,                  \
+        Src_Row_Idx_Inc,                  \
+        Dst_Face_Idx_Inc,                 \
+        Src_Face_Idx_Inc,                 \
+        Dst_Tile_Offset_Idx_Inc,          \
+        Src_Tile_Offset_Idx_Inc,          \
+        Buffer_Descriptor_Table_Sel,      \
         ClrDatValid))
 #define TT_OP_PACR1_TILE(Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, ClrDatValid) \
     TT_OP(0x2c, (((Dst_Tile_Idx) << 16) + ((Src_Tile_Idx) << 7) + ((Buffer_Descriptor_Table_Sel) << 2) + ((ClrDatValid) << 1)))
@@ -457,23 +450,23 @@
         Buffer_Descriptor_Table_Sel,               \
         PackerSel,                                 \
         ClrDatValid)
-#define TTI_PACR_STRIDE(                                 \
-    Src_Row_Idx_or_Inc_Mul4,                             \
-    Src_Row_Idx_Inc,                                     \
-    L1_Tile_Idx_or_Tile_Idx_Inc,                         \
-    Tile_Idx_Inc,                                        \
-    L1_16datums_Row_Index,                               \
-    Buffer_Descriptor_Table_Sel,                         \
-    PackerSel,                                           \
-    ClrDatValid)                                         \
+#define TTI_PACR_STRIDE(                \
+    Src_Row_Idx_or_Inc_Mul4,            \
+    Src_Row_Idx_Inc,                    \
+    L1_Tile_Idx_or_Tile_Idx_Inc,        \
+    Tile_Idx_Inc,                       \
+    L1_16datums_Row_Index,              \
+    Buffer_Descriptor_Table_Sel,        \
+    PackerSel,                          \
+    ClrDatValid)                        \
     INSTRUCTION_WORD(TT_OP_PACR_STRIDE( \
-        Src_Row_Idx_or_Inc_Mul4,                         \
-        Src_Row_Idx_Inc,                                 \
-        L1_Tile_Idx_or_Tile_Idx_Inc,                     \
-        Tile_Idx_Inc,                                    \
-        L1_16datums_Row_Index,                           \
-        Buffer_Descriptor_Table_Sel,                     \
-        PackerSel,                                       \
+        Src_Row_Idx_or_Inc_Mul4,        \
+        Src_Row_Idx_Inc,                \
+        L1_Tile_Idx_or_Tile_Idx_Inc,    \
+        Tile_Idx_Inc,                   \
+        L1_16datums_Row_Index,          \
+        Buffer_Descriptor_Table_Sel,    \
+        PackerSel,                      \
         ClrDatValid))
 #define TT_OP_PACR_UNTILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Packer_Sel, Buffer_Descriptor_Table_Sel, ClrDatValid) \
     TT_OP(                                                                                                                                      \
@@ -484,23 +477,20 @@
     ckernel::instrn_buffer[0] =                                                                                                              \
         TT_OP_PACR_UNTILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Packer_Sel, Buffer_Descriptor_Table_Sel, ClrDatValid)
 #define TTI_PACR_UNTILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Packer_Sel, Buffer_Descriptor_Table_Sel, ClrDatValid) \
-    INSTRUCTION_WORD(                                                                                                        \
-        TT_OP_PACR_UNTILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Packer_Sel, Buffer_Descriptor_Table_Sel, ClrDatValid))
+    INSTRUCTION_WORD(TT_OP_PACR_UNTILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Packer_Sel, Buffer_Descriptor_Table_Sel, ClrDatValid))
 #define TT_OP_POP_TILES(unpacker_rd_done_wait_mask, num_tiles, buffer_sel) \
     TT_OP(0x3e, (((unpacker_rd_done_wait_mask) << 15) + ((num_tiles) << 5) + ((buffer_sel) << 0)))
 #define TT_POP_TILES(unpacker_rd_done_wait_mask, num_tiles, buffer_sel) \
     ckernel::instrn_buffer[0] = TT_OP_POP_TILES(unpacker_rd_done_wait_mask, num_tiles, buffer_sel)
-#define TTI_POP_TILES(unpacker_rd_done_wait_mask, num_tiles, buffer_sel) \
-    INSTRUCTION_WORD(TT_OP_POP_TILES(unpacker_rd_done_wait_mask, num_tiles, buffer_sel))
+#define TTI_POP_TILES(unpacker_rd_done_wait_mask, num_tiles, buffer_sel) INSTRUCTION_WORD(TT_OP_POP_TILES(unpacker_rd_done_wait_mask, num_tiles, buffer_sel))
 #define TT_OP_PUSH_TILES(packer_wr_done_wait_mask, num_tiles, buffer_sel) \
     TT_OP(0x3d, (((packer_wr_done_wait_mask) << 15) + ((num_tiles) << 5) + ((buffer_sel) << 0)))
 #define TT_PUSH_TILES(packer_wr_done_wait_mask, num_tiles, buffer_sel) \
     ckernel::instrn_buffer[0] = TT_OP_PUSH_TILES(packer_wr_done_wait_mask, num_tiles, buffer_sel)
-#define TTI_PUSH_TILES(packer_wr_done_wait_mask, num_tiles, buffer_sel) \
-    INSTRUCTION_WORD(TT_OP_PUSH_TILES(packer_wr_done_wait_mask, num_tiles, buffer_sel))
-#define TT_OP_RDCFG(GprAddress, CfgReg) TT_OP(0xb1, (((GprAddress) << 16) + ((CfgReg) << 0)))
-#define TT_RDCFG(GprAddress, CfgReg)    ckernel::instrn_buffer[0] = TT_OP_RDCFG(GprAddress, CfgReg)
-#define TTI_RDCFG(GprAddress, CfgReg)   INSTRUCTION_WORD(TT_OP_RDCFG(GprAddress, CfgReg))
+#define TTI_PUSH_TILES(packer_wr_done_wait_mask, num_tiles, buffer_sel) INSTRUCTION_WORD(TT_OP_PUSH_TILES(packer_wr_done_wait_mask, num_tiles, buffer_sel))
+#define TT_OP_RDCFG(GprAddress, CfgReg)                                 TT_OP(0xb1, (((GprAddress) << 16) + ((CfgReg) << 0)))
+#define TT_RDCFG(GprAddress, CfgReg)                                    ckernel::instrn_buffer[0] = TT_OP_RDCFG(GprAddress, CfgReg)
+#define TTI_RDCFG(GprAddress, CfgReg)                                   INSTRUCTION_WORD(TT_OP_RDCFG(GprAddress, CfgReg))
 #define TT_OP_REPLAY(start_idx, len, last, set_mutex, execute_while_loading, load_mode) \
     TT_OP(0x04, (((start_idx) << 14) + ((len) << 4) + ((last) << 3) + ((set_mutex) << 2) + ((execute_while_loading) << 1) + ((load_mode) << 0)))
 #define TT_REPLAY(start_idx, len, last, set_mutex, execute_while_loading, load_mode) \
@@ -561,30 +551,28 @@
     ckernel::instrn_buffer[0] =                                                                                                                        \
         TT_OP_RV_WRCFG(byte_mask, write_64b, index_of_reg_containing_cfg_index, index_of_reg_containing_wrdata_msbs, index_of_reg_containing_wrdata_lsbs)
 #define TTI_RV_WRCFG(byte_mask, write_64b, index_of_reg_containing_cfg_index, index_of_reg_containing_wrdata_msbs, index_of_reg_containing_wrdata_lsbs) \
-    INSTRUCTION_WORD(                                                                                                                  \
+    INSTRUCTION_WORD(                                                                                                                                   \
         TT_OP_RV_WRCFG(byte_mask, write_64b, index_of_reg_containing_cfg_index, index_of_reg_containing_wrdata_msbs, index_of_reg_containing_wrdata_lsbs))
 #define TT_OP_SEMGET(sem_bank_sel, sem_sel) TT_OP(0xa5, (((sem_bank_sel) << 8) + ((sem_sel) << 0)))
 #define TT_SEMGET(sem_bank_sel, sem_sel)    ckernel::instrn_buffer[0] = TT_OP_SEMGET(sem_bank_sel, sem_sel)
 #define TTI_SEMGET(sem_bank_sel, sem_sel)   INSTRUCTION_WORD(TT_OP_SEMGET(sem_bank_sel, sem_sel))
 #define TT_OP_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel) \
     TT_OP(0xa3, (((max_value) << 20) + ((init_value) << 16) + ((sem_bank_sel) << 8) + ((sem_sel) << 0)))
-#define TT_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel) ckernel::instrn_buffer[0] = TT_OP_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel)
-#define TTI_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel) \
-    INSTRUCTION_WORD(TT_OP_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel))
-#define TT_OP_SEMPOST(sem_bank_sel, sem_sel) TT_OP(0xa4, (((sem_bank_sel) << 8) + ((sem_sel) << 0)))
-#define TT_SEMPOST(sem_bank_sel, sem_sel)    ckernel::instrn_buffer[0] = TT_OP_SEMPOST(sem_bank_sel, sem_sel)
-#define TTI_SEMPOST(sem_bank_sel, sem_sel)   INSTRUCTION_WORD(TT_OP_SEMPOST(sem_bank_sel, sem_sel))
+#define TT_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel)  ckernel::instrn_buffer[0] = TT_OP_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel)
+#define TTI_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel) INSTRUCTION_WORD(TT_OP_SEMINIT(max_value, init_value, sem_bank_sel, sem_sel))
+#define TT_OP_SEMPOST(sem_bank_sel, sem_sel)                      TT_OP(0xa4, (((sem_bank_sel) << 8) + ((sem_sel) << 0)))
+#define TT_SEMPOST(sem_bank_sel, sem_sel)                         ckernel::instrn_buffer[0] = TT_OP_SEMPOST(sem_bank_sel, sem_sel)
+#define TTI_SEMPOST(sem_bank_sel, sem_sel)                        INSTRUCTION_WORD(TT_OP_SEMPOST(sem_bank_sel, sem_sel))
 #define TT_OP_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel) \
     TT_OP(0xa6, (((stall_res) << 15) + ((wait_sem_cond) << 13) + ((sem_bank_sel) << 8) + ((sem_sel) << 0)))
-#define TT_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel) ckernel::instrn_buffer[0] = TT_OP_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel)
-#define TTI_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel) \
-    INSTRUCTION_WORD(TT_OP_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel))
-#define TT_OP_SETASHRMV(reg_mask2) TT_OP(0x1c, (((reg_mask2) << 0)))
-#define TT_SETASHRMV(reg_mask2)    ckernel::instrn_buffer[0] = TT_OP_SETASHRMV(reg_mask2)
-#define TTI_SETASHRMV(reg_mask2)   INSTRUCTION_WORD(TT_OP_SETASHRMV(reg_mask2))
-#define TT_OP_SETDVALID(setvalid)  TT_OP(0x57, (((setvalid) << 0)))
-#define TT_SETDVALID(setvalid)     ckernel::instrn_buffer[0] = TT_OP_SETDVALID(setvalid)
-#define TTI_SETDVALID(setvalid)    INSTRUCTION_WORD(TT_OP_SETDVALID(setvalid))
+#define TT_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel)  ckernel::instrn_buffer[0] = TT_OP_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel)
+#define TTI_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel) INSTRUCTION_WORD(TT_OP_SEMWAIT(stall_res, wait_sem_cond, sem_bank_sel, sem_sel))
+#define TT_OP_SETASHRMV(reg_mask2)                                   TT_OP(0x1c, (((reg_mask2) << 0)))
+#define TT_SETASHRMV(reg_mask2)                                      ckernel::instrn_buffer[0] = TT_OP_SETASHRMV(reg_mask2)
+#define TTI_SETASHRMV(reg_mask2)                                     INSTRUCTION_WORD(TT_OP_SETASHRMV(reg_mask2))
+#define TT_OP_SETDVALID(setvalid)                                    TT_OP(0x57, (((setvalid) << 0)))
+#define TT_SETDVALID(setvalid)                                       ckernel::instrn_buffer[0] = TT_OP_SETDVALID(setvalid)
+#define TTI_SETDVALID(setvalid)                                      INSTRUCTION_WORD(TT_OP_SETDVALID(setvalid))
 #define TT_OP_SETGPR(Payload_SigSelSize, Payload_SigSel, SetSignalsMode, RegIndex16b) \
     TT_OP(0x45, (((Payload_SigSelSize) << 22) + ((Payload_SigSel) << 8) + ((SetSignalsMode) << 7) + ((RegIndex16b) << 0)))
 #define TT_SETGPR(Payload_SigSelSize, Payload_SigSel, SetSignalsMode, RegIndex16b) \
@@ -746,9 +734,8 @@
 #define TTI_SFPSHFT(imm12_math, lreg_c, lreg_dest, instr_mod1) INSTRUCTION_WORD(TT_OP_SFPSHFT(imm12_math, lreg_c, lreg_dest, instr_mod1))
 #define TT_OP_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1) \
     TT_OP(0x94, (((imm12_math) << 12) + ((lreg_src_c) << 8) + ((lreg_dest) << 4) + ((instr_mod1) << 0)))
-#define TT_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1) ckernel::instrn_buffer[0] = TT_OP_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1)
-#define TTI_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1) \
-    INSTRUCTION_WORD(TT_OP_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1))
+#define TT_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1)  ckernel::instrn_buffer[0] = TT_OP_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1)
+#define TTI_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1) INSTRUCTION_WORD(TT_OP_SFPSHFT2(imm12_math, lreg_src_c, lreg_dest, instr_mod1))
 #define TT_OP_SFPSTORE(lreg_ind, instr_mod0, sfpu_addr_mode, done, dest_reg_addr) \
     TT_OP(0x72, (((lreg_ind) << 20) + ((instr_mod0) << 16) + ((sfpu_addr_mode) << 13) + ((done) << 11) + ((dest_reg_addr) << 0)))
 #define TT_SFPSTORE(lreg_ind, instr_mod0, sfpu_addr_mode, done, dest_reg_addr) \
@@ -757,9 +744,8 @@
     INSTRUCTION_WORD(TT_OP_SFPSTORE(lreg_ind, instr_mod0, sfpu_addr_mode, done, dest_reg_addr))
 #define TT_OP_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1) \
     TT_OP(0x92, (((imm12_math) << 12) + ((lreg_src_c) << 8) + ((lreg_dest) << 4) + ((instr_mod1) << 0)))
-#define TT_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1) ckernel::instrn_buffer[0] = TT_OP_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1)
-#define TTI_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1) \
-    INSTRUCTION_WORD(TT_OP_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1))
+#define TT_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1)  ckernel::instrn_buffer[0] = TT_OP_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1)
+#define TTI_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1) INSTRUCTION_WORD(TT_OP_SFPSWAP(imm12_math, lreg_src_c, lreg_dest, instr_mod1))
 #define TT_OP_SFPTRANSP(imm12_math, lreg_c, lreg_dest, instr_mod1) \
     TT_OP(0x8c, (((imm12_math) << 12) + ((lreg_c) << 8) + ((lreg_dest) << 4) + ((instr_mod1) << 0)))
 #define TT_SFPTRANSP(imm12_math, lreg_c, lreg_dest, instr_mod1)  ckernel::instrn_buffer[0] = TT_OP_SFPTRANSP(imm12_math, lreg_c, lreg_dest, instr_mod1)
@@ -804,8 +790,7 @@
     TT_OP(0x59, (((OpBisConst) << 23) + ((ResultRegIndex) << 12) + ((OpBRegIndex) << 6) + ((OpARegIndex) << 0)))
 #define TT_SUBGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
     ckernel::instrn_buffer[0] = TT_OP_SUBGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex)
-#define TTI_SUBGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) \
-    INSTRUCTION_WORD(TT_OP_SUBGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex))
+#define TTI_SUBGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex) INSTRUCTION_WORD(TT_OP_SUBGPR(OpBisConst, ResultRegIndex, OpBRegIndex, OpARegIndex))
 #define TT_OP_UNPACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(                                                                                                                                         \
         0x47,                                                                                                                                      \
@@ -815,8 +800,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                 \
         TT_OP_UNPACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(                                                                                                           \
-        TT_OP_UNPACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
+    INSTRUCTION_WORD(TT_OP_UNPACR0_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR0_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(                                                                                                                                                     \
         0x3f,                                                                                                                                                  \
@@ -826,7 +810,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                             \
         TT_OP_UNPACR0_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR0_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR0_FACE_INC(                                                                                                \
+    INSTRUCTION_WORD(TT_OP_UNPACR0_FACE_INC(                                                                                                                 \
         Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR0_ROW(                                                                                                                            \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
@@ -840,7 +824,7 @@
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR0_ROW(                                                                                                                              \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR0_ROW(                                                                                              \
+    INSTRUCTION_WORD(TT_OP_UNPACR0_ROW(                                                                                                               \
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR0_ROW_INC(                                                                                                                                 \
     Dst_Row_Idx_Inc,                                                                                                                                           \
@@ -873,23 +857,23 @@
         Src_Tile_Offset_Idx_Inc,                       \
         Buffer_Descriptor_Table_Sel,                   \
         SetDatValid)
-#define TTI_UNPACR0_ROW_INC(                                 \
-    Dst_Row_Idx_Inc,                                         \
-    Src_Row_Idx_Inc,                                         \
-    Dst_Face_Idx_Inc,                                        \
-    Src_Face_Idx_Inc,                                        \
-    Dst_Tile_Offset_Idx_Inc,                                 \
-    Src_Tile_Offset_Idx_Inc,                                 \
-    Buffer_Descriptor_Table_Sel,                             \
-    SetDatValid)                                             \
+#define TTI_UNPACR0_ROW_INC(                \
+    Dst_Row_Idx_Inc,                        \
+    Src_Row_Idx_Inc,                        \
+    Dst_Face_Idx_Inc,                       \
+    Src_Face_Idx_Inc,                       \
+    Dst_Tile_Offset_Idx_Inc,                \
+    Src_Tile_Offset_Idx_Inc,                \
+    Buffer_Descriptor_Table_Sel,            \
+    SetDatValid)                            \
     INSTRUCTION_WORD(TT_OP_UNPACR0_ROW_INC( \
-        Dst_Row_Idx_Inc,                                     \
-        Src_Row_Idx_Inc,                                     \
-        Dst_Face_Idx_Inc,                                    \
-        Src_Face_Idx_Inc,                                    \
-        Dst_Tile_Offset_Idx_Inc,                             \
-        Src_Tile_Offset_Idx_Inc,                             \
-        Buffer_Descriptor_Table_Sel,                         \
+        Dst_Row_Idx_Inc,                    \
+        Src_Row_Idx_Inc,                    \
+        Dst_Face_Idx_Inc,                   \
+        Src_Face_Idx_Inc,                   \
+        Dst_Tile_Offset_Idx_Inc,            \
+        Src_Tile_Offset_Idx_Inc,            \
+        Buffer_Descriptor_Table_Sel,        \
         SetDatValid))
 #define TT_OP_UNPACR0_STRIDE(                                                                                                                          \
     Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid) \
@@ -903,7 +887,7 @@
         Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR0_STRIDE(                                                                                                                            \
     Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR0_STRIDE(                                                                                            \
+    INSTRUCTION_WORD(TT_OP_UNPACR0_STRIDE(                                                                                                             \
         Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR0_TILE(Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(0x3c, (((Dst_Tile_Idx) << 15) + ((Src_Tile_Idx) << 7) + ((Buffer_Descriptor_Table_Sel) << 2) + ((SetDatValid) << 1)))
@@ -926,8 +910,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                 \
         TT_OP_UNPACR1_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR1_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(                                                                                                           \
-        TT_OP_UNPACR1_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
+    INSTRUCTION_WORD(TT_OP_UNPACR1_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR1_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(                                                                                                                                                     \
         0x6b,                                                                                                                                                  \
@@ -937,7 +920,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                             \
         TT_OP_UNPACR1_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR1_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR1_FACE_INC(                                                                                                \
+    INSTRUCTION_WORD(TT_OP_UNPACR1_FACE_INC(                                                                                                                 \
         Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR1_ROW(                                                                                                                            \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
@@ -951,7 +934,7 @@
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR1_ROW(                                                                                                                              \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR1_ROW(                                                                                              \
+    INSTRUCTION_WORD(TT_OP_UNPACR1_ROW(                                                                                                               \
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR1_ROW_INC(                                                                                                                                 \
     Dst_Row_Idx_Inc,                                                                                                                                           \
@@ -984,23 +967,23 @@
         Src_Tile_Offset_Idx_Inc,                       \
         Buffer_Descriptor_Table_Sel,                   \
         SetDatValid)
-#define TTI_UNPACR1_ROW_INC(                                 \
-    Dst_Row_Idx_Inc,                                         \
-    Src_Row_Idx_Inc,                                         \
-    Dst_Face_Idx_Inc,                                        \
-    Src_Face_Idx_Inc,                                        \
-    Dst_Tile_Offset_Idx_Inc,                                 \
-    Src_Tile_Offset_Idx_Inc,                                 \
-    Buffer_Descriptor_Table_Sel,                             \
-    SetDatValid)                                             \
+#define TTI_UNPACR1_ROW_INC(                \
+    Dst_Row_Idx_Inc,                        \
+    Src_Row_Idx_Inc,                        \
+    Dst_Face_Idx_Inc,                       \
+    Src_Face_Idx_Inc,                       \
+    Dst_Tile_Offset_Idx_Inc,                \
+    Src_Tile_Offset_Idx_Inc,                \
+    Buffer_Descriptor_Table_Sel,            \
+    SetDatValid)                            \
     INSTRUCTION_WORD(TT_OP_UNPACR1_ROW_INC( \
-        Dst_Row_Idx_Inc,                                     \
-        Src_Row_Idx_Inc,                                     \
-        Dst_Face_Idx_Inc,                                    \
-        Src_Face_Idx_Inc,                                    \
-        Dst_Tile_Offset_Idx_Inc,                             \
-        Src_Tile_Offset_Idx_Inc,                             \
-        Buffer_Descriptor_Table_Sel,                         \
+        Dst_Row_Idx_Inc,                    \
+        Src_Row_Idx_Inc,                    \
+        Dst_Face_Idx_Inc,                   \
+        Src_Face_Idx_Inc,                   \
+        Dst_Tile_Offset_Idx_Inc,            \
+        Src_Tile_Offset_Idx_Inc,            \
+        Buffer_Descriptor_Table_Sel,        \
         SetDatValid))
 #define TT_OP_UNPACR1_STRIDE(                                                                                                                          \
     Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid) \
@@ -1014,7 +997,7 @@
         Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR1_STRIDE(                                                                                                                            \
     Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR1_STRIDE(                                                                                            \
+    INSTRUCTION_WORD(TT_OP_UNPACR1_STRIDE(                                                                                                             \
         Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR1_TILE(Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(0x5f, (((Dst_Tile_Idx) << 15) + ((Src_Tile_Idx) << 7) + ((Buffer_Descriptor_Table_Sel) << 2) + ((SetDatValid) << 1)))
@@ -1037,8 +1020,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                 \
         TT_OP_UNPACR2_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR2_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(                                                                                                           \
-        TT_OP_UNPACR2_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
+    INSTRUCTION_WORD(TT_OP_UNPACR2_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR2_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(                                                                                                                                                     \
         0x9e,                                                                                                                                                  \
@@ -1048,7 +1030,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                             \
         TT_OP_UNPACR2_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR2_FACE_INC(Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR2_FACE_INC(                                                                                                \
+    INSTRUCTION_WORD(TT_OP_UNPACR2_FACE_INC(                                                                                                                 \
         Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR2_ROW(                                                                                                                            \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
@@ -1062,7 +1044,7 @@
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR2_ROW(                                                                                                                              \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR2_ROW(                                                                                              \
+    INSTRUCTION_WORD(TT_OP_UNPACR2_ROW(                                                                                                               \
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR2_ROW_INC(                                                                                                                                 \
     Dst_Row_Idx_Inc,                                                                                                                                           \
@@ -1095,23 +1077,23 @@
         Src_Tile_Offset_Idx_Inc,                       \
         Buffer_Descriptor_Table_Sel,                   \
         SetDatValid)
-#define TTI_UNPACR2_ROW_INC(                                 \
-    Dst_Row_Idx_Inc,                                         \
-    Src_Row_Idx_Inc,                                         \
-    Dst_Face_Idx_Inc,                                        \
-    Src_Face_Idx_Inc,                                        \
-    Dst_Tile_Offset_Idx_Inc,                                 \
-    Src_Tile_Offset_Idx_Inc,                                 \
-    Buffer_Descriptor_Table_Sel,                             \
-    SetDatValid)                                             \
+#define TTI_UNPACR2_ROW_INC(                \
+    Dst_Row_Idx_Inc,                        \
+    Src_Row_Idx_Inc,                        \
+    Dst_Face_Idx_Inc,                       \
+    Src_Face_Idx_Inc,                       \
+    Dst_Tile_Offset_Idx_Inc,                \
+    Src_Tile_Offset_Idx_Inc,                \
+    Buffer_Descriptor_Table_Sel,            \
+    SetDatValid)                            \
     INSTRUCTION_WORD(TT_OP_UNPACR2_ROW_INC( \
-        Dst_Row_Idx_Inc,                                     \
-        Src_Row_Idx_Inc,                                     \
-        Dst_Face_Idx_Inc,                                    \
-        Src_Face_Idx_Inc,                                    \
-        Dst_Tile_Offset_Idx_Inc,                             \
-        Src_Tile_Offset_Idx_Inc,                             \
-        Buffer_Descriptor_Table_Sel,                         \
+        Dst_Row_Idx_Inc,                    \
+        Src_Row_Idx_Inc,                    \
+        Dst_Face_Idx_Inc,                   \
+        Src_Face_Idx_Inc,                   \
+        Dst_Tile_Offset_Idx_Inc,            \
+        Src_Tile_Offset_Idx_Inc,            \
+        Buffer_Descriptor_Table_Sel,        \
         SetDatValid))
 #define TT_OP_UNPACR2_STRIDE(                                                                                                                          \
     Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid) \
@@ -1125,7 +1107,7 @@
         Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR2_STRIDE(                                                                                                                            \
     Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR2_STRIDE(                                                                                            \
+    INSTRUCTION_WORD(TT_OP_UNPACR2_STRIDE(                                                                                                             \
         Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR2_TILE(Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(0x9b, (((Dst_Tile_Idx) << 15) + ((Src_Tile_Idx) << 7) + ((Buffer_Descriptor_Table_Sel) << 2) + ((SetDatValid) << 1)))
@@ -1148,7 +1130,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                     \
         TT_OP_UNPACR_DEST_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR_DEST_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(                                                                                                               \
+    INSTRUCTION_WORD(                                                                                                                                \
         TT_OP_UNPACR_DEST_FACE(Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR_DEST_FACE_INC(                                                                                                       \
     Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)       \
@@ -1162,7 +1144,7 @@
         Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR_DEST_FACE_INC(                                                                                                   \
     Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR_DEST_FACE_INC(                                                                   \
+    INSTRUCTION_WORD(TT_OP_UNPACR_DEST_FACE_INC(                                                                                    \
         Dst_Face_Idx_Inc, Src_Face_Idx_Inc, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR_DEST_ROW(                                                                                                                        \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
@@ -1176,7 +1158,7 @@
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR_DEST_ROW(                                                                                                                          \
     Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR_DEST_ROW(                                                                                          \
+    INSTRUCTION_WORD(TT_OP_UNPACR_DEST_ROW(                                                                                                           \
         Dst_Row_Idx, Src_Row_Idx, Dst_Face_Idx, Src_Face_Idx, Dst_Tile_Offset_Idx_Inc, Src_Tile_Offset_Idx_Inc, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR_DEST_ROW_INC(                                                                                                                             \
     Dst_Row_Idx_Inc,                                                                                                                                           \
@@ -1209,23 +1191,23 @@
         Src_Tile_Offset_Idx_Inc,                           \
         Buffer_Descriptor_Table_Sel,                       \
         SetDatValid)
-#define TTI_UNPACR_DEST_ROW_INC(                                 \
-    Dst_Row_Idx_Inc,                                             \
-    Src_Row_Idx_Inc,                                             \
-    Dst_Face_Idx_Inc,                                            \
-    Src_Face_Idx_Inc,                                            \
-    Dst_Tile_Offset_Idx_Inc,                                     \
-    Src_Tile_Offset_Idx_Inc,                                     \
-    Buffer_Descriptor_Table_Sel,                                 \
-    SetDatValid)                                                 \
+#define TTI_UNPACR_DEST_ROW_INC(                \
+    Dst_Row_Idx_Inc,                            \
+    Src_Row_Idx_Inc,                            \
+    Dst_Face_Idx_Inc,                           \
+    Src_Face_Idx_Inc,                           \
+    Dst_Tile_Offset_Idx_Inc,                    \
+    Src_Tile_Offset_Idx_Inc,                    \
+    Buffer_Descriptor_Table_Sel,                \
+    SetDatValid)                                \
     INSTRUCTION_WORD(TT_OP_UNPACR_DEST_ROW_INC( \
-        Dst_Row_Idx_Inc,                                         \
-        Src_Row_Idx_Inc,                                         \
-        Dst_Face_Idx_Inc,                                        \
-        Src_Face_Idx_Inc,                                        \
-        Dst_Tile_Offset_Idx_Inc,                                 \
-        Src_Tile_Offset_Idx_Inc,                                 \
-        Buffer_Descriptor_Table_Sel,                             \
+        Dst_Row_Idx_Inc,                        \
+        Src_Row_Idx_Inc,                        \
+        Dst_Face_Idx_Inc,                       \
+        Src_Face_Idx_Inc,                       \
+        Dst_Tile_Offset_Idx_Inc,                \
+        Src_Tile_Offset_Idx_Inc,                \
+        Buffer_Descriptor_Table_Sel,            \
         SetDatValid))
 #define TT_OP_UNPACR_DEST_STRIDE(                                                                                                                      \
     Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid) \
@@ -1239,7 +1221,7 @@
         Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR_DEST_STRIDE(                                                                                                                        \
     Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(TT_OP_UNPACR_DEST_STRIDE(                                                                                        \
+    INSTRUCTION_WORD(TT_OP_UNPACR_DEST_STRIDE(                                                                                                         \
         Src_Reg_Y_Cntr_Incr, L1_Tile_Idx_or_Tile_Idx_Inc, Tile_Idx_Inc, Row_Mask_Reg_Sel, L1_16datums_Row_Index, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR_DEST_TILE(Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(0xac, (((Dst_Tile_Idx) << 15) + ((Src_Tile_Idx) << 7) + ((Buffer_Descriptor_Table_Sel) << 2) + ((SetDatValid) << 1)))
@@ -1270,8 +1252,7 @@
     ckernel::instrn_buffer[0] =                                                                                                                 \
         TT_OP_UNPACR_TILE_MISC(Unpack_Type, Row_Bcast_Row_Idx, Tile_Idx_Inc, Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR_TILE_MISC(Unpack_Type, Row_Bcast_Row_Idx, Tile_Idx_Inc, Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(                                                                                                           \
-        TT_OP_UNPACR_TILE_MISC(Unpack_Type, Row_Bcast_Row_Idx, Tile_Idx_Inc, Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, SetDatValid))
+    INSTRUCTION_WORD(TT_OP_UNPACR_TILE_MISC(Unpack_Type, Row_Bcast_Row_Idx, Tile_Idx_Inc, Dst_Tile_Idx, Src_Tile_Idx, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_UNPACR_TILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Unpack_Sel, Buffer_Descriptor_Table_Sel, SetDatValid) \
     TT_OP(                                                                                                                                      \
         0xbe,                                                                                                                                   \
@@ -1281,8 +1262,7 @@
     ckernel::instrn_buffer[0] =                                                                                                              \
         TT_OP_UNPACR_TILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Unpack_Sel, Buffer_Descriptor_Table_Sel, SetDatValid)
 #define TTI_UNPACR_TILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Unpack_Sel, Buffer_Descriptor_Table_Sel, SetDatValid) \
-    INSTRUCTION_WORD(                                                                                                        \
-        TT_OP_UNPACR_TILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Unpack_Sel, Buffer_Descriptor_Table_Sel, SetDatValid))
+    INSTRUCTION_WORD(TT_OP_UNPACR_TILIZE(Row_Cnt_Enc, Cntr_Reset_mask, Dst_Z_Cntr_inc, Src_Z_Cntr_inc, Unpack_Sel, Buffer_Descriptor_Table_Sel, SetDatValid))
 #define TT_OP_WAIT_FREE(stall_res, num_tiles, buffer_sel)  TT_OP(0xab, (((stall_res) << 15) + ((num_tiles) << 5) + ((buffer_sel) << 0)))
 #define TT_WAIT_FREE(stall_res, num_tiles, buffer_sel)     ckernel::instrn_buffer[0] = TT_OP_WAIT_FREE(stall_res, num_tiles, buffer_sel)
 #define TTI_WAIT_FREE(stall_res, num_tiles, buffer_sel)    INSTRUCTION_WORD(TT_OP_WAIT_FREE(stall_res, num_tiles, buffer_sel))
