@@ -10,15 +10,6 @@
 namespace ckernel::sfpu
 {
 
-/*
-
-Expects following input in Dst register:
-Index 0 ( Tile 0 ) -> condition tensor
-Index 32 ( Tile 1 ) -> true tensor
-Index 64 ( Tile 2 ) -> false tensor
-
-*/
-
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
