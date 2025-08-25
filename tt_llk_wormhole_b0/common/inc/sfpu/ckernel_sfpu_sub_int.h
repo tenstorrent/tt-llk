@@ -17,7 +17,7 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-inline void _sub_int_(const uint dst_offset)
+inline void _sub_int_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
 {
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
 
@@ -32,13 +32,13 @@ inline void _sub_int_(const uint dst_offset)
     for (int d = 0; d < ITERATIONS; d++)
     {
         // operand A
-        TTI_SFPLOAD(p_sfpu::LREG1 /*lreg*/, sfpload_instr_mod, ADDR_MOD_3 /*addr_mode*/, 0 /*dest*/);
+        TT_SFPLOAD(p_sfpu::LREG1 /*lreg*/, sfpload_instr_mod, ADDR_MOD_3 /*addr_mode*/, dst_index_in0 * 64 /*dest*/);
         // operand B
-        TT_SFPLOAD(p_sfpu::LREG0 /*lreg*/, sfpload_instr_mod, ADDR_MOD_3 /*addr_mode*/, dst_offset * 64 /*dest*/);
+        TT_SFPLOAD(p_sfpu::LREG0 /*lreg*/, sfpload_instr_mod, ADDR_MOD_3 /*addr_mode*/, dst_index_in1 * 64 /*dest*/);
         // Use 6 or LO16 as imod to convert operand B to 2's complement
         TTI_SFPIADD(0 /*imm*/, p_sfpu::LREG1 /*lreg*/, p_sfpu::LREG0 /*ldest*/, 6 /*imod*/);
         // LREG_0 -> dest
-        TTI_SFPSTORE(p_sfpu::LREG0 /*lreg_ind*/, sfpload_instr_mod, ADDR_MOD_3 /*addr_mode*/, 0 /*dest*/);
+        TT_SFPSTORE(p_sfpu::LREG0 /*lreg_ind*/, sfpload_instr_mod, ADDR_MOD_3 /*addr_mode*/, dst_index_out * 64 /*dest*/);
         sfpi::dst_reg++;
     }
 }
