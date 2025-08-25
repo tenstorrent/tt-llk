@@ -398,10 +398,9 @@ def calculate_edgecase_dest_indices(
 
         # Add both combinations: starting at index 0 and at max allowed index
         # If max_index = 0 add only (dest_sync, 0) to avoid duplicates
-        (
+        if max_index != 0:
             combinations.extend([(dest_sync, 0), (dest_sync, max_index)])
-            if max_index != 0
-            else combinations.extend([(dest_sync, 0)])
-        )
+        else:
+            combinations.extend([(dest_sync, 0)])
 
     return combinations
