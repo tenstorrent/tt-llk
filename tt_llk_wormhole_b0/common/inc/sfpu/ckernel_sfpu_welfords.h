@@ -120,10 +120,10 @@ sfpi_inline void Welfords_Load_Data()
     constexpr uint32_t offset2 = offset1 + 2;
     constexpr uint32_t offset3 = offset1 + 16;
     constexpr uint32_t offset4 = offset1 + 18;
-    /*row1*/ TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, offset1);
-    /*row2*/ TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_3, offset2);
-    /*row3*/ TTI_SFPLOAD(p_sfpu::LREG2, 0, ADDR_MOD_3, offset3);
-    /*row4*/ TTI_SFPLOAD(p_sfpu::LREG3, 0, ADDR_MOD_3, offset4);
+    TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, offset1);/*row1*/ 
+    TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_3, offset2);/*row2*/ 
+    TTI_SFPLOAD(p_sfpu::LREG2, 0, ADDR_MOD_3, offset3);/*row3*/ 
+    TTI_SFPLOAD(p_sfpu::LREG3, 0, ADDR_MOD_3, offset4);/*row4*/ 
     /*transposes raw mixed data to logical rows*/
     lltt::replay(18, 5);
 }
@@ -134,10 +134,10 @@ sfpi_inline void Welfords_Load_Initial_Data()
     constexpr uint32_t offset2 = offset1 + 2;
     constexpr uint32_t offset3 = offset1 + 16;
     constexpr uint32_t offset4 = offset1 + 18;
-    /*row1*/ TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, offset1);
-    /*row2*/ TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_3, offset2);
-    /*row3*/ TTI_SFPLOAD(p_sfpu::LREG2, 0, ADDR_MOD_3, offset3);
-    /*row4*/ TTI_SFPLOAD(p_sfpu::LREG3, 0, ADDR_MOD_3, offset4);
+    TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, offset1);/*row1*/ 
+    TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_3, offset2);/*row2*/ 
+    TTI_SFPLOAD(p_sfpu::LREG2, 0, ADDR_MOD_3, offset3);/*row3*/ 
+    TTI_SFPLOAD(p_sfpu::LREG3, 0, ADDR_MOD_3, offset4);/*row4*/ 
     /*transposes raw mixed data to logical rows*/
     TTI_SFPTRANSP(0, 0, 0, 0);
     // Needed since LREGS can maintain state between calls/maybe kernels? So setting them to zero is needed
