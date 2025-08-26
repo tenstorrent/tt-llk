@@ -190,7 +190,7 @@ inline void _llk_pack_untilize_(
     */
     // program_packer_untilized_destination<block_ct_dim, full_ct_dim, diagonal>(address, pack_dst_format);
     program_packer_destination(address);
-    const std::uint32_t num_faces_per_rdim_tile = (num_faces > 2) ? 2 : 1;
+    const std::uint32_t num_faces_per_rdim_tile = (num_faces > 1) ? 2 : 1;
     const uint PACK_INTF_SEL = (narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE);
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0011); // reset ch0 zw counters
