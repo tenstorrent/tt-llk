@@ -140,7 +140,21 @@ inline void _calculate_reciprocal_compat_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::dst_reg[0] = _reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(sfpi::dst_reg[0]);
+        sfpi::vFloat in  = sfpi::dst_reg[0];
+        sfpi::vFloat out = _reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
+        v_if (in < 0.0)
+        {
+            out = -out;
+        }
+        v_endif;
+        if constexpr (fp32_dest_acc_en || APPROXIMATION_MODE)
+        {
+            sfpi::dst_reg[0] = out;
+        }
+        else
+        {
+            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
+        }
         sfpi::dst_reg++;
     }
 }
