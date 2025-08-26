@@ -45,7 +45,10 @@ inline void _llk_pack_untilize_mop_config_(
     const uint MOP_OUTER_LOOP       = face_r_dim;
 
     // For narrow row, the faces are stored in the first column of the tile, therefore requiring only one packer interface.
-    const uint PACK_INTF_SEL = (narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE);
+    // For single-row dual-interface case, use interfaces 0 and 2 (faces 0 and 2)
+    const uint PACK_INTF_SEL = (narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : 
+                              ((face_r_dim == 1 && num_faces > 1) ? p_pacr::_0th_AND_2nd_INTF_ACTIVE : 
+                              ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE));
     /*
     When using DST_STRIDED_MODE, each packer interface has a stride of 16*block_size,
     where block_size is set to be the size of a row within face.
@@ -152,7 +155,10 @@ inline void _llk_pack_untilize_init_(
     // Set CH0 Zstride = 2x16x16 faces, .z_src = {.incr = 1} jumps 2 faces
     uint x_stride       = (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float32 ? 4 : (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float16 ? 2 : 1;
     uint y_stride       = FACE_C_DIM * x_stride;
-    const uint z_stride = 2 * face_r_dim * y_stride;
+    // For single-row dual-interface: Z-stride must jump from row 0 to row 16 (face 2 offset)
+    const uint z_stride = (face_r_dim == 1 && num_faces > 1) ? 
+                          (FACE_R_DIM * y_stride) :           // Jump 16 rows to reach face 2
+                          (2 * face_r_dim * y_stride);        // Standard calculation
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 
     std::uint32_t output_addr_offset;
@@ -190,7 +196,7 @@ inline void _llk_pack_untilize_(
     */
     // program_packer_untilized_destination<block_ct_dim, full_ct_dim, diagonal>(address, pack_dst_format);
     program_packer_destination(address);
-    const std::uint32_t num_faces_per_rdim_tile = (num_faces > 1) ? 2 : 1;
+    const std::uint32_t num_faces_per_rdim_tile = (num_faces > 2) ? 2 : 1;
     const uint PACK_INTF_SEL = (narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE);
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0011); // reset ch0 zw counters
