@@ -161,35 +161,263 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        TTI_SFPLOADMACRO(0, 2, ADDR_MOD_0, 0);
+        // bottom half of tile
+
+        TTI_SFPLOADMACRO(0, 0, 0, 63);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(1, 2, ADDR_MOD_0, 2);
+        TTI_SFPLOADMACRO(1, 0, 0, 62);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(2, 2, ADDR_MOD_0, 4);
+        TTI_SFPLOADMACRO(2, 0, 0, 61);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(3, 2, ADDR_MOD_0, 6);
+        TTI_SFPLOADMACRO(3, 0, 0, 60);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(0, 2, ADDR_MOD_0, 8);
+        TTI_SFPLOADMACRO(0, 0, 0, 59);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(1, 2, ADDR_MOD_0, 10);
+        TTI_SFPLOADMACRO(1, 0, 0, 58);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(2, 2, ADDR_MOD_0, 12);
+        TTI_SFPLOADMACRO(2, 0, 0, 57);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(3, 2, ADDR_MOD_0, 14);
+        TTI_SFPLOADMACRO(3, 0, 0, 56);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0, 0, 0, 55);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 0, 0, 54);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 53);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 52);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0, 0, 0, 51);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 0, 0, 50);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 49);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 48);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0, 0, 0, 47);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 0, 0, 46);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 45);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 44);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0, 0, 0, 43);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 0, 0, 42);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 41);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 40);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0, 0, 0, 39);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 0, 0, 38);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 37);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 36);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(0, 0, 0, 35);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 0, 0, 34);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 33);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 32);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        // upper half
+
+        TTI_SFPLOADMACRO(0, 0, 0, 31);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 0, 0, 30);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 29);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 28);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 27);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 26);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 25);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 24);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 23);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 22);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 21);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 20);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 19);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 18);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 17);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 16);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 15);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 14);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 13);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 12);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 11);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 10);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 9);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 8);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 7);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 6);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 5);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 4);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 3);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 2);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 0, 0, 1);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 0, 0, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
     }
@@ -215,8 +443,6 @@ inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        (*((volatile uint32_t*)0x18000)) = 0xaaaabbbb;
-
         TTI_SFPLOADI(0, 0xA, 0x3333);
         TTI_SFPLOADI(0, 0x8, 0xC2AD);
         TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14]         =    -86.6               = 0xC2AD_3333
