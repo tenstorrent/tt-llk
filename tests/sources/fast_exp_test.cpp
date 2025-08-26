@@ -97,7 +97,7 @@ void run_kernel()
         // call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
 
         _llk_math_eltwise_unary_sfpu_params_<true>(
-            ckernel::sfpu::calculate_exponential<true, true, false, 32, false>, i, VectorMode::RC, p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
+            ckernel::sfpu::calculate_exponential<true, true, false, 32, false>, i, VectorMode::RC_custom, p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
 
         // _llk_math_eltwise_unary_sfpu_done_();
     }
