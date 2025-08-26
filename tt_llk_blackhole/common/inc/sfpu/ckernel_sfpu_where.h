@@ -25,16 +25,16 @@ inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_in
         v_if (cond == 0.0f)
         {
             // output_tensor = false_tensor;
-            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_in2 * dst_tile_size_rows);
+            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_in2 * dst_tile_size_rows);
         }
         v_else
         {
             // output_tensor = true_tensor;
-            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_in1 * dst_tile_size_rows);
+            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_in1 * dst_tile_size_rows);
         }
         v_endif;
         // sfpi::dst_reg[dst_index_out * dst_tile_size_rows_sfpi] = output_tensor;
-        TT_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_out * dst_tile_size_rows);
+        TT_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_out * dst_tile_size_rows);
 
         sfpi::dst_reg++;
     }

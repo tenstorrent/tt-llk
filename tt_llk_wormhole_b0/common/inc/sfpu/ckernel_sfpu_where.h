@@ -13,28 +13,24 @@ namespace ckernel::sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
-    constexpr uint dst_tile_size_rows      = 64;
-    constexpr uint dst_tile_size_rows_sfpi = 32;
-
-    sfpi::vFloat cond = sfpi::dst_reg[dst_index_in0 * dst_tile_size_rows_sfpi];
+    constexpr uint dst_tile_size_rows = 64;
 
     for (int i = 0; i < ITERATIONS; i++)
     {
-        cond = sfpi::dst_reg[dst_index_in0 * dst_tile_size_rows_sfpi];
+        // load conditional value
+        TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, dst_index_in0 * dst_tile_size_rows);
 
-        v_if (cond == 0.0f)
-        {
-            // output_tensor = false_tensor;
-            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_in2 * dst_tile_size_rows);
-        }
-        v_else
-        {
-            // output_tensor = true_tensor;
-            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_in1 * dst_tile_size_rows);
-        }
-        v_endif;
-        // sfpi::dst_reg[dst_index_out * dst_tile_size_rows_sfpi] = output_tensor;
-        TT_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_out * dst_tile_size_rows);
+        // if (cond != 0): load true value
+        TTI_SFPSETCC(0 /*imm12_math*/, p_sfpu::LREG0, 0 /*unused*/, 2 /*if non-zero*/);
+        TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_in1 * dst_tile_size_rows);
+        // else: load false value
+        TTI_SFPCOMPC(0 /*unused*/, 0 /*unused*/, 0 /*unused*/, 0 /*unused*/);
+        TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_in2 * dst_tile_size_rows);
+        // end if
+        TTI_SFPENCC(0 /*imm12_math*/, 0 /*unused*/, 0 /*unused*/, 0 /*reset cc*/);
+
+        // store result
+        TT_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::LO16, ADDR_MOD_3, dst_index_out * dst_tile_size_rows);
 
         sfpi::dst_reg++;
     }
