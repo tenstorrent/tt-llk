@@ -18,7 +18,7 @@
 using namespace ckernel;
 
 // local function declarations
-inline void welfords_sfpu_configure_addrmod()
+inline void _welfords_sfpu_configure_addrmod_()
 {
     addr_mod_t {
         .srca = {.incr = 0},
@@ -28,7 +28,7 @@ inline void welfords_sfpu_configure_addrmod()
         .set(ADDR_MOD_7);
 }
 
-inline void welfords_sfpu_configure_mop();
+inline void _welfords_sfpu_configure_mop_();
 
 template <DstSync Dst>
 inline void _llk_math_welfords_sfpu_start_(const uint dst_index)
@@ -56,15 +56,7 @@ inline void _llk_math_welfords_sfpu_inc_dst_face_addr_()
 inline void _llk_math_welfords_sfpu_init_()
 {
     sfpu::_init_sfpu_config_reg();
-    welfords_sfpu_configure_addrmod();
+    _welfords_sfpu_configure_addrmod_();
     math::reset_counters(p_setrwc::SET_ABD_F);
-    lltt::record(0, 23);
-    ckernel::sfpu::Welfords_Math();              // 9 TTI instructions
-    ckernel::sfpu::Welfords_Load_Initial_Data(); // 9 TTI instructions
-    TTI_SFPTRANSP(0, 0, 0, 0);
-    /*past_mean = dst1*/ TTI_SFPLOAD(p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
-    /*past_var = dst2*/ TTI_SFPLOAD(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
-    // wiping LREG 6 and 7 since they may be filled with garbage data
-    TTI_SFPLOADI(p_sfpu::LREG6, 0, 0);
-    TTI_SFPLOADI(p_sfpu::LREG7, 0, 0);
+    ckernel::sfpu::_program_welfords_replay_(); // 9 TTI instructions
 }
