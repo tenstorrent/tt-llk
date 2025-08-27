@@ -59,12 +59,12 @@ inline void _llk_math_welfords_sfpu_init_()
     welfords_sfpu_configure_addrmod();
     math::reset_counters(p_setrwc::SET_ABD_F);
     lltt::record(0, 23);
-    ckernel::sfpu::Welfords_Math();//9 TTI instructions
-    ckernel::sfpu::Welfords_Load_Initial_Data();// 9 TTI instructions
+    ckernel::sfpu::Welfords_Math();              // 9 TTI instructions
+    ckernel::sfpu::Welfords_Load_Initial_Data(); // 9 TTI instructions
     TTI_SFPTRANSP(0, 0, 0, 0);
-    /*past_mean = dst1*/TTI_SFPLOAD(p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
-    /*past_var = dst2*/TTI_SFPLOAD(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
-    //wiping LREG 6 and 7 since they may be filled with garbage data
+    /*past_mean = dst1*/ TTI_SFPLOAD(p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
+    /*past_var = dst2*/ TTI_SFPLOAD(p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
+    // wiping LREG 6 and 7 since they may be filled with garbage data
     TTI_SFPLOADI(p_sfpu::LREG6, 0, 0);
     TTI_SFPLOADI(p_sfpu::LREG7, 0, 0);
 }
