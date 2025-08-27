@@ -17,8 +17,10 @@ from .format_arg_mapping import (
     DestSync,
     MathFidelity,
     MathOperation,
+    PackZeroOutput,
     StochasticRounding,
     Transpose,
+    Untilize,
     format_tile_sizes,
 )
 from .format_config import DataFormat, FormatConfig, InputOutputFormat
@@ -184,6 +186,16 @@ def generate_build_header(
     # Number of faces
     num_faces = test_config.get("num_faces", 4)
     header_content.append(f"constexpr int num_faces = {num_faces};")
+
+    # Untilize
+    header_content.append(
+        f"constexpr bool untilize_en = {test_config.get('untilize', Untilize.No).value};"
+    )
+
+    # Packer zero output flag
+    header_content.append(
+        f"constexpr bool zero_output_en = {test_config.get('pack_zero_output', PackZeroOutput.No).value};"
+    )
 
     # Dest synchronisation mode
     dest_sync = test_config.get("dest_sync", DestSync.Half)

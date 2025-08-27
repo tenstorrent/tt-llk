@@ -196,6 +196,16 @@ class Transpose(Enum):
     No = "false"
 
 
+class Untilize(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class PackZeroOutput(Enum):
+    Yes = "true"
+    No = "false"
+
+
 class MathFidelity(Enum):
     LoFi = 0
     HiFi2 = 1

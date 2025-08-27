@@ -12,7 +12,13 @@ from helpers.dimensions import (
 )
 from helpers.log_utils import add_to_format_log
 
-from .format_arg_mapping import DestAccumulation, DestSync, StochasticRounding
+from .format_arg_mapping import (
+    DestAccumulation,
+    DestSync,
+    PackZeroOutput,
+    StochasticRounding,
+    Untilize,
+)
 from .format_config import (
     DataFormat,
     FormatConfig,
@@ -95,7 +101,9 @@ class TestParamsConfig(TypedDict):
     reduce_dim: Optional[List[str]] = None
     pool_type: Optional[List[str]] = None
     num_faces: Optional[List[int]] = None
+    untilize_en: Optional[Untilize] = None
     dest_sync: Optional[DestSync] = None
+    pack_zero_output: Optional[PackZeroOutput] = None
 
 
 def generate_params(**kwargs: any) -> List[tuple]:
