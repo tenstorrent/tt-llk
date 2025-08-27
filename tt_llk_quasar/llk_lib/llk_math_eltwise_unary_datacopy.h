@@ -61,7 +61,7 @@ inline void _llk_math_eltwise_unary_datacopy_mop_config_(
 
     temp.set_last_inner_loop_instr(datacopy_func(ADDR_MOD_1));
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -150,7 +150,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const uint32_t tile_idx)
     _set_dst_write_addr_by_rows_<num_rows_per_tile>(tile_idx);
 
     // Run MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 
     // Reset all counters
     _reset_counters_<p_setrwc::SET_ABD_F>();

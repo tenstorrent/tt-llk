@@ -78,7 +78,7 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -194,7 +194,7 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -281,7 +281,7 @@ inline void _llk_math_reduce_scalar_mop_config_(const TileShape& tile_shape)
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -356,7 +356,7 @@ inline void _llk_math_reduce_(const uint32_t tile_idx)
 {
     _set_dst_write_addr_<DstTileShape::Tile32x32>(tile_idx);
     // Run MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 
     // Since only 1 face of srcB is used for constant values,
     // can clear data valid after all operations are done

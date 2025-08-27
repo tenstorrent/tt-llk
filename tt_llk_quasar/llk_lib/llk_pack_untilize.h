@@ -33,7 +33,7 @@ inline void _llk_pack_untilize_mop_config_()
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn);
     temp.set_last_outer_loop_instr(reset_src_reg_instrn);
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -60,7 +60,7 @@ inline void _llk_pack_untilize_init_(const TileShape& tile_shape)
 inline void _llk_pack_untilize_()
 {
     // Runs MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -84,7 +84,7 @@ inline void _llk_pack_untilize_strided_mop_config_()
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn, incr_L1_ptr);
     // temp.set_end_op(pack_instrn);
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -109,7 +109,7 @@ inline void _llk_pack_untilize_strided_4x32_mop_config_()
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn, pack_instrn);
     temp.set_start_op(reset_dest_reg_ptr);
     temp.set_last_outer_loop_instr(pack_instrn_rest_reg_ctr);
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 template <uint8_t BUF_DESC_ID, uint32_t FULL_CT_DIM, uint32_t NUM_TILES_PER_BLOCK, uint32_t C_DIM_FACES>
@@ -135,7 +135,7 @@ inline void _llk_pack_untilize_strided_2x32_mop_config_()
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
     temp.set_start_op(reset_dest_reg_ptr);
     temp.set_last_outer_loop_instr(pack_instrn_rest_reg_ctr);
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 template <uint8_t BUF_DESC_ID, uint32_t FULL_CT_DIM, uint32_t NUM_TILES_PER_BLOCK, uint32_t C_DIM_FACES>
@@ -153,7 +153,7 @@ inline void _llk_pack_untilize_strided_1x32_mop_config_()
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn, pack_instrn);
     temp.set_start_op(reset_dest_reg_ptr);
     temp.set_last_outer_loop_instr(pack_instrn_rest_reg_ctr);
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -208,24 +208,24 @@ inline void _llk_pack_untilize_strided_(const TileShape& tile_shape, const uint 
     TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_pacr::PACK0, l1_tile_idx * C_DIM_FACES);
 
     // Face 0
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
     TTI_PACR_STRIDE(1, 1, 0, 0, 0, BUF_DESC_ID, 0 /*pck0 sel*/, 0 /*dvalid*/);
 
     // Face 1
     TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_pacr::PACK0, f1_row_idx);
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 
     if (tile_shape.num_faces == ckernel::trisc::NUM_FACES)
     {
         TTI_PACR_STRIDE(1, 1, 0, 0, 0, BUF_DESC_ID, 0 /*pck0 sel*/, 0 /*dvalid*/);
         // Face 2
         TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_pacr::PACK0, l1_tile_idx * C_DIM_FACES + C_DIM_FACES * tile_shape.face_r_dim * FULL_CT_DIM);
-        ckernel::ckernel_template::run_bank0_sw_cntl();
+        ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
         TTI_PACR_STRIDE(1, 1, 0, 0, 0, BUF_DESC_ID, 0 /*pck0 sel*/, 0 /*dvalid*/);
 
         // Face 3
         TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_pacr::PACK0, l1_tile_idx * C_DIM_FACES + C_DIM_FACES * tile_shape.face_r_dim * FULL_CT_DIM + 1);
-        ckernel::ckernel_template::run_bank0_sw_cntl();
+        ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
         TTI_PACR_STRIDE(0, 1, 0, 0, 0, BUF_DESC_ID, 0 /*pck0 sel*/, 0 /*dvalid*/);
     }
     else
@@ -237,5 +237,5 @@ inline void _llk_pack_untilize_strided_(const TileShape& tile_shape, const uint 
 template <uint8_t BUF_DESC_ID>
 inline void _llk_pack_untilize_strided_4x32_()
 {
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 }

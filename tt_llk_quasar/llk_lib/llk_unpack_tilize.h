@@ -40,7 +40,7 @@ inline void _llk_unpack_tilize_mop_config_()
         temp.set_end_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_B, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
     }
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -94,7 +94,7 @@ inline void _llk_unpack_tilize_(const uint l1_tile_idx)
     TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, 0);
 
     // Runs MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -129,7 +129,7 @@ inline void _llk_unpack_tilize_strided_mop_config_()
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_half_face_instrn, increment_half_face_instrn);
     temp.set_end_op(unpack_half_face_instrn);
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -180,17 +180,17 @@ inline void _llk_unpack_tilize_strided_(const TileShape& tile_shape, const uint 
     TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, 0);
 
     // Face 0
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
     TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, f1_row_idx); // Set L1 ptr
 
     if (tile_shape.num_faces == ckernel::trisc::NUM_FACES)
     {
         // Face 1
-        ckernel::ckernel_template::run_bank0_sw_cntl(); // Unpack half face and increment L1 ptr
+        ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer); // Unpack half face and increment L1 ptr
 
         // Face 2
         TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, l1_tile_idx * C_DIM_FACES + C_DIM_FACES * tile_shape.face_r_dim * FULL_CT_DIM);
-        ckernel::ckernel_template::run_bank0_sw_cntl();
+        ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 
         // Face 3
         TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, l1_tile_idx * C_DIM_FACES + C_DIM_FACES * tile_shape.face_r_dim * FULL_CT_DIM + 1);
@@ -248,7 +248,7 @@ inline void _llk_unpack_tilize_strided_mop_config_small_faces_()
         temp.set_end_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_B, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
     }
 
-    temp.program_bank0_sw_cntl();
+    temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
 /**
@@ -286,5 +286,5 @@ inline void _llk_unpack_tilize_strided_small_faces_(const TileShape& tile_shape)
     // Set Source counter to L1 base + offset
 
     // Face 0 & 1
-    ckernel::ckernel_template::run_bank0_sw_cntl();
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 }
