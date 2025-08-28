@@ -6,7 +6,7 @@
 
 #include "llk_defs.h"
 #include "sfpi.h"
-
+#include "llk_defs.h"
 namespace ckernel::sfpu
 {
 
@@ -19,7 +19,7 @@ Index 64 ( Tile 2 ) -> false tensor
 
 */
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_where_fp16_b_()
 {
     constexpr uint dst_tile_size_rows = 64;
@@ -48,7 +48,7 @@ inline void _calculate_where_fp16_b_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_where_fp32_()
 {
     constexpr uint dst_tile_size = 32;
@@ -79,7 +79,7 @@ inline void _calculate_where_fp32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, DataFormat data_format, int ITERATIONS>
 inline void _calculate_where_()
 {
     // Add a compile-time check to ensure only supported formats are used.
@@ -88,11 +88,11 @@ inline void _calculate_where_()
         "Unsupported data format for _calculate_where_(). Only Float32 and Float16_b are allowed.");
     if constexpr (data_format == DataFormat::Float32)
     {
-        _calculate_where_fp32_<APPROXIMATION_MODE, ITERATIONS>();
+        _calculate_where_fp32_<APPROX_MODE, ITERATIONS>();
     }
     else
     {
-        _calculate_where_fp16_b_<APPROXIMATION_MODE, ITERATIONS>();
+        _calculate_where_fp16_b_<APPROX_MODE, ITERATIONS>();
     }
 }
 

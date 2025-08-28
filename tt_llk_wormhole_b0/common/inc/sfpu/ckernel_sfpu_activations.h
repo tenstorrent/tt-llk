@@ -10,17 +10,18 @@
 #include "sfpu/ckernel_sfpu_converter.h"
 #include "sfpu/ckernel_sfpu_exp.h"
 #include "sfpu/ckernel_sfpu_relu.h"
+#include "llk_defs.h"
 
 namespace ckernel::sfpu
 {
 
 // General template structure to implement activations
-template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+template <ApproximationMode APPROX_MODE, ActivationType ACTIVATION_TYPE>
 struct ActivationImpl;
 
 // Specialization for CELU activation
-template <bool APPROXIMATION_MODE>
-struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
+template <ApproximationMode APPROX_MODE>
+struct ActivationImpl<APPROX_MODE, ActivationType::Celu>
 {
     static inline void apply(sfpi::vFloat& v, uint32_t param0, uint32_t param1)
     {
@@ -34,7 +35,7 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
         v_if (v < 0.0f)
         {
             // Compute exp(x / alpha)
-            sfpi::vFloat exp_val = _calculate_exponential_body_<APPROXIMATION_MODE>(v * alpha_recip);
+            sfpi::vFloat exp_val = _calculate_exponential_body_<APPROX_MODE>(v * alpha_recip);
 
             // Compute CELU: alpha * (exp(x / alpha) - 1)
             v = alpha * (exp_val - 1.0f);
@@ -44,8 +45,8 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Celu>
 };
 
 // Specialization for HARDSIGMOID activation
-template <bool APPROXIMATION_MODE>
-struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Hardsigmoid>
+template <ApproximationMode APPROX_MODE>
+struct ActivationImpl<APPROX_MODE, ActivationType::Hardsigmoid>
 {
     static inline void apply(sfpi::vFloat& v)
     {
@@ -55,46 +56,46 @@ struct ActivationImpl<APPROXIMATION_MODE, ActivationType::Hardsigmoid>
 };
 
 // Dispatch wrapper function
-template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+template <ApproximationMode APPROX_MODE, ActivationType ACTIVATION_TYPE>
 inline void apply_activation(sfpi::vFloat& v, uint32_t param0, uint32_t param1)
 {
-    ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v, param0, param1);
+    ActivationImpl<APPROX_MODE, ACTIVATION_TYPE>::apply(v, param0, param1);
 }
 
 // Dispatch wrapper function
-template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE>
+template <ApproximationMode APPROX_MODE, ActivationType ACTIVATION_TYPE>
 inline void apply_activation(sfpi::vFloat& v)
 {
-    ActivationImpl<APPROXIMATION_MODE, ACTIVATION_TYPE>::apply(v);
+    ActivationImpl<APPROX_MODE, ACTIVATION_TYPE>::apply(v);
 }
 
-template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
+template <ApproximationMode APPROX_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
 inline void _calculate_activation_(uint32_t param0, uint32_t param1)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat v = sfpi::dst_reg[0];
-        apply_activation<APPROXIMATION_MODE, ACTIVATION_TYPE>(v, param0, param1);
+        apply_activation<APPROX_MODE, ACTIVATION_TYPE>(v, param0, param1);
         sfpi::dst_reg[0] = v;
         sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS>
 inline void _calculate_activation_()
 {
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat v = sfpi::dst_reg[0];
-        apply_activation<APPROXIMATION_MODE, ACTIVATION_TYPE>(v);
+        apply_activation<APPROX_MODE, ACTIVATION_TYPE>(v);
         sfpi::dst_reg[0] = v;
         sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 void _init_hardsigmoid_()
 {
     sfpi::vConstFloatPrgm0 = 0.1668f;

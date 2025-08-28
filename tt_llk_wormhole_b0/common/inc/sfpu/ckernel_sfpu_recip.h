@@ -5,6 +5,7 @@
 #pragma once
 
 #include "sfpi.h"
+#include "llk_defs.h"
 
 namespace ckernel
 {
@@ -51,14 +52,14 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     return setexp(result, new_exp);
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
 inline void _calculate_reciprocal_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(in);
+        sfpi::vFloat out = _sfpu_reciprocal_< (APPROX_MODE == ApproximationMode::Fast) ? 2 : 3 >(in);
 
         v_if (in < 0.0F)
         {
@@ -67,7 +68,7 @@ inline void _calculate_reciprocal_(const int iterations)
         }
         v_endif;
 
-        if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+        if constexpr (is_fp32_dest_acc_en || (APPROX_MODE == ApproximationMode::Fast))
         {
             sfpi::dst_reg[0] = out;
         }
@@ -80,7 +81,7 @@ inline void _calculate_reciprocal_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_reciprocal_()
 {
     sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip

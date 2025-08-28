@@ -6,13 +6,13 @@
 
 #include "ckernel_sfpu_is_fp16_zero.h"
 #include "sfpi.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_sign_(const int iterations, uint exponent_size_8)
 {
 // All params are in FP16 format

@@ -7,13 +7,14 @@
 #include "ckernel_ops.h"
 #include "ckernel_sfpu_load_config.h"
 #include "sfpi.h"
+#include "llk_defs.h"
 
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 inline void _quant_int32_(const uint dst_offset)
 {
 // Operand A is input (fp32)
@@ -39,7 +40,7 @@ inline void _quant_int32_(const uint dst_offset)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 inline void _requant_int32_(const uint dst_offset)
 {
 // Operand A is input to requant (int32)
@@ -67,7 +68,7 @@ inline void _requant_int32_(const uint dst_offset)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 inline void _dequant_int32_(const uint dst_offset)
 {
 // Operand A[LREG0] is input to dequant (int32)
@@ -95,7 +96,7 @@ inline void _dequant_int32_(const uint dst_offset)
     }
 }
 
-template <bool APPROXIMATION_MODE /*unused*/>
+template <ApproximationMode APPROX_MODE /*unused*/>
 inline void _init_quant_zero_point_(const uint zero_point)
 {
     _sfpu_load_imm32_(2, zero_point);

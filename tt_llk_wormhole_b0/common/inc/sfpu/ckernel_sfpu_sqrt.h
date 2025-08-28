@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -12,11 +13,11 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int RECIPROCAL_ITERATIONS>
+template <ApproximationMode APPROX_MODE, int RECIPROCAL_ITERATIONS>
 sfpi_inline sfpi::vFloat _calculate_sqrt_body_(sfpi::vFloat val)
 {
     sfpi::vFloat result;
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         sfpi::vUInt magic = sfpi::vConstIntPrgm0;
 
@@ -56,22 +57,22 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(sfpi::vFloat val)
     return result;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, int RECIPROCAL_ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, int RECIPROCAL_ITERATIONS>
 inline void _calculate_sqrt_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat val = sfpi::dst_reg[0];
-        sfpi::dst_reg[0] = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL_ITERATIONS>(val);
+        sfpi::dst_reg[0] = _calculate_sqrt_body_<APPROX_MODE, RECIPROCAL_ITERATIONS>(val);
         sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_sqrt_()
 {
-    if (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         sfpi::vConstFloatPrgm0 = sfpi::s2vFloat16b(127 << 7);
     }
