@@ -10,7 +10,7 @@
 #include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-
+#include "llk_defs.h"
 namespace ckernel::sfpu
 {
 
@@ -44,12 +44,12 @@ sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
     return val;
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
 {
     sfpi::vFloat out;
 
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE)
     {
         constexpr int FRAC_BITS = 3;
         constexpr uint SP_BIAS  = 127 << FRAC_BITS;
@@ -99,7 +99,7 @@ inline sfpi::vFloat _calculate_exponential_approx_(sfpi::vFloat in)
     return sfpi::reinterpret<sfpi::vFloat>(in_short);
 }
 
-template <bool APPROXIMATION_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK>
+template <ApproximationMode APPROX_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK>
 inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
     // This function is used to calculate the exponential of a value in a more accurate manner.
@@ -108,7 +108,7 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
     {
         in = in * sfpi::s2vFloat16b(exp_base_scale_factor);
     }
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE)
     {
         if constexpr (!SKIP_POSITIVE_CHECK)
         {
@@ -157,10 +157,10 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
     return result;
 }
 
-template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
+template <ApproximationMode APPROX_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    if constexpr (FAST_APPROX && APPROX_MODE)
     {
         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
         // value with -88.5 and store back to DEST
@@ -258,7 +258,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         for (int d = 0; d < ITERATIONS; d++)
         {
             sfpi::vFloat in     = sfpi::dst_reg[0];
-            sfpi::vFloat result = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(in, exp_base_scale_factor);
+            sfpi::vFloat result = _calculate_exponential_piecewise_<APPROX_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(in, exp_base_scale_factor);
             sfpi::dst_reg[0]    = result;
             sfpi::dst_reg++;
         }
@@ -269,10 +269,10 @@ constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uin
 constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
 constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
 
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
+template <ApproximationMode APPROX_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    if constexpr (FAST_APPROX && APPROX_MODE)
     {
         // Algorithm is adapted from:
         //      A Fast, Compact Approximation of the Exponential Function
@@ -399,7 +399,7 @@ inline void _init_exponential_()
         // Reset LoadMacroConfig[Lane].Misc for all lanes, in case it has been previously set by another use of macros.
         TTI_SFPCONFIG(0, 8, 1);
     }
-    else if constexpr (APPROXIMATION_MODE)
+    else if constexpr (APPROX_MODE)
     {
         sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
         sfpi::vConstFloatPrgm1 = sfpi::s2vFloat16b(p_exp::C23_73);
