@@ -161,7 +161,6 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-// TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 4, 0, 0, p_setrwc::SET_D);
 #pragma GCC unroll 4
         for (int i = 0; i < 4; i++)
         {
@@ -178,8 +177,6 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
             TTI_SFPNOP;
 
             TTI_SFPLOADMACRO(3, 2, 3, 6);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
 
             TTI_SFPLOADMACRO(0, 2, 3, 8);
             TTI_SFPNOP;
