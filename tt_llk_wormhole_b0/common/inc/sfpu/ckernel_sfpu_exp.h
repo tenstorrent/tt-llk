@@ -180,44 +180,8 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
             TTI_SFPNOP;
             TTI_SFPNOP;
 
-            // TTI_SFPLOADMACRO(3, 0, 0, 3);
-            // TTI_SFPNOP;
-            // TTI_SFPNOP;
-
-            // TTI_SFPLOADMACRO(0, 2, 3, 4);
-            // TTI_SFPNOP;
-            // TTI_SFPNOP;
-
-            // TTI_SFPLOADMACRO(1, 0, 0, 5);
-            // TTI_SFPNOP;
-            // TTI_SFPNOP;
-
-            // TTI_SFPLOADMACRO(2, 0, 3, 6);
-            // TTI_SFPNOP;
-            // TTI_SFPNOP;
-
-            // TTI_SFPLOADMACRO(3, 0, 0, 7);
-            // TTI_SFPNOP;
-            // TTI_SFPNOP;
-
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         }
-
-        // TTI_SFPLOADMACRO(1, 0, 0, 4);
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
-
-        // TTI_SFPLOADMACRO(1, 0, 0, 5);
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
-
-        // TTI_SFPLOADMACRO(2, 0, 0, 6);
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
-
-        // TTI_SFPLOADMACRO(3, 0, 0, 7);
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
     }
     else
     {
