@@ -9,13 +9,13 @@
 
 #include "ckernel_addrmod.h"
 #include "sfpi.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
     // This uses SFPLOADMACRO to achieve a throughput of 1, 2, or 3 cycles per

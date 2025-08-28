@@ -9,11 +9,11 @@
 #include "ckernel_ops.h"
 #include "ckernel_sfpu_converter.h"
 #include "ckernel_sfpu_load_config.h"
-
+#include "llk_defs.h"
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_fill_(const float value)
 {
     // SFPU microcode
@@ -26,7 +26,7 @@ inline void _calculate_fill_(const float value)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_fill_int_(const int value)
 {
     // SFPU microcode
@@ -39,7 +39,7 @@ inline void _calculate_fill_int_(const int value)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_fill_bitcast_(const std::uint32_t value_bit_mask)
 {
     // SFPU microcode

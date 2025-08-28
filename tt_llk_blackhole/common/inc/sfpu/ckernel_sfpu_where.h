@@ -10,11 +10,12 @@
 #include "llk_defs.h"
 #include "lltt.h"
 #include "sfpi.h"
+#include "llk_defs.h"
 
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, DataFormat data_format, int ITERATIONS>
 inline void _calculate_where_(
     const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_in2, const std::uint32_t dst_index_out)
 {
@@ -86,7 +87,7 @@ inline void _calculate_where_(
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_where_()
 {
     // InstructionTemplate[0]
