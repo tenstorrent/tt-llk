@@ -30,7 +30,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
     else
     {
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
-
+        TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::WAIT_SFPU | p_stall::SRCA_VLD | p_stall::SRCB_VLD);
         if constexpr (type == A2D)
         {
             ckernel_template::run(instrn_buffer);
