@@ -6,13 +6,13 @@
 
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_max_int32_(const int iterations)
 {
     // Modifies LOAD/STORE to work with INT32 2's complement, however
