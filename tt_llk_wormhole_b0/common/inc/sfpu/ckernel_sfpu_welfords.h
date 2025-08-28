@@ -145,7 +145,6 @@ sfpi_inline void _welfords_load_initial_data_()
 #define WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows)                                                                    \
     if (skip_n_rows <= 0)                                                                                                                     \
     {                                                                                                                                         \
-        DPRINT << "HERE" << ENDL();                                                                                                           \
         _load_recip_current_sample_lreg7_(current_sample);                                                                                    \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
@@ -160,7 +159,6 @@ sfpi_inline void _welfords_load_initial_data_()
     }                                                                                                                                         \
     if (skip_n_rows <= 0)                                                                                                                     \
     {                                                                                                                                         \
-        DPRINT << "HERE" << ENDL();                                                                                                           \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG1, ckernel::p_sfpu::LREG0, 0); \
         _load_recip_current_sample_lreg7_(current_sample);                                                                                    \
         lltt::replay(0, 9);                                                                                                                   \
@@ -176,7 +174,6 @@ sfpi_inline void _welfords_load_initial_data_()
     }                                                                                                                                         \
     if (skip_n_rows <= 0)                                                                                                                     \
     {                                                                                                                                         \
-        DPRINT << "HERE" << ENDL();                                                                                                           \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG2, ckernel::p_sfpu::LREG0, 0); \
         _load_recip_current_sample_lreg7_(current_sample);                                                                                    \
         lltt::replay(0, 9);                                                                                                                   \
@@ -192,7 +189,6 @@ sfpi_inline void _welfords_load_initial_data_()
     }                                                                                                                                         \
     if (skip_n_rows <= 0)                                                                                                                     \
     {                                                                                                                                         \
-        DPRINT << "HERE" << ENDL();                                                                                                           \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG3, ckernel::p_sfpu::LREG0, 0); \
         _load_recip_current_sample_lreg7_(current_sample);                                                                                    \
         lltt::replay(0, 9);                                                                                                                   \
