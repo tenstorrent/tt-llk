@@ -35,19 +35,6 @@ TRANSPOSE_DEST_FLOAT_FORMATS = input_output_formats(
 
 @parametrize(
     test_name="transpose_dest_test",
-    formats=input_output_formats([DataFormat.Int32]),
-    dest_acc=[DestAccumulation.Yes],
-    math_transpose_faces=[Transpose.Yes, Transpose.No],
-    unpack_to_dest=[True],
-)
-def test_transpose_dest_int(
-    test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest
-):
-    transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest)
-
-
-@parametrize(
-    test_name="transpose_dest_test",
     fmt_dest_acc_math_transp_unpack_to_dest=generate_transpose_dest_combinations(
         TRANSPOSE_DEST_FLOAT_FORMATS
     ),
@@ -63,17 +50,17 @@ def test_transpose_dest_float(test_name, fmt_dest_acc_math_transp_unpack_to_dest
     )
 
 
-# @parametrize(
-#     test_name="transpose_dest_test",
-#     formats=input_output_formats([DataFormat.Int32]),
-#     dest_acc=[DestAccumulation.Yes],
-#     math_transpose_faces=[Transpose.Yes, Transpose.No],
-#     unpack_to_dest=[True],
-# )
-# def test_transpose_dest_int(
-#     test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest
-# ):
-#     transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest)
+@parametrize(
+    test_name="transpose_dest_test",
+    formats=input_output_formats([DataFormat.Int32]),
+    dest_acc=[DestAccumulation.Yes],
+    math_transpose_faces=[Transpose.Yes, Transpose.No],
+    unpack_to_dest=[True],
+)
+def test_transpose_dest_int(
+    test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest
+):
+    transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest)
 
 
 def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest):
