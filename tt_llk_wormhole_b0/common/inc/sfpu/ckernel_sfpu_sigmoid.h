@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ckernel_sfpu_load_config.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -12,7 +13,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_sigmoid_(const int iterations)
 {
     constexpr int lut_mode = 0; // SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1
@@ -41,7 +42,7 @@ inline void _calculate_sigmoid_(const int iterations)
     sfpi::l_reg[sfpi::LRegs::LReg6] = l6;
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_sigmoid_()
 {
     // imm0 = 0x3DFF;

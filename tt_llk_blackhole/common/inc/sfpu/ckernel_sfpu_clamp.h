@@ -6,13 +6,13 @@
 
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_clamp_(const int iterations, uint param0, uint param1, uint param2)
 {
     // All params are in FP16 format

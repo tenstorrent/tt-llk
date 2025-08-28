@@ -10,13 +10,13 @@
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
 #include "sfpi.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_uint16_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 2 cycles per input row.
@@ -43,7 +43,7 @@ inline void _calculate_typecast_fp32_to_uint16_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp16b_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 1 cycle per input row.
@@ -68,7 +68,7 @@ inline void _calculate_typecast_uint16_to_fp16b_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_fp16b_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 4 cycles per input row.
@@ -114,7 +114,7 @@ inline void _calculate_typecast_int32_to_fp16b_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_int32_()
 {
 #pragma GCC unroll 8
@@ -149,7 +149,7 @@ inline void _calculate_typecast_fp32_to_int32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_uint32_()
 {
 #pragma GCC unroll 8
@@ -179,7 +179,7 @@ inline void _calculate_typecast_fp32_to_uint32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_fp16b_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 3 cycles per input row.
@@ -215,7 +215,7 @@ inline void _calculate_typecast_fp32_to_fp16b_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp32_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 1 cycle per input row.
@@ -239,7 +239,7 @@ inline void _calculate_typecast_uint16_to_fp32_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_fp32_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 4 cycles per input row.
@@ -283,7 +283,7 @@ inline void _calculate_typecast_int32_to_fp32_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_fp16b_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 3 cycles per input row.
@@ -325,7 +325,7 @@ inline void _calculate_typecast_uint32_to_fp16b_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_fp32_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 3 cycles per input row.
@@ -368,7 +368,7 @@ inline void _calculate_typecast_uint32_to_fp32_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_uint32_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 1 cycle per input row.
@@ -388,7 +388,7 @@ inline void _calculate_typecast_uint16_to_uint32_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_uint16_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 2 cycles per input row.
@@ -415,7 +415,7 @@ inline void _calculate_typecast_uint32_to_uint16_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_uint16_()
 {
     // This uses SFPLOADMACRO to achieve a throughput of 3 cycles per input row.
@@ -451,7 +451,7 @@ inline void _calculate_typecast_int32_to_uint16_()
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_fp32_to_fp16b_()
 {
     constexpr int b = p_sfpu::LREG2;
@@ -500,7 +500,7 @@ inline void _init_typecast_fp32_to_fp16b_()
     TTI_SFPCONFIG(0x310 | InstrModLoadStore::FP16B, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_uint32_()
 {
     {
@@ -522,7 +522,7 @@ inline void _init_typecast_uint16_to_uint32_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::INT32, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint32_to_fp32_()
 {
     sfpi::vConstIntPrgm0 = -31;
@@ -575,7 +575,7 @@ inline void _init_typecast_uint32_to_fp32_()
     TTI_SFPCONFIG(0x700 | InstrModLoadStore::FP32, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_int32_to_fp32_()
 {
     constexpr int t = p_sfpu::LREG4;
@@ -608,7 +608,7 @@ inline void _init_typecast_int32_to_fp32_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::FP32, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_int32_to_fp16b_()
 {
     constexpr int t = p_sfpu::LREG4;
@@ -644,7 +644,7 @@ inline void _init_typecast_int32_to_fp16b_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_fp32_()
 {
     // InstructionTemplate[0]
@@ -670,7 +670,7 @@ inline void _init_typecast_uint16_to_fp32_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::FP32, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_fp16b_()
 {
     // InstructionTemplate[0]
@@ -699,7 +699,7 @@ inline void _init_typecast_uint16_to_fp16b_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint32_to_fp16b_()
 {
     // InstructionTemplate[0]
@@ -731,7 +731,7 @@ inline void _init_typecast_uint32_to_fp16b_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_fp32_to_uint16_()
 {
     // InstructionTemplate[0]
@@ -760,7 +760,7 @@ inline void _init_typecast_fp32_to_uint16_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::LO16, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint32_to_uint16_()
 {
     constexpr int a = p_sfpu::LREG0;
@@ -799,7 +799,7 @@ inline void _init_typecast_uint32_to_uint16_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::LO16, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_int32_to_uint16_()
 {
     // InstructionTemplate[0]
