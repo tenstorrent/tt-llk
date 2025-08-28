@@ -6,13 +6,14 @@
 
 #include "ckernel_addrmod.h"
 #include "sfpi.h"
+#include "llk_defs.h"
 
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
 {
 #pragma GCC unroll 8
