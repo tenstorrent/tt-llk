@@ -56,6 +56,53 @@ def generate_random_face_ab(
     ), generate_random_face(stimuli_format_B, const_value_B, const_face, sfpu)
 
 
+def generate_face_matmul_data(
+    num_faces: int,
+    stimuli_format: DataFormat,
+    input_dimensions=[32, 32],  # Add input_dimensions parameter
+    is_matrix_A=True,  # True for matrix A (SrcB), False for matrix B (SrcA)
+) -> torch.Tensor:
+    # Calculate number of tiles needed
+    tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
+
+    # Create list to store tiles
+    tiles = []
+
+    # Generate each tile with the right faces zeroed out
+    for _ in range(tile_cnt):
+        # Create matrix with random values
+        src = torch.rand(32, 32, dtype=format_dict[stimuli_format])
+
+        if is_matrix_A:
+            # Matrix A (loaded to SrcB) uses f0 and f2 for 2-face mode
+            if num_faces == 1:
+                # Zero out all faces except f0
+                src[:16, 16:] = 0  # Zero f1
+                src[16:, :] = 0  # Zero f2,f3
+            elif num_faces == 2:
+                # Zero out all faces except f0,f2
+                src[:16, 16:] = 0  # Zero f1
+                src[16:, 16:] = 0  # Zero f3
+            # else: num_faces == 4, keep all faces random
+        else:
+            # Matrix B (loaded to SrcA) uses consecutive faces (f0,f1 for 2-face mode)
+            if num_faces == 1:
+                # Zero out all faces except f0
+                src[:16, 16:] = 0  # Zero f1
+                src[16:, :] = 0  # Zero f2,f3
+            elif num_faces == 2:
+                # Zero out all faces except f0,f1
+                src[16:, :] = 0  # Zero f2,f3
+            # else: num_faces == 4, keep all faces random
+
+        tiles.append(src.flatten())
+
+    # Concatenate all tiles
+    src = torch.cat(tiles)
+
+    return src
+
+
 def generate_stimuli(
     stimuli_format_A=DataFormat.Float16_b,
     stimuli_format_B=DataFormat.Float16_b,
