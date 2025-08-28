@@ -112,10 +112,10 @@ sfpi_inline void welfords_load_data()
     constexpr uint32_t offset2 = offset1 + 2;
     constexpr uint32_t offset3 = offset1 + 16;
     constexpr uint32_t offset4 = offset1 + 18;
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG0, 0, ADDR_MOD_3, offset1); /*row1*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG1, 0, ADDR_MOD_3, offset2); /*row2*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG2, 0, ADDR_MOD_3, offset3); /*row3*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG3, 0, ADDR_MOD_3, offset4); /*row4*/
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG0, 0, ckernel::ADDR_MOD_3, offset1); /*row1*/
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG1, 0, ckernel::ADDR_MOD_3, offset2); /*row2*/
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG2, 0, ckernel::ADDR_MOD_3, offset3); /*row3*/
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG3, 0, ckernel::ADDR_MOD_3, offset4); /*row4*/
     /*transposes raw mixed data to logical rows*/
     lltt::replay(18, 5);
 }
@@ -126,10 +126,10 @@ sfpi_inline void _welfords_load_initial_data_()
     constexpr uint32_t offset2 = offset1 + 2;
     constexpr uint32_t offset3 = offset1 + 16;
     constexpr uint32_t offset4 = offset1 + 18;
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG0, 0, ADDR_MOD_3, offset1); /*row1*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG1, 0, ADDR_MOD_3, offset2); /*row2*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG2, 0, ADDR_MOD_3, offset3); /*row3*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG3, 0, ADDR_MOD_3, offset4); /*row4*/
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG0, 0, ckernel::ADDR_MOD_3, offset1); /*row1*/
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG1, 0, ckernel::ADDR_MOD_3, offset2); /*row2*/
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG2, 0, ckernel::ADDR_MOD_3, offset3); /*row3*/
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG3, 0, ckernel::ADDR_MOD_3, offset4); /*row4*/
     /*transposes raw mixed data to logical rows*/
     TTI_SFPTRANSP(0, 0, 0, 0);
     // Needed since LREGS can maintain state between calls/maybe kernels? So setting them to zero is needed
@@ -202,8 +202,8 @@ sfpi_inline void _welfords_load_initial_data_()
     {                                                                                                                                         \
         skip_n_rows--;                                                                                                                        \
     }                                                                                                                                         \
-    TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ADDR_MOD_3, 64);                                                                                  \
-    TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);                                                                         \
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);
 
 sfpi_inline uint32_t _welfords_main_(uint32_t current_sample, const uint32_t final_sample, uint32_t skip_n_rows)
 {
@@ -254,21 +254,21 @@ sfpi_inline void _save_data_(uint32_t reformat_dst)
 
         TTI_SFPTRANSP(0, 0, 0, 0);
 
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG0, 0, ADDR_MOD_3, 64);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG1, 0, ADDR_MOD_3, 64 + 2);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG2, 0, ADDR_MOD_3, 64 + 16);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG3, 0, ADDR_MOD_3, 64 + 18);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG0, 0, ckernel::ADDR_MOD_3, 64);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG1, 0, ckernel::ADDR_MOD_3, 64 + 2);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG2, 0, ckernel::ADDR_MOD_3, 64 + 16);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG3, 0, ckernel::ADDR_MOD_3, 64 + 18);
 
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ADDR_MOD_3, 128);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ADDR_MOD_3, 128 + 2);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG6, 0, ADDR_MOD_3, 128 + 16);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG7, 0, ADDR_MOD_3, 128 + 18);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 128);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + 2);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG6, 0, ckernel::ADDR_MOD_3, 128 + 16);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG7, 0, ckernel::ADDR_MOD_3, 128 + 18);
     }
     else
     {
         // saves data raw to dst reg
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);
     }
 }
 
@@ -282,8 +282,8 @@ sfpi_inline void _program_welfords_replay_()
     _compute_welfords_math_();      // 9 TTI instructions
     _welfords_load_initial_data_(); // 9 TTI instructions
     TTI_SFPTRANSP(0, 0, 0, 0);
-    /*past_mean = dst1*/ TTI_SFPLOAD(ckernel::p_sfpu::LREG4, 0, ADDR_MOD_3, 64);
-    /*past_var = dst2*/ TTI_SFPLOAD(ckernel::p_sfpu::LREG5, 0, ADDR_MOD_3, 128);
+    /*past_mean = dst1*/ TTI_SFPLOAD(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);
+    /*past_var = dst2*/ TTI_SFPLOAD(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);
     // wiping LREG 6 and 7 since they may be filled with garbage data
     TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 0, 0);
     TTI_SFPLOADI(ckernel::p_sfpu::LREG7, 0, 0);
