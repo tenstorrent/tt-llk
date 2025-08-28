@@ -18,6 +18,7 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
+        // size of each tile in Dest is 64 rows
         constexpr uint dst_tile_size = 64;
         // operand A - uint16
         TT_SFPLOAD(p_sfpu::LREG0, LO16, ADDR_MOD_3, dst_index_in0 * dst_tile_size);

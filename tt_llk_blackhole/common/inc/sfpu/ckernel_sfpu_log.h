@@ -15,6 +15,7 @@ namespace sfpu
 template <bool HAS_BASE_SCALING>
 sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor, const uint dst_idx = 0)
 {
+    // size of each tile in Dest is 64/SFP_DESTREG_STRIDE = 32 rows when using sfpi to load/store
     constexpr uint dst_tile_size_sfpi = 32;
 
     ////////////////////////////

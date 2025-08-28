@@ -13,6 +13,7 @@ namespace ckernel::sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
+    // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
     for (int i = 0; i < ITERATIONS; i++)
@@ -39,6 +40,7 @@ inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_in
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_where_fp32_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
+    // size of each tile in Dest is 64/SFP_DESTREG_STRIDE = 32 rows when using sfpi to load/store
     constexpr uint dst_tile_size_sfpi = 32;
 
     sfpi::vFloat output_tensor = 0;

@@ -29,6 +29,7 @@ inline void _add_int_(const uint dst_index_in0, const uint dst_index_in1, const 
     // Operand B is input2 (int32/uint16/uint32)
     // Output is int32/uint16/uint32
 
+    // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
 #pragma GCC unroll 8

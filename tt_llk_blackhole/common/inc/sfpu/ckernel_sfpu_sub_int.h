@@ -30,6 +30,7 @@ inline void _sub_int_(const uint dst_index_in0, const uint dst_index_in1, const 
     // If LOAD/STORE have the value in INT sign-magnitude format and SFPU needs it as 2's complement.
     constexpr auto INSTR_MOD_CAST = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
 
+    // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
 #pragma GCC unroll 8

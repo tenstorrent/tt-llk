@@ -28,6 +28,7 @@ inline void _sub_int_(const uint dst_index_in0, const uint dst_index_in1, const 
     // because TTI_SFPIADD requires 2's complement format in LREGs
     constexpr int sfpload_instr_mod = SIGN_MAGNITUDE_FORMAT ? INT32_2S_COMP : static_cast<std::underlying_type_t<InstrModLoadStore>>(INSTRUCTION_MODE);
 
+    // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
 #pragma GCC unroll 8

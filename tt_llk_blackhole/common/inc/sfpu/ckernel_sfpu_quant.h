@@ -22,6 +22,7 @@ inline void _quant_int32_(const uint dst_index_in0, const uint dst_index_in1, co
     // Operand C is zero-point constant (fp32)
     // Output is int32 scaled to int8 range
 
+    // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
 #pragma GCC unroll 8
@@ -57,6 +58,7 @@ inline void _requant_int32_(const uint dst_index_in0, const uint dst_index_in1, 
     // Operand C is zero-point constant (fp32)
     // Output is int32 scaled to int8 range
 
+    // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
 #pragma GCC unroll 8
@@ -100,6 +102,7 @@ inline void _dequant_int32_(const uint dst_index_in0, const uint dst_index_in1, 
     // Operand C[LREG2] is zero-point constant (fp32)
     // Output = (A + (-C)) * B (fp32)
 
+    // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
 #pragma GCC unroll 8

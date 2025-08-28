@@ -30,6 +30,7 @@ inline void _calculate_sfpu_binary_bitwise_(const uint dst_index_in0, const uint
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
+        // size of each tile in Dest is 64 rows
         constexpr uint dst_tile_size = 64;
 
         TT_SFPLOAD(0, instruction_mode, 3, dst_index_in0 * dst_tile_size);

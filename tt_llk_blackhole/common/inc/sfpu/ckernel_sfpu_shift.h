@@ -24,6 +24,7 @@ inline void _calculate_binary_left_shift_(const uint dst_index_in0, const uint d
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
+        // size of each tile in Dest is 64 rows
         constexpr uint dst_tile_size = 64;
         // load
         TT_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, dst_index_in0 * dst_tile_size);
@@ -51,6 +52,7 @@ inline void _calculate_binary_right_shift_(const uint dst_index_in0, const uint 
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
+        // size of each tile in Dest is 64 rows
         constexpr uint dst_tile_size = 64;
         // load
         TT_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, dst_index_in0 * dst_tile_size);
@@ -88,6 +90,7 @@ inline void _calculate_logical_right_shift_(const uint dst_index_in0, const uint
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
+        // size of each tile in Dest is 64 rows
         constexpr uint dst_tile_size = 64;
         // load
         TT_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_7, dst_index_in0 * dst_tile_size);
