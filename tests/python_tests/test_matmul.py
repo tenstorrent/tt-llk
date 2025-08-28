@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from typing import List
+
 import torch
 
 from helpers.device import (
@@ -8,14 +10,14 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.dimensions import (
-    calculate_matmul_dimensions,
-)
 from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
+from helpers.matmul_sweep import (
+    calculate_matmul_dimensions,
+    generate_matmul_dimension_combinations,
+)
 from helpers.param_config import (
-    generate_format_aware_matmul_combinations,
     input_output_formats,
     parametrize,
 )
@@ -23,6 +25,35 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import ProfilerBuild, run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
+
+
+def generate_format_aware_matmul_combinations(
+    formats_list: List[FormatConfig],
+    dest_acc_modes: List[DestAccumulation],
+):
+    """
+    Generate matmul dimension combinations for multiple tiles.
+
+    Rules:
+    1. Format outliers (Float16_b->Float16, Bfp8_b->Float16) MUST use dest_acc=Yes
+    2. Running matmul tests on DestSync.Half, max tile count is 8
+    3. When dest_acc=Yes: max 4 tiles (32-bit dest register)
+    4. When dest_acc=No: max 8 tiles (16-bit dest register)
+
+    Returns: List of (format, dest_acc, dimensions) tuples
+    """
+    combinations = []
+
+    for fmt in formats_list:
+        base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
+
+        for dest_acc in dest_acc_modes:
+            max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
+            dimensions_list = generate_matmul_dimension_combinations(max_tiles)
+            combinations.extend([(fmt, dest_acc, dims) for dims in dimensions_list])
+
+    return combinations
+
 
 # Generate format-aware combinations
 MATMUL_FORMATS = input_output_formats(
@@ -32,7 +63,6 @@ MATMUL_FORMATS = input_output_formats(
         DataFormat.Float32,
     ]
 )
-
 DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
