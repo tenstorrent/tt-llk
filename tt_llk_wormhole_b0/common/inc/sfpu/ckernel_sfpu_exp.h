@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "ckernel_sfpu_recip.h"
+#include "lltt.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -164,36 +165,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 #pragma GCC unroll 4
         for (int i = 0; i < 4; i++)
         {
-            TTI_SFPLOADMACRO(0, 2, 3, 0);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
-
-            TTI_SFPLOADMACRO(1, 2, 3, 2);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
-
-            TTI_SFPLOADMACRO(2, 2, 3, 4);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
-
-            TTI_SFPLOADMACRO(3, 2, 3, 6);
-
-            TTI_SFPLOADMACRO(0, 2, 3, 8);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
-
-            TTI_SFPLOADMACRO(1, 2, 3, 10);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
-
-            TTI_SFPLOADMACRO(2, 2, 3, 12);
-            TTI_SFPNOP;
-            TTI_SFPNOP;
-
-            TTI_SFPLOADMACRO(3, 2, 3, 14);
-
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            lltt::replay(0, 22);
         }
     }
     else
@@ -251,6 +223,41 @@ inline void _init_exponential_()
             0x0010, 0x8 /*LOADMACRO control*/, 0x1); // Specifies that the store in LOAMACRO “Sequence 0” will inherit the instr_mod0 field from the LOADMACRO
 
         TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
+
+        // Loading replay buffer
+
+        lltt::record<lltt::NoExec>(0, 22);
+
+        TTI_SFPLOADMACRO(0, 2, 3, 0);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 2, 3, 2);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 2, 3, 4);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 2, 3, 6);
+
+        TTI_SFPLOADMACRO(0, 2, 3, 8);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(1, 2, 3, 10);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, 2, 3, 12);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(3, 2, 3, 14);
+
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
     }
     else if constexpr (APPROXIMATION_MODE)
     {
