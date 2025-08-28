@@ -13,28 +13,29 @@ namespace ckernel::sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
-    constexpr uint dst_tile_size_rows      = 64;
-    constexpr uint dst_tile_size_rows_sfpi = 32;
+    constexpr uint dst_tile_size      = 64;
+    constexpr uint dst_tile_size_sfpi = 32;
+    // both are needed since this kernel mixes the use of sfpi and TT calls for load/store
 
-    sfpi::vFloat cond = sfpi::dst_reg[dst_index_in0 * dst_tile_size_rows_sfpi];
+    sfpi::vFloat cond = sfpi::dst_reg[dst_index_in0 * dst_tile_size_sfpi];
 
     for (int i = 0; i < ITERATIONS; i++)
     {
-        cond = sfpi::dst_reg[dst_index_in0 * dst_tile_size_rows_sfpi];
+        cond = sfpi::dst_reg[dst_index_in0 * dst_tile_size_sfpi];
 
         v_if (cond == 0.0f)
         {
             // output_tensor = false_tensor;
-            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_in2 * dst_tile_size_rows);
+            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_in2 * dst_tile_size);
         }
         v_else
         {
             // output_tensor = true_tensor;
-            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_in1 * dst_tile_size_rows);
+            TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_in1 * dst_tile_size);
         }
         v_endif;
-        // sfpi::dst_reg[dst_index_out * dst_tile_size_rows_sfpi] = output_tensor;
-        TT_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_out * dst_tile_size_rows);
+        // sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = output_tensor;
+        TT_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_out * dst_tile_size);
 
         sfpi::dst_reg++;
     }
@@ -43,18 +44,18 @@ inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_in
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_where_fp32_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
-    constexpr uint dst_tile_size = 32;
+    constexpr uint dst_tile_size_sfpi = 32;
 
     sfpi::vFloat output_tensor = 0;
     sfpi::vFloat true_tensor   = 0;
     sfpi::vFloat false_tensor  = 0;
-    sfpi::vFloat cond          = sfpi::dst_reg[dst_index_in0 * dst_tile_size];
+    sfpi::vFloat cond          = sfpi::dst_reg[dst_index_in0 * dst_tile_size_sfpi];
 
     for (int i = 0; i < ITERATIONS; i++)
     {
-        cond         = sfpi::dst_reg[dst_index_in0 * dst_tile_size];
-        true_tensor  = sfpi::dst_reg[dst_index_in1 * dst_tile_size];
-        false_tensor = sfpi::dst_reg[dst_index_in2 * dst_tile_size];
+        cond         = sfpi::dst_reg[dst_index_in0 * dst_tile_size_sfpi];
+        true_tensor  = sfpi::dst_reg[dst_index_in1 * dst_tile_size_sfpi];
+        false_tensor = sfpi::dst_reg[dst_index_in2 * dst_tile_size_sfpi];
 
         v_if (cond != 0.0f)
         {
@@ -66,7 +67,7 @@ inline void _calculate_where_fp32_(const uint dst_index_in0, const uint dst_inde
         }
         v_endif;
 
-        sfpi::dst_reg[dst_index_out * dst_tile_size] = output_tensor;
+        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = output_tensor;
         sfpi::dst_reg++;
     }
 }

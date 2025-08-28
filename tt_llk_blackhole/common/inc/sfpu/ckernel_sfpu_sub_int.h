@@ -30,18 +30,20 @@ inline void _sub_int_(const uint dst_index_in0, const uint dst_index_in1, const 
     // If LOAD/STORE have the value in INT sign-magnitude format and SFPU needs it as 2's complement.
     constexpr auto INSTR_MOD_CAST = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
 
+    constexpr uint dst_tile_size = 64;
+
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         // operand B
-        TT_SFPLOAD(p_sfpu::LREG0 /*lreg*/, INSTRUCTION_MODE, ADDR_MOD_7, dst_index_in1 * 64 /*dest_reg_addr */);
+        TT_SFPLOAD(p_sfpu::LREG0 /*lreg*/, INSTRUCTION_MODE, ADDR_MOD_7, dst_index_in1 * dst_tile_size /*dest_reg_addr */);
         if constexpr (SIGN_MAGNITUDE_FORMAT)
         {
             apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG2, INSTR_MOD_CAST);
         }
 
         // operand A
-        TT_SFPLOAD(p_sfpu::LREG1 /*lreg*/, INSTRUCTION_MODE, ADDR_MOD_7, dst_index_in0 * 64);
+        TT_SFPLOAD(p_sfpu::LREG1 /*lreg*/, INSTRUCTION_MODE, ADDR_MOD_7, dst_index_in0 * dst_tile_size);
         if constexpr (SIGN_MAGNITUDE_FORMAT)
         {
             apply_sign_magnitude_conversion(p_sfpu::LREG1, p_sfpu::LREG2, INSTR_MOD_CAST);
@@ -55,7 +57,7 @@ inline void _sub_int_(const uint dst_index_in0, const uint dst_index_in1, const 
         {
             apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG1, INSTR_MOD_CAST);
         }
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, dst_index_out * 64);
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, dst_index_out * dst_tile_size);
         sfpi::dst_reg++;
     }
 }
