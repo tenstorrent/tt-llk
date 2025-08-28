@@ -16,7 +16,7 @@ namespace sfpu
 /**
  * @brief Calculates column-wise MaxPool of a tile, placing output values into the first row.
  *        Also places the index of the max value into the first row of the indices tile.
- *        Supports {FP32, FP16_B} for values, and {UINT16, INT32, UINT32} for indices, implied from the Dest mode used.
+ *        Supports {FP32, FP16_B} for values, and {UINT16, INT32, UINT32} for indices, inferred from the Dest mode used.
  * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
  * @tparam num_rows The number of rows in the tile, must be one of: {9}
@@ -110,7 +110,7 @@ inline void _init_max_pool_with_indices_()
     lltt::record(0, 7);
 
     // Values have been loaded such that 4 rows of Dest occupy the 4 lanes of each LREG
-    // To sort those 4 rows, we transpose the SFPU LREGs to put the 4 rows into separate LREGs
+    // To sort those 4 rows, we transpose the SFPU LREGs to put elements of 4 rows of each column into separate LREGs of each unit of SFPU
     TTI_SFPTRANSP(0, 0, 0, 0);
 
     // Sort the 4 rows of Dest, placing the max value into LREG0 (index into LREG4)
