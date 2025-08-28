@@ -161,265 +161,63 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        // bottom half of tile
-
-        TTI_SFPLOADMACRO(0, 0, 0, 63);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 62);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 61);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 60);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0, 0, 0, 59);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 58);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 57);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 56);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0, 0, 0, 55);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 54);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 53);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 52);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0, 0, 0, 51);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 50);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 49);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 48);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0, 0, 0, 47);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 46);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 45);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 44);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0, 0, 0, 43);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 42);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 41);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 40);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0, 0, 0, 39);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 38);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 37);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 36);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(0, 0, 0, 35);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 34);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 33);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 32);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        // upper half
-
-        TTI_SFPLOADMACRO(0, 0, 0, 31);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, 0, 0, 30);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 29);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 28);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 27);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 26);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 25);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 24);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 23);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 22);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 21);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 20);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 19);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 18);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 17);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 16);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 15);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 14);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 13);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 12);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 11);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 10);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 9);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 8);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 7);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 6);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 5);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 4);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 3);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 2);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(2, 0, 0, 1);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 0, 0, 0);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
+        // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 4, 0, 0, p_setrwc::SET_D);
+        for (int i = 0; i < 8; i++)
+        {
+            TTI_SFPLOADMACRO(0, 2, 3, 0);
+            TTI_SFPNOP;
+            TTI_SFPNOP;
+
+            TTI_SFPLOADMACRO(1, 2, 3, 2);
+            TTI_SFPNOP;
+            TTI_SFPNOP;
+
+            TTI_SFPLOADMACRO(2, 2, 3, 4);
+            TTI_SFPNOP;
+            TTI_SFPNOP;
+
+            TTI_SFPLOADMACRO(3, 2, 3, 6);
+            TTI_SFPNOP;
+            TTI_SFPNOP;
+
+            // TTI_SFPLOADMACRO(3, 0, 0, 3);
+            // TTI_SFPNOP;
+            // TTI_SFPNOP;
+
+            // TTI_SFPLOADMACRO(0, 2, 3, 4);
+            // TTI_SFPNOP;
+            // TTI_SFPNOP;
+
+            // TTI_SFPLOADMACRO(1, 0, 0, 5);
+            // TTI_SFPNOP;
+            // TTI_SFPNOP;
+
+            // TTI_SFPLOADMACRO(2, 0, 3, 6);
+            // TTI_SFPNOP;
+            // TTI_SFPNOP;
+
+            // TTI_SFPLOADMACRO(3, 0, 0, 7);
+            // TTI_SFPNOP;
+            // TTI_SFPNOP;
+
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        }
+
+        // TTI_SFPLOADMACRO(1, 0, 0, 4);
+        // TTI_SFPNOP;
+        // TTI_SFPNOP;
+
+        // TTI_SFPLOADMACRO(1, 0, 0, 5);
+        // TTI_SFPNOP;
+        // TTI_SFPNOP;
+
+        // TTI_SFPLOADMACRO(2, 0, 0, 6);
+        // TTI_SFPNOP;
+        // TTI_SFPNOP;
+
+        // TTI_SFPLOADMACRO(3, 0, 0, 7);
+        // TTI_SFPNOP;
+        // TTI_SFPNOP;
     }
     else
     {
@@ -455,14 +253,16 @@ inline void _init_exponential_()
         TTI_SFPLOADI(0, 0x8, 0x43B8);
         TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43B8_AA3B
 
-        TTI_SFPSWAP(1 /*unused*/, 14 /*lreg_src_c*/, 0 /*lreg_dest*/, 1 /*modifier*/);            // Input sanitization
-        TTI_SFPMAD(12 /*lreg_src_a*/, 14 /*lreg_src_b*/, 13 /*lreg_src_c*/, 13 /*lreg_dest*/, 0); // A*B + C
-        TTI_SFPSHFT2(16, 0 /*lreg_src_c*/, 14 /*lreg_dest*/, 6);
-        TTI_SFPSTORE(15, 0, 0, 0); // store result back to dest register
+        // Backdoor instruction loads into LOADMACRO
+
+        TTI_SFPSWAP(0 /*unused*/, 14 /*lreg_src_c*/, 12 /*lreg_dest BACKDOOR */, 1 /*modifier*/); // Input sanitization -> INSTR REG 4 (slot 0 = simple unit)
+        TTI_SFPMAD(12 /*lreg_src_a*/, 0 /*lreg_src_b*/, 13 /*lreg_src_c*/, 13 /*lreg_dest BACKDOOR */, 0); // A*B + C -> INSTR REG 5 ( slot 1 = MAD unit)
+        TTI_SFPSHFT2(16, 0 /*lreg_src_c UNUSED */, 14 /*lreg_dest BACKDOOR*/, 6);                          // -> INSTR REG 6 ( slot 2 = round unit)
+        // TTI_SFPSTORE(15 /*BACKDOOR*/, 0, 0, 0); // store result back to dest register -> INSTR REG 7 ( slot 3 = store unit)
 
         // Load delays
         TTI_SFPLOADI(0x0, 0xA, 0x9584);
-        TTI_SFPLOADI(0x0, 0x8, 0xEFE6);
+        TTI_SFPLOADI(0x0, 0x8, 0xEBE6);
         TTI_SFPCONFIG(0x0000, 0x4, 0x0); // Load it into macro sequence register 0 (destination = 4)
 
         TTI_SFPCONFIG(
