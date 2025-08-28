@@ -12,7 +12,12 @@ from helpers.dimensions import (
 )
 from helpers.log_utils import add_to_format_log
 
-from .format_arg_mapping import DestAccumulation, DestSync, StochasticRounding
+from .format_arg_mapping import (
+    DestAccumulation,
+    DestSync,
+    StochasticRounding,
+    Transpose,
+)
 from .format_config import (
     DataFormat,
     FormatConfig,
@@ -295,10 +300,10 @@ def generate_transpose_dest_combinations(formats_list):
     Generate transpose dest combinations that respect constraints.
 
     Key rules:
-    1. math_transpose_faces = False is only supported with 32bit math formats:
+    1. math_transpose_faces = Transpose.No is only supported with 32bit math formats:
        Transpose of 32-bit values in dest with precision loss (unpack Float32 to src registers)
-       is not supported for math_transpose_faces = False.
-       Transpose of 16-bit values in dest is not supported for math_transpose_faces = False.
+       is not supported for math_transpose_faces = Transpose.No.
+       Transpose of 16-bit values in dest is not supported for math_transpose_faces = Transpose.No.
 
     Covered combinations:
     1. Lossless transpose of 32-bit values in dest -> input_format=Float32, dest_acc=DestAccumulation.Yes and unpack_to_dest=True.
@@ -323,14 +328,16 @@ def generate_transpose_dest_combinations(formats_list):
         )
 
         # Transpose of 16-bit values in dest is supported only for math_transpose_faces = True
-        math_transpose_faces_list = [True, False] if is_input_32bit else [True]
+        math_transpose_faces_list = (
+            [Transpose.Yes, Transpose.No] if is_input_32bit else [Transpose.Yes]
+        )
 
         for dest_acc in dest_acc_list:
             for math_transpose_faces in math_transpose_faces_list:
 
                 # Test both loss (unpacking to src registers) and lossless (unpacking to dest) transpose dest
-                # for 32bit inputs when math_transpose_faces = True
-                if math_transpose_faces:
+                # for 32bit inputs when math_transpose_faces = Transpose.Yes
+                if math_transpose_faces == Transpose.Yes:
                     unpack_to_dest_list = [True, False] if is_input_32bit else [False]
                 else:
                     unpack_to_dest_list = [True]
