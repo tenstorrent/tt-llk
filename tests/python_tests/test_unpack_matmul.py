@@ -29,7 +29,7 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
-from helpers.stimuli_generator import generate_stimuli
+from helpers.stimuli_generator import generate_face_matmul_data
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -51,7 +51,14 @@ STOCHASTIC_ROUNDING_MODES = [
 ]
 
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
-    MATMUL_FORMATS, DEST_ACC_MODES, STOCHASTIC_ROUNDING_MODES
+    MATMUL_FORMATS,
+    DEST_ACC_MODES,
+    STOCHASTIC_ROUNDING_MODES,
+    face_modes=[1, 2, 4],  # Test all face modes
+    transpose_modes=[
+        Transpose.No,
+        Transpose.Yes,
+    ],  # Test both transpose modes (but only when num_faces=4)
 )
 
 
@@ -64,39 +71,46 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    transpose=[Transpose.No, Transpose.Yes],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-def test_unpack_matmul(test_name, math_fidelity, transpose, format_dest_acc_and_dims):
+def test_unpack_matmul(test_name, math_fidelity, format_dest_acc_and_dims):
 
     formats = format_dest_acc_and_dims[0]
     dest_acc = format_dest_acc_and_dims[1]
+
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
     stochastic_rnd = format_dest_acc_and_dims[3]
-
+    num_faces = format_dest_acc_and_dims[4]  # Get num_faces from combination
+    transpose = format_dest_acc_and_dims[
+        5
+    ]  # Get transpose from combination (already a Transpose enum)
+    partial_face = format_dest_acc_and_dims[6]  # Get partial_face from combination
     torch_format = format_dict[formats.output_format]
 
     # Calculate all matmul dimensions using helper function
     matmul_dims = calculate_matmul_dimensions(input_A_dimensions, input_B_dimensions)
 
-    src_A, _, tile_cnt_A = generate_stimuli(
-        formats.input_format,
-        formats.input_format,
-        input_dimensions=input_A_dimensions,
-        sfpu=False,
+    tile_cnt_A = input_A_dimensions[0] // 32 * input_A_dimensions[1] // 32
+    tile_cnt_B = input_B_dimensions[0] // 32 * input_B_dimensions[1] // 32
+
+    # Generate test data for all tiles with the right faces zeroed out
+    src_A = generate_face_matmul_data(
+        num_faces=num_faces,
+        stimuli_format=formats.input_format,
+        input_dimensions=input_A_dimensions,  # This will generate the right number of tiles
+        is_matrix_A=True,  # Matrix A (SrcB) uses f0,f2 for 2-face mode
     )
-    src_B, _, tile_cnt_B = generate_stimuli(
-        formats.input_format,
-        formats.input_format,
-        input_dimensions=input_B_dimensions,
-        sfpu=False,
+    src_B = generate_face_matmul_data(
+        num_faces=num_faces,
+        stimuli_format=formats.input_format,
+        input_dimensions=input_B_dimensions,  # This will generate the right number of tiles
+        is_matrix_A=False,  # Matrix B (SrcA) uses f0,f1 for 2-face mode
     )
 
     src_B_golden = src_B
     if transpose == Transpose.Yes:
         t_matrix = get_golden_generator(TransposeGolden)
-
         src_B_golden = t_matrix.transpose_faces_multi_tile(
             src_B,
             formats.input_format,
@@ -147,6 +161,8 @@ def test_unpack_matmul(test_name, math_fidelity, transpose, format_dest_acc_and_
         "stochastic_rnd": stochastic_rnd,
         "unpack_transpose_faces": transpose,
         "unpack_transpose_within_face": transpose,  # matmul transposes both faces and within faces, there is no option for one or the other
+        "num_faces": num_faces,  # Number of active faces to process
+        "partial_face": partial_face,  # Get partial_face from combination
     }
 
     res_address = write_stimuli_to_l1(
@@ -176,8 +192,19 @@ def test_unpack_matmul(test_name, math_fidelity, transpose, format_dest_acc_and_
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(
-        golden_tensor,
-        res_tensor,
-        formats.output_format,
-    )
+    # Only compare the active faces in each tile since that's what the hardware processes
+    num_elements_per_tile = num_faces * 256  # Each face is 16x16 = 256 elements
+    tile_cnt = matmul_dims["output_tile_cnt"]
+
+    # Compare each tile separately
+    for i in range(tile_cnt):
+        start = i * 1024  # Each tile is 1024 elements
+        assert passed_test(
+            golden_tensor[
+                start : start + num_elements_per_tile
+            ],  # Only compare active faces in this tile
+            res_tensor[
+                start : start + num_elements_per_tile
+            ],  # Only compare active faces in this tile
+            formats.output_format,
+        )

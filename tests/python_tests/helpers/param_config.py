@@ -210,10 +210,15 @@ def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]
     ]
 
 
+from .format_arg_mapping import Transpose
+
+
 def generate_format_aware_matmul_combinations(
     formats_list: List[FormatConfig],
     dest_acc_modes: List[DestAccumulation],
     all_stochastic_modes: List[StochasticRounding] = None,
+    face_modes: List[int] = None,
+    transpose_modes: List[Transpose] = None,
 ):
     """
     Generate matmul dimension combinations with stochastic rounding support.
@@ -228,11 +233,20 @@ def generate_format_aware_matmul_combinations(
         - This specific case models when we have bfloat16 in dst register, when stochastic rounding is enabled the datum lacks mantissa bits
         to absorb the accumulated precision loss from multiple matmul ops acrossmultiple tiles. And due to existence of bug, this specific case sometimes fails,
         for now we will exclude this case.
+    5. When num_faces < 4:
+       - transpose must be Transpose.No (hardware limitation)
+       - test both partial_face=True and partial_face=False
+    6. When num_faces = 4:
+       - partial_face must be False
 
-    Returns: List of (format, dest_acc, stochastic_rounding, dimensions) tuples
+    Returns: List of (format, dest_acc, dimensions, stochastic_rounding, num_faces, transpose, partial_face) tuples
     """
     if all_stochastic_modes is None:
         all_stochastic_modes = [StochasticRounding.No]
+    if face_modes is None:
+        face_modes = [1, 2, 4]  # Default face modes
+    if transpose_modes is None:
+        transpose_modes = [Transpose.No, Transpose.Yes]  # Default transpose modes
 
     combinations = []
 
@@ -271,20 +285,54 @@ def generate_format_aware_matmul_combinations(
                         if matmul_info["kt_dim"] < 4:
                             valid_dimensions.append(dims)
 
-                    # Add only the valid ones
-                    combinations.extend(
-                        [
-                            (fmt, dest_acc, dims, stochastic_mode)
-                            for dims in valid_dimensions
-                        ]
-                    )
+                    # Add only the valid ones with face and transpose combinations
+                    for dims in valid_dimensions:
+                        for num_faces in face_modes:
+                            # When num_faces < 4, only allow Transpose.No
+                            allowed_transpose = (
+                                transpose_modes if num_faces == 4 else [Transpose.No]
+                            )
+                            # partial_face must be True for num_faces=1, otherwise False for num_faces=4
+                            partial_faces = [True, False] if num_faces < 4 else [False]
+                            if num_faces == 1:
+                                partial_faces = [True]
+                            for transpose in allowed_transpose:
+                                for partial_face in partial_faces:
+                                    combinations.append(
+                                        (
+                                            fmt,
+                                            dest_acc,
+                                            dims,
+                                            stochastic_mode,
+                                            num_faces,
+                                            transpose,
+                                            partial_face,
+                                        )
+                                    )
                 else:
-                    # No exclusion needed for this stochastic mode, add all
-                    combinations.extend(
-                        [
-                            (fmt, dest_acc, dims, stochastic_mode)
-                            for dims in dimensions_list
-                        ]
-                    )
+                    # No exclusion needed for this stochastic mode, add all combinations
+                    for dims in dimensions_list:
+                        for num_faces in face_modes:
+                            # When num_faces < 4, only allow Transpose.No
+                            allowed_transpose = (
+                                transpose_modes if num_faces == 4 else [Transpose.No]
+                            )
+                            # partial_face must be True for num_faces=1, otherwise False for num_faces=4
+                            partial_faces = [True, False] if num_faces < 4 else [False]
+                            if num_faces == 1:
+                                partial_faces = [True]
+                            for transpose in allowed_transpose:
+                                for partial_face in partial_faces:
+                                    combinations.append(
+                                        (
+                                            fmt,
+                                            dest_acc,
+                                            dims,
+                                            stochastic_mode,
+                                            num_faces,
+                                            transpose,
+                                            partial_face,
+                                        )
+                                    )
 
     return combinations

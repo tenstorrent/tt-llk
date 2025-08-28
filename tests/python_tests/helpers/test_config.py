@@ -181,6 +181,10 @@ def generate_build_header(
         f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
     )
 
+    # partial face
+    partial_face = str(test_config.get("partial_face", False)).lower()
+    header_content.append(f"constexpr bool PARTIAL_FACE = {partial_face};")
+
     # Number of faces
     num_faces = test_config.get("num_faces", 4)
     header_content.append(f"constexpr int num_faces = {num_faces};")
