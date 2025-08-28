@@ -5,13 +5,14 @@
 #pragma once
 
 #include "sfpi.h"
+#include "llk_defs.h"
 
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int WITH_PRECOMPUTED_TANH, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int WITH_PRECOMPUTED_TANH, int ITERATIONS>
 inline void _calculate_tanh_derivative_(const int iterations)
 {
     sfpi::vUInt l0 = sfpi::l_reg[sfpi::LRegs::LReg0];

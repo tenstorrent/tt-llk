@@ -5,13 +5,14 @@
 #pragma once
 
 #include "sfpi.h"
+#include "llk_defs.h"
 
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_max_(const int iterations)
 {
     for (int d = 0; d < iterations; d++)

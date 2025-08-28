@@ -6,7 +6,7 @@
 
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
@@ -104,7 +104,7 @@ sfpi_inline sfpi::vFloat _calculate_log_body_no_init_(sfpi::vFloat base)
     return log_result;
 }
 
-template <bool APPROXIMATION_MODE, bool HAS_BASE_SCALING, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, bool HAS_BASE_SCALING, int ITERATIONS>
 inline void _calculate_log_(const int iterations, uint log_base_scale_factor)
 {
 #pragma GCC unroll 8
@@ -115,7 +115,7 @@ inline void _calculate_log_(const int iterations, uint log_base_scale_factor)
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_log_()
 {
     sfpi::vConstFloatPrgm0 = 0.692871f; // ln2

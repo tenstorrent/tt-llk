@@ -9,6 +9,7 @@
 #include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_log.h"
 #include "ckernel_sfpu_recip.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -92,7 +93,7 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
     return result;
 }
 
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 8>
+template <ApproximationMode APPROX_MODE, BinaryOp BINOP, int ITERATIONS = 8>
 inline void _calculate_sfpu_binary_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
 {
     static constexpr float nan = std::numeric_limits<float>::quiet_NaN();
@@ -159,7 +160,7 @@ inline void _calculate_sfpu_binary_(const uint dst_index_in0, const uint dst_ind
             v_else
             {
                 sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = in1;
-                _calculate_log_body_<false>(0, dst_index_out);
+                _calculate_log_body_<ApproximationMode::Precise>(0, dst_index_out);
                 result = sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] * in0;
             }
             v_endif;
@@ -170,17 +171,16 @@ inline void _calculate_sfpu_binary_(const uint dst_index_in0, const uint dst_ind
     }
 }
 
-template <bool APPROXIMATION_MODE /*unused*/, BinaryOp BINOP>
+template <ApproximationMode APPROX_MODE /*unused*/, BinaryOp BINOP>
 inline void _sfpu_binary_init_()
 {
     if constexpr (BINOP == BinaryOp::DIV || BINOP == BinaryOp::POW)
     {
-        // Initialisation for use of _sfpu_reciprocal_<2> in DIV or POW.
-        _init_reciprocal_<false>();
+        _init_reciprocal_<ApproximationMode::Precise>();
     }
     else if constexpr (BINOP == BinaryOp::XLOGY)
     {
-        _init_log_<APPROXIMATION_MODE>();
+        _init_log_<APPROX_MODE>();
     }
 }
 

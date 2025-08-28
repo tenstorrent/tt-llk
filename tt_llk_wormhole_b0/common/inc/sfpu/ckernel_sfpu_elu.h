@@ -8,11 +8,12 @@
 #include "ckernel_sfpu_exp.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
+#include "llk_defs.h"
 
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_elu_(uint slope)
 {
     const bool SCALE_EN                  = false; // Elu does not use scale.
@@ -27,7 +28,7 @@ inline void _calculate_elu_(uint slope)
 
         v_if (v < 0.0f)
         {
-            sfpi::vFloat v_exp = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
+            sfpi::vFloat v_exp = _calculate_exponential_piecewise_<APPROX_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(v, exp_base_scale_factor);
             v                  = s * (v_exp - 1.0f);
         }
         v_endif;
@@ -38,12 +39,12 @@ inline void _calculate_elu_(uint slope)
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_elu_()
 {
     const uint32_t EXP_BASE_SCALE_FACTOR = 0x3F800000;
     const bool FAST_APPROX               = false; // Elu does not use fast approximation.
-    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
+    _init_exponential_<APPROX_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
 }
 
 } // namespace ckernel::sfpu

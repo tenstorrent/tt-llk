@@ -8,6 +8,7 @@
 
 #include "ckernel_sfpu_log.h"
 #include "ckernel_sfpu_sqrt.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -15,7 +16,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
 {
     // Good for [-pi:pi]
@@ -32,7 +33,7 @@ sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
     // x^7/7!
     tmp = tmp * val * val;
     output += -0.0001984126 * tmp;
-    if constexpr (not APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Precise)
     {
         // x^9/9!
         tmp = tmp * val * val;
@@ -46,7 +47,7 @@ sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
     return output;
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
 {
     // Good for [-pi:pi]
@@ -62,7 +63,7 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
     // x^6/6!
     tmp = tmp * val * val;
     output += -0.0013888888 * tmp;
-    if constexpr (not APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Precise)
     {
         // x^8/8!
         tmp = tmp * val * val;
@@ -78,7 +79,7 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
 
 // Legacy implementation.
 // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_sine_(const int iterations)
 {
     // SFPU microcode
@@ -90,7 +91,7 @@ inline void _calculate_sine_(const int iterations)
         sfpi::vFloat whole_v_float = int32_to_float(whole_v, 0);
         v                          = v - whole_v_float;
         v *= 3.141592653589793f; // fractional * pi to get it in [-pi:pi]
-        v       = _sfpu_sine_maclaurin_series_<APPROXIMATION_MODE>(v);
+        v       = _sfpu_sine_maclaurin_series_<APPROX_MODE>(v);
         whole_v = whole_v & 0x1;
         v_if (whole_v != 0)
         {
@@ -105,7 +106,7 @@ inline void _calculate_sine_(const int iterations)
 
 // Legacy implementation.
 // Candidate for removal in future versions. See https://github.com/tenstorrent/tt-llk/issues/225 for more details.
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_cosine_(const int iterations)
 {
     // SFPU microcode
@@ -117,7 +118,7 @@ inline void _calculate_cosine_(const int iterations)
         sfpi::vFloat whole_v_float = int32_to_float(whole_v, 0);
         v                          = v - whole_v_float;
         v *= 3.141592653589793f; // fractional * pi to get it in [-pi:pi]
-        v       = _sfpu_cosine_maclaurin_series_<APPROXIMATION_MODE>(v);
+        v       = _sfpu_cosine_maclaurin_series_<APPROX_MODE>(v);
         whole_v = whole_v & 0x1;
         v_if (whole_v != 0)
         {
@@ -132,7 +133,7 @@ inline void _calculate_cosine_(const int iterations)
 
 // https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions#Definitions_in_terms_of_logarithms
 // acosh(x) = log(x + sqrt(x^2 - 1))
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_acosh_()
 {
     // SFPU microcode
@@ -151,7 +152,7 @@ inline void _calculate_acosh_()
         {
             sfpi::vFloat tmp = inp * inp;
             tmp              = tmp - sfpi::vConst1;
-            tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE>(tmp);
+            tmp              = _calculate_sqrt_body_<APPROX_MODE, 2>(tmp);
             tmp              = tmp + inp;
             sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
         }
@@ -161,7 +162,7 @@ inline void _calculate_acosh_()
 }
 
 // asinh(x) = log(x + sqrt(x^2 + 1))
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_asinh_()
 {
     // SFPU microcode
@@ -169,7 +170,7 @@ inline void _calculate_asinh_()
     {
         sfpi::vFloat inp = sfpi::dst_reg[0];
         sfpi::vFloat tmp = inp * inp + sfpi::vConst1;
-        tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE>(tmp);
+        tmp              = _calculate_sqrt_body_<APPROX_MODE, 2>(tmp);
         tmp              = tmp + sfpi::abs(inp);
         sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
         v_if (inp < sfpi::vConst0)
@@ -182,7 +183,7 @@ inline void _calculate_asinh_()
 }
 
 // atanh[x] = 0.5 * ln((1 + x) / (1 - x))
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
 inline void _calculate_atanh_()
 {
     // SFPU microcode
@@ -203,9 +204,9 @@ inline void _calculate_atanh_()
         {
             sfpi::vFloat num = sfpi::vConst1 + inp;
             sfpi::vFloat den = sfpi::vConst1 - inp;
-            sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 0 : 2>(den);
+            sfpi::vFloat tmp = _sfpu_reciprocal_< (APPROX_MODE == ApproximationMode::Fast) ? 2 : 3 >(den);
             tmp              = sfpi::setsgn(tmp, den);
-            if constexpr (is_fp32_dest_acc_en || APPROXIMATION_MODE)
+            if constexpr (is_fp32_dest_acc_en || (APPROX_MODE == ApproximationMode::Fast))
             {
                 den = tmp;
             }
@@ -222,16 +223,16 @@ inline void _calculate_atanh_()
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 void _init_inverse_hyperbolic_()
 {
-    _init_sqrt_<APPROXIMATION_MODE>();
+    _init_sqrt_<APPROX_MODE>();
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 void _init_atanh_()
 {
-    _init_reciprocal_<APPROXIMATION_MODE>();
+    _init_reciprocal_<APPROX_MODE>();
 }
 
 } // namespace sfpu

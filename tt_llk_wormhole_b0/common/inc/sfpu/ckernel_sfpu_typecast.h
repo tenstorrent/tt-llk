@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ckernel.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -12,7 +13,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp16b_to_uint16_()
 {
 #pragma GCC unroll 0
@@ -28,7 +29,7 @@ inline void _calculate_typecast_fp16b_to_uint16_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp16b_()
 {
 #pragma GCC unroll 0
@@ -42,7 +43,7 @@ inline void _calculate_typecast_uint16_to_fp16b_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_fp16b_()
 {
 #pragma GCC unroll 0
@@ -56,7 +57,7 @@ inline void _calculate_typecast_int32_to_fp16b_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp16b_to_int32_()
 {
 #pragma GCC unroll 0
@@ -102,7 +103,7 @@ inline void _calculate_typecast_fp16b_to_int32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_fp16b_()
 {
 #pragma GCC unroll 0
@@ -115,7 +116,7 @@ inline void _calculate_typecast_fp32_to_fp16b_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp32_()
 {
 #pragma GCC unroll 0
@@ -128,7 +129,7 @@ inline void _calculate_typecast_uint16_to_fp32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_fp32_()
 {
 #pragma GCC unroll 0
@@ -141,7 +142,7 @@ inline void _calculate_typecast_int32_to_fp32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp16b_to_uint32_()
 {
 #pragma GCC unroll 0
@@ -196,7 +197,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_fp16b_()
 {
 #pragma GCC unroll 0
@@ -214,7 +215,7 @@ inline void _calculate_typecast_uint32_to_fp16b_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_fp32_()
 {
 #pragma GCC unroll 0
@@ -231,7 +232,7 @@ inline void _calculate_typecast_uint32_to_fp32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_uint32_()
 {
 #pragma GCC unroll 0
@@ -243,7 +244,7 @@ inline void _calculate_typecast_uint16_to_uint32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_uint16_()
 {
     // Packer will read HI16 bits from DEST if DEST is in 32bit mode but pck is configured for uint16
@@ -260,7 +261,7 @@ inline void _calculate_typecast_uint32_to_uint16_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_uint16_()
 {
 #pragma GCC unroll 0

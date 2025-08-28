@@ -8,7 +8,7 @@
 #include "ckernel_sfpu_rsqrt_compat.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
@@ -124,25 +124,25 @@ inline void _calculate_sqrt_internal_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool legacy_compat = false>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool legacy_compat = false>
 inline void _calculate_sqrt_(int iterations)
 {
     if constexpr (legacy_compat)
     {
-        return _calculate_sqrt_compat_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en>(iterations);
+        return _calculate_sqrt_compat_<APPROX_MODE, ITERATIONS, fp32_dest_acc_en>(iterations);
     }
     else
     {
-        return _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en, false>(iterations);
+        return _calculate_sqrt_internal_<APPROX_MODE, ITERATIONS, fp32_dest_acc_en, false>(iterations);
     }
 }
 
-template <bool APPROXIMATION_MODE, bool legacy_compat = false>
+template <ApproximationMode APPROX_MODE, bool legacy_compat = false>
 inline void _init_sqrt_()
 {
     if constexpr (!legacy_compat)
     {
-        if constexpr (APPROXIMATION_MODE)
+        if constexpr (APPROX_MODE)
         {
             sfpi::vConstIntPrgm0   = 0x5f0b3892;
             sfpi::vConstFloatPrgm1 = 1.89099014875f;

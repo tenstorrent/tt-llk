@@ -17,7 +17,7 @@ namespace sfpu
 template <typename T>
 constexpr bool is_supported_relu_type_v = std::is_same_v<T, float> || std::is_same_v<T, uint32_t>;
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _calculate_lrelu_(const int iterations, uint slope)
 {
     TT_SFPLOADI(p_sfpu::LREG2, 10, slope & 0xFFFF);
@@ -50,7 +50,7 @@ sfpi_inline sfpi::vFloat _relu_max_body_(sfpi::vFloat val, sfpi::vFloat threshol
     return result;
 }
 
-template <typename VecType, bool APPROXIMATION_MODE, int ITERATIONS>
+template <typename VecType, ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _relu_max_impl_(const int iterations, VecType threshold)
 {
     for (int d = 0; d < iterations; d++)
@@ -72,7 +72,7 @@ inline void _relu_max_impl_(const int iterations, VecType threshold)
 }
 
 // Wrappers
-template <typename VectorType, bool APPROXIMATION_MODE, int ITERATIONS, typename T>
+template <typename VectorType, ApproximationMode APPROX_MODE, int ITERATIONS, typename T>
 inline void _relu_max_(T threshold)
 {
     static_assert(std::is_same_v<VectorType, sfpi::vFloat> || std::is_same_v<VectorType, sfpi::vInt>, "VectorType must be sfpi::vFloat or sfpi::vInt");
@@ -98,10 +98,10 @@ inline void _relu_max_(T threshold)
         static_assert(std::is_same_v<T, float> || std::is_same_v<T, uint32_t>, "Threshold type must be float or uint32_t");
     }
 
-    _relu_max_impl_<VectorType, APPROXIMATION_MODE, ITERATIONS>(ITERATIONS, v_threshold);
+    _relu_max_impl_<VectorType, APPROX_MODE, ITERATIONS>(ITERATIONS, v_threshold);
 }
 
-template <typename VecType, bool APPROXIMATION_MODE, int ITERATIONS>
+template <typename VecType, ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _relu_min_impl_(const int iterations, [[maybe_unused]] VecType threshold, int sfpload_instr_mod)
 {
     for (int d = 0; d < iterations; d++)
@@ -119,7 +119,7 @@ inline void _relu_min_impl_(const int iterations, [[maybe_unused]] VecType thres
 }
 
 // Wrappers
-template <typename VectorType, bool APPROXIMATION_MODE, int ITERATIONS, typename T>
+template <typename VectorType, ApproximationMode APPROX_MODE, int ITERATIONS, typename T>
 inline void _relu_min_(T threshold)
 {
     static_assert(std::is_same_v<VectorType, sfpi::vFloat> || std::is_same_v<VectorType, sfpi::vInt>, "VectorType must be sfpi::vFloat or sfpi::vInt");
@@ -154,7 +154,7 @@ inline void _relu_min_(T threshold)
         static_assert(std::is_same_v<T, float> || std::is_same_v<T, uint32_t>, "Threshold type must be float or uint32_t");
     }
 
-    _relu_min_impl_<VectorType, APPROXIMATION_MODE, ITERATIONS>(ITERATIONS, v_threshold, sfpload_instr_mod);
+    _relu_min_impl_<VectorType, APPROX_MODE, ITERATIONS>(ITERATIONS, v_threshold, sfpload_instr_mod);
 }
 
 } // namespace sfpu

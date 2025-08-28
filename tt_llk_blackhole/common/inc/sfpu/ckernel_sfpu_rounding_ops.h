@@ -11,7 +11,7 @@
 #include "ckernel_defs.h"
 #include "ckernel_sfpu_isinf_isnan.h"
 #include "sfpi.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
@@ -79,7 +79,7 @@ inline constexpr std::array<float, 84> PRECOMPUTED_POW10_TABLE = {
     1e23F,  1e24F,  1e25F,  1e26F,  1e27F,  1e28F,  1e29F,  1e30F,  1e31F,  1e32F,  1e33F,  1e34F,  1e35F,  1e36F,  1e37F,  1e38F,
 };
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
+template <ApproximationMode APPROX_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
 inline void _calculate_floor_()
 {
     for (int d = 0; d < ITERATIONS; d++)
@@ -125,7 +125,7 @@ inline void _calculate_floor_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
+template <ApproximationMode APPROX_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
 inline void _calculate_ceil_()
 {
     for (int d = 0; d < ITERATIONS; d++)
@@ -165,7 +165,7 @@ inline void _calculate_ceil_()
     }
 }
 
-template <bool APPROXIMATION_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
+template <ApproximationMode APPROX_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
 inline void _calculate_trunc_()
 {
     for (int d = 0; d < ITERATIONS; d++)
@@ -225,7 +225,7 @@ inline void _calculate_trunc_()
     }
 }
 
-template <bool APPROXIMATION_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
+template <ApproximationMode APPROX_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
 inline void _calculate_frac_()
 {
     for (int d = 0; d < ITERATIONS; d++)
