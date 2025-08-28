@@ -11,13 +11,13 @@
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
 #include "sfpi.h"
-
+#include "llk_defs.h"
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_uint16_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -55,7 +55,7 @@ inline void _calculate_typecast_fp32_to_uint16_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp16b_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -91,7 +91,7 @@ inline void _calculate_typecast_uint16_to_fp16b_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_fp16b_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -153,7 +153,7 @@ inline void _calculate_typecast_int32_to_fp16b_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_int32_()
 {
 #pragma GCC unroll 8
@@ -188,7 +188,7 @@ inline void _calculate_typecast_fp32_to_int32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_uint32_()
 {
 #pragma GCC unroll 8
@@ -218,7 +218,7 @@ inline void _calculate_typecast_fp32_to_uint32_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_fp16b_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -267,7 +267,7 @@ inline void _calculate_typecast_fp32_to_fp16b_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp32_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -301,7 +301,7 @@ inline void _calculate_typecast_uint16_to_fp32_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_fp32_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -360,7 +360,7 @@ inline void _calculate_typecast_int32_to_fp32_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_fp16b_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -417,7 +417,7 @@ inline void _calculate_typecast_uint32_to_fp16b_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_fp32_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -474,7 +474,7 @@ inline void _calculate_typecast_uint32_to_fp32_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_uint32_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -503,7 +503,7 @@ inline void _calculate_typecast_uint16_to_uint32_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_uint16_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -543,7 +543,7 @@ inline void _calculate_typecast_uint32_to_uint16_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_uint16_()
 {
 #ifdef DISABLE_SFPLOADMACRO
@@ -591,7 +591,7 @@ inline void _calculate_typecast_int32_to_uint16_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_fp32_to_fp16b_()
 {
     sfpi::vConstIntPrgm0 = 1;
@@ -642,7 +642,7 @@ inline void _init_typecast_fp32_to_fp16b_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_uint32_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -666,7 +666,7 @@ inline void _init_typecast_uint16_to_uint32_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint32_to_fp32_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -721,7 +721,7 @@ inline void _init_typecast_uint32_to_fp32_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_int32_to_fp32_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -756,7 +756,7 @@ inline void _init_typecast_int32_to_fp32_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_int32_to_fp16b_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -794,7 +794,7 @@ inline void _init_typecast_int32_to_fp16b_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_fp32_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -822,7 +822,7 @@ inline void _init_typecast_uint16_to_fp32_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_fp16b_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -853,7 +853,7 @@ inline void _init_typecast_uint16_to_fp16b_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint32_to_fp16b_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -887,7 +887,7 @@ inline void _init_typecast_uint32_to_fp16b_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_fp32_to_uint16_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -918,7 +918,7 @@ inline void _init_typecast_fp32_to_uint16_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint32_to_uint16_()
 {
 #ifndef DISABLE_SFPLOADMACRO
@@ -959,7 +959,7 @@ inline void _init_typecast_uint32_to_uint16_()
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_int32_to_uint16_()
 {
 #ifndef DISABLE_SFPLOADMACRO
