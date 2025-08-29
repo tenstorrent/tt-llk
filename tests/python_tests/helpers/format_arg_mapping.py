@@ -82,6 +82,13 @@ class MathOperation(Enum):
         "relu_max", MathOpType.SFPU_UNARY
     )  # ReLU_max(x, U) = max(0, min(x, U))
     ReluMin = OpSpec("relu_min", MathOpType.SFPU_UNARY)  # ReLU_min(x, L) = max(x, L)
+    Lt = OpSpec("unary_lt", MathOpType.SFPU_UNARY)
+    Gt = OpSpec("unary_gt", MathOpType.SFPU_UNARY)
+    Le = OpSpec("unary_le", MathOpType.SFPU_UNARY)
+    Ge = OpSpec("unary_ge", MathOpType.SFPU_UNARY)
+    Eq = OpSpec("unary_eq", MathOpType.SFPU_UNARY)
+    Ne = OpSpec("unary_ne", MathOpType.SFPU_UNARY)
+
     # =============================================================================
     # SFPU BINARY OPERATIONS
     # =============================================================================

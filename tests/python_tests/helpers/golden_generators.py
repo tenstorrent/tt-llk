@@ -652,6 +652,12 @@ class UnarySFPUGolden:
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
+            MathOperation.Lt: self._lt,
+            MathOperation.Gt: self._gt,
+            MathOperation.Le: self._le,
+            MathOperation.Ge: self._ge,
+            MathOperation.Eq: self._eq,
+            MathOperation.Ne: self._ne,
         }
         self.data_format = None
         self.dest_acc = DestAccumulation.No
@@ -861,6 +867,24 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.max(input_tensor, torch.tensor(threshold)).item()
+
+    def _lt(self, x, y=5):
+        return x < y
+
+    def _gt(self, x, y=5):
+        return x > y
+
+    def _le(self, x, y=5):
+        return x <= y
+
+    def _ge(self, x, y=5):
+        return x >= y
+
+    def _eq(self, x, y=5):
+        return x == y
+
+    def _ne(self, x, y=5):
+        return x != y
 
 
 @register_golden
