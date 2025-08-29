@@ -152,6 +152,142 @@ def parametrize(**kwargs: any):
     return decorator
 
 
+def generate_unpack_A_params(**kwargs) -> List[tuple]:
+    """
+    Generates parameter combinations for unpack_A specific parameters only.
+
+    Modern implementation using itertools.product instead of nested loops.
+    Maintains backward compatibility with the original function signature.
+
+    Args:
+        **kwargs: Parameter lists for unpack_A specific parameters:
+            - broadcast_types: List of BroadcastType values
+            - disable_src_zero_flags: List of bool values
+            - acc_to_dest_flags: List of bool values
+            - stoch_rounding_types: List of StochasticRoundingType values
+            - reuse_dest_types: List of EltwiseBinaryReuseDestType values
+            - transpose_of_faces_values: List of int values (0, 1)
+            - within_face_16x16_transpose_values: List of int values (0, 1)
+            - num_faces_values: List of int values
+
+    Returns:
+        List[tuple]: A list of tuples containing unpack_A parameter combinations
+                    in order: (broadcast_type, disable_src_zero, acc_to_dest,
+                              stoch_rounding, reuse_dest, transpose_of_faces,
+                              within_face_16x16_transpose, num_faces)
+    """
+
+    # Define parameter order to ensure consistent tuple structure
+    param_order = [
+        "broadcast_types",
+        "disable_src_zero_flags",
+        "acc_to_dest_flags",
+        "stoch_rounding_types",
+        "reuse_dest_types",
+        "transpose_of_faces_values",
+        "within_face_16x16_transpose_values",
+        "num_faces_values",
+    ]
+
+    # Convert single values to lists and handle None values
+    wrap_list = lambda x: [x] if not isinstance(x, list) else x
+
+    # Extract parameters in correct order, defaulting to [None] for missing ones
+    arguments = []
+    for param_name in param_order:
+        param_value = kwargs.get(param_name, [None])
+        if param_value is not None:
+            arguments.append(wrap_list(param_value))
+        else:
+            arguments.append([None])
+
+    # Generate all combinations using itertools.product
+    return list(product(*arguments))
+
+
+def clean_params(all_params: List[tuple]) -> List[tuple]:
+    """
+    Cleans up the list of parameter combinations by removing any `None` values.
+
+    This function filters out any `None` values from the provided list of parameter combinations.
+    It is used to clean up the list of parameters before generating parameter IDs for test cases.
+
+    Returns:
+    List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
+    """
+    return [
+        tuple(param for param in params if param is not None) for params in all_params
+    ]
+
+
+def generate_param_ids(all_params: List[tuple]) -> List[str]:
+    """
+    Generates parameter IDs from the list of parameter combinations.
+
+    This function creates readable string representations of parameter combinations
+    for use in test case identification. It formats each parameter combination
+    into a string that can be used as a pytest ID.
+
+    Returns:
+    List[str]: A list of formatted strings representing parameter combinations.
+    """
+
+    def format_combination(params):
+        """Format a single parameter combination into a readable string."""
+        if len(params) < 5:
+            return f"params_{len(params)}"
+
+        result = []
+
+        # Format different parameter types based on position and type
+        if hasattr(params[0], "name"):
+            result.append(f"test={params[0]}")
+        else:
+            result.append(f"test={params[0]}")
+
+        if hasattr(params[1], "input_format"):
+            result.append(
+                f"fmt={params[1].input_format.name}→{params[1].output_format.name}"
+            )
+        elif hasattr(params[1], "unpack_A_src"):
+            result.append(f"fmt={params[1].unpack_A_src.name}")
+        else:
+            result.append(f"fmt={params[1]}")
+
+        if hasattr(params[2], "name"):
+            result.append(f"dest_acc={params[2].name}")
+        else:
+            result.append(f"dest_acc={params[2]}")
+
+        # Add additional parameters if they exist
+        if len(params) > 3 and params[3] is not None:
+            if hasattr(params[3], "name"):
+                result.append(f"approx={params[3].name}")
+            else:
+                result.append(f"param3={params[3]}")
+
+        if len(params) > 4 and params[4] is not None:
+            if hasattr(params[4], "name"):
+                result.append(f"op={params[4].name}")
+            else:
+                result.append(f"param4={params[4]}")
+
+        if len(params) > 5 and params[5] is not None:
+            if hasattr(params[5], "name"):
+                result.append(f"fidelity={params[5].name}")
+            else:
+                result.append(f"param5={params[5]}")
+
+        if len(params) > 6 and params[6] is not None:
+            result.append(f"pool_type={params[6].name}")
+
+        # Join the result list into a single string with appropriate spacing
+        return " | ".join(result)
+
+    # Generate and return formatted strings for all parameter combinations
+    return [format_combination(comb) for comb in all_params if comb[0] is not None]
+
+
 def input_output_formats(
     formats: List[DataFormat], same: bool = False
 ) -> List[InputOutputFormat]:
