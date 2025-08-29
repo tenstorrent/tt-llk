@@ -149,7 +149,9 @@ def exalens_device_setup(chip_arch, device_id=0, core_loc="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, device_id=0, core_loc="0,0", boot_mode=BootMode.BRISC):
+def run_elf_files(
+    elfs: List[Path], device_id=0, core_loc="0,0", boot_mode=BootMode.BRISC
+):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
