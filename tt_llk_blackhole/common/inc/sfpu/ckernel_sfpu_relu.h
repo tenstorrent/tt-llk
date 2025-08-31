@@ -7,9 +7,10 @@
 #include <cstdint>
 
 #include "ckernel_sfpu_converter.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-#include "llk_defs.h"
+
 namespace ckernel
 {
 namespace sfpu

@@ -9,8 +9,11 @@
 
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
-#include "sfpi.h"
 #include "llk_defs.h"
+<<<<<<< HEAD
+=======
+#include "sfpi.h"
+>>>>>>> eb3bec27 (pre commit refactor)
 
 namespace ckernel
 {
