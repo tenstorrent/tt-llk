@@ -15,9 +15,9 @@
 #include "perf.h"
 #include "tensix_types.h"
 
-inline uint32_t L1_ADDRESS(const volatile void* buffer)
+inline uint32_t L1_ADDRESS(uint32_t buffer)
 {
-    return (reinterpret_cast<uint32_t>(buffer) / 16) - 1;
+    return (buffer / 16) - 1;
 }
 
 namespace

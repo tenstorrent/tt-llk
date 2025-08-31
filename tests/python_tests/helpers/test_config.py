@@ -89,6 +89,7 @@ def generate_build_header(
         "",
         "#include <type_traits>",
         "",
+        '#include "operand.h"',
         '#include "llk_defs.h"',
         '#include "llk_sfpu_types.h"',
         '#include "perf.h"',
@@ -266,40 +267,10 @@ def generate_build_header(
     buffer_B_address = test_config.get("buffer_B_address", 0x1B000)
     result_buffer_address = test_config.get("result_buffer_address", 0x1C000)
 
-    buffer_A_array = []
-    buffer_B_array = []
-    buffer_res_array = []
-
-    if formats is not None:
-        for i in range(tile_cnt):
-            buffer_A_array.append(
-                buffer_A_address + i * format_tile_sizes[formats.input_format]
-            )
-            buffer_B_array.append(
-                buffer_B_address + i * format_tile_sizes[formats.input_format]
-            )
-            buffer_res_array.append(
-                result_buffer_address + i * format_tile_sizes[formats.output_format]
-            )
-
-    buffer_A_str = ", ".join(
-        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_A_array
-    )
-    buffer_B_str = ", ".join(
-        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_B_array
-    )
-    buffer_res_str = ", ".join(
-        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})"
-        for addr in buffer_res_array
-    )
     header_content.append(
-        "#if defined(TEST_KERNEL)\n"
-        "volatile uint32_t* buffer_A[TILE_CNT] = {" + buffer_A_str + "}; \n"
-        "volatile uint32_t* buffer_B[TILE_CNT] = {" + buffer_B_str + "}; \n"
-        "#endif\n"
-        "#if defined(TEST_KERNEL)\n"
-        "volatile uint32_t* buffer_Res[TILE_CNT] = {" + buffer_res_str + "}; \n"
-        "#endif\n"
+        f"constexpr Operand buffer_A({hex(buffer_A_address)}, {format_tile_sizes[formats.input_format]});\n"
+        f"constexpr Operand buffer_B({hex(buffer_B_address)}, {format_tile_sizes[formats.input_format]});\n"
+        f"constexpr Operand buffer_Res({hex(result_buffer_address)}, {format_tile_sizes[formats.output_format]});\n"
     )
 
     input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
@@ -314,10 +285,8 @@ def generate_build_header(
 
     header_content.extend(
         [
-            "#if defined(TEST_KERNEL)",
             f"constexpr uint32_t BLOCK_CT_DIM = {block_ct_dim};",
             f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim};",
-            "#endif",
         ]
     )
 
