@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "sfpi.h"
 #include "llk_defs.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
@@ -59,7 +59,7 @@ inline void _calculate_reciprocal_(const int iterations)
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _sfpu_reciprocal_< (APPROX_MODE == ApproximationMode::Fast) ? 2 : 3 >(in);
+        sfpi::vFloat out = _sfpu_reciprocal_<(APPROX_MODE == ApproximationMode::Fast) ? 2 : 3>(in);
 
         v_if (in < 0.0F)
         {
