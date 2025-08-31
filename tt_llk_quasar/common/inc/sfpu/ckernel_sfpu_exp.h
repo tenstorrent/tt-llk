@@ -6,6 +6,7 @@
 #include "ckernel_trisc_common.h"
 #include "cmath_common.h"
 #include "llk_defs.h"
+
 namespace ckernel
 {
 namespace sfpu

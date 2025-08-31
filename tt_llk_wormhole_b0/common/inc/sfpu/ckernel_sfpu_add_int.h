@@ -9,8 +9,8 @@
 #include "ckernel.h"
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
-#include "sfpi.h"
 #include "llk_defs.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
