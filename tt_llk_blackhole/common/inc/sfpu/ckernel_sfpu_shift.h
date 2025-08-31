@@ -11,12 +11,13 @@
 #include "ckernel_ops.h"
 #include "sfpi.h"
 #include "llk_defs.h"
+
 namespace ckernel
 {
 namespace sfpu
 {
 
-template <ApproximationMode APPROX_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
+template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
 inline void _calculate_binary_left_shift_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
@@ -44,20 +45,8 @@ inline void _calculate_binary_left_shift_(const std::uint32_t dst_index_in0, con
     }
 }
 
-<<<<<<< HEAD
 template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-<<<<<<< HEAD
 inline void _calculate_binary_right_shift_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
-=======
-inline void _calculate_binary_right_shift_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
-||||||| parent of 2f831d96 (changes for tt_llk)
-template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-inline void _calculate_binary_right_shift_(const uint dst_offset)
-=======
-template <ApproximationMode APPROX_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-inline void _calculate_binary_right_shift_(const uint dst_offset)
->>>>>>> 2f831d96 (changes for tt_llk)
->>>>>>> a12c829f (changes for tt_llk)
 {
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
 
@@ -93,20 +82,8 @@ inline void _calculate_binary_right_shift_(const uint dst_offset)
     }
 }
 
-<<<<<<< HEAD
 template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-<<<<<<< HEAD
 inline void _calculate_logical_right_shift_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
-=======
-inline void _calculate_logical_right_shift_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
-||||||| parent of 2f831d96 (changes for tt_llk)
-template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-inline void _calculate_logical_right_shift_(const uint dst_offset)
-=======
-template <ApproximationMode APPROX_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-inline void _calculate_logical_right_shift_(const uint dst_offset)
->>>>>>> 2f831d96 (changes for tt_llk)
->>>>>>> a12c829f (changes for tt_llk)
 {
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
 
