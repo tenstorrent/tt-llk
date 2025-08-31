@@ -6,6 +6,7 @@
 
 #include <cstdint>
 
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "llk_defs.h"
 

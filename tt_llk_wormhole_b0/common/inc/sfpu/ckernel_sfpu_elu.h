@@ -8,6 +8,7 @@
 
 #include "ckernel_sfpu_converter.h"
 #include "ckernel_sfpu_exp.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "llk_defs.h"
 

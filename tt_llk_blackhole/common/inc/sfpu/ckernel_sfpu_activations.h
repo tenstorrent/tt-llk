@@ -7,11 +7,12 @@
 #include <cstdint>
 
 #include "ckernel_defs.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "sfpu/ckernel_sfpu_converter.h"
 #include "sfpu/ckernel_sfpu_exp.h"
 #include "sfpu/ckernel_sfpu_relu.h"
-#include "llk_defs.h"
+
 namespace ckernel::sfpu
 {
 

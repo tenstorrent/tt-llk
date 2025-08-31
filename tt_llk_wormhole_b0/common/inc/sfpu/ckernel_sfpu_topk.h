@@ -11,6 +11,7 @@
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
 #include "ckernel_sfpu_load_config.h"
+#include "llk_defs.h"
 #include "lltt.h"
 #include "sfpi.h"
 #include "llk_defs.h"

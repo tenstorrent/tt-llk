@@ -8,9 +8,10 @@
 #include <type_traits>
 
 #include "ckernel_defs.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "sfpu/ckernel_sfpu_converter.h"
-#include "llk_defs.h"
+
 namespace ckernel::sfpu
 {
 
