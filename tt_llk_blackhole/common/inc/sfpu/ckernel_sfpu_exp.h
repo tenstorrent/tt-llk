@@ -8,9 +8,10 @@
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
 #include "ckernel_sfpu_recip.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
-#include "llk_defs.h"
+
 namespace ckernel::sfpu
 {
 

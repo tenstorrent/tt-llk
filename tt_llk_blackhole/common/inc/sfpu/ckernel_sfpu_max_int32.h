@@ -7,6 +7,7 @@
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
 #include "llk_defs.h"
+
 namespace ckernel
 {
 namespace sfpu

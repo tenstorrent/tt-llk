@@ -5,9 +5,10 @@
 #pragma once
 
 #include "ckernel_sfpu_is_fp16_zero.h"
+#include "llk_defs.h"
 #include "llk_sfpu_types.h"
 #include "sfpi.h"
-#include "llk_defs.h"
+
 namespace
 {
 constexpr std::uint32_t ONE  = 1;

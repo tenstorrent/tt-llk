@@ -7,8 +7,8 @@
 #include <type_traits>
 
 #include "ckernel_defs.h"
-#include "sfpi.h"
 #include "llk_defs.h"
+#include "sfpi.h"
 #include "sfpi_fp16.h"
 #include "sfpu/ckernel_sfpu_converter.h"
 

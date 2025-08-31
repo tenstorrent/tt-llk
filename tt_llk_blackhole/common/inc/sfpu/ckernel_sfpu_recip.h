@@ -8,6 +8,8 @@
 #include "ckernel_sfpu_rsqrt_compat.h"
 #include "sfpi.h"
 #include "llk_defs.h"
+#include "sfpi.h"
+
 namespace ckernel
 {
 namespace sfpu
@@ -62,7 +64,7 @@ inline void _calculate_reciprocal_(const int iterations)
     {
         sfpi::vFloat in = sfpi::dst_reg[0];
 
-        if constexpr (APPROXIMATION_MODE)
+        if constexpr (APPROX_MODE)
         {
             sfpi::dst_reg[0] = _sfpu_reciprocal_<0>(in);
         }
