@@ -217,3 +217,8 @@ skip_for_blackhole = pytest.mark.skipif(
     get_chip_architecture() == ChipArchitecture.BLACKHOLE,
     reason="Test is not supported on Blackhole architecture",
 )
+
+skip_for_quasar = pytest.mark.skipif(
+    get_chip_architecture() == ChipArchitecture.QUASAR,
+    reason="Test is not supported on Quasar architecture",
+)

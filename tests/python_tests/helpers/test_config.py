@@ -293,11 +293,11 @@ def generate_build_header(
         for addr in buffer_res_array
     )
     header_content.append(
-        "#if defined(LLK_TRISC_UNPACK) && defined(TEST_KERNEL)\n"
+        "#if defined(TEST_KERNEL)\n"
         "volatile uint32_t* buffer_A[TILE_CNT] = {" + buffer_A_str + "}; \n"
         "volatile uint32_t* buffer_B[TILE_CNT] = {" + buffer_B_str + "}; \n"
         "#endif\n"
-        "#if defined(LLK_TRISC_PACK) && defined(TEST_KERNEL)\n"
+        "#if defined(TEST_KERNEL)\n"
         "volatile uint32_t* buffer_Res[TILE_CNT] = {" + buffer_res_str + "}; \n"
         "#endif\n"
     )
