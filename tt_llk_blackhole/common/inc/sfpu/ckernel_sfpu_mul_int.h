@@ -6,8 +6,9 @@
 #pragma once
 
 #include "ckernel_addrmod.h"
-#include "sfpi.h"
 #include "llk_defs.h"
+#include "sfpi.h"
+
 namespace ckernel
 {
 namespace sfpu
