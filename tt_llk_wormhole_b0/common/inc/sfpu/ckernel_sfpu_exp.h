@@ -230,6 +230,8 @@ inline void _init_exponential_()
 
         TTI_SFPLOADMACRO(3, 2, 3, 14);
 
+        TTI_SFPLOADMACRO(3, 2, 3, 14);
+
         TTI_SFPLOADMACRO(0, 2, 3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
