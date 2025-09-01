@@ -268,9 +268,9 @@ def generate_build_header(
     result_buffer_address = test_config.get("result_buffer_address", 0x1C000)
 
     header_content.append(
-        f"constexpr Operand buffer_A({hex(buffer_A_address)}, {format_tile_sizes[formats.input_format]});\n"
-        f"constexpr Operand buffer_B({hex(buffer_B_address)}, {format_tile_sizes[formats.input_format]});\n"
-        f"constexpr Operand buffer_Res({hex(result_buffer_address)}, {format_tile_sizes[formats.output_format]});\n"
+        f"constexpr Operand buffer_A({hex(buffer_A_address)}, {format_tile_sizes[formats.input_format if formats != None else DataFormat.Float16_b]});\n"
+        f"constexpr Operand buffer_B({hex(buffer_B_address)}, {format_tile_sizes[formats.input_format if formats != None else DataFormat.Float16_b]});\n"
+        f"constexpr Operand buffer_Res({hex(result_buffer_address)}, {format_tile_sizes[formats.output_format if formats != None else DataFormat.Float16_b]});\n"
     )
 
     input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
