@@ -165,7 +165,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 #pragma GCC unroll 4
         for (int i = 0; i < 4; i++)
         {
-            lltt::replay(0, 22);
+            lltt::replay(0, 20);
         }
     }
     else
@@ -226,7 +226,9 @@ inline void _init_exponential_()
 
         // Loading replay buffer
 
-        lltt::record<lltt::NoExec>(0, 22);
+        lltt::record<lltt::NoExec>(0, 20);
+
+        TTI_SFPLOADMACRO(3, 2, 3, 14);
 
         TTI_SFPLOADMACRO(0, 2, 3, 0);
         TTI_SFPNOP;
@@ -251,10 +253,6 @@ inline void _init_exponential_()
         TTI_SFPNOP;
 
         TTI_SFPLOADMACRO(2, 2, 3, 12);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 2, 3, 14);
 
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
