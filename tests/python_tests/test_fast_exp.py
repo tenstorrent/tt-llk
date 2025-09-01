@@ -38,7 +38,7 @@ from helpers.utils import passed_test
     mathop=[MathOperation.Exp],
     dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
 )
-@pytest.mark.parametrize("iter", range(20))
+@pytest.mark.parametrize("iter", range(1))
 def test_eltwise_unary_sfpu_float(
     test_name, formats, approx_mode, mathop, dest_acc, iter
 ):

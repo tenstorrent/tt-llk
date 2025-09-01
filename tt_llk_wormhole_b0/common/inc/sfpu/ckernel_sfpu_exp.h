@@ -229,6 +229,8 @@ inline void _init_exponential_()
 
         lltt::record<lltt::NoExec>(0, 22);
 
+        TTI_SFPLOADMACRO(3, 2, 3, 14);
+
         TTI_SFPLOADMACRO(0, 2, 3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
@@ -252,10 +254,6 @@ inline void _init_exponential_()
         TTI_SFPNOP;
 
         TTI_SFPLOADMACRO(2, 2, 3, 12);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(3, 2, 3, 14);
 
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
