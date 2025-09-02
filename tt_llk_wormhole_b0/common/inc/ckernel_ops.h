@@ -966,13 +966,15 @@
 #define TT_ZEROSRC(zero_val, write_mode, bank_mask, src_mask)  TT_INSN(TT_OP_ZEROSRC(zero_val, write_mode, bank_mask, src_mask))
 #define TTI_ZEROSRC(zero_val, write_mode, bank_mask, src_mask) TTI_INSN(TT_OP_ZEROSRC(zero_val, write_mode, bank_mask, src_mask))
 
+#if defined(COMPILE_FOR_TRISC)
 // lltt needs some of the above macros
 #include "lltt.h"
 
-#if defined (LLTT_INSN)
+#if defined(LLTT_INSN)
 #define TTI_INSN(ENCODING) LLTT_INSN(ENCODING)
 #define TT_INSN(ENCODING) LLTT_INSN(ENCODING)
 #else
 #define TTI_INSN(ENCODING) __asm__ __volatile__(".ttinsn %0" : : "n"((ENCODING)))
 #define TT_INSN(ENCODING) (::ckernel::instrn_buffer[0] = (ENCODING)))
+#endif
 #endif

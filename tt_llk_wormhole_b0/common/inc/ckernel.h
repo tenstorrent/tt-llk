@@ -130,6 +130,7 @@ inline void semaphore_get(const uint8_t index)
     pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1;
 }
 
+#if defined(COMPILE_FOR_TRISC)
 // Tensix thread semaphore post optionally stalled
 template <uint WaitRes = p_stall::NONE>
 inline void t6_semaphore_post(const uint8_t index)
@@ -141,7 +142,9 @@ inline void t6_semaphore_post(const uint8_t index)
 
     TTI_SEMPOST(semaphore::t6_sem(index));
 }
+#endif
 
+#if defined(COMPILE_FOR_TRISC)
 // Tensix thread semaphore get optionally stalled
 template <uint WaitRes = p_stall::NONE>
 inline void t6_semaphore_get(const uint8_t index)
@@ -153,34 +156,49 @@ inline void t6_semaphore_get(const uint8_t index)
 
     TTI_SEMGET(semaphore::t6_sem(index));
 }
+#endif
 
+
+#if defined(COMPILE_FOR_TRISC)
 template <uint WaitRes>
 inline void t6_semaphore_wait_on_max(const uint8_t index)
 {
     TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_MAX);
 }
+#endif
 
+
+#if defined(COMPILE_FOR_TRISC)
 template <uint WaitRes>
 inline void t6_semaphore_wait_on_zero(const uint8_t index)
 {
     TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_ZERO);
 }
+#endif
 
+
+#if defined(COMPILE_FOR_TRISC)
 // Tensix thread semaphore get optionally stalled
 inline void t6_semaphore_init(const uint8_t index, const uint8_t min_value, const uint8_t max_value)
 {
     TTI_SEMINIT(max_value, min_value, semaphore::t6_sem(index));
 }
+#endif
 
+
+#if defined(COMPILE_FOR_TRISC)
 inline void t6_mutex_acquire(const uint8_t index)
 {
     TTI_ATGETM(index);
 }
+#endif
 
+#if defined(COMPILE_FOR_TRISC)
 inline void t6_mutex_release(const uint8_t index)
 {
     TTI_ATRELM(index);
 }
+#endif
 
 // Return address of the current state ID register
 inline uint cfg_addr(uint cfg_addr32)
@@ -223,6 +241,7 @@ inline volatile uint short *tt_reg_ptr get_cfg16_pointer()
     return reinterpret_cast<volatile uint short tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
 }
 
+#if defined(COMPILE_FOR_TRISC)
 inline void flip_cfg_state_id()
 {
     cfg_state_id = 1 - cfg_state_id;
@@ -230,6 +249,7 @@ inline void flip_cfg_state_id()
     TTI_NOP;
     TTI_NOP;
 }
+#endif
 
 inline void reset_cfg_state_id()
 {
@@ -252,11 +272,13 @@ inline uint32_t get_dest_buffer_base()
     return (0 != dest_offset_id) ? DEST_REGISTER_HALF_SIZE : 0x0;
 }
 
+#if defined(COMPILE_FOR_TRISC)
 // MOP run version without zmask
 inline void mop_run(const uint8_t type, const uint8_t count)
 {
     TTI_MOP(type, count - 1, 0); // Run the MOP
 }
+#endif
 
 // Register read (workaround for bug
 // tenstorrent/tensix#976
@@ -286,6 +308,7 @@ inline void wait(uint32_t cycles)
     } while (wall_clock < (wall_clock_timestamp + cycles));
 }
 
+#if defined(COMPILE_FOR_TRISC)
 // Clear dest
 inline void zeroacc()
 {
@@ -298,11 +321,14 @@ inline void zeroacc()
         .set(ADDR_MOD_1);
     TT_ZEROACC(p_zeroacc::CLR_ALL, ADDR_MOD_1, 0);
 }
+#endif
 
+#if defined(COMPILE_FOR_TRISC)
 inline void zerosrc()
 {
     TTI_ZEROSRC(0, 0, 1, 3); // Zero all srcA&B banks
 }
+#endif
 
 inline void sync_regfile_write(const uint index)
 {
@@ -343,6 +369,7 @@ inline void cfg_rmw_gpr(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_ma
     cfg_rmw(cfg_addr32, cfg_shamt, cfg_mask, wrdata);
 }
 
+#if defined(COMPILE_FOR_TRISC)
 template <uint CfgAddr32, uint Shamt, uint Mask>
 inline void cfg_reg_rmw_tensix(uint32_t val)
 {
@@ -380,6 +407,7 @@ inline void cfg_reg_rmw_tensix(uint32_t val)
         TT_RMWCIB3(mask_b3, data_b3, CfgAddr32);
     }
 }
+#endif
 
 inline void mailbox_write(const uint8_t thread, const uint32_t data)
 {
@@ -473,6 +501,7 @@ inline void record_kernel_runtime(uint64_t kernel_runtime)
 void debug_dump(const uint8_t *data, uint32_t byte_size);
 void debug_dump_seek(uint8_t offset);
 
+#if defined(COMPILE_FOR_TRISC)
 inline void init_prng_seed(const uint seed)
 {
     // The seed for PRNG should at least be initialized during chip boot-up time.
@@ -485,6 +514,7 @@ inline void init_prng_seed(const uint seed)
         TTI_SFPNOP;
     }
 }
+#endif
 
 inline constexpr bool is_valid_instruction_mode(InstrModLoadStore mode)
 {
