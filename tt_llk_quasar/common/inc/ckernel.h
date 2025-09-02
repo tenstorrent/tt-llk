@@ -7,7 +7,7 @@
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
-#include "fw_debug.h"
+// #include "fw_debug.h"
 #include "t6_debug_map.h"
 #include "tensix.h"
 
@@ -270,9 +270,9 @@ inline void set_ttsync_enables(uint thread_id = 0xdeadface)
 
     if (thread_id > 3)
     {
-        FWLOG0(
-            "WARNING: automatically writing to all TTSync enable regs, because the given thread ID (or lack thereof) implies that you don't know what thread "
-            "you want");
+        // FWLOG0(
+        //     "WARNING: automatically writing to all TTSync enable regs, because the given thread ID (or lack thereof) implies that you don't know what thread
+        //     " "you want");
         for (int i = 0; i < 3; i++)
         {
             t6dbg->TENSIX_TRISC_SYNC[i] = ~bitmask;

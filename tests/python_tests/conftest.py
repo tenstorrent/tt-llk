@@ -42,6 +42,16 @@ def check_hardware_headers():
         "tensix_dev_map.h",
         "tensix_types.h",
     ]
+    required_headers_quasar = [
+        "cfg_defines.h",
+        "tensix.h",
+        "tensix_types.h",
+        "tt_t6_trisc_map.h",
+    ]
+
+    # Quasar has a somewhat different set of headers
+    if chip_arch == ChipArchitecture.QUASAR:
+        required_headers = required_headers_quasar
 
     # Check if header directory exists
     if not header_dir.exists():

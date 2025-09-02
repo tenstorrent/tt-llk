@@ -87,12 +87,12 @@ def generate_build_header(
         "",
         "#pragma once",
         "",
-        "#include <type_traits>",
+        "#include <type_traits>",  # TODO LP WHY?
         "",
         '#include "operand.h"',
         '#include "llk_defs.h"',
-        '#include "llk_sfpu_types.h"',
-        '#include "perf.h"',
+        # '#include "llk_sfpu_types.h"',
+        # '#include "perf.h"',
         '#include "tensix_types.h"',
         "",
         "",
@@ -328,7 +328,7 @@ def generate_make_command(
 ):
     """Generate make command"""
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} all "
+    make_cmd = f"make dis -j 6 --silent testname={test_config.get('testname')} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -357,7 +357,7 @@ def build_test(
 def run_test(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,  # change default boot mode here
+    boot_mode: BootMode = BootMode.TRISC,  # change default boot mode here
 ):
     """Run the test with the given configuration"""
 
