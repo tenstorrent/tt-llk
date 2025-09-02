@@ -180,12 +180,12 @@ template <
     bool diagonal                = false,
     bool narrow_row              = false,
     std::uint32_t row_num_datums = TILE_C_DIM,
-    uint32_t tile_dst_ct_offset = 0>
+    uint32_t tile_dst_ct_offset  = 0>
 inline void _llk_pack_untilize_(
     const std::uint32_t address,
     const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim      = FACE_R_DIM,
-    const std::uint32_t num_faces       = 4,
+    const std::uint32_t face_r_dim         = FACE_R_DIM,
+    const std::uint32_t num_faces          = 4,
     const std::uint32_t tile_dst_rt_offset = 0)
 {
     /*
@@ -216,6 +216,6 @@ inline void _llk_pack_untilize_(
         TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0010); // reset ch0_y counters
     }
 
-    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);                             // reset z counters
+    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);                                // reset z counters
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_ct_offset); // reset w counter
 }
