@@ -230,22 +230,22 @@ inline void _init_exponential_()
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
-        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+        TTI_SFPLOADMACRO(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+        TTI_SFPLOADMACRO(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(1, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
-        TTI_SFPLOADMACRO(2, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
+        TTI_SFPLOADMACRO(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
+        TTI_SFPLOADMACRO(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
-        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 10);
+        TTI_SFPLOADMACRO(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
+        TTI_SFPLOADMACRO(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 10);
         TTI_SFPNOP;
         TTI_SFPNOP;
-        TTI_SFPLOADMACRO(1, InstrModLoadStore::FP16B, ADDR_MOD_3, 12);
-        TTI_SFPLOADMACRO(2, InstrModLoadStore::FP16B, ADDR_MOD_3, 14);
+        TTI_SFPLOADMACRO(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 12);
+        TTI_SFPLOADMACRO(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 14);
 
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
