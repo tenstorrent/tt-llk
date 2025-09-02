@@ -349,7 +349,7 @@ jobs:
               '**Status:** ✅ **Tests Completed**'
             }}
 
-            ## Test Results:
+            **Test Results:**
             ${{
               needs.trigger-tt-metal-tests.result == 'success' &&
               format('- Wormhole tests: {0}',
