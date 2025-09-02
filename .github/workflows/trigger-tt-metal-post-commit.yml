@@ -343,15 +343,12 @@ jobs:
               needs.detect-changes.outputs.should-skip == 'true' &&
               '**Status:** ⏭️ **Skipped** - No relevant changes in LLK directories' ||
               needs.trigger-tt-metal-tests.result == 'skipped' &&
-              '**Status:** ⏭️ **Skipped** - Workflow conditions not met' ||
-              needs.trigger-tt-metal-tests.result != 'success' &&
-              '**Status:** 🛑 **Failed** - tt-metal integration workflow failed' ||
-              '**Status:** ✅ **Tests Completed**'
+              '**Status:** ⏭️ **Skipped** - Workflow conditions not met'
             }}
 
             **Test Results:**
             ${{
-              needs.trigger-tt-metal-tests.result == 'success' &&
+              (needs.trigger-tt-metal-tests.result == 'success' || needs.trigger-tt-metal-tests.result == 'failure') &&
               format('- Wormhole tests: {0}',
                 needs.detect-changes.outputs.run-wormhole == 'true' &&
                 (steps.parse-results.outputs.wh-status == 'success' &&
@@ -361,13 +358,17 @@ jobs:
                  steps.parse-results.outputs.wh-status == 'timeout' &&
                  format('⏰ Timed out - [View run]({0})', steps.parse-results.outputs.wh-url) ||
                  steps.parse-results.outputs.wh-status != '' &&
-                 format('⚪ {0} - [View run]({1})', steps.parse-results.outputs.wh-status, steps.parse-results.outputs.wh-url) ||
+                 format('⚪ {0} - [View run]({1})',
+                   steps.parse-results.outputs.wh-status,
+                   steps.parse-results.outputs.wh-url) ||
+                 needs.trigger-tt-metal-tests.result == 'failure' &&
+                 '🛑 Workflow Failed - Check logs for details' ||
                  '⏳ Running...') ||
                 '⚪ Not run') ||
               ''
             }}
             ${{
-              needs.trigger-tt-metal-tests.result == 'success' &&
+              (needs.trigger-tt-metal-tests.result == 'success' || needs.trigger-tt-metal-tests.result == 'failure') &&
               format('- Blackhole tests: {0}',
                 needs.detect-changes.outputs.run-blackhole == 'true' &&
                 (steps.parse-results.outputs.bh-status == 'success' &&
@@ -377,7 +378,11 @@ jobs:
                  steps.parse-results.outputs.bh-status == 'timeout' &&
                  format('⏰ Timed out - [View run]({0})', steps.parse-results.outputs.bh-url) ||
                  steps.parse-results.outputs.bh-status != '' &&
-                 format('⚪ {0} - [View run]({1})', steps.parse-results.outputs.bh-status, steps.parse-results.outputs.bh-url) ||
+                 format('⚪ {0} - [View run]({1})',
+                   steps.parse-results.outputs.bh-status,
+                   steps.parse-results.outputs.bh-url) ||
+                 needs.trigger-tt-metal-tests.result == 'failure' &&
+                 '🛑 Workflow Failed - Check logs for details' ||
                  '⏳ Running...') ||
                 '⚪ Not run') ||
               ''
