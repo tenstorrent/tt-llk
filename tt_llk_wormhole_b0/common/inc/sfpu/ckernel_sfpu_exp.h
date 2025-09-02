@@ -12,7 +12,7 @@
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
-constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 18;
+constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 16;
 
 namespace ckernel::sfpu
 {
@@ -231,8 +231,8 @@ inline void _init_exponential_()
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
-        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
@@ -241,16 +241,11 @@ inline void _init_exponential_()
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
-
-        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 10);
+        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
+        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 10);
         TTI_SFPNOP;
         TTI_SFPNOP;
-
         TTI_SFPLOADMACRO(1, InstrModLoadStore::FP16B, ADDR_MOD_3, 12);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
         TTI_SFPLOADMACRO(2, InstrModLoadStore::FP16B, ADDR_MOD_3, 14);
 
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
