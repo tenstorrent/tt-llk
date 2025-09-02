@@ -339,13 +339,6 @@ jobs:
                   needs.detect-changes.outputs.run-blackhole == 'true' &&
                   '🟢 Enabled' || '⚪ Disabled' }}
 
-            ${{
-              needs.detect-changes.outputs.should-skip == 'true' &&
-              '**Status:** ⏭️ **Skipped** - No relevant changes in LLK directories' ||
-              needs.trigger-tt-metal-tests.result == 'skipped' &&
-              '**Status:** ⏭️ **Skipped** - Workflow conditions not met'
-            }}
-
             **Test Results:**
             ${{
               (needs.trigger-tt-metal-tests.result == 'success' || needs.trigger-tt-metal-tests.result == 'failure') &&
