@@ -179,13 +179,14 @@ template <
     std::uint32_t full_ct_dim    = block_ct_dim,
     bool diagonal                = false,
     bool narrow_row              = false,
-    std::uint32_t row_num_datums = TILE_C_DIM>
+    std::uint32_t row_num_datums = TILE_C_DIM,
+    uint32_t tile_dst_ct_offset = 0>
 inline void _llk_pack_untilize_(
     const std::uint32_t address,
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim      = FACE_R_DIM,
     const std::uint32_t num_faces       = 4,
-    const std::uint32_t tile_dst_offset = 0)
+    const std::uint32_t tile_dst_rt_offset = 0)
 {
     /*
     full_ct_dim represents the number of input tiles.
@@ -200,10 +201,10 @@ inline void _llk_pack_untilize_(
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0011); // reset ch0 zw counters
     TT_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011); // reset ch0 xy counters
 
-    // If tile_dst_offset is non-zero, reconfigure the template with the correct offset
-    if (tile_dst_offset != 0)
+    // If starting_tile_dst_offset is non-zero, reconfigure the template with the correct offset
+    if constexpr (tile_dst_ct_offset != 0)
     {
-        _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal>(face_r_dim, num_faces, narrow_row, row_num_datums, tile_dst_offset);
+        _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal>(face_r_dim, num_faces, narrow_row, row_num_datums, tile_dst_ct_offset);
     }
 
     // Iterate over top, then over bottom faces in the block (if num_faces > 2)
@@ -216,5 +217,5 @@ inline void _llk_pack_untilize_(
     }
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);                             // reset z counters
-    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_offset); // reset w counter
+    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_ct_offset); // reset w counter
 }
