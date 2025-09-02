@@ -6,10 +6,7 @@
 #include <cstdint>
 #include <cstdio>
 
-#include "ckernel.h"
-#include "llk_defs.h"
-#include "params.h"
-#include "profiler.h"
+#include "build.h"
 
 // Globals
 uint32_t unp_cfg_context          = 0;

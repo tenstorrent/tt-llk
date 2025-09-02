@@ -20,6 +20,11 @@ else ifeq ($(ARCH),blackhole)
 	ARCH_CPU        := -mcpu=tt-bh
 	ARCH_DEFINE     := -DARCH_BLACKHOLE
 	ARCH_LLK_ROOT   := tt_llk_blackhole
+else ifeq ($(ARCH),quasar)
+# until there is official support for quasar in SFPI fallback to BH
+	ARCH_CPU        := -mcpu=tt-bh
+	ARCH_DEFINE     := -DARCH_QUASAR
+	ARCH_LLK_ROOT   := tt_llk_quasar
 else
 $(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
 endif
@@ -75,6 +80,15 @@ TEST_KERNEL_FLAG := -DTEST_KERNEL
 # =========================
 .PHONY: all dis profiler clean
 
+ifeq ($(ARCH),quasar)
+all: $(ELF_DIR)/unpack.elf \
+	 $(ELF_DIR)/math.elf \
+	 $(ELF_DIR)/pack.elf
+
+dis: $(DIS_DIR)/unpack.S \
+	 $(DIS_DIR)/math.S \
+	 $(DIS_DIR)/pack.S
+else
 all: $(ELF_DIR)/unpack.elf \
 	 $(ELF_DIR)/math.elf \
 	 $(ELF_DIR)/pack.elf \
@@ -84,6 +98,7 @@ dis: $(DIS_DIR)/unpack.S \
 	 $(DIS_DIR)/math.S \
 	 $(DIS_DIR)/pack.S \
 	 $(SHARED_DIS_DIR)/brisc.S
+endif
 
 profiler: $(PROFILER_DIR)/unpack.meta.bin \
 	  $(PROFILER_DIR)/math.meta.bin \
