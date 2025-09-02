@@ -11,7 +11,7 @@
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
-constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 20;
+constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 18;
 
 namespace ckernel::sfpu
 {
@@ -231,15 +231,11 @@ inline void _init_exponential_()
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
         TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-
         TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
         TTI_SFPLOADMACRO(1, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
         TTI_SFPLOADMACRO(2, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
         TTI_SFPNOP;
         TTI_SFPNOP;
