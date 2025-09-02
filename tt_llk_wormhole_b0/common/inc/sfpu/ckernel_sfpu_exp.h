@@ -11,6 +11,8 @@
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
+constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 20;
+
 namespace ckernel::sfpu
 {
 
@@ -165,7 +167,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 #pragma GCC unroll 4
         for (int i = 0; i < 4; i++)
         {
-            lltt::replay(0, 20);
+            lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
         }
     }
     else
@@ -226,33 +228,33 @@ inline void _init_exponential_()
 
         // Loading replay buffer
 
-        lltt::record<lltt::NoExec>(0, 20);
+        lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
-        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
+        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
 
-        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-
-        TTI_SFPLOADMACRO(1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(2, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
+        TTI_SFPLOADMACRO(1, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 14);
-
-        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
+        TTI_SFPLOADMACRO(2, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(1, InstrModLoadStore::FP16B, ADDR_MOD_3, 10);
+        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
+
+        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 10);
         TTI_SFPNOP;
         TTI_SFPNOP;
 
-        TTI_SFPLOADMACRO(2, InstrModLoadStore::FP16B, ADDR_MOD_3, 12);
+        TTI_SFPLOADMACRO(1, InstrModLoadStore::FP16B, ADDR_MOD_3, 12);
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+
+        TTI_SFPLOADMACRO(2, InstrModLoadStore::FP16B, ADDR_MOD_3, 14);
 
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
