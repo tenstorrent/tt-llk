@@ -212,7 +212,7 @@ inline void _init_exponential_()
 
         // Backdoor instruction loads into LOADMACRO
 
-        TTI_SFPSWAP(0 /*unused*/, 14 /*lreg_src_c*/, 12 /*lreg_dest BACKDOOR */, 1 /*modifier*/); // Input sanitization -> INSTR REG 4 (slot 0 = simple unit)
+        TTI_SFPSWAP(0 /*UNUSED*/, 14 /*lreg_src_c*/, 12 /*lreg_dest BACKDOOR */, 1 /*modifier*/); // Input sanitization -> INSTR REG 4 (slot 0 = simple unit)
         TTI_SFPMAD(12 /*lreg_src_a*/, 0 /*lreg_src_b*/, 13 /*lreg_src_c*/, 13 /*lreg_dest BACKDOOR */, 0); // A*B + C -> INSTR REG 5 ( slot 1 = MAD unit)
         TTI_SFPSHFT2(16, 0 /*lreg_src_c UNUSED */, 14 /*lreg_dest BACKDOOR*/, 6);                          // -> INSTR REG 6 ( slot 2 = round unit)
 
@@ -227,6 +227,8 @@ inline void _init_exponential_()
         TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
 
         // Loading replay buffer
+
+        // Note: TTI_SFPNOPs are inserted because every two calls that use same LREG need to be at least 7 instructions apart
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
