@@ -8,6 +8,7 @@
 
 #include "build.h"
 #include "ckernel.h"
+#include "cunpack_common.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -43,19 +44,17 @@ void run_kernel()
         {
             return;
         }
-        else
+
+        for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+            uint32_t read_offset = 0;
+            for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
             {
-                uint32_t read_offset = 0;
-                for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+                for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
                 {
-                    for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
-                    {
-                        _llk_unpack_tilize_(L1_ADDRESS(buffer_A[read_offset]), j, formats.unpack_src, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
-                    }
-                    read_offset += BLOCK_RT_DIM;
+                    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[read_offset]), j, formats.unpack_src, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
                 }
+                read_offset += BLOCK_RT_DIM;
             }
         }
         PROFILER_SYNC();
@@ -98,36 +97,37 @@ void run_kernel()
         {
             return;
         }
+
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            if constexpr (unpack_to_dest)
-            {
-                for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
-                {
-                    for (uint32_t i = 0; i < TILE_CNT; i++)
-                    {
-                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                            i, formats.math, formats.math);
-                    }
-                }
-            }
-            else
+            if constexpr (!unpack_to_dest)
             {
                 _perf_math_loop_clear_valid<true, true>(LOOP_FACTOR * TILE_CNT * TILE_NUM_FACES);
+                PROFILER_SYNC();
+                return;
             }
-        }
-        else
-        {
+
             for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
                 for (uint32_t i = 0; i < TILE_CNT; i++)
                 {
-                    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                         i, formats.math, formats.math);
                 }
-                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
+            PROFILER_SYNC();
+            return;
+        }
+
+        for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+        {
+            for (uint32_t i = 0; i < TILE_CNT; i++)
+            {
+                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                    i, formats.math, formats.math);
+            }
+            _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         }
         PROFILER_SYNC();
     }
@@ -160,11 +160,14 @@ void run_kernel()
     }
     {
         ZONE_SCOPED("TILE_LOOP")
+
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
+            PROFILER_SYNC();
             return;
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+
+        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
@@ -173,18 +176,18 @@ void run_kernel()
                     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
                 }
             }
+            PROFILER_SYNC();
+            return;
         }
-        else
+
+        for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+            _llk_packer_wait_for_math_done_();
+            for (int i = 0; i < TILE_CNT; ++i)
             {
-                _llk_packer_wait_for_math_done_();
-                for (int i = 0; i < TILE_CNT; ++i)
-                {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
-                }
-                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
             }
+            _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         }
         PROFILER_SYNC();
     }
