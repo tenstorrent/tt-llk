@@ -967,14 +967,20 @@
 #define TTI_ZEROSRC(zero_val, write_mode, bank_mask, src_mask) TTI_INSN(TT_OP_ZEROSRC(zero_val, write_mode, bank_mask, src_mask))
 
 #if defined(COMPILE_FOR_TRISC)
-// lltt needs some of the above macros
+// lltt needs some of the above macros, which is why we include it
+// here, rather than at the top of file.
 #include "lltt.h"
+#else
+// This file is included from non-compute cores, but any direct use of
+// these macros is going to end badly.
+#define LLTT_INSN(ENCODING) ((void)(ENCODING), __builtin_unreachable())
+#endif
 
 #if defined (LLTT_INSN)
 #define TTI_INSN(ENCODING) LLTT_INSN(ENCODING)
 #define TT_INSN(ENCODING) LLTT_INSN(ENCODING)
 #else
+// Old lltt that does not provide lltt:ttinsn and associated macro.
 #define TTI_INSN(ENCODING) __asm__ __volatile__(".ttinsn %0" : : "n"((ENCODING)))
-#define TT_INSN(ENCODING) (::ckernel::instrn_buffer[0] = (ENCODING)))
-#endif
+#define TT_INSN(ENCODING) (::ckernel::instrn_buffer[0] = (ENCODING))
 #endif
