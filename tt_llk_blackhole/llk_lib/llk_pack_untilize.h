@@ -201,6 +201,7 @@ inline void _llk_pack_untilize_(
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0011); // reset ch0 zw counters
     TT_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011); // reset ch0 xy counters
 
+    // Needs to be revisited for perf impact with https://github.com/tenstorrent/tt-llk/issues/632
     // If starting_tile_dst_offset is non-zero, reconfigure the template with the correct offset
     if constexpr (tile_dst_ct_offset != 0)
     {
