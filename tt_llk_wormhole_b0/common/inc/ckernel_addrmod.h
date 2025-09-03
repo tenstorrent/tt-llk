@@ -132,7 +132,6 @@ struct addr_mod_t
     constexpr static uint32_t addr_mod_pack_reg_addr[] = {
         ADDR_MOD_PACK_SEC0_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC1_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC2_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC3_YsrcIncr_ADDR32};
 
-#if defined(COMPILE_FOR_TRISC)
     // Program source and dest registers
     __attribute__((always_inline)) inline void set(const uint8_t mod_index) const
     {
@@ -142,7 +141,6 @@ struct addr_mod_t
         TTI_SETC16(addr_mod_dest_reg_addr[mod_index], dest.val() | (fidelity.val() << 13));
         TTI_SETC16(addr_mod_bias_reg_addr[mod_index], bias.val());
     }
-#endif
 };
 
 struct addr_mod_pack_t
@@ -185,13 +183,12 @@ struct addr_mod_pack_t
     // List of addresses of src/dest registers
     constexpr static uint32_t addr_mod_pack_reg_addr[] = {
         ADDR_MOD_PACK_SEC0_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC1_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC2_YsrcIncr_ADDR32, ADDR_MOD_PACK_SEC3_YsrcIncr_ADDR32};
-#if defined COMPILE_FOR_TRISC
+
     // Program source and dest registers
     __attribute__((always_inline)) inline void set(const uint8_t mod_index) const
     {
         TTI_SETC16(addr_mod_pack_reg_addr[mod_index], pack_val());
     }
-#endif
 };
 
 } // namespace ckernel

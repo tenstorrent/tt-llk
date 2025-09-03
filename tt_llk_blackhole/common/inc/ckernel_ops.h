@@ -1074,7 +1074,7 @@
 // lltt needs some of the above macros
 #include "lltt.h"
 
-#if defined(LLTT_INSN)
+#if defined (LLTT_INSN)
 #define TTI_INSN(ENCODING) LLTT_INSN(ENCODING)
 #define TT_INSN(ENCODING) LLTT_INSN(ENCODING)
 #else
