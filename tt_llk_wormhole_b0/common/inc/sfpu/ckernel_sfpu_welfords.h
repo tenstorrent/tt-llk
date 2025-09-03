@@ -143,7 +143,7 @@ sfpi_inline void _welfords_load_initial_data_()
 // Macro to allow returns to exit main function
 
 #define WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows)                                                                    \
-    if (skip_n_rows <= 0)                                                                                                                     \
+    if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
         _load_recip_current_sample_lreg7_(current_sample);                                                                                    \
         lltt::replay(0, 9);                                                                                                                   \
@@ -157,7 +157,7 @@ sfpi_inline void _welfords_load_initial_data_()
     {                                                                                                                                         \
         return current_sample;                                                                                                                \
     }                                                                                                                                         \
-    if (skip_n_rows <= 0)                                                                                                                     \
+    if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG1, ckernel::p_sfpu::LREG0, 0); \
         _load_recip_current_sample_lreg7_(current_sample);                                                                                    \
@@ -172,7 +172,7 @@ sfpi_inline void _welfords_load_initial_data_()
     {                                                                                                                                         \
         return current_sample;                                                                                                                \
     }                                                                                                                                         \
-    if (skip_n_rows <= 0)                                                                                                                     \
+    if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG2, ckernel::p_sfpu::LREG0, 0); \
         _load_recip_current_sample_lreg7_(current_sample);                                                                                    \
@@ -187,7 +187,7 @@ sfpi_inline void _welfords_load_initial_data_()
     {                                                                                                                                         \
         return current_sample;                                                                                                                \
     }                                                                                                                                         \
-    if (skip_n_rows <= 0)                                                                                                                     \
+    if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG3, ckernel::p_sfpu::LREG0, 0); \
         _load_recip_current_sample_lreg7_(current_sample);                                                                                    \
@@ -199,7 +199,11 @@ sfpi_inline void _welfords_load_initial_data_()
         skip_n_rows--;                                                                                                                        \
     }                                                                                                                                         \
     TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);                                                                         \
-    TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);                                                                        \
+    if (current_sample == final_sample)                                                                                                       \
+    {                                                                                                                                         \
+        return current_sample;                                                                                                                \
+    }
 
 sfpi_inline uint32_t _welfords_main_(uint32_t current_sample, const uint32_t final_sample, uint32_t skip_n_rows)
 {
@@ -287,6 +291,23 @@ sfpi_inline void _program_welfords_replay_()
 
 void _welfords_llk_entry_(uint32_t current_sample, const uint32_t final_sample, const uint32_t reformat_dst, uint32_t skip_n_rows)
 {
+    // There are no more samples to process, return early. Effectively a no-op.
+    if (current_sample == final_sample)
+    {
+        return;
+    }
+
+    // Pack the mean into the first face of the mean dst reg. Convert M2 to variance and pack into the first face of the var dst reg.
+    if (reformat_dst == 2)
+    {
+        _load_recip_current_sample_lreg7_(current_sample - 1);
+        TTI_SFPMUL(ckernel::p_sfpu::LREG7 /*LREG7 = 1/N*/, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
+
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);
+        return;
+    }
+
     const uint32_t sample_count = _welfords_main_(current_sample, final_sample, skip_n_rows);
     if (sample_count == final_sample)
     {
