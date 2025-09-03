@@ -54,15 +54,18 @@ inline void _quant_int32_(const std::uint32_t dst_index_in0, const std::uint32_t
 }
 
 <<<<<<< HEAD
+
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 <<<<<<< HEAD
 inline void _requant_int32_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 =======
 inline void _requant_int32_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
 ||||||| parent of 2f831d96 (changes for tt_llk)
+
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 inline void _requant_int32_(const uint dst_offset)
 =======
+
 template <ApproximationMode APPROX_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 inline void _requant_int32_(const uint dst_offset)
 >>>>>>> 2f831d96 (changes for tt_llk)
@@ -110,15 +113,18 @@ inline void _requant_int32_(const uint dst_offset)
 }
 
 <<<<<<< HEAD
+
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 <<<<<<< HEAD
 inline void _dequant_int32_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 =======
 inline void _dequant_int32_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
 ||||||| parent of 2f831d96 (changes for tt_llk)
+
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 inline void _dequant_int32_(const uint dst_offset)
 =======
+
 template <ApproximationMode APPROX_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
 inline void _dequant_int32_(const uint dst_offset)
 >>>>>>> 2f831d96 (changes for tt_llk)
