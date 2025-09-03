@@ -11,7 +11,7 @@
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
-constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 16;
+constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 10;
 
 namespace ckernel::sfpu
 {
@@ -164,11 +164,10 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-#pragma GCC unroll 4
-        for (int i = 0; i < 4; i++)
-        {
-            lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
-        }
+        lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
+        lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
+        lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
+        lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT - 2);
     }
     else
     {
@@ -192,62 +191,103 @@ inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
+        // Algorithm is adapted from:
+        //      A Fast, Compact Approximation of the Exponential Function
+        //      Nicol N. Schraudolph
+        //      IDSIA, Lugano, Switzerland
+
+        // First, set up constant values which are needed for the computation
+        //      We will first sanitize the input values (y) to be in the range that won't cause underflow, which for our hardware means we need to limit
+        //      negative values to be greater than or equal to -88.5 The computation that is needed is (A * y) + (B - C) , where A = (2^8)/ln(2) , B = 127 *
+        //      (2^8) , C = Adjustment parameter of roughly 11.2 to minimize error
+        //          - NOTE: we would like to be able to use 2^23 instead of 2^8 and compute a 32-bit quantity, but our hardware only supports rounding FP32 into
+        //          a 16-bit integer, so we use 2^8 and then shift left by 15 bits after rounding
+        //      So we will set up the following constants:
+        //          LREG[14] =       =    -88.5               = 0xc2b10000
+        //          LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
+        //          LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
+
+        constexpr float LN2_RECIP = 1.4426950408889634f;
+        constexpr float A         = 256.0f * LN2_RECIP;
+        constexpr float B_minus_C = 32500.818359375f;
+        constexpr float THRESHOLD = -88.5f;
+
         constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
 
-        constexpr float A_scaled         = 369.329925537109375 * scale_fp32;
-        constexpr float THRESHOLD_scaled = -86.6 / scale_fp32;
-        constexpr float B_MINUS_C        = (32500.818359375 + 12582912 * 2);
+        constexpr float A_scaled         = A * scale_fp32;
+        constexpr float THRESHOLD_scaled = THRESHOLD / scale_fp32;
 
         TTI_SFPLOADI(0, 0xA, lo16(THRESHOLD_scaled));
         TTI_SFPLOADI(0, 0x8, hi16(THRESHOLD_scaled));
-        TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14]         =    -86.6               = 0xC2AD_3333
-
-        TTI_SFPLOADI(0, 0xA, lo16(B_MINUS_C));
-        TTI_SFPLOADI(0, 0x8, hi16(B_MINUS_C));
-        TTI_SFPCONFIG(0, 13, 0); // SFPCONFIG Dest 13 = LREG[13] = (B-C) =  32500.818359375 + 12582912*2    = 0x4BC0_3F7A
+        TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14] =            -88.5               = 0xc2b10000
 
         TTI_SFPLOADI(0, 0xA, lo16(A_scaled));
         TTI_SFPLOADI(0, 0x8, hi16(A_scaled));
-        TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43B8_AA3B
+        TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
 
-        // Backdoor instruction loads into LOADMACRO
+        TTI_SFPLOADI(0, 0xA, lo16(B_minus_C));
+        TTI_SFPLOADI(0, 0x8, hi16(B_minus_C));
+        TTI_SFPCONFIG(0, 13, 0); // SFPCONFIG Dest 13 = LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
 
-        TTI_SFPSWAP(0 /*UNUSED*/, 14 /*lreg_src_c*/, 12 /*lreg_dest BACKDOOR */, 1 /*modifier*/); // Input sanitization -> INSTR REG 4 (slot 0 = simple unit)
-        TTI_SFPMAD(12 /*lreg_src_a*/, 0 /*lreg_src_b*/, 13 /*lreg_src_c*/, 13 /*lreg_dest BACKDOOR */, 0); // A*B + C -> INSTR REG 5 ( slot 1 = MAD unit)
-        TTI_SFPSHFT2(16, 0 /*lreg_src_c UNUSED */, 14 /*lreg_dest BACKDOOR*/, 6);                          // -> INSTR REG 6 ( slot 2 = round unit)
+        // Setup LOADMACRO 1 sequence for input sanitization
 
-        // Load delays
-        TTI_SFPLOADI(0x0, 0xA, 0x9584);
-        TTI_SFPLOADI(0x0, 0x8, 0xEBE6);  // use built-in SFPSTORE in LOADMACRO which is on index 3
-        TTI_SFPCONFIG(0x0000, 0x4, 0x0); // Load it into macro sequence register 0 (destination = 4)
+        // TTI_SFPLOADI(0, 0xA, 0x0CE1);
+        // TTI_SFPLOADI(0, 0x8, 0x9200);
+        // TTI_SFPCONFIG(0, 0, 0); // SFPCONFIG Dest 0 = Programmable Macro instruction 0: TTI_SFPSWAP(0, 12, 14, 1);
+        TTI_SFPSWAP(0, 12, 14, 1);
 
-        TTI_SFPCONFIG(
-            0x0010, 0x8 /*LOADMACRO control*/, 0x1); // Specifies that the store in LOAMACRO “Sequence 0” will inherit the instr_mod0 field from the LOADMACRO
+        TTI_SFPLOADI(0, 0xA, 0x0004); // slot1 : SIMPLE UNIT, want SWAP  instruction which is in macro instruction mux[4], delayed by 0 ; not using staging flop
+                                      // as dest; not using load reg as srcb : 8'b0_______0_______000_____100          = 0x04 slot2 : MAD    UNIT, unused :
+                                      // 8'b0_______0_______000_____000          = 0x00
+        TTI_SFPLOADI(0, 0x8, 0x1300); // slot3 : ROUND  UNIT, unused : 8'b0_______0_______000_____000          = 0x00 slot4 : STORE  UNIT, want STORE
+                                      // instruction which is in macro instruction mux[3], delayed by 2 ; not using staging flop as src ; :
+                                      // 8'b0_______0_______010_____011          = 0x13
+        TTI_SFPCONFIG(0, 5, 0);       // SFPCONFIG Dest 5 = Macro Sequence Register 1
 
-        TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
+        /* Second LOADMACRO setup*/
 
-        // Loading replay buffer
+        TTI_SFPMAD(12, 0, 13, 13, 0);          // MACRO Instruction 1 <--- lreg X = lreg[12] (A) * lreg[0] (y) + lreg[13] (B-C)
+        TTI_SFP_STOCH_RND(0, 0, 0, 0, 14, 14); // Round to unsigned Int16
+        TTI_SFPSHFT(15, 0, 15, 1);
 
-        // Note: TTI_SFPNOPs are inserted because every two calls that use same LREG need to be at least 7 instructions apart
+        TTI_SFPLOADI(
+            0,
+            0xA,
+            0x85DF); // slot1 : SIMPLE UNIT, want SHIFT instruction which is in macro instruction mux[7], delayed by 3 ;     using staging flop as dest; using
+                     // load reg as srcb : 8'b1_______1_______011_____111          = 0xDF slot2 : MAD    UNIT, want MAD   instruction which is in macro
+                     // instruction mux[5], delayed by 0 ; not using staging flop as dest;     using load reg as srcb : 8'b1_______0_______000_____101 = 0x85
+        TTI_SFPLOADI(
+            0,
+            0x8,
+            0x6316); // slot3 : ROUND  UNIT, want ROUND instruction which is in macro instruction mux[6], delayed by 2 ; not using staging flop as dest; using
+                     // : 8'b0_______0_______010_____110          = 0x16 slot4 : STORE  UNIT, want STORE instruction which is in macro instruction mux[3],
+                     // delayed by 4 ;     using staging flop as src ;     using                  : 8'b0_______1_______100_____011          = 0x63
+
+        TTI_SFPCONFIG(0, 4, 0); // Load it into macro sequence register 0 (destination = 4)
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
-        TTI_SFPLOADMACRO(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-        TTI_SFPLOADMACRO(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
+        // Sanitization
 
-        TTI_SFPLOADMACRO(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
-        TTI_SFPLOADMACRO(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
+        // TTI_SFPLOADMACRO(4, 0, 3, 0);
+        // TTI_SFPLOADMACRO(5, 0, 3, 2);
+        // TTI_SFPLOADMACRO(6, 0, 3, 4);
+        // TTI_SFPLOADMACRO(7, 0, 3, 6);
+        // TTI_SFPLOADMACRO(4, 0, 3, 8);
+        // TTI_SFPLOADMACRO(5, 0, 3, 10);
+        // TTI_SFPLOADMACRO(6, 0, 3, 12);
+        // TTI_SFPLOADMACRO(7, 0, 3, 14);
 
-        TTI_SFPLOADMACRO(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
-        TTI_SFPLOADMACRO(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 10);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 12);
-        TTI_SFPLOADMACRO(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 14);
+        // Calculation
+
+        TTI_SFPLOADMACRO(0, 0, 3, 0);
+        TTI_SFPLOADMACRO(1, 0, 3, 2);
+        TTI_SFPLOADMACRO(2, 0, 3, 4);
+        TTI_SFPLOADMACRO(3, 0, 3, 6);
+        TTI_SFPLOADMACRO(0, 0, 3, 8);
+        TTI_SFPLOADMACRO(1, 0, 3, 10);
+        TTI_SFPLOADMACRO(2, 0, 3, 12);
+        TTI_SFPLOADMACRO(3, 0, 3, 14);
 
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
