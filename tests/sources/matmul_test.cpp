@@ -143,7 +143,7 @@ void run_kernel()
 
     set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
-    bool EN_IMPLIED_MATH_FORMAT = (formats.math == DataFormat::Float32 || formats.math == DataFormat::Int32) ? false : true;
+    bool EN_IMPLIED_MATH_FORMAT = true;
     bool IS_FP32_DEST_EN        = (formats.math == DataFormat::Float32) ? true : false;
     bool IS_INT32_DEST_EN       = (formats.math == DataFormat::Int32) ? true : false;
     _llk_math_srcAB_hw_configure_<EN_IMPLIED_MATH_FORMAT, IS_FP32_DEST_EN, IS_INT32_DEST_EN, formats.math, formats.math>(); // params unsure
