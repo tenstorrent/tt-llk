@@ -155,11 +155,12 @@ def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=2):
     return results
 
 
+@dataclass
 class PerfReport:
-    sweep_names: List[str] = []
-    stat_names: List[str] = []
-    sweep_values: List[List] = []
-    stat_values: List[List] = []
+    sweep_names: List[str] = field(default_factory=list)
+    stat_names: List[str] = field(default_factory=list)
+    sweep_values: List[List] = field(default_factory=list)
+    stat_values: List[List] = field(default_factory=list)
 
 
 @pytest.fixture(scope="module")
