@@ -4,7 +4,7 @@
 import csv
 import os
 import shutil
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, field, fields, is_dataclass
 from enum import Enum
 from pathlib import Path
 from statistics import mean, stdev
