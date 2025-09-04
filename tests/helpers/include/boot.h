@@ -4,8 +4,8 @@
 
 #pragma once
 
+#include "build.h"
 #include "ckernel.h"
-#include "ckernel_addrmod.h"
 
 inline void device_setup()
 {
@@ -13,29 +13,27 @@ inline void device_setup()
     ckernel::reg_write(RISCV_DEBUG_REG_DEST_CG_CTRL, 0);
     TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0, 1, 0);
 #else
-    // TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0);
-    ckernel::addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0}}.set(ckernel::ADDR_MOD_0);
-    TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0, ckernel::ADDR_MOD_0, 0);
+    TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0);
 #endif
 
     // Enable CC stack
-    // TTI_SFPENCC(3, 0, 0, 10);
-    // TTI_NOP;
+    TTI_SFPENCC(3, 0, 0, 10);
+    TTI_NOP;
 
     // Set default sfpu constant register state
-    // TTI_SFPCONFIG(0, 11, 1); // loading -1 to LREG11 where sfpi expects it
+    TTI_SFPCONFIG(0, 11, 1); // loading -1 to LREG11 where sfpi expects it
 
     // Initialize tensix semaphores
-    // TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
-    // TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
-    // TTI_SEMINIT(1, 0, ckernel::semaphore::PACK_DONE);
+    TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
+    TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
+    TTI_SEMINIT(1, 0, ckernel::semaphore::PACK_DONE);
 }
 
 inline void clear_trisc_soft_reset()
 {
-    // constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 
-    // uint32_t soft_reset = *reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_SOFT_RESET_0);
-    // soft_reset &= ~TRISC_SOFT_RESET_MASK;
-    *reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_SOFT_RESET_0) = 0;
+    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    soft_reset &= ~TRISC_SOFT_RESET_MASK;
+    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
 }

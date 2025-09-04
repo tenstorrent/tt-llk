@@ -20,11 +20,6 @@ else ifeq ($(ARCH),blackhole)
 	ARCH_CPU        := -mcpu=tt-bh
 	ARCH_DEFINE     := -DARCH_BLACKHOLE
 	ARCH_LLK_ROOT   := tt_llk_blackhole
-else ifeq ($(ARCH),quasar)
-# until there is official support for quasar in SFPI fallback to BH
-	ARCH_CPU        := -mcpu=tt-bh
-	ARCH_DEFINE     := -DARCH_QUASAR
-	ARCH_LLK_ROOT   := tt_llk_quasar
 else
 $(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
 endif
@@ -63,13 +58,6 @@ OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-r
 				   -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses \
 				   -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE \
 				   $(ARCH_DEFINE) -DCOMPILE_FOR_TRISC=
-
-ifeq ($(bootmode),brisc)
-	OPTIONS_COMPILE += -DLLK_BOOT_MODE_BRISC
-else ifeq ($(bootmode),trisc)
-	OPTIONS_COMPILE += -DLLK_BOOT_MODE_TRISC
-endif
-
 OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
@@ -87,15 +75,6 @@ TEST_KERNEL_FLAG := -DTEST_KERNEL
 # =========================
 .PHONY: all dis profiler clean
 
-ifeq ($(ARCH),quasar)
-all: $(ELF_DIR)/unpack.elf \
-	 $(ELF_DIR)/math.elf \
-	 $(ELF_DIR)/pack.elf
-
-dis: $(DIS_DIR)/unpack.S \
-	 $(DIS_DIR)/math.S \
-	 $(DIS_DIR)/pack.S
-else
 all: $(ELF_DIR)/unpack.elf \
 	 $(ELF_DIR)/math.elf \
 	 $(ELF_DIR)/pack.elf \
@@ -105,7 +84,6 @@ dis: $(DIS_DIR)/unpack.S \
 	 $(DIS_DIR)/math.S \
 	 $(DIS_DIR)/pack.S \
 	 $(SHARED_DIS_DIR)/brisc.S
-endif
 
 profiler: $(PROFILER_DIR)/unpack.meta.bin \
 	  $(PROFILER_DIR)/math.meta.bin \

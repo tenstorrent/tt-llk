@@ -4,9 +4,14 @@
 
 #include <cstdint>
 
-#ifdef LLK_BOOT_MODE_BRISC
 #include "boot.h"
-#endif
+#include "ckernel.h"
+#include "ckernel_instr_params.h"
+#include "ckernel_ops.h"
+#include "ckernel_structs.h"
+#include "dev_mem_map.h"
+#include "risc_attribs.h"
+#include "tensix.h"
 
 int main()
 {

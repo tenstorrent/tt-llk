@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <cstdarg> // TODO LP WHY?
+#include <cstdarg>
 #include <type_traits>
 
 // Include auto-generated build configuration
@@ -12,12 +12,12 @@
 #include "ckernel_defs.h"
 #include "ckernel_sfpu.h"
 #include "data_format_inference.h"
-// #include "perf.h"
+#include "perf.h"
 #include "tensix_types.h"
 
-inline uint32_t L1_ADDRESS(uint32_t buffer)
+inline uint32_t L1_ADDRESS(const volatile void* buffer)
 {
-    return (buffer / 16) - 1;
+    return (reinterpret_cast<uint32_t>(buffer) / 16) - 1;
 }
 
 namespace

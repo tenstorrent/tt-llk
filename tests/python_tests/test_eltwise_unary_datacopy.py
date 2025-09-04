@@ -23,14 +23,14 @@ from helpers.utils import passed_test
     test_name="eltwise_unary_datacopy_test",
     formats=input_output_formats(
         [
-            # DataFormat.Float32,
+            DataFormat.Float32,
             DataFormat.Float16,
             DataFormat.Float16_b,
-            # DataFormat.Bfp8_b,
+            DataFormat.Bfp8_b,
         ]
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
-    num_faces=[4],
+    num_faces=[1, 2, 4],
     dest_sync=[DestSync.Half, DestSync.Full],
 )
 def test_unary_datacopy(test_name, formats, dest_acc, num_faces, dest_sync):

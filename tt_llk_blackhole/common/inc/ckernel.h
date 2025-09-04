@@ -7,6 +7,7 @@
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
 #include "llk_defs.h"
+#include "risc_attribs.h"
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
@@ -40,8 +41,6 @@
 #endif
 
 #define TT_ALWAYS_INLINE inline __attribute__((always_inline))
-#define tt_l1_ptr        __attribute__((rvtt_l1_ptr))
-#define tt_reg_ptr       __attribute__((rvtt_reg_ptr))
 
 #include <cstdint>
 

@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include <cstddef> // TODO LP WHY?
+#include <cstddef>
 #include <cstdint>
-#include <type_traits> // TODO LP WHY?
+#include <type_traits>
 
 #include "ckernel.h"
-#include "ckernel_instr_params.h" // TODO LP WHY?
-#include "ckernel_ops.h"          // TODO LP WHY?
+#include "ckernel_instr_params.h"
+#include "ckernel_ops.h"
 
 enum class PerfRunType
 {

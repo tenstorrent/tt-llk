@@ -67,9 +67,9 @@ class BootMode(Enum):
 
 class RiscCore(IntEnum):
     BRISC = 11
-    TRISC0 = 11
-    TRISC1 = 12
-    TRISC2 = 13
+    TRISC0 = 12
+    TRISC1 = 13
+    TRISC2 = 14
 
 
 def collect_results(
@@ -100,8 +100,8 @@ def perform_tensix_soft_reset(location="0,0"):
     context = check_context()
     device = context.devices[0]
     chip_coordinate = OnChipCoordinate.create(location, device=device)
-    noc_block = device.get_block(chip_coordinate).neo0
-    register_store = noc_block.register_store
+    noc_block = device.get_block(chip_coordinate)
+    register_store = noc_block.get_register_store()
 
     # Read current soft reset register, set TRISC reset bits, and write back
     soft_reset = register_store.read_register("RISCV_DEBUG_REG_SOFT_RESET_0")
@@ -113,8 +113,8 @@ def run_cores(cores: list[RiscCore], device_id=0, location="0,0"):
     context = check_context()
     device = context.devices[device_id]
     chip_coordinate = OnChipCoordinate.create(location, device=device)
-    noc_block = device.get_block(chip_coordinate).neo0
-    register_store = noc_block.register_store
+    noc_block = device.get_block(chip_coordinate)
+    register_store = noc_block.get_register_store()
 
     core_mask = 0
     for core in cores:
@@ -133,7 +133,7 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     ops = debug_tensix.device.instructions
 
     if chip_arch == ChipArchitecture.BLACKHOLE:
-        register_store = device.get_block(chip_coordinate).neo0.register_store
+        register_store = device.get_block(chip_coordinate).get_register_store()
         register_store.write_register("RISCV_DEBUG_REG_DEST_CG_CTRL", 0)
         debug_tensix.inject_instruction(ops.TT_OP_ZEROACC(3, 0, 0, 1, 0), 0)
     else:
@@ -153,8 +153,6 @@ def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRIS
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
-    test_target = TestTargetConfig()
-    emulator = test_target.run_emulator
 
     # Perform soft reset
     perform_tensix_soft_reset(location)
@@ -167,8 +165,6 @@ def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRIS
             elf_file=str(elf_path.absolute()),
             location=location,
             risc_name=f"trisc{i}",
-            neo_id=0,
-            emulator=emulator,
         )
 
     # Reset the profiler barrier
@@ -182,7 +178,6 @@ def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRIS
                 elf_file=str(brisc_elf_path.absolute()),
                 location=location,
                 risc_name="brisc",
-                emulator=emulator,
             )
             run_cores([RiscCore.BRISC], device_id, location)
         case BootMode.TRISC:
@@ -405,7 +400,7 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
         max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
     """
     test_target = TestTargetConfig()
-    timeout = 600 if test_target.run_simulator or test_target.run_emulator else timeout
+    timeout = 600 if test_target.run_simulator else timeout
 
     start_time = time.time()
     backoff = 0.1  # Initial backoff time in seconds
@@ -414,10 +409,10 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
         if read_word_from_device(location, mailbox_addr.value) == KERNEL_COMPLETE:
             return
 
+        time.sleep(backoff)
         # Disable exponential backoff if running on simulator
         # The simulator sits idle due to no polling - If it is idle for too long, it gets stuck
-        if not test_target.run_simulator and not test_target.run_emulator:
-            time.sleep(backoff)
+        if not test_target.run_simulator:
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
     raise TimeoutError(

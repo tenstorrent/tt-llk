@@ -42,18 +42,6 @@ def check_hardware_headers():
         "tensix_dev_map.h",
         "tensix_types.h",
     ]
-    required_headers_quasar = [
-        "cfg_defines.h",
-        "t6_debug_map.h",
-        "t6_mop_config_map.h",
-        "tensix_types.h",
-        "tensix.h",
-        "tt_t6_trisc_map.h",
-    ]
-
-    # Quasar has a somewhat different set of headers
-    if chip_arch == ChipArchitecture.QUASAR:
-        required_headers = required_headers_quasar
 
     # Check if header directory exists
     if not header_dir.exists():
@@ -105,7 +93,7 @@ def pytest_configure(config):
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
 
-    if test_target.run_simulator or test_target.run_emulator:
+    if test_target.run_simulator:
         tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
     else:
         tt_exalens_init.init_ttexalens()
@@ -166,7 +154,7 @@ def pytest_sessionstart(session):
     check_hardware_headers()
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator and not test_target.run_emulator:
+    if not test_target.run_simulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_target.device_id)
 
@@ -181,7 +169,7 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator and not test_target.run_emulator:
+    if not test_target.run_simulator:
         # Send ARC message for GO IDLE signal. This should decrease device clock speed.
         _send_arc_message("GO_IDLE", test_target.device_id)
 
@@ -207,9 +195,6 @@ def pytest_addoption(parser):
         "--run_simulator", action="store_true", help="Run tests using the simulator."
     )
     parser.addoption(
-        "--run_emulator", action="store_true", help="Run tests using the emulator."
-    )
-    parser.addoption(
         "--port",
         action="store",
         type=int,
@@ -231,9 +216,4 @@ skip_for_wormhole = pytest.mark.skipif(
 skip_for_blackhole = pytest.mark.skipif(
     get_chip_architecture() == ChipArchitecture.BLACKHOLE,
     reason="Test is not supported on Blackhole architecture",
-)
-
-skip_for_quasar = pytest.mark.skipif(
-    get_chip_architecture() == ChipArchitecture.QUASAR,
-    reason="Test is not supported on Quasar architecture",
 )

@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <cstddef> // TODO LP WHY?
+#include <cstddef>
 #include <cstdint>
-#include <cstring> // TODO LP WHY?
+#include <cstring>
 
 #include "build.h"
 #include "ckernel.h"
