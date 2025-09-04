@@ -11,7 +11,7 @@
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
-constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 10;
+constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 17;
 
 namespace ckernel::sfpu
 {
@@ -165,9 +165,6 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
         lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
-        lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
-        lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
-        lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT - 2);
     }
     else
     {
@@ -229,13 +226,62 @@ inline void _init_exponential_()
         TTI_SFPLOADI(0, 0x8, hi16(B_minus_C));
         TTI_SFPCONFIG(0, 13, 0); // SFPCONFIG Dest 13 = LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
 
-        // Setup LOADMACRO 1 sequence for input sanitization
+        // Next, set up the macro instructions which will be necessary
+        //  - for the sanitize function: we will need a SWAP instruction
+        //  - for the main computation function: we will need MAD, ROUND, and SHIFT instructions
 
-        // TTI_SFPLOADI(0, 0xA, 0x0CE1);
-        // TTI_SFPLOADI(0, 0x8, 0x9200);
-        // TTI_SFPCONFIG(0, 0, 0); // SFPCONFIG Dest 0 = Programmable Macro instruction 0: TTI_SFPSWAP(0, 12, 14, 1);
-        TTI_SFPSWAP(0, 12, 14, 1);
+        // There are two ways to program the macro instruction registers, and this setup leverages both ways
+        //  - we can either use the SFPCONFIG flow, by setting up the bits of the instruction into LREG[0] and then targeting the Macro instruction register
+        //  - or we can use the shortcut / backdoor load method which relies on having some illegal destination register values as part of the instruction
 
+        // Use SFPCONFIG method for the SWAP instruction, since we want the SWAP itself to use a destination register which is not normally a legal value
+        //      (we are cheating a bit here, since we only care about one half of the swap and we want to use a constant for the other half)
+        //
+        //              imm12 = 0,       lreg_src_c = 0 (will be fed by value loaded from Dest into Loadmacro lreg_dest),  lreg_dest = LREG[14] = - 88.5,
+        //              instr_mod1 = 1 swap the values with the larger of the two ending up in lreg_dest -> but we will use the Loadmacro lreg_dest register as
+        //              output
+        // TTI_SFP_SWAP(0,               0,                                                                                14,                            1);
+        TTI_SFPLOADI(0, 0xA, 0x00E1);
+        TTI_SFPLOADI(0, 0x8, 0x9200);
+        TTI_SFPCONFIG(0, 0, 0); // SFPCONFIG Dest 0 = Programmable Macro instruction 0: TTI_SFPSWAP(0, 0, 14, 1); // compare against LREG[14] (-88.5), and put
+                                // the larger value into LREG[loadmacro_lreg_dest]
+        TTI_SFPNOP;
+
+        // Backdoor load of Macro Instruction 1
+        // Dummy version of MAD instruction with lreg_dest = 4'b11_01 = 13 to install into Programmable Macro instruction register 1, which is Macro Instruction
+        // Register 5
+        TTI_SFPMAD(12, 0, 13, 13, 0); // MACRO Instruction 1 <--- lreg X = lreg[12] (A) * lreg[0] (y) + lreg[13] (B-C)
+
+        // Backdoor load of Macro Instruction 2
+        // ROUND instruction to convert FP32 result into an integer value (int16)
+        //                Stochastic = 0,  Imm(Descale),  SrcB(unused),   SrcC(input value),  Lreg_dest = 14 to install in Programmable Macro Instruction reg
+        //                2'b10,  instr_mod1 = 14 to treat input as fp32, output as unsigned int16, use imm as descale
+        TTI_SFP_STOCH_RND(0, 0, 0, 0, 14, 14); // Round to unsigned Int16
+
+        // Backdoor load of Macro Instruction 3
+        // If using the unsigned int rounding mode, then shift by 15; SHL to move integer bits to exponent;
+        TTI_SFPSHFT(15, 0, 15, 1); // imm = 15 to shift left by 15 bits; lreg_c = 0 (will use macro reg); lreg_dest = 15 to install in Programmable Macro
+                                   // Instruction reg 2'b11, which is Macro Instruction Register 7
+
+        // So at this point, we have the following instructions loaded into our macro registers:
+        //
+        // 00: (no macro instruction, just execute whatever is issued from Tensix) <-- these are fixed / not programmable
+        // 01: ( Rsvd                                                            ) <-- these are fixed / not programmable
+        // 02: ( NOP                                                             ) <-- these are fixed / not programmable
+        // 03: ( SFPSTORE                                                        ) <-- these are fixed / not programmable
+        // 04: TTI_SFPSWAP       (0, 0, 11, 1)
+        // 05: TTI_SFPMAD        (12, 0, 13, 13, 0)
+        // 06: TTI_SFP_STOCH_RND (1, 0, 0, 0, 14, 14)
+        // 07: TTI_SFPSHFT       (15,0,15,1)
+
+        // Now we want to set up our two sequences
+
+        // Sequence 1 setup: we want to Load, SWAP, <delay>, Store
+        //       Delay slot:                  0     1        2
+        //                                                                                                                                                                                                 Use
+        //                                                                                                                                                                                                 Loaded  Result          Macro
+        //                                                                                                                                                                                                 Value   Value   Delay   Instruction
+        //                                                                                                                                                                                                 SRCB    Stage   Slot    Select
         TTI_SFPLOADI(0, 0xA, 0x0004); // slot1 : SIMPLE UNIT, want SWAP  instruction which is in macro instruction mux[4], delayed by 0 ; not using staging flop
                                       // as dest; not using load reg as srcb : 8'b0_______0_______000_____100          = 0x04 slot2 : MAD    UNIT, unused :
                                       // 8'b0_______0_______000_____000          = 0x00
@@ -244,12 +290,12 @@ inline void _init_exponential_()
                                       // 8'b0_______0_______010_____011          = 0x13
         TTI_SFPCONFIG(0, 5, 0);       // SFPCONFIG Dest 5 = Macro Sequence Register 1
 
-        /* Second LOADMACRO setup*/
-
-        TTI_SFPMAD(12, 0, 13, 13, 0);          // MACRO Instruction 1 <--- lreg X = lreg[12] (A) * lreg[0] (y) + lreg[13] (B-C)
-        TTI_SFP_STOCH_RND(0, 0, 0, 0, 14, 14); // Round to unsigned Int16
-        TTI_SFPSHFT(15, 0, 15, 1);
-
+        // Sequence 0 setup: we want to Load, MAD, <delay>, ROUND, SHIFT, Store
+        //       Delay slot:                  0    1        2      3      4
+        //                                                                                                                                                                                                 Use
+        //                                                                                                                                                                                                 Loaded  Result          Macro
+        //                                                                                                                                                                                                 Value   Value   Delay   Instruction
+        //                                                                                                                                                                                                 SRCB    Stage   Slot    Select
         TTI_SFPLOADI(
             0,
             0xA,
@@ -262,23 +308,21 @@ inline void _init_exponential_()
             0x6316); // slot3 : ROUND  UNIT, want ROUND instruction which is in macro instruction mux[6], delayed by 2 ; not using staging flop as dest; using
                      // : 8'b0_______0_______010_____110          = 0x16 slot4 : STORE  UNIT, want STORE instruction which is in macro instruction mux[3],
                      // delayed by 4 ;     using staging flop as src ;     using                  : 8'b0_______1_______100_____011          = 0x63
-
         TTI_SFPCONFIG(0, 4, 0); // Load it into macro sequence register 0 (destination = 4)
+
+        // Reset LoadMacroConfig[Lane].Misc for all lanes, in case it has been previously set by another use of macros.
+        TTI_SFPCONFIG(0, 8, 1);
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
-        // Sanitization
-
-        // TTI_SFPLOADMACRO(4, 0, 3, 0);
-        // TTI_SFPLOADMACRO(5, 0, 3, 2);
-        // TTI_SFPLOADMACRO(6, 0, 3, 4);
-        // TTI_SFPLOADMACRO(7, 0, 3, 6);
-        // TTI_SFPLOADMACRO(4, 0, 3, 8);
-        // TTI_SFPLOADMACRO(5, 0, 3, 10);
-        // TTI_SFPLOADMACRO(6, 0, 3, 12);
-        // TTI_SFPLOADMACRO(7, 0, 3, 14);
-
-        // Calculation
+        TTI_SFPLOADMACRO(4, 0, 3, 0);
+        TTI_SFPLOADMACRO(5, 0, 3, 2);
+        TTI_SFPLOADMACRO(6, 0, 3, 4);
+        TTI_SFPLOADMACRO(7, 0, 3, 6);
+        TTI_SFPLOADMACRO(4, 0, 3, 8);
+        TTI_SFPLOADMACRO(5, 0, 3, 10);
+        TTI_SFPLOADMACRO(6, 0, 3, 12);
+        TTI_SFPLOADMACRO(7, 0, 3, 14);
 
         TTI_SFPLOADMACRO(0, 0, 3, 0);
         TTI_SFPLOADMACRO(1, 0, 3, 2);
@@ -288,9 +332,7 @@ inline void _init_exponential_()
         TTI_SFPLOADMACRO(1, 0, 3, 10);
         TTI_SFPLOADMACRO(2, 0, 3, 12);
         TTI_SFPLOADMACRO(3, 0, 3, 14);
-
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        TTI_SFPNOP;
     }
     else if constexpr (APPROXIMATION_MODE)
     {
