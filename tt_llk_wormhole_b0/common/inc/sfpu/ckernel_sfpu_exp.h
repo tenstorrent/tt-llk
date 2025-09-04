@@ -245,7 +245,6 @@ inline void _init_exponential_()
         TTI_SFPLOADI(0, 0x8, 0x9200);
         TTI_SFPCONFIG(0, 0, 0); // SFPCONFIG Dest 0 = Programmable Macro instruction 0: TTI_SFPSWAP(0, 0, 14, 1); // compare against LREG[14] (-88.5), and put
                                 // the larger value into LREG[loadmacro_lreg_dest]
-        TTI_SFPNOP;
 
         // Backdoor load of Macro Instruction 1
         // Dummy version of MAD instruction with lreg_dest = 4'b11_01 = 13 to install into Programmable Macro instruction register 1, which is Macro Instruction
@@ -315,23 +314,23 @@ inline void _init_exponential_()
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
-        TTI_SFPLOADMACRO(4, 0, 3, 0);
-        TTI_SFPLOADMACRO(5, 0, 3, 2);
-        TTI_SFPLOADMACRO(6, 0, 3, 4);
-        TTI_SFPLOADMACRO(7, 0, 3, 6);
-        TTI_SFPLOADMACRO(4, 0, 3, 8);
-        TTI_SFPLOADMACRO(5, 0, 3, 10);
-        TTI_SFPLOADMACRO(6, 0, 3, 12);
-        TTI_SFPLOADMACRO(7, 0, 3, 14);
+        TTI_SFPLOADMACRO(4, InstrModLoadStore::FP32, 3, 0);
+        TTI_SFPLOADMACRO(5, InstrModLoadStore::FP32, 3, 2);
+        TTI_SFPLOADMACRO(6, InstrModLoadStore::FP32, 3, 4);
+        TTI_SFPLOADMACRO(7, InstrModLoadStore::FP32, 3, 6);
+        TTI_SFPLOADMACRO(4, InstrModLoadStore::FP32, 3, 8);
+        TTI_SFPLOADMACRO(5, InstrModLoadStore::FP32, 3, 10);
+        TTI_SFPLOADMACRO(6, InstrModLoadStore::FP32, 3, 12);
+        TTI_SFPLOADMACRO(7, InstrModLoadStore::FP32, 3, 14);
 
-        TTI_SFPLOADMACRO(0, 0, 3, 0);
-        TTI_SFPLOADMACRO(1, 0, 3, 2);
-        TTI_SFPLOADMACRO(2, 0, 3, 4);
-        TTI_SFPLOADMACRO(3, 0, 3, 6);
-        TTI_SFPLOADMACRO(0, 0, 3, 8);
-        TTI_SFPLOADMACRO(1, 0, 3, 10);
-        TTI_SFPLOADMACRO(2, 0, 3, 12);
-        TTI_SFPLOADMACRO(3, 0, 3, 14);
+        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP32, 3, 0);
+        TTI_SFPLOADMACRO(1, InstrModLoadStore::FP32, 3, 2);
+        TTI_SFPLOADMACRO(2, InstrModLoadStore::FP32, 3, 4);
+        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP32, 3, 6);
+        TTI_SFPLOADMACRO(0, InstrModLoadStore::FP32, 3, 8);
+        TTI_SFPLOADMACRO(1, InstrModLoadStore::FP32, 3, 10);
+        TTI_SFPLOADMACRO(2, InstrModLoadStore::FP32, 3, 12);
+        TTI_SFPLOADMACRO(3, InstrModLoadStore::FP32, 3, 14);
         TTI_SFPNOP;
     }
     else if constexpr (APPROXIMATION_MODE)
