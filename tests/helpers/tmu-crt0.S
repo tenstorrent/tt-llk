@@ -111,7 +111,7 @@ address_fix:
   # Copy memory from .loader_init to .ldm_data
 5:la      t0, __loader_init_start      # Load the address of __loader_init_start into t0
   la      t1, __loader_init_end        # Load the address of __loader_init_end into t1
-  beq     t0, t1, 7f                   # If t0 == t1, skip; nothing should be loaded into L0
+  beq     t0, t1, 7f                   # If t0 == t1, skip; nothing should be loaded into local memory
   la      t1, __ldm_data_end           # Load the address of __ldm_data_end into t1
   la      t2, __ldm_data_start         # Load the address of __ldm_data_start into t2
 6:beq     t2, t1, 7f                   # If t2 == t1, break out of loop
