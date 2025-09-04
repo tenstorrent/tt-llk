@@ -16,8 +16,8 @@
 // #include "tt_t6_global_reg_map.h" // non existent in HW repo
 // #include "tt_t6_global_map.h"
 #include "t6_debug_map.h"
+#include "t6_mop_config_map.h"
 #include "tt_t6_trisc_map.h"
-// #include <t6_mop_config_map.h>
 // #include <edc_map.h>
 
 #define MAX_THREADS 4 // max number of threads supported by single core. @THREAD_COUNT sensitive
@@ -75,7 +75,7 @@
 
 // MOP config registers
 #define TENSIX_MOP_CFG_BASE MOP_CFG_BASE
-// #define MOP_CFG_REGS  ((volatile mop_config_regs_t*)(MOP_CFG_BASE))
+#define MOP_CFG_REGS        ((volatile mop_config_regs_t *)(MOP_CFG_BASE))
 
 // These addresses are defined by software convention
 #define L1_KERNEL_BASE 0x1F000                       // This is a 128-bit address

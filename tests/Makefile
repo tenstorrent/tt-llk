@@ -63,6 +63,13 @@ OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-r
 				   -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses \
 				   -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE \
 				   $(ARCH_DEFINE) -DCOMPILE_FOR_TRISC=
+
+ifeq ($(bootmode),brisc)
+	OPTIONS_COMPILE += -DLLK_BOOT_MODE_BRISC
+else ifeq ($(bootmode),trisc)
+	OPTIONS_COMPILE += -DLLK_BOOT_MODE_TRISC
+endif
+
 OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \

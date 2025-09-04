@@ -52,12 +52,12 @@ struct FormatConfig
 constexpr bool is_exponentB(DataFormat format)
 {
     // Return true if format has an exponentB representation i.e 8-bit exponent
-    return (format == DataFormat::Float16_b || format == DataFormat::Bfp8_b || format == DataFormat::Tf32);
+    return (format == DataFormat::Float16_b || format == DataFormat::Tf32);
 }
 
 constexpr bool is_32bit_format(DataFormat format)
 {
-    return format == DataFormat::Int32 || format == DataFormat::UInt32 || format == DataFormat::Float32;
+    return format == DataFormat::Int32 || format == DataFormat::Float32;
 }
 
 /**
@@ -165,14 +165,6 @@ constexpr DataFormat infer_pack_in()
             // because the packer cannot convert Float32 directly to output formats with less than 8-bit exponent (e.g., 5-bit exponent formats).
             return unpack_out;
         }
-    }
-    else if constexpr (INPUT == DataFormat::Float16 && OUTPUT == DataFormat::Bfp8_b && !FP32_ACC)
-    {
-        // When storing Float16 input in destination registers without FP32 accumulation,
-        // the packer cannot convert Float16_A directly to Block Float format (in this case Bfp8_B).
-        // The gasket will convert Float16_A to Bfp8_A before passing it to the packer,
-        // which then converts Bfp8_A to Bfp8_B.
-        return DataFormat::Bfp8;
     }
     else if constexpr (is_format_combination_outlier(INPUT, OUTPUT, FP32_ACC))
     {
