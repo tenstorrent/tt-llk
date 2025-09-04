@@ -17,6 +17,11 @@ from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 
+# import plugins (for fixtures)
+pytest_plugins = [
+    "helpers.perf",
+]
+
 
 def init_llk_home():
     if "LLK_HOME" in os.environ:

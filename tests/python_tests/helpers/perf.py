@@ -11,6 +11,7 @@ from statistics import mean, stdev
 from typing import List
 
 import plotly.graph_objects as go
+import pytest
 
 from helpers.device import (
     reset_mailboxes,
@@ -118,7 +119,7 @@ class PerfRunType(Enum):
 ALL_RUN_TYPES = [type for type in PerfRunType]
 
 
-def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
+def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=2):
 
     RUN_CONFIGURATIONS = {
         PerfRunType.L1_TO_L1: timing_l1_to_l1,
@@ -159,6 +160,22 @@ class PerfReport:
     stat_names: List[str] = []
     sweep_values: List[List] = []
     stat_values: List[List] = []
+
+
+@pytest.fixture(scope="module")
+def perf_report(request):
+    report = PerfReport()
+
+    test_module = Path(request.node.name).stem
+
+    delete_benchmark_dir(test_module)
+    try:
+        yield report
+    except Exception as e:
+        print("Perf: Unexpected error, Saving report anyway", e)
+
+    dump_report(test_module, report)
+    dump_scatter(test_module, report)
 
 
 def _dataclass_names(parent, obj):
