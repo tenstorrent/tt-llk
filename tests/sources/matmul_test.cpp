@@ -14,6 +14,10 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
+#ifdef ARCH_QUASAR
+constexpr static uint32_t BD_NUM_WORDS = 3;
+#endif
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB_matmul.h"
@@ -52,22 +56,24 @@ void run_kernel()
 
 #ifdef ARCH_QUASAR
 
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
     const uint BUF_DESC_ID_0 = 0;
     const uint BUF_DESC_ID_1 = 1;
 
     // Set up the descriptor
     // Start with a buffer descriptor with all zeroes
     buffer_descriptor_u bd_val_srca;
-    for (uint i = 0; i < BD_NUM_WORDS /* or 4? */; i++)
+    for (uint i = 0; i < BD_NUM_WORDS; i++)
     {
         bd_val_srca.words[i] = 0;
     }
     // Now just plug everything in
     bd_val_srca.f.l1_addr_16B = L1_ADDRESS(buffer_A[0]);                  //
     bd_val_srca.f.format      = static_cast<uint8_t>(formats.unpack_src); //
-    bd_val_srca.f.x_dim       = 16;                                       // FACE_C_DIM
-    bd_val_srca.f.y_dim       = 16;                                       // FACE_R_DIM
-    bd_val_srca.f.z_dim       = 4;                                        // NUM_OF_FACES
+    bd_val_srca.f.x_dim       = 16;                                       // FACE_C_DIM?
+    bd_val_srca.f.y_dim       = 16;                                       // FACE_R_DIM?
+    bd_val_srca.f.z_dim       = 4;                                        // NUM_OF_FACES?
 
     td_val_srca.buf_desc        = bd_val_srca;
     td_val_srca.buf_desc_id     = BUF_DESC_ID_0;                            //
@@ -76,7 +82,7 @@ void run_kernel()
     // Set up the descriptor
     // Start with a buffer descriptor with all zeroes
     buffer_descriptor_u bd_val_srcb;
-    for (uint i = 0; i < BD_NUM_WORDS /* or 4? */; i++)
+    for (uint i = 0; i < BD_NUM_WORDS; i++)
     {
         bd_val_srcb.words[i] = 0;
     }
@@ -99,7 +105,7 @@ void run_kernel()
     _llk_unpack_matmul_init_<>(BUF_DESC_ID_0, BUF_DESC_ID_1, false /*transpose*/, ct_dim, rt_dim, kt_dim);
     for (uint32_t j = 0; j < kt_dim; j++)
     {
-        _llk_unpack_matmul_<BUF_DESC_ID_0, BUF_DESC_ID_1, ct_dim, rt_dim, kt_dim>();
+        _llk_unpack_matmul_<BUF_DESC_ID_0, BUF_DESC_ID_1, ct_dim, rt_dim, kt_dim>(j, j * ct_dim);
     }
 
 #endif
@@ -135,16 +141,18 @@ void run_kernel()
 
 #ifdef ARCH_QUASAR
 
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+    bool EN_IMPLIED_MATH_FORMAT = (formats.math == DataFormat::Float32 || formats.math == DataFormat::Int32) ? false : true;
+    bool IS_FP32_DEST_EN        = (formats.math == DataFormat::Float32) ? true : false;
+    bool IS_INT32_DEST_EN       = (formats.math == DataFormat::Int32) ? true : false;
+    _llk_math_srcAB_hw_configure_<EN_IMPLIED_MATH_FORMAT, IS_FP32_DEST_EN, IS_INT32_DEST_EN, formats.math, formats.math>(); // params unsure
     _llk_math_matmul_init_<MATH_FIDELITY, ct_dim, rt_dim, false /*EN_DI*/, false /*EN_X2*/>();
-    _llk_math_pack_sync_init_<DstSync::SyncHalf>(); // params OK
-    //_llk_math_hw_configure_ does not exist for QSR
-    _llk_math_wait_for_dest_available_(); // params OK
     for (uint32_t j = 0; j < kt_dim; j++)
     {
-        _llk_math_matmul_block_<MATH_FIDELITY, ct_dim, rt_dim>(); // do we iterate like this? Is there a need to iterate through init? //Is it not going to
-                                                                  // overwrite itself
+        _llk_math_matmul_block_<ct_dim, rt_dim>();
     }
-    _llk_math_dest_section_done_<DstSync::SyncHalf>(); // params OK
+    _llk_math_set_dvalid_<p_cleardvalid::FPU>();
 
 #endif
 }
@@ -181,14 +189,39 @@ void run_kernel()
 
 #ifdef ARCH_QUASAR
 
-    _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc /*???*/);
-    _llk_pack_init_<p_pacr::PACK0, BUF_DESC /* which one? */>(4 /*num_tiles*/);
-    _llk_packer_wait_for_math_done_();
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+    const uint BUF_DESC = 8;
+
+    // Set up the descriptor
+    // Start with a buffer descriptor with all zeroes
+    buffer_descriptor_u bd_val;
+    for (uint i = 0; i < BD_NUM_WORDS; i++)
+    {
+        bd_val.words[i] = 0;
+    }
+    tdma_descriptor_t tdma_desc;
+    // Now just plug everything in
+    bd_val.f.l1_addr_16B = L1_ADDRESS(buffer_Res[0]);
+    bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
+    bd_val.f.x_dim       = 16;
+    bd_val.f.y_dim       = 16;
+    bd_val.f.z_dim       = 4;
+
+    tdma_desc.buf_desc        = bd_val;
+    tdma_desc.buf_desc_id     = BUF_DESC;
+    tdma_desc.reg_data_format = static_cast<uint8_t>(formats.pack_src);
+
+    // constexpr ckernel::DstSync DST_MODE = ckernel::DstSync::SyncHalf;
+    // constexpr bool IS_DEST_FPU_EN = (formats.pack_src == DataFormat::Float32);
+
+    _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
+    _llk_pack_init_<p_pacr::PACK0, BUF_DESC>(1 /*num_tiles_per_pack*/);
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_pack_<p_pacr::PACK0>(i, L1_ADDRESS(buffer_Res[i])); // are these indexes okay
+        _llk_pack_<p_pacr::PACK0>(i, i); // are these indexes okay
     }
-    _llk_pack_dest_dvalid_section_done_<DST_MODE, IS_DEST_FPU_EN>(); /// maybe
+    _llk_pack_dest_dvalid_section_done_<ckernel::DstSync::SyncHalf, is_fp32_dest_acc_en>(); // I think LLK matmul.py test does not generate dest_sync
 
 #endif
 }
