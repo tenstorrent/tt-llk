@@ -100,9 +100,16 @@ void run_kernel()
 
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
+#ifdef ARCH_BLACKHOLE
+            // Due to the blackhole tilize bug mitigation
+            // DVALID is set for each tile, instead of each face.
+            constexpr uint32_t NUM_DVALIDS = TILE_CNT;
+#else
+            constexpr uint32_t NUM_DVALIDS = TILE_CNT * TILE_NUM_FACES;
+#endif
             if constexpr (!unpack_to_dest)
             {
-                _perf_math_loop_clear_valid<true, true>(LOOP_FACTOR * TILE_CNT * TILE_NUM_FACES);
+                _perf_math_loop_clear_valid<true, true>(LOOP_FACTOR * NUM_DVALIDS);
                 return;
             }
 
