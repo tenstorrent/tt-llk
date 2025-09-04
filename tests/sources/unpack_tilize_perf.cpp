@@ -103,7 +103,6 @@ void run_kernel()
             if constexpr (!unpack_to_dest)
             {
                 _perf_math_loop_clear_valid<true, true>(LOOP_FACTOR * TILE_CNT * TILE_NUM_FACES);
-                PROFILER_SYNC();
                 return;
             }
 
@@ -115,7 +114,6 @@ void run_kernel()
                         i, formats.math, formats.math);
                 }
             }
-            PROFILER_SYNC();
             return;
         }
 
@@ -163,7 +161,6 @@ void run_kernel()
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
-            PROFILER_SYNC();
             return;
         }
 
