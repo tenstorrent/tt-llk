@@ -153,6 +153,8 @@ def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRIS
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    test_target = TestTargetConfig()
+    emulator = test_target.run_emulator
 
     # Perform soft reset
     perform_tensix_soft_reset(location)
@@ -166,6 +168,7 @@ def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRIS
             location=location,
             risc_name=f"trisc{i}",
             neo_id=0,
+            emulator=emulator,
         )
 
     # Reset the profiler barrier
@@ -179,6 +182,7 @@ def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRIS
                 elf_file=str(brisc_elf_path.absolute()),
                 location=location,
                 risc_name="brisc",
+                emulator=emulator,
             )
             run_cores([RiscCore.BRISC], device_id, location)
         case BootMode.TRISC:
@@ -401,7 +405,7 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
         max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
     """
     test_target = TestTargetConfig()
-    timeout = 600 if test_target.run_simulator else timeout
+    timeout = 600 if test_target.run_simulator or test_target.run_emulator else timeout
 
     start_time = time.time()
     backoff = 0.1  # Initial backoff time in seconds
@@ -412,7 +416,7 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
 
         # Disable exponential backoff if running on simulator
         # The simulator sits idle due to no polling - If it is idle for too long, it gets stuck
-        if not test_target.run_simulator:
+        if not test_target.run_simulator and not test_target.run_emulator:
             time.sleep(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
