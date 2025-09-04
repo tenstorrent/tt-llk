@@ -53,7 +53,6 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
 def generate_build_header(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
 ):
     """
     Generate the contents of a C++ header file (build.h) with all configuration defines.
@@ -72,7 +71,6 @@ def generate_build_header(
     Args:
         test_config (dict): Dictionary containing test configuration parameters.
         profiler_build (ProfilerBuild, optional): Whether to enable profiler defines.
-        boot_mode (BootMode, optional): Which core / host performs initial device setup.
 
     Returns:
         str: The complete contents of the build.h header file as a string.
@@ -103,11 +101,6 @@ def generate_build_header(
     # Profiler configuration
     if profiler_build == ProfilerBuild.Yes:
         header_content.append("#define LLK_PROFILER")
-
-    if boot_mode == BootMode.BRISC:
-        header_content.append("#define LLK_BOOT_MODE_BRISC")
-    elif boot_mode == BootMode.TRISC:
-        header_content.append("#define LLK_BOOT_MODE_TRISC")
 
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
@@ -313,11 +306,8 @@ def generate_build_header(
 def write_build_header(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
 ):
-    header_content = generate_build_header(
-        test_config, profiler_build, boot_mode=boot_mode
-    )
+    header_content = generate_build_header(test_config, profiler_build)
     with open("../helpers/include/build.h", "w") as f:
         f.write(header_content)
 
@@ -325,10 +315,11 @@ def write_build_header(
 def generate_make_command(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
     """Generate make command"""
     # Simplified make command - only basic build parameters
-    make_cmd = f"make dis -j 6 --silent testname={test_config.get('testname')} all "
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} dis "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -349,8 +340,10 @@ def build_test(
 
     TESTS_DIR = str((Path(root) / "tests").absolute())
 
-    write_build_header(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
-    make_cmd = generate_make_command(test_config, profiler_build=profiler_build)
+    write_build_header(test_config, profiler_build=profiler_build)
+    make_cmd = generate_make_command(
+        test_config, profiler_build=profiler_build, boot_mode=boot_mode
+    )
     run_shell_command(make_cmd, cwd=TESTS_DIR)
 
 

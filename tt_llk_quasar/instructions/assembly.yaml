@@ -1586,7 +1586,7 @@ CLEARDVALID:
             field has four bits, one per client (bit 0 = unpack-to-dest, bit 1 = math, bit 2 = sfpu, bit 3 = packer).
             Issue a CLEARDVALID instruction with some subset of these bits set to 1 to trigger the dvalid updates
             that would normally happen if an instruction of the corresponding type had set its `last` (or `done`)
-            bit. For more details, see https://tenstorrent.atlassian.net/wiki/spaces/TA/pages/113017320/RTL-INSTISSUE-45+Dest+data+valid+scheme
+            bit.
           fcov_point_bins:
             bins: [ {name: "unpack_to_dest",  value: "0x0"},
                     {name: "math",            value: "0x1"},

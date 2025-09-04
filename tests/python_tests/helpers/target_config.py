@@ -14,12 +14,18 @@ class TestTargetConfig:
         return cls._instance
 
     def __init__(
-        self, run_simulator=False, simulator_port=5555, device_id=0, log_level="INFO"
+        self,
+        run_simulator=False,
+        run_emulator=False,
+        simulator_port=5555,
+        device_id=0,
+        log_level="INFO",
     ):
         """
             Initializes the test configuration in regards to using the simulator.
         Args:
             run_simulator (bool): True if the test is run on simulator, False if on silicon
+            run_emulator (bool): True if the test is run on emulator, False if on silicon
             simulator_port (int): Simulator server port number
             device_id (int): ID number of the device to send message to.
             log_level (str): Log level
@@ -27,6 +33,7 @@ class TestTargetConfig:
         # Only initialize once
         if not TestTargetConfig._initialized:
             self.run_simulator: bool = run_simulator
+            self.run_emulator: bool = run_emulator
             self.simulator_port: int = simulator_port
             self.device_id: int = device_id
             self.log_level: str = log_level
@@ -35,6 +42,7 @@ class TestTargetConfig:
     def update_from_pytest_config(self, config):
         """Update only the simulator related settings from pytest config"""
         self.run_simulator = config.getoption("--run_simulator", default=False)
+        self.run_emulator = config.getoption("--run_emulator", default=False)
         self.simulator_port = config.getoption("--port", default=5555)
 
 

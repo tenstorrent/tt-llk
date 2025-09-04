@@ -16,7 +16,7 @@ class HardwareController:
 
     def reset_card(self):
         test_target = TestTargetConfig()
-        if test_target.run_simulator:
+        if test_target.run_simulator or test_target.run_emulator:
             print("Running under simulator, unable to reset")
             return
 

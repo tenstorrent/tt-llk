@@ -44,8 +44,10 @@ def check_hardware_headers():
     ]
     required_headers_quasar = [
         "cfg_defines.h",
-        "tensix.h",
+        "t6_debug_map.h",
+        "t6_mop_config_map.h",
         "tensix_types.h",
+        "tensix.h",
         "tt_t6_trisc_map.h",
     ]
 
@@ -103,7 +105,7 @@ def pytest_configure(config):
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
 
-    if test_target.run_simulator:
+    if test_target.run_simulator or test_target.run_emulator:
         tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
     else:
         tt_exalens_init.init_ttexalens()
@@ -164,7 +166,7 @@ def pytest_sessionstart(session):
     check_hardware_headers()
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator:
+    if not test_target.run_simulator and not test_target.run_emulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_target.device_id)
 
@@ -179,7 +181,7 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator:
+    if not test_target.run_simulator and not test_target.run_emulator:
         # Send ARC message for GO IDLE signal. This should decrease device clock speed.
         _send_arc_message("GO_IDLE", test_target.device_id)
 
@@ -203,6 +205,9 @@ def _send_arc_message(message_type: str, device_id: int):
 def pytest_addoption(parser):
     parser.addoption(
         "--run_simulator", action="store_true", help="Run tests using the simulator."
+    )
+    parser.addoption(
+        "--run_emulator", action="store_true", help="Run tests using the emulator."
     )
     parser.addoption(
         "--port",
