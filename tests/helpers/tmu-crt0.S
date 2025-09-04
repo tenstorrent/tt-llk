@@ -156,7 +156,7 @@ address_fix:
   #endif
 
   # Loop infinitely.
-  infinite_loop: j infinite_loop
+  10: j 10b
 
   .size  _start, .-_start
 
