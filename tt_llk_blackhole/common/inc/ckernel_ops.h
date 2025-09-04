@@ -382,11 +382,9 @@
      ckernel::is_valid(AddrCntContext, 2) && ckernel::is_valid(ZeroWrite, 1) && ckernel::is_valid(ReadIntfSel, 4) && ckernel::is_valid(OvrdThreadId, 1) &&  \
      ckernel::is_valid(Concat, 3) && ckernel::is_valid(CtxtCtrl, 2) && ckernel::is_valid(Flush, 1) && ckernel::is_valid(Last, 1))
 #define TT_PACR(CfgContext, RowPadZero, DstAccessMode, AddrMode, AddrCntContext, ZeroWrite, ReadIntfSel, OvrdThreadId, Concat, CtxtCtrl, Flush, Last) \
-    TT_INSN(                                                                                                                      \
-                    TT_OP_PACR(CfgContext, RowPadZero, DstAccessMode, AddrMode, AddrCntContext, ZeroWrite, ReadIntfSel, OvrdThreadId, Concat, CtxtCtrl, Flush, Last))
+    TT_INSN(TT_OP_PACR(CfgContext, RowPadZero, DstAccessMode, AddrMode, AddrCntContext, ZeroWrite, ReadIntfSel, OvrdThreadId, Concat, CtxtCtrl, Flush, Last))
 #define TTI_PACR(CfgContext, RowPadZero, DstAccessMode, AddrMode, AddrCntContext, ZeroWrite, ReadIntfSel, OvrdThreadId, Concat, CtxtCtrl, Flush, Last) \
-    TTI_INSN(                                                                                                                                  \
-        TT_OP_PACR(CfgContext, RowPadZero, DstAccessMode, AddrMode, AddrCntContext, ZeroWrite, ReadIntfSel, OvrdThreadId, Concat, CtxtCtrl, Flush, Last))
+    TTI_INSN(TT_OP_PACR(CfgContext, RowPadZero, DstAccessMode, AddrMode, AddrCntContext, ZeroWrite, ReadIntfSel, OvrdThreadId, Concat, CtxtCtrl, Flush, Last))
 
 #define TT_OP_PACR_SETREG(Push, ModeSel, Unused, DisableStall, AddrSel, StreamId, Flush, Last)                                                    \
     TT_OP(                                                                                                                                        \
