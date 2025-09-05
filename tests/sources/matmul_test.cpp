@@ -25,6 +25,8 @@ void run_kernel()
 
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
+    _zerosrc_();
+
     const uint BUF_DESC_ID_0 = 0;
     const uint BUF_DESC_ID_1 = 1;
     tdma_descriptor_t td_val_srca;
@@ -93,6 +95,8 @@ void run_kernel()
 #ifdef ARCH_QUASAR
 
     set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+    _zero_dest_reg_();
 
     constexpr bool EN_IMPLIED_MATH_FORMAT = true;
     constexpr bool IS_FP32_DEST_EN        = (formats.math == (uint)DataFormat::Float32) ? true : false;
