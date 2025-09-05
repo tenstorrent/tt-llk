@@ -42,8 +42,8 @@ def report_fixture():
             DataFormat.Bfp8_b,
         ]
     ),
-    rt_dim=[1, 2],
-    ct_dim=[1, 2],
+    rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
+    ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
 )
 def test_perf_unpack_tilize_float(report_fixture, test_name, formats, rt_dim, ct_dim):
     if formats.input_format == DataFormat.Bfp8_b:
