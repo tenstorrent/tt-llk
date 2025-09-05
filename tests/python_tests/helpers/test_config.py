@@ -182,6 +182,39 @@ def generate_build_header(
         f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
     )
 
+    # Broadcast type
+    if "broadcast_type" in test_config:
+        broadcast_type = test_config["broadcast_type"]
+        header_content.append(
+            f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
+        )
+
+    # Accumulate to dest
+    if "acc_to_dest" in test_config:
+        acc_to_dest = str(test_config["acc_to_dest"]).lower()
+        header_content.append(f"constexpr bool ACC_TO_DEST = {acc_to_dest};")
+
+    # Reuse destination type
+    if "reuse_dest" in test_config:
+        reuse_dest = test_config["reuse_dest"]
+        header_content.append(
+            f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{reuse_dest.name};"
+        )
+
+    if "disable_src_zero_flag" in test_config:
+        disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
+        header_content.append(
+            f"constexpr bool disable_src_zero_flag = {disable_src_zero_flag};"
+        )
+
+    if "num_faces" in test_config:
+        num_faces = test_config["num_faces"]
+        header_content.append(f"constexpr std::uint32_t NUM_FACES = {num_faces};")
+
+    if "narrow_tile" in test_config:
+        narrow_tile = str(test_config["narrow_tile"]).lower()
+        header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
+
     # Math fidelity & Approximation mode
     header_content.append(
         f"constexpr std::uint32_t MATH_FIDELITY = {test_config.get('math_fidelity', MathFidelity.LoFi).value};"
