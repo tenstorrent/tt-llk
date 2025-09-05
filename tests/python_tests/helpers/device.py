@@ -168,7 +168,6 @@ def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRIS
             location=location,
             risc_name=f"trisc{i}",
             neo_id=0,
-            emulator=emulator,
         )
 
     # Reset the profiler barrier
@@ -182,7 +181,6 @@ def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRIS
                 elf_file=str(brisc_elf_path.absolute()),
                 location=location,
                 risc_name="brisc",
-                emulator=emulator,
             )
             run_cores([RiscCore.BRISC], device_id, location)
         case BootMode.TRISC:
