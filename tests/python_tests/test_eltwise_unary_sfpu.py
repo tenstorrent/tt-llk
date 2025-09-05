@@ -48,6 +48,7 @@ from helpers.utils import passed_test
         MathOperation.Reciprocal,
         MathOperation.Sin,
         MathOperation.Sqrt,
+        MathOperation.Rsqrt,
         MathOperation.Square,
         MathOperation.Celu,
         MathOperation.Silu,
@@ -58,6 +59,9 @@ from helpers.utils import passed_test
         MathOperation.Exp,
         MathOperation.Exp2,
         MathOperation.Hardsigmoid,
+        MathOperation.Threshold,
+        MathOperation.ReluMax,
+        MathOperation.ReluMin,
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )

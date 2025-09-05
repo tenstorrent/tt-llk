@@ -4,13 +4,14 @@
 import csv
 import os
 import shutil
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, field, fields, is_dataclass
 from enum import Enum
 from pathlib import Path
-from statistics import mean, variance
+from statistics import mean, stdev
 from typing import List
 
 import plotly.graph_objects as go
+import pytest
 
 from helpers.device import (
     reset_mailboxes,
@@ -95,12 +96,13 @@ def timing_l1_congestion(perf_data: PerfData) -> int:
 
 
 def process_runs(runs, test_config):
+    loop_factor = test_config.get("loop_factor", 1)
     tile_cnt = test_config.get("tile_cnt", 1)
 
     return tuple(
         {
-            "mean": mean(column) / tile_cnt,
-            "variance": variance(column) / (tile_cnt * tile_cnt),
+            "mean": mean(column) / loop_factor / tile_cnt,
+            "stddev": stdev(column) / loop_factor / tile_cnt,
         }
         for column in zip(*runs)
     )
@@ -117,7 +119,7 @@ class PerfRunType(Enum):
 ALL_RUN_TYPES = [type for type in PerfRunType]
 
 
-def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
+def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=2):
 
     RUN_CONFIGURATIONS = {
         PerfRunType.L1_TO_L1: timing_l1_to_l1,
@@ -153,11 +155,28 @@ def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=8):
     return results
 
 
+@dataclass
 class PerfReport:
-    sweep_names: List[str] = []
-    stat_names: List[str] = []
-    sweep_values: List[List] = []
-    stat_values: List[List] = []
+    sweep_names: List[str] = field(default_factory=list)
+    stat_names: List[str] = field(default_factory=list)
+    sweep_values: List[List] = field(default_factory=list)
+    stat_values: List[List] = field(default_factory=list)
+
+
+@pytest.fixture(scope="module")
+def perf_report(request):
+    report = PerfReport()
+
+    test_module = request.path.stem
+
+    delete_benchmark_dir(test_module)
+    try:
+        yield report
+    except Exception as e:
+        print("Perf: Unexpected error, Saving report anyway", e)
+
+    dump_report(test_module, report)
+    dump_scatter(test_module, report)
 
 
 def _dataclass_names(parent, obj):
@@ -194,7 +213,7 @@ def _get_stat_names(result):
         for idx in range(stats_count):
             idx_str = f"[{idx}]" if len(stats) > 1 else ""
             names[column] = f"mean({run_type.name}{idx_str})"
-            names[column + 1] = f"variance({run_type.name}{idx_str})"
+            names[column + 1] = f"stddev({run_type.name}{idx_str})"
             column += 2
 
     return names
@@ -205,6 +224,7 @@ def update_report(report: PerfReport, test_config, results):
     exclude = {
         "testname",
         "perf_run_type",
+        "loop_factor",  # used to minimize the effect of profiler overhead for short loops
     }
 
     params = {
@@ -229,7 +249,7 @@ def update_report(report: PerfReport, test_config, results):
     for stats in results.values():
         for stat in stats:
             stat_values.append(stat["mean"])
-            stat_values.append(stat["variance"])
+            stat_values.append(stat["stddev"])
     report.stat_values.append(stat_values)
 
 

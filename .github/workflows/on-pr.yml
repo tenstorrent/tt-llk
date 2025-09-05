@@ -40,6 +40,7 @@ jobs:
       github: ${{ steps.filter.outputs.github }}
       documentation: ${{ steps.filter.outputs.documentation }}
       performance: ${{ steps.filter.outputs.performance }}
+      quasar: ${{ steps.filter.outputs.quasar }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -55,6 +56,8 @@ jobs:
                 - 'tt_llk_wormhole_b0/**'
               blackhole:
                 - 'tt_llk_blackhole/**'
+              quasar:
+                - 'tt_llk_quasar/**'
               tests:
                 - 'tests/**'
               github:
@@ -87,6 +90,7 @@ jobs:
             if ("${{ needs.detect-changes.outputs.github }}" === "true") expectedLabels.add("ci");
             if ("${{ needs.detect-changes.outputs.documentation }}" === "true") expectedLabels.add("documentation");
             if ("${{ needs.detect-changes.outputs.performance }}" === "true") expectedLabels.add("performance");
+            if ("${{ needs.detect-changes.outputs.quasar }}" === "true") expectedLabels.add("quasar");
 
             // Get current labels
             const {data: currentLabels} = await github.rest.issues.listLabelsOnIssue({
@@ -96,7 +100,7 @@ jobs:
             });
 
             // Create sets for comparison
-            const managedLabels = new Set(["blackhole", "ci", "documentation",
+            const managedLabels = new Set(["blackhole", "ci", "documentation", "quasar",
                                            "performance", "test-infra", "wormhole"]);
             const currentLabelSet = new Set(currentLabels.map(label => label.name));
 
@@ -142,8 +146,9 @@ jobs:
             needs.detect-changes.outputs.github == 'true' }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
-      runs_on: tt-beta-ubuntu-2204-n150-large-stable
-      test_group: "[1, 2, 3]"
+      runs_on: tt-ubuntu-2204-n150-stable
+      test_splits: 3
+      pytest_markers: "not perf and not nightly"
 
   setup-and-test-blackhole:
     name: "🕳️ Perform checks (Blackhole)"
@@ -154,8 +159,9 @@ jobs:
             needs.detect-changes.outputs.github == 'true' }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
-      runs_on: tt-beta-ubuntu-2204-p150b-large-stable
-      test_group: "[1, 2, 3]"
+      runs_on: tt-ubuntu-2204-p150b-stable
+      test_splits: 3
+      pytest_markers: "not perf and not nightly"
 
   check-all-green:
     name: "✅ Check all green"
