@@ -103,6 +103,15 @@ def generate_build_header(
     if profiler_build == ProfilerBuild.Yes:
         header_content.append("#define LLK_PROFILER")
 
+    loop_factor = test_config.get("loop_factor", 1)
+
+    if profiler_build == ProfilerBuild.No and loop_factor != 1:
+        raise ValueError(
+            "test_config['loop_factor'] should only be used when profiler is enabled"
+        )
+
+    header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
+
     if boot_mode == BootMode.BRISC:
         header_content.append("#define LLK_BOOT_MODE_BRISC")
     elif boot_mode == BootMode.TRISC:
@@ -307,10 +316,12 @@ def generate_build_header(
 
     num_rows = 32
     num_cols = 32
-    validate_tile_dimensions(input_A_dimensions[0], num_cols)
-    validate_tile_dimensions(input_B_dimensions[1], num_rows)
-    block_rt_dim = input_A_dimensions[0] // num_cols
-    block_ct_dim = input_B_dimensions[1] // num_rows
+    validate_tile_dimensions(input_A_dimensions[0], num_rows)
+    validate_tile_dimensions(input_A_dimensions[1], num_cols)
+    validate_tile_dimensions(input_B_dimensions[0], num_rows)
+    validate_tile_dimensions(input_B_dimensions[1], num_cols)
+    block_rt_dim = input_A_dimensions[0] // num_rows
+    block_ct_dim = input_B_dimensions[1] // num_cols
 
     header_content.extend(
         [
