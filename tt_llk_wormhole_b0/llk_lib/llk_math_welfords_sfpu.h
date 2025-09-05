@@ -15,8 +15,6 @@
 #include "llk_sfpu_types.h"
 #include "sfpu/ckernel_sfpu_welfords.h"
 
-using namespace ckernel;
-
 // local function declarations
 inline void welfords_sfpu_configure_addrmod()
 {
