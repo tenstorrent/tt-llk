@@ -6,6 +6,7 @@
 
 #include "ckernel_addrmod.h"
 #include "ckernel_instr_params.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -13,7 +14,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_reshuffle_rows_(const uint idx_addr)
 {
     constexpr uint output_tile_offset = 64;
