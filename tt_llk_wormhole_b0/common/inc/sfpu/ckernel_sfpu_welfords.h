@@ -44,7 +44,6 @@ sfpi_inline void _load_recip_current_sample_lreg7_(const uint32_t current_sample
 {
     /*var_{N+1}temp = 1/(N+1)*/
     const float inv_n_plus_1 = 1.0f / static_cast<float>(current_sample + 1);
-    DPRINT << inv_n_plus_1 << ENDL();
     const FloatBits inv_bits(inv_n_plus_1);
     /*var_{N+1}temp = 1/(N+1) usage loads high 16 bits*/
     TT_SFPLOADI(ckernel::p_sfpu::LREG7, 8, inv_bits.high16);
