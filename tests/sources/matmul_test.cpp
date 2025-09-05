@@ -38,7 +38,7 @@ void run_kernel()
         bd_val_srca.words[i] = 0;
     }
     // Now just plug everything in
-    bd_val_srca.f.l1_addr_16B = L1_ADDRESS(buffer_A[0]);
+    bd_val_srca.f.l1_addr_16B = buffer_A[0] / 16;
     bd_val_srca.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val_srca.f.x_dim       = 16; // FACE_C_DIM
     bd_val_srca.f.y_dim       = 16; // FACE_R_DIM
@@ -57,7 +57,7 @@ void run_kernel()
     }
 
     // Now just plug everything in
-    bd_val_srcb.f.l1_addr_16B = L1_ADDRESS(buffer_B[0]);
+    bd_val_srcb.f.l1_addr_16B = buffer_B[0] / 16;
     bd_val_srcb.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val_srcb.f.x_dim       = 16; // FACE_C_DIM
     bd_val_srcb.f.y_dim       = 16; // FACE_R_DIM
@@ -71,7 +71,7 @@ void run_kernel()
     // But the expectation from users is a matrix multiplication of A * B (input 0 * input 1).
     // So we flip input 0 into SrcB and input 1 into SrcA
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_srcb, td_val_srca);
-    _llk_unpack_matmul_init_<BUF_DESC_ID_0, BUF_DESC_ID_1, false, CT_DIM, RT_DIM, KT_DIM>(); // transpose=false
+    _llk_unpack_matmul_init_<BUF_DESC_ID_0, BUF_DESC_ID_1, false /*transpose*/, CT_DIM, RT_DIM, KT_DIM>();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_unpack_matmul_<BUF_DESC_ID_0, BUF_DESC_ID_1, CT_DIM, RT_DIM, KT_DIM>(j, j * CT_DIM);
@@ -139,7 +139,7 @@ void run_kernel()
     }
     tdma_descriptor_t tdma_desc;
     // Now just plug everything in
-    bd_val.f.l1_addr_16B = L1_ADDRESS(buffer_Res[0]);
+    bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = 16;
     bd_val.f.y_dim       = 16;
@@ -153,9 +153,9 @@ void run_kernel()
     _llk_pack_init_<p_pacr::PACK0, BUF_DESC>(1 /*num_tiles_per_pack*/);
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_pack_<p_pacr::PACK0>(i, i); // are these indexes okay
+        _llk_pack_<p_pacr::PACK0>(i, i);
     }
-    _llk_pack_dest_dvalid_section_done_<ckernel::DstSync::SyncHalf, is_fp32_dest_acc_en>(); // matmul.py test does not generate dest_sync
+    _llk_pack_dest_dvalid_section_done_<ckernel::DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
 #endif
 }
