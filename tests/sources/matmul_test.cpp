@@ -69,11 +69,11 @@ void run_kernel()
         bd_val_srca.words[i] = 0;
     }
     // Now just plug everything in
-    bd_val_srca.f.l1_addr_16B = L1_ADDRESS(buffer_A[0]);                  //
+    bd_val_srca.f.l1_addr_16B = L1_ADDRESS(buffer_A[0]);
     bd_val_srca.f.format      = static_cast<uint8_t>(formats.unpack_src); //
-    bd_val_srca.f.x_dim       = 16;                                       // FACE_C_DIM?
-    bd_val_srca.f.y_dim       = 16;                                       // FACE_R_DIM?
-    bd_val_srca.f.z_dim       = 4;                                        // NUM_OF_FACES?
+    bd_val_srca.f.x_dim       = 16;                                       // FACE_C_DIM
+    bd_val_srca.f.y_dim       = 16;                                       // FACE_R_DIM
+    bd_val_srca.f.z_dim       = 4;                                        // NUM_OF_FACES
 
     td_val_srca.buf_desc        = bd_val_srca;
     td_val_srca.buf_desc_id     = BUF_DESC_ID_0;                            //
@@ -146,7 +146,8 @@ void run_kernel()
     bool EN_IMPLIED_MATH_FORMAT = true;
     bool IS_FP32_DEST_EN        = (formats.math == DataFormat::Float32) ? true : false;
     bool IS_INT32_DEST_EN       = (formats.math == DataFormat::Int32) ? true : false;
-    _llk_math_srcAB_hw_configure_<EN_IMPLIED_MATH_FORMAT, IS_FP32_DEST_EN, IS_INT32_DEST_EN, formats.math, formats.math>(); // params unsure
+    _llk_math_srcAB_hw_configure_<EN_IMPLIED_MATH_FORMAT, IS_FP32_DEST_EN, IS_INT32_DEST_EN, formats.math, formats.math>(); // dont need formats if
+                                                                                                                            // EN_IMPLIED_MATH_FORMAT
     _llk_math_matmul_init_<MATH_FIDELITY, ct_dim, rt_dim, false /*EN_DI*/, false /*EN_X2*/>();
     for (uint32_t j = 0; j < kt_dim; j++)
     {
@@ -212,16 +213,13 @@ void run_kernel()
     tdma_desc.buf_desc_id     = BUF_DESC;
     tdma_desc.reg_data_format = static_cast<uint8_t>(formats.pack_src);
 
-    // constexpr ckernel::DstSync DST_MODE = ckernel::DstSync::SyncHalf;
-    // constexpr bool IS_DEST_FPU_EN = (formats.pack_src == DataFormat::Float32);
-
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
     _llk_pack_init_<p_pacr::PACK0, BUF_DESC>(1 /*num_tiles_per_pack*/);
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_pack_<p_pacr::PACK0>(i, i); // are these indexes okay
     }
-    _llk_pack_dest_dvalid_section_done_<ckernel::DstSync::SyncHalf, is_fp32_dest_acc_en>(); // I think LLK matmul.py test does not generate dest_sync
+    _llk_pack_dest_dvalid_section_done_<ckernel::DstSync::SyncHalf, is_fp32_dest_acc_en>(); // matmul.py test does not generate dest_sync
 
 #endif
 }
