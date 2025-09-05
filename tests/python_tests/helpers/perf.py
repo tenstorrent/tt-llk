@@ -167,7 +167,7 @@ class PerfReport:
 def perf_report(request):
     report = PerfReport()
 
-    test_module = Path(request.node.name).stem
+    test_module = request.path.stem
 
     delete_benchmark_dir(test_module)
     try:
