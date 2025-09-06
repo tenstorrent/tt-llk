@@ -28,12 +28,15 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 #ifdef LLK_TRISC_UNPACK
 
+#include <algorithm>
+
 #include "llk_unpack_common.h"
 #include "llk_unpack_tilize.h"
 
 void run_kernel()
 {
-    volatile uint32_t* const src = reinterpret_cast<volatile uint32_t*>(0x1A000);
+    constexpr uint32_t SRC_BASE_ADDR = 0x1A000;
+    volatile uint32_t* const src     = reinterpret_cast<volatile uint32_t*>(SRC_BASE_ADDR);
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
@@ -54,7 +57,7 @@ void run_kernel()
             {
                 for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
                 {
-                    _llk_unpack_tilize_(L1_ADDRESS(src + (i % 8) * 0x1000), j, formats.unpack_src, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
+                    _llk_unpack_tilize_(L1_ADDRESS(src + (i % 8) * 4096), j, formats.unpack_src, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
                 }
             }
         }
@@ -149,13 +152,16 @@ void run_kernel()
 
 #ifdef LLK_TRISC_PACK
 
+#include <algorithm>
+
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
 void run_kernel()
 {
-    volatile uint32_t* const dst = reinterpret_cast<volatile uint32_t*>(0x1E000);
-    const bool UNTILIZE          = false;
+    constexpr uint32_t DEST_BASE_ADDR = 0x1E000;
+    volatile uint32_t* const dst      = reinterpret_cast<volatile uint32_t*>(DEST_BASE_ADDR);
+    const bool UNTILIZE               = false;
 
     {
         ZONE_SCOPED("INIT")
@@ -185,7 +191,7 @@ void run_kernel()
             {
                 for (uint32_t i = 0; i < TILE_CNT; ++i)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 0x1000));
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 4096));
                 }
             }
             PROFILER_SYNC();
