@@ -224,17 +224,17 @@ def generate_format_aware_matmul_combinations(
 
     Rules:
     1. Format outliers (Float16_b->Float16, Bfp8_b->Float16) MUST use dest_acc=Yes
-    2. When dest_acc=Yes: max 4 tiles (32-bit dest register)
-    3. When dest_acc=No: max 8 tiles (16-bit dest register)
+    2. Max tile capacity in dest is 8 (16bit) or 4 (32bit)
+        - When dest_acc=Yes: max 4 tiles (32-bit dest register)
+        - When dest_acc=No: max 8 tiles (16-bit dest register)
     4. Exclude cases when: stochastic_rounding enabled for Pack (Pack, All) AND dest_acc == DestAccumulation.No
        AND k_tiles >= 4 AND fmt.input_format in [DataFormat.Float16_b, DataFormat.Float32]
        AND fmt.output_format in [DataFormat.Float16_b, DataFormat.Float32]
         - This specific case models when we have bfloat16 in dst register, when stochastic rounding is enabled the datum lacks mantissa bits
-        to absorb the accumulated precision loss from multiple matmul ops acrossmultiple tiles. And due to existence of bug, this specific case sometimes fails,
+        to absorb the accumulated precision loss from multiple matmul ops acrossmultiple tiles. And due to existence of possible bug, this specific case undeterministically fails,
         for now we will exclude this case.
-    5. Dst register indices are swept based on dest_acc and number of tiles in dst setting:
-       - Using DestSync.Half mode:
-         - max_dst_tiles=8 (16bit) or 4 (32bit)
+    5. Dst register indices are swept based on dest_acc and number of tiles in dst setting
+       - Using DestSync.Half mode since matmul doesn't sweep Dest Sync modes
 
     Returns: List of (format, dest_acc, dimensions, stochastic_rounding, dst_index) tuples
     """
