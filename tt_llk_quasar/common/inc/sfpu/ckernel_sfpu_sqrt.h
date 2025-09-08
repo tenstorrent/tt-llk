@@ -18,7 +18,7 @@ inline void _calculate_sqrt_sfp_rows_()
     TTI_SFPLOAD(p_sfpu::LREG0, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0); // load from dest into lreg[0], uses ADDR_MOD_7 (set to all zeroes)
 
     // SFPARECIP, approx version of sqrt
-    if constexpr (APPROX_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfparecip::SQRT_MODE); // Read value from lreg[0], approximate sqrt, load back into lreg[1]
     }

@@ -143,7 +143,7 @@ inline void _init_sqrt_()
 {
     if constexpr (!legacy_compat)
     {
-        if constexpr (APPROX_MODE)
+        if constexpr (APPROX_MODE == ApproximationMode::Fast)
         {
             sfpi::vConstIntPrgm0   = 0x5f0b3892;
             sfpi::vConstFloatPrgm1 = 1.89099014875f;
