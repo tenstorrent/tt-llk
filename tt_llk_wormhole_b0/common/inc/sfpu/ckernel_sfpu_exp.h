@@ -228,7 +228,7 @@ inline void _init_exponential_()
 
         // Loading replay buffer
 
-        // Note: TTI_SFPNOPs are inserted because every two calls that use same LREG need to be at least 7 instructions apart
+        // Note: TTI_SFPNOPs are inserted because SFPSWAP in LOADMACRO is not pipelined and takes 2 cycels
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
@@ -238,14 +238,12 @@ inline void _init_exponential_()
         TTI_SFPLOADMACRO(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
         TTI_SFPNOP;
         TTI_SFPNOP;
-
         TTI_SFPLOADMACRO(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
         TTI_SFPNOP;
         TTI_SFPNOP;
         TTI_SFPLOADMACRO(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
         TTI_SFPNOP;
         TTI_SFPNOP;
-
         TTI_SFPLOADMACRO(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
         TTI_SFPNOP;
         TTI_SFPNOP;
