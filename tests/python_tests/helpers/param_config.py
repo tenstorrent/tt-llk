@@ -361,9 +361,6 @@ def generate_transpose_dest_combinations(formats_list):
             [Transpose.Yes, Transpose.No] if is_input_32bit else [Transpose.Yes]
         )
 
-        # Use the following line instead the one above to reproduce the Fp32->Fp32, dest_acc=Yes, math_transp_faces=No, unpack_to_dest=Yes test
-        # math_transpose_faces_list = [Transpose.No] if is_input_32bit else [Transpose.Yes]
-
         for dest_acc in dest_acc_list:
             for math_transpose_faces in math_transpose_faces_list:
 
