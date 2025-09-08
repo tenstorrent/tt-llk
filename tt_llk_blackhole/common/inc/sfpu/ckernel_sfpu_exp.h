@@ -51,7 +51,7 @@ sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
 {
     sfpi::vFloat out;
 
-    if constexpr (APPROX_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         constexpr int FRAC_BITS         = 3;
         constexpr std::uint32_t SP_BIAS = 127 << FRAC_BITS;
@@ -110,7 +110,7 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std
     {
         in = in * sfpi::s2vFloat16b(exp_base_scale_factor);
     }
-    if constexpr (APPROX_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         if constexpr (!SKIP_POSITIVE_CHECK)
         {
@@ -401,7 +401,7 @@ inline void _init_exponential_()
         // Reset LoadMacroConfig[Lane].Misc for all lanes, in case it has been previously set by another use of macros.
         TTI_SFPCONFIG(0, 8, 1);
     }
-    else if constexpr (APPROX_MODE)
+    else if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
         sfpi::vConstFloatPrgm1 = sfpi::s2vFloat16b(p_exp::C23_73);
