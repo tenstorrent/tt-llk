@@ -231,7 +231,7 @@ def generate_format_aware_matmul_combinations(
        AND k_tiles >= 4 AND fmt.input_format in [DataFormat.Float16_b, DataFormat.Float32]
        AND fmt.output_format in [DataFormat.Float16_b, DataFormat.Float32]
         - This specific case models when we have bfloat16 in dst register, when stochastic rounding is enabled the datum lacks mantissa bits
-        to absorb the accumulated precision loss from multiple matmul ops acrossmultiple tiles. And due to existence of possible bug, this specific case undeterministically fails,
+        to absorb the accumulated precision loss from multiple matmul ops across multiple tiles. And due to existence of possible bug, this specific case undeterministically fails,
         for now we will exclude this case.
     5. Dst register indices are swept based on dest_acc and number of tiles in dst setting
        - Using DestSync.Half mode since matmul doesn't sweep Dest Sync modes
