@@ -228,7 +228,7 @@ inline void _init_exponential_()
 
         // Loading replay buffer
 
-        // Note: TTI_SFPNOPs are inserted because SFPSWAP in LOADMACRO is not pipelined and takes 2 cycels
+        // Note: TTI_SFPNOPs are inserted because SFPSWAP in LOADMACRO is not pipelined and takes 2 cycles
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
