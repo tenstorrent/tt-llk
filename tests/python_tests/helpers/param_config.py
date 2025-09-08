@@ -295,7 +295,11 @@ def generate_format_aware_matmul_combinations(
                         combinations.extend(
                             [
                                 (fmt, dest_acc, dims, stochastic_mode, 0),
-                                (fmt, dest_acc, dims, stochastic_mode, max_dst_idx),
+                                (
+                                    (fmt, dest_acc, dims, stochastic_mode, max_dst_idx)
+                                    if max_dst_idx != 0
+                                    else None
+                                ),
                             ]
                         )
 
