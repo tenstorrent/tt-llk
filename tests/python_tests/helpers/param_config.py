@@ -243,88 +243,69 @@ def generate_format_aware_matmul_combinations(
 
     combinations = []
 
+    # Cache dimension combinations to avoid regenerating them
+    dimensions_cache = {}
+
+    # Pre-compute format sets for better performance
+    bfloat16_formats = {DataFormat.Float16_b, DataFormat.Float32}
+    fpu_stochastic_modes = {StochasticRounding.Fpu, StochasticRounding.All}
+
     for fmt in formats_list:
         # Pre-compute format-specific values
         base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
-        is_fpu_bfloat16 = fmt.input_format in [
-            DataFormat.Float16_b,
-            DataFormat.Float32,
-        ] and fmt.output_format in [DataFormat.Float16_b, DataFormat.Float32]
+        is_fpu_bfloat16 = (
+            fmt.input_format in bfloat16_formats
+            and fmt.output_format in bfloat16_formats
+        )
 
         for dest_acc in dest_acc_modes:
             max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
-            dimensions_list = generate_matmul_dimension_combinations(max_tiles)
+
+            # Use cached dimensions or generate new ones
+            if max_tiles not in dimensions_cache:
+                dimensions_cache[max_tiles] = generate_matmul_dimension_combinations(
+                    max_tiles
+                )
+            dimensions_list = dimensions_cache[max_tiles]
 
             for stochastic_mode in all_stochastic_modes:
-                # Pre-compute stochastic condition
-                is_fpu_stochastic = stochastic_mode in [
-                    StochasticRounding.Fpu,
-                    StochasticRounding.All,
-                ]
+                is_fpu_stochastic = stochastic_mode in fpu_stochastic_modes
 
-                # Skip early if we know all combinations will be excluded
-                if (
+                # Process dimensions with optional filtering
+                should_filter = (
                     is_fpu_stochastic
                     and dest_acc == DestAccumulation.No
                     and is_fpu_bfloat16
-                ):
-                    # Check if any dimensions would have k_tiles < 4
-                    valid_dimensions = []
-                    for dims in dimensions_list:
-                        inputA_dims, inputB_dims = dims
-                        matmul_info = calculate_matmul_dimensions(
-                            tuple(inputA_dims), tuple(inputB_dims)
-                        )
-                        if matmul_info["kt_dim"] < 4:
-                            valid_dimensions.append(dims)
+                )
 
-                    # Add only the valid ones with dest indices
-                    for dims in valid_dimensions:
-                        inputA_dims, inputB_dims = dims
-                        matmul_info = calculate_matmul_dimensions(
-                            tuple(inputA_dims), tuple(inputB_dims)
-                        )
-                        result_tiles = matmul_info["output_tile_cnt"]
+                for dims in dimensions_list:
+                    inputA_dims, inputB_dims = dims
+                    matmul_info = calculate_matmul_dimensions(
+                        tuple(inputA_dims), tuple(inputB_dims)
+                    )
 
-                        # Get valid dest indices for this configuration
-                        max_dst_idx = calculate_edgecase_dest_indices(
-                            dest_acc == DestAccumulation.Yes,
-                            result_tiles,
-                            dest_sync_modes,
-                        )[0]
-                        combinations.extend(
-                            [
-                                (fmt, dest_acc, dims, stochastic_mode, 0),
-                                (
-                                    (fmt, dest_acc, dims, stochastic_mode, max_dst_idx)
-                                    if max_dst_idx != 0
-                                    else None
-                                ),
-                            ]
-                        )
+                    # Skip if filtering is needed and kt_dim >= 4
+                    if should_filter and matmul_info["kt_dim"] >= 4:
+                        continue
 
-                else:
-                    # No exclusion needed for this stochastic mode, add all with dest indices
-                    for dims in dimensions_list:
-                        inputA_dims, inputB_dims = dims
-                        matmul_info = calculate_matmul_dimensions(
-                            tuple(inputA_dims), tuple(inputB_dims)
-                        )
-                        result_tiles = matmul_info["output_tile_cnt"]
+                    result_tiles = matmul_info["output_tile_cnt"]
 
-                        # Get valid dest indices for this configuration
-                        max_dst_idx = calculate_edgecase_dest_indices(
-                            dest_acc == DestAccumulation.Yes,
-                            result_tiles,
-                            dest_sync_modes,
-                        )[0]
-                        combinations.extend(
-                            [
-                                (fmt, dest_acc, dims, stochastic_mode, 0),
-                                (fmt, dest_acc, dims, stochastic_mode, max_dst_idx),
-                            ]
-                        )
+                    max_dst_idx = calculate_edgecase_dest_indices(
+                        dest_acc == DestAccumulation.Yes,
+                        result_tiles,
+                        dest_sync_modes,
+                    )[0]
 
+                    combinations.extend(
+                        [
+                            (fmt, dest_acc, dims, stochastic_mode, 0),
+                            (
+                                (fmt, dest_acc, dims, stochastic_mode, max_dst_idx)
+                                if max_dst_idx != 0
+                                else None
+                            ),
+                        ]
+                    )
     return combinations
 
 
