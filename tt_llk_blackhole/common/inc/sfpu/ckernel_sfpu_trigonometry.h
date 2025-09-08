@@ -152,7 +152,7 @@ inline void _calculate_acosh_()
         {
             sfpi::vFloat tmp = inp * inp;
             tmp              = tmp - sfpi::vConst1;
-            tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(tmp);
+            tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE>(tmp);
             tmp              = tmp + inp;
             sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
         }
@@ -170,7 +170,7 @@ inline void _calculate_asinh_()
     {
         sfpi::vFloat inp = sfpi::dst_reg[0];
         sfpi::vFloat tmp = inp * inp + sfpi::vConst1;
-        tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE, 2>(tmp);
+        tmp              = _calculate_sqrt_body_<APPROXIMATION_MODE>(tmp);
         tmp              = tmp + sfpi::abs(inp);
         sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
         v_if (inp < sfpi::vConst0)
@@ -204,7 +204,7 @@ inline void _calculate_atanh_()
         {
             sfpi::vFloat num = sfpi::vConst1 + inp;
             sfpi::vFloat den = sfpi::vConst1 - inp;
-            sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 2 : 3>(den);
+            sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 0 : 2>(den);
             tmp              = sfpi::setsgn(tmp, den);
             if constexpr (fp32_dest_accumulation || APPROXIMATION_MODE)
             {

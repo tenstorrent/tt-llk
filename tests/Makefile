@@ -61,8 +61,7 @@ OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-r
 OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
-			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR) \
-			-Ifirmware/riscv/common -Ifirmware/riscv/$(ARCH) \
+			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR) -Ifirmware/riscv/common \
 			-Isfpi/include -Ihelpers/include
 
 OPTIONS_COMPILE += $(INCLUDES)
@@ -121,7 +120,13 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
 
-# build kernel_unpack.o, kernel_math.o, kernel_pack.o
+# build kernel_unpack.o, kernel_math.o, kernel_pack.o from ai_gen subdirectory
+$(OBJ_DIR)/kernel_%.o: sources/ai_gen/$(testname).cpp | $(OBJ_DIR) $(DEPS_DIR)
+	$(GXX) $(OPTIONS_ALL) $(TEST_KERNEL_FLAG) $(OPTIONS_COMPILE) \
+	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
+	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
+
+# build kernel_unpack.o, kernel_math.o, kernel_pack.o from main sources directory
 $(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp | $(OBJ_DIR) $(DEPS_DIR)
 	$(GXX) $(OPTIONS_ALL) $(TEST_KERNEL_FLAG) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \

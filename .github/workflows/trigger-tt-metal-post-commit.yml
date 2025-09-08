@@ -11,7 +11,7 @@ on:
         type: number
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+  group: post-commit-tests-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
   cancel-in-progress: true
 
 permissions:
@@ -35,7 +35,7 @@ jobs:
       - name: Get PR information
         id: get-pr-info
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # Manual dispatch - get PR info from API
@@ -85,7 +85,7 @@ jobs:
           echo "branch-to-run=$MIRRORED_BRANCH" >> $GITHUB_OUTPUT
           echo "✅ Mirror workflow triggered"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
 
       - name: Set branch name for internal PRs
         id: set-internal-branch
@@ -135,7 +135,7 @@ jobs:
             echo "⚠️ Timeout waiting for mirror workflow, proceeding anyway"
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
 
   detect-changes:
     name: "📁 Detect file changes and determine tests"
@@ -160,7 +160,7 @@ jobs:
       - name: Determine which tests to run
         id: determine-tests
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
         run: |
           # Get the base branch - always use main for simplicity
           BASE_REF="main"
@@ -254,7 +254,7 @@ jobs:
         id: find-run
         if: needs.trigger-tt-metal-tests.result == 'success'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
         run: |
           echo "🔍 Looking for the triggered tt-metal workflow run..."
 
@@ -307,24 +307,24 @@ jobs:
             **Test Configuration:**
             - Wormhole tests: ${{
                   needs.detect-changes.outputs.run-wormhole == 'true' &&
-                  '✅ Enabled' || '❌ Disabled' }}
+                  '🟢 Enabled' || '⚪ Disabled' }}
             - Blackhole tests: ${{
                   needs.detect-changes.outputs.run-blackhole == 'true' &&
-                  '✅ Enabled' || '❌ Disabled' }}
+                  '🟢 Enabled' || '⚪ Disabled' }}
 
             ${{
               needs.detect-changes.outputs.should-skip == 'true' &&
               '**Status:** ⏭️ **Skipped** - No relevant changes in LLK directories' ||
               format('**Status:** {0}',
                 needs.trigger-tt-metal-tests.result == 'success' &&
-                '✅ Tests succeeded' ||
+                '🎯 Tests succeeded' ||
                 needs.trigger-tt-metal-tests.result == 'skipped' &&
                 '⏭️ Skipped' ||
-                '❌ Tests failed')
+                '🛑 Tests failed')
             }}
 
             ## 🔗 Links
-            📊 **Post-commit tests:** [#${{ github.run_id }}](${{
+            📊 **Post-commit workflow:** [#${{ github.run_id }}](${{
               github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             ${{

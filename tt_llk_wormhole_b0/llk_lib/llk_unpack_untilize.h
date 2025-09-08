@@ -45,7 +45,7 @@ inline void _llk_unpack_untilize_mop_config_()
         lltt::replay_insn(0, replay_buf_len),
         load_offset_addr_cntx0,
         load_offset_addr_cntx1);
-    tmp.program(instrn_buffer);
+    tmp.program();
 }
 
 template <DestAccumulation fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None>

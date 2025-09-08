@@ -3,59 +3,45 @@
 
 import pytest
 
-from helpers.format_arg_mapping import DestAccumulation
+from helpers.format_arg_mapping import DestAccumulation, Transpose
 from helpers.format_config import DataFormat
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import (
-    PerfReport,
     PerfRunType,
-    delete_benchmark_dir,
-    dump_report,
-    dump_scatter,
     perf_benchmark,
     update_report,
 )
 
-TEST_NAME = "math_transpose_perf"
-
-
-report = PerfReport()
-
-
-@pytest.fixture(scope="module")
-def report_fixture():
-    delete_benchmark_dir(TEST_NAME)
-    yield
-    dump_report(TEST_NAME, report)
-    dump_scatter(TEST_NAME, report)
-
 
 @pytest.mark.perf
 @parametrize(
-    test_name=TEST_NAME,
+    test_name="math_transpose_perf",
     formats=input_output_formats(
         [
             # DataFormat.Float16_b,     # Waiting for resolution of issue 549
             DataFormat.Int32
         ],
     ),
-    unpack_transpose_faces=[False, True],
-    math_transpose_faces=[False, True],
+    unpack_transpose_faces=[Transpose.No, Transpose.Yes],
+    math_transpose_faces=[Transpose.No, Transpose.Yes],
 )
 def test_perf_math_transpose(
-    report_fixture,
+    perf_report,
     test_name,
     formats,
     unpack_transpose_faces,
     math_transpose_faces,
 ):
 
-    if not math_transpose_faces and not formats.input_format.is_32_bit():
+    if math_transpose_faces == Transpose.No and not formats.input_format.is_32_bit():
         pytest.skip(
             "Unsupported config transpose_of_faces = false and is_32bit = false"
         )
 
-    if unpack_transpose_faces and math_transpose_faces:
+    if (
+        unpack_transpose_faces == Transpose.Yes
+        and math_transpose_faces == Transpose.Yes
+    ):
         pytest.skip("Skip transposing faces twice")
 
     dest_acc = (
@@ -75,4 +61,4 @@ def test_perf_math_transpose(
     }
 
     results = perf_benchmark(test_config, run_types=[PerfRunType.L1_TO_L1])
-    update_report(report, test_config, results)
+    update_report(perf_report, test_config, results)

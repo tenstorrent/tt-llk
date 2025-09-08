@@ -13,6 +13,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
+from helpers.tilize_untilize import tilize_block
 
 golden_registry = {}
 
@@ -36,7 +37,7 @@ def check_bfp8_b(operand: list) -> list:
     # tensor = unpack_bfp8_b(tensor_bytes)
     # return tensor
 
-    not_finite = [1.7014118346046923e38, math.inf, -math.inf]
+    not_finite = [math.inf, -math.inf]
     for i, x in enumerate(operand):
         if x in not_finite or math.isnan(x):
             # Zero out the entire row of 16 elements
@@ -244,8 +245,7 @@ class TransposeGolden:
     def transpose_within_faces(
         self,
         operand,
-        data_format,
-        untilize: bool = False,
+        data_format: DataFormat,
         input_dimensions: list[int] = [32, 32],
     ):
         """Transpose a tile tensor by transposing within each of the four faces.
@@ -268,37 +268,18 @@ class TransposeGolden:
         face_dim = math.isqrt(face_size)
         if face_dim * face_dim != face_size:
             raise ValueError(
-                f"Each face must be square. Face size {face_size} is not a perfect square"
+                f"Each face must be square (for now). Face size {face_size} is not a perfect square"
             )
+
         # Split the tensor into 4 faces dynamically
-        f0 = tensor[:face_size].view(face_dim, face_dim)
-        f1 = tensor[face_size : 2 * face_size].view(face_dim, face_dim)
-        f2 = tensor[2 * face_size : 3 * face_size].view(face_dim, face_dim)
-        f3 = tensor[3 * face_size :].view(face_dim, face_dim)
         # Transpose each face using the helper function
-        f0_transposed = transpose_tensor(f0)
-        f1_transposed = transpose_tensor(f1)
-        f2_transposed = transpose_tensor(f2)
-        f3_transposed = transpose_tensor(f3)
-        # Flatten each face and concatenate back into a single tensor
-        result = torch.cat(
-            [
-                f0_transposed.flatten(),
-                f1_transposed.flatten(),
-                f2_transposed.flatten(),
-                f3_transposed.flatten(),
-            ]
-        )
-        if untilize:
-            untilize = get_golden_generator(UntilizeGolden)
-            result = untilize(result, data_format, input_dimensions).flatten()
+        result = tensor.view(4, face_dim, face_dim).transpose(-2, -1).flatten()
         return result.to(format_dict[data_format])
 
     def transpose_faces(
         self,
         operand,
-        data_format,
-        tilize: bool = False,
+        data_format: DataFormat,
         input_dimensions: list[int] = [32, 32],
     ):
         """Transpose the arrangement of the four faces in a tile tensor.
@@ -315,37 +296,235 @@ class TransposeGolden:
         Returns:
             torch.Tensor: Tensor with faces rearranged in transposed order
         """
-        if tilize:
-            tilize = get_golden_generator(TilizeGolden)
-            operand = tilize(operand, input_dimensions, data_format).flatten()
-
         tensor = to_tensor(operand, data_format)
         total_elements = tensor.numel()
         if total_elements % 4 != 0:
             raise ValueError(
-                f"Tensor size {total_elements} must be divisible by 4 for tile structure"
+                f"Invalid tensor size {total_elements}. A valid tile structure requires the tensor to represent "
+                f"4 equal faces, so the total number of elements must be divisible by 4."
             )
         face_size = total_elements // 4
         # Split the tensor into 4 faces
-        f0 = tensor[:face_size]
-        f1 = tensor[face_size : 2 * face_size]
-        f2 = tensor[2 * face_size : 3 * face_size]
-        f3 = tensor[3 * face_size :]
+        faces = torch.tensor_split(tensor, 4)
         # Transpose the face arrangement: f0,f1,f2,f3 -> f0,f2,f1,f3
-        result = torch.cat([f0, f2, f1, f3])
+        result = torch.cat([faces[0], faces[2], faces[1], faces[3]])
         return result.to(format_dict[data_format])
+
+    def _apply_tile_operation_multi_tile(
+        self,
+        operand: torch.Tensor,
+        data_format: DataFormat,
+        num_tiles: int,
+        operation_func: callable,
+        tilize: bool = False,
+        untilize: bool = False,
+        input_dimensions: tuple[int, int] = (32, 32),
+    ) -> torch.Tensor:
+        """
+        Apply a tile-level operation across multiple tiles in a tensor.
+
+        This is a generic helper function that applies any single-tile operation
+        to each tile in a multi-tile tensor, handling common preprocessing and
+        postprocessing steps.
+
+        Args:
+            operand: Input tensor containing concatenated tiles to process
+            data_format: Target data format for the result tensor
+            num_tiles: Number of 32×32 tiles in the input tensor (must be positive)
+            operation_func: Function to apply to each tile (e.g., self.transpose_faces)
+            tilize: If True, applies tilization preprocessing to the input
+            untilize: If True, applies untilization postprocessing to the result
+            input_dimensions: Overall input matrix dimensions as (rows, cols)
+
+        Returns:
+            Tensor with the operation applied to all tiles
+
+        Raises:
+            ValueError: If tensor size doesn't match expected size for num_tiles
+            ValueError: If num_tiles is not positive
+        """
+        # Constants
+        ELEMENTS_PER_TILE = 1024  # 32 × 32
+        TILE_DIMENSIONS = (32, 32)
+
+        # Input validation
+        if num_tiles <= 0:
+            raise ValueError(f"num_tiles must be positive, got {num_tiles}")
+
+        if not callable(operation_func):
+            raise ValueError("operation_func must be callable")
+
+        # Convert and prepare tensor
+        tensor = to_tensor(operand, data_format)
+
+        # Apply tilization if requested
+        if tilize:
+            tilize_fn = get_golden_generator(TilizeGolden)
+            tensor = tilize_fn(tensor, input_dimensions, data_format).flatten()
+
+        # Validate tensor dimensions
+        total_elements = tensor.numel()
+        expected_elements = num_tiles * ELEMENTS_PER_TILE
+        if total_elements != expected_elements:
+            raise ValueError(
+                f"Tensor size mismatch: got {total_elements} elements for {num_tiles} tiles. "
+                f"Expected {expected_elements} elements "
+                f"({num_tiles} tiles × {ELEMENTS_PER_TILE} elements/tile)"
+            )
+
+        # Reshape tensor for efficient batch processing
+        tile_tensors = tensor.view(num_tiles, ELEMENTS_PER_TILE)
+
+        # Apply operation to all tiles
+        processed_tiles = [
+            operation_func(
+                tile_tensor,
+                data_format,
+                input_dimensions=TILE_DIMENSIONS,
+            )
+            for tile_tensor in tile_tensors
+        ]
+
+        # Concatenate results
+        result = torch.cat(processed_tiles)
+
+        # Apply untilization if requested
+        if untilize:
+            untilize_fn = get_golden_generator(UntilizeGolden)
+            result = untilize_fn(result, data_format, input_dimensions).flatten()
+
+        return result.to(format_dict[data_format])
+
+    def transpose_faces_multi_tile(
+        self,
+        operand: torch.Tensor,
+        data_format: DataFormat,
+        num_tiles: int,
+        tilize: bool = False,
+        untilize: bool = False,
+        input_dimensions: tuple[int, int] = (32, 32),
+    ) -> torch.Tensor:
+        """
+        Transpose face arrangements across multiple tiles in a tensor.
+
+        This function applies face transposition to each 32×32 tile in a multi-tile tensor.
+        Each tile contains 1024 elements arranged as 4 faces of 256 elements each.
+        The operation rearranges the faces within each tile.
+
+        Args:
+            operand: Input tensor containing concatenated tiles to transpose
+            data_format: Target data format for the result tensor
+            num_tiles: Number of 32×32 tiles in the input tensor (must be positive)
+            tilize: If True, applies tilization preprocessing to the input
+            untilize: If True, applies untilization postprocessing to the result
+            input_dimensions: Overall input matrix dimensions as (rows, cols)
+
+        Returns:
+            Tensor with face arrangements transposed for all tiles
+
+        Raises:
+            ValueError: If tensor size doesn't match expected size for num_tiles
+            ValueError: If num_tiles is not positive
+
+        Example:
+            >>> # Process 4 tiles with face transposition
+            >>> result = obj.transpose_faces_multi_tile(
+            ...     tensor, "bfloat16", num_tiles=4, tilize=True
+            ... )
+        """
+        return self._apply_tile_operation_multi_tile(
+            operand=operand,
+            data_format=data_format,
+            num_tiles=num_tiles,
+            operation_func=self.transpose_faces,
+            tilize=tilize,
+            untilize=untilize,
+            input_dimensions=input_dimensions,
+        )
+
+    def transpose_within_faces_multi_tile(
+        self,
+        operand: torch.Tensor,
+        data_format: DataFormat,
+        num_tiles: int,
+        tilize: bool = False,
+        untilize: bool = False,
+        input_dimensions: tuple[int, int] = (32, 32),
+    ) -> torch.Tensor:
+        """
+        Transpose elements within each face across multiple tiles.
+
+        This function applies within-face transposition to each 32×32 tile in a multi-tile tensor.
+        Each tile contains 4 faces of 256 elements each, and the transposition is applied
+        independently within each face of every tile, preserving face boundaries.
+
+        Args:
+            operand: Input tensor containing concatenated tiles to process
+            data_format: Target data format for the result tensor
+            num_tiles: Number of 32×32 tiles in the input tensor (must be positive)
+            tilize: If True, applies tilization preprocessing to the input
+            untilize: If True, applies untilization postprocessing to the result
+            input_dimensions: Overall input matrix dimensions as (rows, cols)
+
+        Returns:
+            Tensor with elements transposed within each face of all tiles
+
+        Raises:
+            ValueError: If tensor size doesn't match expected size for num_tiles
+            ValueError: If num_tiles is not positive
+
+        Example:
+            >>> # Process 2 tiles with within-face transposition
+            >>> result = obj.transpose_within_faces_multi_tile(
+            ...     tensor, "float32", num_tiles=2, untilize=True
+            ... )
+
+        Note:
+            The transposition occurs within each of the 4 faces per tile, preserving
+            the face boundaries but reordering elements within each face.
+        """
+        return self._apply_tile_operation_multi_tile(
+            operand=operand,
+            data_format=data_format,
+            num_tiles=num_tiles,
+            operation_func=self.transpose_within_faces,
+            tilize=tilize,
+            untilize=untilize,
+            input_dimensions=input_dimensions,
+        )
 
 
 @register_golden
 class MatmulGolden(FidelityMasking):
 
     def __call__(
-        self, operand1, operand2, data_format, math_fidelity, input_dimensions=[32, 32]
+        self,
+        operand1,
+        operand2,
+        data_format,
+        math_fidelity,
+        input_A_dimensions=None,
+        input_B_dimensions=None,
+        tilize: bool = False,
     ):
         torch_format = format_dict[data_format]
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
+
+        # Handle multi-tile matmul with different operand dimensions
+        if input_A_dimensions is not None and input_B_dimensions is not None:
+            # Multi-tile matmul: A[M,K] × B[K,N] = C[M,N]
+            M, K1 = input_A_dimensions[0], input_A_dimensions[1]
+            K2, N = input_B_dimensions[0], input_B_dimensions[1]
+
+            # Verify K dimensions match for valid matmul
+            if K1 != K2:
+                raise AssertionError(
+                    f"Matrix dimensions incompatible: A[{M},{K1}] × B[{K2},{N}]"
+                )
+
+            output_dimensions = [M, N]
 
         num_fidelity_phases = math_fidelity.value
 
@@ -354,64 +533,50 @@ class MatmulGolden(FidelityMasking):
         if num_fidelity_phases == 0:
 
             t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res = (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
-
-            return res
 
         elif num_fidelity_phases == 1:
 
             t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res = (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
             t1 = to_tensor(operand1, data_format)
             t2 = to_tensor(operand2, data_format)
             t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res += (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
-
-            return res
 
         elif num_fidelity_phases == 2:
 
             t1, t2 = self._apply_fidelity_masking(t1, t2, 0, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res = (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
             t1 = to_tensor(operand1, data_format)
             t2 = to_tensor(operand2, data_format)
             t1, t2 = self._apply_fidelity_masking(t1, t2, 1, data_format)
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res += (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
@@ -420,43 +585,45 @@ class MatmulGolden(FidelityMasking):
             # t1 = to_tensor(operand1, data_format)
             # t2 = to_tensor(operand2, data_format)
             # t1, t2 = self._apply_fidelity_masking(t1, t2, 2, data_format)
-            # t1,t2 = t1.view(input_dimensions[0],input_dimensions[1]), t2.view(input_dimensions[0],input_dimensions[1])
-            # res +=  torch.matmul(t1, t2).view(input_dimensions[0] * input_dimensions[1]).to(torch_format)
+            # t1,t2 = t1.view(M, K1), t2.view(K2, N)
+            # res +=  torch.matmul(t1, t2).view(output_dimensions[0] * output_dimensions[1]).to(torch_format)
 
-            return res
         elif num_fidelity_phases == 3:
 
-            t1, t2 = t1.view(input_dimensions[0], input_dimensions[1]), t2.view(
-                input_dimensions[0], input_dimensions[1]
-            )
+            t1, t2 = t1.view(M, K1), t2.view(K2, N)
             res = (
                 torch.matmul(t1, t2)
-                .view(input_dimensions[0] * input_dimensions[1])
+                .view(output_dimensions[0] * output_dimensions[1])
                 .to(torch_format)
             )
 
-            return res
-
-        # Clone and detach to avoid modifying original input
-        operand1_matrix = to_tensor(operand1, data_format).view(
-            input_dimensions[0], input_dimensions[1]
-        )
-        operand2_matrix = to_tensor(operand2, data_format).view(
-            input_dimensions[0], input_dimensions[1]
-        )
-
-        return (
-            torch.matmul(operand1_matrix, operand2_matrix)
-            .view(input_dimensions[0] * input_dimensions[1])
-            .to(torch_format)
-        )
+        if tilize:
+            res = tilize_block(
+                res,
+                dimensions=(input_A_dimensions[0], input_B_dimensions[1]),
+                stimuli_format=data_format,
+            ).flatten()
+        return res
 
 
 @register_golden
 class DataCopyGolden:
-    def __call__(self, operand1, data_format):
+    def __call__(self, operand1, data_format, num_faces, input_dimensions):
         torch_format = format_dict[data_format]
-        return torch.tensor(operand1, dtype=torch_format)
+
+        height, width = input_dimensions[0], input_dimensions[1]
+        tile_cnt = (height // 32) * (width // 32)
+        tile_size = height * width // tile_cnt
+        # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
+        elements_per_tile_needed = (tile_size // 4) * num_faces
+
+        if not isinstance(operand1, torch.Tensor):
+            operand1 = torch.tensor(operand1)
+
+        reshaped = operand1.view(tile_cnt, tile_size)
+        selected = reshaped[:, :elements_per_tile_needed]
+
+        return selected.flatten().to(torch_format)
 
 
 @register_golden
@@ -470,6 +637,7 @@ class UnarySFPUGolden:
             MathOperation.Cos: self._cos,
             MathOperation.Log: self._log,
             MathOperation.Reciprocal: self._reciprocal,
+            MathOperation.Rsqrt: self._rsqrt,
             MathOperation.Sin: self._sin,
             MathOperation.Sqrt: self._sqrt,
             MathOperation.Square: self._square,
@@ -482,6 +650,9 @@ class UnarySFPUGolden:
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
             MathOperation.Hardsigmoid: self._hardsigmoid,
+            MathOperation.Threshold: self._threshold,
+            MathOperation.ReluMax: self._relu_max,
+            MathOperation.ReluMin: self._relu_min,
         }
         self.data_format = None
         self.dest_acc = DestAccumulation.No
@@ -584,12 +755,19 @@ class UnarySFPUGolden:
 
     def _reciprocal(self, x):
         if x == 0.0:
-            return self.handle_infinite_numbers(1.7014118346046923e38)
+            return self.handle_infinite_numbers(float("inf"))
         return 1 / x
 
     def _sin(self, x):
         # Never not finite, values range from [-1, 1]
         return math.sin(x)
+
+    def _rsqrt(self, x):
+        if x < 0.0:
+            return self.handle_infinite_numbers(float("nan"))
+        if x == 0.0:
+            return self.handle_infinite_numbers(float("inf"))
+        return 1 / math.sqrt(x)
 
     def _sqrt(self, x):
         if x < 0.0:
@@ -668,6 +846,30 @@ class UnarySFPUGolden:
         )
         return torch.nn.functional.hardsigmoid(input_tensor).item()
 
+    def _threshold(self, x, t=5, v=10):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.threshold(input_tensor, t, v).item()
+
+    def _relu_max(self, x, threshold=5):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.relu(torch.min(input_tensor, torch.tensor(threshold))).item()
+
+    def _relu_min(self, x, threshold=5):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.max(input_tensor, torch.tensor(threshold)).item()
+
 
 @register_golden
 class EltwiseBinaryGolden(FidelityMasking):
@@ -722,7 +924,8 @@ class EltwiseBinaryGolden(FidelityMasking):
         return t1 - t2
 
     def _mul(self, t1, t2):
-        return t1 * t2
+        # Compute in float32 for better fidelity, then cast back to original dtype.
+        return (t1.to(torch.float32) * t2.to(torch.float32)).to(t1.dtype)
 
 
 @register_golden

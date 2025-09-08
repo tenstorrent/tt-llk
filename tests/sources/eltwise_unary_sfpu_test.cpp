@@ -60,7 +60,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             break;
         case SfpuType::atanh:
             ckernel::sfpu::_init_atanh_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_atanh_<APPROX_MODE, is_fp32_dest_acc_en, iterations>();
+            ckernel::sfpu::_calculate_atanh_<APPROX_MODE, fp32_dest_accumulation, iterations>();
             break;
         case SfpuType::asinh:
             ckernel::sfpu::_init_inverse_hyperbolic_<APPROX_MODE>();
@@ -81,12 +81,16 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
             ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, iterations, fp32_dest_accumulation>(iterations);
             break;
+        case SfpuType::rsqrt:
+            ckernel::sfpu::_init_rsqrt_<APPROX_MODE, false>();
+            ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE, iterations, fp32_dest_accumulation, false>(iterations);
+            break;
         case SfpuType::sine:
             ckernel::sfpu::_calculate_sine_<APPROX_MODE, iterations>(iterations);
             break;
         case SfpuType::sqrt:
             ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, iterations, 2>(iterations);
+            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, iterations, fp32_dest_accumulation>(iterations);
             break;
         case SfpuType::square:
             ckernel::sfpu::_calculate_square_<APPROX_MODE, iterations>(iterations);
@@ -137,6 +141,15 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
         case SfpuType::hardsigmoid:
             ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
             ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
+            break;
+        case SfpuType::threshold:
+            ckernel::sfpu::_calculate_threshold_<APPROX_MODE, iterations>(5.0f, 10.0f);
+            break;
+        case SfpuType::relu_max:
+            ckernel::sfpu::_relu_max_<sfpi::vFloat, APPROX_MODE, iterations>(5.0f);
+            break;
+        case SfpuType::relu_min:
+            ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, iterations>(5.0f);
             break;
         default:
             return;

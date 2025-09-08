@@ -5,11 +5,8 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from ttexalens.tt_exalens_lib import (
-    read_word_from_device,
-)
-
-from .device import run_elf_files, wait_for_tensix_operations_finished
+from .device import BootMode, run_elf_files, wait_for_tensix_operations_finished
+from .dimensions import validate_tile_dimensions
 from .format_arg_mapping import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -17,13 +14,14 @@ from .format_arg_mapping import (
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     DestAccumulation,
-    L1BufferLocations,
+    DestSync,
     MathFidelity,
     MathOperation,
+    StochasticRounding,
     Transpose,
     format_tile_sizes,
 )
-from .format_config import FormatConfig, InputOutputFormat
+from .format_config import DataFormat, FormatConfig, InputOutputFormat
 from .utils import run_shell_command
 
 
@@ -53,7 +51,9 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
 
 
 def generate_build_header(
-    test_config, profiler_build: ProfilerBuild = ProfilerBuild.No
+    test_config,
+    profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
     """
     Generate the contents of a C++ header file (build.h) with all configuration defines.
@@ -72,6 +72,7 @@ def generate_build_header(
     Args:
         test_config (dict): Dictionary containing test configuration parameters.
         profiler_build (ProfilerBuild, optional): Whether to enable profiler defines.
+        boot_mode (BootMode, optional): Which core / host performs initial device setup.
 
     Returns:
         str: The complete contents of the build.h header file as a string.
@@ -102,6 +103,20 @@ def generate_build_header(
     if profiler_build == ProfilerBuild.Yes:
         header_content.append("#define LLK_PROFILER")
 
+    loop_factor = test_config.get("loop_factor", 1)
+
+    if profiler_build == ProfilerBuild.No and loop_factor != 1:
+        raise ValueError(
+            "test_config['loop_factor'] should only be used when profiler is enabled"
+        )
+
+    header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
+
+    if boot_mode == BootMode.BRISC:
+        header_content.append("#define LLK_BOOT_MODE_BRISC")
+    elif boot_mode == BootMode.TRISC:
+        header_content.append("#define LLK_BOOT_MODE_TRISC")
+
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
     header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")
@@ -112,16 +127,16 @@ def generate_build_header(
 
     # Unpack transpose faces
     unpack_transpose_faces = test_config.get(
-        "unpack_transpose_faces", Transpose.No.value
-    )
+        "unpack_transpose_faces", Transpose.No
+    ).value
     header_content.append(
         f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces};"
     )
 
     # Unpack transpose within face
-    unpack_transpose_within_face = str(
-        test_config.get("unpack_transpose_within_face", Transpose.No.value)
-    ).lower()
+    unpack_transpose_within_face = test_config.get(
+        "unpack_transpose_within_face", Transpose.No
+    ).value
     header_content.append(
         f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face};"
     )
@@ -131,10 +146,31 @@ def generate_build_header(
     header_content.append(f"constexpr int THROTTLE_LEVEL = {throttle};")
 
     # Math transpose faces
-    math_transpose_faces = str(test_config.get("math_transpose_faces", False)).lower()
+    math_transpose_faces = test_config.get("math_transpose_faces", Transpose.No).value
     header_content.append(
         f"constexpr bool MATH_TRANSPOSE_FACES = {math_transpose_faces};"
     )
+    # Stochastic Rounding
+    stochastic_rnd = test_config.get("stochastic_rnd", StochasticRounding.No)
+    header_content.append(
+        f"constexpr auto STOCHASTIC_RND = ckernel::{stochastic_rnd.value};"
+    )
+
+    formats = test_config.get("formats")
+    if formats:
+        # Tile size mapping
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
+
+        pack_size = TILE_SIZES.get(formats.output_format, 128)
+        unpack_size = TILE_SIZES.get(formats.input_format, 128)
+
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")
+        header_content.append(
+            f"constexpr std::uint32_t TILE_SIZE_UNPACK = {unpack_size};"
+        )
 
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
@@ -152,6 +188,16 @@ def generate_build_header(
     )
     header_content.append(
         f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
+    )
+
+    # Number of faces
+    num_faces = test_config.get("num_faces", 4)
+    header_content.append(f"constexpr int num_faces = {num_faces};")
+
+    # Dest synchronisation mode
+    dest_sync = test_config.get("dest_sync", DestSync.Half)
+    header_content.append(
+        f"constexpr auto dest_sync = ckernel::DstSync::Sync{dest_sync.name};"
     )
 
     # Data format configuration
@@ -197,6 +243,26 @@ def generate_build_header(
                     f"constexpr auto POOL_TYPE = ckernel::PoolType::{pool_type.value};"
                 )
 
+    # Optional extra unary operation (used when both a binary and unary op
+    # need to be present in the same kernel, e.g. binary-eltwise followed by
+    # SFPU unary).  If 'unary_op' exists, append its constant.
+    unary_extra = test_config.get("unary_op", None)
+    if unary_extra is not None:
+        # Only add if we haven't already added a unary operation from the main mathop
+        if mathop == "no_mathop" or mathop not in SFPU_UNARY_OPERATIONS:
+            header_content.extend(["", "// Additional SFPU unary operation"])
+            header_content.append(
+                f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{unary_extra.cpp_enum_value};"
+            )
+
+    # Destination sync mode configuration
+    dst_sync = test_config.get("dst_sync", None)
+    if dst_sync is not None:
+        header_content.extend(["", "// Destination sync configuration"])
+        header_content.append(
+            f"constexpr auto DST_SYNC = ckernel::DstSync::{dst_sync.value};"
+        )
+
     tile_cnt = test_config.get("tile_cnt", 1)
 
     header_content.append("")
@@ -204,10 +270,10 @@ def generate_build_header(
     header_content.append("// Multi-tile test configuration")
     header_content.append(f"constexpr int TILE_CNT = {tile_cnt};")
 
-    # Unpack an result buffer addresses arrays generations
-    buffer_A_address = read_word_from_device("0,0", L1BufferLocations.srcA.value)
-    buffer_B_address = read_word_from_device("0,0", L1BufferLocations.srcB.value)
-    result_buffer_address = read_word_from_device("0,0", L1BufferLocations.Result.value)
+    # Unpack + result buffer addresses arrays generations
+    buffer_A_address = test_config.get("buffer_A_address", 0x1A000)
+    buffer_B_address = test_config.get("buffer_B_address", 0x1B000)
+    result_buffer_address = test_config.get("result_buffer_address", 0x1C000)
 
     buffer_A_array = []
     buffer_B_array = []
@@ -245,9 +311,17 @@ def generate_build_header(
         "#endif\n"
     )
 
-    input_dimensions = test_config.get("input_dimensions", [32, 32])
-    block_ct_dim = input_dimensions[1] // 32
-    block_rt_dim = input_dimensions[0] // 32
+    input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
+    input_B_dimensions = test_config.get("input_B_dimensions", [32, 32])
+
+    num_rows = 32
+    num_cols = 32
+    validate_tile_dimensions(input_A_dimensions[0], num_rows)
+    validate_tile_dimensions(input_A_dimensions[1], num_cols)
+    validate_tile_dimensions(input_B_dimensions[0], num_rows)
+    validate_tile_dimensions(input_B_dimensions[1], num_cols)
+    block_rt_dim = input_A_dimensions[0] // num_rows
+    block_ct_dim = input_B_dimensions[1] // num_cols
 
     header_content.extend(
         [
@@ -257,6 +331,16 @@ def generate_build_header(
             "#endif",
         ]
     )
+
+    # Add matrix multiplication tile dimensions if they exist
+    if "rt_dim" in test_config:
+        header_content.append(f"constexpr uint32_t RT_DIM = {test_config['rt_dim']};")
+    if "ct_dim" in test_config:
+        header_content.append(f"constexpr uint32_t CT_DIM = {test_config['ct_dim']};")
+    if "kt_dim" in test_config:
+        header_content.append(f"constexpr uint32_t KT_DIM = {test_config['kt_dim']};")
+
+    header_content.append("")
 
     if perf_run_type := test_config.get("perf_run_type"):
         header_content.append("")
@@ -271,8 +355,11 @@ def generate_build_header(
 def write_build_header(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
-    header_content = generate_build_header(test_config, profiler_build)
+    header_content = generate_build_header(
+        test_config, profiler_build, boot_mode=boot_mode
+    )
     with open("../helpers/include/build.h", "w") as f:
         f.write(header_content)
 
@@ -294,6 +381,7 @@ def generate_make_command(
 def build_test(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,
 ):
     """Only builds the files required to run a test"""
 
@@ -303,7 +391,7 @@ def build_test(
 
     TESTS_DIR = str((Path(root) / "tests").absolute())
 
-    write_build_header(test_config, profiler_build=profiler_build)
+    write_build_header(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
     make_cmd = generate_make_command(test_config, profiler_build=profiler_build)
     run_shell_command(make_cmd, cwd=TESTS_DIR)
 
@@ -311,11 +399,12 @@ def build_test(
 def run_test(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode = BootMode.BRISC,  # change default boot mode here
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, profiler_build=profiler_build)
+    build_test(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
 
     # run test
-    run_elf_files(test_config["testname"])
+    run_elf_files(test_config["testname"], boot_mode=boot_mode)
     wait_for_tensix_operations_finished()

@@ -34,7 +34,7 @@ inline void _llk_unpack_reduce_mop_config_()
         0,
         unpack_srcb,
         0);
-    tmp.program(instrn_buffer);
+    tmp.program();
 }
 
 template <DestAccumulation fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None>

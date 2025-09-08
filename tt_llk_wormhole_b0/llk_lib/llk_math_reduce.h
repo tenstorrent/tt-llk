@@ -23,12 +23,18 @@ template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop();
 
 template <
+    
     PoolType type,
+   
     ReduceDim dim,
+   
     DestAccumulation fp32_dest_accumulation,
-    int MATH_FIDELITY_DESC = 0,
-    bool is_int_fpu_en     = false,
-    bool fp32_transpose    = false>
+   
+    int MATH_FIDELITY_DESC         = 0,
+   
+    bool is_int_fpu_en                 = false,
+   
+    bool enforce_fp32_accumulation    = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
@@ -44,7 +50,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         }
         else if constexpr (HIGH_FIDELITY)
         {
-            ckernel_template::run(instrn_buffer);
+            ckernel_template::run();
             TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
         }
         else
@@ -58,14 +64,14 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         }
         else if constexpr (HIGH_FIDELITY)
         {
-            ckernel_template::run(instrn_buffer);
+            ckernel_template::run();
         }
         else
         {
             TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
 
-        if constexpr (fp32_transpose)
+        if constexpr (enforce_fp32_accumulation)
         {
             // Move back to B and transpose in 2 parts, first hi16 bits then lo16 bits
             constexpr int dest_32b_hi = 0;
@@ -170,7 +176,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             }
             else if constexpr (HIGH_FIDELITY)
             {
-                ckernel_template::run(instrn_buffer);
+                ckernel_template::run();
                 TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
             }
             else
@@ -184,14 +190,14 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             }
             else if constexpr (HIGH_FIDELITY)
             {
-                ckernel_template::run(instrn_buffer);
+                ckernel_template::run();
             }
             else
             {
                 TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
 
-            if constexpr (fp32_transpose)
+            if constexpr (enforce_fp32_accumulation)
             {
                 // Move back to B and transpose in 2 parts, first hi16 bits then lo16 bits
                 constexpr int dest_32b_hi = 0;
@@ -287,7 +293,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             {
                 if constexpr (HIGH_FIDELITY)
                 {
-                    ckernel_template::run(instrn_buffer);
+                    ckernel_template::run();
                 }
                 else
                 {
@@ -307,7 +313,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 {
                     if constexpr (HIGH_FIDELITY)
                     {
-                        ckernel_template::run(instrn_buffer);
+                        ckernel_template::run();
                     }
                     else
                     {
@@ -332,7 +338,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             {
                 if constexpr (HIGH_FIDELITY)
                 {
-                    ckernel_template::run(instrn_buffer);
+                    ckernel_template::run();
                     TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
                 }
                 else
@@ -350,7 +356,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         {
             if constexpr (HIGH_FIDELITY)
             {
-                ckernel_template::run(instrn_buffer);
+                ckernel_template::run();
             }
             else
             {
@@ -432,18 +438,18 @@ inline void reduce_configure_mop()
         ckernel_template tmp(1, num_fidelity_phases, TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 4));
         tmp.set_last_inner_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4));
         tmp.set_last_outer_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4));
-        tmp.program(instrn_buffer);
+        tmp.program();
     }
     else
     {
         ckernel_template tmp(1, num_fidelity_phases, TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0));
         tmp.set_last_inner_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0));
         tmp.set_last_outer_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0));
-        tmp.program(instrn_buffer);
+        tmp.program();
     }
 }
 
-template <PoolType type, ReduceDim dim, int MATH_FIDELITY_DESC = 0>
+template <PoolType type, ReduceDim dim, DestAccumulation fp32_dest_accumulation, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0)
 { // within_face_16x16_transpose used for unpack, ignored by math
 
@@ -456,6 +462,13 @@ inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpo
         reduce_configure_mop<dim, MATH_FIDELITY_PHASES>();
     }
 
+    if constexpr (enforce_fp32_accumulation)
+    {
+        static_assert(fp32_dest_accumulation, "FP32 Dest must be enabled for FP32 accumulation");
+        // MOVB2D/D2B depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32 (only on WH)
+        // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
+    }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);

@@ -25,10 +25,9 @@ template <
     DestAccumulation fp32_dest_accumulation,
     BroadcastType src_b_bcast_type = BroadcastType::NONE,
     bool unpack_to_dest            = false>
-inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
+inline void _llk_math_eltwise_unary_datacopy_(
+    const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format, const std::uint32_t num_faces = 4)
 {
-    std::uint32_t constexpr num_faces = 4;
-
     // For 32bit data, each half of DEST can take 16 tiles. Since dest offset is returned as if 16bit data are used, we need to
     // adjust it to offset in faces for 32bit data.
     std::uint32_t dest_base_offset_in_faces = get_dest_buffer_base() >> 5;
@@ -50,7 +49,12 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
         for (std::uint32_t i = 0; i < num_faces; i++)
         {
             // Clears zero flags in DEST for one face.
-            TT_ZEROACC(p_zeroacc::CLR_16, 0, 1 /*clear zero flags*/, ADDR_MOD_3, dest_base_offset_in_faces + dst_index_in_faces + i);
+            TT_ZEROACC(
+                p_zeroacc::CLR_16,
+                static_cast<int>(dst_format == (uint)DataFormat::Float32),
+                1 /*clear zero flags*/,
+                ADDR_MOD_3,
+                dest_base_offset_in_faces + dst_index_in_faces + i);
         }
     }
     else
@@ -59,21 +63,21 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
 
         if constexpr (type == A2D)
         {
-            ckernel_template::run(instrn_buffer);
+            ckernel_template::run();
         }
         else if constexpr (type == B2D)
         {
             if constexpr (src_b_bcast_type == BroadcastType::COL)
             {
                 // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice
-                ckernel_template::run(instrn_buffer);
+                ckernel_template::run();
                 TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
-                ckernel_template::run(instrn_buffer);
+                ckernel_template::run();
                 TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0);
             }
             else
             {
-                ckernel_template::run(instrn_buffer);
+                ckernel_template::run();
             }
         }
 
@@ -169,13 +173,13 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
             // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
-            tmp.program(instrn_buffer);
+            tmp.program();
         }
         else
         {
             ckernel_template tmp(outerloop, innerloop, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
-            tmp.program(instrn_buffer);
+            tmp.program();
         }
     }
     else if constexpr (type == B2D)
@@ -213,25 +217,25 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         {
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0));
-            tmp.program(instrn_buffer);
+            tmp.program();
         }
         else if constexpr (bcast_type == BroadcastType::COL)
         {
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
             tmp.set_end_op(TT_OP_SETRWC(0, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));
-            tmp.program(instrn_buffer);
+            tmp.program();
         }
         else if constexpr (bcast_type == BroadcastType::ROW)
         {
             ckernel_template tmp(outerloop, innerloop, TT_OP_MOVB2D(0, 0, addr_mod, broadcast_type, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_B, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));
-            tmp.program(instrn_buffer);
+            tmp.program();
         }
         else
         {
             ckernel_template tmp(outerloop, innerloop, TT_OP_MOVB2D(0, 0, addr_mod, rows_per_inst, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_B, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));
-            tmp.program(instrn_buffer);
+            tmp.program();
         }
     }
 }
