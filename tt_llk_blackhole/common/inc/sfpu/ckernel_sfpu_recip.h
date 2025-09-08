@@ -63,7 +63,7 @@ inline void _calculate_reciprocal_(const int iterations)
     {
         sfpi::vFloat in = sfpi::dst_reg[0];
 
-        if constexpr (APPROX_MODE)
+        if constexpr (APPROX_MODE == ApproximationMode::Fast)
         {
             sfpi::dst_reg[0] = _sfpu_reciprocal_<0>(in);
         }

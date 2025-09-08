@@ -22,7 +22,7 @@ inline sfpi::vFloat _calculate_gelu_core_(sfpi::vFloat in)
     //   ? (1 + erf(x/sqrt(2)))
     //   : (1 + tanh( sqrt(2/pi) * (x + 0.044715*x^3) )
     sfpi::vFloat result;
-    if constexpr (APPROX_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         result = in;
     }
@@ -101,7 +101,7 @@ inline void _calculate_gelu_accurate_()
 template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_gelu_()
 {
-    if constexpr (APPROX_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         _calculate_gelu_appx_<ITERATIONS>();
     }
@@ -114,7 +114,7 @@ inline void _calculate_gelu_()
 template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_gelu_derivative_()
 {
-    if constexpr (APPROX_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         constexpr int lut_mode = 1; // SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1
 
@@ -223,7 +223,7 @@ inline void _init_gelu_derivative_()
     uint imm4;
     uint imm5;
 
-    if constexpr (APPROX_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         // Using a 6 piece LUT to calculate and model gelu_derivative directly
         // x <= 0.5 --> 0.8x + 0.5
