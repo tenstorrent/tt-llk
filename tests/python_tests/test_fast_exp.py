@@ -67,16 +67,16 @@ def test_eltwise_unary_sfpu_float(
 
 def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     torch.set_printoptions(precision=10)
-    input_dimensions = [32, 32]
+    input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
+    src_A = (100 * torch.rand(input_dimensions[0] * input_dimensions[1])) - 100
+
     generate_golden = get_golden_generator(UnarySFPUGolden)
-    golden_tensor = generate_golden(
-        mathop, src_A, formats.output_format, dest_acc, formats.input_format
-    )
+    golden_tensor = torch.exp(src_A)
 
     unpack_to_dest = (
         formats.input_format.is_32_bit()
@@ -109,36 +109,10 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
-    # res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-
-    print("\n\nUsing ", len(golden_tensor), " numbers in total. \n\n")
-
-    def format_tensor(t):
-        return "[" + ", ".join(f"{float(v):.4f}" for v in t) + "]"
-
-    # print("RES_TENSOR first 10:")
-    # print(format_tensor(res_tensor[0:10]))
-    # print("GOLDEN first 10:")
-    # print(format_tensor(golden_tensor[0:10]))
-
-    # print("=" * 80)
-
-    # print("RES_TENSOR last 10:")
-    # print(format_tensor(res_tensor[-10:]))
-    # print("GOLDEN last 10:")
-    # print(format_tensor(golden_tensor[-10:]))
-
-    torch.set_printoptions(
-        linewidth=5000, sci_mode=False, threshold=1000000000, precision=3
-    )
-
-    print(res_tensor.view(64, 16))
-    print("-" * 300)
-    print(golden_tensor.view(64, 16))
 
     assert passed_test(
         golden_tensor,
