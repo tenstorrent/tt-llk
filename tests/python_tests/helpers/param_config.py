@@ -318,7 +318,7 @@ def _get_dest_indices_for_sync_mode(
         dest_sync: DestSync mode to calculate indices for
 
     Returns:
-        List of valid destination indices [0, max_index] for this mode
+        Valid destination index max_index in dst register for this mode
     """
     DEST_SYNC_TILE_LIMITS = {
         DestSync.Half: 8,
@@ -359,8 +359,7 @@ def calculate_edgecase_dest_indices(
         List of tuples: (dest_sync, dst_index)
     """
     combinations = []
-    for dest_sync in dest_sync_modes:
-        indices = _get_dest_indices_for_sync_mode(dest_acc, result_tiles, dest_sync)
-        combinations.append(indices)
-
-    return combinations
+    return [
+        _get_dest_indices_for_sync_mode(dest_acc, result_tiles, dest_sync)
+        for dest_sync in dest_sync_modes
+    ]
