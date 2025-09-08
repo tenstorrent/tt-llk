@@ -29,11 +29,7 @@ def _mask_tile(tile: torch.Tensor, num_faces: int, is_matrix_A: bool) -> torch.T
 
 
 def generate_random_face(
-    stimuli_format=DataFormat.Float16_b,
-    const_value=1,
-    const_face=False,
-    sfpu=True,
-    tile=1,
+    stimuli_format=DataFormat.Float16_b, const_value=1, const_face=False, sfpu=True
 ):
     size = 256
     if stimuli_format != DataFormat.Bfp8_b:
@@ -42,10 +38,6 @@ def generate_random_face(
             srcA_face = torch.randint(
                 low=0, high=max, size=(size,), dtype=format_dict[stimuli_format]
             )
-            # The following part was used when testing large INT32 values
-            # srcA_face = (
-            #     torch.ones(size, dtype=format_dict[stimuli_format]) * 0xdead1234
-            # )
         else:
             if const_face:
                 srcA_face = (
@@ -53,16 +45,9 @@ def generate_random_face(
                 )
             else:
                 # random for both faces
-                # srcA_face = torch.rand(size, dtype=format_dict[stimuli_format])
-                # if sfpu:
-                #     srcA_face += 0.1
-
-                # The following code is used to generate the input: F0:0.1, F1:0.2, F2:0.3, F3:0.4
-                srcA_face = (
-                    torch.ones(size, dtype=format_dict[stimuli_format])
-                    * (tile + 1)
-                    * 0.1
-                )
+                srcA_face = torch.rand(size, dtype=format_dict[stimuli_format])
+                if sfpu:
+                    srcA_face += 0.1
     else:
 
         integer_part = torch.randint(0, 3, (size,))
@@ -82,11 +67,10 @@ def generate_random_face_ab(
     const_value_A=1,
     const_value_B=2,
     sfpu=True,
-    tile=1,
 ):
     return generate_random_face(
-        stimuli_format_A, const_value_A, const_face, sfpu, tile
-    ), generate_random_face(stimuli_format_B, const_value_B, const_face, sfpu, tile)
+        stimuli_format_A, const_value_A, const_face, sfpu
+    ), generate_random_face(stimuli_format_B, const_value_B, const_face, sfpu)
 
 
 def generate_face_matmul_data(
@@ -144,7 +128,7 @@ def generate_stimuli(
 
     tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
 
-    for i in range(4 * tile_cnt):
+    for _ in range(4 * tile_cnt):
         face_a, face_b = generate_random_face_ab(
             stimuli_format_A,
             stimuli_format_B,
@@ -152,7 +136,6 @@ def generate_stimuli(
             const_value_A,
             const_value_B,
             sfpu,
-            tile=i,
         )
         srcA.extend(face_a.tolist())
         srcB.extend(face_b.tolist())
