@@ -407,7 +407,7 @@ inline void _init_exponential_()
     }
     else
     {
-        // Initialisation for use of _sfpu_reciprocal_<2> in _calculate_exponential_<APPROXIMATION_MODE=false>.
+        // Initialisation for use of _sfpu_reciprocal_<2> in _calculate_exponential_<ApproximationMode::Precise>.
         _init_reciprocal_<false>();
     }
 }
