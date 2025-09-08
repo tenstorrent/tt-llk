@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -13,11 +14,11 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int RECIPROCAL_ITERATIONS>
+template <ApproximationMode APPROX_MODE, int RECIPROCAL_ITERATIONS>
 sfpi_inline sfpi::vFloat _sqrt_compat_(sfpi::vFloat val)
 {
     sfpi::vFloat result;
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         sfpi::vUInt magic = (127 << 7) << 16;
 
@@ -97,21 +98,21 @@ sfpi_inline sfpi::vFloat _reciprocal_compat_(const sfpi::vFloat in)
     return setexp(result, new_exp);
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool fp32_dest_acc_en>
 inline void _calculate_rsqrt_compat_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::dst_reg[0] = _sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
+        sfpi::dst_reg[0] = _sqrt_compat_<APPROX_MODE, 2>(sfpi::dst_reg[0]);
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
+        sfpi::vFloat out = _reciprocal_compat_<APPROX_MODE ? 2 : 3>(in);
         v_if (in < 0.0)
         {
             out = -out;
         }
         v_endif;
-        if constexpr (fp32_dest_acc_en || APPROXIMATION_MODE)
+        if constexpr (fp32_dest_acc_en || ApproximationMode::Fast)
         {
             sfpi::dst_reg[0] = out;
         }
@@ -123,31 +124,31 @@ inline void _calculate_rsqrt_compat_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool fp32_dest_acc_en>
 inline void _calculate_sqrt_compat_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::dst_reg[0] = _sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
+        sfpi::dst_reg[0] = _sqrt_compat_<APPROX_MODE, 2>(sfpi::dst_reg[0]);
         sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool fp32_dest_acc_en>
 inline void _calculate_reciprocal_compat_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
+        sfpi::vFloat out = _reciprocal_compat_<APPROX_MODE ? 2 : 3>(in);
         v_if (in < 0.0)
         {
             out = -out;
         }
         v_endif;
-        if constexpr (fp32_dest_acc_en || APPROXIMATION_MODE)
+        if constexpr (fp32_dest_acc_en || APPROX_MODE == ApproximationMode::Fast)
         {
             sfpi::dst_reg[0] = out;
         }
