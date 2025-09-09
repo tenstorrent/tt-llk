@@ -161,7 +161,7 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
 template <ApproximationMode APPROX_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
-    if constexpr (FAST_APPROX && APPROX_MODE)
+    if constexpr (FAST_APPROX && APPROX_MODE == ApproximationMode::Fast)
     {
         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
         // value with -88.5 and store back to DEST
@@ -273,7 +273,7 @@ constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(
 template <ApproximationMode APPROX_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
-    if constexpr (FAST_APPROX && APPROX_MODE)
+    if constexpr (FAST_APPROX && APPROX_MODE == ApproximationMode::Fast)
     {
         // Algorithm is adapted from:
         //      A Fast, Compact Approximation of the Exponential Function

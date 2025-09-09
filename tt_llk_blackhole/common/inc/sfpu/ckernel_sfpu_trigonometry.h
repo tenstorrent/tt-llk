@@ -33,7 +33,7 @@ sfpi_inline sfpi::vFloat _sfpu_sine_maclaurin_series_(sfpi::vFloat val)
     // x^7/7!
     tmp = tmp * val * val;
     output += -0.0001984126 * tmp;
-    if constexpr (not APPROX_MODE)
+    if constexpr (not APPROX_MODE == ApproximationMode::Fast)
     {
         // x^9/9!
         tmp = tmp * val * val;
@@ -63,7 +63,7 @@ sfpi_inline sfpi::vFloat _sfpu_cosine_maclaurin_series_(sfpi::vFloat val)
     // x^6/6!
     tmp = tmp * val * val;
     output += -0.0013888888 * tmp;
-    if constexpr (not APPROX_MODE)
+    if constexpr (not APPROX_MODE == ApproximationMode::Fast)
     {
         // x^8/8!
         tmp = tmp * val * val;
