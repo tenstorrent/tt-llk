@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include <bit>
+#include <cstdint>
+#include <type_traits>
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
