@@ -5,6 +5,8 @@
 #pragma once
 #include "llk_math_eltwise_ternary_sfpu.h"
 #include "llk_sfpu_types.h"
+#include <algorithm>
+#include <utility> 
 
 template <typename Callable, typename... ARGS>
 inline void _llk_math_welfords_sfpu_params_(Callable&& sfpu_func, uint dst_index0, uint dst_index1, uint dst_index2, ARGS&&... args)
