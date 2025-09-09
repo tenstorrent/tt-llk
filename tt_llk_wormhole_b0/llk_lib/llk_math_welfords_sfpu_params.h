@@ -4,8 +4,7 @@
 
 #pragma once
 #include <algorithm>
-
-#include <utility> 
+#include <utility>
 
 #include "llk_math_eltwise_ternary_sfpu.h"
 #include "llk_sfpu_types.h"
