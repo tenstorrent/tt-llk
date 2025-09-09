@@ -100,7 +100,7 @@ inline void _calculate_reciprocal_(const int iterations)
 template <ApproximationMode APPROX_MODE, bool legacy_compat = false>
 inline void _init_reciprocal_()
 {
-    if constexpr (!APPROX_MODE && !legacy_compat)
+    if constexpr (!APPROX_MODE == ApproximationMode::Fast && !legacy_compat)
     {
         sfpi::vConstFloatPrgm0 = 2.0f;
     }
