@@ -145,8 +145,8 @@ enum InstrModLoadStore
     HI16_ONLY     = 15
 };
 
-enum class ApproximationMode 
-{ 
+enum class ApproximationMode
+{
     Precise = 0, // High precision, slower (false equivalent)
     Fast    = 1  // Fast approximation, less accurate (true equivalent)
 };

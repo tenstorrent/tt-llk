@@ -154,8 +154,8 @@ enum InstrModCast
     INT_SIGN_MAGN_TO_INT32_2S_COMP = 3
 };
 
-enum class ApproximationMode 
-{ 
+enum class ApproximationMode
+{
     Precise = 0, // High precision, slower (false equivalent)
     Fast    = 1  // Fast approximation, less accurate (true equivalent)
 };
