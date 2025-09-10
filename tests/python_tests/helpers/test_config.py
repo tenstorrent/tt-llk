@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import os
-from enum import Enum
-from pathlib import Path
+
+from helpers.build import ProfilerBuild
+from helpers.environment import TestEnvironment
 
 from .device import BootMode, run_elf_files, wait_for_tensix_operations_finished
 from .dimensions import validate_tile_dimensions
@@ -22,12 +22,6 @@ from .format_arg_mapping import (
     format_tile_sizes,
 )
 from .format_config import DataFormat, FormatConfig, InputOutputFormat
-from .utils import run_shell_command
-
-
-class ProfilerBuild(Enum):
-    Yes = "true"
-    No = "false"
 
 
 def _generate_operation_constants(mathop: MathOperation) -> list[str]:
@@ -352,59 +346,14 @@ def generate_build_header(
     return "\n".join(header_content)
 
 
-def write_build_header(
-    test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
-):
-    header_content = generate_build_header(
-        test_config, profiler_build, boot_mode=boot_mode
-    )
-    with open("../helpers/include/build.h", "w") as f:
-        f.write(header_content)
-
-
-def generate_make_command(
-    test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-):
-    """Generate make command"""
-    # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} all "
-
-    if profiler_build == ProfilerBuild.Yes:
-        make_cmd += "profiler "
-
-    return make_cmd
-
-
-def build_test(
-    test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
-):
-    """Only builds the files required to run a test"""
-
-    root = os.environ.get("LLK_HOME")
-    if not root:
-        raise AssertionError("Environment variable LLK_HOME is not set")
-
-    TESTS_DIR = str((Path(root) / "tests").absolute())
-
-    write_build_header(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
-    make_cmd = generate_make_command(test_config, profiler_build=profiler_build)
-    run_shell_command(make_cmd, cwd=TESTS_DIR)
-
-
 def run_test(
+    env: TestEnvironment,
     test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,  # change default boot mode here
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
+    env.build(test_config["testname"], test_config)
 
     # run test
-    run_elf_files(test_config["testname"], boot_mode=boot_mode)
+    run_elf_files(test_config["testname"], boot_mode=env.get_boot_mode())
     wait_for_tensix_operations_finished()

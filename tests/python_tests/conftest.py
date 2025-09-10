@@ -13,15 +13,21 @@ from ttexalens.tt_exalens_lib import (
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import reset_mailboxes
+from helpers.directories import get_tests_dir
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 
 # imports for pytest fixtures
 from helpers.perf import perf_report  # noqa: F401  # isort:skip
+from helpers.environment import test_env  # noqa: F401  # isort:skip
 
 
 def init_llk_home():
+    """
+    Initializes the LLK_HOME environment variable
+    This environment variable stores the root directory of the project
+    """
     if "LLK_HOME" in os.environ:
         return
     os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
@@ -34,9 +40,8 @@ def check_hardware_headers():
     chip_arch = get_chip_architecture()
     arch_name = chip_arch.value.lower()  # Convert enum to string
 
-    # Get the project root (LLK_HOME)
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    header_dir = llk_home / "tests" / "hw_specific" / arch_name / "inc"
+    tests_dir = get_tests_dir()
+    header_dir = tests_dir / "hw_specific" / arch_name / "inc"
 
     required_headers = [
         "cfg_defines.h",
@@ -51,7 +56,7 @@ def check_hardware_headers():
         pytest.exit(
             f"ERROR: Hardware-specific header directory not found: {header_dir}\n\n"
             f"SOLUTION: Run the setup script to download required headers:\n"
-            f"  cd {llk_home}/tests\n"
+            f"  cd {tests_dir}\n"
             f"  ./setup_testing_env.sh\n",
             returncode=1,
         )
@@ -68,7 +73,7 @@ def check_hardware_headers():
             + "\n".join(f"  {header}" for header in missing_headers)
             + "\n\n"
             f"SOLUTION: Run the setup script to download missing headers:\n"
-            f"  cd {llk_home}/tests\n"
+            f"  cd {tests_dir}\n"
             f"  ./setup_testing_env.sh\n",
             returncode=1,
         )
