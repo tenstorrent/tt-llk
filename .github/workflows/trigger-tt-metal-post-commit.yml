@@ -255,7 +255,7 @@ jobs:
         run: |
           # Parse Wormhole test results
           WH_RESULT="${{ needs.trigger-tt-metal-tests.outputs.all-post-commit-result || '' }}"
-          if [ -n "$WH_RESULT" ] && [ "$WH_RESULT" != "" ]; then
+          if [ -n "$WH_RESULT" ]; then
             WH_STATUS=$(echo "$WH_RESULT" | cut -d: -f1)
             WH_URL=$(echo "$WH_RESULT" | cut -d: -f2-)
             echo "wh-status=$WH_STATUS" >> $GITHUB_OUTPUT
@@ -267,7 +267,7 @@ jobs:
 
           # Parse Blackhole test results
           BH_RESULT="${{ needs.trigger-tt-metal-tests.outputs.blackhole-result || '' }}"
-          if [ -n "$BH_RESULT" ] && [ "$BH_RESULT" != "" ]; then
+          if [ -n "$BH_RESULT" ]; then
             BH_STATUS=$(echo "$BH_RESULT" | cut -d: -f1)
             BH_URL=$(echo "$BH_RESULT" | cut -d: -f2-)
             echo "bh-status=$BH_STATUS" >> $GITHUB_OUTPUT
