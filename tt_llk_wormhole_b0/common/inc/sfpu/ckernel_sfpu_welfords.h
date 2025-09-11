@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include <bit>
+#include <cstdint>
+#include <type_traits>
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
@@ -44,10 +45,18 @@ struct FloatBits
 
 sfpi_inline void _load_recip_current_sample_lreg7_(const uint32_t current_sample, const uint32_t* reciprocal_lut_ptr)
 {
-    /*var_{N+1}temp = 1/(N+1) usage loads high 16 bits*/
+    // If no reciprocal lookup table is provided, use float divison to compute it
+    if (reciprocal_lut_ptr == nullptr)
+    {
+        const float reciprocal = 1.0f / static_cast<float>(current_sample + 1);
+        const FloatBits reciprocal_bits(reciprocal);
+        TT_SFPLOADI(ckernel::p_sfpu::LREG7, 8, reciprocal_bits.high16);
+        TT_SFPLOADI(ckernel::p_sfpu::LREG7, 10, reciprocal_bits.low16);
+        return;
+    }
+
     auto reciprocal = *(reciprocal_lut_ptr + current_sample);
     TT_SFPLOADI(ckernel::p_sfpu::LREG7, 8, reciprocal >> 16);
-    /*var_{N+1}temp = 1/(N+1) usage loads low 16 bits*/
     TT_SFPLOADI(ckernel::p_sfpu::LREG7, 10, reciprocal & 0xFFFF);
 }
 
@@ -140,14 +149,14 @@ sfpi_inline void _welfords_load_initial_data_()
 
 // Macro to allow returns to exit main function
 
-#define WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)                                                                    \
+#define WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)                                                \
     if (current_sample == final_sample)                                                                                                       \
     {                                                                                                                                         \
         return current_sample;                                                                                                                \
     }                                                                                                                                         \
     if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
-        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                                    \
+        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
     }                                                                                                                                         \
@@ -162,7 +171,7 @@ sfpi_inline void _welfords_load_initial_data_()
     if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG1, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                                    \
+        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
     }                                                                                                                                         \
@@ -177,7 +186,7 @@ sfpi_inline void _welfords_load_initial_data_()
     if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG2, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                                    \
+        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
     }                                                                                                                                         \
@@ -192,7 +201,7 @@ sfpi_inline void _welfords_load_initial_data_()
     if (skip_n_rows <= 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG3, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                                    \
+        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
     }                                                                                                                                         \
