@@ -45,7 +45,7 @@ struct FloatBits
 
 sfpi_inline void _load_recip_current_sample_lreg7_(const uint32_t current_sample, const uint32_t* reciprocal_lut_ptr)
 {
-    // If no reciprocal lookup table is provided, use float divison to compute it
+    // If no reciprocal lookup table is provided, use float division to compute it
     if (reciprocal_lut_ptr == nullptr)
     {
         const float reciprocal = 1.0f / static_cast<float>(current_sample + 1);
