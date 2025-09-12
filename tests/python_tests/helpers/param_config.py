@@ -293,16 +293,15 @@ def generate_format_aware_matmul_combinations(
                         dest_sync_modes,
                     )[0]
 
-                    combinations.extend(
-                        [
-                            (fmt, dest_acc, dims, stochastic_mode, 0),
-                            (
-                                (fmt, dest_acc, dims, stochastic_mode, max_dst_idx)
-                                if max_dst_idx != 0
-                                else None
-                            ),
-                        ]
+                    combinations.append((fmt, dest_acc, dims, stochastic_mode, 0))
+                    (
+                        combinations.append(
+                            (fmt, dest_acc, dims, stochastic_mode, max_dst_idx)
+                        )
+                        if max_dst_idx != 0
+                        else None
                     )
+
     return combinations
 
 
