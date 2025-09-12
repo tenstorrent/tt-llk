@@ -309,7 +309,7 @@ sfpi_inline void _program_welfords_replay_()
 }
 
 template <std::size_t reciprocal_size>
-void _welfords_llk_entry_(
+void _calculate_welfords_online_(
     uint32_t current_sample,
     const uint32_t final_sample,
     uint32_t skip_n_rows,
