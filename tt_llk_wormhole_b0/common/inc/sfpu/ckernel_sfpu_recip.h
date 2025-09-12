@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "llk_defs.h"
 #include "ckernel_sfpu_rsqrt_compat.h"
 #include "sfpi.h"
 
@@ -75,7 +76,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     return y;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
+template <bool APPROXIMATION_MODE, int ITERATIONS, DestAccumulation fp32_dest_accumulation>
 inline void _calculate_reciprocal_internal_(const int iterations)
 {
 #pragma GCC unroll 8
@@ -89,7 +90,7 @@ inline void _calculate_reciprocal_internal_(const int iterations)
         }
         else
         {
-            if constexpr (is_fp32_dest_acc_en)
+            if constexpr (fp32_dest_accumulation )
             {
                 sfpi::dst_reg[0] = _sfpu_reciprocal_<2>(in);
             }
@@ -104,16 +105,16 @@ inline void _calculate_reciprocal_internal_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en, bool legacy_compat = false>
+template <bool APPROXIMATION_MODE, int ITERATIONS, DestAccumulation fp32_dest_accumulation, bool legacy_compat = false>
 inline void _calculate_reciprocal_(const int iterations)
 {
     if constexpr (legacy_compat)
     {
-        _calculate_reciprocal_compat_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
+        _calculate_reciprocal_compat_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_accumulation >(iterations);
     }
     else
     {
-        _calculate_reciprocal_internal_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
+        _calculate_reciprocal_internal_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_accumulation >(iterations);
     }
 }
 
