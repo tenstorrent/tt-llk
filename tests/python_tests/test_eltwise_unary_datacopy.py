@@ -43,8 +43,7 @@ def test_unary_datacopy(test_name, datacopy_parameters):
     dest_acc = datacopy_parameters[1]
     num_faces = datacopy_parameters[2]
     tilize_en = datacopy_parameters[3]
-    dest_sync = datacopy_parameters[4]
-    dest_index = datacopy_parameters[5]
+    dest_index = datacopy_parameters[4]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -76,7 +75,6 @@ def test_unary_datacopy(test_name, datacopy_parameters):
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
         "num_faces": num_faces,
-        "dest_sync": dest_sync,
         "tilize": tilize_en,
         "dest_index": dest_index,
     }

@@ -338,9 +338,9 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
                         dest_acc == DestAccumulation.Yes or is_dest_acc_needed(fmt)
                     )
 
-                    dest_sync_list = [DestSync.Half, DestSync.Full]
+                    dest_sync_list = [DestSync.Half]
                     # Generate all dest sync and index combinations
-                    for dest_sync, dest_idx in calculate_edgecase_dest_indices(
+                    for _, dest_idx in calculate_edgecase_dest_indices(
                         is_fp32_dest_acc_en, result_tiles, dest_sync_list
                     ):
                         combinations.append(
@@ -349,7 +349,6 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
                                 dest_acc,
                                 num_faces,
                                 tilize_en,
-                                dest_sync,
                                 dest_idx,
                             )
                         )
@@ -396,11 +395,10 @@ def calculate_edgecase_dest_indices(
                 f"Too many result tiles ({result_tiles}) for destination capacity ({max_tiles}) with {dest_sync.name}"
             )
 
-        # Add both combinations: starting at index 0 and at max allowed index
+        # Add both combinations: lowest possible index = 0 and at max possible index
         # If max_index = 0 add only (dest_sync, 0) to avoid duplicates
+        combinations.extend([(dest_sync, 0)])
         if max_index != 0:
-            combinations.extend([(dest_sync, 0), (dest_sync, max_index)])
-        else:
-            combinations.extend([(dest_sync, 0)])
+            combinations.extend([(dest_sync, max_index)])
 
     return combinations
