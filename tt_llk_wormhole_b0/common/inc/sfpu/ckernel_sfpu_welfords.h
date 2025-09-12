@@ -43,10 +43,16 @@ struct FloatBits
     }
 };
 
-sfpi_inline void _load_recip_current_sample_lreg7_(const uint32_t current_sample, const uint32_t* reciprocal_lut_ptr)
+#include <optional>
+#include <array>
+
+template <std::size_t reciprocal_size>
+sfpi_inline void _load_recip_current_sample_(
+    const uint32_t current_sample,
+    const std::optional<std::reference_wrapper<const std::array<uint32_t, reciprocal_size>>>& reciprocal_lut)
 {
     // If no reciprocal lookup table is provided, use float division to compute it
-    if (reciprocal_lut_ptr == nullptr)
+    if (reciprocal_size == 0 || !reciprocal_lut.has_value() || (reciprocal_lut->get().size() <= current_sample))
     {
         const float reciprocal = 1.0f / static_cast<float>(current_sample + 1);
         const FloatBits reciprocal_bits(reciprocal);
@@ -55,7 +61,7 @@ sfpi_inline void _load_recip_current_sample_lreg7_(const uint32_t current_sample
         return;
     }
 
-    auto reciprocal = *(reciprocal_lut_ptr + current_sample);
+    auto reciprocal = reciprocal_lut->get()[current_sample];
     TT_SFPLOADI(ckernel::p_sfpu::LREG7, 8, reciprocal >> 16);
     TT_SFPLOADI(ckernel::p_sfpu::LREG7, 10, reciprocal & 0xFFFF);
 }
@@ -149,14 +155,14 @@ sfpi_inline void _welfords_load_initial_data_()
 
 // Macro to allow returns to exit main function
 
-#define WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)                                                \
+#define WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)                               \
     if (current_sample == final_sample)                                                                                                       \
     {                                                                                                                                         \
         return current_sample;                                                                                                                \
     }                                                                                                                                         \
     if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
-        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                \
+        _load_recip_current_sample_<reciprocal_size>(current_sample, reciprocal_lut);                                                     \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
     }                                                                                                                                         \
@@ -171,7 +177,7 @@ sfpi_inline void _welfords_load_initial_data_()
     if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG1, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                \
+        _load_recip_current_sample_<reciprocal_size>(current_sample, reciprocal_lut);                                                     \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
     }                                                                                                                                         \
@@ -186,7 +192,7 @@ sfpi_inline void _welfords_load_initial_data_()
     if (skip_n_rows == 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG2, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                \
+        _load_recip_current_sample_<reciprocal_size>(current_sample, reciprocal_lut);                                                     \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
     }                                                                                                                                         \
@@ -201,7 +207,7 @@ sfpi_inline void _welfords_load_initial_data_()
     if (skip_n_rows <= 0)                                                                                                                     \
     {                                                                                                                                         \
         TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG3, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_lreg7_(current_sample, reciprocal_lut_ptr);                                                                \
+        _load_recip_current_sample_<reciprocal_size>(current_sample, reciprocal_lut);                                                     \
         lltt::replay(0, 9);                                                                                                                   \
         current_sample++;                                                                                                                     \
     }                                                                                                                                         \
@@ -216,33 +222,37 @@ sfpi_inline void _welfords_load_initial_data_()
         return current_sample;                                                                                                                \
     }
 
-sfpi_inline uint32_t _welfords_main_(uint32_t current_sample, const uint32_t final_sample, uint32_t skip_n_rows, const uint32_t* reciprocal_lut_ptr)
-{
+template <std::size_t reciprocal_size>
+sfpi_inline uint32_t _welfords_main_(
+    uint32_t current_sample,
+    const uint32_t final_sample,
+    uint32_t skip_n_rows,
+    const std::optional<std::reference_wrapper<const std::array<uint32_t, reciprocal_size>>>& reciprocal_lut) {
     // I, J, LOAD_PREVIOUS, N, endN. N can only be zero in first iteration
     if (current_sample == 0)
     {
         lltt::replay(9, 9);
-        WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+        WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     }
     else
     {
         welfords_load_data<0, 0>();
-        WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+        WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     }
     welfords_load_data<0, 1>();
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+    WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     welfords_load_data<0, 2>();
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+    WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     welfords_load_data<0, 3>();
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+    WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     welfords_load_data<1, 0>();
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+    WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     welfords_load_data<1, 1>();
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+    WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     welfords_load_data<1, 2>();
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+    WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     welfords_load_data<1, 3>();
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr)
+    WELFORDS_LOOP_ITERATION(reciprocal_size, current_sample, final_sample, skip_n_rows, reciprocal_lut)
     return current_sample;
 }
 
@@ -300,25 +310,26 @@ sfpi_inline void _program_welfords_replay_()
     TTI_SFPLOADI(ckernel::p_sfpu::LREG7, 0, 0);
 }
 
+template <std::size_t reciprocal_size>
 void _welfords_llk_entry_(
     uint32_t current_sample,
     const uint32_t final_sample,
     uint32_t skip_n_rows,
-    const uint32_t* reciprocal_lut_ptr,
+    const std::optional<std::reference_wrapper<const std::array<uint32_t, reciprocal_size>>>& reciprocal_lut,
     const bool reformat_dst_to_col_on_end,
     const bool convert_M2_to_var)
 {
     // Pack the mean into the first face of the mean dst reg. Convert M2 to variance and pack into the first face of the var dst reg.
     if (convert_M2_to_var)
     {
-        _load_recip_current_sample_lreg7_(current_sample - 1, reciprocal_lut_ptr);
+        _load_recip_current_sample_<reciprocal_size>(current_sample - 1, reciprocal_lut);
         TTI_SFPMUL(ckernel::p_sfpu::LREG7 /*LREG7 = 1/N*/, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
         TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);
         TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);
         return;
     }
 
-    const uint32_t sample_count = _welfords_main_(current_sample, final_sample, skip_n_rows, reciprocal_lut_ptr);
+    const uint32_t sample_count = _welfords_main_<reciprocal_size>(current_sample, final_sample, skip_n_rows, reciprocal_lut);
     if (sample_count == final_sample)
     {
         _save_data_(reformat_dst_to_col_on_end);
