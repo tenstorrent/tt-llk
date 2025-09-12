@@ -41,6 +41,7 @@
 #include "sfpu/ckernel_sfpu_relu.h"
 #include "sfpu/ckernel_sfpu_reshuffle_rows.h"
 #include "sfpu/ckernel_sfpu_rounding_ops.h"
+#include "sfpu/ckernel_sfpu_rsqrt.h"
 #include "sfpu/ckernel_sfpu_shift.h"
 #include "sfpu/ckernel_sfpu_sigmoid.h"
 #include "sfpu/ckernel_sfpu_sign.h"
@@ -54,6 +55,7 @@
 #include "sfpu/ckernel_sfpu_topk.h"
 #include "sfpu/ckernel_sfpu_trigonometry.h"
 #include "sfpu/ckernel_sfpu_typecast.h"
+#include "sfpu/ckernel_sfpu_welfords.h"
 #include "sfpu/ckernel_sfpu_where.h"
 
 // namespace ckernel
