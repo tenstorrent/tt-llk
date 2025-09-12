@@ -73,11 +73,16 @@ class MathOperation(Enum):
     Log = OpSpec("log", MathOpType.SFPU_UNARY)
     Neg = OpSpec("neg", MathOpType.SFPU_UNARY)
     Reciprocal = OpSpec("reciprocal", MathOpType.SFPU_UNARY)
+    Rsqrt = OpSpec("rsqrt", MathOpType.SFPU_UNARY)
     Sin = OpSpec("sine", MathOpType.SFPU_UNARY)
     Silu = OpSpec("silu", MathOpType.SFPU_UNARY)
     Sqrt = OpSpec("sqrt", MathOpType.SFPU_UNARY)
     Square = OpSpec("square", MathOpType.SFPU_UNARY)
     Threshold = OpSpec("threshold", MathOpType.SFPU_UNARY)
+    ReluMax = OpSpec(
+        "relu_max", MathOpType.SFPU_UNARY
+    )  # ReLU_max(x, U) = max(0, min(x, U))
+    ReluMin = OpSpec("relu_min", MathOpType.SFPU_UNARY)  # ReLU_min(x, L) = max(x, L)
     # =============================================================================
     # SFPU BINARY OPERATIONS
     # =============================================================================
@@ -228,6 +233,13 @@ format_tile_sizes = {
     DataFormat.Float32: 4096,
     DataFormat.Int32: 4096,
 }
+
+
+class DstSync(Enum):
+    """Destination synchronization mode for LLK operations."""
+
+    SyncHalf = "SyncHalf"
+    SyncFull = "SyncFull"
 
 
 class L1BufferLocations(Enum):
