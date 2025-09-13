@@ -7,14 +7,15 @@
 
 #include <stdint.h>
 
-union tt_uint64_t
+struct tt_uint64_t
 {
-    uint64_t v;
-
-    struct
+    union
     {
-        uint32_t hi;
-        uint32_t lo;
+        uint64_t v;
+        struct {
+            uint32_t hi;
+            uint32_t lo;
+        };
     };
 };
 
@@ -30,7 +31,7 @@ inline __attribute__((always_inline)) uint64_t tt_l1_load(tt_uint64_t tt_l1_ptr 
     return v.v;
 }
 
-inline __attribute__((always_inline)) uint64_t tt_l1_load(volatile tt_uint64_t *tt_l1_ptr p)
+inline __attribute__((always_inline)) uint64_t tt_l1_load(volatile tt_uint64_t tt_l1_ptr *p)
 {
     tt_uint64_t v;
 
