@@ -222,16 +222,6 @@ inline volatile uint *tt_reg_ptr get_cfg_pointer()
     return reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
 }
 
-inline volatile uint short *tt_reg_ptr get_cfg16_pointer()
-{
-    if (cfg_state_id == 0)
-    {
-        return reinterpret_cast<volatile uint short tt_reg_ptr *>(TENSIX_CFG_BASE);
-    }
-
-    return reinterpret_cast<volatile uint short tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
-}
-
 inline void flip_cfg_state_id()
 {
     cfg_state_id = 1 - cfg_state_id;
