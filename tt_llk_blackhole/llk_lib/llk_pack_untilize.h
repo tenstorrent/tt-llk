@@ -184,19 +184,22 @@ template <
     bool narrow_row              = false,
     std::uint32_t row_num_datums = TILE_C_DIM>
 inline void _llk_pack_untilize_init_(
-    const std::uint32_t pack_src_format, 
-    const std::uint32_t pack_dst_format, 
+    const std::uint32_t pack_src_format,
+    const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim,
     const std::uint32_t num_faces,
     bool include_setup_calls)
 {
-    _llk_pack_untilize_init_<block_ct_dim, full_ct_dim, diagonal, narrow_row, row_num_datums>(
-        pack_src_format, pack_dst_format, face_r_dim, num_faces);
-    
-    if (include_setup_calls) {
-        if constexpr (narrow_row) {
+    _llk_pack_untilize_init_<block_ct_dim, full_ct_dim, diagonal, narrow_row, row_num_datums>(pack_src_format, pack_dst_format, face_r_dim, num_faces);
+
+    if (include_setup_calls)
+    {
+        if constexpr (narrow_row)
+        {
             TT_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
-        } else {
+        }
+        else
+        {
             TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
         }
     }
@@ -254,9 +257,7 @@ inline void _llk_pack_untilize_(
 
 inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)
 {
-    uint x_stride = (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float32   ? 4
-                    : (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float16 ? 2
-                                                                                 : 1;
+    uint x_stride       = (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float32 ? 4 : (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float16 ? 2 : 1;
     const uint z_stride = FACE_R_DIM * FACE_C_DIM * x_stride;
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 }
