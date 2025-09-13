@@ -176,6 +176,32 @@ inline void _llk_pack_untilize_init_(
     TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET)); // store 16B aligned row offset address
 }
 
+// Enhanced version that includes TT_SETADCXX calls from API layer
+template <
+    std::uint32_t block_ct_dim,
+    std::uint32_t full_ct_dim    = block_ct_dim,
+    bool diagonal                = false,
+    bool narrow_row              = false,
+    std::uint32_t row_num_datums = TILE_C_DIM>
+inline void _llk_pack_untilize_init_(
+    const std::uint32_t pack_src_format, 
+    const std::uint32_t pack_dst_format, 
+    const std::uint32_t face_r_dim,
+    const std::uint32_t num_faces,
+    bool include_setup_calls)
+{
+    _llk_pack_untilize_init_<block_ct_dim, full_ct_dim, diagonal, narrow_row, row_num_datums>(
+        pack_src_format, pack_dst_format, face_r_dim, num_faces);
+    
+    if (include_setup_calls) {
+        if constexpr (narrow_row) {
+            TT_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
+        } else {
+            TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+        }
+    }
+}
+
 template <
     std::uint32_t block_ct_dim,
     std::uint32_t full_ct_dim    = block_ct_dim,
@@ -224,4 +250,13 @@ inline void _llk_pack_untilize_(
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);                             // reset z counters
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_offset); // reset w counter
+}
+
+inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)
+{
+    uint x_stride = (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float32   ? 4
+                    : (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float16 ? 2
+                                                                                 : 1;
+    const uint z_stride = FACE_R_DIM * FACE_C_DIM * x_stride;
+    cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 }

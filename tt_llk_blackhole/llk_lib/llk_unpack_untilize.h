@@ -94,6 +94,32 @@ inline void _llk_unpack_untilize_init_(
     _llk_unpack_untilize_mop_config_();
 }
 
+// Enhanced version that includes setup calls from API layer
+inline void _llk_unpack_untilize_init_(
+    const std::uint32_t unpack_dst_format, 
+    const std::uint32_t tile_size, 
+    const std::uint32_t face_r_dim,
+    const std::uint32_t num_faces,
+    bool include_setup_calls)
+{
+    if (include_setup_calls) {
+        // Disable transpose when unused
+        cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
+
+        // Save state of unpacker config for quick restore
+        TTI_RDCFG(
+            p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0,
+            UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32);  // Save unpack stride config
+        TTI_RDCFG(
+            p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1,
+            THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);  // Save tile x dim per context
+        TTI_RDCFG(
+            p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);  // Save descriptor 1
+    }
+    
+    _llk_unpack_untilize_init_(unpack_dst_format, tile_size, face_r_dim, num_faces);
+}
+
 template <bool first_pass = true>
 inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols)
 {
