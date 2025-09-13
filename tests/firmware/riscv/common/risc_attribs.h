@@ -12,7 +12,9 @@ struct tt_uint64_t
     union
     {
         uint64_t v;
-        struct {
+
+        struct
+        {
             uint32_t hi;
             uint32_t lo;
         };
