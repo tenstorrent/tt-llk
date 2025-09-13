@@ -148,7 +148,11 @@ SECTIONS
    . += __firmware_stack_size;
     __stack_top = .;
   } > REGION_STACK
-  .profiler_meta 0 : { *(.profiler_meta) }
+
+  /* These sections are used to pass compile time metadata to the host */
+  .profiler_meta 0 : { KEEP(*(.profiler_meta)) }
+  .log_meta 0 : { KEEP(*(.log_meta)) }
+
   .stab 0 : { *(.stab) }
   .stabstr 0 : { *(.stabstr) }
   .stab.excl 0 : { *(.stab.excl) }

@@ -375,6 +375,9 @@ def generate_make_command(
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
 
+    # FIXME: Add switch to enable/disable logging
+    make_cmd += "log "
+
     return make_cmd
 
 
