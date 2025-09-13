@@ -53,7 +53,7 @@ OBJCOPY         := $(TOOL_PATH)/riscv32-tt-elf-objcopy
 # =========================
 # Compiler and Linker Flags
 # =========================
-OPTIONS_ALL	:= -g -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
+OPTIONS_ALL	:= -g -O3 -mabi=ilp32 -std=$(CXX_VERSION) -pedantic-errors -ffast-math $(ARCH_CPU)
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-rtti -Werror \
 				   -Wno-unknown-pragmas -Wno-error=multistatement-macros -Wno-error=parentheses \
 				   -Wno-error=unused-but-set-variable -Wno-unused-variable -DTENSIX_FIRMWARE \
