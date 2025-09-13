@@ -37,11 +37,15 @@ constexpr std::uint16_t hashString16(const char (&s)[N])
  * This section will be processed by the host code to construct a mapping
  * MARKER_ID -> { filename, line, marker } for parsing the profiler buffer.
  */
-// clang-format off
-#define PROFILER_META(full_marker)                          \
-    __attribute__((section(".profiler_meta"), used))        \
-    static const char _profiler_meta_##__COUNTER__[] = full_marker;
-// clang-format on
+#define PROFILER_META(full_marker)                              \
+    do                                                          \
+    {                                                           \
+        asm volatile(                                           \
+            ".pushsection .profiler_meta, \"S\", @progbits\n\t" \
+            ".asciz \"" full_marker                             \
+            "\"\n\t"                                            \
+            ".popsection");                                     \
+    } while (0)
 
 #if defined(LLK_PROFILER)
 
@@ -199,16 +203,16 @@ __attribute__((always_inline)) inline void write_timestamp(uint16_t id16, uint64
 
 } // namespace llk_profiler
 
-#define ZONE_SCOPED(marker)            \
-    PROFILER_META(MARKER_FULL(marker)) \
+#define ZONE_SCOPED(marker)             \
+    PROFILER_META(MARKER_FULL(marker)); \
     const auto _zone_scoped_ = llk_profiler::zone_scoped<MARKER_ID(marker)>();
 
-#define TIMESTAMP(marker)              \
-    PROFILER_META(MARKER_FULL(marker)) \
+#define TIMESTAMP(marker)               \
+    PROFILER_META(MARKER_FULL(marker)); \
     llk_profiler::write_timestamp(MARKER_ID(marker));
 
-#define TIMESTAMP_DATA(marker, data)   \
-    PROFILER_META(MARKER_FULL(marker)) \
+#define TIMESTAMP_DATA(marker, data)    \
+    PROFILER_META(MARKER_FULL(marker)); \
     llk_profiler::write_timestamp(MARKER_ID(marker), data);
 
 #define PROFILER_SYNC() tensix_sync()
