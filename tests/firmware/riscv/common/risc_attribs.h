@@ -13,11 +13,11 @@ struct tt_uint64_t
     {
         uint64_t v;
 
-        struct
+        struct parts_t
         {
             uint32_t hi;
             uint32_t lo;
-        };
+        } parts;
     };
 };
 
@@ -28,8 +28,8 @@ inline __attribute__((always_inline)) uint64_t tt_l1_load(tt_uint64_t tt_l1_ptr 
 {
     tt_uint64_t v;
 
-    v.hi = p->hi;
-    v.lo = p->lo;
+    v.parts.hi = p->parts.hi;
+    v.parts.lo = p->parts.lo;
     return v.v;
 }
 
@@ -37,8 +37,8 @@ inline __attribute__((always_inline)) uint64_t tt_l1_load(volatile tt_uint64_t t
 {
     tt_uint64_t v;
 
-    v.hi = p->hi;
-    v.lo = p->lo;
+    v.parts.hi = p->parts.hi;
+    v.parts.lo = p->parts.lo;
     return v.v;
 }
 
