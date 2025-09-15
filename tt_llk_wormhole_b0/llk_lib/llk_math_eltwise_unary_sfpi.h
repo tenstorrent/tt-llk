@@ -29,9 +29,9 @@ inline void eltwise_unary_sfpi_configure_addrmod()
     //       A2D, which is using ADDR_MOD_0 and ADDR_MOD_2, so use one
     //       that doesn't conflict!
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
+        {0}, // srca: {incr, clr, cr}
+        {0}, // srcb: {incr, clr, cr}
+        {0}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_3);
 }

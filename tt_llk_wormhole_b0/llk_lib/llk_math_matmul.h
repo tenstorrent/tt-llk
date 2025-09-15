@@ -49,28 +49,29 @@ inline void matmul_configure_addrmod(
     // SRCA -- full 16x16 gets used -- hardware will pair cols of A with rows of B
     // D[8,16] = B[8,16] * A[16,16]
     addr_mod_t {
-        .srca = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb = {.incr = 8, .clr = 0, .cr = 0},
-        .dest = {.incr = 8, .clr = 0, .cr = 0},
+        {0, 0, 0}, // srca: {incr, clr, cr}
+        {8, 0, 0}, // srcb: {incr, clr, cr}
+        {8, 0, 0}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_0);
 
     // copy of addr_mod_0
     addr_mod_t {
-        .srca = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb = {.incr = 8, .clr = 0, .cr = 0},
-        .dest = {.incr = 8, .clr = 0, .cr = 0},
-        .bias = {.incr = 1},
+        {0, 0, 0}, // srca: {incr, clr, cr}
+        {8, 0, 0}, // srcb: {incr, clr, cr}
+        {8, 0, 0}, // dest: {incr, clr, cr}
+        {},        // fidelity: {incr, clr} (default)
+        {1},       // bias: {incr},
     }
         .set(ADDR_MOD_3);
 
     // reset all, increment fidelity if we have more fidelity phases
     addr_mod_t {
-        .srca     = {.incr = 0, .clr = 1, .cr = 1},
-        .srcb     = {.incr = 0, .clr = 1, .cr = 1},
-        .dest     = {.incr = 0, .clr = 1, .cr = 1},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
-        .bias     = {.incr = 1},
+        {0, 1, 1},               // srca: {incr, clr, cr},
+        {0, 1, 1},               // srcb: {incr, clr, cr}
+        {0, 1, 1},               // dest: {incr, clr, cr}
+        {FIDELITY_INCREMENT, 0}, // fidelity: {incr, clr},
+        {1},                     // bias: {incr}
     }
         .set(ADDR_MOD_5);
 
@@ -78,11 +79,11 @@ inline void matmul_configure_addrmod(
     {
         // reset all, including fidelity
         addr_mod_t {
-            .srca     = {.incr = 0, .clr = 1, .cr = 1},
-            .srcb     = {.incr = 0, .clr = 1, .cr = 1},
-            .dest     = {.incr = 0, .clr = 1, .cr = 1},
-            .fidelity = {.incr = 0, .clr = 1},
-            .bias     = {.incr = 1},
+            {0, 1, 1}, // srca: {incr, clr, cr},
+            {0, 1, 1}, // srcb: {incr, clr, cr},
+            {0, 1, 1}, // dest: {incr, clr, cr},
+            {0, 1},    // fidelity: {incr, clr},
+            {1},       // bias: {incr}
         }
             .set(ADDR_MOD_6);
     }
@@ -96,18 +97,18 @@ inline void matmul_configure_addrmod(
         if (transpose)
         {
             addr_mod_t {
-                .srca = {.incr = 32, .clr = 0, .cr = 0},
-                .srcb = {.incr = 0, .clr = 0, .cr = 1}, // cr=16 before
-                .dest = {.incr = 8, .clr = 0, .cr = 0},
+                {32, 0, 0}, // srca: {incr, clr, cr}
+                {0, 0, 1},  // srcb: {incr, clr, cr} // cr=16 before
+                {8, 0, 0},  // dest: {incr, clr, cr}
             }
                 .set(ADDR_MOD_1);
         }
         else
         {
             addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 0},
-                .srcb = {.incr = 0, .clr = 0, .cr = 1}, // cr=16 before
-                .dest = {.incr = 8, .clr = 0, .cr = 0},
+                {16, 0, 0}, // srca: {incr, clr, cr}
+                {0, 0, 1},  // srcb: {incr, clr, cr} // cr=16 before
+                {8, 0, 0},  // dest: {incr, clr, cr}
             }
                 .set(ADDR_MOD_1);
         }
@@ -117,9 +118,10 @@ inline void matmul_configure_addrmod(
         if (is_in1_32x16)
         {
             addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 0},
-                .srcb = {.incr = 8, .clr = 0, .cr = 0},
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
+                {16, 0, 0}, // srca: {incr, clr, cr}
+                {8, 0, 0},  // srcb: {incr, clr, cr}
+                {0, 0, 1},  // dest: {incr, clr, cr}
+
             }
                 .set(ADDR_MOD_1);
         }
@@ -128,19 +130,20 @@ inline void matmul_configure_addrmod(
             if (transpose)
             {
                 addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
+                    {32, 0, 0}, // srca: {incr, clr, cr}
+                    {0, 0, 1},  // srcb: {incr, clr, cr}
+                    {8, 0, 0},  // dest: {incr, clr, cr}
+
                 }
                     .set(ADDR_MOD_1);
             }
             else
             {
                 addr_mod_t {
-                    //.srca = {.incr = srca_increment, .clr = 0, .cr = 0},
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
+                    //{srca_increment, 0, 0}, // srca: {incr, clr, cr}
+                    {16, 0, 0}, // srca: {incr, clr, cr}
+                    {0, 0, 1},  // srcb: {incr, clr, cr}
+                    {8, 0, 0},  // dest: {incr, clr, cr}
                 }
                     .set(ADDR_MOD_1);
             }
@@ -150,7 +153,9 @@ inline void matmul_configure_addrmod(
     if (is_in1_32x16)
     {
         addr_mod_t {
-            .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 8, .clr = 0, .cr = 0}, .dest = {.incr = 0, .clr = 0, .cr = 1}, // cr=16
+            {16, 0, 0}, // srca: {incr, clr, cr}
+            {8, 0, 0},  // srcb: {incr, clr, cr}
+            {0, 0, 1},  // dest: {incr, clr, cr} // cr=16
         }
             .set(ADDR_MOD_2);
     }
@@ -161,20 +166,22 @@ inline void matmul_configure_addrmod(
             if (transpose)
             {
                 addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 0},
-                    .dest = {.incr = 16, .clr = 0, .cr = 0},
-                    .bias = {.incr = 1},
+                    {32, 0, 0}, // srca: {incr, clr, cr}
+                    {0, 0, 0},  // srcb: {incr, clr, cr}
+                    {16, 0, 0}, // dest: {incr, clr, cr}
+                    {},         // fidelity: {incr, clr} (default)
+                    {1},        // bias: {incr},
                 }
                     .set(ADDR_MOD_2);
             }
             else
             {
                 addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 0},
-                    .dest = {.incr = 16, .clr = 0, .cr = 0},
-                    .bias = {.incr = 1},
+                    {16, 0, 0}, // srca: {incr, clr, cr}
+                    {0, 0, 0},  // srcb: {incr, clr, cr}
+                    {16, 0, 0}, // dest: {incr, clr, cr}
+                    {},         // fidelity: {incr, clr} (default)
+                    {1},        // bias: {incr},
                 }
                     .set(ADDR_MOD_2);
             }
@@ -184,18 +191,18 @@ inline void matmul_configure_addrmod(
             if (transpose)
             {
                 addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
+                    {32, 0, 0}, // srca: {incr, clr, cr}
+                    {0, 0, 1},  // srcb: {incr, clr, cr}
+                    {8, 0, 0},  // dest: {incr, clr, cr}
                 }
                     .set(ADDR_MOD_2);
             }
             else
             {
                 addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
+                    {16, 0, 0}, // srca: {incr, clr, cr}
+                    {0, 0, 1},  // srcb: {incr, clr, cr}
+                    {8, 0, 0},  // dest: {incr, clr, cr}
                 }
                     .set(ADDR_MOD_2);
             }
@@ -204,9 +211,10 @@ inline void matmul_configure_addrmod(
     else
     {
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1},
-            .srcb = {.incr = 32, .clr = 0, .cr = 1},
-            .dest = {.incr = 8, .clr = 0, .cr = 0},
+            {0, 0, 1},  // srca: {incr, clr, cr}
+            {32, 0, 1}, // srcb: {incr, clr, cr}
+            {8, 0, 0},  // dest: {incr, clr, cr}
+
         }
             .set(ADDR_MOD_2);
     }
@@ -218,20 +226,22 @@ inline void matmul_configure_addrmod(
             if (transpose)
             {
                 addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 1}, // srca=16
-                    .srcb = {.incr = 16, .clr = 0, .cr = 0},
-                    .dest = {.incr = 0, .clr = 1, .cr = 0},
-                    .bias = {.incr = 1},
+                    {16, 0, 1}, // srca: {incr, clr, cr} // srca=16
+                    {16, 0, 0}, // srcb: {incr, clr, cr}
+                    {0, 1, 0},  // dest: {incr, clr, cr}
+                    {},         // fidelity: {incr, clr} (default)
+                    {1},        // bias: {incr},
                 }
                     .set(ADDR_MOD_4);
             }
             else
             {
                 addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 16, .clr = 0, .cr = 0},
-                    .dest = {.incr = 0, .clr = 1, .cr = 0},
-                    .bias = {.incr = 1},
+                    {16, 0, 0}, // srca: {incr, clr, cr}
+                    {16, 0, 0}, // srcb: {incr, clr, cr}
+                    {0, 1, 0},  // dest: {incr, clr, cr}
+                    {},         // fidelity: {incr, clr} (default)
+                    {1},        // bias: {incr},
                 }
                     .set(ADDR_MOD_4);
             }
@@ -241,20 +251,22 @@ inline void matmul_configure_addrmod(
             if (transpose)
             {
                 addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 1}, // srca=16
-                    .srcb = {.incr = 16, .clr = 0, .cr = 1},
-                    .dest = {.incr = 0, .clr = 0, .cr = 1},
-                    .bias = {.incr = 1},
+                    {16, 0, 1}, // srca: {incr, clr, cr} // srca=16
+                    {16, 0, 1}, // srcb: {incr, clr, cr}
+                    {0, 0, 1},  // dest: {incr, clr, cr}
+                    {},         // fidelity: {incr, clr} (default)
+                    {1},        // bias: {incr},
                 }
                     .set(ADDR_MOD_4);
             }
             else
             {
                 addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 16, .clr = 0, .cr = 1},
-                    .dest = {.incr = 0, .clr = 0, .cr = 1},
-                    .bias = {.incr = 1},
+                    {16, 0, 0}, // srca: {incr, clr, cr}
+                    {16, 0, 1}, // srcb: {incr, clr, cr}
+                    {0, 0, 1},  // dest: {incr, clr, cr}
+                    {},         // fidelity: {incr, clr} (default)
+                    {1},        // bias: {incr},
                 }
                     .set(ADDR_MOD_4);
             }
@@ -263,20 +275,22 @@ inline void matmul_configure_addrmod(
     else if (is_in0_32x16)
     {
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1},
-            .srcb = {.incr = 16, .clr = 0, .cr = 1},
-            .dest = {.incr = 8, .clr = 0, .cr = 0},
-            .bias = {.incr = 1},
+            {0, 0, 1},  // srca: {incr, clr, cr}
+            {16, 0, 1}, // srcb: {incr, clr, cr}
+            {8, 0, 0},  // dest: {incr, clr, cr}
+            {},         // fidelity: {incr, clr} (default)
+            {1},        // bias: {incr},
         }
             .set(ADDR_MOD_4);
     }
     else if (is_in1_32x16)
     {
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1},
-            .srcb = {.incr = 8, .clr = 0, .cr = 0},
-            .dest = {.incr = 16, .clr = 0, .cr = 1},
-            .bias = {.incr = 1},
+            {0, 0, 1},  // srca: {incr, clr, cr}
+            {8, 0, 0},  // srcb: {incr, clr, cr}
+            {16, 0, 1}, // dest: {incr, clr, cr}
+            {},         // fidelity: {incr, clr} (default)
+            {1},        // bias: {incr},
         }
             .set(ADDR_MOD_4);
     }
@@ -285,21 +299,23 @@ inline void matmul_configure_addrmod(
         if (transpose)
         {
             addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 1},
-                .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
-                .bias = {.incr = 1},
+                {16, 0, 1}, // srca: {incr, clr, cr}
+                {48, 0, 1}, // srcb: {incr, clr, cr} // cr=32 before, cr+48=16 after wrapping
+                {0, 0, 1},  // dest: {incr, clr, cr}
+                {},         // fidelity: {incr, clr} (default)
+                {1},        // bias: {incr},
             }
                 .set(ADDR_MOD_4);
         }
         else
         {
             addr_mod_t {
-                .srca = {.incr = 32, .clr = 0, .cr = 1},
-                //.srca = {.incr = srca_set, .clr = 0, .cr = 1},
-                .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
-                .bias = {.incr = 1},
+                {32, 0, 1}, // srca: {incr, clr, cr}
+                //{srca_set, 0, 1}, // srca: {incr, clr, cr}
+                {48, 0, 1}, // srcb: {incr, clr, cr} // cr=32 before, cr+48=16 after wrapping
+                {0, 0, 1},  // dest: {incr, clr, cr}
+                {},         // fidelity: {incr, clr} (default)
+                {1},        // bias: {incr},
             }
                 .set(ADDR_MOD_4);
         }

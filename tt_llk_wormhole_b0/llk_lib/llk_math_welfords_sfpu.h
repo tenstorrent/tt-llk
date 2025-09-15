@@ -19,9 +19,9 @@
 inline void welfords_sfpu_configure_addrmod()
 {
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
+        {0}, // srca: {incr, clr, cr}
+        {0}, // srcb: {incr, clr, cr}
+        {0}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_7);
 }

@@ -13,7 +13,7 @@ struct tt_uint64_t
     {
         uint64_t v;
 
-        struct parts_t
+        struct
         {
             uint32_t hi;
             uint32_t lo;

@@ -71,30 +71,30 @@ template <bool is_32bit>
 inline void transpose_dest_configure_addrmod()
 {
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 16},
+        {0},  // srca: {incr, clr, cr}
+        {0},  // srcb: {incr, clr, cr}
+        {16}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_0);
 
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
+        {0}, // srca: {incr, clr, cr}
+        {0}, // srcb: {incr, clr, cr}
+        {0}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_1);
 
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = is_32bit ? 2 : 0x3ff & -16},
+        {0},                          // srca: {incr, clr, cr}
+        {0},                          // srcb: {incr, clr, cr}
+        {is_32bit ? 2 : 0x3ff & -16}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_2);
 
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 32},
+        {0},  // srca: {incr, clr, cr}
+        {0},  // srcb: {incr, clr, cr}
+        {32}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_3);
 }

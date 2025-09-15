@@ -197,7 +197,7 @@ inline void wait_for_idle()
 
 inline void enable_int8_fpu_math()
 {
-    alu_config_u alu_payload                     = {.val = 0};
+    alu_config_u alu_payload                     = {0};
     alu_payload.f.ALU_ACC_CTRL_INT8_math_enabled = 1;
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, ALU_ACC_CTRL_INT8_math_enabled_MASK>(alu_payload.val);
 }
@@ -249,7 +249,7 @@ inline void configure_unpack_AB(
     constexpr uint mask0 = (1 << (ALU_FORMAT_SPEC_REG_Dstacc_override_SHAMT + 1)) - 1;
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32, ALU_FORMAT_SPEC_REG_SrcA_val_SHAMT, mask0>(alu_src_format);
 
-    alu_config_u alu_payload = {.val = 0};
+    alu_config_u alu_payload = {0};
 
     uint32_t fp32_dest_acc_en  = (is_fp32_dest_acc_en) ? (1) : (0);
     uint32_t int8_math_enabled = ((uint)(unpA_dst_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(unpB_dst_format & 0xF) == (uint)DataFormat::Int8) ||
@@ -506,7 +506,7 @@ inline void set_dst_write_addr(const uint32_t &context_id, const uint32_t &unpac
 
 inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr *cfg)
 {
-    unpack_tile_descriptor_u tile_descriptor = {.val = 0};
+    unpack_tile_descriptor_u tile_descriptor = {0};
 
     tile_descriptor.val[0] = cfg[reg_addr];
     tile_descriptor.val[1] = cfg[reg_addr + 1];

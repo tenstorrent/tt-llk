@@ -24,30 +24,30 @@ inline void _llk_pack_untilize_configure_addrmod_()
     if constexpr (diagonal || narrow_row)
     {
         addr_mod_pack_t {
-            .y_src = {.incr = 1},
+            {1}, // y_src: {incr = 1, clr = 0, cr = 0}
         }
             .set(ADDR_MOD_0);
     }
     else
     {
         addr_mod_pack_t {
-            .y_src = {.incr = 15}, // 4-bit value so max is 15. incadcxy will increment it by 1
+            {15}, // y_src: {incr = 15, clr = 0, cr = 0} - 4-bit value so max is 15. incadcxy will increment it by 1
         }
             .set(ADDR_MOD_0);
     }
 
     addr_mod_pack_t {
-        .y_src = {.incr = 0, .clr = 0, .cr = 1},
+        {0, 0, 1}, // y_src: {incr = 0, clr = 0, cr = 1}
     }
         .set(ADDR_MOD_1);
 
     addr_mod_pack_t {
-        .y_src = {.incr = 0, .clr = 1, .cr = 0},
+        {0, 1, 0}, // y_src: {incr = 0, clr = 1, cr = 0}
     }
         .set(ADDR_MOD_2);
 
     addr_mod_pack_t {
-        .y_src = {.incr = 0, .clr = 0, .cr = 0},
+        {0, 0, 0}, // y_src: {incr = 0, clr = 0, cr = 0}
     }
         .set(ADDR_MOD_3);
 }

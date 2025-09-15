@@ -62,17 +62,17 @@ inline void eltwise_unary_configure_addrmod()
     if constexpr (type == A2D)
     {
         addr_mod_t {
-            .srca = {.incr = 1},
-            .srcb = {.incr = 0},
-            .dest = {.incr = 1},
+            {1}, // srca: {incr = 1, clr = 0, cr = 0}
+            {0}, // srcb: {incr = 0, clr = 0, cr = 0}
+            {1}, // dest: {incr = 1, clr = 0, cr = 0, c_to_cr = 0}
         }
             .set(ADDR_MOD_0);
 
         // Just unpack into A and move to Dest
         addr_mod_t {
-            .srca = {.incr = 8},
-            .srcb = {.incr = 0},
-            .dest = {.incr = 8},
+            {8}, // srca: {incr = 8, clr = 0, cr = 0}
+            {0}, // srcb: {incr = 0, clr = 0, cr = 0}
+            {8}, // dest: {incr = 8, clr = 0, cr = 0, c_to_cr = 0}
         }
             .set(ADDR_MOD_2);
     }
@@ -81,34 +81,34 @@ inline void eltwise_unary_configure_addrmod()
         if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
         {
             addr_mod_t {
-                .srca = {.incr = 0},
-                .srcb = {.incr = 0},
-                .dest = {.incr = 1},
+                {0}, // srca: {incr = 0, clr = 0, cr = 0}
+                {0}, // srcb: {incr = 0, clr = 0, cr = 0}
+                {1}, // dest: {incr = 1, clr = 0, cr = 0, c_to_cr = 0}
             }
                 .set(ADDR_MOD_0);
 
             // Just unpack into B and move to Dest
             addr_mod_t {
-                .srca = {.incr = 0},
-                .srcb = {.incr = 0},
-                .dest = {.incr = 8},
+                {0}, // srca: {incr = 0, clr = 0, cr = 0}
+                {0}, // srcb: {incr = 0, clr = 0, cr = 0}
+                {8}, // dest: {incr = 8, clr = 0, cr = 0, c_to_cr = 0}
             }
                 .set(ADDR_MOD_2);
         }
         else
         {
             addr_mod_t {
-                .srca = {.incr = 0},
-                .srcb = {.incr = 1},
-                .dest = {.incr = 1},
+                {0}, // srca: {incr = 0, clr = 0, cr = 0}
+                {1}, // srcb: {incr = 1, clr = 0, cr = 0}
+                {1}, // dest: {incr = 1, clr = 0, cr = 0, c_to_cr = 0}
             }
                 .set(ADDR_MOD_0);
 
             // Just unpack into B and move to Dest
             addr_mod_t {
-                .srca = {.incr = 0},
-                .srcb = {.incr = 8},
-                .dest = {.incr = 8},
+                {0}, // srca: {incr = 0, clr = 0, cr = 0}
+                {8}, // srcb: {incr = 8, clr = 0, cr = 0}
+                {8}, // dest: {incr = 8, clr = 0, cr = 0, c_to_cr = 0}
             }
                 .set(ADDR_MOD_2);
         }
@@ -237,15 +237,17 @@ inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst
 {
     // standard addrmod that follows MOVB2D
     addr_mod_t {
-        .srcb = {.incr = 4},
-        .dest = {.incr = 4},
+        {0}, // srca: {incr = 0, clr = 0, cr = 0}
+        {4}, // srcb: {incr = 4, clr = 0, cr = 0}
+        {4}, // dest: {incr = 4, clr = 0, cr = 0, c_to_cr = 0}
     }
         .set(ADDR_MOD_1);
 
     // standard addrmod that follows MOVA2D
     addr_mod_t {
-        .srca = {.incr = 8},
-        .dest = {.incr = 8},
+        {8}, // srca: {incr = 8, clr = 0, cr = 0}
+        {0}, // srcb: {incr = 0, clr = 0, cr = 0}
+        {8}, // dest: {incr = 8, clr = 0, cr = 0, c_to_cr = 0}
     }
         .set(ADDR_MOD_2);
 
@@ -266,14 +268,17 @@ inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst
 
     // this follows MOVA2D in src and jumps to the offset for the bottom faces (for unit_dim 1 and 2, for unit_dim 3 that is handled the other way)
     addr_mod_t {
-        .srca = {.incr = 8},
-        .dest = {.incr = unit_dim == 1 ? unit_dim_1_forward_jump : unit_dim_2_forward_jump},
+        {8},                                                                            // srca: {incr = 8, clr = 0, cr = 0}
+        {0},                                                                            // srcb: {incr = 0, clr = 0, cr = 0}
+        {(int16_t)(unit_dim == 1 ? unit_dim_1_forward_jump : unit_dim_2_forward_jump)}, // dest
     }
         .set(ADDR_MOD_3);
 
     // this jumps back to the offset for the next tile, RWCs for source registers are reset separately when clearing dvalids
     addr_mod_t {
-        .dest = {.incr = unit_dim == 1 ? unit_dim_1_backward_jump : unit_dim_2_backward_jump},
+        {0},                                                                              // srca: {incr = 0, clr = 0, cr = 0}
+        {0},                                                                              // srcb: {incr = 0, clr = 0, cr = 0}
+        {(int16_t)(unit_dim == 1 ? unit_dim_1_backward_jump : unit_dim_2_backward_jump)}, // dest
     }
         .set(ADDR_MOD_0);
 }
