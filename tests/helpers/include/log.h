@@ -48,15 +48,8 @@ static constexpr void verify(const char (&fmt)[N], Ts... args)
 
 static inline volatile uint32_t* allocate(size_t bytes)
 {
-    // TODO: Implement a way to reserve bytes in the buffer
-
-    // THEORY:
-    //  use TTI_ATINCGET to allocate on WH
-    //  use AMOADD to reserve on BH an QSR
-
-    asm volatile("fence r, rw" ::: "memory"); // Acquire barrier (compiler hint on WH)
-
-    return (volatile uint32_t*)0x16A000;
+    // TODO: Implement buffer for each thread because it doesn't seem feasible to use a single buffer
+    return (volatile uint32_t*)0x16A000; // FIXME: This is a placeholder
 }
 
 template <typename... Ts>
