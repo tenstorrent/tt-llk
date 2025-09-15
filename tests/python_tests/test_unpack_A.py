@@ -255,94 +255,30 @@ def filter_params_with_z3(all_params):
         transpose_mutual_constraint = transpose_faces == within_face_transpose
 
         # Exclude all Float32->Bfp8_b, Float16_b->Bfp8_b, and Float16->Bfp8_b combinations
-        specific_exclusion_constraint = Not(
-            Or(
-                # Float32->Bfp8_b combination with (0,0) transpose (all stoch_rnd types)
-                And(
-                    BoolVal(formats.input_format == DataFormat.Float32),
-                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
-                    broadcast_none,  # bcast_NONE
-                    BoolVal(disable_src_zero == False),  # disable_src_zero_False
-                    BoolVal(acc_to_dest == False),  # acc_to_dest_False
-                    reuse_none,  # reuse_dest_NONE
-                    BoolVal(transpose_of_faces == 0),  # transpose_faces_0
-                    BoolVal(
-                        within_face_16x16_transpose == 0
-                    ),  # within_face_transpose_0
-                    BoolVal(num_faces == 4),  # num_faces_4
-                ),
-                # Float32->Bfp8_b combination with (1,1) transpose (all stoch_rnd types)
-                And(
-                    BoolVal(formats.input_format == DataFormat.Float32),
-                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
-                    broadcast_none,  # bcast_NONE
-                    BoolVal(disable_src_zero == False),  # disable_src_zero_False
-                    BoolVal(acc_to_dest == False),  # acc_to_dest_False
-                    reuse_none,  # reuse_dest_NONE
-                    BoolVal(transpose_of_faces == 1),  # transpose_faces_1
-                    BoolVal(
-                        within_face_16x16_transpose == 1
-                    ),  # within_face_transpose_1
-                    BoolVal(num_faces == 4),  # num_faces_4
-                ),
-                # Float16_b->Bfp8_b combination with (0,0) transpose (all stoch_rnd types)
-                And(
-                    BoolVal(formats.input_format == DataFormat.Float16_b),
-                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
-                    broadcast_none,  # bcast_NONE
-                    BoolVal(disable_src_zero == False),  # disable_src_zero_False
-                    BoolVal(acc_to_dest == False),  # acc_to_dest_False
-                    reuse_none,  # reuse_dest_NONE
-                    BoolVal(transpose_of_faces == 0),  # transpose_faces_0
-                    BoolVal(
-                        within_face_16x16_transpose == 0
-                    ),  # within_face_transpose_0
-                    BoolVal(num_faces == 4),  # num_faces_4
-                ),
-                # Float16_b->Bfp8_b combination with (1,1) transpose (all stoch_rnd types)
-                And(
-                    BoolVal(formats.input_format == DataFormat.Float16_b),
-                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
-                    broadcast_none,  # bcast_NONE
-                    BoolVal(disable_src_zero == False),  # disable_src_zero_False
-                    BoolVal(acc_to_dest == False),  # acc_to_dest_False
-                    reuse_none,  # reuse_dest_NONE
-                    BoolVal(transpose_of_faces == 1),  # transpose_faces_1
-                    BoolVal(
-                        within_face_16x16_transpose == 1
-                    ),  # within_face_transpose_1
-                    BoolVal(num_faces == 4),  # num_faces_4
-                ),
-                # Float16->Bfp8_b combination with (0,0) transpose (all stoch_rnd types)
-                And(
-                    BoolVal(formats.input_format == DataFormat.Float16),
-                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
-                    broadcast_none,  # bcast_NONE
-                    BoolVal(disable_src_zero == False),  # disable_src_zero_False
-                    BoolVal(acc_to_dest == False),  # acc_to_dest_False
-                    reuse_none,  # reuse_dest_NONE
-                    BoolVal(transpose_of_faces == 0),  # transpose_faces_0
-                    BoolVal(
-                        within_face_16x16_transpose == 0
-                    ),  # within_face_transpose_0
-                    BoolVal(num_faces == 4),  # num_faces_4
-                ),
-                # Float16->Bfp8_b combination with (1,1) transpose (all stoch_rnd types)
-                And(
-                    BoolVal(formats.input_format == DataFormat.Float16),
-                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
-                    broadcast_none,  # bcast_NONE
-                    BoolVal(disable_src_zero == False),  # disable_src_zero_False
-                    BoolVal(acc_to_dest == False),  # acc_to_dest_False
-                    reuse_none,  # reuse_dest_NONE
-                    BoolVal(transpose_of_faces == 1),  # transpose_faces_1
-                    BoolVal(
-                        within_face_16x16_transpose == 1
-                    ),  # within_face_transpose_1
-                    BoolVal(num_faces == 4),  # num_faces_4
-                ),
-            )
-        )
+        excluded_input_formats = [
+            DataFormat.Float32,
+            DataFormat.Float16_b,
+            DataFormat.Float16,
+        ]
+        exclusions = []
+
+        for fmt in excluded_input_formats:
+            for transpose in [0, 1]:
+                exclusions.append(
+                    And(
+                        BoolVal(formats.input_format == fmt),
+                        BoolVal(formats.output_format == DataFormat.Bfp8_b),
+                        broadcast_none,
+                        BoolVal(not disable_src_zero),
+                        BoolVal(not acc_to_dest),
+                        reuse_none,
+                        BoolVal(transpose_of_faces == transpose),
+                        BoolVal(within_face_16x16_transpose == transpose),
+                        BoolVal(num_faces == 4),
+                    )
+                )
+
+        specific_exclusion_constraint = Not(Or(*exclusions))
 
         # Add all constraints to solver
         s.add(

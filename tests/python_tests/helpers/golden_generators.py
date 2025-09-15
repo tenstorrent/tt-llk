@@ -1055,23 +1055,28 @@ class TilizeGolden:
         from helpers.format_arg_mapping import format_dict
         from helpers.tilize_untilize import tilize_block
 
+        # Validate the number of faces
+        if not (1 <= num_faces <= 4):
+            raise ValueError(f"`num_faces` must be between 1 and 4, got {num_faces}")
+
+        # Constants
+        FACES_PER_TILE = 4
+        ELEMENTS_PER_FACE = 256  # 16x16
+        ELEMENTS_PER_TILE = 1024  # 4 faces × 256 elements
+        TILE_SIZE = 32  # Tile dimensions: 32x32
+
         # Always do full tilization first
-        result = tilize_block(
-            operand, dimensions, data_format, 4
-        )  # Always tilize 4 faces
+        result = tilize_block(operand, dimensions, data_format, FACES_PER_TILE)
 
         # Then select the appropriate number of faces from the tilized result
-        if num_faces < 4:
+        if num_faces < FACES_PER_TILE:
             torch_format = format_dict[data_format]
-            height, width = dimensions[0], dimensions[1]
-            tile_cnt = (height // 32) * (width // 32)
-            elements_per_face = 256  # 16x16
-            elements_per_tile_needed = elements_per_face * num_faces
+            height, width = dimensions
+            tile_cnt = (height // TILE_SIZE) * (width // TILE_SIZE)
+            elements_per_tile_needed = ELEMENTS_PER_FACE * num_faces
 
             # Reshape to tiles and select first N faces per tile
-            tilized_reshaped = result.view(
-                tile_cnt, 1024
-            )  # 1024 = 4 faces * 256 elements
+            tilized_reshaped = result.view(tile_cnt, ELEMENTS_PER_TILE)
             selected = tilized_reshaped[:, :elements_per_tile_needed]
             return selected.flatten().to(torch_format)
         else:

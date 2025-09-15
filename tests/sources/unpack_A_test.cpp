@@ -80,13 +80,12 @@ void run_kernel()
 
 void run_kernel()
 {
-    // Use proper tile size calculation based on NUM_FACES
-    const uint32_t tile_size = 16 * 16 * NUM_FACES;
+    // Use predefined tile size from build configuration
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, TILE_SIZE);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, TILE_SIZE);
 #endif
 
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);

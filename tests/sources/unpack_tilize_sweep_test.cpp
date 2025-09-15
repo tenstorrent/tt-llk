@@ -40,13 +40,14 @@ void run_kernel()
     uint32_t read_offset = 0;
 
     // Main tilize loop - handle different tile configurations
-    for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+    for (uint32_t row = 0; row < BLOCK_RT_DIM; ++row)
     {
-        for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+        uint32_t tile_row_addr = L1_ADDRESS(buffer_A[read_offset]);
+        for (uint32_t col = 0; col < BLOCK_CT_DIM; ++col)
         {
             _llk_unpack_tilize_(
-                L1_ADDRESS(buffer_A[read_offset]),
-                j,
+                tile_row_addr,
+                col,
                 formats.unpack_src,
                 BLOCK_CT_DIM,
                 FACE_R_DIM,
@@ -109,11 +110,11 @@ void run_kernel()
     const bool UNTILIZE = false;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * NUM_FACES, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, TILE_SIZE, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * NUM_FACES, FACE_R_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, TILE_SIZE, FACE_R_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, NUM_FACES);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
