@@ -143,14 +143,13 @@ struct addr_mod_t
     }
 };
 
-// Fluent builder for addr_mod_t - provides clear, explicit parameter setting
+// Builder for addr_mod_t - provides clear, explicit parameter setting
 class addr_mod_builder
 {
 private:
     addr_mod_t mod {};
 
 public:
-    // Fluent interface for srca - no defaults, explicit values required
     constexpr addr_mod_builder& srca_incr(uint8_t val)
     {
         mod.srca.incr = val;
@@ -188,7 +187,6 @@ public:
         return *this;
     }
 
-    // Fluent interface for dest - explicit values only
     constexpr addr_mod_builder& dest_incr(int16_t val)
     {
         mod.dest.incr = val;
@@ -213,7 +211,6 @@ public:
         return *this;
     }
 
-    // Fluent interface for fidelity - explicit values only
     constexpr addr_mod_builder& fidelity_incr(uint8_t val)
     {
         mod.fidelity.incr = val;
@@ -239,7 +236,6 @@ public:
         return *this;
     }
 
-    // Fluent interface for pack_ysrc - explicit values only
     constexpr addr_mod_builder& pack_ysrc_incr(uint8_t val)
     {
         mod.pack_ysrc.incr = val;
@@ -258,7 +254,6 @@ public:
         return *this;
     }
 
-    // Fluent interface for pack_ydst - explicit values only
     constexpr addr_mod_builder& pack_ydst_incr(uint8_t val)
     {
         mod.pack_ydst.incr = val;
@@ -277,13 +272,11 @@ public:
         return *this;
     }
 
-    // Explicit build method - prevents accidental conversions
     constexpr addr_mod_t build() const
     {
         return mod;
     }
 
-    // Named factory function for starting a builder chain
     static constexpr addr_mod_builder create()
     {
         return addr_mod_builder {};
@@ -338,14 +331,12 @@ struct addr_mod_pack_t
     }
 };
 
-// Fluent builder for addr_mod_pack_t - provides clear, explicit parameter setting
 class addr_mod_pack_builder
 {
 private:
     addr_mod_pack_t mod {};
 
 public:
-    // Fluent interface for y_src - no defaults, explicit values required
     constexpr addr_mod_pack_builder& y_src_incr(uint8_t val)
     {
         mod.y_src.incr = val;
@@ -364,7 +355,6 @@ public:
         return *this;
     }
 
-    // Fluent interface for y_dst - explicit values only
     constexpr addr_mod_pack_builder& y_dst_incr(uint8_t val)
     {
         mod.y_dst.incr = val;
@@ -383,7 +373,6 @@ public:
         return *this;
     }
 
-    // Fluent interface for z_src - only incr and clr (no cr field)
     constexpr addr_mod_pack_builder& z_src_incr(uint8_t val)
     {
         mod.z_src.incr = val;
@@ -396,7 +385,6 @@ public:
         return *this;
     }
 
-    // Fluent interface for z_dst - only incr and clr (no cr field)
     constexpr addr_mod_pack_builder& z_dst_incr(uint8_t val)
     {
         mod.z_dst.incr = val;
@@ -409,13 +397,11 @@ public:
         return *this;
     }
 
-    // Explicit build method - prevents accidental conversions
     constexpr addr_mod_pack_t build() const
     {
         return mod;
     }
 
-    // Named factory function for starting a builder chain
     static constexpr addr_mod_pack_builder create()
     {
         return addr_mod_pack_builder {};
