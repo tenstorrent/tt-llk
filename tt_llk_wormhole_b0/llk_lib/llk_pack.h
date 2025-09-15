@@ -19,36 +19,22 @@ using namespace ckernel::packer;
 template <bool untilize = false>
 inline void _llk_pack_configure_addrmod_()
 {
-    addr_mod_pack_t {
-        {15}, // y_src: {incr = 15, clr = 0, cr = 0} - 4-bit value so max is 15. incadcxy will increment it by 1
-        {1},  // y_dst: {incr = 1, clr = 0, cr = 0}
-    }
+    addr_mod_pack_builder::create()
+        .y_src_incr(15) // 4-bit value so max is 15. incadcxy will increment it by 1
+        .y_dst_incr(1)
+        .build()
         .set(ADDR_MOD_0);
 
     if constexpr (untilize)
     {
-        addr_mod_pack_t {
-            {1, 0, 1}, // y_src: {incr = 1, clr = 0, cr = 1}
-            {1, 0, 0}, // y_dst: {incr = 1, clr = 0, cr = 0}
-        }
-            .set(ADDR_MOD_1);
+        addr_mod_pack_builder::create().y_src_incr(1).y_src_cr(1).y_dst_incr(1).build().set(ADDR_MOD_1);
     }
     else
     {
-        addr_mod_pack_t {
-            {0, 1, 0}, // y_src: {incr = 0, clr = 1, cr = 0}
-            {0, 1, 0}, // y_dst: {incr = 0, clr = 1, cr = 0}
-            {0, 0},    // z_src: {incr = 0, clr = 0}
-            {0, 0},    // z_dst: {incr = 0, clr = 0}
-        }
-            .set(ADDR_MOD_1);
+        addr_mod_pack_builder::create().y_src_clr(1).y_dst_clr(1).build().set(ADDR_MOD_1);
     }
 
-    addr_mod_pack_t {
-        {0, 1, 0}, // y_src: {incr = 0, clr = 1, cr = 0}
-        {0, 0, 0}, // y_dst: {incr = 0, clr = 0, cr = 0}
-    }
-        .set(ADDR_MOD_2);
+    addr_mod_pack_builder::create().y_src_clr(1).build().set(ADDR_MOD_2);
 }
 
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
@@ -270,29 +256,17 @@ inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
 {
     // first two address mods move to the next row, the stride depends on the number of contiguous faces loaded in the single unpacker instruction
     // for unit_dim 1, that is 2 so the stride is 2, and analogously for unit_dims 2 and 3 its 4 and 6
-    addr_mod_pack_t {
-        {(uint8_t)(unit_dim == 1 ? 2 : 4)}, // y_src: {incr = (uint8_t)(unit_dim == 1 ? 2 : 4), clr = 0, cr = 0}
-    }
-        .set(ADDR_MOD_0);
+    addr_mod_pack_builder::create().y_src_incr((uint8_t)(unit_dim == 1 ? 2 : 4)).build().set(ADDR_MOD_0);
 
-    addr_mod_pack_t {
-        {6}, // y_src: {incr = 6, clr = 0, cr = 0}
-    }
-        .set(ADDR_MOD_2);
+    addr_mod_pack_builder::create().y_src_incr(6).build().set(ADDR_MOD_2);
 
     // this address mod moves to the same face in the next tile
     // go back to the first row using cr and then move by the number of contiguous faces in the tile (always 2 irrespective of unit_dim)
-    addr_mod_pack_t {
-        {2, 0, 1}, // y_src: {incr = 2, clr = 0, cr = 1}
-    }
-        .set(ADDR_MOD_1);
+    addr_mod_pack_builder::create().y_src_incr(2).y_src_cr(1).build().set(ADDR_MOD_1);
 
     // this address mod moves back to the beginning of the unit and separate instruction will increment the z counter to move to the next unit
     // unit here refers to the interleaved set of 4 * unit_dim faces (half in the top half of the active dest bank and half in the bottom half)
-    addr_mod_pack_t {
-        {0, 1}, // y_src: {incr = 0, clr = 1, cr = 0}
-    }
-        .set(ADDR_MOD_3);
+    addr_mod_pack_builder::create().y_src_clr(1).build().set(ADDR_MOD_3);
 }
 
 inline void _llk_pack_fast_tilize_mop_config_(const std::uint32_t unit_dim)

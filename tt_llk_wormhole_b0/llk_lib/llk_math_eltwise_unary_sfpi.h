@@ -28,12 +28,7 @@ inline void eltwise_unary_sfpi_configure_addrmod()
     // NOTE: this kernel is typically used in conjunction with
     //       A2D, which is using ADDR_MOD_0 and ADDR_MOD_2, so use one
     //       that doesn't conflict!
-    addr_mod_t {
-        {0}, // srca: {incr, clr, cr}
-        {0}, // srcb: {incr, clr, cr}
-        {0}, // dest: {incr, clr, cr}
-    }
-        .set(ADDR_MOD_3);
+    addr_mod_builder::create().build().set(ADDR_MOD_3);
 }
 
 inline void eltwise_unary_sfpi_configure_mop();

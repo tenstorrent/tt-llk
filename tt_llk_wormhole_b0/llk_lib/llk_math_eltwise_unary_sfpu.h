@@ -24,21 +24,11 @@ inline void eltwise_unary_sfpu_configure_addrmod()
     //       A2D, which is using ADDR_MOD_0 and ADDR_MOD_2, so use one
     //       that doesn't conflict!
 
-    addr_mod_t {
-        {0}, // srca: {incr = 0, clr = 0, cr = 0}
-        {0}, // srcb: {incr = 0, clr = 0, cr = 0}
-        {0}, // dest: {incr = 0, clr = 0, cr = 0, c_to_cr = 0}
-    }
-        .set(ADDR_MOD_7);
+    addr_mod_builder::create().build().set(ADDR_MOD_7);
 
     if (sfpu_op == SfpuType::topk_local_sort)
     {
-        addr_mod_t {
-            {0},  // srca: {incr = 0, clr = 0, cr = 0}
-            {0},  // srcb: {incr = 0, clr = 0, cr = 0}
-            {32}, // dest: {incr = 32, clr = 0, cr = 0, c_to_cr = 0}
-        }
-            .set(ADDR_MOD_6);
+        addr_mod_builder::create().dest_incr(32).build().set(ADDR_MOD_6);
     }
 }
 

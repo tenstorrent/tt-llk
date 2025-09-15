@@ -23,33 +23,21 @@ inline void _llk_pack_untilize_configure_addrmod_()
 {
     if constexpr (diagonal || narrow_row)
     {
-        addr_mod_pack_t {
-            {1}, // y_src: {incr = 1, clr = 0, cr = 0}
-        }
-            .set(ADDR_MOD_0);
+        addr_mod_pack_builder::create().y_src_incr(1).build().set(ADDR_MOD_0);
     }
     else
     {
-        addr_mod_pack_t {
-            {15}, // y_src: {incr = 15, clr = 0, cr = 0} - 4-bit value so max is 15. incadcxy will increment it by 1
-        }
+        addr_mod_pack_builder::create()
+            .y_src_incr(15) // 4-bit value so max is 15. incadcxy will increment it by 1
+            .build()
             .set(ADDR_MOD_0);
     }
 
-    addr_mod_pack_t {
-        {0, 0, 1}, // y_src: {incr = 0, clr = 0, cr = 1}
-    }
-        .set(ADDR_MOD_1);
+    addr_mod_pack_builder::create().y_src_cr(1).build().set(ADDR_MOD_1);
 
-    addr_mod_pack_t {
-        {0, 1, 0}, // y_src: {incr = 0, clr = 1, cr = 0}
-    }
-        .set(ADDR_MOD_2);
+    addr_mod_pack_builder::create().y_src_clr(1).build().set(ADDR_MOD_2);
 
-    addr_mod_pack_t {
-        {0, 0, 0}, // y_src: {incr = 0, clr = 0, cr = 0}
-    }
-        .set(ADDR_MOD_3);
+    addr_mod_pack_builder::create().build().set(ADDR_MOD_3);
 }
 
 template <

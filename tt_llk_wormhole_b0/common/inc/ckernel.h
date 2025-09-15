@@ -280,12 +280,7 @@ inline void wait(uint32_t cycles)
 inline void zeroacc()
 {
     // Clear dest
-    addr_mod_t {
-        {0}, // srca: {incr = 0, clr = 0, cr = 0}
-        {0}, // srcb: {incr = 0, clr = 0, cr = 0}
-        {0}, // dest: {incr = 0, clr = 0, cr = 0, c_to_cr = 0}
-    }
-        .set(ADDR_MOD_1);
+    addr_mod_builder::create().build().set(ADDR_MOD_1);
     TT_ZEROACC(p_zeroacc::CLR_ALL, ADDR_MOD_1, 0);
 }
 

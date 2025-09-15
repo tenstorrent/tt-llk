@@ -255,44 +255,17 @@ inline void eltwise_binary_configure_addrmod()
     {
         if constexpr (bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL)
         {
-            addr_mod_t {
-                {8}, // srca: {incr, clr, cr}
-                {8}, // srcb: {incr, clr, cr}
-                {8}, // dest: {incr, clr, cr}
-            }
-                .set(ADDR_MOD_0);
+            addr_mod_builder::create().srca_incr(8).srcb_incr(8).dest_incr(8).build().set(ADDR_MOD_0);
         }
         else if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
         {
-            addr_mod_t {
-                {8}, // srca: {incr, clr, cr}
-                {0}, // srcb: {incr, clr, cr}
-                {8}, // dest: {incr, clr, cr}
-            }
-                .set(ADDR_MOD_0);
+            addr_mod_builder::create().srca_incr(8).dest_incr(8).build().set(ADDR_MOD_0);
         }
-        addr_mod_t {
-            {0}, // srca: {incr, clr, cr}
-            {0}, // srcb: {incr, clr, cr}
-            {0}, // dest: {incr, clr, cr}
-        }
-            .set(ADDR_MOD_1);
+        addr_mod_builder::create().build().set(ADDR_MOD_1);
 
-        addr_mod_t {
-            {0, 1, 0},            // srca: {incr, clr, cr}
-            {0, 1, 0},            // srcb: {incr, clr, cr}
-            {0, 0, 1},            // dest: {incr, clr, cr}
-            {FIDELITY_INCREMENT}, // fidelity: {incr, clr}
-        }
-            .set(ADDR_MOD_2);
+        addr_mod_builder::create().srca_clr(1).srcb_clr(1).dest_cr(1).fidelity_incr(FIDELITY_INCREMENT).build().set(ADDR_MOD_2);
 
-        addr_mod_t {
-            {0, 1, 0},    // srca: {incr, clr, cr}
-            {0, 1, 0},    // srcb: {incr, clr, cr}
-            {8, 0, 0, 1}, // dest: {incr, clr, cr, c_to_cr}
-            {0, 1},       // fidelity: {incr, clr}
-        }
-            .set(ADDR_MOD_3);
+        addr_mod_builder::create().srca_clr(1).srcb_clr(1).dest_incr(8).dest_c_to_cr(1).fidelity_clr(1).build().set(ADDR_MOD_3);
     }
 }
 

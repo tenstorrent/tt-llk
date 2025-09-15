@@ -143,6 +143,153 @@ struct addr_mod_t
     }
 };
 
+// Fluent builder for addr_mod_t - provides clear, explicit parameter setting
+class addr_mod_builder
+{
+private:
+    addr_mod_t mod {};
+
+public:
+    // Fluent interface for srca - no defaults, explicit values required
+    constexpr addr_mod_builder& srca_incr(uint8_t val)
+    {
+        mod.srca.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srca_clr(uint8_t val)
+    {
+        mod.srca.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srca_cr(uint8_t val)
+    {
+        mod.srca.cr = val;
+        return *this;
+    }
+
+    // Fluent interface for srcb - explicit values only
+    constexpr addr_mod_builder& srcb_incr(uint8_t val)
+    {
+        mod.srcb.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srcb_clr(uint8_t val)
+    {
+        mod.srcb.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srcb_cr(uint8_t val)
+    {
+        mod.srcb.cr = val;
+        return *this;
+    }
+
+    // Fluent interface for dest - explicit values only
+    constexpr addr_mod_builder& dest_incr(int16_t val)
+    {
+        mod.dest.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& dest_clr(uint8_t val)
+    {
+        mod.dest.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& dest_cr(uint8_t val)
+    {
+        mod.dest.cr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& dest_c_to_cr(uint8_t val)
+    {
+        mod.dest.c_to_cr = val;
+        return *this;
+    }
+
+    // Fluent interface for fidelity - explicit values only
+    constexpr addr_mod_builder& fidelity_incr(uint8_t val)
+    {
+        mod.fidelity.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& fidelity_clr(uint8_t val)
+    {
+        mod.fidelity.clr = val;
+        return *this;
+    }
+
+    // Fluent interface for bias - explicit values only
+    constexpr addr_mod_builder& bias_incr(uint8_t val)
+    {
+        mod.bias.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& bias_clr(uint8_t val)
+    {
+        mod.bias.clr = val;
+        return *this;
+    }
+
+    // Fluent interface for pack_ysrc - explicit values only
+    constexpr addr_mod_builder& pack_ysrc_incr(uint8_t val)
+    {
+        mod.pack_ysrc.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& pack_ysrc_clr(uint8_t val)
+    {
+        mod.pack_ysrc.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& pack_ysrc_cr(uint8_t val)
+    {
+        mod.pack_ysrc.cr = val;
+        return *this;
+    }
+
+    // Fluent interface for pack_ydst - explicit values only
+    constexpr addr_mod_builder& pack_ydst_incr(uint8_t val)
+    {
+        mod.pack_ydst.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& pack_ydst_clr(uint8_t val)
+    {
+        mod.pack_ydst.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& pack_ydst_cr(uint8_t val)
+    {
+        mod.pack_ydst.cr = val;
+        return *this;
+    }
+
+    // Explicit build method - prevents accidental conversions
+    constexpr addr_mod_t build() const
+    {
+        return mod;
+    }
+
+    // Named factory function for starting a builder chain
+    static constexpr addr_mod_builder create()
+    {
+        return addr_mod_builder {};
+    }
+};
+
 struct addr_mod_pack_t
 {
     // CLR, CR, INCR(4 bits)
@@ -188,6 +335,90 @@ struct addr_mod_pack_t
     __attribute__((always_inline)) inline void set(const uint8_t mod_index) const
     {
         TTI_SETC16(addr_mod_pack_reg_addr[mod_index], pack_val());
+    }
+};
+
+// Fluent builder for addr_mod_pack_t - provides clear, explicit parameter setting
+class addr_mod_pack_builder
+{
+private:
+    addr_mod_pack_t mod {};
+
+public:
+    // Fluent interface for y_src - no defaults, explicit values required
+    constexpr addr_mod_pack_builder& y_src_incr(uint8_t val)
+    {
+        mod.y_src.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_pack_builder& y_src_clr(uint8_t val)
+    {
+        mod.y_src.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_pack_builder& y_src_cr(uint8_t val)
+    {
+        mod.y_src.cr = val;
+        return *this;
+    }
+
+    // Fluent interface for y_dst - explicit values only
+    constexpr addr_mod_pack_builder& y_dst_incr(uint8_t val)
+    {
+        mod.y_dst.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_pack_builder& y_dst_clr(uint8_t val)
+    {
+        mod.y_dst.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_pack_builder& y_dst_cr(uint8_t val)
+    {
+        mod.y_dst.cr = val;
+        return *this;
+    }
+
+    // Fluent interface for z_src - only incr and clr (no cr field)
+    constexpr addr_mod_pack_builder& z_src_incr(uint8_t val)
+    {
+        mod.z_src.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_pack_builder& z_src_clr(uint8_t val)
+    {
+        mod.z_src.clr = val;
+        return *this;
+    }
+
+    // Fluent interface for z_dst - only incr and clr (no cr field)
+    constexpr addr_mod_pack_builder& z_dst_incr(uint8_t val)
+    {
+        mod.z_dst.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_pack_builder& z_dst_clr(uint8_t val)
+    {
+        mod.z_dst.clr = val;
+        return *this;
+    }
+
+    // Explicit build method - prevents accidental conversions
+    constexpr addr_mod_pack_t build() const
+    {
+        return mod;
+    }
+
+    // Named factory function for starting a builder chain
+    static constexpr addr_mod_pack_builder create()
+    {
+        return addr_mod_pack_builder {};
     }
 };
 
