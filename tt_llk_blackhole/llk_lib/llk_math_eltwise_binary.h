@@ -226,37 +226,42 @@ inline void eltwise_binary_configure_addrmod()
         if constexpr (bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL)
         {
             addr_mod_t {
-                .srca = {.incr = 8},
-                .srcb = {.incr = 8},
-                .dest = {.incr = 8},
+                {8}, // srca: {incr, clr, cr}
+                {8}, // srcb: {incr, clr, cr}
+                {8}, // dest: {incr, clr, cr}
             }
                 .set(ADDR_MOD_0);
         }
         else if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
         {
             addr_mod_t {
-                .srca = {.incr = 8},
-                .srcb = {.incr = 0},
-                .dest = {.incr = 8},
+                {8}, // srca: {incr, clr, cr}
+                {0}, // srcb: {incr, clr, cr}
+                {8}, // dest: {incr, clr, cr}
             }
                 .set(ADDR_MOD_0);
         }
         addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = 0},
-            .dest = {.incr = 0},
+            {0}, // srca: {incr, clr, cr}
+            {0}, // srcb: {incr, clr, cr}
+            {0}, // dest: {incr, clr, cr}
         }
             .set(ADDR_MOD_1);
 
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 0, .clr = 0, .cr = 1}, .fidelity = {.incr = FIDELITY_INCREMENT}}
+            {0, 1, 0},            // srca: {incr, clr, cr}
+            {0, 1, 0},            // srcb: {incr, clr, cr}
+            {0, 0, 1},            // dest: {incr, clr, cr}
+            {FIDELITY_INCREMENT}, // fidelity: {incr, clr}
+        }
             .set(ADDR_MOD_2);
 
         addr_mod_t {
-            .srca     = {.incr = 0, .clr = 1},
-            .srcb     = {.incr = 0, .clr = 1},
-            .dest     = {.incr = 8, .clr = 0, .cr = 0, .c_to_cr = 1},
-            .fidelity = {.incr = 0, .clr = 1}}
+            {0, 1, 0},    // srca: {incr, clr, cr}
+            {0, 1, 0},    // srcb: {incr, clr, cr}
+            {8, 0, 0, 1}, // dest: {incr, clr, cr, c_to_cr}
+            {0, 1},       // fidelity: {incr, clr}
+        }
             .set(ADDR_MOD_3);
     }
 }

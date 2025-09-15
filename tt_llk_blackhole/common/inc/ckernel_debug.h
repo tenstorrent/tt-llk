@@ -173,9 +173,9 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
         // Dump dest row
         // Restore dest row
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
-            .dest = {.incr = 0, .clr = 0, .cr = 0},
+            {0, 0, 0}, // srca: {incr, clr, cr}
+            {0, 0, 0}, // srcb: {incr, clr, cr}
+            {0, 0, 0}, // dest: {incr, clr, cr}
         }
             .set(ADDR_MOD_0);
 
@@ -198,9 +198,9 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
     else if (array_id == dbg_array_id::SRCB)
     {
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
-            .dest = {.incr = 0, .clr = 0, .cr = 0},
+            {0, 0, 0}, // srca: {incr, clr, cr}
+            {0, 0, 0}, // srcb: {incr, clr, cr}
+            {0, 0, 0}, // dest: {incr, clr, cr}
         }
             .set(ADDR_MOD_0);
 
