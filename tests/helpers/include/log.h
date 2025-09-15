@@ -17,20 +17,22 @@
 #define CONCAT(a, b)      CONCAT_IMPL(a, b)
 #define STRINGIZE(x)      #x
 
-#define LOG_IMPL(symbol, fmt, ...)                                    \
-    do                                                                \
-    {                                                                 \
-        asm volatile(".pushsection .log_meta, \"\", @progbits\n\t"  \
-                     ".type " STRINGIZE(symbol) ", @object\n\t"      \
-                     ".local " STRINGIZE(symbol) "\n\t"              \
-                     STRINGIZE(symbol) ":\n\t"                       \
-                     ".string \"" fmt "\"\n\t"                       \
+// clang-format off
+#define LOG_IMPL(symbol, fmt, ...)                                              \
+    do                                                                          \
+    {                                                                           \
+        asm volatile(".pushsection .log_meta, \"\", @progbits\n\t"              \
+                     ".type " STRINGIZE(symbol) ", @object\n\t"                 \
+                     ".local " STRINGIZE(symbol) "\n\t"                         \
+                     STRINGIZE(symbol) ":\n\t"                                  \
+                     ".string \"" fmt "\"\n\t"                                  \
                      ".size " STRINGIZE(symbol) ", .-" STRINGIZE(symbol) "\n\t" \
-                     ".popsection"); \
-        extern const char symbol[];                                   \
-        llk_log::verify(fmt, ##__VA_ARGS__);                          \
-        llk_log::write(symbol, ##__VA_ARGS__);                        \
+                     ".popsection");                                            \
+        extern const char symbol[];                                             \
+        llk_log::verify(fmt, ##__VA_ARGS__);                                    \
+        llk_log::write(symbol, ##__VA_ARGS__);                                  \
     } while (false)
+// clang-format on
 
 #define LOG(fmt, ...) LOG_IMPL(CONCAT(_log_meta_, __COUNTER__), fmt, ##__VA_ARGS__)
 
