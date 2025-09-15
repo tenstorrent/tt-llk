@@ -24,45 +24,80 @@ inline void _llk_pack_configure_addrmod_()
         /*  Y src & Y dest inc by 1 to give strided increments:
             Rows: 0, 16, 1, 17, 2, 18, ........ 15, 31
         */
-        addr_mod_pack_t {.y_src = {.incr = 1}, .y_dst = {.incr = 1}, .z_src = {.incr = 0}, .z_dst = {.incr = 0}}.set(ADDR_MOD_0);
+        addr_mod_pack_t {
+            {1}, // y_src: {incr, clr}
+            {1}, // y_dst: {incr, clr}
+            {0}, // z_src: {incr, clr}
+            {0}, // z_dst: {incr, clr}
+        }
+            .set(ADDR_MOD_0);
 
         /* Increment Faces by 2 to give next 2 faces:
             Rows: 32, 48, 33, 49, 34, 50........47, 63
         */
-        addr_mod_pack_t {.y_src = {.incr = 0, .clr = 1}, .y_dst = {.incr = 0, .clr = 1}, .z_src = {.incr = 1}, .z_dst = {.incr = 0}}.set(ADDR_MOD_1);
-
-        addr_mod_pack_t {.y_src = {.incr = 0, .clr = 1}, .y_dst = {.incr = 0, .clr = 1}, .z_src = {.incr = 0, .clr = 1}, .z_dst = {.incr = 0, .clr = 1}}.set(
-            ADDR_MOD_2);
-    }
-    else if constexpr (tilize && !untilize)
-    {
-        addr_mod_pack_t {.y_src = {.incr = 4}, .y_dst = {.incr = 2}, .z_src = {.incr = 0}, .z_dst = {.incr = 0}}.set(ADDR_MOD_0);
-
-        addr_mod_pack_t {.y_src = {.incr = 0, .clr = 1}, .y_dst = {.incr = 0, .clr = 1}, .z_src = {.incr = 0}, .z_dst = {.incr = 0}}.set(ADDR_MOD_1);
-
-        // Increment faces by 2 (jump 2 dest address 32)
-        addr_mod_pack_t {.y_src = {.incr = 0, .clr = 1}, .y_dst = {.incr = 0, .clr = 1}, .z_src = {.incr = 1}, .z_dst = {.incr = 0}}.set(ADDR_MOD_2);
-    }
-    else
-    {
         addr_mod_pack_t {
-            .y_src = {.incr = 4},
-            .y_dst = {.incr = 4},
-        }
-            .set(ADDR_MOD_0);
-
-        addr_mod_pack_t {
-            .y_src = {.incr = 0, .clr = 1, .cr = 0},
-            .y_dst = {.incr = 0, .clr = 1, .cr = 0},
-            .z_src = {.incr = 0, .clr = 1},
-            .z_dst = {.incr = 0, .clr = 0},
+            {0, 1}, // y_src: {incr, clr}
+            {0, 1}, // y_dst: {incr, clr}
+            {1},    // z_src: {incr, clr}
+            {0},    // z_dst: {incr, clr}
         }
             .set(ADDR_MOD_1);
 
         addr_mod_pack_t {
-            .y_src = {.incr = 0, .clr = 1, .cr = 0},
-            .y_dst = {.incr = 4, .clr = 0, .cr = 0},
-            .z_src = {.incr = 1, .clr = 0},
+            {0, 1}, // y_src: {incr, clr}
+            {0, 1}, // y_dst: {incr, clr}
+            {0, 1}, // z_src: {incr, clr}
+            {0, 1}, // z_dst: {incr, clr}
+        }
+            .set(ADDR_MOD_2);
+    }
+    else if constexpr (tilize && !untilize)
+    {
+        addr_mod_pack_t {
+            {4}, // y_src: {incr, clr}
+            {2}, // y_dst: {incr, clr}
+            {0}, // z_src: {incr, clr}
+            {0}, // z_dst: {incr, clr}
+        }
+            .set(ADDR_MOD_0);
+
+        addr_mod_pack_t {
+            {0, 1}, // y_src: {incr, clr}
+            {0, 1}, // y_dst: {incr, clr}
+            {0},    // z_src: {incr, clr}
+            {0},    // z_dst: {incr, clr}
+        }
+            .set(ADDR_MOD_1);
+
+        // Increment faces by 2 (jump 2 dest address 32)
+        addr_mod_pack_t {
+            {0, 1}, // y_src: {incr, clr}
+            {0, 1}, // y_dst: {incr, clr}
+            {1},    // z_src: {incr, clr}
+            {0},    // z_dst: {incr, clr}
+        }
+            .set(ADDR_MOD_2);
+    }
+    else
+    {
+        addr_mod_pack_t {
+            {4}, // y_src: {incr, clr}
+            {4}, // y_dst: {incr, clr}
+        }
+            .set(ADDR_MOD_0);
+
+        addr_mod_pack_t {
+            {0, 1, 0}, // y_src: {incr, clr, cr}
+            {0, 1, 0}, // y_dst: {incr, clr, cr}
+            {0, 1},    // z_src: {incr, clr}
+            {0, 0},    // z_dst: {incr, clr}
+        }
+            .set(ADDR_MOD_1);
+
+        addr_mod_pack_t {
+            {0, 1, 0}, // y_src: {incr, clr, cr}
+            {4, 0, 0}, // y_dst: {incr, clr, cr}
+            {1, 0},    // z_src: {incr, clr}
         }
             .set(ADDR_MOD_2);
     }
@@ -527,7 +562,7 @@ inline void _llk_pack_reduce_hw_configure_(
 
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
 
-    ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
+    ckernel::packer::pck_edge_offset_u pack_edge_offset = {0};
     pack_edge_offset.f.mask                             = 0x0;
     if constexpr (dim == ReduceDim::REDUCE_ROW)
     {

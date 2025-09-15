@@ -93,17 +93,17 @@ inline void eltwise_unary_configure_addrmod()
     if constexpr (type == A2D)
     {
         addr_mod_t {
-            .srca = {.incr = 1},
-            .srcb = {.incr = 0},
-            .dest = {.incr = 1},
+            {1}, // srca: {incr, clr, cr}
+            {0}, // srcb: {incr, clr, cr}
+            {1}, // dest: {incr, clr, cr}
         }
             .set(ADDR_MOD_0);
 
         // Just unpack into A and move to Dest
         addr_mod_t {
-            .srca = {.incr = 8},
-            .srcb = {.incr = 0},
-            .dest = {.incr = 8},
+            {8}, // srca: {incr, clr, cr}
+            {0}, // srcb: {incr, clr, cr}
+            {8}, // dest: {incr, clr, cr}
         }
             .set(ADDR_MOD_2);
     }
@@ -112,34 +112,34 @@ inline void eltwise_unary_configure_addrmod()
         if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
         {
             addr_mod_t {
-                .srca = {.incr = 0},
-                .srcb = {.incr = 0},
-                .dest = {.incr = 1},
+                {0}, // srca: {incr, clr, cr}
+                {0}, // srcb: {incr, clr, cr}
+                {1}, // dest: {incr, clr, cr}
             }
                 .set(ADDR_MOD_0);
 
             // Just unpack into B and move to Dest
             addr_mod_t {
-                .srca = {.incr = 0},
-                .srcb = {.incr = 0},
-                .dest = {.incr = 8},
+                {0}, // srca: {incr, clr, cr}
+                {0}, // srcb: {incr, clr, cr}
+                {8}, // dest: {incr, clr, cr}
             }
                 .set(ADDR_MOD_2);
         }
         else
         {
             addr_mod_t {
-                .srca = {.incr = 0},
-                .srcb = {.incr = 1},
-                .dest = {.incr = 1},
+                {0}, // srca: {incr, clr, cr}
+                {1}, // srcb: {incr, clr, cr}
+                {1}, // dest: {incr, clr, cr}
             }
                 .set(ADDR_MOD_0);
 
             // Just unpack into B and move to Dest
             addr_mod_t {
-                .srca = {.incr = 0},
-                .srcb = {.incr = 8},
-                .dest = {.incr = 8},
+                {0}, // srca: {incr, clr, cr}
+                {8}, // srcb: {incr, clr, cr}
+                {8}, // dest: {incr, clr, cr}
             }
                 .set(ADDR_MOD_2);
         }

@@ -637,7 +637,7 @@ union qstatus_u
         unsigned global_sfpu   : 1;
         unsigned global_fpu    : 1;
         unsigned global_sfpucc : 2;
-    };
+    } parts;
 };
 
 union bstatus_u
@@ -669,7 +669,7 @@ union bstatus_u
         unsigned global_tdma   : 1;
         unsigned global_sfpu   : 1;
         unsigned global_fpu    : 1;
-    };
+    } parts;
 };
 
 inline void init_prng_seed(const uint seed)

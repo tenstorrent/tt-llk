@@ -22,7 +22,7 @@ inline void _llk_pack_untilize_configure_addrmod_()
     static_assert(!diagonal, "Diagonal not supported");
 
     addr_mod_pack_t {
-        .y_src = {.incr = 0, .clr = 0},
+        {0, 0}, // y_src: {incr, clr}
     }
         .set(ADDR_MOD_0);
 }
