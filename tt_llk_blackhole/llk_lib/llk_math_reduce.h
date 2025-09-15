@@ -407,25 +407,37 @@ inline void reduce_configure_addrmod()
     constexpr int FIDELITY_INCREMENT  = get_math_fidelity_increment(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY      = NUM_FIDELITY_PHASES > 0;
 
-    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
+    addr_mod_t {
+        {0},    // srca: {incr, clr, cr}
+        {0},    // srcb: {incr, clr, cr}
+        {0},    // dest: {incr, clr, cr}
+        {0, 1}, // fidelity: {incr, clr}
+    }
+        .set(ADDR_MOD_0);
 
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 1},
-        .dest = {.incr = 1},
+        {0}, // srca: {incr, clr, cr}
+        {1}, // srcb: {incr, clr, cr}
+        {1}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_1);
 
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 8},
-        .dest = {.incr = 8},
+        {0}, // srca: {incr, clr, cr}
+        {8}, // srcb: {incr, clr, cr}
+        {8}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_2);
 
     if constexpr (HIGH_FIDELITY)
     {
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
+        addr_mod_t {
+            {0},                  // srca: {incr, clr, cr}
+            {0},                  // srcb: {incr, clr, cr}
+            {0},                  // dest: {incr, clr, cr}
+            {FIDELITY_INCREMENT}, // fidelity: {incr, clr}
+        }
+            .set(ADDR_MOD_3);
     }
 }
 

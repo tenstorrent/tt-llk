@@ -25,18 +25,18 @@ inline void eltwise_unary_sfpu_configure_addrmod()
     //       that doesn't conflict!
 
     addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
+        {0}, // srca: {incr, clr, cr}
+        {0}, // srcb: {incr, clr, cr}
+        {0}, // dest: {incr, clr, cr}
     }
         .set(ADDR_MOD_7);
 
     if (sfpu_op == SfpuType::topk_local_sort)
     {
         addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = 0},
-            .dest = {.incr = 32},
+            {0},  // srca: {incr, clr, cr}
+            {0},  // srcb: {incr, clr, cr}
+            {32}, // dest: {incr, clr, cr}
         }
             .set(ADDR_MOD_6);
     }
