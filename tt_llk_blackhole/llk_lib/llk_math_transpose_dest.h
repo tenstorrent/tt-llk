@@ -76,33 +76,13 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 template <bool is_32bit>
 inline void transpose_dest_configure_addrmod()
 {
-    addr_mod_t {
-        {0},  // srca: {incr, clr, cr}
-        {0},  // srcb: {incr, clr, cr}
-        {16}, // dest: {incr, clr, cr}
-    }
-        .set(ADDR_MOD_0);
+    addr_mod_builder::create().dest_incr(16).build().set(ADDR_MOD_0);
 
-    addr_mod_t {
-        {0}, // srca: {incr, clr, cr}
-        {0}, // srcb: {incr, clr, cr}
-        {0}, // dest: {incr, clr, cr}
-    }
-        .set(ADDR_MOD_1);
+    addr_mod_builder::create().build().set(ADDR_MOD_1);
 
-    addr_mod_t {
-        {0},                          // srca: {incr, clr, cr}
-        {0},                          // srcb: {incr, clr, cr}
-        {is_32bit ? 2 : 0x3ff & -16}, // dest: {incr, clr, cr}
-    }
-        .set(ADDR_MOD_2);
+    addr_mod_builder::create().dest_incr(is_32bit ? 2 : 0x3ff & -16).build().set(ADDR_MOD_2);
 
-    addr_mod_t {
-        {0},  // srca: {incr, clr, cr}
-        {0},  // srcb: {incr, clr, cr}
-        {32}, // dest: {incr, clr, cr}
-    }
-        .set(ADDR_MOD_3);
+    addr_mod_builder::create().dest_incr(32).build().set(ADDR_MOD_3);
 }
 
 template <bool transpose_of_faces, bool is_32bit>

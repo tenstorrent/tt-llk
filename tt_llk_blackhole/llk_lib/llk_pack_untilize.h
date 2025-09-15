@@ -21,10 +21,7 @@ inline void _llk_pack_untilize_configure_addrmod_()
 {
     static_assert(!diagonal, "Diagonal not supported");
 
-    addr_mod_pack_t {
-        {0, 0}, // y_src: {incr, clr}
-    }
-        .set(ADDR_MOD_0);
+    addr_mod_pack_builder::create().build().set(ADDR_MOD_0);
 }
 
 /*

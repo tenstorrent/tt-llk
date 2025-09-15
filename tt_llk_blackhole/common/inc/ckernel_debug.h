@@ -172,12 +172,7 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
         // Move SrcA into dest row
         // Dump dest row
         // Restore dest row
-        addr_mod_t {
-            {0, 0, 0}, // srca: {incr, clr, cr}
-            {0, 0, 0}, // srcb: {incr, clr, cr}
-            {0, 0, 0}, // dest: {incr, clr, cr}
-        }
-            .set(ADDR_MOD_0);
+        addr_mod_builder::create().build().set(ADDR_MOD_0);
 
         // Clear counters
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
@@ -197,12 +192,7 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
     }
     else if (array_id == dbg_array_id::SRCB)
     {
-        addr_mod_t {
-            {0, 0, 0}, // srca: {incr, clr, cr}
-            {0, 0, 0}, // srcb: {incr, clr, cr}
-            {0, 0, 0}, // dest: {incr, clr, cr}
-        }
-            .set(ADDR_MOD_0);
+        addr_mod_builder::create().build().set(ADDR_MOD_0);
 
         // Clear counters
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD_F);

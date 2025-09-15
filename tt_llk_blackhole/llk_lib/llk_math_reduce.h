@@ -407,37 +407,15 @@ inline void reduce_configure_addrmod()
     constexpr int FIDELITY_INCREMENT  = get_math_fidelity_increment(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY      = NUM_FIDELITY_PHASES > 0;
 
-    addr_mod_t {
-        {0},    // srca: {incr, clr, cr}
-        {0},    // srcb: {incr, clr, cr}
-        {0},    // dest: {incr, clr, cr}
-        {0, 1}, // fidelity: {incr, clr}
-    }
-        .set(ADDR_MOD_0);
+    addr_mod_builder::create().fidelity_clr(1).build().set(ADDR_MOD_0);
 
-    addr_mod_t {
-        {0}, // srca: {incr, clr, cr}
-        {1}, // srcb: {incr, clr, cr}
-        {1}, // dest: {incr, clr, cr}
-    }
-        .set(ADDR_MOD_1);
+    addr_mod_builder::create().srcb_incr(1).dest_incr(1).build().set(ADDR_MOD_1);
 
-    addr_mod_t {
-        {0}, // srca: {incr, clr, cr}
-        {8}, // srcb: {incr, clr, cr}
-        {8}, // dest: {incr, clr, cr}
-    }
-        .set(ADDR_MOD_2);
+    addr_mod_builder::create().srcb_incr(8).dest_incr(8).build().set(ADDR_MOD_2);
 
     if constexpr (HIGH_FIDELITY)
     {
-        addr_mod_t {
-            {0},                  // srca: {incr, clr, cr}
-            {0},                  // srcb: {incr, clr, cr}
-            {0},                  // dest: {incr, clr, cr}
-            {FIDELITY_INCREMENT}, // fidelity: {incr, clr}
-        }
-            .set(ADDR_MOD_3);
+        addr_mod_builder::create().fidelity_incr(FIDELITY_INCREMENT).build().set(ADDR_MOD_3);
     }
 }
 
