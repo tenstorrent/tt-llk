@@ -152,3 +152,83 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
 }
+
+template <bool is_fp32_dest_acc_en>
+inline void _llk_unpack_A_bcast_B_hw_config(
+    const std::uint32_t unpA_src_format,
+    const std::uint32_t unpB_src_format,
+    const std::uint32_t unpA_dst_format,
+    const std::uint32_t unpB_dst_format,
+    const std::uint32_t face_r_dim                  = FACE_R_DIM,
+    const std::uint32_t within_face_16x16_transpose = 0,
+    const std::uint32_t num_faces                   = 4)
+{
+    constexpr bool is_row_pool = false;
+    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool>(
+        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
+}
+
+template <BroadcastType BType = BroadcastType::NONE>
+inline void _llk_unpack_A_bcast_B_init_(
+    const std::uint32_t face_r_dim  = FACE_R_DIM,
+    const std::uint32_t num_faces   = 4,
+    const bool narrow_tile          = false,
+    const std::uint32_t transpose   = 0,
+    const std::uint32_t acc_to_dest = 0)
+{
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_0_Ystride_RMW>(0);
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(0);
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_0_Wstride_RMW>(0);
+    cfg_reg_rmw_tensix<UNP0_ADDR_BASE_REG_0_Base_RMW>(0);
+
+    constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
+    config_unpacker_x_end<UNP_SEL>(face_r_dim);
+
+    _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
+}
+
+template <BroadcastType BType = BroadcastType::NONE>
+inline void _llk_unpack_A_bcast_b_block(
+    const std::uint32_t address_a, const std::uint32_t address_b, const std::uint32_t unpack_src_format, const bool transpose_of_faces = 0 /*not used*/)
+{
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
+
+    // Program srcA and srcB base addresses
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Get tile address
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+    }
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+    // Run MOP
+    // ckernel::ckernel_template::run();
+    for (int i = 0; i < 4; i++)
+    {
+        TTI_UNPACR_COMMON(SrcA, 0b0, 1);
+        TTI_UNPACR_COMMON(SrcB, 0b1, 1);
+    }
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+}
