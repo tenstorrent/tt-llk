@@ -25,11 +25,11 @@ def test_profiler_overhead():
 
     run_test(test_config, profiler_build=ProfilerBuild.Yes)
 
-    df = Profiler.get_data(test_config["testname"])
+    runtime = Profiler.get_data(test_config["testname"])
 
     # filter out all zones that don't have marker "OVERHEAD"
 
-    overhead_zones = df[df["marker"] == "OVERHEAD"]
+    overhead_zones = runtime.zones().marker("OVERHEAD").frame()
     assert (
         len(overhead_zones) == 32
     ), f"Expected 32 overhead zones, got {len(overhead_zones)}"
