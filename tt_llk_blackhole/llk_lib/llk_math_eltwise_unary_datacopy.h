@@ -82,31 +82,69 @@ inline void _llk_math_eltwise_unary_datacopy_(
 template <DataCopyType type, BroadcastType bcast_type = BroadcastType::NONE>
 inline void eltwise_unary_configure_addrmod()
 {
-    addr_mod_builder::create().build().set(ADDR_MOD_3);
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
+        .set(ADDR_MOD_3);
+    // clang-format on
 
     // Use srcA for data movement
     if constexpr (type == A2D)
     {
-        addr_mod_builder::create().srca_incr(1).dest_incr(1).build().set(ADDR_MOD_0);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_incr(1)
+            .dest_incr(1)
+            .build()
+            .set(ADDR_MOD_0);
+        // clang-format on
 
         // Just unpack into A and move to Dest
-        addr_mod_builder::create().srca_incr(8).dest_incr(8).build().set(ADDR_MOD_2);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_incr(8)
+            .dest_incr(8)
+            .build()
+            .set(ADDR_MOD_2);
+        // clang-format on
     }
     else
     {
         if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
         {
-            addr_mod_builder::create().dest_incr(1).build().set(ADDR_MOD_0);
+            // clang-format off
+            addr_mod_builder::create()
+                .dest_incr(1)
+                .build()
+                .set(ADDR_MOD_0);
+            // clang-format on
 
             // Just unpack into B and move to Dest
-            addr_mod_builder::create().dest_incr(8).build().set(ADDR_MOD_2);
+            // clang-format off
+            addr_mod_builder::create()
+                .dest_incr(8)
+                .build()
+                .set(ADDR_MOD_2);
+            // clang-format on
         }
         else
         {
-            addr_mod_builder::create().srcb_incr(1).dest_incr(1).build().set(ADDR_MOD_0);
+            // clang-format off
+            addr_mod_builder::create()
+                .srcb_incr(1)
+                .dest_incr(1)
+                .build()
+                .set(ADDR_MOD_0);
+            // clang-format on
 
             // Just unpack into B and move to Dest
-            addr_mod_builder::create().srcb_incr(8).dest_incr(8).build().set(ADDR_MOD_2);
+            // clang-format off
+            addr_mod_builder::create()
+                .srcb_incr(8)
+                .dest_incr(8)
+                .build()
+                .set(ADDR_MOD_2);
+            // clang-format on
         }
     }
 }

@@ -289,7 +289,11 @@ inline void wait(uint32_t cycles)
 inline void zeroacc()
 {
     // Clear dest
-    addr_mod_builder::create().build().set(ADDR_MOD_1);
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
+        .set(ADDR_MOD_1);
+    // clang-format on
     TT_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, ADDR_MOD_1, 0);
 }
 

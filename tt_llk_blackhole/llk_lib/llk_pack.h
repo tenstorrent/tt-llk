@@ -24,31 +24,91 @@ inline void _llk_pack_configure_addrmod_()
         /*  Y src & Y dest inc by 1 to give strided increments:
             Rows: 0, 16, 1, 17, 2, 18, ........ 15, 31
         */
-        addr_mod_pack_builder::create().y_src_incr(1).y_dst_incr(1).build().set(ADDR_MOD_0);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_incr(1)
+            .y_dst_incr(1)
+            .build()
+            .set(ADDR_MOD_0);
+        // clang-format on
 
         /* Increment Faces by 2 to give next 2 faces:
             Rows: 32, 48, 33, 49, 34, 50........47, 63
         */
-        addr_mod_pack_builder::create().y_src_clr(1).y_dst_clr(1).z_src_incr(1).build().set(ADDR_MOD_1);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_clr(1)
+            .y_dst_clr(1)
+            .z_src_incr(1)
+            .build()
+            .set(ADDR_MOD_1);
+        // clang-format on
 
-        addr_mod_pack_builder::create().y_src_clr(1).y_dst_clr(1).z_src_clr(1).z_dst_clr(1).build().set(ADDR_MOD_2);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_clr(1)
+            .y_dst_clr(1)
+            .z_src_clr(1)
+            .z_dst_clr(1)
+            .build()
+            .set(ADDR_MOD_2);
+        // clang-format on
     }
     else if constexpr (tilize && !untilize)
     {
-        addr_mod_pack_builder::create().y_src_incr(4).y_dst_incr(2).build().set(ADDR_MOD_0);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_incr(4)
+            .y_dst_incr(2)
+            .build()
+            .set(ADDR_MOD_0);
+        // clang-format on
 
-        addr_mod_pack_builder::create().y_src_clr(1).y_dst_clr(1).build().set(ADDR_MOD_1);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_clr(1)
+            .y_dst_clr(1)
+            .build()
+            .set(ADDR_MOD_1);
+        // clang-format on
 
         // Increment faces by 2 (jump 2 dest address 32)
-        addr_mod_pack_builder::create().y_src_clr(1).y_dst_clr(1).z_src_incr(1).build().set(ADDR_MOD_2);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_clr(1)
+            .y_dst_clr(1)
+            .z_src_incr(1)
+            .build()
+            .set(ADDR_MOD_2);
+        // clang-format on
     }
     else
     {
-        addr_mod_pack_builder::create().y_src_incr(4).y_dst_incr(4).build().set(ADDR_MOD_0);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_incr(4)
+            .y_dst_incr(4)
+            .build()
+            .set(ADDR_MOD_0);
+        // clang-format on
 
-        addr_mod_pack_builder::create().y_src_clr(1).y_dst_clr(1).z_src_clr(1).build().set(ADDR_MOD_1);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_clr(1)
+            .y_dst_clr(1)
+            .z_src_clr(1)
+            .build()
+            .set(ADDR_MOD_1);
+        // clang-format on
 
-        addr_mod_pack_builder::create().y_src_clr(1).y_dst_incr(4).z_src_incr(1).build().set(ADDR_MOD_2);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_clr(1)
+            .y_dst_incr(4)
+            .z_src_incr(1)
+            .build()
+            .set(ADDR_MOD_2);
+        // clang-format on
     }
 }
 

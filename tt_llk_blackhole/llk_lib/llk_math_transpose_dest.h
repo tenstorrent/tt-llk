@@ -76,13 +76,32 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 template <bool is_32bit>
 inline void transpose_dest_configure_addrmod()
 {
-    addr_mod_builder::create().dest_incr(16).build().set(ADDR_MOD_0);
+    // clang-format off
+    addr_mod_builder::create()
+        .dest_incr(16)
+        .build()
+        .set(ADDR_MOD_0);
+    // clang-format on
 
-    addr_mod_builder::create().build().set(ADDR_MOD_1);
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
+        .set(ADDR_MOD_1);
+    // clang-format on
 
-    addr_mod_builder::create().dest_incr(is_32bit ? 2 : 0x3ff & -16).build().set(ADDR_MOD_2);
+    // clang-format off
+    addr_mod_builder::create()
+        .dest_incr(is_32bit ? 2 : 0x3ff & -16)
+        .build()
+        .set(ADDR_MOD_2);
+    // clang-format on
 
-    addr_mod_builder::create().dest_incr(32).build().set(ADDR_MOD_3);
+    // clang-format off
+    addr_mod_builder::create()
+        .dest_incr(32)
+        .build()
+        .set(ADDR_MOD_3);
+    // clang-format on
 }
 
 template <bool transpose_of_faces, bool is_32bit>

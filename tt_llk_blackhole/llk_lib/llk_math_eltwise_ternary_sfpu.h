@@ -18,7 +18,11 @@
 template <SfpuType sfpu_op>
 inline void eltwise_ternary_sfpu_configure_addrmod()
 {
-    addr_mod_builder::create().build().set(ADDR_MOD_7);
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
+        .set(ADDR_MOD_7);
+    // clang-format on
 }
 
 inline void eltwise_ternary_sfpu_configure_mop();
