@@ -32,14 +32,10 @@ def test_profiler_primitives():
 
     run_test(test_config, profiler_build=ProfilerBuild.Yes)
 
-    df = Profiler.get_data(test_config["testname"])
+    runtime = Profiler.get_data(test_config["testname"])
 
     # ZONE_SCOPED - Get first ZONE type entry from UNPACK thread
-    zones = df[
-        (df["thread"] == "UNPACK")
-        & (df["type"] == "ZONE")
-        & (df["marker"] == "TEST_ZONE")
-    ]
+    zones = runtime.unpack().zones().marker("TEST_ZONE").frame()
     assert len(zones) > 0, "Expected at least one TEST_ZONE entry"
     zone = zones.iloc[0]
 
@@ -56,11 +52,7 @@ def test_profiler_primitives():
     assert zone["duration"] > 0, f"Expected zone duration > 0, got {zone['duration']}"
 
     # TIMESTAMP - Get first TIMESTAMP type entry from MATH thread
-    timestamps = df[
-        (df["thread"] == "MATH")
-        & (df["type"] == "TIMESTAMP")
-        & (df["marker"] == "TEST_TIMESTAMP")
-    ]
+    timestamps = runtime.math().timestamps().marker("TEST_TIMESTAMP").frame()
     assert len(timestamps) == 1, "Expected exactly one TEST_TIMESTAMP entry"
     timestamp = timestamps.iloc[0]
 
@@ -82,11 +74,7 @@ def test_profiler_primitives():
     ), f"Expected timestamp data to be None/NaN, got {timestamp['data']}"
 
     # TIMESTAMP_DATA - Get first TIMESTAMP type entry from PACK thread with data
-    data_timestamps = df[
-        (df["thread"] == "PACK")
-        & (df["type"] == "TIMESTAMP")
-        & (df["marker"] == "TEST_TIMESTAMP_DATA")
-    ]
+    data_timestamps = runtime.pack().timestamps().marker("TEST_TIMESTAMP_DATA").frame()
     assert len(data_timestamps) == 1, "Expected exactly one TEST_TIMESTAMP_DATA entry"
     timestamp_data = data_timestamps.iloc[0]
 
