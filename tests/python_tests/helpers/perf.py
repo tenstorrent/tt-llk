@@ -10,6 +10,7 @@ from pathlib import Path
 from statistics import mean, stdev
 from typing import List
 
+import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
@@ -18,80 +19,136 @@ from helpers.device import (
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
-from helpers.profiler import Profiler
+from helpers.profiler import Profiler, ProfilerData
 from helpers.test_config import ProfilerBuild, build_test
 
 
-@dataclass
-class PerfZone:
-    start: int
-    end: int
-    duration: int
+class PerfRunType(Enum):
+    L1_TO_L1 = 1
+    UNPACK_ISOLATE = 2
+    MATH_ISOLATE = 3
+    PACK_ISOLATE = 4
+    L1_CONGESTION = 5
 
 
-@dataclass
-class PerfThreadData:
-    init: PerfZone
-    tile_loop: PerfZone
-    kernel: PerfZone
+ALL_RUN_TYPES = [type for type in PerfRunType]
 
 
-@dataclass
-class PerfData:
-    unpack: PerfThreadData
-    math: PerfThreadData
-    pack: PerfThreadData
+def _timings_l1_to_l1(perf_data: pd.DataFrame) -> pd.Series:
+    # todo: at some point we should support other markers
+    runs = perf_data[
+        (perf_data["run_type"] == PerfRunType.L1_TO_L1.name)
+        & (perf_data["type"] == "ZONE")
+        & (perf_data["marker"] == "TILE_LOOP")
+    ]
 
+    groups = runs.groupby(["run_index", "marker"])
 
-def _parse_thread(thread_data) -> PerfThreadData:
-    zones = {}
-    markers = {"kernel", "init", "tile_loop"}
+    dataframes = []
+    for (run_index, marker), group in groups:
+        unpack = group[group["thread"] == "UNPACK"]
+        pack = group[group["thread"] == "PACK"]
 
-    for entry in thread_data:
-        marker = entry.full_marker.marker.lower()
-        if marker in markers:
-            zones[marker] = PerfZone(
-                start=entry.start, end=entry.end, duration=entry.duration
+        if len(unpack) == 0 or len(pack) == 0:
+            raise ValueError(
+                "Zone must be captured on both unpack and pack for this to work properly"
             )
 
-    if len(zones) < len(markers):
-        missing = markers - zones.keys()
-        raise AssertionError(
-            f"Missing zones after perf run: {', '.join(sorted(missing))}"
+        if len(unpack) != len(pack):
+            raise ValueError(
+                f"Unpack and pack must be paired properly for L1_TO_L1 to work properly"
+            )
+
+        unpack_start = unpack["timestamp"]
+        pack_end = pack["timestamp"] + pack["duration"]
+        durations = pack_end - unpack_start
+
+        group_df = pd.DataFrame(
+            {
+                "run_type": PerfRunType.L1_TO_L1.name,
+                "run_index": run_index,
+                "marker": marker,
+                "duration": durations,
+            }
         )
+        dataframes.append(group_df)
 
-    return PerfThreadData(**zones)
+    return pd.concat(dataframes, ignore_index=True)
 
 
-def process_profiler_data(profiler_data) -> PerfData:
-    return PerfData(
-        unpack=_parse_thread(profiler_data.unpack),
-        math=_parse_thread(profiler_data.math),
-        pack=_parse_thread(profiler_data.pack),
+def _timings_unpack(perf_data: pd.DataFrame) -> pd.DataFrame:
+    # todo: at some point we should support other markers
+    runs = perf_data[
+        (perf_data["run_type"] == PerfRunType.UNPACK_ISOLATE.name)
+        & (perf_data["type"] == "ZONE")
+        & (perf_data["marker"] == "TILE_LOOP")
+        & (perf_data["thread"] == "UNPACK")
+    ]
+
+    return pd.DataFrame(
+        {
+            "run_type": runs["run_type"],
+            "run_index": runs["run_index"],
+            "marker": runs["marker"],
+            "duration": runs["duration"],
+        }
     )
 
 
-def timing_l1_to_l1(perf_data: PerfData) -> int:
-    """Time to perform the whole operation (compute)"""
-    return (perf_data.pack.tile_loop.end - perf_data.unpack.tile_loop.start,)
+def _timings_math(perf_data: pd.DataFrame) -> pd.DataFrame:
+    # todo: at some point we should support other markers
+    runs = perf_data[
+        (perf_data["run_type"] == PerfRunType.MATH_ISOLATE.name)
+        & (perf_data["type"] == "ZONE")
+        & (perf_data["marker"] == "TILE_LOOP")
+        & (perf_data["thread"] == "MATH")
+    ]
+
+    return pd.DataFrame(
+        {
+            "run_type": runs["run_type"],
+            "run_index": runs["run_index"],
+            "marker": runs["marker"],
+            "duration": runs["duration"],
+        }
+    )
 
 
-def timing_unpack(perf_data: PerfData) -> int:
-    return (perf_data.unpack.tile_loop.duration,)
+def _timings_pack(perf_data: pd.DataFrame) -> pd.DataFrame:
+    # todo: at some point we should support other markers
+    runs = perf_data[
+        (perf_data["run_type"] == PerfRunType.PACK_ISOLATE.name)
+        & (perf_data["type"] == "ZONE")
+        & (perf_data["marker"] == "TILE_LOOP")
+        & (perf_data["thread"] == "PACK")
+    ]
+
+    return pd.DataFrame(
+        {
+            "run_type": runs["run_type"],
+            "run_index": runs["run_index"],
+            "marker": runs["marker"],
+            "duration": runs["duration"],
+        }
+    )
 
 
-def timing_math(perf_data: PerfData) -> int:
-    return (perf_data.math.tile_loop.duration,)
+def _timings_l1_congestion(perf_data: pd.DataFrame) -> pd.DataFrame:
+    # todo: at some point we should support other markers
+    runs = perf_data[
+        (perf_data["run_type"] == PerfRunType.L1_CONGESTION.name)
+        & (perf_data["type"] == "ZONE")
+        & (perf_data["marker"] == "TILE_LOOP")
+    ]
 
-
-def timing_pack(perf_data: PerfData) -> int:
-    return (perf_data.pack.tile_loop.duration,)
-
-
-def timing_l1_congestion(perf_data: PerfData) -> int:
-    return (
-        perf_data.unpack.tile_loop.duration,
-        perf_data.pack.tile_loop.duration,
+    return pd.DataFrame(
+        {
+            "run_type": runs["run_type"],
+            "run_index": runs["run_index"],
+            "marker": runs["marker"],
+            "duration[UNPACK]": runs[runs["thread"] == "UNPACK"]["duration"],
+            "duration[PACK]": runs[runs["thread"] == "PACK"]["duration"],
+        }
     )
 
 
@@ -108,51 +165,81 @@ def process_runs(runs, test_config):
     )
 
 
-class PerfRunType(Enum):
-    L1_TO_L1 = 1
-    UNPACK_ISOLATE = 2
-    MATH_ISOLATE = 3
-    PACK_ISOLATE = 4
-    L1_CONGESTION = 5
+def _process_profiler_data(
+    run_type: PerfRunType, run_index: int, profiler_data: ProfilerData
+) -> pd.DataFrame:
+    df = profiler_data.frame()
+    df.insert(0, "run_type", run_type.name)
+    df.insert(1, "run_index", run_index)
+    return df
 
 
-ALL_RUN_TYPES = [type for type in PerfRunType]
+def _generate_report(perf_data: pd.DataFrame):
+    # Group by run_type and marker to calculate aggregated statistics
+    grouped = perf_data.groupby(["run_type", "marker"], as_index=False)
+    result_dfs = []
+
+    for (run_type, marker), group in grouped:
+        # Create a base row with run_type and marker
+        result_row = {"run_type": run_type, "marker": marker}
+
+        # Find all duration columns (both 'duration' and 'duration[THREAD_NAME]' patterns)
+        duration_cols = [col for col in group.columns if col.startswith("duration")]
+
+        for col in duration_cols:
+            # Get non-null values for this duration column
+            values = group[col]
+
+            if len(values) == 1:
+                # Only one sample - set avg to NA as requested
+                result_row[f"{col}.AVG"] = values[0]
+            else:
+                # Multiple samples - calculate mean and std
+                result_row[f"{col}.AVG"] = values.mean()
+                result_row[f"{col}.STD"] = values.std()
+
+        result_dfs.append(pd.DataFrame([result_row]))
+
+    return pd.concat(result_dfs, ignore_index=True)
 
 
 def perf_benchmark(test_config, run_types: list[PerfRunType], run_count=2):
 
     RUN_CONFIGURATIONS = {
-        PerfRunType.L1_TO_L1: timing_l1_to_l1,
-        PerfRunType.UNPACK_ISOLATE: timing_unpack,
-        PerfRunType.MATH_ISOLATE: timing_math,
-        PerfRunType.PACK_ISOLATE: timing_pack,
-        PerfRunType.L1_CONGESTION: timing_l1_congestion,
+        PerfRunType.L1_TO_L1: _timings_l1_to_l1,
+        PerfRunType.UNPACK_ISOLATE: _timings_unpack,
+        PerfRunType.MATH_ISOLATE: _timings_math,
+        PerfRunType.PACK_ISOLATE: _timings_pack,
+        PerfRunType.L1_CONGESTION: _timings_l1_congestion,
     }
     SUPPORTED_RUNS = RUN_CONFIGURATIONS.keys()
 
-    results = {}
+    results = []
 
-    for type in run_types:
-        assert type in SUPPORTED_RUNS, f"ERROR: run_type={type} not implemented"
-        get_timing = RUN_CONFIGURATIONS[type]
+    for run_type in run_types:
+        assert run_type in SUPPORTED_RUNS, f"ERROR: run_type={run_type} not implemented"
 
-        test_config["perf_run_type"] = type
+        get_timing = RUN_CONFIGURATIONS[run_type]
+
+        test_config["perf_run_type"] = run_type
         build_test(test_config, profiler_build=ProfilerBuild.Yes)
 
         runs = []
-        for _ in range(run_count):
+        for run_index in range(run_count):
             reset_mailboxes()
             run_elf_files(test_config["testname"])
             wait_for_tensix_operations_finished()
 
             profiler_data = Profiler.get_data(test_config["testname"])
-            perf_data = process_profiler_data(profiler_data)
+            runs.append(_process_profiler_data(run_type, run_index, profiler_data))
 
-            runs.append(get_timing(perf_data))
+        results.append(get_timing(pd.concat(runs, ignore_index=True)))
 
-        results[type] = process_runs(runs, test_config)
+    results = pd.concat(results, ignore_index=True)
+    report = _generate_report(results)
 
-    return results
+    report.to_csv(f"test.csv")
+    return report
 
 
 @dataclass
