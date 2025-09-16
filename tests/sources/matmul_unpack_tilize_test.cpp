@@ -69,7 +69,6 @@ void run_kernel()
     const bool is_int_fpu_en                = false;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
-    const std::uint32_t res_dst_index       = 0;
     const bool TILIZE                       = true;
 
     // copy srca to dest
@@ -117,7 +116,6 @@ void run_kernel()
 
 void run_kernel()
 {
-    const std::uint32_t ct_dim              = 1;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
     const std::uint32_t res_dst_index       = 0;

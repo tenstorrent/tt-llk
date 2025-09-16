@@ -124,7 +124,6 @@ void run_kernel()
 
 void run_kernel()
 {
-    const std::uint32_t ct_dim              = 1;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
     const std::uint32_t res_dst_index       = 0;
