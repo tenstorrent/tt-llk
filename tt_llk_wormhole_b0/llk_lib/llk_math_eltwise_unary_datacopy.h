@@ -276,7 +276,7 @@ inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst
     // clang-format off
     addr_mod_builder::create()
         .srca_incr(8)
-        .dest_incr((int16_t)(unit_dim == 1 ? unit_dim_1_forward_jump : unit_dim_2_forward_jump))
+        .dest_incr(unit_dim == 1 ? unit_dim_1_forward_jump : unit_dim_2_forward_jump)
         .build()
         .set(ADDR_MOD_3);
     // clang-format on
@@ -284,7 +284,7 @@ inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst
     // this jumps back to the offset for the next tile, RWCs for source registers are reset separately when clearing dvalids
     // clang-format off
     addr_mod_builder::create()
-        .dest_incr((int16_t)(unit_dim == 1 ? unit_dim_1_backward_jump : unit_dim_2_backward_jump))
+        .dest_incr(unit_dim == 1 ? unit_dim_1_backward_jump : unit_dim_2_backward_jump)
         .build()
         .set(ADDR_MOD_0);
     // clang-format on
