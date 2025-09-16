@@ -21,9 +21,9 @@ using namespace ckernel;
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod(
     const bool transpose,
-    const std::uint32_t ct_dim,
-    const std::uint32_t rt_dim,
-    const std::uint32_t kt_dim,
+    [[maybe_unused]] const std::uint32_t ct_dim,
+    [[maybe_unused]] const std::uint32_t rt_dim,
+    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -280,10 +280,10 @@ inline void matmul_configure_addrmod(
 
 template <int NUM_FIDELITY_PHASES, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
 inline void matmul_configure_mop(
-    bool transpose,
+    [[maybe_unused]] bool transpose,
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    const std::uint32_t kt_dim,
+    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -629,7 +629,11 @@ inline void _llk_math_matmul_init_(
 
 template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_(
-    uint dst_index, const bool transpose = false, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1, const std::uint32_t kt_dim = 1)
+    uint dst_index,
+    [[maybe_unused]] const bool transpose       = false,
+    const std::uint32_t ct_dim                  = 1,
+    const std::uint32_t rt_dim                  = 1,
+    [[maybe_unused]] const std::uint32_t kt_dim = 1)
 {
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
