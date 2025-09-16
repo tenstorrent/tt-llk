@@ -36,7 +36,9 @@ def test_profiler_primitives():
 
     # ZONE_SCOPED - Get first ZONE type entry from UNPACK thread
     zones = df[
-        df[["thread", "type", "marker"]].eq(["UNPACK", "ZONE", "TEST_ZONE"]).all(axis=1)
+        (df["thread"] == "UNPACK")
+        & (df["type"] == "ZONE")
+        & (df["marker"] == "TEST_ZONE")
     ]
     assert len(zones) > 0, "Expected at least one TEST_ZONE entry"
     zone = zones.iloc[0]
@@ -55,9 +57,9 @@ def test_profiler_primitives():
 
     # TIMESTAMP - Get first TIMESTAMP type entry from MATH thread
     timestamps = df[
-        df[["thread", "type", "marker"]]
-        .eq(["MATH", "TIMESTAMP", "TEST_TIMESTAMP"])
-        .all(axis=1)
+        (df["thread"] == "MATH")
+        & (df["type"] == "TIMESTAMP")
+        & (df["marker"] == "TEST_TIMESTAMP")
     ]
     assert len(timestamps) == 1, "Expected exactly one TEST_TIMESTAMP entry"
     timestamp = timestamps.iloc[0]
@@ -81,9 +83,9 @@ def test_profiler_primitives():
 
     # TIMESTAMP_DATA - Get first TIMESTAMP type entry from PACK thread with data
     data_timestamps = df[
-        df[["thread", "type", "marker"]]
-        .eq(["PACK", "TIMESTAMP", "TEST_TIMESTAMP_DATA"])
-        .all(axis=1)
+        (df["thread"] == "PACK")
+        & (df["type"] == "TIMESTAMP")
+        & (df["marker"] == "TEST_TIMESTAMP_DATA")
     ]
     assert len(data_timestamps) == 1, "Expected exactly one TEST_TIMESTAMP_DATA entry"
     timestamp_data = data_timestamps.iloc[0]
