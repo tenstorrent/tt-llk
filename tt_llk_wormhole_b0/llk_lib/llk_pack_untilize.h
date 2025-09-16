@@ -153,9 +153,9 @@ template <
 inline void _llk_pack_untilize_(
     const std::uint32_t address,
     const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim         = FACE_R_DIM,
-    const std::uint32_t num_faces          = 4 /*not used*/,
-    const std::uint32_t tile_dst_rt_offset = 0)
+    const std::uint32_t face_r_dim                 = FACE_R_DIM,
+    [[maybe_unused]] const std::uint32_t num_faces = 4,
+    const std::uint32_t tile_dst_rt_offset         = 0)
 {
     program_packer_untilized_destination<block_ct_dim, full_ct_dim, diagonal, row_num_datums>(address, pack_dst_format);
 

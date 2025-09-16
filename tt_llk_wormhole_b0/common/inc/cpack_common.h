@@ -356,9 +356,6 @@ inline void set_packer_l1_offset(const uint pack_dst_format, const uint face_r_d
 template <bool is_fp32_dest_acc_en>
 inline void reconfig_packer_data_format(const uint pack_src_format, const uint pack_dst_format, const uint tile_size = 0, const uint face_r_dim = FACE_R_DIM)
 {
-    // Get pointer to registers for current state ID
-    volatile uint* cfg = get_cfg_pointer();
-
     // Configure packers
     pack_config_u config;
     config.val[2] = 0; // Only need to modify word[2][15:0]

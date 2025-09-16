@@ -69,7 +69,6 @@ void run_kernel()
     const bool is_int_fpu_en                = false;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
-    const bool TILIZE                       = true;
 
     // copy srca to dest
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
@@ -120,7 +119,6 @@ void run_kernel()
     const std::uint32_t operand_B_dst_index = 2;
     const std::uint32_t res_dst_index       = 0;
     const bool UNTILIZE                     = false;
-    const bool TILIZE                       = true;
 
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 #ifdef ARCH_BLACKHOLE

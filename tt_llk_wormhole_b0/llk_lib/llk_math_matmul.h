@@ -599,10 +599,10 @@ void run_throttled_sequence(const std::uint32_t t_dim, const bool reuse_a)
  */
 template <int NUM_FIDELITY_PHASES, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL>
 inline void matmul_configure_mop_throttled(
-    bool transpose,
+    [[maybe_unused]] bool transpose,
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    const std::uint32_t kt_dim,
+    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
