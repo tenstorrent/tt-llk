@@ -7,6 +7,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_sfpu_converter.h"
 #include "ckernel_sfpu_load_config.h"
+#include "llk_defs.h"
 
 namespace ckernel::sfpu
 {
@@ -50,19 +51,27 @@ inline void _calculate_fill_bitcast_(const uint32_t value_bit_mask)
     }
 }
 
-// Populate first tile in dest with ones using low-level SFPSTORE instructions, should not use _calculate_fill_ methods since they will compile to software constants, not the LCONST_1 constant we need
 inline void _populate_first_tile_with_ones_()
 {
-    // Second tile starts at offset 64 (32x32 tile = 64 rows in dest layout)  
-    constexpr uint first_tile_offset = 0;  
-      
-    // Populate the entire first tile with LCONST_1 (value 1.0)  
-    for (uint row = 0; row < 32; row += 4) {  
-        // Store LCONST_1 to all positions in the first tile  
-        TT_SFPSTORE(p_sfpu::LCONST_1, 0, ADDR_MOD_7, first_tile_offset + row);  
-        TT_SFPSTORE(p_sfpu::LCONST_1, 0, ADDR_MOD_7, first_tile_offset + row + 2);  
-        TT_SFPSTORE(p_sfpu::LCONST_1, 0, ADDR_MOD_7, first_tile_offset + row + 32);  
-        TT_SFPSTORE(p_sfpu::LCONST_1, 0, ADDR_MOD_7, first_tile_offset + row + 34);  
-    }  
+    // ADDR_MOD_1 has .dest = {.incr = 1}, so we use this auto-increment behavior
+    // Instead of manually calculating row offsets, let the auto-increment handle addressing
+    
+    // Store to all positions in the first tile
+    // Each SFPSTORE handles 4 consecutive rows with even/odd column pattern
+    // We need 16 stores total: 8 for even columns + 8 for odd columns = 32 rows covered
+    
+    // Store to even columns (8 SFPSTORE operations for 32 rows)
+    // for (uint i = 0; i < 8; i++) {
+    //     TTI_SFPSTORE(p_sfpu::LCONST_1, ckernel::InstrModLoadStore::FP16A, ADDR_MOD_1, i * 4);
+    // }
+    
+    // Store to odd columns (8 SFPSTORE operations for 32 rows)
+    // for (uint i = 0; i < 8; i++) {
+    //     TTI_SFPSTORE(p_sfpu::LCONST_1, ckernel::InstrModLoadStore::FP16A, ADDR_MOD_1, i * 4 + 2);
+    // }
+
+    // since the code above does not work, we are using the already existing replacement
+    // todo: fix this method to use hardware constant 1.0
+    _calculate_fill_<false, 1024>(1.0f);
 }
 } // namespace ckernel::sfpu
