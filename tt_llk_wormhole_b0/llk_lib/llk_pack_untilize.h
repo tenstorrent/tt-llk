@@ -23,21 +23,42 @@ inline void _llk_pack_untilize_configure_addrmod_()
 {
     if constexpr (diagonal || narrow_row)
     {
-        addr_mod_pack_builder::create().y_src_incr(1).build().set(ADDR_MOD_0);
+        // clang-format off
+        addr_mod_pack_builder::create()
+            .y_src_incr(1)
+            .build()
+            .set(ADDR_MOD_0);
+        // clang-format on
     }
     else
     {
+        // clang-format off
         addr_mod_pack_builder::create()
             .y_src_incr(15) // 4-bit value so max is 15. incadcxy will increment it by 1
             .build()
             .set(ADDR_MOD_0);
+        // clang-format on
     }
 
-    addr_mod_pack_builder::create().y_src_cr(1).build().set(ADDR_MOD_1);
+    // clang-format off
+    addr_mod_pack_builder::create()
+        .y_src_cr(1)
+        .build()
+        .set(ADDR_MOD_1);
+    // clang-format on
 
-    addr_mod_pack_builder::create().y_src_clr(1).build().set(ADDR_MOD_2);
+    // clang-format off
+    addr_mod_pack_builder::create()
+        .y_src_clr(1)
+        .build()
+        .set(ADDR_MOD_2);
+    // clang-format on
 
-    addr_mod_pack_builder::create().build().set(ADDR_MOD_3);
+    // clang-format off
+    addr_mod_pack_builder::create()
+        .build()
+        .set(ADDR_MOD_3);
+    // clang-format on
 }
 
 template <

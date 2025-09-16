@@ -18,7 +18,11 @@
 // local function declarations
 inline void welfords_sfpu_configure_addrmod()
 {
-    addr_mod_builder::create().build().set(ADDR_MOD_7);
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
+        .set(ADDR_MOD_7);
+    // clang-format on
 }
 
 inline void welfords_sfpu_configure_mop();

@@ -48,12 +48,26 @@ inline void matmul_configure_addrmod(
     // SRCB -- 8 rows are needed
     // SRCA -- full 16x16 gets used -- hardware will pair cols of A with rows of B
     // D[8,16] = B[8,16] * A[16,16]
-    addr_mod_builder::create().srcb_incr(8).dest_incr(8).build().set(ADDR_MOD_0);
+    // clang-format off
+    addr_mod_builder::create()
+        .srcb_incr(8)
+        .dest_incr(8)
+        .build()
+        .set(ADDR_MOD_0);
+    // clang-format on
 
     // copy of addr_mod_0
-    addr_mod_builder::create().srcb_incr(8).dest_incr(8).bias_incr(1).build().set(ADDR_MOD_3);
+    // clang-format off
+    addr_mod_builder::create()
+        .srcb_incr(8)
+        .dest_incr(8)
+        .bias_incr(1)
+        .build()
+        .set(ADDR_MOD_3);
+    // clang-format on
 
     // reset all, increment fidelity if we have more fidelity phases
+    // clang-format off
     addr_mod_builder::create()
         .srca_clr(1)
         .srca_cr(1)
@@ -65,11 +79,24 @@ inline void matmul_configure_addrmod(
         .bias_incr(1)
         .build()
         .set(ADDR_MOD_5);
+    // clang-format on
 
     if constexpr (THROTTLE_LEVEL)
     {
         // reset all, including fidelity
-        addr_mod_builder::create().srca_clr(1).srca_cr(1).srcb_clr(1).srcb_cr(1).dest_clr(1).dest_cr(1).fidelity_clr(1).bias_incr(1).build().set(ADDR_MOD_6);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_clr(1)
+            .srca_cr(1)
+            .srcb_clr(1)
+            .srcb_cr(1)
+            .dest_clr(1)
+            .dest_cr(1)
+            .fidelity_clr(1)
+            .bias_incr(1)
+            .build()
+            .set(ADDR_MOD_6);
+        // clang-format on
     }
 
     const uint8_t srca_increment = transpose == false ? 16 : 32;
@@ -80,35 +107,77 @@ inline void matmul_configure_addrmod(
     {
         if (transpose)
         {
-            addr_mod_builder::create().srca_incr(32).srcb_cr(1).dest_incr(8).build().set(ADDR_MOD_1);
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(32)
+                .srcb_cr(1)
+                .dest_incr(8)
+                .build()
+                .set(ADDR_MOD_1);
+            // clang-format on
         }
         else
         {
-            addr_mod_builder::create().srca_incr(16).srcb_cr(1).dest_incr(8).build().set(ADDR_MOD_1);
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(16)
+                .srcb_cr(1)
+                .dest_incr(8)
+                .build()
+                .set(ADDR_MOD_1);
+            // clang-format on
         }
     }
     else
     {
         if (is_in1_32x16)
         {
-            addr_mod_builder::create().srca_incr(16).srcb_incr(8).dest_cr(1).build().set(ADDR_MOD_1);
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(16)
+                .srcb_incr(8)
+                .dest_cr(1)
+                .build()
+                .set(ADDR_MOD_1);
+            // clang-format on
         }
         else
         {
             if (transpose)
             {
-                addr_mod_builder::create().srca_incr(32).srcb_cr(1).dest_incr(8).build().set(ADDR_MOD_1);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(32)
+                    .srcb_cr(1)
+                    .dest_incr(8)
+                    .build()
+                    .set(ADDR_MOD_1);
+                // clang-format on
             }
             else
             {
-                addr_mod_builder::create().srca_incr(16).srcb_cr(1).dest_incr(8).build().set(ADDR_MOD_1);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srcb_cr(1)
+                    .dest_incr(8)
+                    .build()
+                    .set(ADDR_MOD_1);
+                // clang-format on
             }
         }
     }
 
     if (is_in1_32x16)
     {
-        addr_mod_builder::create().srca_incr(16).srcb_incr(8).dest_cr(1).build().set(ADDR_MOD_2);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_incr(16)
+            .srcb_incr(8)
+            .dest_cr(1)
+            .build()
+            .set(ADDR_MOD_2);
+        // clang-format on
     }
     else if (is_in0_16x32 || is_in0_32x16)
     {
@@ -116,28 +185,64 @@ inline void matmul_configure_addrmod(
         {
             if (transpose)
             {
-                addr_mod_builder::create().srca_incr(32).dest_incr(16).bias_incr(1).build().set(ADDR_MOD_2);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(32)
+                    .dest_incr(16)
+                    .bias_incr(1)
+                    .build()
+                    .set(ADDR_MOD_2);
+                // clang-format on
             }
             else
             {
-                addr_mod_builder::create().srca_incr(16).dest_incr(16).bias_incr(1).build().set(ADDR_MOD_2);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .dest_incr(16)
+                    .bias_incr(1)
+                    .build()
+                    .set(ADDR_MOD_2);
+                // clang-format on
             }
         }
         else
         {
             if (transpose)
             {
-                addr_mod_builder::create().srca_incr(32).srcb_cr(1).dest_incr(8).build().set(ADDR_MOD_2);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(32)
+                    .srcb_cr(1)
+                    .dest_incr(8)
+                    .build()
+                    .set(ADDR_MOD_2);
+                // clang-format on
             }
             else
             {
-                addr_mod_builder::create().srca_incr(16).srcb_cr(1).dest_incr(8).build().set(ADDR_MOD_2);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srcb_cr(1)
+                    .dest_incr(8)
+                    .build()
+                    .set(ADDR_MOD_2);
+                // clang-format on
             }
         }
     }
     else
     {
-        addr_mod_builder::create().srca_cr(1).srcb_incr(32).srcb_cr(1).dest_incr(8).build().set(ADDR_MOD_2);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_cr(1)
+            .srcb_incr(32)
+            .srcb_cr(1)
+            .dest_incr(8)
+            .build()
+            .set(ADDR_MOD_2);
+        // clang-format on
     }
 
     if (is_in0_16x32)
@@ -146,42 +251,116 @@ inline void matmul_configure_addrmod(
         {
             if (transpose)
             {
-                addr_mod_builder::create().srca_incr(16).srca_cr(1).srcb_incr(16).dest_clr(1).bias_incr(1).build().set(ADDR_MOD_4);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srca_cr(1)
+                    .srcb_incr(16)
+                    .dest_clr(1)
+                    .bias_incr(1)
+                    .build()
+                    .set(ADDR_MOD_4);
+                // clang-format on
             }
             else
             {
-                addr_mod_builder::create().srca_incr(16).srcb_incr(16).dest_clr(1).bias_incr(1).build().set(ADDR_MOD_4);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srcb_incr(16)
+                    .dest_clr(1)
+                    .bias_incr(1)
+                    .build()
+                    .set(ADDR_MOD_4);
+                // clang-format on
             }
         }
         else
         {
             if (transpose)
             {
-                addr_mod_builder::create().srca_incr(16).srca_cr(1).srcb_incr(16).srcb_cr(1).dest_cr(1).bias_incr(1).build().set(ADDR_MOD_4);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srca_cr(1)
+                    .srcb_incr(16)
+                    .srcb_cr(1)
+                    .dest_cr(1)
+                    .bias_incr(1)
+                    .build()
+                    .set(ADDR_MOD_4);
+                // clang-format on
             }
             else
             {
-                addr_mod_builder::create().srca_incr(16).srcb_incr(16).srcb_cr(1).dest_cr(1).bias_incr(1).build().set(ADDR_MOD_4);
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srcb_incr(16)
+                    .srcb_cr(1)
+                    .dest_cr(1)
+                    .bias_incr(1)
+                    .build()
+                    .set(ADDR_MOD_4);
+                // clang-format on
             }
         }
     }
     else if (is_in0_32x16)
     {
-        addr_mod_builder::create().srca_cr(1).srcb_incr(16).srcb_cr(1).dest_incr(8).bias_incr(1).build().set(ADDR_MOD_4);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_cr(1)
+            .srcb_incr(16)
+            .srcb_cr(1)
+            .dest_incr(8)
+            .bias_incr(1)
+            .build()
+            .set(ADDR_MOD_4);
+        // clang-format on
     }
     else if (is_in1_32x16)
     {
-        addr_mod_builder::create().srca_cr(1).srcb_incr(8).dest_incr(16).dest_cr(1).bias_incr(1).build().set(ADDR_MOD_4);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_cr(1)
+            .srcb_incr(8)
+            .dest_incr(16)
+            .dest_cr(1)
+            .bias_incr(1)
+            .build()
+            .set(ADDR_MOD_4);
+        // clang-format on
     }
     else
     {
         if (transpose)
         {
-            addr_mod_builder::create().srca_incr(16).srca_cr(1).srcb_incr(48).srcb_cr(1).dest_cr(1).bias_incr(1).build().set(ADDR_MOD_4);
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(16)
+                .srca_cr(1)
+                .srcb_incr(48)
+                .srcb_cr(1)
+                .dest_cr(1)
+                .bias_incr(1)
+                .build()
+                .set(ADDR_MOD_4);
+            // clang-format on
         }
         else
         {
-            addr_mod_builder::create().srca_incr(32).srca_cr(1).srcb_incr(48).srcb_cr(1).dest_cr(1).bias_incr(1).build().set(ADDR_MOD_4);
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(32)
+                .srca_cr(1)
+                .srcb_incr(48)
+                .srcb_cr(1)
+                .dest_cr(1)
+                .bias_incr(1)
+                .build()
+                .set(ADDR_MOD_4);
+            // clang-format on
         }
     }
 }

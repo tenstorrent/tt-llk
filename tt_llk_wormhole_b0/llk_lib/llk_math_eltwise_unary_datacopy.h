@@ -61,26 +61,60 @@ inline void eltwise_unary_configure_addrmod()
     // Use srcA for data movement
     if constexpr (type == A2D)
     {
-        addr_mod_builder::create().srca_incr(1).dest_incr(1).build().set(ADDR_MOD_0);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_incr(1)
+            .dest_incr(1)
+            .build()
+            .set(ADDR_MOD_0);
+        // clang-format on
 
         // Just unpack into A and move to Dest
-        addr_mod_builder::create().srca_incr(8).dest_incr(8).build().set(ADDR_MOD_2);
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_incr(8)
+            .dest_incr(8)
+            .build()
+            .set(ADDR_MOD_2);
+        // clang-format on
     }
     else
     {
         if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
         {
-            addr_mod_builder::create().dest_incr(1).build().set(ADDR_MOD_0);
+            // clang-format off
+            addr_mod_builder::create()
+                .dest_incr(1)
+                .build()
+                .set(ADDR_MOD_0);
+            // clang-format on
 
             // Just unpack into B and move to Dest
-            addr_mod_builder::create().dest_incr(8).build().set(ADDR_MOD_2);
+            // clang-format off
+            addr_mod_builder::create()
+                .dest_incr(8)
+                .build()
+                .set(ADDR_MOD_2);
+            // clang-format on
         }
         else
         {
-            addr_mod_builder::create().srcb_incr(1).dest_incr(1).build().set(ADDR_MOD_0);
+            // clang-format off
+            addr_mod_builder::create()
+                .srcb_incr(1)
+                .dest_incr(1)
+                .build()
+                .set(ADDR_MOD_0);
+            // clang-format on
 
             // Just unpack into B and move to Dest
-            addr_mod_builder::create().srcb_incr(8).dest_incr(8).build().set(ADDR_MOD_2);
+            // clang-format off
+            addr_mod_builder::create()
+                .srcb_incr(8)
+                .dest_incr(8)
+                .build()
+                .set(ADDR_MOD_2);
+            // clang-format on
         }
     }
 }
@@ -206,10 +240,22 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
 inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
 {
     // standard addrmod that follows MOVB2D
-    addr_mod_builder::create().srcb_incr(4).dest_incr(4).build().set(ADDR_MOD_1);
+    // clang-format off
+    addr_mod_builder::create()
+        .srcb_incr(4)
+        .dest_incr(4)
+        .build()
+        .set(ADDR_MOD_1);
+    // clang-format on
 
     // standard addrmod that follows MOVA2D
-    addr_mod_builder::create().srca_incr(8).dest_incr(8).build().set(ADDR_MOD_2);
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_incr(8)
+        .dest_incr(8)
+        .build()
+        .set(ADDR_MOD_2);
+    // clang-format on
 
     // next two addrmods are mostly used for jumping to and from the offset for the bottom faces
     // offset for the bottom faces is always half the number of rows in the dest bank (512 / 2 for 16bit and 256 / 2 for 32bit since DstSync is always Half)
@@ -227,10 +273,21 @@ inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst
     int16_t unit_dim_2_backward_jump = -bottom_face_offset + 4;
 
     // this follows MOVA2D in src and jumps to the offset for the bottom faces (for unit_dim 1 and 2, for unit_dim 3 that is handled the other way)
-    addr_mod_builder::create().srca_incr(8).dest_incr((int16_t)(unit_dim == 1 ? unit_dim_1_forward_jump : unit_dim_2_forward_jump)).build().set(ADDR_MOD_3);
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_incr(8)
+        .dest_incr((int16_t)(unit_dim == 1 ? unit_dim_1_forward_jump : unit_dim_2_forward_jump))
+        .build()
+        .set(ADDR_MOD_3);
+    // clang-format on
 
     // this jumps back to the offset for the next tile, RWCs for source registers are reset separately when clearing dvalids
-    addr_mod_builder::create().dest_incr((int16_t)(unit_dim == 1 ? unit_dim_1_backward_jump : unit_dim_2_backward_jump)).build().set(ADDR_MOD_0);
+    // clang-format off
+    addr_mod_builder::create()
+        .dest_incr((int16_t)(unit_dim == 1 ? unit_dim_1_backward_jump : unit_dim_2_backward_jump))
+        .build()
+        .set(ADDR_MOD_0);
+    // clang-format on
 }
 
 inline void _llk_math_fast_tilize_mop_config_()

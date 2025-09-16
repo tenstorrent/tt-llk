@@ -24,7 +24,11 @@ inline void eltwise_binary_sfpu_configure_addrmod()
     //       A2D, which is using ADDR_MOD_0 and ADDR_MOD_2, so use one
     //       that doesn't conflict!
 
-    addr_mod_builder::create().build().set(ADDR_MOD_7);
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
+        .set(ADDR_MOD_7);
+    // clang-format on
 }
 
 inline void eltwise_binary_sfpu_configure_mop();
