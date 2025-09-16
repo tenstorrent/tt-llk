@@ -172,6 +172,8 @@ sfpi_inline void _welfords_load_initial_data_()
     }                                                                                                                                         \
     if (current_sample == final_sample)                                                                                                       \
     {                                                                                                                                         \
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);                                                                     \
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);                                                                    \
         return current_sample;                                                                                                                \
     }                                                                                                                                         \
     if (skip_n_rows == 0)                                                                                                                     \
@@ -187,6 +189,8 @@ sfpi_inline void _welfords_load_initial_data_()
     }                                                                                                                                         \
     if (current_sample == final_sample)                                                                                                       \
     {                                                                                                                                         \
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);                                                                     \
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);                                                                    \
         return current_sample;                                                                                                                \
     }                                                                                                                                         \
     if (skip_n_rows == 0)                                                                                                                     \
@@ -202,6 +206,8 @@ sfpi_inline void _welfords_load_initial_data_()
     }                                                                                                                                         \
     if (current_sample == final_sample)                                                                                                       \
     {                                                                                                                                         \
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);                                                                     \
+        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128);                                                                    \
         return current_sample;                                                                                                                \
     }                                                                                                                                         \
     if (skip_n_rows <= 0)                                                                                                                     \
