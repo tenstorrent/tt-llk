@@ -37,12 +37,12 @@ def test_profiler_overhead():
     # the first iteration is inconsistent, because code is not in icache
     overhead_zones = overhead_zones.iloc[1:].reset_index(drop=True)
 
+    expected_overhead = get_expected_overhead()
     for i, zone in overhead_zones.iterrows():
         calculated_duration = 10 * (i + 9)
         overhead = zone["duration"] - calculated_duration
 
-        expected_overhead = get_expected_overhead()
         assert overhead == pytest.approx(expected_overhead, abs=5), (
-            f"iterations: {i}, runtime: {zone['duration']}/{(i + 9) * 10} "
+            f"iterations: {i}, runtime: {zone['duration']}/{calculated_duration} "
             f"(actual/calculated), overhead {overhead}/{expected_overhead} (actual/expected)"
         )
