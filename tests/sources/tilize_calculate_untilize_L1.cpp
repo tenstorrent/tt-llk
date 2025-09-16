@@ -85,6 +85,7 @@ void run_kernel()
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
+    const bool TILIZE = true;
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
         0, 0, 4, formats_array[run].math);
 #else
@@ -130,6 +131,7 @@ void run_kernel()
     int run                                 = 0;
 
 #ifdef ARCH_BLACKHOLE
+    const bool TILIZE = true;
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats_array[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
