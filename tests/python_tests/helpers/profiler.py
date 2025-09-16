@@ -48,6 +48,11 @@ class ProfilerData:
     - The ZONE entries have timestamp = ZONE_START
     """
 
+    @staticmethod
+    def concat(runs: list["ProfilerData"]) -> "ProfilerData":
+        raw_data = [run.raw() for run in runs]
+        return ProfilerData(pd.concat(raw_data, ignore_index=True))
+
     def __init__(self, df: pd.DataFrame, mask: pd.Series | None = None):
         self.df = df
         self.mask = mask
