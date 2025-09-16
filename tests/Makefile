@@ -54,7 +54,7 @@ OBJCOPY         := $(TOOL_PATH)/riscv32-tt-elf-objcopy
 # Compiler and Linker Flags
 # =========================
 OPTIONS_ALL	:= -g -fanalyzer -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
-OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
+OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
 				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wwrite-strings \
 				   -Wmaybe-uninitialized -Wlogical-op -Wduplicated-cond -Wduplicated-branches -Wcast-align \
 				   -DTENSIX_FIRMWARE $(ARCH_DEFINE) -DCOMPILE_FOR_TRISC=
