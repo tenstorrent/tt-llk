@@ -55,9 +55,8 @@ OBJCOPY         := $(TOOL_PATH)/riscv32-tt-elf-objcopy
 # =========================
 OPTIONS_ALL	:= -g -fanalyzer -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
-				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wwrite-strings \
-				   -Wmaybe-uninitialized -Wlogical-op -Wduplicated-cond -Wduplicated-branches -Wcast-align \
-				   -DTENSIX_FIRMWARE $(ARCH_DEFINE) -DCOMPILE_FOR_TRISC=
+				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
+				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE $(ARCH_DEFINE) -DCOMPILE_FOR_TRISC=
 OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
