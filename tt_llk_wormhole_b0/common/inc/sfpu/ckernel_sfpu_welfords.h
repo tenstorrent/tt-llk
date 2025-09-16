@@ -298,7 +298,7 @@ void _welfords_llk_entry_(
     uint32_t current_sample,
     const uint32_t final_sample,
     uint32_t skip_n_rows,
-    const uint32_t reciprocal_lut_ptr,
+    [[maybe_unused]] const uint32_t reciprocal_lut_ptr,
     const bool reformat_dst_to_col_on_end,
     const bool convert_M2_to_var)
 {

@@ -159,11 +159,8 @@ inline void packer_addr_counter_init()
     TTI_SETADCZW(0b100, 0, 0, 0, 0, 0b1111);
 }
 
-inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_format)
+inline void set_packer_strides(const uint pack_src_format, [[maybe_unused]] const uint pack_dst_format)
 {
-    // Get pointer to registers for current state ID
-    volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
-
     uint x_stride = (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float32)   ? 4
                     : (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float16) ? 2
                                                                                                         : 1;
