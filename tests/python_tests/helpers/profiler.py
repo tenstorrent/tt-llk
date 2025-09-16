@@ -160,9 +160,11 @@ class Profiler:
         THREADS = ["UNPACK", "MATH", "PACK"]
 
         # Parse each thread and append to the DataFrame
-        threads = []
-        for thread, buffer in zip(THREADS, buffers):
-            threads.extend(Profiler._parse_thread(thread, buffer, profiler_meta))
+        threads = [
+            parsed_thread
+            for thread, buffer in zip(THREADS, buffers)
+            for parsed_thread in Profiler._parse_thread(thread, buffer, profiler_meta)
+        ]
 
         df = Profiler._dataframe(threads)
         return df.sort_values("timestamp").reset_index(drop=True)
