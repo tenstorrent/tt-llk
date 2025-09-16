@@ -162,7 +162,7 @@ inline void set_dst_write_addr(uint32_t tile_index)
         }
         else
         {
-            TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dst_index);
+            TTI_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dst_index);
         }
     }
     else
@@ -205,7 +205,7 @@ inline void dest_section_flip()
     update_dest_offset_id();
     uint base_addr = get_dest_buffer_base();
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::SFPU1);
-    TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, base_addr);
+    TTI_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, base_addr);
 }
 
 template <DstStart Dst>
@@ -220,7 +220,7 @@ inline void set_dest_section_base()
     {
         base_addr = DEST_REGISTER_HALF_SIZE;
     }
-    TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, base_addr);
+    TTI_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, base_addr);
 }
 
 inline constexpr bool is_32bit_input(const std::uint32_t src_format, const std::uint32_t dst_format)

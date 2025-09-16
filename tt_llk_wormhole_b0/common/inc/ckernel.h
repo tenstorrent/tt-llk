@@ -296,7 +296,7 @@ inline void zeroacc()
         .dest = {.incr = 0},
     }
         .set(ADDR_MOD_1);
-    TT_ZEROACC(p_zeroacc::CLR_ALL, ADDR_MOD_1, 0);
+    TTI_ZEROACC(p_zeroacc::CLR_ALL, ADDR_MOD_1, 0);
 }
 
 inline void zerosrc()
@@ -369,7 +369,7 @@ inline void cfg_reg_rmw_tensix(uint32_t val)
     if (mask_b2 != 0)
     {
         uint8_t data_b2 = (wrdata) & 0xff;
-        TT_RMWCIB2(mask_b2, data_b2, CfgAddr32);
+        TTI_RMWCIB2(mask_b2, data_b2, CfgAddr32);
     }
 
     wrdata >>= 8;
@@ -377,7 +377,7 @@ inline void cfg_reg_rmw_tensix(uint32_t val)
     if (mask_b3 != 0)
     {
         uint8_t data_b3 = (wrdata) & 0xff;
-        TT_RMWCIB3(mask_b3, data_b3, CfgAddr32);
+        TTI_RMWCIB3(mask_b3, data_b3, CfgAddr32);
     }
 }
 
