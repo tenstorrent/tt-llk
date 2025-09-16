@@ -22,6 +22,42 @@ class ProfilerFullMarker:
     id: int
 
 
+class ProfilerData:
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+
+    def frame(self) -> pd.DataFrame:
+        """Return the underlying DataFrame"""
+        return self.df
+
+    # Filter by thread
+    def unpack(self) -> "ProfilerData":
+        """Filter: Unpack thread data"""
+        return ProfilerData(self.df[self.df["thread"] == "UNPACK"])
+
+    def math(self) -> "ProfilerData":
+        """Filter: Math thread data"""
+        return ProfilerData(self.df[self.df["thread"] == "MATH"])
+
+    def pack(self) -> "ProfilerData":
+        """Filter: Pack thread data"""
+        return ProfilerData(self.df[self.df["thread"] == "PACK"])
+
+    # Filter by type
+    def zones(self) -> "ProfilerData":
+        """Filter: Profiler zones"""
+        return ProfilerData(self.df[self.df["type"] == "ZONE"])
+
+    def timestamps(self) -> "ProfilerData":
+        """Filter: Profiler timestamps"""
+        return ProfilerData(self.df[self.df["type"] == "TIMESTAMP"])
+
+    # Filter by marker
+    def marker(self, marker: str) -> "ProfilerData":
+        """Filter: Marker"""
+        return ProfilerData(self.df[self.df["marker"] == marker])
+
+
 class Profiler:
 
     META_PATTERN = re.compile(
@@ -153,7 +189,8 @@ class Profiler:
             "line": "int32",
         }
 
-        return pd.DataFrame(rows or [], columns=schema.keys()).astype(schema)
+        df = pd.DataFrame(rows or [], columns=schema.keys()).astype(schema)
+        return df.sort_values("timestamp").reset_index(drop=True)
 
     @staticmethod
     def _parse_buffers(buffers, profiler_meta) -> pd.DataFrame:
@@ -167,7 +204,7 @@ class Profiler:
         ]
 
         df = Profiler._dataframe(threads)
-        return df.sort_values("timestamp").reset_index(drop=True)
+        return ProfilerData(df)
 
     @staticmethod
     def _parse_thread(thread, words, profiler_meta) -> list[dict]:
