@@ -406,35 +406,11 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <
-    EltwiseBinaryType eltwise_binary_type,
-    BroadcastType src_b_bcast_type,
-    int MATH_FIDELITY_DESC                       = 0,
-    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_col_tile_init_(const std::uint32_t num_faces, const std::uint32_t transpose, const std::uint32_t acc_to_dest)
-{
-    constexpr int MATH_FIDELITY_PHASES    = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr int MATH_FIDELITY_INCREMENT = get_math_fidelity_increment(MATH_FIDELITY_DESC);
-
-    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_INCREMENT>();
-
-    // if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
-    // {
-    //     eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
-
-    //     // do not use MOP for now. Custom init
-    // }
-
-    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
-
-    math::reset_counters(p_setrwc::SET_ABD_F);
-}
-
 template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
 inline void eltwise_binary_col_tile_configure_addrmod()
 {
     addr_mod_t {
-        .srca = {.incr = 0},
+        .srca = {.incr = 8},
         .srcb = {.incr = 8},
         .dest = {.incr = 0},
     }
@@ -458,6 +434,25 @@ inline void eltwise_binary_col_tile_configure_addrmod()
 template <
     EltwiseBinaryType eltwise_binary_type,
     BroadcastType src_b_bcast_type,
+    int MATH_FIDELITY_DESC                       = 0,
+    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
+inline void _llk_math_eltwise_binary_col_tile_init_(const std::uint32_t num_faces, const std::uint32_t transpose, const std::uint32_t acc_to_dest)
+{
+    constexpr int MATH_FIDELITY_PHASES    = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
+    constexpr int MATH_FIDELITY_INCREMENT = get_math_fidelity_increment(MATH_FIDELITY_DESC);
+
+    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_INCREMENT>();
+
+    eltwise_binary_col_tile_configure_addrmod<EltwiseBinaryType::ELWSUB, BroadcastType::NONE, 0>();
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+template <
+    EltwiseBinaryType eltwise_binary_type,
+    BroadcastType src_b_bcast_type,
     DstSync Dst,
     bool is_fp32_dest_acc_en,
     int NUM_FIDELITY_PHASES                      = 0,
@@ -469,17 +464,28 @@ inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uin
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 8); // srca_increment -> 8 | srcb_increment -> 8
+    // Just test to see what is in srcA
 
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 16);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_2, 24);
+    TTI_ELWADD(0, 0, 0, 0, 0);
+    TTI_ELWADD(0, 0, 0, 0, 8);
+    TTI_ELWADD(0, 0, 0, 0, 16);
+    TTI_ELWADD(0, 0, 0, 0, 24);
+    TTI_ELWADD(0, 0, 0, 0, 32);
+    TTI_ELWADD(0, 0, 0, 0, 40);
+    TTI_ELWADD(0, 0, 0, 0, 48);
+    TTI_ELWADD(0, 0, 0, 0, 56);
 
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 32);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 40);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 8); // srca_increment -> 8 | srcb_increment -> 8
 
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 48);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_2, 56);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 16); // srca_increment -> 0 | srcb_increment -> 8
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 24); // srca_increment -> -9 | srcb_increment -> 8
+
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 32); // srca_increment -> 0 | srcb_increment -> 8
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 40); // srca_increment -> 8 | srcb_increment -> 8
+
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 48); // srca_increment -> 0 | srcb_increment -> 8
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 56); // srca_increment -> -9 | srcb_increment -> 8
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
 
