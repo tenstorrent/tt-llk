@@ -15,3 +15,4 @@ jobs:
   nightly-performance-tests:
     name: "🚀 Nightly Performance Tests"
     uses: ./.github/workflows/run-perf-tests.yml
+    secrets: inherit
