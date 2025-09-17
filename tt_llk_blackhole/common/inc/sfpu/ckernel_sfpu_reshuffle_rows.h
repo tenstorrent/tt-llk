@@ -13,7 +13,6 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_reshuffle_rows_(const uint idx_addr)
 {
     constexpr uint output_tile_offset = 64;
