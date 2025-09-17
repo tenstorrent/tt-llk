@@ -418,16 +418,34 @@ inline void _llk_math_eltwise_binary_col_tile_init_(const std::uint32_t num_face
 
     eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_INCREMENT>();
 
-    if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
-    {
-        // eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
+    // if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
+    // {
+    //     eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
 
-        // do not use MOP for now. Custom init
-    }
+    //     // do not use MOP for now. Custom init
+    // }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
+inline void eltwise_binary_col_tile_configure_addrmod()
+{
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_0);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_1);
 }
 
 template <
@@ -444,13 +462,19 @@ inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uin
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
-    for (int i = 0; i < 4; i++)
-    {
-        TTI_ELWSUB(1, 0, 0, 1, 0);
-        TTI_ELWSUB(1, 0, 0, 1, 8);
-        TTI_ELWSUB(1, 0, 0, 1, 16);
-        TTI_ELWSUB(0, 0, 0, 1, 32);
-    }
+    TTI_ELWSUB(0, 0, 0, 1, 0);
+    TTI_ELWSUB(0, 0, 0, 1, 8);
+
+    TTI_ELWSUB(0, 0, 0, 1, 16);
+    TTI_ELWSUB(0, 0, 0, 1, 24);
+
+    TTI_ELWSUB(0, 0, 0, 1, 32);
+    TTI_ELWSUB(0, 0, 0, 1, 40);
+
+    TTI_ELWSUB(0, 0, 0, 1, 48);
+    TTI_ELWSUB(0, 0, 0, 1, 56);
+
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
 
     math::clear_dst_reg_addr();
 }
