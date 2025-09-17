@@ -32,7 +32,7 @@ from helpers.utils import passed_test
             DataFormat.Float16_b,
         ]
     ),
-    mathop=[MathOperation.Elwadd],
+    mathop=[MathOperation.Elwsub],
     dest_acc=[DestAccumulation.No],
     math_fidelity=[
         MathFidelity.LoFi,
@@ -53,14 +53,14 @@ def test_multiple_tiles(
     ones = torch.tensor([1] * 16)
     twos = torch.tensor([2] * 16)
     threes = torch.tensor([3] * 16)
-    fours = torch.tensor([3] * 16)
+    fours = torch.tensor([4] * 16)
     padding = torch.tensor([0] * (256 - 16))
 
     print("SRC A")
     print("*" * 80)
 
     src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
-    src_B = torch.ones(1024) * 0
+    src_B = torch.ones(1024) * 5
 
     print(src_A.view(64, 16))
 
