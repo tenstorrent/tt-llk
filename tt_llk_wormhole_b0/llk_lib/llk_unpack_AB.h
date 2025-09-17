@@ -166,6 +166,31 @@ inline void _llk_unpack_A_bcast_B_hw_config(
     constexpr bool is_row_pool = false;
     configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool>(
         unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
+
+    // unpack_tile_descriptor_u tile_descriptor;
+    // for (uint i = 0; i < TILE_DESC_SIZE; i++)
+    // {
+    //     tile_descriptor.val[i] = 0;
+    // }
+
+    // tile_descriptor.f.in_data_format = (uint)unpA_src_format;
+    // tile_descriptor.f.uncompressed   = 1; // Input tile is uncompressed
+    // tile_descriptor.f.x_dim          = 0; // Not used for unpA as value is overridden by per context x_dim set below. Used for unpB
+    // tile_descriptor.f.y_dim          = 1;
+    // tile_descriptor.f.z_dim          = 4;
+
+    // for (uint i = 0; i < TILE_DESC_SIZE; i++)
+    // {
+    //     cfg[THCON_SEC0_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
+    // }
+
+    // tile_descriptor.f.x_dim          = 1;
+    // tile_descriptor.f.y_dim          = 16;
+    // tile_descriptor.f.z_dim          = 48;
+    // for (uint i = 0; i < TILE_DESC_SIZE; i++)
+    // {
+    //     cfg[THCON_SEC1_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
+    // }
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -177,15 +202,20 @@ inline void _llk_unpack_A_bcast_B_init_(
     const std::uint32_t acc_to_dest = 0)
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
+
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_0_Ystride_RMW>(0);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(0);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_0_Wstride_RMW>(0);
+
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(32);
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(0);
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Wstride_RMW>(0);
+
     cfg_reg_rmw_tensix<UNP0_ADDR_BASE_REG_0_Base_RMW>(0);
+    cfg_reg_rmw_tensix<UNP0_ADDR_BASE_REG_1_Base_RMW>(0);
 
     constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
-    config_unpacker_x_end<UNP_SEL>(face_r_dim);
-
-    _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
+    config_unpacker_x_end<UNP_SEL>(15);
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -193,6 +223,7 @@ inline void _llk_unpack_A_bcast_b_block(
     const std::uint32_t address_a, const std::uint32_t address_b, const std::uint32_t unpack_src_format, const bool transpose_of_faces = 0 /*not used*/)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
+    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));
 
     // Program srcA and srcB base addresses
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
@@ -218,12 +249,23 @@ inline void _llk_unpack_A_bcast_b_block(
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
+    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00;
+    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_1_CH0Z_0 = 0b01'00'00'00;
+
     // Run MOP
     // ckernel::ckernel_template::run();
     for (int i = 0; i < 4; i++)
     {
-        TTI_UNPACR_COMMON(SrcA, 0b0, 1);
-        TTI_UNPACR_COMMON(SrcB, 0b1, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_1_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));
+        TTI_UNPACR_COMMON(SrcB, 0b0, 1);
     }
 
     // T6::SEMGET for context release
