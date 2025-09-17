@@ -405,3 +405,52 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
+
+template <
+    EltwiseBinaryType eltwise_binary_type,
+    BroadcastType src_b_bcast_type,
+    int MATH_FIDELITY_DESC                       = 0,
+    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
+inline void _llk_math_eltwise_binary_col_tile_init_(const std::uint32_t num_faces, const std::uint32_t transpose, const std::uint32_t acc_to_dest)
+{
+    constexpr int MATH_FIDELITY_PHASES    = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
+    constexpr int MATH_FIDELITY_INCREMENT = get_math_fidelity_increment(MATH_FIDELITY_DESC);
+
+    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_INCREMENT>();
+
+    if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
+    {
+        // eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
+
+        // do not use MOP for now. Custom init
+    }
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+template <
+    EltwiseBinaryType eltwise_binary_type,
+    BroadcastType src_b_bcast_type,
+    DstSync Dst,
+    bool is_fp32_dest_acc_en,
+    int NUM_FIDELITY_PHASES                      = 0,
+    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
+inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
+{
+    constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
+    constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
+
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+
+    for (int i = 0; i < 4; i++)
+    {
+        TTI_ELWSUB(1, 0, 0, 1, 0);
+        TTI_ELWSUB(1, 0, 0, 1, 8);
+        TTI_ELWSUB(1, 0, 0, 1, 16);
+        TTI_ELWSUB(0, 0, 0, 1, 32);
+    }
+
+    math::clear_dst_reg_addr();
+}
