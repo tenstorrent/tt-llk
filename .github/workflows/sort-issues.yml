@@ -1,136 +1,94 @@
-name: 📋 List Open Issues and Pull Requests
+name: 🚀 Run Performance Tests
 
 on:
+  pull_request:
+    types: [labeled, synchronize]
   workflow_dispatch:
-  schedule:
-    - cron: '0 * * * *'
 
 permissions:
+  checks: write
   contents: read
-  pages: write
-  id-token: write
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_protected && github.run_id ||
+    github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  generate_reports:
+  detect-changes:
+    name: "🔍 Detect changes"
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'performance-tests') ||
+        github.event_name == 'workflow_dispatch'
+    outputs:
+      wormhole: ${{ steps.filter.outputs.wormhole }}
+      blackhole: ${{ steps.filter.outputs.blackhole }}
+      performance: ${{ steps.filter.outputs.performance }}
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          fetch-depth: 200
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run information collection scripts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          node .github/scripts/sort-issues.js
-          node .github/scripts/list-pending-prs.js
-
-      - name: Organize files for deployment
-        run: |
-          # Create reports directory structure
-          mkdir -p reports
-
-          # Move generated reports to reports directory
-          mv sorted-issues.html reports/
-          mv pending-prs.html reports/
-
-          # Create dashboard in reports directory
-          TIMESTAMP=$(date '+%B %d, %Y at %H:%M UTC')
-          cat > reports/index.html << EOF
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <meta charset="UTF-8">
-              <title>LLK GitHub Reports</title>
-              <style>
-                  body {
-                      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                      background-color: #f4f6f9;
-                      color: #333;
-                      padding: 40px;
-                      text-align: center;
-                  }
-                  h1 {
-                      color: #007bff;
-                      margin-bottom: 30px;
-                  }
-                  .report-links {
-                      display: flex;
-                      justify-content: center;
-                      gap: 30px;
-                      margin-top: 30px;
-                  }
-                  .report-card {
-                      background: white;
-                      border-radius: 8px;
-                      padding: 30px;
-                      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                      text-decoration: none;
-                      color: #333;
-                      transition: transform 0.2s;
-                      min-width: 250px;
-                  }
-                  .report-card:hover {
-                      transform: translateY(-2px);
-                      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-                  }
-                  .report-card h2 {
-                      color: #007bff;
-                      margin-bottom: 15px;
-                  }
-                  .report-card p {
-                      margin: 0;
-                      color: #666;
-                  }
-                  .last-updated {
-                      margin-top: 40px;
-                      color: #666;
-                      font-size: 14px;
-                  }
-              </style>
-          </head>
-          <body>
-              <h1>LLK GitHub Reports Dashboard</h1>
-              <p>Automatically generated reports for repository insights</p>
-
-              <div class="report-links">
-                  <a href="sorted-issues.html" class="report-card">
-                      <h2>📝 Issues Report</h2>
-                      <p>Browse and filter open issues by priority, labels, and assignees</p>
-                  </a>
-
-                  <a href="pending-prs.html" class="report-card">
-                      <h2>🚀 Pull Requests Report</h2>
-                      <p>Track pending PRs with LLK team reviewers and sort by various criteria</p>
-                  </a>
-              </div>
-
-              <div class="last-updated">
-                  Last updated: $TIMESTAMP
-              </div>
-          </body>
-          </html>
-          EOF
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload to GitHub Pages
-        uses: actions/upload-pages-artifact@v3
+      - name: Detect which directories changed
+        uses: dorny/paths-filter@v3
+        id: filter
         with:
-          path: .
+          filters: |
+              wormhole:
+                - 'tt_llk_wormhole_b0/**'
+              blackhole:
+                - 'tt_llk_blackhole/**'
+              performance:
+                - '**/*perf**'
+                - '**/*profiler**'
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+  build-images:
+    name: "🐳️ Docker setup"
+    uses: ./.github/workflows/build-images.yml
+    needs: detect-changes
+    secrets: inherit
+
+  setup-and-test-wormhole:
+    name: "🌀 Performance tests (Wormhole)"
+    uses: ./.github/workflows/setup-and-test.yml
+    needs: [build-images, detect-changes]
+    if: ${{ needs.detect-changes.outputs.wormhole == 'true' ||
+            needs.detect-changes.outputs.performance == 'true' ||
+            github.event_name == 'workflow_dispatch' }}
+    with:
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: tt-ubuntu-2204-n150-stable
+      test_splits: 1
+      pytest_markers: "perf"
+
+  setup-and-test-blackhole:
+    name: "🕳️ Performance tests (Blackhole)"
+    uses: ./.github/workflows/setup-and-test.yml
+    needs: [build-images, detect-changes]
+    if: ${{ needs.detect-changes.outputs.blackhole == 'true' ||
+            needs.detect-changes.outputs.performance == 'true' ||
+            github.event_name == 'workflow_dispatch' }}
+    with:
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: tt-ubuntu-2204-p150b-stable
+      test_splits: 1
+      pytest_markers: "perf"
+
+  check-all-green:
+    name: "✅ Check all green"
+    if: always()
+    needs:
+      - build-images
+      - setup-and-test-wormhole
+      - setup-and-test-blackhole
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if the required jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
+          allowed-skips: setup-and-test-wormhole, setup-and-test-blackhole
