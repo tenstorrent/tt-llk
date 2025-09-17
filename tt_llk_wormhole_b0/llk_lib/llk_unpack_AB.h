@@ -265,6 +265,7 @@ inline void _llk_unpack_A_bcast_b_block(
         TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
         TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_1_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
         TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));
+        TTI_INCADCXY(0b001, 0, 0, 1, 0); // Increment Y by 16 on Channel 0
         TTI_UNPACR_COMMON(SrcB, 0b0, 1);
     }
 
