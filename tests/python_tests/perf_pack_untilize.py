@@ -20,14 +20,15 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
             DataFormat.Float32,
             DataFormat.Int32,
             DataFormat.Bfp8_b,
-        ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
+        ]
     ),
     full_rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
     full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
 )
 def test_perf_pack_untilize(perf_report, test_name, formats, full_rt_dim, full_ct_dim):
     if formats.output_format == DataFormat.Bfp8_b:
-        pytest.skip("Pack Untilize does not support Bfp8_b format")
+        pytest.skip("Pack Untilize does not support Bfp8_b output")
+
     if (formats.input_format == DataFormat.Int32) ^ (
         formats.output_format == DataFormat.Int32
     ):

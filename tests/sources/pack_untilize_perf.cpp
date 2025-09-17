@@ -19,7 +19,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 // Only modes supported are L1_TO_L1, PACK_ISOLATE and L1_CONGESTION
 static_assert(PERF_RUN_TYPE != PerfRunType::MATH_ISOLATE, "Math isolation not supported for this benchmark");
-static_assert(PERF_RUN_TYPE != PerfRunType::UNPACK_ISOLATE, "Unpack isolation not supported this benchmark");
+static_assert(PERF_RUN_TYPE != PerfRunType::UNPACK_ISOLATE, "Unpack isolation not supported for this benchmark");
 
 static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
@@ -28,7 +28,7 @@ static_assert(BLOCK_CT_DIM <= MAX_TILES_DEST, "Block must fit in Dest register")
 static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by BLOCK_CT_DIM");
 
 // Test assumptions
-static_assert(FULL_RT_DIM * FULL_CT_DIM == TILE_CNT, "BLOCK_RT_DIM * BLOCK_CT_DIM must be equal to TILE_CNT");
+static_assert(FULL_RT_DIM * FULL_CT_DIM == TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to TILE_CNT");
 
 #ifdef LLK_TRISC_UNPACK
 
