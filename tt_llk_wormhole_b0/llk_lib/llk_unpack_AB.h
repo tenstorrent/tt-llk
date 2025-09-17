@@ -222,8 +222,8 @@ template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_A_bcast_b_block(
     const std::uint32_t address_a, const std::uint32_t address_b, const std::uint32_t unpack_src_format, const bool transpose_of_faces = 0 /*not used*/)
 {
-    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
-    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);                             // reset counters
+    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y)); // Clear Y counter on srcA side
 
     // Program srcA and srcB base addresses
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
@@ -249,24 +249,125 @@ inline void _llk_unpack_A_bcast_b_block(
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00;
-    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_1_CH0Z_0 = 0b01'00'00'00;
+    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
 
-    // Run MOP
-    // ckernel::ckernel_template::run();
     for (int i = 0; i < 4; i++)
     {
-        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_1_CH0Z_0 /*CH0/CH1 Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));
-        TTI_INCADCXY(0b001, 0, 0, 1, 0); // Increment Y by 16 on Channel 0
-        TTI_UNPACR_COMMON(SrcB, 0b0, 1);
+        TTI_UNPACR(
+            SrcA,
+            ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/,
+            0,
+            0,
+            0,
+            1 /* Set OvrdThreadId*/,
+            0 /* dvalid */,
+            p_unpacr::RAREFYB_DISABLE,
+            0,
+            0,
+            0,
+            0,
+            1);
+        TTI_UNPACR(
+            SrcA,
+            ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/,
+            0,
+            0,
+            0,
+            1 /* Set OvrdThreadId*/,
+            0 /* dvalid */,
+            p_unpacr::RAREFYB_DISABLE,
+            0,
+            0,
+            0,
+            0,
+            1);
+        TTI_UNPACR(
+            SrcA,
+            ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/,
+            0,
+            0,
+            0,
+            1 /* Set OvrdThreadId*/,
+            0 /* dvalid */,
+            p_unpacr::RAREFYB_DISABLE,
+            0,
+            0,
+            0,
+            0,
+            1);
+        TTI_UNPACR(
+            SrcA,
+            ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/,
+            0,
+            0,
+            0,
+            1 /* Set OvrdThreadId*/,
+            0 /* dvalid */,
+            p_unpacr::RAREFYB_DISABLE,
+            0,
+            0,
+            0,
+            0,
+            1);
+        TTI_UNPACR(
+            SrcA,
+            ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/,
+            0,
+            0,
+            0,
+            1 /* Set OvrdThreadId*/,
+            0 /* dvalid */,
+            p_unpacr::RAREFYB_DISABLE,
+            0,
+            0,
+            0,
+            0,
+            1);
+        TTI_UNPACR(
+            SrcA,
+            ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/,
+            0,
+            0,
+            0,
+            1 /* Set OvrdThreadId*/,
+            0 /* dvalid */,
+            p_unpacr::RAREFYB_DISABLE,
+            0,
+            0,
+            0,
+            0,
+            1);
+        TTI_UNPACR(
+            SrcA,
+            ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/,
+            0,
+            0,
+            0,
+            1 /* Set OvrdThreadId*/,
+            0 /* dvalid */,
+            p_unpacr::RAREFYB_DISABLE,
+            0,
+            0,
+            0,
+            0,
+            1);
+        TTI_UNPACR(
+            SrcA,
+            ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 /*CH0/CH1 Z inc*/,
+            0,
+            0,
+            0,
+            1 /* Set OvrdThreadId*/,
+            1 /* dvalid */,
+            p_unpacr::RAREFYB_DISABLE,
+            0,
+            0,
+            0,
+            0,
+            1);
+        TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y)); // Clear Y counter on srcA side
+        TTI_INCADCXY(0b001, 0, 0, 1, 0);                                     // Increment Y to point to next needed data in L1
+        TTI_UNPACR_COMMON(SrcB, 0b0, 1);                                     // Basic unpack on srcB
     }
 
     // T6::SEMGET for context release
