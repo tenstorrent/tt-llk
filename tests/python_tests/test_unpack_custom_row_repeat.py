@@ -59,8 +59,9 @@ def test_multiple_tiles(
     print("SRC A")
     print("*" * 80)
 
-    src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
-    src_B = torch.ones(1024) * 5
+    # src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
+    src_A = torch.ones(1024) * (0)
+    src_B = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
 
     print(src_A.view(64, 16))
 
