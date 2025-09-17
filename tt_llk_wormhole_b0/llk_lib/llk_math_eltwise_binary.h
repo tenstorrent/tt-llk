@@ -436,16 +436,23 @@ inline void eltwise_binary_col_tile_configure_addrmod()
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 8},
-        .dest = {.incr = 8},
+        .dest = {.incr = 0},
     }
         .set(ADDR_MOD_0);
 
     addr_mod_t {
-        .srca = {.incr = 0},
+        .srca = {.incr = 8},
         .srcb = {.incr = 8},
-        .dest = {.incr = 8},
+        .dest = {.incr = 0},
     }
         .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = (-8) & 0xF},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_2);
 }
 
 template <
@@ -462,17 +469,17 @@ inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uin
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
-    TTI_ELWSUB(0, 0, 0, 1, 0);
-    TTI_ELWSUB(0, 0, 0, 1, 8);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 8); // srca_increment -> 8 | srcb_increment -> 8
 
-    TTI_ELWSUB(0, 0, 0, 1, 16);
-    TTI_ELWSUB(0, 0, 0, 1, 24);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 16);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_2, 24);
 
-    TTI_ELWSUB(0, 0, 0, 1, 32);
-    TTI_ELWSUB(0, 0, 0, 1, 40);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 32);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 40);
 
-    TTI_ELWSUB(0, 0, 0, 1, 48);
-    TTI_ELWSUB(0, 0, 0, 1, 56);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 48);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_2, 56);
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
 
