@@ -203,6 +203,8 @@ inline void _llk_unpack_A_bcast_B_init_(
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
 
+    // Manual setup for unpacker A
+
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_0_Ystride_RMW>(0);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(0);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_0_Wstride_RMW>(0);
@@ -211,11 +213,17 @@ inline void _llk_unpack_A_bcast_B_init_(
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(0);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Wstride_RMW>(0);
 
+    // Manual setup for unpacker B
+
+    cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_XY_REG_1_Ystride_RMW>(32);
+    cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(0);
+    cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Wstride_RMW>(0);
+
     cfg_reg_rmw_tensix<UNP0_ADDR_BASE_REG_0_Base_RMW>(0);
     cfg_reg_rmw_tensix<UNP0_ADDR_BASE_REG_1_Base_RMW>(0);
 
-    config_unpacker_x_end<p_setadc::UNP_A>(1);    // configured for unpacking one row on unpacker A
-    config_unpacker_x_end<p_setadc::UNP_B>(1023); // configured for unpacking full tile on unpacker B
+    config_unpacker_x_end<p_setadc::UNP_A>(1); // configured for unpacking one row on unpacker A
+    config_unpacker_x_end<p_setadc::UNP_B>(1); // configured for unpacking full tile on unpacker B
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -259,7 +267,7 @@ inline void _llk_unpack_A_bcast_b_block(
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_INCADCXY(0b001, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
+    TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
 
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -269,7 +277,7 @@ inline void _llk_unpack_A_bcast_b_block(
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_INCADCXY(0b001, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
+    TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
 
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -279,7 +287,7 @@ inline void _llk_unpack_A_bcast_b_block(
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_INCADCXY(0b001, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
+    TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
 
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -289,10 +297,23 @@ inline void _llk_unpack_A_bcast_b_block(
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y)); // Clear Y counter on srcA side
-    TTI_INCADCXY(0b001, 0, 0, 1, 0);                                     // Increment Y to point to next needed data in L1
+    TTI_SETADCXY(p_setadc::UNP_A, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y)); // Clear Y counter on srcA side
+    TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0);                          // Increment Y to point to next needed data in L1
 
-    TTI_UNPACR_COMMON(SrcB, 0b0, 1); // Basic unpack on srcB full tile
+    // Unpacking srcB
+
+    for (int i = 0; i < 63; i++)
+    {
+        TTI_UNPACR(SrcB, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        if (i % 16 == 0 && i != 0)
+        {
+            TTI_INCADCXY(p_setadc::UNP_B, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
+        }
+    }
+    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+    TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y)); // Clear Y counter on srcA side
+    TTI_INCADCXY(p_setadc::UNP_B, 0, 0, 1, 0);                          // Increment Y to point to next needed data in L1
 
     // T6::SEMGET for context release
     t6_semaphore_get(semaphore::UNPACK_SYNC);
