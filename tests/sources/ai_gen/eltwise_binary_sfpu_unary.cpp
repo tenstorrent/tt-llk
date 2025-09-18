@@ -23,7 +23,7 @@ uint32_t math_sync_tile_dst_index = 0;
 void run_kernel()
 {
     // Configure hardware for unpacking AB (two inputs for binary elementwise operation)
-    _llk_unpack_AB_hw_configure_<fp32_dest_accumulation, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+    _llk_unpack_AB_hw_configure_<dest_datum_width, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
     _llk_unpack_AB_init_<>();
 
     // Unpack one tile from each input buffer
@@ -47,7 +47,7 @@ using namespace ckernel::sfpu;
 void run_kernel()
 {
     // Initialize math operations
-    _llk_math_pack_sync_init_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_math_pack_sync_init_<DST_SYNC, dest_datum_width>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
 
@@ -55,8 +55,7 @@ void run_kernel()
     _llk_math_wait_for_dest_available_<DST_SYNC>();
 
     // Perform elementwise binary operation (ELWADD, ELWMUL, or ELWSUB)
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DST_SYNC, fp32_dest_accumulation, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
-        4, 0, false);
+    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DST_SYNC, dest_datum_width, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(4, 0, false);
 
     // Now perform SFPU unary operation on the result in dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
@@ -66,7 +65,7 @@ void run_kernel()
     test_utils::call_sfpu_operation_32(SFPU_UNARY_OPERATION);
 
     _llk_math_eltwise_unary_sfpu_done_();
-    _llk_math_dest_section_done_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<DST_SYNC, dest_datum_width>();
 }
 
 #endif
@@ -81,23 +80,23 @@ void run_kernel()
 {
     // Configure packer hardware
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<fp32_dest_accumulation, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<dest_datum_width, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
-    _llk_pack_hw_configure_<fp32_dest_accumulation, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<dest_datum_width, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DST_SYNC, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DST_SYNC, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
     _llk_pack_dest_init_<DST_SYNC, false, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     // Pack the result from destination register to output buffer
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DST_SYNC, fp32_dest_accumulation, false>(0, L1_ADDRESS(buffer_Res[0]));
-    _llk_pack_dest_section_done_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_pack_<DST_SYNC, dest_datum_width, false>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_dest_section_done_<DST_SYNC, dest_datum_width>();
 }
 
 #endif

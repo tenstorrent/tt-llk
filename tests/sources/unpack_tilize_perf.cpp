@@ -24,7 +24,7 @@ static_assert(BLOCK_RT_DIM * BLOCK_CT_DIM == TILE_CNT, "BLOCK_RT_DIM * BLOCK_CT_
 
 static_assert(PERF_RUN_TYPE != PerfRunType::MATH_ISOLATE, "Math isolation not supported for unpack_tilize");
 
-static constexpr uint32_t MAX_TILES_DEST = fp32_dest_accumulation ? 4 : 8;
+static constexpr uint32_t MAX_TILES_DEST = dest_datum_width == ckernel::DestDatumWidth::Value::_32Bits ? 4 : 8;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -39,7 +39,7 @@ void run_kernel()
     volatile uint32_t* const src     = reinterpret_cast<volatile uint32_t*>(SRC_BASE_ADDR);
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_tilize_hw_configure_<fp32_dest_accumulation, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+        _llk_unpack_tilize_hw_configure_<dest_datum_width, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
         _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
         PROFILER_SYNC();
     }
@@ -85,11 +85,11 @@ void run_kernel()
         // copy srca to dest
 #ifdef ARCH_BLACKHOLE
         // set tilize flag to true
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, 4, formats.math);
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, 4, formats.math);
 #else
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
 #endif
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, fp32_dest_accumulation>();
+        _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
         _llk_math_hw_configure_<false, false>(formats.math, formats.math);
         PROFILER_SYNC();
     }
@@ -121,7 +121,7 @@ void run_kernel()
             {
                 for (uint32_t i = 0; i < TILE_CNT; i++)
                 {
-                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, fp32_dest_accumulation, BroadcastType::NONE, unpack_to_dest>(
+                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
                         i, formats.math, formats.math);
                 }
             }
@@ -137,10 +137,10 @@ void run_kernel()
                 uint32_t num_tiles = std::min(remaining_tiles, MAX_TILES_DEST);
                 for (uint32_t i = 0; i < num_tiles; ++i)
                 {
-                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, fp32_dest_accumulation, BroadcastType::NONE, unpack_to_dest>(
+                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
                         i, formats.math, formats.math);
                 }
-                _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+                _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
                 remaining_tiles -= num_tiles;
             }
         }
@@ -167,13 +167,13 @@ void run_kernel()
         ZONE_SCOPED("INIT")
 
 #ifdef ARCH_BLACKHOLE
-        _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+        _llk_pack_hw_configure_<dest_datum_width, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
         _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-        _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+        _llk_pack_hw_configure_<dest_datum_width, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
         _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, UNTILIZE>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
         PROFILER_SYNC();
     }
@@ -191,7 +191,7 @@ void run_kernel()
             {
                 for (uint32_t i = 0; i < TILE_CNT; ++i)
                 {
-                    _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 4096));
+                    _llk_pack_<DstSync::SyncHalf, dest_datum_width, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 4096));
                 }
             }
             PROFILER_SYNC();
@@ -207,9 +207,9 @@ void run_kernel()
                 _llk_packer_wait_for_math_done_();
                 for (uint32_t i = 0; i < num_tiles; ++i)
                 {
-                    _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 0x1000));
+                    _llk_pack_<DstSync::SyncHalf, dest_datum_width, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 0x1000));
                 }
-                _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+                _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
                 remaining_tiles -= num_tiles;
             }
         }

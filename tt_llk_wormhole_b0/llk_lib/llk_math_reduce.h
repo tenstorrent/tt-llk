@@ -28,7 +28,7 @@ template <
 
     ReduceDim dim,
 
-    DestAccumulation::Value fp32_dest_accumulation,
+    DestDatumWidth::Value dest_datum_width,
 
     int MATH_FIDELITY_DESC = 0,
 
@@ -125,7 +125,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // we avoid clobbering weights in src B by moving to rows 16 - 31
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
             /*
-            if constexpr (fp32_dest_accumulation) {
+            if constexpr (dest_datum_width) {
                 if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                     TTI_SFPLOAD(0, 0, 3, 0);
@@ -250,7 +250,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 // Move back to B and transpose
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
                 /*
-                if constexpr (fp32_dest_accumulation) {
+                if constexpr (dest_datum_width) {
                     if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                         TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                         TTI_SFPLOAD(0, 0, 3, 0);
@@ -449,7 +449,7 @@ inline void reduce_configure_mop()
     }
 }
 
-template <PoolType type, ReduceDim dim, DestAccumulation::Value fp32_dest_accumulation, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
+template <PoolType type, ReduceDim dim, DestDatumWidth::Value dest_datum_width, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0)
 { // within_face_16x16_transpose used for unpack, ignored by math
 
@@ -464,7 +464,7 @@ inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpo
 
     if constexpr (enforce_fp32_accumulation)
     {
-        static_assert(fp32_dest_accumulation, "FP32 Dest must be enabled for FP32 accumulation");
+        static_assert(dest_datum_width, "FP32 Dest must be enabled for FP32 accumulation");
         // MOVB2D/D2B depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32 (only on WH)
         // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);

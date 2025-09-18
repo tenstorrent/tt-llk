@@ -26,8 +26,7 @@ const ckernel::DstSync sync       = ckernel::DstSync::SyncHalf;
 
 void run_kernel()
 {
-    _llk_unpack_AB_matmul_hw_configure_<fp32_dest_accumulation, StochRndType::None>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+    _llk_unpack_AB_matmul_hw_configure_<dest_datum_width, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, face_size, face_size);
 }
@@ -43,11 +42,11 @@ void run_kernel()
 void run_kernel()
 {
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
-    _llk_math_pack_sync_init_<sync, fp32_dest_accumulation>();
+    _llk_math_pack_sync_init_<sync, dest_datum_width>();
     _llk_math_hw_configure_<true, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<sync>();
     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
-    _llk_math_dest_section_done_<sync, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<sync, dest_datum_width>();
 }
 
 #endif
@@ -61,17 +60,17 @@ void run_kernel()
 void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE, false>(formats.pack_src, formats.pack_dst, tile_size);
-    _llk_pack_dest_init_<sync, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE, false>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_dest_init_<sync, dest_datum_width, DstTileFaceLayout::RowMajor>();
     _llk_pack_untilize_init_<ct_dim>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
 #else
-    _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE>(formats.pack_src, formats.pack_dst, tile_size);
-    _llk_pack_dest_init_<sync, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_dest_init_<sync, dest_datum_width, DstTileFaceLayout::RowMajor, UNTILIZE>();
     _llk_pack_untilize_init_<ct_dim>(formats.pack_dst, FACE_R_DIM, 4);
 #endif
     _llk_packer_wait_for_math_done_();
     _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
-    _llk_pack_dest_section_done_<sync, fp32_dest_accumulation>();
+    _llk_pack_dest_section_done_<sync, dest_datum_width>();
 }
 
 #endif

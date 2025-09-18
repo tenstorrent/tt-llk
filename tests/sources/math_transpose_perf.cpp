@@ -31,7 +31,7 @@ void run_kernel()
 
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_A_hw_configure_<fp32_dest_accumulation, StochRndType::None, unpack_to_dest>(
+        _llk_unpack_A_hw_configure_<dest_datum_width, StochRndType::None, unpack_to_dest>(
             formats.unpack_src, formats.unpack_dst, FACE_R_DIM, false, TILE_NUM_FACES);
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
@@ -64,7 +64,7 @@ void run_kernel()
 
     {
         ZONE_SCOPED("INIT")
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, fp32_dest_accumulation>();
+        _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
         _llk_math_hw_configure_<>(formats.math, formats.math);
 
         ckernel::tensix_sync(); // -> perf
@@ -78,19 +78,19 @@ void run_kernel()
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
 #ifdef ARCH_BLACKHOLE
-            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, false, false>(
+            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, false, false>(
                 UNPACK_TRANSPOSE_FACES, false, TILE_NUM_FACES, formats.math);
 #else
-            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, false>(
+            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, false>(
                 UNPACK_TRANSPOSE_FACES, false, TILE_NUM_FACES, formats.math);
 #endif
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, fp32_dest_accumulation, BroadcastType::NONE, unpack_to_dest>(
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
                 0, formats.math, formats.math);
 
             _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
             _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is32>(0);
 
-            _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+            _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
         }
         ckernel::tensix_sync(); // -> perf
     }
@@ -108,9 +108,9 @@ void run_kernel()
     volatile uint32_t* const dst = reinterpret_cast<volatile uint32_t*>(0x1E000);
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_hw_configure_<fp32_dest_accumulation>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
+        _llk_pack_hw_configure_<dest_datum_width>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
         _llk_pack_init_<>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width>();
         ckernel::tensix_sync(); // -> perf
     }
     {
@@ -118,8 +118,8 @@ void run_kernel()
         for (uint32_t tile = 0; tile < TILE_CNT; tile++)
         {
             _llk_packer_wait_for_math_done_();
-            _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
-            _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+            _llk_pack_<DstSync::SyncHalf, dest_datum_width>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000));
+            _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
         }
         ckernel::tensix_sync(); // -> perf
     }

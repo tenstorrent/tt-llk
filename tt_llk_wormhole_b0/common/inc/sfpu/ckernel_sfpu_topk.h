@@ -26,11 +26,11 @@ inline void set_dst_write_addr(uint32_t addr)
     TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dst_index);
 }
 
-template <DestAccumulation::Value fp32_dest_accumulation>
+template <DestDatumWidth::Value dest_datum_width>
 inline void bitonic_topk_load8(uint offset, uint dist)
 {
     constexpr uint dst_indices_offset = 128; // 2 tile x 64 rows per tile
-    constexpr uint8_t instr_mod_index = fp32_dest_accumulation ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr uint8_t instr_mod_index = dest_datum_width == DestDatumWidth::Value::_32Bits ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     uint face_offset = offset >> 4;
     uint ld_offset   = (offset & 0xF) + face_offset * 32;
@@ -44,11 +44,11 @@ inline void bitonic_topk_load8(uint offset, uint dist)
     TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset + dist);
 }
 
-template <DestAccumulation::Value fp32_dest_accumulation>
+template <DestDatumWidth::Value dest_datum_width>
 inline void bitonic_topk_store8(uint offset, uint dist)
 {
     constexpr uint dst_indices_offset = 128; // 2 tile x 64 rows per tile
-    constexpr uint8_t instr_mod_index = fp32_dest_accumulation ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr uint8_t instr_mod_index = dest_datum_width == DestDatumWidth::Value::_32Bits ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     uint face_offset = offset >> 4;
     uint ld_offset   = (offset & 0xF) + face_offset * 32;
@@ -62,11 +62,11 @@ inline void bitonic_topk_store8(uint offset, uint dist)
     TT_SFPSTORE(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset + dist);
 }
 
-template <DestAccumulation::Value fp32_dest_accumulation>
+template <DestDatumWidth::Value dest_datum_width>
 inline void bitonic_topk_load16(uint dist0, uint dist1)
 {
     constexpr uint dst_indices_offset = 128; // 2 tile x 64 rows per tile
-    constexpr uint8_t instr_mod_index = fp32_dest_accumulation ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr uint8_t instr_mod_index = dest_datum_width == DestDatumWidth::Value::_32Bits ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     // Load 16 consecutive numbers
     TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
@@ -99,11 +99,11 @@ inline void bitonic_topk_load16(uint dist0, uint dist1)
     }
 }
 
-template <DestAccumulation::Value fp32_dest_accumulation, bool alt_addr_mod = false>
+template <DestDatumWidth::Value dest_datum_width, bool alt_addr_mod = false>
 inline void bitonic_topk_store16(uint dist0, uint dist1)
 {
     constexpr uint dst_indices_offset = 128; // 2 tile x 64 rows per tile
-    constexpr uint8_t instr_mod_index = fp32_dest_accumulation ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr uint8_t instr_mod_index = dest_datum_width == DestDatumWidth::Value::_32Bits ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     // Load 16 consecutive numbers
     TTI_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
@@ -269,7 +269,7 @@ inline void bitonic_topk_inc_x4_dest(uint inc, bool cr)
     }
 }
 
-template <bool APPROXIMATION_MODE, DestAccumulation::Value fp32_dest_accumulation, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestDatumWidth::Value dest_datum_width, int ITERATIONS>
 inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, const int i_start_phase, const int i_end_step, const int i_start_step)
 {
     // If more than 1 phase is requested, do all the steps from all phases
@@ -300,7 +300,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             if (init_load)
                             {
                                 lltt::record<lltt::Exec>(0, 8);
-                                bitonic_topk_load16<fp32_dest_accumulation>(4, 8);
+                                bitonic_topk_load16<dest_datum_width>(4, 8);
                                 init_load = false;
                             }
                             else
@@ -320,7 +320,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             if (init_store)
                             {
                                 lltt::record<lltt::Exec>(8, 8);
-                                bitonic_topk_store16<fp32_dest_accumulation, true>(4, 8);
+                                bitonic_topk_store16<dest_datum_width, true>(4, 8);
                                 init_store = false;
                             }
                             else
@@ -393,10 +393,9 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             {
                                 for (uint ii = 0; ii < inner_d; ii++)
                                 {
-                                    bitonic_topk_load16<fp32_dest_accumulation>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
+                                    bitonic_topk_load16<dest_datum_width>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
                                     bitonic_topk_step_N(dir);
-                                    bitonic_topk_store16<fp32_dest_accumulation, false>(
-                                        4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
+                                    bitonic_topk_store16<dest_datum_width, false>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
                                     uint dst_inc = 8;
                                     dst_offset += dst_inc;
                                     bool dst_cr = false;
@@ -440,7 +439,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
     topk_replay_init = -1;
 }
 
-template <bool APPROXIMATION_MODE, DestAccumulation::Value fp32_dest_accumulation, bool top_min, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestDatumWidth::Value dest_datum_width, bool top_min, int ITERATIONS>
 inline void _bitonic_topk_merge(const int m_iter, const int k)
 {
     uint dst_addr_offset = 0;
@@ -464,9 +463,9 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
             {
                 for (uint ii = 0; ii < inner_d; ii++)
                 {
-                    bitonic_topk_load8<fp32_dest_accumulation>(dst_offset, ld_dist);
+                    bitonic_topk_load8<dest_datum_width>(dst_offset, ld_dist);
                     TTI_SFPSWAP(0, top_min ? p_sfpu::LREG1 : p_sfpu::LREG0, top_min ? p_sfpu::LREG0 : p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-                    bitonic_topk_store8<fp32_dest_accumulation>(dst_offset, ld_dist);
+                    bitonic_topk_store8<dest_datum_width>(dst_offset, ld_dist);
                     datums_compared += 8;
                     if (ii == (inner_d - 1))
                     {
@@ -487,7 +486,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
     }
 }
 
-template <bool APPROXIMATION_MODE, DestAccumulation::Value fp32_dest_accumulation, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestDatumWidth::Value dest_datum_width, int ITERATIONS>
 inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k, const int logk, const int skip_second)
 {
     // init replay buffer for rebuild iteration 'm_iter' if uninitialized
@@ -525,9 +524,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                             if (init_rebuild)
                             {
                                 lltt::record<lltt::Exec>(0, 22);
-                                bitonic_topk_load8<fp32_dest_accumulation>(0, ld_offset);
+                                bitonic_topk_load8<dest_datum_width>(0, ld_offset);
                                 bitonic_topk_ph1_st2_to_1();
-                                bitonic_topk_store8<fp32_dest_accumulation>(0, ld_offset);
+                                bitonic_topk_store8<dest_datum_width>(0, ld_offset);
                                 bitonic_topk_inc_x8_dest(64, false);
                                 init_rebuild = false;
                             }
@@ -548,9 +547,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                             if (init_rebuild)
                             {
                                 lltt::record<lltt::Exec>(0, 26);
-                                bitonic_topk_load16<fp32_dest_accumulation>(ld_offset, ld_dist);
+                                bitonic_topk_load16<dest_datum_width>(ld_offset, ld_dist);
                                 bitonic_topk_ph1_st2_to_1();
-                                bitonic_topk_store16<fp32_dest_accumulation, true>(ld_offset, ld_dist);
+                                bitonic_topk_store16<dest_datum_width, true>(ld_offset, ld_dist);
                                 TTI_INCRWC(0, 8, 0, 0);
                                 TTI_INCRWC(0, 8, 0, 0);
                                 TTI_INCRWC(0, 8, 0, 0);
@@ -572,9 +571,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         if (init_rebuild)
                         {
                             lltt::record<lltt::Exec>(0, 29);
-                            bitonic_topk_load16<fp32_dest_accumulation>(4, ld_offset);
+                            bitonic_topk_load16<dest_datum_width>(4, ld_offset);
                             bitonic_topk_ph2_st3_to_1();
-                            bitonic_topk_store16<fp32_dest_accumulation, true>(4, ld_offset);
+                            bitonic_topk_store16<dest_datum_width, true>(4, ld_offset);
                             TTI_INCRWC(0, 8, 0, 0);
                             TTI_INCRWC(0, 8, 0, 0);
                             TTI_INCRWC(0, 8, 0, 0);
@@ -595,10 +594,10 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         if (init_rebuild)
                         {
                             lltt::record<lltt::Exec>(0, 8);
-                            bitonic_topk_load16<fp32_dest_accumulation>(4, 8);
+                            bitonic_topk_load16<dest_datum_width>(4, 8);
                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
                             lltt::record<lltt::Exec>(13, 12);
-                            bitonic_topk_store16<fp32_dest_accumulation, true>(4, 8);
+                            bitonic_topk_store16<dest_datum_width, true>(4, 8);
                             TTI_INCRWC(0, 8, 0, 0);
                             TTI_INCRWC(0, 8, 0, 0);
                             TTI_INCRWC(0, 8, 0, 0);
@@ -633,9 +632,9 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         {
                             for (uint ii = 0; ii < inner_d; ii++)
                             {
-                                bitonic_topk_load16<fp32_dest_accumulation>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
+                                bitonic_topk_load16<dest_datum_width>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
                                 bitonic_topk_step_N(dir);
-                                bitonic_topk_store16<fp32_dest_accumulation, false>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
+                                bitonic_topk_store16<dest_datum_width, false>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
                                 uint dst_inc = 8;
                                 dst_offset += dst_inc;
                                 bool dst_cr = false;
@@ -665,10 +664,10 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
                         if (init_rebuild)
                         {
                             lltt::record<lltt::Exec>(0, 8);
-                            bitonic_topk_load16<fp32_dest_accumulation>(4, 8);
+                            bitonic_topk_load16<dest_datum_width>(4, 8);
                             bitonic_topk_ph3_st4_to_1(dir, init_rebuild, 8);
                             lltt::record<lltt::Exec>(13, 8);
-                            bitonic_topk_store16<fp32_dest_accumulation, true>(4, 8);
+                            bitonic_topk_store16<dest_datum_width, true>(4, 8);
                         }
                         else
                         {

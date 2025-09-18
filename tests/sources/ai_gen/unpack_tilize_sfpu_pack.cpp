@@ -24,7 +24,7 @@ void run_kernel()
 {
     // Configure unpack for tilize operation (row-major input -> tiled format)
     // This handles both A and B inputs which need to be tilized before binary ops
-    _llk_unpack_tilize_hw_configure_<fp32_dest_accumulation, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_tilize_hw_configure_<dest_datum_width, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
     _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
 
     // Unpack and tilize single tile A (stored in src A register - index 0)
@@ -49,19 +49,19 @@ void run_kernel()
 {
     // Initialize datacopy operation (copy src A to dest)
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, false, false>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, false, false>(0, 0, 4, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, false>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, false>(0, 0, 4, formats.math);
 #endif
 
-    _llk_math_pack_sync_init_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_math_pack_sync_init_<DST_SYNC, dest_datum_width>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
     // Wait for destination to be available
     _llk_math_wait_for_dest_available_<DST_SYNC>();
 
     // Step 1: Copy tilized input from src A to dest
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, fp32_dest_accumulation, BroadcastType::NONE, unpack_to_dest>(0, formats.math, formats.math);
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(0, formats.math, formats.math);
 
     // Step 2: Initialize and perform SFPU unary operation on the copied data
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
@@ -74,7 +74,7 @@ void run_kernel()
     _llk_math_eltwise_unary_sfpu_done_();
 
     // Signal completion to packer
-    _llk_math_dest_section_done_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<DST_SYNC, dest_datum_width>();
 }
 
 #endif
@@ -92,19 +92,19 @@ void run_kernel()
     const bool TILIZE   = false; // Input to pack is already in tile format
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
-    _llk_pack_dest_init_<DST_SYNC, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DST_SYNC, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DST_SYNC, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_dest_init_<DST_SYNC, dest_datum_width, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
 
     // Pack the single result tile from destination register to output buffer
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DST_SYNC, fp32_dest_accumulation, UNTILIZE>(0, L1_ADDRESS(buffer_Res[0]));
-    _llk_pack_dest_section_done_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_pack_<DST_SYNC, dest_datum_width, UNTILIZE>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_dest_section_done_<DST_SYNC, dest_datum_width>();
 }
 
 #endif

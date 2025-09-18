@@ -60,7 +60,7 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_fast_tilize_hw_configure_<fp32_dest_accumulation>(formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_fast_tilize_hw_configure_<dest_datum_width>(formats.unpack_src, formats.unpack_dst);
         _llk_unpack_fast_tilize_init_(formats.unpack_dst, BLOCK_CT_DIM);
         PROFILER_SYNC();
     }
@@ -74,7 +74,7 @@ void run_kernel()
 
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = fp32_dest_accumulation ? 4 : 8;
+                uint32_t dest_size       = dest_datum_width == DestDatumWidth::Value::_32Bits ? 4 : 8;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 
@@ -121,7 +121,7 @@ void run_kernel()
         PROFILER_SYNC();
     }
 
-    _llk_unpack_fast_tilize_uninit_<fp32_dest_accumulation>();
+    _llk_unpack_fast_tilize_uninit_<dest_datum_width>();
 }
 
 #endif
@@ -135,7 +135,7 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, fp32_dest_accumulation>();
+        _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
         _llk_math_hw_configure_(formats.math, formats.math);
         _llk_math_fast_tilize_init_(formats.math, BLOCK_CT_DIM == 1 ? 1 : 2);
         PROFILER_SYNC();
@@ -148,7 +148,7 @@ void run_kernel()
             {
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = fp32_dest_accumulation ? 4 : 8;
+                uint32_t dest_size       = dest_datum_width == DestDatumWidth::Value::_32Bits ? 4 : 8;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 
@@ -191,14 +191,14 @@ void run_kernel()
                         remaining_tiles = 0;
                     }
 
-                    _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+                    _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
                 }
             }
         }
         PROFILER_SYNC();
     }
 
-    _llk_math_fast_tilize_uninit_<fp32_dest_accumulation>(formats.math);
+    _llk_math_fast_tilize_uninit_<dest_datum_width>(formats.math);
 }
 
 #endif
@@ -213,8 +213,8 @@ void run_kernel()
     uint32_t use_32bit_dest = formats.unpack_dst == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Tf32);
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, false>();
-        _llk_pack_fast_tilize_hw_configure_<fp32_dest_accumulation>(formats.pack_src, formats.pack_dst);
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor, false>();
+        _llk_pack_fast_tilize_hw_configure_<dest_datum_width>(formats.pack_src, formats.pack_dst);
         _llk_pack_fast_tilize_init_<DstSync::SyncHalf>(use_32bit_dest, formats.pack_dst, BLOCK_CT_DIM == 1 ? 1 : 2);
         PROFILER_SYNC();
     }
@@ -228,7 +228,7 @@ void run_kernel()
 
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = fp32_dest_accumulation ? 4 : 8;
+                uint32_t dest_size       = dest_datum_width == DestDatumWidth::Value::_32Bits ? 4 : 8;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 
@@ -272,14 +272,14 @@ void run_kernel()
                         remaining_tiles = 0;
                     }
 
-                    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+                    _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
                 }
             }
         }
         PROFILER_SYNC();
     }
 
-    _llk_pack_fast_tilize_uninit_<DstSync::SyncHalf, fp32_dest_accumulation>(formats.pack_dst);
+    _llk_pack_fast_tilize_uninit_<DstSync::SyncHalf, dest_datum_width>(formats.pack_dst);
 }
 
 #endif

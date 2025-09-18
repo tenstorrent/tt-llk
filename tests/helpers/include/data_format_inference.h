@@ -74,13 +74,13 @@ constexpr bool is_32bit_format(DataFormat format)
  *
  * @param input The input data format in L1.
  * @param output The output data format in L1.
- * @param fp32_dest_accumulation Flag indicating if 32-bit destination accumulation is enabled (dest_acc).
+ * @param dest_datum_width Flag indicating if destination width is 32-bit or 16-bit.
  *
  * @return true if the format combination is an unsupported hardware outlier; false otherwise.
  */
-constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, ckernel::DestAccumulation fp32_dest_accumulation)
+constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, ckernel::DestDatumWidth dest_datum_width)
 {
-    return (is_exponentB(input) && output == DataFormat::Float16 && !fp32_dest_accumulation);
+    return (is_exponentB(input) && output == DataFormat::Float16 && dest_datum_width == ckernel::DestDatumWidth::Value::_16Bits);
 }
 
 /**
@@ -175,7 +175,7 @@ constexpr DataFormat infer_pack_in()
         // which then converts Bfp8_A to Bfp8_B.
         return DataFormat::Bfp8;
     }
-    else if constexpr (is_format_combination_outlier(INPUT, OUTPUT, ckernel::DestAccumulation(FP32_ACC)))
+    else if constexpr (is_format_combination_outlier(INPUT, OUTPUT, ckernel::DestDatumWidth(FP32_ACC)))
     {
         // Handling a hardware limitation: cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register.
         // In this case, we set dest registers store 32-bit datums (in params.h).

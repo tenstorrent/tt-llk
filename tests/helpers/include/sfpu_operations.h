@@ -39,7 +39,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::atanh:
             _init_atanh_<APPROX_MODE>();
-            _calculate_atanh_<APPROX_MODE, fp32_dest_accumulation, ITERATIONS>();
+            _calculate_atanh_<APPROX_MODE, dest_datum_width, ITERATIONS>();
             break;
         case SfpuType::celu:
             _calculate_activation_<APPROX_MODE, ActivationType::Celu, ITERATIONS>(10, 1.0f / 10.0f);
@@ -95,11 +95,11 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::reciprocal:
             _init_reciprocal_<APPROX_MODE>();
-            _calculate_reciprocal_<APPROX_MODE, ITERATIONS, fp32_dest_accumulation>(ITERATIONS);
+            _calculate_reciprocal_<APPROX_MODE, ITERATIONS, dest_datum_width>(ITERATIONS);
             break;
         case SfpuType::rsqrt:
             _init_rsqrt_<APPROX_MODE>();
-            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, fp32_dest_accumulation>(ITERATIONS);
+            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, dest_datum_width>(ITERATIONS);
             break;
         case SfpuType::silu:
             _calculate_silu_<APPROX_MODE, ITERATIONS>();
@@ -109,7 +109,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::sqrt:
             _init_sqrt_<APPROX_MODE>();
-            _calculate_sqrt_<APPROX_MODE, ITERATIONS, fp32_dest_accumulation>(ITERATIONS);
+            _calculate_sqrt_<APPROX_MODE, ITERATIONS, dest_datum_width>(ITERATIONS);
             break;
         case SfpuType::square:
             _calculate_square_<APPROX_MODE, ITERATIONS>(ITERATIONS);

@@ -29,8 +29,7 @@ volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>
 void run_kernel()
 {
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
-    _llk_unpack_tilize_hw_configure_<fp32_dest_accumulation, StochRndType::None>(
-        formats_array[run].unpack_src, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_tilize_hw_configure_<dest_datum_width, StochRndType::None>(formats_array[run].unpack_src, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, 1, FACE_R_DIM, 4, false);
@@ -44,11 +43,11 @@ void run_kernel()
 
     // Start of second unpack kernel to perform unpack matmul on now tilized input data
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
-    _llk_unpack_reconfig_data_format_srca_impl_<fp32_dest_accumulation, false>(
+    _llk_unpack_reconfig_data_format_srca_impl_<dest_datum_width, false>(
         formats_array[run].unpack_src,
         formats_array[run].unpack_dst,
         tile_size); // have to reconfigure unpack kernel data formats_array if they change in this run
-    _llk_unpack_reconfig_data_format_srcb_impl_<fp32_dest_accumulation, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
+    _llk_unpack_reconfig_data_format_srcb_impl_<dest_datum_width, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
     _llk_unpack_tilize_uninit_(formats_array[run].unpack_dst);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
@@ -77,35 +76,34 @@ void run_kernel()
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
-        0, 0, 4, formats_array[run].math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, 4, formats_array[run].math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats_array[run].math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats_array[run].math);
 #endif
 
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
     _llk_math_hw_configure_<false, false>(formats_array[run].math, formats_array[run].math);
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, fp32_dest_accumulation, BroadcastType::NONE, false>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, false>(
         operand_A_dst_index, formats_array[run].math, formats_array[run].math);
-    _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, fp32_dest_accumulation, BroadcastType::NONE, false>(
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, false>(
         operand_B_dst_index, formats_array[run].math, formats_array[run].math);
-    _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 
     // Start of second math kernel to perform matmul on now tilized input data
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
-    _llk_math_reconfig_data_format_srca_<fp32_dest_accumulation, false>(
+    _llk_math_reconfig_data_format_srca_<dest_datum_width, false>(
         formats_array[run].math); // have to reconfigure math kernel data formats_array if they change in this run
-    _llk_math_reconfig_data_format_srcb_<fp32_dest_accumulation, false>(formats_array[run].math);
+    _llk_math_reconfig_data_format_srcb_<dest_datum_width, false>(formats_array[run].math);
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
-    _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 }
 
 #endif
@@ -127,29 +125,29 @@ void run_kernel()
 
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats_array[run].pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, UNTILIZE>(operand_A_dst_index, L1_ADDRESS(buffer_A_tilized));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_pack_<DstSync::SyncHalf, dest_datum_width, UNTILIZE>(operand_A_dst_index, L1_ADDRESS(buffer_A_tilized));
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, UNTILIZE>(operand_B_dst_index, L1_ADDRESS(buffer_B_tilized));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>(); // Packer will execute _llk_pack_dest_section_done_ function which ensures the
-                                                                               // write to L1 is fully is complete.
+    _llk_pack_<DstSync::SyncHalf, dest_datum_width, UNTILIZE>(operand_B_dst_index, L1_ADDRESS(buffer_B_tilized));
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>(); // Packer will execute _llk_pack_dest_section_done_ function which ensures the
+                                                                         // write to L1 is fully is complete.
     t6_semaphore_post<>(semaphore::PACK_DONE); // The packer signals to the unpacker that it has finished writing to L1 by posting (incrementing) the semaphore.
                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
 
     // Start of second pack kernel to perform final pack after executing matmul on tilized data
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
-    _llk_pack_reconfig_data_format_<fp32_dest_accumulation>(
+    _llk_pack_reconfig_data_format_<dest_datum_width>(
         formats_array[run].pack_src,
         formats_array[run].pack_dst,
         tile_size); // need to reconfigure data formats_array for next pack, also calls set_packer_strides to readjust strides after pack tilizing
@@ -159,8 +157,8 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, false>(res_dst_index, L1_ADDRESS(buffer_Res[0]));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_pack_<DstSync::SyncHalf, dest_datum_width, false>(res_dst_index, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 }
 
 #endif

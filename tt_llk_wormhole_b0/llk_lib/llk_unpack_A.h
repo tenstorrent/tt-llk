@@ -168,7 +168,7 @@ inline void _llk_unpack_A_mop_config_(
     }
 }
 
-template <DestAccumulation::Value fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None, bool disable_src_zero_flag = false>
+template <DestDatumWidth::Value dest_datum_width, StochRndType stoch_rnd_mode = StochRndType::None, bool disable_src_zero_flag = false>
 inline void _llk_unpack_A_hw_configure_(
     const std::uint32_t unpack_src_format,
     const std::uint32_t unpack_dst_format,
@@ -180,7 +180,7 @@ inline void _llk_unpack_A_hw_configure_(
     constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
     constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
     constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Pack);
-    configure_unpack_AB<fp32_dest_accumulation, is_row_pool, fpu_srnd_en, pack_srnd_en, disable_src_zero_flag>(
+    configure_unpack_AB<dest_datum_width, is_row_pool, fpu_srnd_en, pack_srnd_en, disable_src_zero_flag>(
         unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
 }
 

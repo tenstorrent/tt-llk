@@ -25,7 +25,7 @@ void run_kernel()
 {
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, num_faces, formats.unpack_src, formats.unpack_dst);
-    _llk_unpack_A_hw_configure_<fp32_dest_accumulation, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, num_faces);
+    _llk_unpack_A_hw_configure_<dest_datum_width, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, num_faces);
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
@@ -54,24 +54,23 @@ void run_kernel()
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, num_faces, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, num_faces, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, fp32_dest_accumulation, BroadcastType::NONE, is_int_fpu_en>(0, 0, num_faces, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, is_int_fpu_en>(0, 0, num_faces, formats.math);
 #endif
-    _llk_math_pack_sync_init_<dest_sync, fp32_dest_accumulation>();
+    _llk_math_pack_sync_init_<dest_sync, dest_datum_width>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<dest_sync>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
 #ifdef ARCH_BLACKHOLE
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, fp32_dest_accumulation, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math, num_faces);
 #else
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, fp32_dest_accumulation, BroadcastType::NONE, unpack_to_dest>(
-            i, formats.math, formats.math);
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(i, formats.math, formats.math);
 #endif
     }
-    _llk_math_dest_section_done_<dest_sync, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<dest_sync, dest_datum_width>();
 }
 
 #endif
@@ -85,20 +84,20 @@ void run_kernel()
 void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<fp32_dest_accumulation, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, num_faces);
+    _llk_pack_hw_configure_<dest_datum_width, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, num_faces);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, num_faces);
-    _llk_pack_dest_init_<dest_sync, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<dest_sync, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<fp32_dest_accumulation, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, num_faces);
+    _llk_pack_hw_configure_<dest_datum_width, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, num_faces);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, num_faces);
-    _llk_pack_dest_init_<dest_sync, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<dest_sync, dest_datum_width, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_<dest_sync, fp32_dest_accumulation, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<dest_sync, dest_datum_width, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    _llk_pack_dest_section_done_<dest_sync, fp32_dest_accumulation>();
+    _llk_pack_dest_section_done_<dest_sync, dest_datum_width>();
 }
 #endif

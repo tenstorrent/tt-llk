@@ -145,26 +145,26 @@ enum InstrModLoadStore
     HI16_ONLY     = 15
 };
 
-class DestAccumulation
+class DestDatumWidth
 {
 public:
     enum Value
     {
-        Disable = 0,
-        Enable  = 1
+        _32Bits = 0,
+        _16Bits = 1
     };
 
-    constexpr DestAccumulation(Value v) : value(v)
+    constexpr DestDatumWidth(Value v) : value(v)
     {
     }
 
-    constexpr DestAccumulation(bool v) : value(v ? Enable : Disable)
+    constexpr DestDatumWidth(bool v) : value(v ? _32Bits : _16Bits)
     {
     }
 
     constexpr operator bool() const
     {
-        return value == Enable;
+        return value == _32Bits;
     }
 
     constexpr operator Value() const

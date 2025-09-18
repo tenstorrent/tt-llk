@@ -39,8 +39,8 @@ constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 // this is considered a format combination outlier, so we enable dest_acc
 constexpr bool dest_accumulation_enabled =
     dest_acc_en_input ||
-    is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), ckernel::DestAccumulation {dest_acc_en_input});
-constexpr auto fp32_dest_accumulation = static_cast<ckernel::DestAccumulation::Value>(ckernel::DestAccumulation(dest_accumulation_enabled));
+    is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), ckernel::DestDatumWidth {dest_acc_en_input});
+constexpr auto dest_datum_width = ckernel::DestDatumWidth(dest_accumulation_enabled);
 
 // Get Data Formats
 inline constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array =
@@ -49,8 +49,8 @@ inline constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array =
 constexpr auto& formats = formats_array[0];
 
 #else // Not inferring formats — all formats are pre-defined. Set format configuration directly.
-constexpr auto fp32_dest_accumulation = static_cast<ckernel::DestAccumulation::Value>(ckernel::DestAccumulation(dest_acc_en_input));
-constexpr FormatConfig formats        = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH, PACK_IN, PACK_OUT);
+constexpr auto dest_datum_width = ckernel::DestDatumWidth(dest_acc_en_input);
+constexpr FormatConfig formats  = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH, PACK_IN, PACK_OUT);
 #endif
 
 // Tile count validation - applies to all kernel variants (UNPACK, MATH, PACK)
@@ -64,6 +64,6 @@ static_assert(tile_count > 0, "Matrix dimensions invalid: RT_DIM and CT_DIM must
 static_assert(tile_count <= max_tiles_fp16_dest, "Tile count exceeds hardware limit: RT_DIM * CT_DIM must be <= 8");
 
 static_assert(
-    !fp32_dest_accumulation || (tile_count <= max_tiles_fp32_dest),
+    dest_datum_width == ckernel::DestDatumWidth::Value::_16Bits || (tile_count <= max_tiles_fp32_dest),
     "FP32 dest accumulation requires RT_DIM * CT_DIM <= 4 (current configuration exceeds this limit)");
 #endif

@@ -107,7 +107,7 @@ inline void _llk_pack_mop_config_(
 }
 
 template <
-    DestAccumulation::Value fp32_dest_accumulation,
+    DestDatumWidth::Value dest_datum_width,
     bool is_tile_dim_reconfig_en = false,
     DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
     bool write_tile_header       = true>
@@ -120,7 +120,7 @@ inline void _llk_pack_reconfig_data_format_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    reconfig_packer_data_format<fp32_dest_accumulation>(pack_src_format, pack_dst_format, tile_size, face_r_dim);
+    reconfig_packer_data_format<dest_datum_width>(pack_src_format, pack_dst_format, tile_size, face_r_dim);
 
     if constexpr (is_tile_dim_reconfig_en)
     {
@@ -128,7 +128,7 @@ inline void _llk_pack_reconfig_data_format_(
     }
 }
 
-template <DestAccumulation::Value fp32_dest_accumulation, bool untilize = false>
+template <DestDatumWidth::Value dest_datum_width, bool untilize = false>
 inline void _llk_pack_hw_configure_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -139,11 +139,10 @@ inline void _llk_pack_hw_configure_(
     const bool narrow_tile          = false,
     const std::uint32_t relu_config = 0)
 {
-    configure_pack<fp32_dest_accumulation, untilize>(
-        pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
+    configure_pack<dest_datum_width, untilize>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
 }
 
-template <PoolType type, ReduceDim dim, DestAccumulation::Value fp32_dest_accumulation, bool untilize = false>
+template <PoolType type, ReduceDim dim, DestDatumWidth::Value dest_datum_width, bool untilize = false>
 inline void _llk_pack_reduce_hw_configure_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -154,8 +153,7 @@ inline void _llk_pack_reduce_hw_configure_(
     const bool narrow_tile          = false,
     const std::uint32_t relu_config = 0)
 {
-    configure_pack<fp32_dest_accumulation, untilize>(
-        pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
+    configure_pack<dest_datum_width, untilize>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
 
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
 
@@ -232,7 +230,7 @@ inline void _llk_pack_init_(
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-template <DstSync Dst, DestAccumulation::Value fp32_dest_accumulation, bool untilize = false>
+template <DstSync Dst, DestDatumWidth::Value dest_datum_width, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
@@ -262,10 +260,10 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
  * tiles are expected to be split into top and bottom faces in separate halves of the active dest bank
  *************************************************************************/
 
-template <DestAccumulation::Value fp32_dest_accumulation>
+template <DestDatumWidth::Value dest_datum_width>
 inline void _llk_pack_fast_tilize_hw_configure_(const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format)
 {
-    configure_pack<fp32_dest_accumulation, false>(pack_src_format, pack_dst_format);
+    configure_pack<dest_datum_width, false>(pack_src_format, pack_dst_format);
 }
 
 inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
@@ -317,7 +315,7 @@ inline void _llk_pack_fast_tilize_mop_config_(const std::uint32_t unit_dim)
 template <DstSync Dst>
 inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, const std::uint32_t pack_dst_format, const std::uint32_t unit_dim)
 {
-    // instead of using the actual fp32_dest_accumulation flag dest 32 bit mode is enabled if unpack_dst_format is TF32
+    // instead of using the actual dest_datum_width flag dest 32 bit mode is enabled if unpack_dst_format is TF32
     // this is due to a hw quirk with MOVA2D and MOVB2D
     // so clear PCK_DEST_RD_CTRL_Read_32b_data unless unpack_src_format is TF32
     // unpack src format is not easy to determine here so use an argument that is going to be computed at the higher level
@@ -371,7 +369,7 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     _llk_pack_fast_tilize_mop_config_(unit_dim);
 }
 
-template <DstSync Dst, DestAccumulation::Value fp32_dest_accumulation>
+template <DstSync Dst, DestDatumWidth::Value dest_datum_width>
 inline void _llk_pack_fast_tilize_uninit_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -380,7 +378,7 @@ inline void _llk_pack_fast_tilize_uninit_(
     const bool narrow_tile         = false)
 {
     // restore PCK_DEST_RD_CTRL_Read_32b_data to the original value
-    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(fp32_dest_accumulation);
+    cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(dest_datum_width);
 
     // restore default packer dest offsets
     _llk_init_packer_dest_offset_registers_<Dst, DstTileFaceLayout::RowMajor>();

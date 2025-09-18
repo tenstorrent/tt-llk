@@ -28,7 +28,7 @@ const uint32_t tile_size = 16 * 16 * 4; // bytes per face
 void run_kernel()
 {
     // Configure unpacker for two-input AB operation (single tile each)
-    _llk_unpack_AB_hw_configure_<fp32_dest_accumulation, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+    _llk_unpack_AB_hw_configure_<dest_datum_width, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
     _llk_unpack_AB_init_<>();
 
     // Unpack one tile from each input buffer (A and B)
@@ -49,15 +49,14 @@ void run_kernel()
 
 void run_kernel()
 {
-    _llk_math_pack_sync_init_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_math_pack_sync_init_<DST_SYNC, dest_datum_width>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
     // Binary element-wise (FPU)
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
 
     _llk_math_wait_for_dest_available_<DST_SYNC>();
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DST_SYNC, fp32_dest_accumulation, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
-        4, 0, false);
+    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DST_SYNC, dest_datum_width, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(4, 0, false);
 
     // SFPU unary on result in dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
@@ -66,7 +65,7 @@ void run_kernel()
     test_utils::call_sfpu_operation_32(SFPU_UNARY_OPERATION);
 
     _llk_math_eltwise_unary_sfpu_done_();
-    _llk_math_dest_section_done_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<DST_SYNC, dest_datum_width>();
 }
 
 #endif // LLK_TRISC_MATH
@@ -80,18 +79,18 @@ void run_kernel()
 void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE, false>(formats.pack_src, formats.pack_dst, tile_size);
-    _llk_pack_dest_init_<DST_SYNC, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE, false>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_dest_init_<DST_SYNC, dest_datum_width, DstTileFaceLayout::RowMajor>();
     _llk_pack_untilize_init_<ct_dim>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
 #else
-    _llk_pack_hw_configure_<fp32_dest_accumulation, UNTILIZE>(formats.pack_src, formats.pack_dst, tile_size);
-    _llk_pack_dest_init_<DST_SYNC, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_dest_init_<DST_SYNC, dest_datum_width, DstTileFaceLayout::RowMajor, UNTILIZE>();
     _llk_pack_untilize_init_<ct_dim>(formats.pack_dst, FACE_R_DIM, 4);
 #endif
 
     _llk_packer_wait_for_math_done_();
     _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
-    _llk_pack_dest_section_done_<DST_SYNC, fp32_dest_accumulation>();
+    _llk_pack_dest_section_done_<DST_SYNC, dest_datum_width>();
 }
 
 #endif // LLK_TRISC_PACK

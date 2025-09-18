@@ -35,7 +35,7 @@ template <
     EltwiseBinaryType eltwise_binary_type,
     BroadcastType src_b_bcast_type,
     DstSync Dst,
-    DestAccumulation::Value fp32_dest_accumulation,
+    DestDatumWidth::Value dest_datum_width,
     int NUM_FIDELITY_PHASES                      = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
@@ -97,9 +97,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                 for (std::uint32_t n = 0; n < 2; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
-                    auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((fp32_dest_accumulation && clear_fp32_dst_acc) ? 3 : 2));
+                    auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((dest_datum_width && clear_fp32_dst_acc) ? 3 : 2));
                     // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
-                    if (fp32_dest_accumulation && clear_fp32_dst_acc)
+                    if (dest_datum_width && clear_fp32_dst_acc)
                     {
                         TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + n * 2));         // Clear lower half of faces 0 & 1 (offsets 0, 2)
                         TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + ((n * 2) + 1))); // Clear upper half of faces 0 & 1 (offsets: 1, 3)
@@ -119,9 +119,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                     {
-                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((fp32_dest_accumulation && clear_fp32_dst_acc) ? 3 : 2));
+                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((dest_datum_width && clear_fp32_dst_acc) ? 3 : 2));
                         // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
-                        if (fp32_dest_accumulation && clear_fp32_dst_acc)
+                        if (dest_datum_width && clear_fp32_dst_acc)
                         {
                             TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + n * 2));         // Clear lower half of faces 0 & 1 (offsets 0, 2)
                             TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (0 + ((n * 2) + 1))); // Clear upper half of faces 0 & 1 (offsets: 1, 3)
@@ -145,9 +145,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                         eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                         if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                         {
-                            auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((fp32_dest_accumulation && clear_fp32_dst_acc) ? 3 : 2));
+                            auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((dest_datum_width && clear_fp32_dst_acc) ? 3 : 2));
                             // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
-                            if (fp32_dest_accumulation && clear_fp32_dst_acc)
+                            if (dest_datum_width && clear_fp32_dst_acc)
                             {
                                 TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (4 + n * 2));         // Clear lower half of faces 2 & 3  (offsets: 4, 6)
                                 TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
@@ -168,9 +168,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                         eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                         if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                         {
-                            auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((fp32_dest_accumulation && clear_fp32_dst_acc) ? 3 : 2));
+                            auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((dest_datum_width && clear_fp32_dst_acc) ? 3 : 2));
                             // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
-                            if (fp32_dest_accumulation && clear_fp32_dst_acc)
+                            if (dest_datum_width && clear_fp32_dst_acc)
                             {
                                 TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (4 + n * 2));         // Clear lower half of faces 2 & 3  (offsets: 4, 6)
                                 TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (4 + ((n * 2) + 1))); // Clear upper half of faces 2 & 3 (offsets: 5, 7)
@@ -198,9 +198,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                     {
-                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((fp32_dest_accumulation && clear_fp32_dst_acc) ? 3 : 2));
+                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((dest_datum_width && clear_fp32_dst_acc) ? 3 : 2));
                         // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
-                        if (fp32_dest_accumulation && clear_fp32_dst_acc)
+                        if (dest_datum_width && clear_fp32_dst_acc)
                         {
                             TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (n * 2));
                             TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + ((n * 2) + 1));
@@ -221,9 +221,9 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                     {
-                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((fp32_dest_accumulation && clear_fp32_dst_acc) ? 3 : 2));
+                        auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((dest_datum_width && clear_fp32_dst_acc) ? 3 : 2));
                         // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
-                        if (fp32_dest_accumulation && clear_fp32_dst_acc)
+                        if (dest_datum_width && clear_fp32_dst_acc)
                         {
                             TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (n * 2));
                             TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + ((n * 2) + 1));

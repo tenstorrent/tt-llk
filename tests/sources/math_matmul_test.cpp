@@ -25,7 +25,7 @@ void run_kernel()
     std::uint32_t rt_dim = RT_DIM;
     std::uint32_t kt_dim = KT_DIM; // for square matrices, kt_dim == ct_dim
 
-    _llk_unpack_AB_matmul_hw_configure_<fp32_dest_accumulation, StochRndType::None>(
+    _llk_unpack_AB_matmul_hw_configure_<dest_datum_width, StochRndType::None>(
         formats.unpack_src,
         formats.unpack_src,
         formats.unpack_dst,
@@ -73,7 +73,7 @@ void run_kernel()
 
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
         TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, UNPACK_TRANSPOSE_FACES, ct_dim, rt_dim, kt_dim);
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < kt_dim; j++)
@@ -81,7 +81,7 @@ void run_kernel()
         _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(0, UNPACK_TRANSPOSE_FACES, ct_dim, rt_dim, kt_dim);
     }
 
-    _llk_math_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 }
 
 #endif
@@ -95,20 +95,20 @@ void run_kernel()
 void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<fp32_dest_accumulation, false, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
+    _llk_pack_hw_configure_<dest_datum_width, false, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<fp32_dest_accumulation, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
+    _llk_pack_hw_configure_<dest_datum_width, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor, false>();
 #endif
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_pack_<DstSync::SyncHalf, fp32_dest_accumulation, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, dest_datum_width, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, fp32_dest_accumulation>();
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 }
 
 #endif

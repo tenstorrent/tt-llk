@@ -45,7 +45,7 @@ constexpr bool row_pool                             = (REDUCE_DIM == ckernel::Re
 void run_kernel()
 {
     // Configure hardware for AB unpack (single tile per input)
-    _llk_unpack_AB_hw_configure_<fp32_dest_accumulation, StochRndType::None>(
+    _llk_unpack_AB_hw_configure_<dest_datum_width, StochRndType::None>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, within_face_16x16_transpose);
 
     // Initialise unpacker state machine
@@ -76,7 +76,7 @@ void run_kernel()
     //------------------------------------------------------------------
     // Synchronisation & HW configuration
     //------------------------------------------------------------------
-    _llk_math_pack_sync_init_<DstSync::SyncFull, fp32_dest_accumulation>();
+    _llk_math_pack_sync_init_<DstSync::SyncFull, dest_datum_width>();
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
 
     // row_pool tells HW if pooling is performed across rows (affects transpose path)
@@ -89,8 +89,8 @@ void run_kernel()
     const bool fp32_transpose = false; // No fp32 transpose on reduce path
 
     constexpr uint32_t math_fid = 4;
-    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, fp32_dest_accumulation, math_fid>(within_face_16x16_transpose);
-    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, fp32_dest_accumulation, math_fid, is_int_fpu_en, fp32_transpose>(0);
+    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, dest_datum_width, math_fid>(within_face_16x16_transpose);
+    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, dest_datum_width, math_fid, is_int_fpu_en, fp32_transpose>(0);
 
     //------------------------------------------------------------------
     // 2) SFPU unary directly on the reduced result in dest regs
@@ -101,7 +101,7 @@ void run_kernel()
     test_utils::call_sfpu_operation_32(SFPU_UNARY_OPERATION);
 
     _llk_math_eltwise_unary_sfpu_done_();
-    _llk_math_dest_section_done_<DstSync::SyncFull, fp32_dest_accumulation>();
+    _llk_math_dest_section_done_<DstSync::SyncFull, dest_datum_width>();
 }
 
 #endif // LLK_TRISC_MATH
@@ -120,22 +120,22 @@ void run_kernel()
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<fp32_dest_accumulation, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<dest_datum_width, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
-    _llk_pack_hw_configure_<fp32_dest_accumulation, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<dest_datum_width, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
     _llk_pack_reduce_mask_config_<false, REDUCE_DIM>();
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, fp32_dest_accumulation, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncFull, fp32_dest_accumulation, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DstSync::SyncFull, dest_datum_width, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncFull, fp32_dest_accumulation, false>(0, L1_ADDRESS(buffer_Res[0]));
-    _llk_pack_dest_section_done_<DstSync::SyncFull, fp32_dest_accumulation>();
+    _llk_pack_<DstSync::SyncFull, dest_datum_width, false>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_dest_section_done_<DstSync::SyncFull, dest_datum_width>();
 
     _llk_pack_reduce_mask_clear_();
 }
