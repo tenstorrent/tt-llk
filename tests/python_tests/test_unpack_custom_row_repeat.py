@@ -37,7 +37,7 @@ from helpers.utils import passed_test
     math_fidelity=[
         MathFidelity.LoFi,
     ],
-    input_dimensions=[[32, 32]],
+    input_dimensions=[[32, 64]],
 )
 def test_multiple_tiles(
     test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
@@ -50,20 +50,31 @@ def test_multiple_tiles(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
+    # Generating easy to debug test case
+    # ******************************************************************************
+
     ones = torch.tensor([1] * 16)
     twos = torch.tensor([2] * 16)
     threes = torch.tensor([3] * 16)
     fours = torch.tensor([4] * 16)
     padding = torch.tensor([0] * (256 - 16))
 
+    src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
+    src_A = src_A.repeat(input_dimensions[0] * input_dimensions[1] // 1024)
+
+    src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
+
     print("SRC A")
-    print("*" * 80)
+    print("*" * 100)
 
-    # src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
-    src_A = torch.ones(1024) * (0)
-    src_B = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
+    print(src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
-    print(src_A.view(64, 16))
+    print("SRC B")
+    print("*" * 100)
+
+    print(src_B.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+
+    # ******************************************************************************
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
@@ -100,6 +111,6 @@ def test_multiple_tiles(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     print("\nRESULT")
-    print(res_tensor.view(64, 16))
+    print(res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
