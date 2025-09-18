@@ -22,9 +22,10 @@ jobs:
     name: "🔍 Detect changes"
     runs-on: ubuntu-latest
     if: |
-      contains(github.event.pull_request.labels.*.name, 'performance-tests') ||
-        github.event_name == 'workflow_dispatch' ||
-        github.event_name == 'workflow_call'
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'performance-tests'))
     outputs:
       wormhole: ${{ steps.filter.outputs.wormhole }}
       blackhole: ${{ steps.filter.outputs.blackhole }}
