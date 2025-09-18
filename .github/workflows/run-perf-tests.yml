@@ -95,4 +95,4 @@ jobs:
         uses: re-actors/alls-green@release/v1
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: setup-and-test-wormhole, setup-and-test-blackhole
+          allowed-skips: build-images, setup-and-test-wormhole, setup-and-test-blackhole
