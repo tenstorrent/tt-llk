@@ -15,7 +15,7 @@ namespace ckernel::sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_fill_(const float value)
 {
-    // SFPU microcode
+    // SFPU EXU microcode
     sfpi::vFloat fill_val = value;
 
     for (int d = 0; d < ITERATIONS; d++)
