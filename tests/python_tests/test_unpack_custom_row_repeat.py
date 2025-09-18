@@ -15,7 +15,6 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -64,22 +63,58 @@ def test_multiple_tiles(
 
     src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
 
-    print("SRC A")
-    print("*" * 100)
+    # print("SRC A")
+    # print("*" * 100)
 
-    print(src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    # print(src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
-    print("SRC B")
-    print("*" * 100)
+    # print("SRC B")
+    # print("*" * 100)
 
-    print(src_B.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    # print(src_B.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
+    # Generate everything needed for golden
     # ******************************************************************************
 
-    generate_golden = get_golden_generator(EltwiseBinaryGolden)
-    golden_tensor = generate_golden(
-        mathop, src_A, src_B, formats.output_format, math_fidelity
-    )
+    reshaped_a = src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16)
+
+    take = []
+    for i in range(0, reshaped_a.size(0), 64):
+        if i < reshaped_a.size(0):
+            take.append(reshaped_a[i])  # row i
+        if i + 16 < reshaped_a.size(0):
+            take.append(reshaped_a[i + 16])  # row i+16
+
+    result = torch.stack(take)
+    result = result.repeat_interleave(8, dim=0)
+    reshaped = result.view(-1, 8, 16)
+    flattened_a = reshaped.view(reshaped.size(0), -1)  # shape [num_blocks, 128]
+
+    reshaped = src_B.view(-1, 8, 16)
+    flattened_b = reshaped.view(-1, 8, 16)  # [num_subarrays, 8, 16]
+    flattened_b = reshaped.view(reshaped.size(0), -1)  # shape [num_blocks, 128]
+
+    num_segments = len(flattened_a) // 2
+    pattern = []
+
+    for seg in range(num_segments):
+        base = seg * 2
+        seg_pattern = [base, base, base + 1, base + 1, base, base, base + 1, base + 1]
+        pattern.extend(seg_pattern)
+
+    pattern_a = torch.tensor(pattern)
+    pattern_b = torch.arange(len(flattened_b))
+
+    golden_tensor = []
+
+    # append all intermediate results
+    for i in range(len(pattern_b)):
+        golden_tensor.append((flattened_a[pattern_a[i]] - flattened_b[pattern_b[i]]))
+
+    # flatten
+    golden_tensor = torch.cat(golden_tensor, dim=0)
+
+    # ******************************************************************************
 
     test_config = {
         "formats": formats,
@@ -110,7 +145,7 @@ def test_multiple_tiles(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    print("\nRESULT")
-    print(res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    # print("\nRESULT")
+    # print(res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
