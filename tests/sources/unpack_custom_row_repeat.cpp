@@ -25,7 +25,11 @@ void run_kernel()
 {
     _llk_unpack_A_bcast_B_hw_config<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
     _llk_unpack_A_bcast_B_init_<>();
-    _llk_unpack_A_bcast_b_block<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), formats.unpack_src);
+
+    for (int i = 0; i < TILE_CNT; i++)
+    {
+        _llk_unpack_A_bcast_b_block<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), formats.unpack_src);
+    }
 
     (*((volatile uint32_t*)0x18000)) = 0x11111111;
 
@@ -57,7 +61,7 @@ void run_kernel()
             DstSync::SyncHalf,
             is_fp32_dest_acc_en,
             MATH_FIDELITY,
-            EltwiseBinaryReuseDestType::NONE>(4, 0, false);
+            EltwiseBinaryReuseDestType::NONE>(4, i, false);
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 
@@ -91,7 +95,7 @@ void run_kernel()
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_packer_wait_for_math_done_();
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
     (*((volatile uint32_t*)0x19800)) = 0x33333333;
