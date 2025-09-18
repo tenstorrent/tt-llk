@@ -78,7 +78,7 @@ constexpr bool is_32bit_format(DataFormat format)
  *
  * @return true if the format combination is an unsupported hardware outlier; false otherwise.
  */
-constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, DestAccumulation fp32_dest_accumulation)
+constexpr bool is_format_combination_outlier(DataFormat input, DataFormat output, ckernel::DestAccumulation fp32_dest_accumulation)
 {
     return (is_exponentB(input) && output == DataFormat::Float16 && !fp32_dest_accumulation);
 }
