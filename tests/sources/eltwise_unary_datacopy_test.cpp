@@ -48,7 +48,7 @@ void run_kernel()
     td_val.buf_desc_id     = BUF_DESC_ID;
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
-    _llk_unpack_configure_unary_<p_unpacr::UNP_A>(td_val);
+    _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
     _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
 
     for (int i = 0; i < TILE_CNT; ++i)

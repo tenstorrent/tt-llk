@@ -48,7 +48,7 @@ constexpr auto& formats = formats_array[0];
 
 #else // Not inferring formats — all formats are pre-defined. Set format configuration directly.
 constexpr bool is_fp32_dest_acc_en = dest_acc_en_input; // dest_acc doesn't require adjustment; configuration is hard-coded
-constexpr FormatConfig formats     = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH, PACK_IN, PACK_OUT);
+constexpr FormatConfig formats     = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH_FORMAT, PACK_IN, PACK_OUT);
 #endif
 
 // Tile count validation - applies to all kernel variants (UNPACK, MATH, PACK)
