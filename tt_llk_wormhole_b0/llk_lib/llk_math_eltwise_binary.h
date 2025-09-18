@@ -406,6 +406,10 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
+/*************************************************************************
+ * LLK COL - TILE eltwise subtraction implementation for SDPA
+ *************************************************************************/
+
 template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
 inline void eltwise_binary_col_tile_configure_addrmod()
 {
@@ -457,23 +461,21 @@ inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uin
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
+    // Dest address is always incremented by 8 in address mode
+
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
-    // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
 
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0);
-
-    // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> -9 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
 
