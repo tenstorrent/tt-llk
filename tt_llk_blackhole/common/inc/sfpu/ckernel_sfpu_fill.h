@@ -51,6 +51,7 @@ inline void _calculate_fill_bitcast_(const uint32_t value_bit_mask)
     }
 }
 
+<<<<<<< Updated upstream
 inline void _populate_first_tile_with_ones_()
 {
     // ADDR_MOD_1 has .dest = {.incr = 1}, so we use this auto-increment behavior
@@ -72,6 +73,9 @@ inline void _populate_first_tile_with_ones_()
 
     // since the code above does not work, we are using the already existing replacement
     // todo: fix this method to use hardware constant 1.0
+=======
+inline void _populate_first_tile_with_ones_() {
+>>>>>>> Stashed changes
     _calculate_fill_<false, 1024>(1.0f);
 }
 } // namespace ckernel::sfpu
