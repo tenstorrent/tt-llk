@@ -11,6 +11,7 @@ from helpers.param_config import (
 from helpers.perf import PerfRunType, perf_benchmark, update_report
 
 
+@pytest.mark.perf
 @parametrize(
     test_name="pack_untilize_perf",
     formats=input_output_formats(
