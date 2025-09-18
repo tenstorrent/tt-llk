@@ -417,7 +417,7 @@ inline void eltwise_binary_col_tile_configure_addrmod()
         .set(ADDR_MOD_0);
 
     addr_mod_t {
-        .srca = {.incr = 8},
+        .srca = {.incr = 0},
         .srcb = {.incr = 8},
         .dest = {.incr = 0},
     }
@@ -466,26 +466,34 @@ inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uin
 
     // Just test to see what is in srcA
 
-    TTI_ELWADD(0, 0, 0, 0, 0);
-    TTI_ELWADD(0, 0, 0, 0, 8);
-    TTI_ELWADD(0, 0, 0, 0, 16);
-    TTI_ELWADD(0, 0, 0, 0, 24);
-    TTI_ELWADD(0, 0, 0, 0, 32);
-    TTI_ELWADD(0, 0, 0, 0, 40);
-    TTI_ELWADD(0, 0, 0, 0, 48);
-    TTI_ELWADD(0, 0, 0, 0, 56);
+    // TTI_ELWADD(0, 0, 0, 0, 0);
+    // TTI_ELWADD(0, 0, 0, 0, 8);
+    // TTI_ELWADD(0, 0, 0, 0, 16);
+    // TTI_ELWADD(0, 0, 0, 0, 24);
+    // TTI_ELWADD(0, 0, 0, 0, 32);
+    // TTI_ELWADD(0, 0, 0, 0, 40);
+    // TTI_ELWADD(0, 0, 0, 0, 48);
+    // TTI_ELWADD(0, 0, 0, 0, 56);
 
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 8); // srca_increment -> 8 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 8); // srca_increment -> 8 | srcb_increment -> 8
 
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 16); // srca_increment -> 0 | srcb_increment -> 8
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 24); // srca_increment -> -9 | srcb_increment -> 8
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
 
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 32); // srca_increment -> 0 | srcb_increment -> 8
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 40); // srca_increment -> 8 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 16); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 24); // srca_increment -> -9 | srcb_increment -> 8
 
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 48); // srca_increment -> 0 | srcb_increment -> 8
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 56); // srca_increment -> -9 | srcb_increment -> 8
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 32); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 40); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 48); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 56); // srca_increment -> -9 | srcb_increment -> 8
+
+    // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
 
