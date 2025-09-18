@@ -23,18 +23,18 @@ template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop();
 
 template <
-    
+
     PoolType type,
-   
+
     ReduceDim dim,
-   
-    DestAccumulation fp32_dest_accumulation,
-   
-    int MATH_FIDELITY_DESC         = 0,
-   
-    bool is_int_fpu_en                 = false,
-   
-    bool enforce_fp32_accumulation    = false>
+
+    DestAccumulation::Value fp32_dest_accumulation,
+
+    int MATH_FIDELITY_DESC = 0,
+
+    bool is_int_fpu_en = false,
+
+    bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
@@ -449,7 +449,7 @@ inline void reduce_configure_mop()
     }
 }
 
-template <PoolType type, ReduceDim dim, DestAccumulation fp32_dest_accumulation, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
+template <PoolType type, ReduceDim dim, DestAccumulation::Value fp32_dest_accumulation, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0)
 { // within_face_16x16_transpose used for unpack, ignored by math
 

@@ -183,7 +183,7 @@ inline void _calculate_asinh_()
 }
 
 // atanh[x] = 0.5 * ln((1 + x) / (1 - x))
-template <bool APPROXIMATION_MODE, DestAccumulation fp32_dest_accumulation, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestAccumulation::Value fp32_dest_accumulation, int ITERATIONS>
 inline void _calculate_atanh_()
 {
     // SFPU microcode

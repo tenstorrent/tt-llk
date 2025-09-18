@@ -22,7 +22,7 @@ inline void eltwise_unary_configure_addrmod();
 template <
     DataCopyType type,
     DstSync Dst,
-    DestAccumulation fp32_dest_accumulation,
+    DestAccumulation::Value fp32_dest_accumulation,
     BroadcastType src_b_bcast_type = BroadcastType::NONE,
     bool unpack_to_dest            = false>
 inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
@@ -121,7 +121,7 @@ inline void eltwise_unary_configure_addrmod()
     }
 }
 
-template <DataCopyType type, DestAccumulation fp32_dest_accumulation, BroadcastType bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
+template <DataCopyType type, DestAccumulation::Value fp32_dest_accumulation, BroadcastType bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
 inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, const uint num_faces, const uint dst_format)
 {
     // always move 32x32 tile, packed as 16x16x4
@@ -204,7 +204,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
     }
 }
 
-template <DataCopyType type, DestAccumulation fp32_dest_accumulation, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
+template <DataCopyType type, DestAccumulation::Value fp32_dest_accumulation, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
 // within_face_16x16_transpose is used by unpacker, math does not transpose
 inline void _llk_math_eltwise_unary_datacopy_init_(
     const std::uint32_t transpose_of_faces          = 0 /*unused*/,
@@ -324,7 +324,7 @@ inline void _llk_math_fast_tilize_init_(const std::uint32_t unpack_dst_format, c
     _llk_math_fast_tilize_mop_config_();
 }
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
 {
     // if ALU_ACC_CTRL_Fp32_enabled was previously cleared, restore it

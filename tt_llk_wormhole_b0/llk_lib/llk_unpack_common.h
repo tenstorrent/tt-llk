@@ -106,7 +106,7 @@ inline void _llk_unpack_config_tile_dim_srcb_impl_(const std::uint32_t face_r_di
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(num_faces);
 }
 
-template <DestAccumulation fp32_dest_accumulation, bool to_from_int8 = false>
+template <DestAccumulation::Value fp32_dest_accumulation, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
@@ -121,7 +121,7 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A)); // update gpr which holds tile size A
 }
 
-template <DestAccumulation fp32_dest_accumulation, bool to_from_int8 = false>
+template <DestAccumulation::Value fp32_dest_accumulation, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {

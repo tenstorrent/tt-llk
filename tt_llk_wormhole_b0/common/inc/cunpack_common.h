@@ -204,7 +204,7 @@ inline void enable_int8_fpu_math()
 }
 
 template <
-    DestAccumulation fp32_dest_accumulation,
+    DestAccumulation::Value fp32_dest_accumulation,
     bool row_pool              = false,
     bool fpu_srnd_en           = false,
     bool pack_srnd_en          = false,

@@ -31,7 +31,7 @@ inline void _llk_unpack_reduce_mop_config_(const std::uint32_t num_faces)
     tmp.program();
 }
 
-template <DestAccumulation fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None>
+template <DestAccumulation::Value fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_reduce_hw_configure_(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,

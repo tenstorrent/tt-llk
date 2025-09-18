@@ -107,7 +107,7 @@ inline void _llk_pack_mop_config_(
 }
 
 template <
-    bool DestAccumulation fp32_dest_accumulation,
+    DestAccumulation::Value fp32_dest_accumulation,
     bool is_tile_dim_reconfig_en = false,
     DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
     bool write_tile_header       = true>
@@ -128,7 +128,7 @@ inline void _llk_pack_reconfig_data_format_(
     }
 }
 
-template <DestAccumulation fp32_dest_accumulation, bool untilize = false>
+template <DestAccumulation::Value fp32_dest_accumulation, bool untilize = false>
 inline void _llk_pack_hw_configure_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -143,7 +143,7 @@ inline void _llk_pack_hw_configure_(
         pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
 }
 
-template <PoolType type, ReduceDim dim, DestAccumulation fp32_dest_accumulation, bool untilize = false>
+template <PoolType type, ReduceDim dim, DestAccumulation::Value fp32_dest_accumulation, bool untilize = false>
 inline void _llk_pack_reduce_hw_configure_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -232,7 +232,7 @@ inline void _llk_pack_init_(
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-template <DstSync Dst, DestAccumulation fp32_dest_accumulation, bool untilize = false>
+template <DstSync Dst, DestAccumulation::Value fp32_dest_accumulation, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
@@ -262,7 +262,7 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
  * tiles are expected to be split into top and bottom faces in separate halves of the active dest bank
  *************************************************************************/
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void _llk_pack_fast_tilize_hw_configure_(const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format)
 {
     configure_pack<fp32_dest_accumulation, false>(pack_src_format, pack_dst_format);
@@ -371,7 +371,7 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     _llk_pack_fast_tilize_mop_config_(unit_dim);
 }
 
-template <DstSync Dst, DestAccumulation fp32_dest_accumulation>
+template <DstSync Dst, DestAccumulation::Value fp32_dest_accumulation>
 inline void _llk_pack_fast_tilize_uninit_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,

@@ -148,34 +148,32 @@ enum InstrModLoadStore
 class DestAccumulation
 {
 public:
-    static const DestAccumulation Enable;
-    static const DestAccumulation Disable;
-
-    constexpr bool operator==(DestAccumulation a) const
+    enum Value
     {
-        return value == a.value;
+        Disable = 0,
+        Enable  = 1
+    };
+
+    constexpr DestAccumulation(Value v) : value(v)
+    {
     }
 
-    constexpr bool operator!=(DestAccumulation a) const
+    constexpr DestAccumulation(bool v) : value(v ? Enable : Disable)
     {
-        return !(*this == a);
     }
 
     constexpr operator bool() const
+    {
+        return value == Enable;
+    }
+
+    constexpr operator Value() const
     {
         return value;
     }
 
 private:
-    constexpr explicit DestAccumulation(bool value) : value(value)
-    {
-    }
-
-    bool value;
+    Value value;
 };
-
-// static members
-constexpr inline DestAccumulation DestAccumulation::Enable {true};
-constexpr inline DestAccumulation DestAccumulation::Disable {false};
 
 } // namespace ckernel

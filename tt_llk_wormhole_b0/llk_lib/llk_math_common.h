@@ -36,7 +36,7 @@ inline void _llk_math_wait_for_dest_available_()
     math_dest_wait();
 }
 
-template <DstSync Dst, DestAccumulation fp32_dest_accumulation>
+template <DstSync Dst, DestAccumulation::Value fp32_dest_accumulation>
 inline void _llk_math_dest_section_done_()
 {
     set_math_semaphores();
@@ -47,7 +47,7 @@ inline void _llk_math_dest_section_done_()
     }
 }
 
-template <DstSync Dst, DestAccumulation fp32_dest_accumulation>
+template <DstSync Dst, DestAccumulation::Value fp32_dest_accumulation>
 inline void _llk_math_pack_sync_init_()
 {
     tensix_sync();
@@ -104,7 +104,7 @@ inline void _llk_math_debug_dump_seek_(std::uint8_t offset)
     debug_dump_seek(offset);
 }
 
-template <DestAccumulation fp32_dest_accumulation, bool to_from_int8 = false>
+template <DestAccumulation::Value fp32_dest_accumulation, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_format)
 {
     if constexpr (to_from_int8)
@@ -118,7 +118,7 @@ inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_f
     }
 }
 
-template <DestAccumulation fp32_dest_accumulation, bool to_from_int8 = false>
+template <DestAccumulation::Value fp32_dest_accumulation, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_format)
 {
     if constexpr (to_from_int8)
@@ -132,7 +132,7 @@ inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_f
     }
 }
 
-template <DestAccumulation fp32_dest_accumulation, bool to_from_int8 = false>
+template <DestAccumulation::Value fp32_dest_accumulation, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
     if constexpr (to_from_int8)

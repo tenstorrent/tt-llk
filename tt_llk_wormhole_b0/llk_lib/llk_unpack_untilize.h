@@ -48,7 +48,7 @@ inline void _llk_unpack_untilize_mop_config_()
     tmp.program();
 }
 
-template <DestAccumulation fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None>
+template <DestAccumulation::Value fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_untilize_hw_configure_(
     const std::uint32_t unpack_src_format,
     const std::uint32_t unpack_dst_format,

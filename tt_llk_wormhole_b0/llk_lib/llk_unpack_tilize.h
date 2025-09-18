@@ -42,7 +42,7 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const
     }
 }
 
-template <DestAccumulation fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None>
+template <DestAccumulation::Value fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_tilize_hw_configure_(
     const std::uint32_t unpack_src_format,
     const std::uint32_t unpack_dst_format,
@@ -461,7 +461,7 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
  * supported input formats are: FP32 (via FP16 or TF32) or FP16_B
  *************************************************************************/
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void _llk_unpack_fast_tilize_hw_configure_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
     configure_unpack_AB<fp32_dest_accumulation>(unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format);
@@ -533,7 +533,7 @@ inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format,
     _llk_unpack_fast_tilize_mop_config_();
 }
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void _llk_unpack_fast_tilize_uninit_()
 {
     // restore saved state

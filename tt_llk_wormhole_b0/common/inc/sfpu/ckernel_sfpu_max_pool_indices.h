@@ -25,7 +25,7 @@ namespace sfpu
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
  * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
  */
-template <bool APPROXIMATION_MODE, DestAccumulation fp32_dest_accumulation, int num_rows, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestAccumulation::Value fp32_dest_accumulation, int num_rows, int ITERATIONS>
 inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
 {
     static_assert(num_rows == 9, "num_rows must be one of: {9}"); // add others as support is added

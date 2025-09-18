@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "build.h"
+#include "llk_defs.h"
 #include "tensix_types.h"
 
 #if defined(ARCH_WORMHOLE) && defined(ARCH_BLACKHOLE)
@@ -174,7 +175,7 @@ constexpr DataFormat infer_pack_in()
         // which then converts Bfp8_A to Bfp8_B.
         return DataFormat::Bfp8;
     }
-    else if constexpr (is_format_combination_outlier(INPUT, OUTPUT, FP32_ACC))
+    else if constexpr (is_format_combination_outlier(INPUT, OUTPUT, ckernel::DestAccumulation(FP32_ACC)))
     {
         // Handling a hardware limitation: cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register.
         // In this case, we set dest registers store 32-bit datums (in params.h).

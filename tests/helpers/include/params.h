@@ -37,9 +37,10 @@ constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
 
 // If the input is exponentB, we cannot convert it to Float16 without enabling fp32 mode in dest;
 // this is considered a format combination outlier, so we enable dest_acc
-constexpr DestAccumulation fp32_dest_accumulation =
-    DestAccumulation {dest_acc_en_input} ||
-    is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), DestAccumulation {dest_acc_en_input});
+constexpr bool dest_accumulation_enabled =
+    dest_acc_en_input ||
+    is_format_combination_outlier(static_cast<DataFormat>(UNPACK_A_IN), static_cast<DataFormat>(PACK_OUT), ckernel::DestAccumulation {dest_acc_en_input});
+constexpr auto fp32_dest_accumulation = static_cast<ckernel::DestAccumulation::Value>(ckernel::DestAccumulation(dest_accumulation_enabled));
 
 // Get Data Formats
 inline constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array =
@@ -48,8 +49,8 @@ inline constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array =
 constexpr auto& formats = formats_array[0];
 
 #else // Not inferring formats — all formats are pre-defined. Set format configuration directly.
-constexpr DestAccumulation fp32_dest_accumulation {dest_acc_en_input}; // dest_acc doesn't require adjustment; configuration is hard-coded
-constexpr FormatConfig formats = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH, PACK_IN, PACK_OUT);
+constexpr auto fp32_dest_accumulation = static_cast<ckernel::DestAccumulation::Value>(ckernel::DestAccumulation(dest_acc_en_input));
+constexpr FormatConfig formats        = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH, PACK_IN, PACK_OUT);
 #endif
 
 // Tile count validation - applies to all kernel variants (UNPACK, MATH, PACK)

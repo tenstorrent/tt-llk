@@ -26,7 +26,7 @@ inline void set_dst_write_addr(uint32_t addr)
     TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dst_index);
 }
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void bitonic_topk_load8(uint offset, uint dist)
 {
     constexpr uint dst_indices_offset = 128; // 2 tile x 64 rows per tile
@@ -44,7 +44,7 @@ inline void bitonic_topk_load8(uint offset, uint dist)
     TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset + dist);
 }
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void bitonic_topk_store8(uint offset, uint dist)
 {
     constexpr uint dst_indices_offset = 128; // 2 tile x 64 rows per tile
@@ -62,7 +62,7 @@ inline void bitonic_topk_store8(uint offset, uint dist)
     TT_SFPSTORE(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, dst_indices_offset + ld_offset + dist);
 }
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void bitonic_topk_load16(uint dist0, uint dist1)
 {
     constexpr uint dst_indices_offset = 128; // 2 tile x 64 rows per tile
@@ -99,7 +99,7 @@ inline void bitonic_topk_load16(uint dist0, uint dist1)
     }
 }
 
-template <DestAccumulation fp32_dest_accumulation, bool alt_addr_mod = false>
+template <DestAccumulation::Value fp32_dest_accumulation, bool alt_addr_mod = false>
 inline void bitonic_topk_store16(uint dist0, uint dist1)
 {
     constexpr uint dst_indices_offset = 128; // 2 tile x 64 rows per tile
@@ -269,7 +269,7 @@ inline void bitonic_topk_inc_x4_dest(uint inc, bool cr)
     }
 }
 
-template <bool APPROXIMATION_MODE, DestAccumulation fp32_dest_accumulation, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestAccumulation::Value fp32_dest_accumulation, int ITERATIONS>
 inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, const int i_start_phase, const int i_end_step, const int i_start_step)
 {
     // If more than 1 phase is requested, do all the steps from all phases
@@ -440,7 +440,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
     topk_replay_init = -1;
 }
 
-template <bool APPROXIMATION_MODE, DestAccumulation fp32_dest_accumulation, bool top_min, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestAccumulation::Value fp32_dest_accumulation, bool top_min, int ITERATIONS>
 inline void _bitonic_topk_merge(const int m_iter, const int k)
 {
     uint dst_addr_offset = 0;
@@ -487,7 +487,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
     }
 }
 
-template <bool APPROXIMATION_MODE, DestAccumulation fp32_dest_accumulation, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestAccumulation::Value fp32_dest_accumulation, int ITERATIONS>
 inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k, const int logk, const int skip_second)
 {
     // init replay buffer for rebuild iteration 'm_iter' if uninitialized

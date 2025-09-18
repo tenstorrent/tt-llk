@@ -183,7 +183,7 @@ inline void set_packer_strides(const uint pack_src_format, const uint pack_dst_f
     TTI_NOP;
 }
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void set_packer_config(const uint pack_src_format, const uint pack_dst_format, const uint num_faces = 4, const bool partial_face = false)
 {
     // Get pointer to registers for current state ID
@@ -356,7 +356,7 @@ inline void set_packer_l1_offset(const uint pack_dst_format, const uint face_r_d
     TTI_REG2FLOP(2, 0, 0, 0, THCON_SEC1_REG8_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_LO);
 }
 
-template <DestAccumulation fp32_dest_accumulation>
+template <DestAccumulation::Value fp32_dest_accumulation>
 inline void reconfig_packer_data_format(const uint pack_src_format, const uint pack_dst_format, const uint tile_size = 0, const uint face_r_dim = FACE_R_DIM)
 {
     // Get pointer to registers for current state ID
@@ -475,7 +475,7 @@ inline void reconfig_packer_data_format(const uint pack_src_format, const uint p
     set_packer_strides(pack_src_format, pack_dst_format);
 }
 
-template <DestAccumulation fp32_dest_accumulation, bool untilize>
+template <DestAccumulation::Value fp32_dest_accumulation, bool untilize>
 inline void configure_pack(
     const uint pack_src_format,
     const uint pack_dst_format,

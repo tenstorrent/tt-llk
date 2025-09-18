@@ -168,7 +168,7 @@ inline void _llk_unpack_A_mop_config_(
     }
 }
 
-template <DestAccumulation fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None, bool disable_src_zero_flag = false>
+template <DestAccumulation::Value fp32_dest_accumulation, StochRndType stoch_rnd_mode = StochRndType::None, bool disable_src_zero_flag = false>
 inline void _llk_unpack_A_hw_configure_(
     const std::uint32_t unpack_src_format,
     const std::uint32_t unpack_dst_format,
