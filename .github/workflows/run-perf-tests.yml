@@ -85,7 +85,13 @@ jobs:
 
   check-all-green:
     name: "✅ Check all green"
-    if: always()
+    if: |
+      always() && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'workflow_call' ||
+        (github.event_name == 'pull_request' &&
+         contains(github.event.pull_request.labels.*.name, 'performance-tests'))
+      )
     needs:
       - build-images
       - setup-and-test-wormhole
