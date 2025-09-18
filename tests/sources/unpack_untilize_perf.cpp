@@ -33,7 +33,6 @@ static_assert(FULL_RT_DIM * FULL_CT_DIM == TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM 
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 #include "llk_unpack_untilize.h"
-#include "params.h"
 
 void run_kernel()
 {
@@ -66,7 +65,6 @@ const bool is_int_fpu_en = false;
 
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
-#include "params.h"
 
 using namespace ckernel;
 
@@ -113,7 +111,6 @@ void run_kernel()
 
 #include "llk_pack.h"
 #include "llk_pack_common.h"
-#include "params.h"
 
 void run_kernel()
 {
