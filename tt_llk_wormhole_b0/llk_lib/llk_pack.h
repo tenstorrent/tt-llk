@@ -234,7 +234,7 @@ inline void _llk_pack_init_(
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
-    const std::uint32_t pack_src_format,
+    [[maybe_unused]] const std::uint32_t pack_src_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4,
     const bool partial_face        = false,
