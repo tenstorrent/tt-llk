@@ -13,7 +13,6 @@
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
-#include "llk_unpack_common_api.h"
 #include "lltt.h"
 
 using namespace ckernel;
@@ -47,9 +46,6 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
-        // FIXME: this is NOT okay if we want to enable mixing dest widths within a kernel
-        _llk_unpack_dbg_feature_disable_(); // needed for HI/LO16 D2B/B2D
-
         // We need to disable the zero flag so that we don't lose bits when doing D2B/B2D
         // due to zero flag being set because bits mapped to the exponent field == 0
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
