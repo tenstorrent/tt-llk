@@ -3,27 +3,58 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # =========================
+# Usages
+# - cleanup: make clean
+# - build specific variant of test: make arch=[wormhole|blackhole] test=[TEST_NAME_CPP] variant=[VARIANT]
+# - build default variant of test: make arch=[wormhole|blackhole] test=[TEST_NAME_CPP]
+# =========================
+
+
+# =========================
 # Toolchain and Directories
 # =========================
 CXX_VERSION     := c++17
 TOOL_PATH       ?= sfpi/compiler/bin
 
+
 # =========================
 # Architecture Selection
 # =========================
-ARCH            := $(if $(archname),$(archname),$(CHIP_ARCH))
+ARCH            := $(or $(arch),$(CHIP_ARCH))
 ifeq ($(ARCH),wormhole)
-	ARCH_CPU        := -mcpu=tt-wh
-	ARCH_DEFINE     := -DARCH_WORMHOLE
-	ARCH_LLK_ROOT   := tt_llk_wormhole_b0
+    ARCH_CPU        := -mcpu=tt-wh
+    ARCH_DEFINE     := -DARCH_WORMHOLE
+    ARCH_LLK_ROOT   := tt_llk_wormhole_b0
 else ifeq ($(ARCH),blackhole)
-	ARCH_CPU        := -mcpu=tt-bh
-	ARCH_DEFINE     := -DARCH_BLACKHOLE
-	ARCH_LLK_ROOT   := tt_llk_blackhole
+    ARCH_CPU        := -mcpu=tt-bh
+    ARCH_DEFINE     := -DARCH_BLACKHOLE
+    ARCH_LLK_ROOT   := tt_llk_blackhole
 else
-$(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
+    ifneq ($(MAKECMDGOALS),clean)
+        $(error must provide arch or CHIP_ARCH environment variable (wormhole / blackhole))
+    endif
 endif
 
+
+# =========================
+# Test Selection
+# =========================
+ifeq ($(test),)
+    ifneq ($(MAKECMDGOALS),clean)
+        $(error must provide test)
+    endif
+endif
+
+
+# =========================
+# Variant Selection
+# =========================
+VARIANT         := $(or $(variant),default)
+
+
+# =========================
+# Build Directories
+# =========================
 BUILD_DIR       ?= build/$(ARCH)
 
 SHARED_DIR      := $(BUILD_DIR)/shared
@@ -32,13 +63,15 @@ SHARED_DEPS_DIR := $(SHARED_DIR)/deps
 SHARED_DIS_DIR  := $(SHARED_DIR)/dis
 SHARED_ELF_DIR  := $(SHARED_DIR)/elf
 
-TEST_DIR        := $(BUILD_DIR)/tests/$(testname)
-OBJ_DIR         := $(TEST_DIR)/obj
-DEPS_DIR        := $(TEST_DIR)/deps
-DIS_DIR         := $(TEST_DIR)/dis
-ELF_DIR         := $(TEST_DIR)/elf
+TEST_DIR        := $(BUILD_DIR)/tests/$(test)
+VARIANT_DIR     := $(TEST_DIR)/$(variant)
 
-PROFILER_DIR    := $(TEST_DIR)/profiler
+OBJ_DIR         := $(VARIANT_DIR)/obj
+DEPS_DIR        := $(VARIANT_DIR)/deps
+DIS_DIR         := $(VARIANT_DIR)/dis
+ELF_DIR         := $(VARIANT_DIR)/elf
+
+PROFILER_DIR    := $(VARIANT_DIR)/profiler
 
 HELPERS         := helpers
 RISCV_SOURCES   := $(HELPERS)/src
@@ -61,8 +94,11 @@ OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fpermissive -fno-exceptions -fno-r
 OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
-			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR) -Ifirmware/riscv/common \
-			-Isfpi/include -Ihelpers/include
+			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR) \
+			-Ifirmware/riscv/common \
+			-Isfpi/include \
+			-Ihelpers/include \
+			-I$(VARIANT_DIR)/inc
 
 OPTIONS_COMPILE += $(INCLUDES)
 
@@ -121,13 +157,13 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from ai_gen subdirectory
-$(OBJ_DIR)/kernel_%.o: sources/ai_gen/$(testname).cpp | $(OBJ_DIR) $(DEPS_DIR)
+$(OBJ_DIR)/kernel_%.o: sources/ai_gen/$(test).cpp | $(OBJ_DIR) $(DEPS_DIR)
 	$(GXX) $(OPTIONS_ALL) $(TEST_KERNEL_FLAG) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from main sources directory
-$(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp | $(OBJ_DIR) $(DEPS_DIR)
+$(OBJ_DIR)/kernel_%.o: sources/$(test).cpp | $(OBJ_DIR) $(DEPS_DIR)
 	$(GXX) $(OPTIONS_ALL) $(TEST_KERNEL_FLAG) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<

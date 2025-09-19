@@ -2,10 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import inspect
-import os
 import time
-from enum import Enum, IntEnum
-from pathlib import Path
+from enum import IntEnum
 
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
@@ -18,8 +16,9 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-
+from .build import BootMode, TestVariantElfs
+from .chip_architecture import ChipArchitecture, get_chip_architecture
+from .directories import get_tests_dir
 from .format_arg_mapping import (
     DestAccumulation,
     Mailbox,
@@ -57,12 +56,6 @@ TRISC_SOFT_RESET_MASK = 0x7800  # Reset mask for TRISCs (unpack, math, pack) and
 
 # Constant - indicates the TRISC kernel run status
 KERNEL_COMPLETE = 1  # Kernel completed its run
-
-
-class BootMode(Enum):
-    BRISC = "brisc"
-    TRISC = "trisc"
-    EXALENS = "exalens"
 
 
 class RiscCore(IntEnum):
@@ -149,10 +142,11 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, device_id=0, location="0,0", boot_mode=BootMode.BRISC):
+def run_elf_files(
+    elfs: TestVariantElfs, device_id=0, location="0,0", boot_mode=BootMode.BRISC
+):
     CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    BUILD_DIR = get_tests_dir() / "build" / CHIP_ARCH.value
 
     # Perform soft reset
     perform_tensix_soft_reset(location)
