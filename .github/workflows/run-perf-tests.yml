@@ -48,7 +48,7 @@ jobs:
               performance:
                 - '**/*perf**'
                 - '**/*profiler**'
-  
+
       - name: Resolve test triggers (nightly vs changes)
         id: set
         run: |
