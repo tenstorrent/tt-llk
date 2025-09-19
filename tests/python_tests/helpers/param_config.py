@@ -290,21 +290,20 @@ def generate_format_aware_matmul_combinations(
 
                     result_tiles = matmul_info["output_tile_cnt"]
 
-                    max_dst_idx = calculate_edgecase_dest_indices(
+                    dst_indices = calculate_edgecase_dest_indices(
                         dest_acc == DestAccumulation.Yes,
                         result_tiles,
                         dest_sync_modes,
-                    )[0]
+                    )
+                    max_dst_idx = get_max_dst_index(dst_indices)
 
-                    combinations.extend(
-                        [
-                            (fmt, dest_acc, dims, stochastic_mode, 0),
-                            (
-                                (fmt, dest_acc, dims, stochastic_mode, max_dst_idx)
-                                if max_dst_idx != 0
-                                else None
-                            ),
-                        ]
+                    combinations.append((fmt, dest_acc, dims, stochastic_mode, 0))
+                    (
+                        combinations.append(
+                            (fmt, dest_acc, dims, stochastic_mode, max_dst_idx)
+                        )
+                        if max_dst_idx
+                        else None
                     )
     return combinations
 
@@ -321,7 +320,7 @@ def _get_dest_indices_for_sync_mode(
         dest_sync: DestSync mode to calculate indices for
 
     Returns:
-        List of valid destination indices [0, max_index] for this mode
+        Valid destination index max_index in dst register for this mode
     """
     DEST_SYNC_TILE_LIMITS = {
         DestSync.Half: 8,
@@ -478,3 +477,13 @@ def calculate_edgecase_dest_indices(
             combinations.extend([(dest_sync, max_index)])
 
     return combinations
+
+
+def get_max_dst_index(
+    edgecase_dest_indices: List[Tuple[DestSync, int]]
+) -> Optional[int]:
+    """
+    Get the max destination index from the list of edgecase destination indices.
+    """
+    max_index = max(index for _, index in edgecase_dest_indices)
+    return max_index if max_index != 0 else None
