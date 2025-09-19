@@ -127,19 +127,25 @@ def generate_build_header(
     header_content.append(f"constexpr bool UNPACKING_TO_DEST = {unpack_to_dest};")
 
     # Unpack transpose faces
-    unpack_transpose_faces = test_config.get(
-        "unpack_transpose_faces", Transpose.No
-    ).value
+    unpack_transpose_faces = test_config.get("unpack_transpose_faces", Transpose.No)
+    if isinstance(unpack_transpose_faces, int):
+        unpack_transpose_faces = bool(unpack_transpose_faces)
+    else:
+        unpack_transpose_faces = unpack_transpose_faces.value
     header_content.append(
-        f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces};"
+        f"constexpr bool UNPACK_TRANSPOSE_FACES = {str(unpack_transpose_faces).lower()};"
     )
 
     # Unpack transpose within face
     unpack_transpose_within_face = test_config.get(
         "unpack_transpose_within_face", Transpose.No
-    ).value
+    )
+    if isinstance(unpack_transpose_within_face, int):
+        unpack_transpose_within_face = bool(unpack_transpose_within_face)
+    else:
+        unpack_transpose_within_face = unpack_transpose_within_face.value
     header_content.append(
-        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face};"
+        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {str(unpack_transpose_within_face).lower()};"
     )
 
     # Throttle level
@@ -183,6 +189,39 @@ def generate_build_header(
         f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
     )
 
+    # Broadcast type
+    if "broadcast_type" in test_config:
+        broadcast_type = test_config["broadcast_type"]
+        header_content.append(
+            f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
+        )
+
+    # Accumulate to dest
+    if "acc_to_dest" in test_config:
+        acc_to_dest = str(test_config["acc_to_dest"]).lower()
+        header_content.append(f"constexpr bool ACC_TO_DEST = {acc_to_dest};")
+
+    # Reuse destination type
+    if "reuse_dest" in test_config:
+        reuse_dest = test_config["reuse_dest"]
+        header_content.append(
+            f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{reuse_dest.name};"
+        )
+
+    if "disable_src_zero_flag" in test_config:
+        disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
+        header_content.append(
+            f"constexpr bool disable_src_zero_flag = {disable_src_zero_flag};"
+        )
+
+    if "num_faces" in test_config:
+        num_faces = test_config["num_faces"]
+        header_content.append(f"constexpr std::uint32_t NUM_FACES = {num_faces};")
+
+    if "narrow_tile" in test_config:
+        narrow_tile = str(test_config["narrow_tile"]).lower()
+        header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
+
     # Math fidelity & Approximation mode
     header_content.append(
         f"constexpr std::uint32_t MATH_FIDELITY = {test_config.get('math_fidelity', MathFidelity.LoFi).value};"
@@ -194,6 +233,9 @@ def generate_build_header(
     # Number of faces
     num_faces = test_config.get("num_faces", 4)
     header_content.append(f"constexpr int num_faces = {num_faces};")
+    # Calculate tile size based on num_faces for debugging and convenience
+    tile_size = 16 * 16 * num_faces
+    header_content.append(f"constexpr std::uint32_t TILE_SIZE = {tile_size};")
 
     # Dest synchronisation mode
     dest_sync = test_config.get("dest_sync", DestSync.Half)
