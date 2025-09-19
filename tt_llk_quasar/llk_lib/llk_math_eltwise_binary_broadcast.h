@@ -87,28 +87,49 @@ inline void _llk_math_eltwise_binary_broadcast_addrmod_()
     constexpr bool math_fidelity_enable = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
 
     // For ELWADD/SUB/MUL, can increment source and dest registers
-    addr_mod_t {
-        .srca     = {.incr = ELTWISE_MATH_ROWS},
-        .srcb     = {.incr = num_srb_rows_inc},
-        .dest     = {.incr = ELTWISE_MATH_ROWS},
-        .fidelity = {.incr = 0, .clr = math_fidelity_enable}}
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_incr(ELTWISE_MATH_ROWS)
+        .srcb_incr(num_srb_rows_inc)
+        .dest_incr(ELTWISE_MATH_ROWS)
+        .fidelity_clr(math_fidelity_enable)
+        .build()
         .set(ADDR_MOD_0);
+    // clang-format on
 
     // Reset Src counters, inc dest
-    addr_mod_t {.srca = {.clr = 1}, .srcb = {.clr = 1}, .dest = {.incr = ELTWISE_MATH_ROWS}, .fidelity = {.incr = 0, .clr = math_fidelity_enable}}.set(
-        ADDR_MOD_1);
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_clr(1)
+        .srcb_clr(1)
+        .dest_incr(ELTWISE_MATH_ROWS)
+        .fidelity_clr(math_fidelity_enable)
+        .build()
+        .set(ADDR_MOD_1);
+    // clang-format on
 
     if constexpr (BROADCAST_TYPE == BroadcastType::COL)
     {
         // Clear srcB counter for new face, but keep counters for dest & SrcA
-        addr_mod_t {
-            .srca = {.incr = ELTWISE_MATH_ROWS}, .srcb = {.clr = 1}, .dest = {.incr = ELTWISE_MATH_ROWS}, .fidelity = {.incr = 0, .clr = math_fidelity_enable}}
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_incr(ELTWISE_MATH_ROWS)
+            .srcb_clr(1)
+            .dest_incr(ELTWISE_MATH_ROWS)
+            .fidelity_clr(math_fidelity_enable)
+            .build()
             .set(ADDR_MOD_2);
+        // clang-format on
     }
 
     if constexpr (math_fidelity_enable)
     {
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 1, .clr = 0}}.set(ADDR_MOD_3);
+        // clang-format off
+        addr_mod_builder::create()
+            .fidelity_incr(1)
+            .build()
+            .set(ADDR_MOD_3);
+        // clang-format on
     }
 }
 

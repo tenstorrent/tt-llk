@@ -17,12 +17,11 @@ inline void _eltwise_unary_sfpu_configure_addrmod_()
     // A2D, which is using ADDR_MOD_0 and ADDR_MOD_1, so use one
     // that doesn't conflict!
 
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
         .set(ADDR_MOD_7);
+    // clang-format on
 }
 
 /**

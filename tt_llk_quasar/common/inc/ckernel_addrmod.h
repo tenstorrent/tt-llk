@@ -265,4 +265,94 @@ struct addr_mod_t
     }
 };
 
+class addr_mod_builder
+{
+private:
+    addr_mod_t mod {};
+
+public:
+    constexpr addr_mod_builder& srca_incr(uint8_t val)
+    {
+        mod.srca.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srca_clr(uint8_t val)
+    {
+        mod.srca.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srca_cr(uint8_t val)
+    {
+        mod.srca.cr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srcb_incr(uint8_t val)
+    {
+        mod.srcb.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srcb_clr(uint8_t val)
+    {
+        mod.srcb.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& srcb_cr(uint8_t val)
+    {
+        mod.srcb.cr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& dest_incr(uint16_t val)
+    {
+        mod.dest.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& dest_clr(uint8_t val)
+    {
+        mod.dest.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& dest_cr(uint8_t val)
+    {
+        mod.dest.cr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& dest_c_to_cr(uint8_t val)
+    {
+        mod.dest.c_to_cr = val;
+        return *this;
+    }
+
+    // Fluent interface for fidelity
+    constexpr addr_mod_builder& fidelity_incr(uint8_t val)
+    {
+        mod.fidelity.incr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_builder& fidelity_clr(uint8_t val)
+    {
+        mod.fidelity.clr = val;
+        return *this;
+    }
+
+    constexpr addr_mod_t build() const
+    {
+        return mod;
+    }
+
+    static constexpr addr_mod_builder create()
+    {
+        return addr_mod_builder {};
+    }
+};
+
 } // namespace ckernel

@@ -196,12 +196,11 @@ inline void _llk_pack_dest_semaphore_section_done_()
 
     // TODO: (RT) Addrmod here is dangerous, can be overwritten by other pack operations
     //  Need to pick a addrmod, and assert no other math uses it
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
         .set(ADDR_MOD_7);
+    // clang-format on
 
     if constexpr (DST == DstSync::SyncFull)
     {

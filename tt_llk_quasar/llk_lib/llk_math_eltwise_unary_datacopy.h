@@ -78,20 +78,24 @@ inline void _llk_math_eltwise_unary_datacopy_addrmod_(const uint num_rows_per_mo
     const uint8_t num_rows_dest = num_rows_per_move_instrn;
 
     // Increment rows for src register that is used, inc dest rows
-    addr_mod_t {
-        .srca = {.incr = num_rows_srca},
-        .srcb = {.incr = num_rows_srcb},
-        .dest = {.incr = num_rows_dest},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_incr(num_rows_srca)
+        .srcb_incr(num_rows_srcb)
+        .dest_incr(num_rows_dest)
+        .build()
         .set(ADDR_MOD_0);
+    // clang-format on
 
     // Reset src counter that has been used, inc dest
-    addr_mod_t {
-        .srca = {.clr = use_srca},
-        .srcb = {.clr = use_srcb},
-        .dest = {.incr = num_rows_dest},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_clr(use_srca)
+        .srcb_clr(use_srcb)
+        .dest_incr(num_rows_dest)
+        .build()
         .set(ADDR_MOD_1);
+    // clang-format on
 }
 
 /**

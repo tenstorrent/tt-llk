@@ -296,23 +296,40 @@ inline void _llk_math_reduce_addrmod_()
     constexpr bool high_fidelity     = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     constexpr int FIDELITY_INCREMENT = high_fidelity ? 1 : 0;
 
-    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = ((REDUCE_DIM == ReduceDim::REDUCE_COL) ? 16 : 0)}, .fidelity = {.incr = 0, .clr = 1}}
+    // clang-format off
+    addr_mod_builder::create()
+        .dest_incr((REDUCE_DIM == ReduceDim::REDUCE_COL) ? 16 : 0)
+        .fidelity_clr(1)
+        .build()
         .set(ADDR_MOD_0);
+    // clang-format on
 
-    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_2);
+    // clang-format off
+    addr_mod_builder::create()
+        .fidelity_incr(FIDELITY_INCREMENT)
+        .build()
+        .set(ADDR_MOD_2);
+    // clang-format on
 
     if constexpr (REDUCE_DIM == ReduceDim::REDUCE_COL)
     {
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0, .clr = 1}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_1);
+        // clang-format off
+        addr_mod_builder::create()
+            .dest_clr(1)
+            .fidelity_clr(1)
+            .build()
+            .set(ADDR_MOD_1);
+        // clang-format on
     }
     else if constexpr (REDUCE_DIM == ReduceDim::REDUCE_ROW)
     {
-        addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = ELTWISE_MATH_ROWS},
-            .dest = {.incr = ELTWISE_MATH_ROWS},
-        }
+        // clang-format off
+        addr_mod_builder::create()
+            .srcb_incr(ELTWISE_MATH_ROWS)
+            .dest_incr(ELTWISE_MATH_ROWS)
+            .build()
             .set(ADDR_MOD_1);
+        // clang-format on
     }
 }
 

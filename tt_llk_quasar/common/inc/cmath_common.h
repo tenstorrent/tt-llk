@@ -145,7 +145,11 @@ inline void _inc_dst_addr_()
  */
 inline void _zero_dest_reg_()
 {
-    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0}}.set(ADDR_MOD_5);
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
+        .set(ADDR_MOD_5);
+    // clang-format on
 
     TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, ADDR_MOD_5, 0);
 }
