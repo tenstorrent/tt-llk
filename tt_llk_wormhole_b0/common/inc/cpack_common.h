@@ -713,7 +713,7 @@ inline void write_tile_header()
 
 inline pack_config_t read_pack_config_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg)
 {
-    pack_config_u config = {.val = 0};
+    pack_config_u config = {0};
 
     config.val[0] = cfg[reg_addr];
     config.val[1] = cfg[reg_addr + 1];
@@ -763,7 +763,7 @@ inline dest_rd_ctrl_t read_dest_rd_ctrl()
 
 inline pck_edge_offset_t read_pack_edge_offset_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg)
 {
-    pck_edge_offset_u edge = {.val = 0};
+    pck_edge_offset_u edge = {0};
     edge.val               = cfg[reg_addr];
 
     return edge.f;
@@ -786,7 +786,7 @@ inline std::array<pck_edge_offset_t, NUM_PACKERS> read_pack_edge_offset()
 
 inline pack_counters_t read_pack_counters_helper(uint32_t reg_addr, const volatile uint tt_reg_ptr* cfg)
 {
-    pack_counters_u counters = {.val = 0};
+    pack_counters_u counters = {0};
     counters.val             = cfg[reg_addr];
 
     return counters.f;

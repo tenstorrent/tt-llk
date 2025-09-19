@@ -47,96 +47,120 @@ inline void matmul_configure_addrmod(
     // SRCB -- 8 rows are needed
     // SRCA -- full 16x16 gets used -- hardware will pair cols of A with rows of B
     // D[8,16] = B[8,16] * A[16,16]
-    addr_mod_t {
-        .srca = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb = {.incr = 8, .clr = 0, .cr = 0},
-        .dest = {.incr = 8, .clr = 0, .cr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srcb_incr(8)
+        .dest_incr(8)
+        .build()
         .set(ADDR_MOD_0);
+    // clang-format on
 
     // reset all, increment fidelity if we have more fidelity phases
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 1, .cr = 1},
-        .srcb     = {.incr = 0, .clr = 1, .cr = 1},
-        .dest     = {.incr = 0, .clr = 1, .cr = 1},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_clr(1)
+        .srca_cr(1)
+        .srcb_clr(1)
+        .srcb_cr(1)
+        .dest_clr(1)
+        .dest_cr(1)
+        .fidelity_incr(FIDELITY_INCREMENT)
+        .build()
         .set(ADDR_MOD_5);
+    // clang-format on
 
     if constexpr (THROTTLE_LEVEL)
     {
         // reset all, including fidelity
-        addr_mod_t {
-            .srca     = {.incr = 0, .clr = 1, .cr = 1},
-            .srcb     = {.incr = 0, .clr = 1, .cr = 1},
-            .dest     = {.incr = 0, .clr = 1, .cr = 1},
-            .fidelity = {.incr = 0, .clr = 1},
-        }
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_clr(1)
+            .srca_cr(1)
+            .srcb_clr(1)
+            .srcb_cr(1)
+            .dest_clr(1)
+            .dest_cr(1)
+            .fidelity_clr(1)
+            .build()
             .set(ADDR_MOD_6);
+        // clang-format on
     }
 
     if ((is_in0_16x32 && (!is_in1_32x16)) || is_in0_32x16)
     {
         if (transpose)
         {
-            addr_mod_t {
-                .srca = {.incr = 32, .clr = 0, .cr = 0},
-                .srcb = {.incr = 0, .clr = 0, .cr = 1}, // cr=16 before
-                .dest = {.incr = 8, .clr = 0, .cr = 0},
-            }
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(32)
+                .srcb_cr(1)
+                .dest_incr(8)
+                .build()
                 .set(ADDR_MOD_1);
+            // clang-format on
         }
         else
         {
-            addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 0},
-                .srcb = {.incr = 0, .clr = 0, .cr = 1}, // cr=16 before
-                .dest = {.incr = 8, .clr = 0, .cr = 0},
-            }
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(16)
+                .srcb_cr(1)
+                .dest_incr(8)
+                .build()
                 .set(ADDR_MOD_1);
+            // clang-format on
         }
     }
     else
     {
         if (is_in1_32x16)
         {
-            addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 0},
-                .srcb = {.incr = 8, .clr = 0, .cr = 0},
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
-            }
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(16)
+                .srcb_incr(8)
+                .dest_cr(1)
+                .build()
                 .set(ADDR_MOD_1);
+            // clang-format on
         }
         else
         {
             if (transpose)
             {
-                addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(32)
+                    .srcb_cr(1)
+                    .dest_incr(8)
+                    .build()
                     .set(ADDR_MOD_1);
+                // clang-format on
             }
             else
             {
-                addr_mod_t {
-                    //.srca = {.incr = srca_increment, .clr = 0, .cr = 0},
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srcb_cr(1)
+                    .dest_incr(8)
+                    .build()
                     .set(ADDR_MOD_1);
+                // clang-format on
             }
         }
     }
 
     if (is_in1_32x16)
     {
-        addr_mod_t {
-            .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 8, .clr = 0, .cr = 0}, .dest = {.incr = 0, .clr = 0, .cr = 1}, // cr=16
-        }
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_incr(16)
+            .srcb_incr(8)
+            .dest_cr(1)
+            .build()
             .set(ADDR_MOD_2);
+        // clang-format on
     }
     else if (is_in0_16x32 || is_in0_32x16)
     {
@@ -144,51 +168,62 @@ inline void matmul_configure_addrmod(
         {
             if (transpose)
             {
-                addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0}, .srcb = {.incr = 0, .clr = 0, .cr = 0}, .dest = {.incr = 16, .clr = 0, .cr = 0},
-                    // .bias = {.incr = 1},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(32)
+                    .dest_incr(16)
+                    .build()
                     .set(ADDR_MOD_2);
+                // clang-format on
             }
             else
             {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 0, .clr = 0, .cr = 0}, .dest = {.incr = 16, .clr = 0, .cr = 0},
-                    // .bias = {.incr = 1},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .dest_incr(16)
+                    .build()
                     .set(ADDR_MOD_2);
+                // clang-format on
             }
         }
         else
         {
             if (transpose)
             {
-                addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(32)
+                    .srcb_cr(1)
+                    .dest_incr(8)
+                    .build()
                     .set(ADDR_MOD_2);
+                // clang-format on
             }
             else
             {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srcb_cr(1)
+                    .dest_incr(8)
+                    .build()
                     .set(ADDR_MOD_2);
+                // clang-format on
             }
         }
     }
     else
     {
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1},
-            .srcb = {.incr = 32, .clr = 0, .cr = 1},
-            .dest = {.incr = 8, .clr = 0, .cr = 0},
-        }
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_cr(1)
+            .srcb_incr(32)
+            .srcb_cr(1)
+            .dest_incr(8)
+            .build()
             .set(ADDR_MOD_2);
+        // clang-format on
     }
 
     if (is_in0_16x32)
@@ -197,83 +232,108 @@ inline void matmul_configure_addrmod(
         {
             if (transpose)
             {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 1}, // srca=16
-                    .srcb = {.incr = 16, .clr = 0, .cr = 0},
-                    .dest = {.incr = 0, .clr = 1, .cr = 0},
-                    // .bias = {.incr = 1},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srca_cr(1)
+                    .srcb_incr(16)
+                    .dest_clr(1)
+                    .build()
                     .set(ADDR_MOD_4);
+                // clang-format on
             }
             else
             {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 16, .clr = 0, .cr = 0}, .dest = {.incr = 0, .clr = 1, .cr = 0},
-                    // .bias = {.incr = 1},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srcb_incr(16)
+                    .dest_clr(1)
+                    .build()
                     .set(ADDR_MOD_4);
+                // clang-format on
             }
         }
         else
         {
             if (transpose)
             {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 1}, // srca=16
-                    .srcb = {.incr = 16, .clr = 0, .cr = 1},
-                    .dest = {.incr = 0, .clr = 0, .cr = 1},
-                    // .bias = {.incr = 1},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srca_cr(1)
+                    .srcb_incr(16)
+                    .srcb_cr(1)
+                    .dest_cr(1)
+                    .build()
                     .set(ADDR_MOD_4);
+                // clang-format on
             }
             else
             {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 16, .clr = 0, .cr = 1}, .dest = {.incr = 0, .clr = 0, .cr = 1},
-                    // .bias = {.incr = 1},
-                }
+                // clang-format off
+                addr_mod_builder::create()
+                    .srca_incr(16)
+                    .srcb_incr(16)
+                    .srcb_cr(1)
+                    .dest_cr(1)
+                    .build()
                     .set(ADDR_MOD_4);
+                // clang-format on
             }
         }
     }
     else if (is_in0_32x16)
     {
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1}, .srcb = {.incr = 16, .clr = 0, .cr = 1}, .dest = {.incr = 8, .clr = 0, .cr = 0},
-            // .bias = {.incr = 1},
-        }
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_cr(1)
+            .srcb_incr(16)
+            .srcb_cr(1)
+            .dest_incr(8)
+            .build()
             .set(ADDR_MOD_4);
+        // clang-format on
     }
     else if (is_in1_32x16)
     {
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1}, .srcb = {.incr = 8, .clr = 0, .cr = 0}, .dest = {.incr = 16, .clr = 0, .cr = 1},
-            // .bias = {.incr = 1},
-        }
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_cr(1)
+            .srcb_incr(8)
+            .dest_incr(16)
+            .dest_cr(1)
+            .build()
             .set(ADDR_MOD_4);
+        // clang-format on
     }
     else
     {
         if (transpose)
         {
-            addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 1},
-                .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
-                // .bias = {.incr = 1},
-            }
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(16)
+                .srca_cr(1)
+                .srcb_incr(48)
+                .srcb_cr(1)
+                .dest_cr(1)
+                .build()
                 .set(ADDR_MOD_4);
+            // clang-format on
         }
         else
         {
-            addr_mod_t {
-                .srca = {.incr = 32, .clr = 0, .cr = 1},
-                //.srca = {.incr = srca_set, .clr = 0, .cr = 1},
-                .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
-                // .bias = {.incr = 1},
-            }
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(32)
+                .srca_cr(1)
+                .srcb_incr(48)
+                .srcb_cr(1)
+                .dest_cr(1)
+                .build()
                 .set(ADDR_MOD_4);
+            // clang-format on
         }
     }
 }

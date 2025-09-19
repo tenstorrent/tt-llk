@@ -131,7 +131,7 @@ inline void _llk_pack_reconfig_l1_acc_(const std::uint32_t enable)
 template <bool untilize = false, ReduceDim dim>
 inline void _llk_pack_reduce_mask_config_()
 {
-    ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
+    ckernel::packer::pck_edge_offset_u pack_edge_offset = {0};
 
     // We initialize PCK_EDGE_OFFSET_SEC0 mask to clear out all the datums in the row
     pack_edge_offset.f.mask        = 0x0;
@@ -216,7 +216,7 @@ inline void _llk_pack_reduce_mask_clear_()
 {
     // By default, all packers are set to use TILE_ROW_SET_MAPPING_0 and
     // mask is configured to pass through all the datums
-    pck_edge_offset_u pack_edge_offset = {.val = 0};
+    pck_edge_offset_u pack_edge_offset = {0};
     pack_edge_offset.f.mask            = 0xffff;
 
     // Initialize TMP registers with values we need to write in CFG registers
