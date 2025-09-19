@@ -305,6 +305,7 @@ def generate_format_aware_matmul_combinations(
                         if max_dst_idx
                         else None
                     )
+
     return combinations
 
 
