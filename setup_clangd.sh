@@ -129,6 +129,8 @@ generate_compile_flags() {
 -DLLK_TRISC_MATH
 -DLLK_TRISC_PACK
 
+-DLLK_LOG_ENABLE
+
 -isystem
 $ROOT_DIR/tests/sfpi/compiler/lib/gcc/riscv32-tt-elf/12.4.0/include/
 -isystem
