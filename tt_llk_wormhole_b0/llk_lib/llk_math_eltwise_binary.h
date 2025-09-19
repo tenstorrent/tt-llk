@@ -11,6 +11,7 @@
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
+#include "lltt.h"
 
 using namespace ckernel;
 
@@ -463,6 +464,8 @@ inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uin
 
     // Dest address is always incremented by 8 in address mode
 
+    lltt::record<lltt::NoExec>(0, 10);
+
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
@@ -477,7 +480,16 @@ inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uin
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
+    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
+
+    for (int i = 0; i < 4; i++)
+    {
+        lltt::replay(0, 10);
+        if (i == 3)
+        {
+            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
+        }
+    }
 
     math::clear_dst_reg_addr();
 }
