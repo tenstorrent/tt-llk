@@ -393,7 +393,8 @@ inline void configure_unpack_AB(
     {
         reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11);
     }
-    else {
+    else
+    {
         reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
     }
 
