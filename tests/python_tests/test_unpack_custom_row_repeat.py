@@ -36,7 +36,7 @@ from helpers.utils import passed_test
     math_fidelity=[
         MathFidelity.LoFi,
     ],
-    input_dimensions=[[32, 64]],
+    input_dimensions=[[64, 64]],
 )
 def test_multiple_tiles(
     test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
@@ -63,15 +63,15 @@ def test_multiple_tiles(
 
     src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
 
-    # print("SRC A")
-    # print("*" * 100)
+    print("SRC A")
+    print("*" * 100)
 
-    # print(src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    print(src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
-    # print("SRC B")
-    # print("*" * 100)
+    print("SRC B")
+    print("*" * 100)
 
-    # print(src_B.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    print(src_B.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
     # Generate everything needed for golden
     # ******************************************************************************
@@ -145,7 +145,15 @@ def test_multiple_tiles(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # print("\nRESULT")
-    # print(res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    print("\nRESULT")
+    print(res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+
+    print(
+        "Output is of shape: ",
+        res_tensor.shape,
+        " which is ",
+        len(res_tensor),
+        " elements",
+    )
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
