@@ -220,20 +220,6 @@ inline void _llk_pack_reduce_hw_configure_(
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
-{
-    _llk_pack_configure_addrmod_<untilize>();
-
-    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
-}
-
-// Enhanced version that includes setup calls for API layer migration
-template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
-inline void _llk_pack_init_(
-    const std::uint32_t pack_dst_format,
     [[maybe_unused]] const std::uint32_t pack_src_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4,

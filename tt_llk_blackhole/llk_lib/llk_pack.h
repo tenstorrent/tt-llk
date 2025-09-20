@@ -580,26 +580,6 @@ template <
     bool write_tile_header       = true,
     bool tilize                  = false>
 inline void _llk_pack_init_(
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t tile_c_dim = TILE_C_DIM,
-    const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
-{
-    _llk_pack_configure_addrmod_<untilize, tilize>();
-
-    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, tilize>(
-        pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
-}
-
-template <
-    bool untilize                = false,
-    bool zero_output             = false,
-    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
-    bool write_tile_header       = true,
-    bool tilize                  = false>
-inline void _llk_pack_init_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
