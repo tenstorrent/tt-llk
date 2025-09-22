@@ -85,12 +85,8 @@ jobs:
         if: always() && contains(inputs.pytest_markers, 'perf') && hashFiles('perf_data/**') != ''
         shell: bash
         run: |
-          if [ -d "perf_data" ] && [ "$(ls -A perf_data)" ]; then
-            zip -r perf_data-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.zip perf_data/
-            echo "Performance data zipped successfully"
-          else
-            echo "No performance data found to zip"
-          fi
+          zip -r perf_data-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.zip perf_data/
+          echo "Performance data zipped successfully"
 
       # Step 5: Upload performance data
       - name: Upload performance data
