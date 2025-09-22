@@ -99,6 +99,7 @@ inline void _calculate_reshuffle_rows_(const uint idx_addr)
         // Implements: output[dst_row] += input[row] (scatter-add operation)
         // Uses LCONST_1 (value 1.0) as multiplier: dst = 1.0 * src + dst
         TT_SFPADD(input_row_lreg, p_sfpu::LCONST_1, output_row_lreg, output_row_lreg, 0);
+        TTI_SFPNOP;
 
         // TRANSPOSE #2: Rearrange accumulated results back to 4-row storage format
         // Prepares the computed result for SFPSTORE, which expects data in LREG4-7 positions
