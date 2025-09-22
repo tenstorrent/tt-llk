@@ -5,7 +5,13 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .device import BootMode, run_elf_files, wait_for_tensix_operations_finished
+from .chip_architecture import get_chip_architecture
+from .device import (
+    ARCH_DEFAULT_BOOT_MODE,
+    BootMode,
+    run_elf_files,
+    wait_for_tensix_operations_finished,
+)
 from .dimensions import validate_tile_dimensions
 from .format_arg_mapping import (
     FPU_BINARY_OPERATIONS,
@@ -336,10 +342,11 @@ def write_build_header(
         f.write(header_content)
 
 
+# Must not be called with BootMode.DEFAULT
 def generate_make_command(
     test_config,
+    boot_mode: BootMode,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
 ):
     """Generate make command"""
     # Simplified make command - only basic build parameters
@@ -351,10 +358,11 @@ def generate_make_command(
     return make_cmd
 
 
+# Must not be called with BootMode.DEFAULT
 def build_test(
     test_config,
+    boot_mode: BootMode,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
 ):
     """Only builds the files required to run a test"""
 
@@ -366,7 +374,7 @@ def build_test(
 
     write_build_header(test_config, profiler_build=profiler_build)
     make_cmd = generate_make_command(
-        test_config, profiler_build=profiler_build, boot_mode=boot_mode
+        test_config, boot_mode, profiler_build=profiler_build
     )
     run_shell_command(make_cmd, cwd=TESTS_DIR)
 
@@ -374,12 +382,16 @@ def build_test(
 def run_test(
     test_config,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.TRISC,  # change default boot mode here
+    boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
+    if boot_mode == BootMode.DEFAULT:
+        CHIP_ARCH = get_chip_architecture()
+        boot_mode = ARCH_DEFAULT_BOOT_MODE[CHIP_ARCH]
+
+    build_test(test_config, boot_mode, profiler_build=profiler_build)
 
     # run test
-    run_elf_files(test_config["testname"], boot_mode=boot_mode)
+    run_elf_files(test_config["testname"], boot_mode)
     wait_for_tensix_operations_finished()
