@@ -28,7 +28,7 @@ void run_kernel()
 
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_unpack_AB_col_tile_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), formats.unpack_src);
+        _llk_unpack_AB_col_tile_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
 }
 
@@ -44,7 +44,7 @@ void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-    _llk_math_eltwise_binary_col_tile_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
+    _llk_math_eltwise_binary_col_tile_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>();
 
     for (int i = 0; i < TILE_CNT; i++)
     {
@@ -55,7 +55,7 @@ void run_kernel()
             DstSync::SyncHalf,
             is_fp32_dest_acc_en,
             MATH_FIDELITY,
-            EltwiseBinaryReuseDestType::NONE>(4, i, false);
+            EltwiseBinaryReuseDestType::NONE>(i);
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 }

@@ -416,7 +416,7 @@ template <
     BroadcastType bcast_type,
     int NUM_FIDELITY_PHASES                      = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void eltwise_binary_col_tile_configure_mop(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4)
+inline void eltwise_binary_col_tile_configure_mop()
 {
     /*
 
@@ -462,11 +462,8 @@ template <
     BroadcastType src_b_bcast_type,
     int MATH_FIDELITY_DESC                       = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_col_tile_init_(const std::uint32_t num_faces, const std::uint32_t transpose, const std::uint32_t acc_to_dest)
+inline void _llk_math_eltwise_binary_col_tile_init_()
 {
-    constexpr int MATH_FIDELITY_PHASES    = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr int MATH_FIDELITY_INCREMENT = get_math_fidelity_increment(MATH_FIDELITY_DESC);
-
     eltwise_binary_col_tile_configure_addrmod<EltwiseBinaryType::ELWSUB, BroadcastType::NONE, 0>();
 
     /*
@@ -518,7 +515,7 @@ template <
     bool is_fp32_dest_acc_en,
     int NUM_FIDELITY_PHASES                      = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
+inline void _llk_math_eltwise_binary_col_tile(uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
