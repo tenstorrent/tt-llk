@@ -411,6 +411,34 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
  * LLK COL - TILE eltwise subtraction implementation for SDPA
  *************************************************************************/
 
+template <
+    EltwiseBinaryType eltwise_binary_type,
+    BroadcastType bcast_type,
+    int NUM_FIDELITY_PHASES                      = 0,
+    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
+inline void eltwise_binary_col_tile_configure_mop(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4)
+{
+    /*
+
+        MOP configuration. It will contain 3 iterations of replaying first 10
+        instructions from replay buffer and the last op will be execution of all
+        11 instructions in replay buffer. Unrolled code looks like this:
+
+        TTI_REPLAY(0, 10, 0, 0);
+        TTI_REPLAY(0, 10, 0, 0);
+        TTI_REPLAY(0, 10, 0, 0);
+        TTI_REPLAY(0, 11, 0, 0);
+
+    */
+
+    constexpr uint innerloop = 3;
+    uint outerloop           = 1;
+
+    ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 10, 0, 0));
+    tmp.set_end_op(TT_OP_REPLAY(0, 11, 0, 0));
+    tmp.program();
+}
+
 template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
 inline void eltwise_binary_col_tile_configure_addrmod()
 {
@@ -473,7 +501,10 @@ inline void _llk_math_eltwise_binary_col_tile_init_(const std::uint32_t num_face
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
     TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing A dvalid
+
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
+
+    eltwise_binary_col_tile_configure_mop<EltwiseBinaryType::ELWSUB, BroadcastType::NONE>();
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
@@ -489,15 +520,10 @@ template <
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
 {
-    constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
-    constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
-
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
-    TTI_REPLAY(0, 10, 0, 0);
-    TTI_REPLAY(0, 10, 0, 0);
-    TTI_REPLAY(0, 10, 0, 0);
-    TTI_REPLAY(0, 11, 0, 0);
+    // Run the MOP
+    ckernel_template::run();
 
     math::clear_dst_reg_addr();
 }
