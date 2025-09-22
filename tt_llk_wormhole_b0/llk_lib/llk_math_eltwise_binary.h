@@ -439,9 +439,41 @@ inline void _llk_math_eltwise_binary_col_tile_init_(const std::uint32_t num_face
     constexpr int MATH_FIDELITY_PHASES    = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr int MATH_FIDELITY_INCREMENT = get_math_fidelity_increment(MATH_FIDELITY_DESC);
 
-    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_INCREMENT>();
-
     eltwise_binary_col_tile_configure_addrmod<EltwiseBinaryType::ELWSUB, BroadcastType::NONE, 0>();
+
+    /*
+        Rpelay buffer initially takes 11 instructions into it but
+        when executing them it executes only 10 and the last one
+        is executed when we want to switch to new srcB. This is done
+        to preserve form of reusing srcB for different srcA inputs.
+
+        When this function is called once everything is ready for op to execute,
+        but if between two calls of _llk_math_eltwise_binary_col_tile some other
+        function modifies replay buffer this init will need to be called again.
+
+    */
+
+    // lltt::record<lltt::NoExec>(0, 11);
+
+    TTI_REPLAY(0, 11, 0, 1);
+
+    // Dest address is always incremented by 8 in address mode
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing A dvalid
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
@@ -462,34 +494,10 @@ inline void _llk_math_eltwise_binary_col_tile(const std::uint32_t num_faces, uin
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
-    // Dest address is always incremented by 8 in address mode
-
-    lltt::record<lltt::NoExec>(0, 10);
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
-
-    for (int i = 0; i < 4; i++)
-    {
-        lltt::replay(0, 10);
-        if (i == 3)
-        {
-            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing dvalid
-        }
-    }
+    TTI_REPLAY(0, 10, 0, 0);
+    TTI_REPLAY(0, 10, 0, 0);
+    TTI_REPLAY(0, 10, 0, 0);
+    TTI_REPLAY(0, 11, 0, 0);
 
     math::clear_dst_reg_addr();
 }

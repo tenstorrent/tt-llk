@@ -158,7 +158,7 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
  *************************************************************************/
 
 template <bool is_fp32_dest_acc_en>
-inline void _llk_unpack_A_bcast_B_hw_config(
+inline void _llk_unpack_AB_col_tile_hw_config(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,
     const std::uint32_t unpA_dst_format,
@@ -198,7 +198,7 @@ inline void _llk_unpack_A_bcast_B_hw_config(
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_A_bcast_B_init_(
+inline void _llk_unpack_AB_col_tile_init(
     const std::uint32_t face_r_dim  = FACE_R_DIM,
     const std::uint32_t num_faces   = 4,
     const bool narrow_tile          = false,
@@ -236,7 +236,7 @@ inline void _llk_unpack_A_bcast_B_init_(
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_A_bcast_b_block(
+inline void _llk_unpack_AB_col_tile_(
     const std::uint32_t address_a, const std::uint32_t address_b, const std::uint32_t unpack_src_format, const bool transpose_of_faces = 0 /*not used*/)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);                              // reset counters

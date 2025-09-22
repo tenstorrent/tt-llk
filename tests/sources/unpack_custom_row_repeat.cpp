@@ -23,19 +23,13 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_A_bcast_B_hw_config<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
-    _llk_unpack_A_bcast_B_init_<>();
+    _llk_unpack_AB_col_tile_hw_config<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+    _llk_unpack_AB_col_tile_init<>();
 
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_unpack_A_bcast_b_block<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), formats.unpack_src);
+        _llk_unpack_AB_col_tile_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), formats.unpack_src);
     }
-
-    (*((volatile uint32_t*)0x18000)) = 0x11111111;
-
-    // Uninit
-    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::XY));
-    TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
 }
 
 #endif
@@ -64,8 +58,6 @@ void run_kernel()
             EltwiseBinaryReuseDestType::NONE>(4, i, false);
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-
-    (*((volatile uint32_t*)0x19000)) = 0x22222222;
 }
 
 #endif
@@ -98,7 +90,6 @@ void run_kernel()
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-    (*((volatile uint32_t*)0x19800)) = 0x33333333;
 }
 
 #endif
