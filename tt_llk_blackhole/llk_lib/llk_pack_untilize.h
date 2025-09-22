@@ -150,10 +150,8 @@ inline void _llk_pack_untilize_init_(
         static_assert(row_num_datums < TILE_C_DIM, "row_num_datums must be set to less than TILE_C_DIM for narrow_row packing");
     }
 
-    // Configure address mode
     _llk_pack_untilize_configure_addrmod_<diagonal>();
 
-    // Configure MOP (Memory Operation Program)
     _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal>(face_r_dim, num_faces, narrow_row, row_num_datums, 0);
     tile_dst_offset_state = 0;
 
@@ -163,8 +161,9 @@ inline void _llk_pack_untilize_init_(
     const uint z_stride = 2 * face_r_dim * y_stride;
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 
-    // Calculate output address offset
     std::uint32_t output_addr_offset;
+
+    // After each row of the block gets packed, the output address is updated to point to the next row.
     if constexpr (narrow_row)
     {
         output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * row_num_datums);
@@ -174,18 +173,35 @@ inline void _llk_pack_untilize_init_(
         output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * ((num_faces > 1) ? (num_faces >> 1) : 1) * FACE_C_DIM);
     }
 
-    // Store 16B aligned row offset address
-    TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
+    TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET)); // store 16B aligned row offset address
+}
 
-    // Always include setup calls for safety (as recommended by maintainer)
-    // Program packer to pack out the correct number of datums per row
-    if constexpr (narrow_row)
+// Enhanced version that includes TT_SETADCXX calls from API layer
+template <
+    std::uint32_t block_ct_dim,
+    std::uint32_t full_ct_dim    = block_ct_dim,
+    bool diagonal                = false,
+    bool narrow_row              = false,
+    std::uint32_t row_num_datums = TILE_C_DIM>
+inline void _llk_pack_untilize_init_(
+    const std::uint32_t pack_src_format,
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim,
+    const std::uint32_t num_faces,
+    bool include_setup_calls)
+{
+    _llk_pack_untilize_init_<block_ct_dim, full_ct_dim, diagonal, narrow_row, row_num_datums>(pack_src_format, pack_dst_format, face_r_dim, num_faces);
+
+    if (include_setup_calls)
     {
-        TT_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
-    }
-    else
-    {
-        TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+        if constexpr (narrow_row)
+        {
+            TT_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
+        }
+        else
+        {
+            TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
+        }
     }
 }
 
