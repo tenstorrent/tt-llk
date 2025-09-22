@@ -5,10 +5,9 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .chip_architecture import get_chip_architecture
 from .device import (
-    ARCH_DEFAULT_BOOT_MODE,
     BootMode,
+    resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
@@ -57,10 +56,7 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
     return constants
 
 
-def generate_build_header(
-    test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-):
+def generate_build_header(test_config):
     """
     Generate the contents of a C++ header file (build.h) with all configuration defines.
 
@@ -77,7 +73,6 @@ def generate_build_header(
 
     Args:
         test_config (dict): Dictionary containing test configuration parameters.
-        profiler_build (ProfilerBuild, optional): Whether to enable profiler defines.
 
     Returns:
         str: The complete contents of the build.h header file as a string.
@@ -104,16 +99,7 @@ def generate_build_header(
         "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
     ]
 
-    # Profiler configuration
-    if profiler_build == ProfilerBuild.Yes:
-        header_content.append("#define LLK_PROFILER")
-
     loop_factor = test_config.get("loop_factor", 1)
-
-    if profiler_build == ProfilerBuild.No and loop_factor != 1:
-        raise ValueError(
-            "test_config['loop_factor'] should only be used when profiler is enabled"
-        )
 
     header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
 
@@ -333,24 +319,23 @@ def generate_build_header(
     return "\n".join(header_content)
 
 
-def write_build_header(
-    test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-):
-    header_content = generate_build_header(test_config, profiler_build)
+def write_build_header(test_config):
+    header_content = generate_build_header(test_config)
     with open("../helpers/include/build.h", "w") as f:
         f.write(header_content)
 
 
-# Must not be called with BootMode.DEFAULT
 def generate_make_command(
     test_config,
     boot_mode: BootMode,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
+    profiler_build: ProfilerBuild,
 ):
     """Generate make command"""
+
+    boot_mode = resolve_default_boot_mode(boot_mode)
+
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} all "
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -358,11 +343,10 @@ def generate_make_command(
     return make_cmd
 
 
-# Must not be called with BootMode.DEFAULT
 def build_test(
     test_config,
     boot_mode: BootMode,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
+    profiler_build: ProfilerBuild,
 ):
     """Only builds the files required to run a test"""
 
@@ -372,25 +356,19 @@ def build_test(
 
     TESTS_DIR = str((Path(root) / "tests").absolute())
 
-    write_build_header(test_config, profiler_build=profiler_build)
-    make_cmd = generate_make_command(
-        test_config, boot_mode, profiler_build=profiler_build
-    )
+    write_build_header(test_config)
+    make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
     run_shell_command(make_cmd, cwd=TESTS_DIR)
 
 
 def run_test(
     test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
+    profiler_build: ProfilerBuild = ProfilerBuild.No,
 ):
     """Run the test with the given configuration"""
 
-    if boot_mode == BootMode.DEFAULT:
-        CHIP_ARCH = get_chip_architecture()
-        boot_mode = ARCH_DEFAULT_BOOT_MODE[CHIP_ARCH]
-
-    build_test(test_config, boot_mode, profiler_build=profiler_build)
+    build_test(test_config, boot_mode, profiler_build)
 
     # run test
     run_elf_files(test_config["testname"], boot_mode)

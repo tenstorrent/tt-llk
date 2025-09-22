@@ -65,6 +65,11 @@ else ifeq ($(BOOT_MODE),trisc)
 	OPTIONS_COMPILE += -DLLK_BOOT_MODE_TRISC
 endif
 
+PROFILER_BUILD := $(if $(profiler_build),$(profiler_build),false)
+ifeq ($(PROFILER_BUILD),true)
+	OPTIONS_COMPILE += -DLLK_PROFILER
+endif
+
 OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \

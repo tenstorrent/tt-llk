@@ -20,7 +20,7 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import ProfilerBuild, run_test
+from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
@@ -124,7 +124,7 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    run_test(test_config, ProfilerBuild.No, boot_mode)
+    run_test(test_config, boot_mode)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims["output_tile_cnt"], address=res_address

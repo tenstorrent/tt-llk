@@ -156,11 +156,19 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-# Must not be called with BootMode.DEFAULT
+def resolve_default_boot_mode(boot_mode: BootMode) -> BootMode:
+    if boot_mode == BootMode.DEFAULT:
+        CHIP_ARCH = get_chip_architecture()
+        boot_mode = ARCH_DEFAULT_BOOT_MODE[CHIP_ARCH]
+    return boot_mode
+
+
 def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+
+    boot_mode = resolve_default_boot_mode(boot_mode)
 
     # Perform soft reset
     perform_tensix_soft_reset(location)

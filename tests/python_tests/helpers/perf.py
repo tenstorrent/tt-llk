@@ -140,7 +140,7 @@ def perf_benchmark(
         get_timing = RUN_CONFIGURATIONS[type]
 
         test_config["perf_run_type"] = type
-        build_test(test_config, boot_mode, profiler_build=ProfilerBuild.Yes)
+        build_test(test_config, boot_mode, ProfilerBuild.Yes)
 
         runs = []
         for _ in range(run_count):

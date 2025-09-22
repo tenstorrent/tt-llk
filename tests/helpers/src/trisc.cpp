@@ -9,13 +9,13 @@
 #include "ckernel_globals.h"
 // Necessary for ckernel variables
 #include "ckernel_helper.h"
+#include "profiler.h"
 
 #if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
 #include "boot.h"
 #endif
 
 #ifdef LLK_PROFILER
-#include "profiler.h"
 
 namespace llk_profiler
 {
