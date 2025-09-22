@@ -43,7 +43,7 @@ void run_kernel()
         for (uint32_t tile = 0; tile < TILE_CNT; tile++)
         {
             _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                L1_ADDRESS(src_a + (tile % 8) * 0x1000), UNPACK_TRANSPOSE_FACES, formats.unpack_src, formats.unpack_dst); // TODO LP HERE
+                L1_ADDRESS(src_a + (tile % 8) * 0x1000), UNPACK_TRANSPOSE_FACES, formats.unpack_src, formats.unpack_dst); // TODO SS<-LP use PERF_ADDRESS here
             _llk_unpack_set_srcb_dummy_valid_();
         }
         ckernel::tensix_sync(); // -> perf
@@ -119,7 +119,7 @@ void run_kernel()
         for (uint32_t tile = 0; tile < TILE_CNT; tile++)
         {
             _llk_packer_wait_for_math_done_();
-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000)); // TODO LP HERE
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
             _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         }
         ckernel::tensix_sync(); // -> perf
