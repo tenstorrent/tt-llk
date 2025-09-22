@@ -45,7 +45,7 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 )
 
 
-# @pytest.mark.nightly --> commented out now to see if passes on CI, will uncomment once CI passes before merge
+@pytest.mark.nightly
 @parametrize(
     test_name="math_matmul_test",
     math_fidelity=[
