@@ -80,8 +80,6 @@ OPTIONS_COMPILE += $(INCLUDES)
 
 TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
 
-TEST_KERNEL_FLAG := -DTEST_KERNEL
-
 # =========================
 # Targets
 # =========================
@@ -134,13 +132,13 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from ai_gen subdirectory
 $(OBJ_DIR)/kernel_%.o: sources/ai_gen/$(testname).cpp | $(OBJ_DIR) $(DEPS_DIR)
-	$(GXX) $(OPTIONS_ALL) $(TEST_KERNEL_FLAG) $(OPTIONS_COMPILE) \
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from main sources directory
 $(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp | $(OBJ_DIR) $(DEPS_DIR)
-	$(GXX) $(OPTIONS_ALL) $(TEST_KERNEL_FLAG) $(OPTIONS_COMPILE) \
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 

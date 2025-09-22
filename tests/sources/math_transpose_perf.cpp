@@ -26,8 +26,8 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    volatile uint32_t const src_a = 0x1a000;
-    volatile uint32_t const src_b = 0x1e000;
+    constexpr uint32_t src_a = 0x1a000;
+    constexpr uint32_t src_b = 0x1e000;
 
     {
         ZONE_SCOPED("INIT")
@@ -106,7 +106,7 @@ void run_kernel()
 
 void run_kernel()
 {
-    volatile uint32_t const dst = 0x1E000;
+    constexpr uint32_t dst = 0x1E000;
     {
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
