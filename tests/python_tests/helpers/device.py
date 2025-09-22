@@ -409,10 +409,10 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
         if read_word_from_device(location, mailbox_addr.value) == KERNEL_COMPLETE:
             return
 
-        time.sleep(backoff)
-        # Disable exponential backoff if running on simulator
-        # The simulator sits idle due to no polling - If it is idle for too long, it gets stuck
+        # Disable any waiting if running on simulator
+        # this makes simulator tests run ever so slightly faster
         if not test_target.run_simulator:
+            time.sleep(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
     raise TimeoutError(
