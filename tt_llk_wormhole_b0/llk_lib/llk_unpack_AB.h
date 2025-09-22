@@ -198,12 +198,7 @@ inline void _llk_unpack_AB_col_tile_hw_config(
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_col_tile_init(
-    const std::uint32_t face_r_dim  = FACE_R_DIM,
-    const std::uint32_t num_faces   = 4,
-    const bool narrow_tile          = false,
-    const std::uint32_t transpose   = 0,
-    const std::uint32_t acc_to_dest = 0)
+inline void _llk_unpack_AB_col_tile_init()
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
 
@@ -236,8 +231,7 @@ inline void _llk_unpack_AB_col_tile_init(
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_col_tile_(
-    const std::uint32_t address_a, const std::uint32_t address_b, const std::uint32_t unpack_src_format, const bool transpose_of_faces = 0 /*not used*/)
+inline void _llk_unpack_AB_col_tile_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);                              // reset counters
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear Y counter on src side
