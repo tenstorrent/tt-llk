@@ -85,7 +85,7 @@ void run_kernel()
             uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
 
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-            for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+            for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
                 _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                     block_tile, formats.math, formats.math);
@@ -125,7 +125,7 @@ void run_kernel()
             uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
 
             _llk_packer_wait_for_math_done_();
-            for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+            for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
                 _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
             }
