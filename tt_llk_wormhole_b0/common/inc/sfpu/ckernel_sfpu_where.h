@@ -78,7 +78,7 @@ inline void _calculate_where_int32_(const uint dst_index_in0, const uint dst_ind
     sfpi::vInt output_tensor = 0;
     sfpi::vInt true_tensor   = 0;
     sfpi::vInt false_tensor  = 0;
-    sfpi::vInt cond          = sfpi::dst_reg[dst_index_in0 * dst_tile_size_sfpi];
+    sfpi::vInt cond          = 0;
 
     for (int i = 0; i < ITERATIONS; i++)
     {
