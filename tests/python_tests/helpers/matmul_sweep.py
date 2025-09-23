@@ -145,13 +145,11 @@ def generate_matmul_tiny_tiles_combinations(max_tiles: int) -> List[tuple]:
     tile_B_rows = 32
     tile_B_columns = list(range(32, (max_tiles + 1) * 32, 32))
 
-    for tile_A_row in tile_A_rows:
-        for tile_B_column in tile_B_columns:
-            inputA_dims = (tile_A_row, tile_A_columns)
-            inputB_dims = (tile_B_rows, tile_B_column)
-            valid_combinations.append((inputA_dims, inputB_dims))
-
-    return valid_combinations
+    return [
+        ((tile_A_row, tile_A_columns), (tile_B_rows, tile_B_column))
+        for tile_A_row in tile_A_rows
+        for tile_B_column in tile_B_columns
+    ]
 
 
 def skip_matmul_combination(
