@@ -170,31 +170,40 @@ inline void _llk_unpack_AB_col_tile_hw_config(
     constexpr bool is_row_pool = false;
     configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool>(
         unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
+}
 
-    // unpack_tile_descriptor_u tile_descriptor;
-    // for (uint i = 0; i < TILE_DESC_SIZE; i++)
-    // {
-    //     tile_descriptor.val[i] = 0;
-    // }
+template <BroadcastType BType = BroadcastType::NONE>
+inline void _llk_unpack_AB_col_tile_mop_config_()
+{
+    // Setup address modifiers for unpacker instructions
+    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
+    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
 
-    // tile_descriptor.f.in_data_format = (uint)unpA_src_format;
-    // tile_descriptor.f.uncompressed   = 1; // Input tile is uncompressed
-    // tile_descriptor.f.x_dim          = 0; // Not used for unpA as value is overridden by per context x_dim set below. Used for unpB
-    // tile_descriptor.f.y_dim          = 1;
-    // tile_descriptor.f.z_dim          = 4;
+    /*
 
-    // for (uint i = 0; i < TILE_DESC_SIZE; i++)
-    // {
-    //     cfg[THCON_SEC0_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
-    // }
+        Configuration of unpacker MOP. Setting halo and unpackB to true which
+        enables usage of all unpack instrructions 0-3 and unpack_B instruction.
 
-    // tile_descriptor.f.x_dim          = 1;
-    // tile_descriptor.f.y_dim          = 16;
-    // tile_descriptor.f.z_dim          = 48;
-    // for (uint i = 0; i < TILE_DESC_SIZE; i++)
-    // {
-    //     cfg[THCON_SEC1_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
-    // }
+        Unpack_A instructions are set up as expected with reading F0R0 and F1R0 and setting dvalid.
+        For regular unpack_B it is TT_OP_NOP because it shouldn't execute every iteration.
+        When we need to unpack full srcB we set n-th mask bit to 1.
+
+    */
+
+    ckernel_unpack_template tmp = ckernel_unpack_template(
+        true,                                                                                                                          // UnpackB
+        true,                                                                                                                          // unpackHalo
+        TT_OP_REPLAY(0, 9, 0, 0),                                                                                                      // UNPACK_A0
+        TT_OP_REPLAY(0, 7, 0, 0),                                                                                                      // // UNPACK_A1
+        TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // UNPACK_A2
+        TT_OP_NOP,                                                                                                                     // UNPACK_A3
+        TT_OP_NOP,                                                                                                                     // SKIP_A
+
+        TT_OP_NOP,                                                                                                                    //  UNPACK_B
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1) // SKIP_B
+    );
+
+    tmp.program();
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -225,9 +234,41 @@ inline void _llk_unpack_AB_col_tile_init()
     cfg_reg_rmw_tensix<UNP0_ADDR_BASE_REG_0_Base_RMW>(0);
     cfg_reg_rmw_tensix<UNP0_ADDR_BASE_REG_1_Base_RMW>(0);
 
-    // config_unpacker_x_end<p_setadc::UNP_A>(1); // configured for unpacking one row on unpacker A
     TTI_SETADCXX(p_setadc::UNP_A, 15, 0);   // DIrectly set unpacker A counter to unpack one row
     TTI_SETADCXX(p_setadc::UNP_B, 1023, 0); // DIrectly set unpacker B counter to unpack whole tile
+
+    // Setup address modifiers for unpacker instructions
+    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
+
+    /*
+
+        Fill replay buffer with 8 unpack instructions but none of them sets dvalid.
+        They are used for contiguous unpacking od faces.
+        Last instruction that increments Y counter by Y_STRIDE on channel 0 is alose inside of replay.
+
+        Intended use inside of MOP:
+
+        TT_OP_REPLAY(0, 9, 0, 0) -> Unpack F0R0 row 8 times and move to F1
+        TT_OP_REPLAY(0, 7, 0, 0) ->  Unpack F1R0 7 times
+        TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), -> Unpack F1R0 once and set dvalid
+
+        As can be seen before dvalid needs to be set replay is called with 7 iterations and 8th will be one with dvalid = 1.
+
+
+    */
+
+    lltt::record<lltt::NoExec>(0, 9);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
+
+    _llk_unpack_AB_col_tile_mop_config_<BroadcastType::NONE>();
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -260,54 +301,9 @@ inline void _llk_unpack_AB_col_tile_(const std::uint32_t address_a, const std::u
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
-    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
-
-    lltt::record<lltt::NoExec>(0, 9);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-    TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
-
-    TTI_REPLAY(0, 9, 0, 0);
-    TTI_REPLAY(0, 7, 0, 0);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    // Unpacking srcB
-    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-    TTI_REPLAY(0, 9, 0, 0);
-    TTI_REPLAY(0, 7, 0, 0);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-    TTI_REPLAY(0, 9, 0, 0);
-    TTI_REPLAY(0, 7, 0, 0);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-    TTI_REPLAY(0, 9, 0, 0);
-    TTI_REPLAY(0, 7, 0, 0);
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-    // for (int i = 0; i < 4; i++)
-    // {
-    //     lltt::replay(0, 8);
-    //     TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
-
-    //     lltt::replay(0, 7);
-    //     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    //     // TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
-
-    //     if (i == 0)
-    //     {
-    //         // Unpacking srcB
-    //         TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    //     }
-    // }
+    // Mask 0b00010 means that in second iteration of loop SKIP_B instruction will be executed
+    // For that we will need 5 iteratins since other regular unpacks take 4 iterations ( one for each face)
+    ckernel_unpack_template::run(5, 0b00010);
 
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear all counters
 
