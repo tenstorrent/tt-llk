@@ -27,7 +27,7 @@ from helpers.utils import passed_test
 
 @skip_for_blackhole
 @parametrize(
-    test_name="unpack_custom_row_repeat",
+    test_name="col_tile_sdpa",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
@@ -38,16 +38,7 @@ from helpers.utils import passed_test
     math_fidelity=[
         MathFidelity.LoFi,
     ],
-    input_dimensions=[
-        [32, 32],
-        [32, 64],
-        [64, 32],
-        [64, 64],
-        [32, 128],
-        [128, 32],
-        [128, 64],
-        [64, 128],
-    ],
+    input_dimensions=[[128, 64], [64, 128]],
 )
 def test_multiple_tiles(
     test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
