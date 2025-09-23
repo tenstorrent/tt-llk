@@ -18,7 +18,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.pack import pack_bfp16, pack_fp32
+from helpers.pack import pack_bfp16, pack_fp32, pack_int32
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -60,36 +60,42 @@ def create_test_tensors(data_format):
     condition_all_zeros = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=dtype)
 
     # true and false value tensors
-    true_values = torch.tensor(
-        [
-            1.0,
-            float("nan"),
-            3.0,
-            float("inf"),
-            -float("inf"),
-            -1.0,
-            0.0,
-            -0.0,
-            42.49,
-            -92.42,
-        ],
-        dtype=dtype,
-    )
-    false_values = torch.tensor(
-        [
-            -1.0,
-            999.9,
-            float("nan"),
-            -float("inf"),
-            float("inf"),
-            1.0,
-            -0.0,
-            0.0,
-            -3.14,
-            7.84,
-        ],
-        dtype=dtype,
-    )
+    if data_format == DataFormat.Int32:
+        true_values = torch.tensor([1, 0, 3, 0, 5, 0, 0, 8, 0, -1], dtype=dtype)
+        false_values = torch.tensor(
+            [-1, 999, 0, -99999, 99999, 1, 0, 0, 42, -92], dtype=dtype
+        )
+    else:
+        true_values = torch.tensor(
+            [
+                1.0,
+                float("nan"),
+                3.0,
+                float("inf"),
+                -float("inf"),
+                -1.0,
+                0.0,
+                -0.0,
+                42.49,
+                -92.42,
+            ],
+            dtype=dtype,
+        )
+        false_values = torch.tensor(
+            [
+                -1.0,
+                999.9,
+                float("nan"),
+                -float("inf"),
+                float("inf"),
+                1.0,
+                -0.0,
+                0.0,
+                -3.14,
+                7.84,
+            ],
+            dtype=dtype,
+        )
 
     return condition, condition_all_ones, condition_all_zeros, true_values, false_values
 
@@ -100,6 +106,7 @@ def create_test_tensors(data_format):
         [
             DataFormat.Float16_b,
             DataFormat.Float32,
+            DataFormat.Int32,
         ],
         same=True,
     ),
@@ -151,6 +158,10 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
         pack_function_A = pack_bfp16
         pack_function_B = pack_bfp16
         pack_function_C = pack_bfp16
+    elif formats.input_format == DataFormat.Int32:
+        pack_function_A = pack_int32
+        pack_function_B = pack_int32
+        pack_function_C = pack_int32
     else:
         raise ValueError(f"Unsupported input format: {formats.input_format}")
 
@@ -204,6 +215,7 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
         [
             DataFormat.Float16_b,
             DataFormat.Float32,
+            DataFormat.Int32,
         ],
         same=True,
     ),
@@ -252,6 +264,10 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
         pack_function_A = pack_bfp16
         pack_function_B = pack_bfp16
         pack_function_C = pack_bfp16
+    elif formats.input_format == DataFormat.Int32:
+        pack_function_A = pack_int32
+        pack_function_B = pack_int32
+        pack_function_C = pack_int32
     else:
         raise ValueError(f"Unsupported input format: {formats.input_format}")
 

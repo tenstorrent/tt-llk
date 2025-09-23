@@ -36,6 +36,10 @@ void run_kernel()
     {
         UNPACK_FMT = to_ufmt(DataFormat::Bfp8_b);
     }
+    else if (UNPACK_A_IN == to_ufmt(DataFormat::Int32))
+    {
+        UNPACK_FMT = to_ufmt(DataFormat::Int32);
+    }
     else
     {
         UNPACK_FMT = to_ufmt(DataFormat::UInt16);
@@ -81,6 +85,10 @@ void run_kernel()
     else if (UNPACK_A_IN == to_ufmt(DataFormat::Bfp8_b))
     {
         MATH_FMT = to_ufmt(DataFormat::Bfp8_b);
+    }
+    else if (UNPACK_A_IN == to_ufmt(DataFormat::Int32))
+    {
+        MATH_FMT = to_ufmt(DataFormat::Int32);
     }
     else
     {
@@ -137,6 +145,10 @@ void run_kernel()
     else if (UNPACK_A_IN == to_ufmt(DataFormat::Bfp8_b))
     {
         PACK_FMT = to_ufmt(DataFormat::Bfp8_b);
+    }
+    else if (UNPACK_A_IN == to_ufmt(DataFormat::Int32))
+    {
+        PACK_FMT = to_ufmt(DataFormat::Int32);
     }
     else
     {
