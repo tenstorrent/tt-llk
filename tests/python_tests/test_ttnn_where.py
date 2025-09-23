@@ -8,7 +8,7 @@ import torch
 from helpers.device import (
     collect_results,
     wait_for_tensix_operations_finished,
-    write_stimuli_to_l1,
+    write_stimuli_to_l1_three_buffers,
 )
 from helpers.format_arg_mapping import (
     DestAccumulation,
@@ -99,7 +99,7 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
     buffer_config = {}
 
     # Write all three inputs using the new helper function
-    result_buffer_address = write_stimuli_to_l1(
+    result_buffer_address = write_stimuli_to_l1_three_buffers(
         test_config=buffer_config,
         buffer_A=src_A.flatten(),
         buffer_B=src_B.flatten(),
@@ -227,7 +227,7 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
     buffer_config = {}
 
     # Write all three inputs using the new helper function
-    result_buffer_address = write_stimuli_to_l1(
+    result_buffer_address = write_stimuli_to_l1_three_buffers(
         test_config=buffer_config,
         buffer_A=C.flatten(),
         buffer_B=T.flatten(),

@@ -297,7 +297,7 @@ def write_stimuli_to_l1(
     return result_buffer_address
 
 
-def write_stimuli_to_l1(
+def write_stimuli_to_l1_three_buffers(
     test_config,
     buffer_A,
     buffer_B,
