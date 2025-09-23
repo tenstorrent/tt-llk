@@ -14,8 +14,8 @@ from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_di
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.matmul_sweep import (
-    calculate_matmul_dimensions,
     generate_matmul_dimension_combinations,
+    generate_tile_dims,
 )
 from helpers.param_config import (
     input_output_formats,
@@ -104,7 +104,7 @@ def test_matmul(
     )
 
     # Calculate all matmul dimensions using helper function
-    matmul_dims = calculate_matmul_dimensions(input_A_dimensions, input_B_dimensions)
+    matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
 
     generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(
@@ -134,13 +134,13 @@ def test_matmul(
         "testname": test_name,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
-        "tile_cnt": matmul_dims["output_tile_cnt"],
+        "tile_cnt": matmul_dims.output_tile_cnt,
         "input_A_dimensions": input_A_dimensions,
         "input_B_dimensions": input_B_dimensions,
-        "output_dimensions": matmul_dims["output_dimensions"],
-        "rt_dim": matmul_dims["rt_dim"],
-        "ct_dim": matmul_dims["ct_dim"],
-        "kt_dim": matmul_dims["kt_dim"],
+        "output_dimensions": matmul_dims.output_dimensions,
+        "rt_dim": matmul_dims.rt_dim,
+        "ct_dim": matmul_dims.ct_dim,
+        "kt_dim": matmul_dims.kt_dim,
     }
 
     # Use the new helper function for writing stimuli
@@ -157,7 +157,7 @@ def test_matmul(
     run_test(test_config, ProfilerBuild.No, boot_mode)
 
     res_from_L1 = collect_results(
-        formats, tile_count=matmul_dims["output_tile_cnt"], address=res_address
+        formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
     )
     assert len(res_from_L1) == len(golden_tensor)
 

@@ -77,62 +77,6 @@ def validate_tile_dimensions(dimension: int, row_col_dim: int):
         )
 
 
-def calculate_matmul_dimensions(
-    input_A_dimensions, input_B_dimensions, num_rows: int = 32, num_cols: int = 32
-) -> dict:
-    """
-    Calculate matrix multiplication tile dimensions.
-
-    For matrix multiplication A[M,K] × B[K,N] = C[M,N], calculate:
-    - rt_dim: Row tiles (M dimension)
-    - ct_dim: Column tiles (N dimension)
-    - kt_dim: Inner dimension tiles (K dimension)
-    - output_dimensions: Result matrix dimensions
-    - output_tile_cnt: Number of tiles in result
-
-    Args:
-        input_A_dimensions: (rows, cols) for matrix A
-        input_B_dimensions: (rows, cols) for matrix B
-
-    Returns:
-        dict: Dictionary containing all calculated dimensions
-
-    Raises:
-        AssertionError: If matrix dimensions are incompatible for multiplication
-    """
-    M, K1 = input_A_dimensions[0], input_A_dimensions[1]
-    K2, N = input_B_dimensions[0], input_B_dimensions[1]
-
-    # Verify K dimensions match for valid matmul
-    assert (
-        K1 == K2
-    ), f"Matrix dimensions incompatible for multiplication: A[{M},{K1}] × B[{K2},{N}]"
-
-    # Calculate output dimensions: A[M,K] × B[K,N] = C[M,N]
-    output_dimensions = (M, N)
-
-    validate_tile_dimensions(M, num_rows)
-    validate_tile_dimensions(N, num_cols)
-    validate_tile_dimensions(K1, num_cols)
-
-    rt_dim = M // num_rows  # Row tiles in result
-    ct_dim = N // num_cols  # Column tiles in result
-    kt_dim = (
-        K1 // num_cols
-    )  # Inner dimension tiles rt_dim (matrix A) = kt_dim = ct_dim (matrix B) = 1
-
-    # Calculate tile counts
-    output_tile_cnt = rt_dim * ct_dim
-
-    return {
-        "rt_dim": rt_dim,
-        "ct_dim": ct_dim,
-        "kt_dim": kt_dim,
-        "output_dimensions": output_dimensions,
-        "output_tile_cnt": output_tile_cnt,
-    }
-
-
 def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
     """
     Generate all valid matrix multiplication dimension combinations.
@@ -228,21 +172,48 @@ def skip_matmul_combination(
     return False
 
 
-def generate_tile_dims(dimension: Tuple[list, list]) -> TileDimensions:
+def generate_tile_dims(
+    dimension: Tuple[list, list], tiny_tiles: bool = False, in0_tile_r_dim: int = 32
+) -> TileDimensions:
+    num_rows = 32
+    num_cols = 32
     inputA_dims, inputB_dims = dimension
-    matmul_dimensions = calculate_matmul_dimensions(inputA_dims, inputB_dims)
+    M, K1 = inputA_dims[0], inputA_dims[1]
+    K2, N = inputB_dims[0], inputB_dims[1]
+
+    # Verify K dimensions match for valid matmul
+    assert (
+        K1 == K2
+    ), f"Matrix dimensions incompatible for multiplication: A[{M},{K1}] × B[{K2},{N}]"
+
+    # Calculate output dimensions: A[M,K] × B[K,N] = C[M,N]
+    output_dimensions = (M, N)
+
+    validate_tile_dimensions(M, num_rows)
+    validate_tile_dimensions(N, num_cols)
+    validate_tile_dimensions(K1, num_cols)
+
+    rt_dim = M // num_rows  # Row tiles in result
+    ct_dim = N // num_cols  # Column tiles in result
+    kt_dim = (
+        K1 // num_cols
+    )  # Inner dimension tiles rt_dim (matrix A) = kt_dim = ct_dim (matrix B) = 1
+
+    # Calculate tile counts
+    output_tile_cnt = rt_dim * ct_dim
+
     return TileDimensions(
         input_A_dimensions=inputA_dims,
         input_B_dimensions=inputB_dims,
-        output_dimensions=matmul_dimensions["output_dimensions"],
-        rt_dim=matmul_dimensions["rt_dim"],
-        ct_dim=matmul_dimensions["ct_dim"],
-        kt_dim=matmul_dimensions["kt_dim"],
-        tile_cnt=matmul_dimensions["output_tile_cnt"],
+        output_dimensions=output_dimensions,
+        rt_dim=rt_dim,
+        ct_dim=ct_dim,
+        kt_dim=kt_dim,
+        tile_cnt=output_tile_cnt,
         tile_cnt_A=(inputA_dims[0] * inputA_dims[1]) // (32 * 32),
         tile_cnt_B=(inputB_dims[0] * inputB_dims[1]) // (32 * 32),
-        output_tile_cnt=matmul_dimensions["output_tile_cnt"],
-        in0_tile_r_dim=32,
+        output_tile_cnt=output_tile_cnt if not tiny_tiles else 1,
+        in0_tile_r_dim=in0_tile_r_dim,
         in0_tile_c_dim=32,
         in1_tile_r_dim=32,
         in1_tile_c_dim=32,
@@ -421,22 +392,8 @@ def sweep_tiny_tiles_matmul(
         for dims in dimensions_list:
             # Generate tile dimensions for the tiny tiles
             inputA_dims, inputB_dims = dims
-            matmul_dimensions = calculate_matmul_dimensions((32, 32), inputB_dims)
-            tile_dims = TileDimensions(
-                input_A_dimensions=(32, 32),
-                input_B_dimensions=inputB_dims,
-                output_dimensions=matmul_dimensions["output_dimensions"],
-                rt_dim=1,
-                ct_dim=inputB_dims[1] // 32,
-                kt_dim=1,
-                tile_cnt=matmul_dimensions["output_tile_cnt"],
-                tile_cnt_A=1,  # For tiny tiles, matrix A is always 1 tile (32x32)
-                tile_cnt_B=(inputB_dims[0] * inputB_dims[1]) // (32 * 32),
-                output_tile_cnt=1,
-                in0_tile_r_dim=inputA_dims[0],
-                in0_tile_c_dim=inputA_dims[1],
-                in1_tile_r_dim=inputB_dims[0],
-                in1_tile_c_dim=inputB_dims[1],
+            tile_dims = generate_tile_dims(
+                ([32, 32], inputB_dims), tiny_tiles=True, in0_tile_r_dim=inputA_dims[0]
             )
 
             # generate face layout for tiny tiles
