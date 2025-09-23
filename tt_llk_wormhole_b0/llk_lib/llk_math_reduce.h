@@ -449,7 +449,7 @@ inline void _llk_math_reduce_max_row_(const uint dst_index, bool narrow_tile = f
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
-    
+
     // Transpose for each face in src A done at unpacker, and pool
     TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
@@ -488,13 +488,12 @@ inline void _llk_math_reduce_max_row_(const uint dst_index, bool narrow_tile = f
     TTI_TRNSPSRCB;
     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
 
-
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
     TTI_ZEROSRC(0, 1, 0, 1); // Clear src A
     TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
     TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
-    
+
     // Reset counters to 0 for next accumulation
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
 }

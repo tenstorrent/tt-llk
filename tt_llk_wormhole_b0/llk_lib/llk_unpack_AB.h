@@ -89,7 +89,7 @@ inline void _llk_unpack_AB_reduce_row_max_mop_config_(const bool transpose_of_fa
     constexpr uint32_t outerloop = 1;
     const uint32_t innerloop     = num_faces;
     ckernel_template tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
-    tmp.program(instrn_buffer);    
+    tmp.program(instrn_buffer);
 }
 
 template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
