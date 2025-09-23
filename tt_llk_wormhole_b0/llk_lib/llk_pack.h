@@ -232,7 +232,7 @@ inline void _llk_pack_init_(
 
 // Enhanced version that includes setup calls for API layer migration
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
-inline void _llk_pack_init_(
+inline void _llk_pack_init_with_src(
     const std::uint32_t pack_dst_format,
     [[maybe_unused]] const std::uint32_t pack_src_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,

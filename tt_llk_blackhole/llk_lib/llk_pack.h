@@ -599,7 +599,7 @@ template <
     DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
     bool write_tile_header       = true,
     bool tilize                  = false>
-inline void _llk_pack_init_(
+inline void _llk_pack_init_with_src(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
