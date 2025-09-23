@@ -215,8 +215,8 @@ inline void _llk_unpack_AB_col_tile_init()
     // Only this stride can be set because other strides are never applied
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(32);
 
-    TTI_SETADCXX(p_setadc::UNP_A, 15, 0);   // DIrectly set unpacker A counter to unpack one row
-    TTI_SETADCXX(p_setadc::UNP_B, 1023, 0); // DIrectly set unpacker B counter to unpack whole tile
+    TTI_SETADCXX(p_setadc::UNP_A, 15, 0);   // Directly set unpacker A counter to unpack one row
+    TTI_SETADCXX(p_setadc::UNP_B, 1023, 0); // Directly set unpacker B counter to unpack whole tile
 
     // Setup address modifiers for unpacker instructions
     constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
