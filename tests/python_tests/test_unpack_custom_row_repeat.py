@@ -60,10 +60,10 @@ def test_multiple_tiles(
     fours = torch.tensor([4] * 16)
     padding = torch.tensor([0] * (256 - 16))
 
-    src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
-    src_A = src_A.repeat(input_dimensions[0] * input_dimensions[1] // 1024)
+    # src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
+    # src_A = src_A.repeat(input_dimensions[0] * input_dimensions[1] // 1024)
 
-    src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
+    # src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
 
     print("SRC A")
     print("*" * 100)
