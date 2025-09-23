@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import pytest
 import torch
 
 from helpers.device import (
@@ -67,7 +66,7 @@ TINY_TILES_MATMUL_COMBINATIONS = sweep_tiny_tiles_matmul(
 )
 
 
-@pytest.mark.nightly
+# @pytest.mark.nightly
 @parametrize(
     test_name="unpack_matmul_test",
     math_fidelity=[

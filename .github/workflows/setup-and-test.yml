@@ -38,7 +38,7 @@ jobs:
   setup-and-test:
     needs: generate-matrix
     runs-on: ${{ inputs.runs_on }}
-    timeout-minutes: 80
+    timeout-minutes: 400
     strategy:
       fail-fast: false
       matrix:

@@ -85,7 +85,7 @@ ALL_TEST_PARAMS = list(
 )
 
 
-@pytest.mark.nightly
+# @pytest.mark.nightly
 @pytest.mark.parametrize(
     "test_name,math_fidelity,matmul_config,throttle", ALL_TEST_PARAMS
 )
