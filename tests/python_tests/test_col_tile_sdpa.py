@@ -38,7 +38,11 @@ from helpers.utils import passed_test
     math_fidelity=[
         MathFidelity.LoFi,
     ],
-    input_dimensions=[[128, 64], [64, 128]],
+    input_dimensions=[
+        # Usecase for this will be 4x2 or 2x4 tiles inputs so that are only dimensions to test
+        [128, 64],
+        [64, 128],
+    ],
 )
 def test_multiple_tiles(
     test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
