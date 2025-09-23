@@ -5,7 +5,7 @@
 Helper functions for dimension-related calculations in matrix operations and Matmul test configurations for matmul test sweeping.
 """
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, NamedTuple, Tuple
 
 from helpers.format_arg_mapping import (
     DestAccumulation,
@@ -47,6 +47,14 @@ class FaceLayoutConfig:
     num_faces: int
     partial_face_A: bool
     partial_face_B: bool
+
+
+class FaceLayoutParameters(NamedTuple):
+    """Parameters for face layout configuration."""
+
+    transpose_faces: Transpose
+    transpose_within: Transpose
+    partial_face: bool
 
 
 @dataclass
@@ -219,54 +227,76 @@ def generate_tile_dims(
 
 
 def generate_face_layout_config(num_faces: int) -> List[FaceLayoutConfig]:
-    configs = []
-    if num_faces == 1:
-        for transpose in [Transpose.No, Transpose.Yes]:
-            for partial_face in [True]:
-                config = FaceLayoutConfig(
-                    num_faces_A=1,
-                    num_faces_B=1,
-                    num_faces=1,
-                    unpack_transpose_faces=transpose,
-                    unpack_transpose_within_face=transpose,
-                    partial_face_A=partial_face,
-                    partial_face_B=partial_face,
-                )
-                configs.append(config)
-    elif num_faces == 2:
-        for partial_face in [True, False]:
-            config = FaceLayoutConfig(
-                num_faces_A=2,
-                num_faces_B=2,
-                num_faces=2,
-                unpack_transpose_faces=Transpose.No,
-                unpack_transpose_within_face=Transpose.No,
-                partial_face_A=partial_face,
-                partial_face_B=partial_face,
-            )
-            configs.append(config)
-    else:  # num_faces == 4
-        for transpose in [Transpose.No, Transpose.Yes]:
-            config = FaceLayoutConfig(
-                num_faces_A=4,
-                num_faces_B=4,
-                num_faces=4,
-                unpack_transpose_faces=transpose,
-                unpack_transpose_within_face=transpose,
-                partial_face_A=False,
-                partial_face_B=False,
-            )
-            configs.append(config)
+    """
+    Generate face layout configurations for the specified number of faces.
 
-    return configs
+    Raises:
+        ValueError: If num_faces is not 1, 2, or 4
+    """
+    if num_faces not in [1, 2, 4]:
+        raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+
+    # Configuration parameters for each num_faces
+    config_params = {
+        1: [
+            FaceLayoutParameters(
+                transpose_faces=Transpose.No,
+                transpose_within=Transpose.No,
+                partial_face=True,
+            ),
+            FaceLayoutParameters(
+                transpose_faces=Transpose.Yes,
+                transpose_within=Transpose.Yes,
+                partial_face=True,
+            ),
+        ],
+        2: [
+            FaceLayoutParameters(
+                transpose_faces=Transpose.No,
+                transpose_within=Transpose.No,
+                partial_face=True,
+            ),
+            FaceLayoutParameters(
+                transpose_faces=Transpose.No,
+                transpose_within=Transpose.No,
+                partial_face=False,
+            ),
+        ],
+        4: [
+            FaceLayoutParameters(
+                transpose_faces=Transpose.No,
+                transpose_within=Transpose.No,
+                partial_face=False,
+            ),
+            FaceLayoutParameters(
+                transpose_faces=Transpose.Yes,
+                transpose_within=Transpose.Yes,
+                partial_face=False,
+            ),
+        ],
+    }
+
+    return [
+        FaceLayoutConfig(
+            num_faces_A=num_faces,
+            num_faces_B=num_faces,
+            num_faces=num_faces,
+            unpack_transpose_faces=params.transpose_faces,
+            unpack_transpose_within_face=params.transpose_within,
+            partial_face_A=params.partial_face,
+            partial_face_B=params.partial_face,
+        )
+        for params in config_params[num_faces]
+    ]
 
 
 def generate_face_layout_config_sweep(math_matmul: bool) -> List[FaceLayoutConfig]:
-    configs = []
     num_faces_list = [4] if math_matmul else [1, 2, 4]
-    for num_faces in num_faces_list:
-        configs.extend(generate_face_layout_config(num_faces))
-    return configs
+    return [
+        config
+        for num_faces in num_faces_list
+        for config in generate_face_layout_config(num_faces)
+    ]
 
 
 # ===========================================================
