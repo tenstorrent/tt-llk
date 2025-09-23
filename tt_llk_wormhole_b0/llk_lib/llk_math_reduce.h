@@ -454,6 +454,8 @@ inline void _llk_math_reduce_max_row_(const uint dst_index, bool narrow_tile = f
     // Pool the first 16x16 face, clear AB valid bits, 1x16 row is in DEST row 0 for future accumulations
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
     // Pool the second 16x16 face, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
 
     // Move back to B and transpose
@@ -492,8 +494,12 @@ inline void _llk_math_reduce_max_row_(const uint dst_index, bool narrow_tile = f
     // Now we process F2 and F3
 
     // Pool F2, clear AB valid bits, 1x16 row is in DEST row 32 for future accumulations
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
     // Pool F3, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
 
     // Move back to B and transpose
@@ -522,7 +528,7 @@ inline void _llk_math_reduce_max_row_(const uint dst_index, bool narrow_tile = f
     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
     // Reset counters to 0 for next accumulation
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
 }
 
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
