@@ -80,6 +80,18 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
 }
 
+template <BroadcastType BType = BroadcastType::NONE>
+inline void _llk_unpack_AB_reduce_row_max_mop_config_(const bool transpose_of_faces = false, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
+{
+    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+    constexpr uint32_t outerloop = 1;
+    const uint32_t innerloop     = num_faces;
+    ckernel_template tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
+    tmp.program(instrn_buffer);
+}
+
 template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_AB_hw_configure_(
     const std::uint32_t unpA_src_format,
