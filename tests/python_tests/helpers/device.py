@@ -199,12 +199,15 @@ def write_stimuli_to_l1(
     tile_count_B: int = None,
     location="0,0",
     num_faces=4,
+    buffer_C=None,
+    stimuli_C_format: DataFormat = None,
+    tile_count_C: int = None,
 ):
     """
-    Write matmul stimuli to L1 with different matrix sizes.
+    Write stimuli to L1 with support for 2 or 3 input tensors.
 
     Args:
-        test_config: Used to store addresses of A B and Result
+        test_config: Used to store addresses of A, B, (C) and Result
         buffer_A: Flattened tensor data for matrix A
         buffer_B: Flattened tensor data for matrix B
         stimuli_A_format: DataFormat for matrix A
@@ -212,6 +215,10 @@ def write_stimuli_to_l1(
         tile_count_A: Number of tiles in matrix A
         tile_count_B: Number of tiles in matrix B
         location: Core location string
+        num_faces: Number of faces for packing
+        buffer_C: Optional flattened tensor data for matrix C (for 3-input operations)
+        stimuli_C_format: Optional DataFormat for matrix C
+        tile_count_C: Optional number of tiles in matrix C
 
     Returns:
         int: Address where result will be stored
@@ -222,9 +229,23 @@ def write_stimuli_to_l1(
     # Calculate L1 addresses
     tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
     tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
+
     buffer_A_address = 0x1A000
     buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_count_A
-    result_buffer_address = buffer_B_address + tile_size_B_bytes * tile_count_B
+
+    # Handle optional third buffer
+    if buffer_C is not None:
+        if stimuli_C_format is None or tile_count_C is None:
+            raise ValueError(
+                "If buffer_C is provided, stimuli_C_format and tile_count_C must also be provided"
+            )
+
+        tile_size_C_bytes = stimuli_C_format.num_bytes_per_tile(TILE_ELEMENTS)
+        buffer_C_address = buffer_B_address + tile_size_B_bytes * tile_count_B
+        result_buffer_address = buffer_C_address + tile_size_C_bytes * tile_count_C
+    else:
+        buffer_C_address = None
+        result_buffer_address = buffer_B_address + tile_size_B_bytes * tile_count_B
 
     # Helper function to get packer
     def get_packer(data_format):
@@ -244,11 +265,21 @@ def write_stimuli_to_l1(
     pack_function_A = get_packer(stimuli_A_format)
     pack_function_B = get_packer(stimuli_B_format)
 
+    # Validate pack functions for A and B
     if not pack_function_A or not pack_function_B:
         raise ValueError(
             f"Unsupported data formats: {stimuli_A_format.name}, {stimuli_B_format.name}"
         )
 
+    # Handle optional third buffer pack function
+    pack_function_C = None
+    if buffer_C is not None:
+        pack_function_C = get_packer(stimuli_C_format)
+        if not pack_function_C:
+            raise ValueError(
+                f"Unsupported data format for buffer_C: {stimuli_C_format.name}"
+            )
+
     def write_matrix(
         buffer, tile_count, pack_function, base_address, tile_size, num_faces
     ):
@@ -289,138 +320,22 @@ def write_stimuli_to_l1(
         num_faces,
     )
 
-    # Set buffer addresses in device to be defined in build header
-    test_config["buffer_A_address"] = buffer_A_address
-    test_config["buffer_B_address"] = buffer_B_address
-    test_config["result_buffer_address"] = result_buffer_address
-
-    return result_buffer_address
-
-
-def write_stimuli_to_l1_three_buffers(
-    test_config,
-    buffer_A,
-    buffer_B,
-    buffer_C,
-    stimuli_A_format: DataFormat,
-    stimuli_B_format: DataFormat,
-    stimuli_C_format: DataFormat,
-    tile_count_A: int = 1,
-    tile_count_B: int = None,
-    tile_count_C: int = None,
-    location="0,0",
-    num_faces=4,
-):
-    """
-    Write three input stimuli to L1 with different matrix sizes.
-
-    Args:
-        test_config: Used to store addresses of A, B, C and Result
-        buffer_A: Flattened tensor data for matrix A
-        buffer_B: Flattened tensor data for matrix B
-        buffer_C: Flattened tensor data for matrix C
-        stimuli_A_format: DataFormat for matrix A
-        stimuli_B_format: DataFormat for matrix B
-        stimuli_C_format: DataFormat for matrix C
-        tile_count_A: Number of tiles in matrix A
-        tile_count_B: Number of tiles in matrix B
-        tile_count_C: Number of tiles in matrix C
-        location: Core location string
-        num_faces: Number of faces for packing
-
-    Returns:
-        int: Address where result will be stored
-    """
-
-    TILE_ELEMENTS = 1024
-
-    # Calculate L1 addresses
-    tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
-    tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
-    tile_size_C_bytes = stimuli_C_format.num_bytes_per_tile(TILE_ELEMENTS)
-
-    buffer_A_address = 0x1A000
-    buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_count_A
-    buffer_C_address = buffer_B_address + tile_size_B_bytes * tile_count_B
-    result_buffer_address = buffer_C_address + tile_size_C_bytes * tile_count_C
-
-    # Helper function to get packer
-    def get_packer(data_format):
-        packers = {
-            DataFormat.Float16: pack_fp16,
-            DataFormat.Float16_b: pack_bfp16,
-            DataFormat.Float32: pack_fp32,
-            DataFormat.Bfp8_b: pack_bfp8_b,
-            DataFormat.Int32: pack_int32,
-            DataFormat.UInt32: pack_uint32,
-            DataFormat.UInt16: pack_uint16,
-            DataFormat.Int8: pack_int8,
-            DataFormat.UInt8: pack_uint8,
-        }
-        return packers.get(data_format)
-
-    pack_function_A = get_packer(stimuli_A_format)
-    pack_function_B = get_packer(stimuli_B_format)
-    pack_function_C = get_packer(stimuli_C_format)
-
-    if not pack_function_A or not pack_function_B or not pack_function_C:
-        raise ValueError(
-            f"Unsupported data formats: {stimuli_A_format.name}, {stimuli_B_format.name}, {stimuli_C_format.name}"
+    # Write optional third buffer
+    if buffer_C is not None:
+        write_matrix(
+            buffer_C,
+            tile_count_C,
+            pack_function_C,
+            buffer_C_address,
+            tile_size_C_bytes,
+            num_faces,
         )
-
-    def write_matrix(
-        buffer, tile_count, pack_function, base_address, tile_size, num_faces
-    ):
-        addresses = []
-        packed_data_list = []
-
-        pack_function_lambda = lambda buffer_tile: (
-            pack_function(buffer_tile, num_faces=num_faces)
-            if pack_function == pack_bfp8_b
-            else pack_function(buffer_tile)
-        )
-
-        for i in range(tile_count):
-            start_idx = TILE_ELEMENTS * i
-            tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
-            packed_data = pack_function_lambda(tile_data)
-
-            addresses.append(base_address + i * tile_size)
-            packed_data_list.append(packed_data)
-
-        for addr, data in zip(addresses, packed_data_list):
-            write_to_device(location, addr, data)
-
-    # Write all three matrices
-    write_matrix(
-        buffer_A,
-        tile_count_A,
-        pack_function_A,
-        buffer_A_address,
-        tile_size_A_bytes,
-        num_faces,
-    )
-    write_matrix(
-        buffer_B,
-        tile_count_B,
-        pack_function_B,
-        buffer_B_address,
-        tile_size_B_bytes,
-        num_faces,
-    )
-    write_matrix(
-        buffer_C,
-        tile_count_C,
-        pack_function_C,
-        buffer_C_address,
-        tile_size_C_bytes,
-        num_faces,
-    )
 
     # Set buffer addresses in device to be defined in build header
     test_config["buffer_A_address"] = buffer_A_address
     test_config["buffer_B_address"] = buffer_B_address
-    test_config["buffer_C_address"] = buffer_C_address
+    if buffer_C_address is not None:
+        test_config["buffer_C_address"] = buffer_C_address
     test_config["result_buffer_address"] = result_buffer_address
 
     return result_buffer_address

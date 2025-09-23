@@ -8,7 +8,7 @@ import torch
 from helpers.device import (
     collect_results,
     wait_for_tensix_operations_finished,
-    write_stimuli_to_l1_three_buffers,
+    write_stimuli_to_l1,
 )
 from helpers.format_arg_mapping import (
     DestAccumulation,
@@ -98,19 +98,19 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
     # Create test config for storing buffer addresses
     buffer_config = {}
 
-    # Write all three inputs using the new helper function
-    result_buffer_address = write_stimuli_to_l1_three_buffers(
+    # Write all three inputs using the enhanced helper function
+    result_buffer_address = write_stimuli_to_l1(
         test_config=buffer_config,
         buffer_A=src_A.flatten(),
         buffer_B=src_B.flatten(),
-        buffer_C=src_C.flatten(),
         stimuli_A_format=formats.input_format,
         stimuli_B_format=formats.input_format,
-        stimuli_C_format=formats.input_format,
         tile_count_A=tile_cnt_A,
         tile_count_B=tile_cnt_B,
-        tile_count_C=tile_cnt_C,
         location=location,
+        buffer_C=src_C.flatten(),
+        stimuli_C_format=formats.input_format,
+        tile_count_C=tile_cnt_C,
     )
 
     unpack_to_dest = formats.input_format.is_32_bit()
@@ -226,19 +226,18 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
     # Create test config for storing buffer addresses
     buffer_config = {}
 
-    # Write all three inputs using the new helper function
-    result_buffer_address = write_stimuli_to_l1_three_buffers(
+    result_buffer_address = write_stimuli_to_l1(
         test_config=buffer_config,
         buffer_A=C.flatten(),
         buffer_B=T.flatten(),
-        buffer_C=F.flatten(),
         stimuli_A_format=formats.input_format,
         stimuli_B_format=formats.input_format,
-        stimuli_C_format=formats.input_format,
         tile_count_A=tile_cnt_C,
         tile_count_B=tile_cnt_T,
-        tile_count_C=tile_cnt_F,
         location=location,
+        buffer_C=F.flatten(),
+        stimuli_C_format=formats.input_format,
+        tile_count_C=tile_cnt_F,
     )
 
     unpack_to_dest = formats.input_format.is_32_bit()
