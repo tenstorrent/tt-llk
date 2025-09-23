@@ -282,10 +282,12 @@ def generate_build_header(
     # Unpack + result buffer addresses arrays generations
     buffer_A_address = test_config.get("buffer_A_address", 0x1A000)
     buffer_B_address = test_config.get("buffer_B_address", 0x1B000)
+    buffer_C_address = test_config.get("buffer_C_address", None)
     result_buffer_address = test_config.get("result_buffer_address", 0x1C000)
 
     buffer_A_array = []
     buffer_B_array = []
+    buffer_C_array = []
     buffer_res_array = []
 
     if formats is not None:
@@ -296,6 +298,10 @@ def generate_build_header(
             buffer_B_array.append(
                 buffer_B_address + i * format_tile_sizes[formats.input_format]
             )
+            if buffer_C_address is not None:
+                buffer_C_array.append(
+                    buffer_C_address + i * format_tile_sizes[formats.input_format]
+                )
             buffer_res_array.append(
                 result_buffer_address + i * format_tile_sizes[formats.output_format]
             )
@@ -310,12 +316,27 @@ def generate_build_header(
         f"reinterpret_cast<volatile uint32_t*>({hex(addr)})"
         for addr in buffer_res_array
     )
-    header_content.append(
+
+    # Build header content with optional buffer_C
+    unpack_section = (
         "#if defined(LLK_TRISC_UNPACK) && defined(TEST_KERNEL)\n"
         "volatile uint32_t* buffer_A[TILE_CNT] = {" + buffer_A_str + "}; \n"
         "volatile uint32_t* buffer_B[TILE_CNT] = {" + buffer_B_str + "}; \n"
-        "#endif\n"
-        "#if defined(LLK_TRISC_PACK) && defined(TEST_KERNEL)\n"
+    )
+
+    if buffer_C_address is not None and buffer_C_array:
+        buffer_C_str = ", ".join(
+            f"reinterpret_cast<volatile uint32_t*>({hex(addr)})"
+            for addr in buffer_C_array
+        )
+        unpack_section += (
+            "volatile uint32_t* buffer_C[TILE_CNT] = {" + buffer_C_str + "}; \n"
+        )
+
+    unpack_section += "#endif\n"
+
+    header_content.append(
+        unpack_section + "#if defined(LLK_TRISC_PACK) && defined(TEST_KERNEL)\n"
         "volatile uint32_t* buffer_Res[TILE_CNT] = {" + buffer_res_str + "}; \n"
         "#endif\n"
     )
