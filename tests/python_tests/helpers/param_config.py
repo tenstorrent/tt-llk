@@ -322,7 +322,7 @@ def calculate_edgecase_dest_indices(
 
 def get_max_dst_index(dest_sync: DestSync, dest_acc: bool, result_tiles: int) -> int:
     DEST_SYNC_TILE_LIMITS = {
-        DestSync.Half: 8 if dest_acc else 4,
-        DestSync.Full: 16 if dest_acc else 8,
+        DestSync.Half: 8 if not dest_acc else 4,
+        DestSync.Full: 16 if not dest_acc else 8,
     }
     return max(DEST_SYNC_TILE_LIMITS[dest_sync] - result_tiles, 0)
