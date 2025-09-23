@@ -21,7 +21,7 @@ from helpers.param_config import get_max_dst_index
 # Configuration Classes
 # =========================
 @dataclass
-class TileDims:
+class TileDimensions:
     input_A_dimensions: Tuple[int, int]
     input_B_dimensions: Tuple[int, int]
     output_dimensions: Tuple[int, int]
@@ -50,8 +50,8 @@ class FaceLayoutConfig:
 
 
 @dataclass
-class MatmulDims:
-    tile_dimensions: TileDims
+class MatmulConfig:
+    tile_dimensions: TileDimensions
     face_layout_config: FaceLayoutConfig
     formats: FormatConfig
     stochastic_rnd: StochasticRounding
@@ -222,10 +222,10 @@ def skip_matmul_combination(
     return False
 
 
-def generate_tile_dims(dimension: Tuple[list, list]) -> TileDims:
+def generate_tile_dims(dimension: Tuple[list, list]) -> TileDimensions:
     inputA_dims, inputB_dims = dimension
     matmul_dimensions = calculate_matmul_dimensions(inputA_dims, inputB_dims)
-    return TileDims(
+    return TileDimensions(
         input_A_dimensions=inputA_dims,
         input_B_dimensions=inputB_dims,
         output_dimensions=matmul_dimensions["output_dimensions"],
@@ -305,7 +305,7 @@ def sweep_matmul(
     all_stochastic_modes: List[StochasticRounding] = [StochasticRounding.No],
     dest_sync_modes: List[DestSync] = [DestSync.Half],
     math_matmul: bool = False,
-) -> List[MatmulDims]:
+) -> List[MatmulConfig]:
     combinations = []
 
     # Cache dimensions to avoid redundant computation
@@ -350,7 +350,7 @@ def sweep_matmul(
                         )
                         for face_layout_config in face_layout_config_sweep:
 
-                            base_matmul_dims = MatmulDims(
+                            base_matmul_dims = MatmulConfig(
                                 tile_dimensions=tile_dims,
                                 face_layout_config=face_layout_config,
                                 formats=fmt,
@@ -364,7 +364,7 @@ def sweep_matmul(
 
                             if max_dst_index != 0 and math_matmul:
                                 # Create a new object with different dst_index since dataclass is immutable
-                                edge_case_dims = MatmulDims(
+                                edge_case_dims = MatmulConfig(
                                     tile_dimensions=tile_dims,
                                     face_layout_config=face_layout_config,
                                     formats=fmt,
@@ -384,7 +384,7 @@ def sweep_tiny_tiles_matmul(
     all_stochastic_modes: List[StochasticRounding] = [StochasticRounding.No],
     dest_sync_modes: List[DestSync] = [DestSync.Half],
     math_matmul: bool = False,
-) -> List[MatmulDims]:
+) -> List[MatmulConfig]:
     combinations = []
 
     configs = []
@@ -416,7 +416,7 @@ def sweep_tiny_tiles_matmul(
             # Generate tile dimensions for the tiny tiles
             inputA_dims, inputB_dims = dims
             matmul_dimensions = calculate_matmul_dimensions((32, 32), inputB_dims)
-            tile_dims = TileDims(
+            tile_dims = TileDimensions(
                 input_A_dimensions=(32, 32),
                 input_B_dimensions=inputB_dims,
                 output_dimensions=matmul_dimensions["output_dimensions"],
@@ -455,7 +455,7 @@ def sweep_tiny_tiles_matmul(
 
             for max_dst_idx in max_dst_indices:
                 combinations.append(
-                    MatmulDims(
+                    MatmulConfig(
                         tile_dimensions=tile_dims,
                         face_layout_config=face,
                         formats=config["fmt"],
