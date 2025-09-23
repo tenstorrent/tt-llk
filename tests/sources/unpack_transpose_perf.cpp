@@ -23,7 +23,6 @@ uint32_t math_sync_tile_dst_index = 0;
 void run_kernel()
 {
     constexpr uint32_t src_a = 0x1a000;
-    constexpr uint32_t src_b = 0x1e000;
 
     {
         ZONE_SCOPED("INIT")

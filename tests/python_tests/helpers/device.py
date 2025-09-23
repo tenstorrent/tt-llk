@@ -66,7 +66,7 @@ class BootMode(Enum):
     DEFAULT = "default"
 
 
-ARCH_DEFAULT_BOOT_MODE = {
+CHIP_DEFAULT_BOOT_MODES = {
     ChipArchitecture.WORMHOLE: BootMode.BRISC,
     ChipArchitecture.BLACKHOLE: BootMode.BRISC,
 }
@@ -159,7 +159,7 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
 def resolve_default_boot_mode(boot_mode: BootMode) -> BootMode:
     if boot_mode == BootMode.DEFAULT:
         CHIP_ARCH = get_chip_architecture()
-        boot_mode = ARCH_DEFAULT_BOOT_MODE[CHIP_ARCH]
+        boot_mode = CHIP_DEFAULT_BOOT_MODES[CHIP_ARCH]
     return boot_mode
 
 

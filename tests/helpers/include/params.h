@@ -14,9 +14,9 @@
 #include "perf.h"
 #include "tensix_types.h"
 
-inline uint32_t L1_ADDRESS(uint32_t buffer)
+inline uint32_t L1_ADDRESS(uint32_t buffer_address)
 {
-    return (buffer / 16) - 1;
+    return (buffer_address / 16) - 1;
 }
 
 namespace
