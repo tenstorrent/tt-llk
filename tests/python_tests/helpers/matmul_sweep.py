@@ -67,8 +67,14 @@ class MatmulConfig:
 
 def validate_tile_dimensions(dimension: int, row_col_dim: int):
     """Validate that dimension is divisible by row/col."""
-    if dimension % row_col_dim != 0:
-        raise AssertionError(f"{dimension} must be divisible by {row_col_dim}")
+    if dimension < 0:
+        raise ValueError(f"Dimension {dimension} must be positive!")
+    elif row_col_dim < 0:
+        raise ValueError(f"Row/col dimension {row_col_dim} must be positive!")
+    elif dimension % row_col_dim != 0:
+        raise ValueError(
+            f"Dimension {dimension} must be divisible by Row/Column {row_col_dim}"
+        )
 
 
 def calculate_matmul_dimensions(
