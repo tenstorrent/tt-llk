@@ -4,6 +4,7 @@
 import pytest
 import torch
 
+from conftest import skip_for_blackhole
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -24,6 +25,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
+@skip_for_blackhole
 @parametrize(
     test_name="unpack_custom_row_repeat",
     formats=input_output_formats(
