@@ -85,10 +85,18 @@ inline void _llk_unpack_AB_reduce_row_max_mop_config_(const bool transpose_of_fa
 {
     static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
+    // static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    
     constexpr uint32_t outerloop = 1;
-    const uint32_t innerloop     = num_faces;
+    const uint32_t innerloop     = num_faces - 1;
     ckernel_template tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
+    tmp.set_end_ops(unpack_srca_end_op, unpack_srcb_end_op);
     tmp.program(instrn_buffer);
 }
 
