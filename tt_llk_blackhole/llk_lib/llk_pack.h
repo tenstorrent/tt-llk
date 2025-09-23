@@ -573,7 +573,26 @@ inline void _llk_pack_reduce_hw_configure_(
     }
 }
 
-// Keep the 7-parameter version as template (new functionality)
+template <
+    bool untilize                = false,
+    bool zero_output             = false,
+    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
+    bool write_tile_header       = true,
+    bool tilize                  = false>
+inline void _llk_pack_init_(
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim = FACE_R_DIM,
+    const std::uint32_t tile_c_dim = TILE_C_DIM,
+    const std::uint32_t num_faces  = 4,
+    const bool partial_face        = false,
+    const bool narrow_tile         = false)
+{
+    _llk_pack_configure_addrmod_<untilize, tilize>();
+
+    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, tilize>(
+        pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+}
+
 template <
     bool untilize                = false,
     bool zero_output             = false,
@@ -590,31 +609,14 @@ inline void _llk_pack_init_(
     const bool narrow_tile         = false)
 {
     _llk_pack_configure_addrmod_<untilize, tilize>();
+
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, tilize>(
         pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+
     set_packer_strides<untilize, tilize>(pack_src_format, pack_dst_format, tile_c_dim);
+
     // Program packer to pack out 16 datums per row
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
-}
-
-// Make the 6-parameter version a wrapper that calls the 7-parameter version
-template <
-    bool untilize                = false,
-    bool zero_output             = false,
-    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
-    bool write_tile_header       = true,
-    bool tilize                  = false>
-inline void _llk_pack_init_(
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t tile_c_dim = TILE_C_DIM,
-    const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
-{
-    // Call the 7-parameter version with pack_dst_format as both src and dst
-    _llk_pack_init_<untilize, zero_output, FaceLayout, write_tile_header, tilize>(
-        pack_dst_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 }
 
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
