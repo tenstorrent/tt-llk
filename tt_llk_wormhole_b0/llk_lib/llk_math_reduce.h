@@ -394,32 +394,68 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
 }
 
-template <PoolType type, int MATH_FIDELITY_DESC>
+template <PoolType type, ReduceDim dim, int MATH_FIDELITY_DESC>
 inline void reduce_configure_addrmod()
 {
     constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr int FIDELITY_INCREMENT  = get_math_fidelity_increment(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY      = NUM_FIDELITY_PHASES > 0;
 
-    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 1},
-        .dest = {.incr = 1},
-    }
-        .set(ADDR_MOD_1);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 8},
-        .dest = {.incr = 8},
-    }
-        .set(ADDR_MOD_2);
-
-    if constexpr (HIGH_FIDELITY)
+    if constexpr (dim == ReduceDim::REDUCE_ROW || type == PoolType::MAX)
     {
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
+        addr_mod_t {
+            .srca = {.incr = 0, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 0, .cr = 0},
+            .dest = {.incr = 0, .clr = 0, .cr = 0},
+            .fidelity = {.incr = 0, .clr = 1}
+        }
+            .set(ADDR_MOD_0);
+        
+        addr_mod_t {
+            .srca = {.incr = 8, .clr = 0, .cr = 1},
+            .srcb = {.incr = 0, .clr = 1, .cr = 0},
+            .dest = {.incr = 0, .clr = 0, .cr = 0},
+        }
+            .set(ADDR_MOD_1);
+
+        addr_mod_t {
+            .srca = {.incr = 0, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 0, .cr = 0},
+            .dest = {.incr = 4, .clr = 0, .cr = 1},
+        }
+            .set(ADDR_MOD_2);
+
+        addr_mod_t {
+            .srca = {.incr = 0, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 0, .cr = 0},
+            .dest = {.incr = 0, .clr = 0, .cr = 0},
+        }
+            .set(ADDR_MOD_3);
+
+    }
+    else
+    {
+    
+        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
+    
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 1},
+            .dest = {.incr = 1},
+        }
+            .set(ADDR_MOD_1);
+    
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 8},
+            .dest = {.incr = 8},
+        }
+            .set(ADDR_MOD_2);
+    
+        if constexpr (HIGH_FIDELITY)
+        {
+            addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
+        }
     }
 }
 
@@ -442,87 +478,103 @@ inline void reduce_configure_mop()
     }
 }
 
-template <int MATH_FIDELITY_DESC = 0>
-inline void _llk_math_reduce_max_row_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+inline void reduce_max_row_configure_addrmod()
 {
-    constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
+    addr_mod_t {
+        .srca = {.incr = 0, .clr = 0, .cr = 0},
+        .srcb = {.incr = 0, .clr = 0, .cr = 0},
+        .dest = {.incr = 0, .clr = 0, .cr = 0},
+        .fidelity = {.incr = 0, .clr = 1}
+    }
+        .set(ADDR_MOD_0);
+    
+    addr_mod_t {
+        .srca = {.incr = 8, .clr = 0, .cr = 1},
+        .srcb = {.incr = 0, .clr = 1, .cr = 0},
+        .dest = {.incr = 0, .clr = 0, .cr = 0},
+    }
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = 0, .clr = 0, .cr = 0},
+        .srcb = {.incr = 0, .clr = 0, .cr = 0},
+        .dest = {.incr = 4, .clr = 0, .cr = 1},
+    }
+        .set(ADDR_MOD_2);
+
+}
+
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+template <bool first = true>
+inline void _llk_math_reduce_max_row_(const uint dst_index)
+{
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
     // Transpose for each face in src A done at unpacker, and pool
     // Pool the first 16x16 face, clear AB valid bits, 1x16 row is in DEST row 0 for future accumulations
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+    // ADDR_MOD_1 will do the same as SETRWC after it, increment CR_A and SrcA counter val by 8
+    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
     // Pool the second 16x16 face, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    // Note: ADDR_MOD_1 increments CR_A and SrcA counter val by 8, but also clears CR_B and B counter val to 0, for MOVD2B
+    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
 
     // Move back to B and transpose
-    // we avoid clobbering weights in src B by moving to rows 16 - 31, so we first B counter to 0
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_B);
     // move row 0 from DEST to B with offset of 16 rows (has F0 and F1 pooled together into a single row)
     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
     // Note: transpose on src B on works on rows 16 - 31
     TTI_TRNSPSRCB;
-    // Seems unnecessary since this row is already in DEST for future accumulations, I'll comment it out for now
-    // TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-
-    // Old way, face by face processing:
-    // // Since SrcB counter is still 0, increment to point to row 16
-    // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
-    // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
-    // // Clear src A
-    // TTI_ZEROSRC(0, 1, 0, 1);
-    // // Add 8x16 datums from SrcB with zeroes from SrcA, ADDR_MOD_2 increments only SrcB counter
-    // TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
-    // // Add another 8x16 datums from SrcB with zeroes from SrcA, now we have 16x16 face in DEST
-    // TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
+    // Important to move row again for cases of reducing across multiple tiles
+    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
 
     // New way, suitable for working with 4 faces at a time:
-    TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
-    TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
-    TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
-    TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+    // ADDR_MOD_2 increments CR_D and Dest counter val by 4, so that's why we always
+    // move SrcB to DEST location '0'. It's not really 0, but 0, 4, 8, 12
+    TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
 
-    // Need to increment DEST counter by 32, to point to F2
+    // Need to increment DEST counter by another 16, since it's already at 16, to point to F2
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
+    // Increment CrA and SrcA counters as well, to avoid having to do it manually before the next GMPOOL
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_AD, 8, 0, 8, p_setrwc::SET_AD);
 
     // Now we process F2 and F3
 
     // Pool F2, clear AB valid bits, 1x16 row is in DEST row 32 for future accumulations
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
     // Pool F3, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    // Note: ADDR_MOD_1 increments CR_A and SrcA counter val by 8, but also clears CR_B and B counter val to 0, for MOVD2B
+    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
 
     // Move back to B and transpose
-    // we avoid clobbering weights in src B by moving to rows 16 - 31, so we first clear B counter to 0
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_B);
     // move row 32 from DEST to B with offset of 16 rows (has F2 and F3 pooled together into a single row)
     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
     // Note: transpose on src B on works on rows 16 - 31
     TTI_TRNSPSRCB;
-    // Seems unnecessary since this row is already in DEST for future accumulations, I'll comment it out for now
-    // TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    // Important to move row again for cases of reducing across multiple tiles
+    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
 
-    // Old way, face by face processing:
-    // // Since SrcB counter is still 0, increment to point to row 16
-    // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
-    // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_B, 0, 8, 0, p_setrwc::SET_B);
-    // // Clear src A
-    // TTI_ZEROSRC(0, 1, 0, 1);
-    // // Add 8x16 datums from SrcB with zeroes from SrcA, ADDR_MOD_2 increments only SrcB counter
-    // TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
-    // // Add another 8x16 datums from SrcB with zeroes from SrcA, now we have 16x16 face in DEST
-    // TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
     // Reset counters to 0 for next accumulation
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
+    if constexpr (first)
+    {
+        // if first time, reset all counters to 0 and clear both A and B dvalid bits
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    }
+    else
+    {
+        // if not, reset all counters to 0 and clear only A dvalid bit
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    }
 }
 
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
@@ -532,7 +584,7 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
-    reduce_configure_addrmod<type, MATH_FIDELITY_DESC>();
+    reduce_configure_addrmod<type, dim, MATH_FIDELITY_DESC>();
     if constexpr (HIGH_FIDELITY)
     {
         reduce_configure_mop<dim, MATH_FIDELITY_PHASES>();
@@ -545,6 +597,16 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
         // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
     }
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+inline void _llk_math_reduce_max_row_init_()
+{ 
+    reduce_max_row_configure_addrmod();
+    
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);

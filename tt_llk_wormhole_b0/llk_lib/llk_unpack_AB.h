@@ -80,26 +80,35 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
 }
 
-template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_reduce_row_max_mop_config_(const bool transpose_of_faces = false, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+inline void _llk_unpack_AB_reduce_row_max_mop_config_()
 {
-    // Move a 16x16 face from L1 to SrcA and SrcB, setting the Dvalid bit for both, telling the MATH it can consume them,
-    // static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    // static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    // // Final iteration of the macro-op is the same for now
-    // static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    // static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-    // Commented out for now. The idea is to have three sets of unpack_srca and unpack_srcb and not to set Dvalid bits
+    // Unpack three faces of operand into SrcA
     static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    // Then, the last two instructions after the macro-op inner loop is finished, will set the Dvalid bits.
+    // Unpack last face of the operant into SrcA and a single face of scaler in SrcB, will set the Dvalid bits.
     static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     
     constexpr uint32_t outerloop = 1;
-    const uint32_t innerloop     = num_faces - 1;
-    ckernel_template tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
+    const uint32_t innerloop     = 3;
+    ckernel_template tmp(outerloop, innerloop, unpack_srca);
+    tmp.set_end_ops(unpack_srca_end_op, unpack_srcb_end_op);
+    tmp.program(instrn_buffer);
+}
+
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+inline void _llk_unpack_A_reduce_row_max_mop_config_()
+{
+    // Unpack three faces of operand into SrcA
+    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // Unpack last face of the operant into SrcA and a single face of scaler in SrcB, will set the Dvalid bits.
+    static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srcb_end_op = TT_OP_SETDVALID(0b10);
+    // static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    
+    constexpr uint32_t outerloop = 1;
+    const uint32_t innerloop     = 3;
+    ckernel_template tmp(outerloop, innerloop, unpack_srca);
     tmp.set_end_ops(unpack_srca_end_op, unpack_srcb_end_op);
     tmp.program(instrn_buffer);
 }
@@ -153,12 +162,18 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     if (0 == unp_cfg_context)
     {
         cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+        if constexpr (first)
+        {
+            cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+        }
     }
     else
     {
         cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+        if constexpr (first)
+        {
+            cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+        }
     }
 
     // Trisc::SEMPOST for context acquire
