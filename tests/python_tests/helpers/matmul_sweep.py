@@ -14,10 +14,7 @@ from helpers.format_arg_mapping import (
     Transpose,
 )
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.param_config import (
-    calculate_edgecase_dest_indices,
-    get_max_dst_index,
-)
+from helpers.param_config import get_max_dst_index
 
 
 # =========================
@@ -447,22 +444,23 @@ def sweep_tiny_tiles_matmul(
                 partial_face_B=False,  # same for math
             )
 
-            max_dst_indices = calculate_edgecase_dest_indices(
+            max_dst_index = get_max_dst_index(
+                config["dest_sync"],
                 config["dest_acc"] == DestAccumulation.Yes,
                 tile_dims.tile_cnt,
-                [config["dest_sync"]],
             )
-            if not math_matmul:
-                max_dst_indices = max_dst_indices[:1]
+            max_dst_indices = [0]
+            if math_matmul and max_dst_index != 0:
+                max_dst_indices.append(max_dst_index)
 
-            for _, max_dst_index in max_dst_indices:
+            for max_dst_idx in max_dst_indices:
                 combinations.append(
                     MatmulDims(
                         tile_dimensions=tile_dims,
                         face_layout_config=face,
                         formats=config["fmt"],
                         stochastic_rnd=config["stochastic_mode"],
-                        dst_index=max_dst_index,
+                        dst_index=max_dst_idx,
                         dest_sync=config["dest_sync"],
                         dest_acc=config["dest_acc"],
                     )
