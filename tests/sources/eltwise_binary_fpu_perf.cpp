@@ -25,9 +25,6 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    constexpr uint32_t src_a = 0x1a000;
-    constexpr uint32_t src_b = 0x1e000;
-
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, 8, false, 4);
@@ -48,7 +45,7 @@ void run_kernel()
         {
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
-                _llk_unpack_AB_<>(L1_ADDRESS(src_a + (tile % 8) * 0x1000), L1_ADDRESS(src_b + (tile % 8) * 0x1000), false); // TODO SS<-LP use PERF_ADDRESS here
+                _llk_unpack_AB_<>(PERF_ADDRESS(PERF_INPUT_A, tile), PERF_ADDRESS(PERF_INPUT_B, tile), false);
             }
         }
         PROFILER_SYNC();
@@ -112,7 +109,6 @@ void run_kernel()
 
 void run_kernel()
 {
-    constexpr uint32_t dst = 0x1E000;
     {
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
@@ -130,7 +126,7 @@ void run_kernel()
         {
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, PERF_ADDRESS(PERF_OUTPUT, tile));
             }
         }
         else
@@ -138,7 +134,7 @@ void run_kernel()
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
                 _llk_packer_wait_for_math_done_();
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(dst + (tile % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, PERF_ADDRESS(PERF_OUTPUT, tile));
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
