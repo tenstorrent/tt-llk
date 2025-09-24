@@ -12,7 +12,6 @@ from .device import (
     wait_for_tensix_operations_finished,
 )
 from .dimensions import validate_tile_dimensions
-
 from .format_arg_mapping import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
