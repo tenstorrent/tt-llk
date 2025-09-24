@@ -158,7 +158,7 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
  *************************************************************************/
 
 template <bool is_fp32_dest_acc_en>
-inline void _llk_unpack_AB_col_tile_hw_config(
+inline void _llk_unpack_AB_sub_bcast_row_hw_config(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,
     const std::uint32_t unpA_dst_format,
@@ -173,7 +173,7 @@ inline void _llk_unpack_AB_col_tile_hw_config(
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_col_tile_mop_config_()
+inline void _llk_unpack_AB_sub_bcast_row_mop_config_()
 {
     // Setup address modifiers for unpacker instructions
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
@@ -207,7 +207,7 @@ inline void _llk_unpack_AB_col_tile_mop_config_()
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_col_tile_init()
+inline void _llk_unpack_AB_sub_bcast_row_init()
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
 
@@ -249,11 +249,11 @@ inline void _llk_unpack_AB_col_tile_init()
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
 
-    _llk_unpack_AB_col_tile_mop_config_<BroadcastType::NONE>();
+    _llk_unpack_AB_sub_bcast_row_mop_config_<BroadcastType::NONE>();
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_col_tile_(const std::uint32_t address_a, const std::uint32_t address_b)
+inline void _llk_unpack_AB_sub_bcast_row_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);                              // reset counters
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear Y counter on src side

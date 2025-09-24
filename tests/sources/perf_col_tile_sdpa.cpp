@@ -31,9 +31,9 @@ void run_kernel()
 
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_AB_col_tile_hw_config<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
-        _llk_unpack_AB_col_tile_init<>();
-        tensix_sync(); // -> perf
+        _llk_unpack_AB_sub_bcast_row_hw_config<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+        _llk_unpack_AB_sub_bcast_row_init<>();
+        PROFILER_SYNC(); // -> perf
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -49,10 +49,10 @@ void run_kernel()
         {
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
-                _llk_unpack_AB_col_tile_<>(L1_ADDRESS(src_a), L1_ADDRESS(src_b));
+                _llk_unpack_AB_sub_bcast_row_<>(L1_ADDRESS(src_a), L1_ADDRESS(src_b));
             }
         }
-        tensix_sync(); // -> perf
+        PROFILER_SYNC(); // -> perf
     }
 }
 
@@ -69,8 +69,8 @@ void run_kernel()
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-        _llk_math_eltwise_binary_col_tile_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>();
-        tensix_sync(); // -> perf
+        _llk_math_eltwise_binary_sub_bcast_row_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>();
+        PROFILER_SYNC(); // -> perf
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -95,7 +95,7 @@ void run_kernel()
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                _llk_math_eltwise_binary_col_tile<
+                _llk_math_eltwise_binary_sub_bcast_row<
                     ELTWISE_BINARY_OP,
                     BroadcastType::NONE,
                     DstSync::SyncHalf,
@@ -105,7 +105,7 @@ void run_kernel()
                 _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
-        tensix_sync(); // -> perf
+        PROFILER_SYNC(); // -> perf
     }
 }
 
@@ -124,7 +124,7 @@ void run_kernel()
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
         _llk_pack_init_<>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        tensix_sync(); // -> perf
+        PROFILER_SYNC(); // -> perf
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -148,7 +148,7 @@ void run_kernel()
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
-        tensix_sync(); // -> perf
+        PROFILER_SYNC(); // -> perf
     }
 }
 

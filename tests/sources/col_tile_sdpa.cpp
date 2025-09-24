@@ -23,12 +23,12 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_AB_col_tile_hw_config<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
-    _llk_unpack_AB_col_tile_init<>();
+    _llk_unpack_AB_sub_bcast_row_hw_config<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+    _llk_unpack_AB_sub_bcast_row_init<>();
 
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_unpack_AB_col_tile_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+        _llk_unpack_AB_sub_bcast_row_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
 }
 
@@ -44,12 +44,12 @@ void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-    _llk_math_eltwise_binary_col_tile_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>();
+    _llk_math_eltwise_binary_sub_bcast_row_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>();
 
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_binary_col_tile<
+        _llk_math_eltwise_binary_sub_bcast_row<
             ELTWISE_BINARY_OP,
             BroadcastType::NONE,
             DstSync::SyncHalf,
