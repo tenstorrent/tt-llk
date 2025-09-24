@@ -413,13 +413,13 @@ inline void reduce_configure_addrmod()
         
         addr_mod_t {
             .srca = {.incr = 8, .clr = 0, .cr = 1},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 1, .cr = 0},
             .dest = {.incr = 0, .clr = 0, .cr = 0},
         }
             .set(ADDR_MOD_1);
 
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
+            .srca = {.incr = 8, .clr = 0, .cr = 1},
             .srcb = {.incr = 0, .clr = 0, .cr = 0},
             .dest = {.incr = 0, .clr = 0, .cr = 0},
         }
@@ -489,11 +489,12 @@ inline void _llk_math_reduce_max_row_(const uint dst_index)
     // Pool the second 16x16 face, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
     // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    // Note: ADDR_MOD_1 increments CR_A and SrcA counter val by 8, but also clears CR_B and B counter val to 0, for MOVD2B
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
 
     // Move back to B and transpose
-    // we avoid clobbering weights in src B by moving to rows 16 - 31, so we first B counter to 0
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_B);
+    // we avoid clobbering weights in src B by moving to rows 16 - 31, so we first clear B counter to 0
+    // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CLR_NONE, 0, 0, 0, p_setrwc::SET_B);
     // move row 0 from DEST to B with offset of 16 rows (has F0 and F1 pooled together into a single row)
     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
     // Note: transpose on src B on works on rows 16 - 31
@@ -537,7 +538,7 @@ inline void _llk_math_reduce_max_row_(const uint dst_index)
 
     // Move back to B and transpose
     // we avoid clobbering weights in src B by moving to rows 16 - 31, so we first clear B counter to 0
-    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_B);
+    // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_B);
     // move row 32 from DEST to B with offset of 16 rows (has F2 and F3 pooled together into a single row)
     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
     // Note: transpose on src B on works on rows 16 - 31
