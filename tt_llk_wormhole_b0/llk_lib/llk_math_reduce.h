@@ -394,41 +394,68 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
 }
 
-template <PoolType type, int MATH_FIDELITY_DESC>
+template <PoolType type, ReduceDim dim, int MATH_FIDELITY_DESC>
 inline void reduce_configure_addrmod()
 {
     constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr int FIDELITY_INCREMENT  = get_math_fidelity_increment(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY      = NUM_FIDELITY_PHASES > 0;
 
-    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 1},
-        .dest = {.incr = 1},
-    }
-        .set(ADDR_MOD_1);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 8},
-        .dest = {.incr = 8},
-    }
-        .set(ADDR_MOD_2);
-
-    if constexpr (HIGH_FIDELITY)
+    if constexpr (dim == ReduceDim::REDUCE_ROW || type == PoolType::MAX)
     {
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
-    }
-    else
-    {
+        addr_mod_t {
+            .srca = {.incr = 0, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 0, .cr = 0},
+            .dest = {.incr = 0, .clr = 0, .cr = 0},
+            .fidelity = {.incr = 0, .clr = 1}
+        }
+            .set(ADDR_MOD_0);
+        
         addr_mod_t {
             .srca = {.incr = 8, .clr = 0, .cr = 1},
             .srcb = {.incr = 0, .clr = 0, .cr = 0},
             .dest = {.incr = 0, .clr = 0, .cr = 0},
         }
+            .set(ADDR_MOD_1);
+
+        addr_mod_t {
+            .srca = {.incr = 0, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 0, .cr = 0},
+            .dest = {.incr = 0, .clr = 0, .cr = 0},
+        }
+            .set(ADDR_MOD_2);
+
+        addr_mod_t {
+            .srca = {.incr = 0, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 0, .cr = 0},
+            .dest = {.incr = 0, .clr = 0, .cr = 0},
+        }
             .set(ADDR_MOD_3);
+
+    }
+    else
+    {
+    
+        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
+    
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 1},
+            .dest = {.incr = 1},
+        }
+            .set(ADDR_MOD_1);
+    
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 8},
+            .dest = {.incr = 8},
+        }
+            .set(ADDR_MOD_2);
+    
+        if constexpr (HIGH_FIDELITY)
+        {
+            addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
+        }
     }
 }
 
@@ -457,11 +484,12 @@ inline void _llk_math_reduce_max_row_(const uint dst_index)
 
     // Transpose for each face in src A done at unpacker, and pool
     // Pool the first 16x16 face, clear AB valid bits, 1x16 row is in DEST row 0 for future accumulations
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
+    // ADDR_MOD_1 will do the same as SETRWC after it, increment CR_A and SrcA counter val by 8
+    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
     // Pool the second 16x16 face, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
     // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
+    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
 
     // Move back to B and transpose
     // we avoid clobbering weights in src B by moving to rows 16 - 31, so we first B counter to 0
@@ -501,11 +529,11 @@ inline void _llk_math_reduce_max_row_(const uint dst_index)
     // Pool F2, clear AB valid bits, 1x16 row is in DEST row 32 for future accumulations
     // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
+    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
     // Pool F3, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
     // TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
+    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
 
     // Move back to B and transpose
     // we avoid clobbering weights in src B by moving to rows 16 - 31, so we first clear B counter to 0
@@ -543,7 +571,7 @@ inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpo
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
-    reduce_configure_addrmod<type, MATH_FIDELITY_DESC>();
+    reduce_configure_addrmod<type, dim, MATH_FIDELITY_DESC>();
     if constexpr (HIGH_FIDELITY)
     {
         reduce_configure_mop<dim, MATH_FIDELITY_PHASES>();
