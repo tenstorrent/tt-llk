@@ -465,8 +465,8 @@ inline void _llk_math_reduce_max_row_(const uint dst_index, bool narrow_tile = f
     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
     // Note: transpose on src B on works on rows 16 - 31
     TTI_TRNSPSRCB;
-    // Seems unnecessary since this row is already in DEST for future accumulations, I'll comment it out for now
-    // TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    // Important to move row again for cases of reducing across multiple tiles
+    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
 
     // Old way, face by face processing:
     // // Since SrcB counter is still 0, increment to point to row 16
@@ -509,8 +509,8 @@ inline void _llk_math_reduce_max_row_(const uint dst_index, bool narrow_tile = f
     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
     // Note: transpose on src B on works on rows 16 - 31
     TTI_TRNSPSRCB;
-    // Seems unnecessary since this row is already in DEST for future accumulations, I'll comment it out for now
-    // TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    // Important to move row again for cases of reducing across multiple tiles
+    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
 
     // Old way, face by face processing:
     // // Since SrcB counter is still 0, increment to point to row 16
