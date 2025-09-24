@@ -416,7 +416,7 @@ template <
     BroadcastType bcast_type,
     int NUM_FIDELITY_PHASES                      = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void eltwise_binary_col_tile_configure_mop()
+inline void eltwise_binary_sub_bcast_row_configure_mop()
 {
     /*
 
@@ -440,7 +440,7 @@ inline void eltwise_binary_col_tile_configure_mop()
 }
 
 template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
-inline void eltwise_binary_col_tile_configure_addrmod()
+inline void eltwise_binary_sub_bcast_row_configure_addrmod()
 {
     addr_mod_t {
         .srca = {.incr = 0},
@@ -462,9 +462,9 @@ template <
     BroadcastType src_b_bcast_type,
     int MATH_FIDELITY_DESC                       = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_col_tile_init_()
+inline void _llk_math_eltwise_binary_sub_bcast_row_init_()
 {
-    eltwise_binary_col_tile_configure_addrmod<EltwiseBinaryType::ELWSUB, BroadcastType::NONE, 0>();
+    eltwise_binary_sub_bcast_row_configure_addrmod<EltwiseBinaryType::ELWSUB, BroadcastType::NONE, 0>();
 
     /*
         Rpelay buffer initially takes 11 instructions into it but
@@ -473,7 +473,7 @@ inline void _llk_math_eltwise_binary_col_tile_init_()
         to preserve form of reusing srcB for different srcA inputs.
 
         When this function is called once everything is ready for op to execute,
-        but if between two calls of _llk_math_eltwise_binary_col_tile some other
+        but if between two calls of _llk_math_eltwise_binary_sub_bcast_row some other
         function modifies replay buffer this init will need to be called again.
 
     */
@@ -501,7 +501,7 @@ inline void _llk_math_eltwise_binary_col_tile_init_()
 
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
 
-    eltwise_binary_col_tile_configure_mop<EltwiseBinaryType::ELWSUB, BroadcastType::NONE>();
+    eltwise_binary_sub_bcast_row_configure_mop<EltwiseBinaryType::ELWSUB, BroadcastType::NONE>();
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
@@ -515,7 +515,7 @@ template <
     bool is_fp32_dest_acc_en,
     int NUM_FIDELITY_PHASES                      = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_col_tile(uint dst_index)
+inline void _llk_math_eltwise_binary_sub_bcast_row(uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
