@@ -518,6 +518,7 @@ inline void _llk_math_reduce_max_row_(const uint dst_index)
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
     // Pool F3, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    // Note: ADDR_MOD_1 increments CR_A and SrcA counter val by 8, but also clears CR_B and B counter val to 0, for MOVD2B
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
 
     // Move back to B and transpose
