@@ -183,6 +183,7 @@ def test_math_matmul(test_name, math_fidelity, matmul_config, throttle):
         "tiny_tiles": matmul_config.tile_dimensions.in0_tile_r_dim <= 16,
         "throttle": throttle,
         "dst_index": matmul_config.dst_index,
+        "dest_sync": matmul_config.dest_sync,
     }
 
     res_address = write_stimuli_to_l1(

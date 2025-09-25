@@ -451,7 +451,7 @@ def sweep_tiny_tiles_matmul(
                         face_layout_config=face,
                         formats=config["fmt"],
                         stochastic_rnd=config["stochastic_mode"],
-                        dst_index=max_dst_idx,
+                        dst_index=min(max_dst_idx, 3) if math_matmul else max_dst_idx,
                         dest_sync=config["dest_sync"],
                         dest_acc=config["dest_acc"],
                     )
