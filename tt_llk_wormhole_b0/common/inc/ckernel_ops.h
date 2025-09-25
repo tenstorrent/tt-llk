@@ -973,12 +973,12 @@
 #else
 // This file is included from non-compute cores, but any direct use of
 // these macros is going to end badly.
-#define LLTT_INSN(ENCODING) ((void)(ENCODING), __builtin_unreachable())
+#define LLTT_INSN(STATIC, ENCODING) ((void)(ENCODING), __builtin_unreachable())
 #endif
 
 #if defined (LLTT_INSN)
-#define TTI_INSN(ENCODING) LLTT_INSN(ENCODING)
-#define TT_INSN(ENCODING) LLTT_INSN(ENCODING)
+#define TTI_INSN(ENCODING) LLTT_INSN(true, ENCODING)
+#define TT_INSN(ENCODING) LLTT_INSN(false, ENCODING)
 #else
 // Old lltt that does not provide lltt:ttinsn and associated macro.
 #define TTI_INSN(ENCODING) __asm__ __volatile__(".ttinsn %0" : : "n"((ENCODING)))
