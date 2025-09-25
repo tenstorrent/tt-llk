@@ -408,7 +408,7 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
 }
 
 /*************************************************************************
- * LLK COL - TILE eltwise subtraction implementation for SDPA
+ * LLK sub_bcast_row_tile unpacker implementation for SDPA
  *************************************************************************/
 
 template <
