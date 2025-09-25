@@ -236,7 +236,12 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
             )
         case BootMode.EXALENS:
             exalens_device_setup(CHIP_ARCH, device_id, location)
-            set_tensix_soft_reset(0, ALL_CORES, location=location, device_id=device_id)
+            set_tensix_soft_reset(
+                0,
+                [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2],
+                location=location,
+                device_id=device_id,
+            )
 
 
 def write_stimuli_to_l1(

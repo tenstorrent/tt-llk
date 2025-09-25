@@ -177,8 +177,12 @@ $(SHARED_OBJ_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S | $(SHARED_OBJ_DIR) $(SHARED
 
 # create a stamp file to track build parameters
 PARAMS := BOOT_MODE=$(BOOT_MODE) PROFILER_BUILD=$(PROFILER_BUILD)
-$(BUILD_DIR)/params.stamp: always
+$(BUILD_DIR)/params.stamp: always | $(BUILD_DIR)
 	echo "$(PARAMS)" | cmp -s - $@ || echo "$(PARAMS)" > $@
+
+# create folder structure root for stamp file
+$(BUILD_DIR):
+	mkdir -p $@
 
 # create folder structure for shared files
 $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
