@@ -507,6 +507,7 @@ inline void reduce_max_row_configure_addrmod()
 }
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+template <bool first = true>
 inline void _llk_math_reduce_max_row_(const uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
@@ -564,7 +565,16 @@ inline void _llk_math_reduce_max_row_(const uint dst_index)
     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
     // Reset counters to 0 for next accumulation
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    if constexpr (first)
+    {
+        // if first time, reset all counters to 0 and clear both A and B dvalid bits
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    }
+    else
+    {
+        // if not, reset all counters to 0 and clear only A dvalid bit
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    }
 }
 
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>

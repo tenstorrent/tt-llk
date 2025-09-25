@@ -96,6 +96,23 @@ inline void _llk_unpack_AB_reduce_row_max_mop_config_()
     tmp.program(instrn_buffer);
 }
 
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+inline void _llk_unpack_A_reduce_row_max_mop_config_()
+{
+    // Unpack three faces of operand into SrcA
+    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // Unpack last face of the operant into SrcA and a single face of scaler in SrcB, will set the Dvalid bits.
+    static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srcb_end_op = TT_OP_SETDVALID(0b10);
+    // static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    
+    constexpr uint32_t outerloop = 1;
+    const uint32_t innerloop     = 3;
+    ckernel_template tmp(outerloop, innerloop, unpack_srca);
+    tmp.set_end_ops(unpack_srca_end_op, unpack_srcb_end_op);
+    tmp.program(instrn_buffer);
+}
+
 template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
 inline void _llk_unpack_AB_hw_configure_(
     const std::uint32_t unpA_src_format,
@@ -130,7 +147,7 @@ inline void _llk_unpack_AB_init_(
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
 }
 
-template <BroadcastType BType = BroadcastType::NONE>
+template <BroadcastType BType = BroadcastType::NONE, bool first = true>
 inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b, const bool transpose_of_faces = 0 /*not used*/)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
@@ -145,12 +162,18 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     if (0 == unp_cfg_context)
     {
         cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+        if constexpr (first)
+        {
+            cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+        }
     }
     else
     {
         cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+        if constexpr (first)
+        {
+            cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+        }
     }
 
     // Trisc::SEMPOST for context acquire
