@@ -8,8 +8,10 @@
 
 inline void device_setup()
 {
-#ifdef ARCH_BLACKHOLE
+#if defined(ARCH_BLACKHOLE) && !defined(ARCH_QUASAR) // Ugly hack for now
     ckernel::reg_write(RISCV_DEBUG_REG_DEST_CG_CTRL, 0);
+#endif
+#if defined(ARCH_BLACKHOLE) || defined(ARCH_QUASAR)
     TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0, 1, 0);
 #else
     TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0);
@@ -22,15 +24,17 @@ inline void device_setup()
     // Set default sfpu constant register state
     TTI_SFPCONFIG(0, 11, 1); // loading -1 to LREG11 where sfpi expects it
 
+#ifndef ARCH_QUASAR
     // Initialize tensix semaphores
     TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
     TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
     TTI_SEMINIT(1, 0, ckernel::semaphore::PACK_DONE);
+#endif
 }
 
 inline void clear_trisc_soft_reset()
 {
-    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7800;
 
     uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
     soft_reset &= ~TRISC_SOFT_RESET_MASK;
