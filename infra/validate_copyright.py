@@ -246,25 +246,53 @@ class CopyrightValidator:
 
     def _detect_comment_style(self, lines: List[str], file_path: Path = None) -> str:
         """Detect the comment style used in the file."""
-        # First check existing comments in the file
+        # Prioritize file extension for reliability, then check existing comments
+        if file_path:
+            ext = file_path.suffix.lower()
+            if ext in {".ld"}:
+                # For .ld files, check if there are existing C-style comments
+                for line in lines[:5]:
+                    line = line.strip()
+                    if line.startswith("/*") or line.startswith(" *"):
+                        return "c_block"
+                    elif line.startswith("//"):
+                        return "cpp"
+                # Default to C block for .ld files
+                return "c_block"
+            elif ext in {".py"}:
+                return "python"
+            else:  # .h, .hpp, .cpp, .cc - these are C/C++ files
+                # Check if there are existing C-style block comments
+                for line in lines[:5]:
+                    line = line.strip()
+                    if line.startswith("/*") or line.startswith(" *"):
+                        return "c_block"
+                    elif line.startswith("//"):
+                        return "cpp"
+                # Default to C++ style for C/C++ files
+                return "cpp"
+
+        # Fallback to content-based detection if no file extension
         for line in lines[:5]:
             line = line.strip()
             if line.startswith("/*") or line.startswith(" *"):
                 return "c_block"
             elif line.startswith("//"):
                 return "cpp"
-            elif line.startswith("#") and not line.startswith("#pragma"):
+            elif line.startswith("#") and not line.startswith(
+                (
+                    "#pragma",
+                    "#include",
+                    "#define",
+                    "#ifdef",
+                    "#ifndef",
+                    "#endif",
+                    "#if",
+                    "#else",
+                    "#elif",
+                )
+            ):
                 return "python"
-
-        # Default based on file extension if no comments found
-        if file_path:
-            ext = file_path.suffix.lower()
-            if ext in {".ld"}:
-                return "c_block"
-            elif ext in {".py"}:
-                return "python"
-            else:  # .h, .hpp, .cpp, .cc
-                return "cpp"
 
         # Final fallback
         return "cpp"
@@ -308,6 +336,10 @@ class CopyrightValidator:
 
     def _find_header_insert_position(self, lines: List[str], comment_style: str) -> int:
         """Find the best position to insert copyright header."""
+        # Check if first line is a proper shebang
+        if lines and lines[0].startswith("#!/"):
+            # Insert after shebang line
+            return 1
         # Insert at the very beginning for most cases
         return 0
 
