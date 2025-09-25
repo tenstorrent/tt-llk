@@ -50,7 +50,7 @@ class CopyrightValidator:
 
     # Pre-compiled regex patterns for better performance
     SPDX_COPYRIGHT_PATTERN = re.compile(
-        r"^\s*(?://|#|\*)\s*SPDX-FileCopyrightText:\s*(?:©|\(c\))\s*(\d{4}(?:-\d{4})?)\s+(.+?)(\.?)\s*$",
+        r"^\s*(?://|#|\*)\s*SPDX-FileCopyrightText:\s*(?:©|\(c\))\s*(\d{4}(?:-\d{4})?)\s+([^/]+?)\.?\s*(?://.*)?$",
         re.IGNORECASE,
     )
 
@@ -110,8 +110,8 @@ class CopyrightValidator:
                 copyright_lines.append(line.strip())
 
                 # Validate company name - check for forbidden "Tenstorrent Inc."
-                year_part, company_part, period_part = copyright_match.groups()
-                company_name = company_part.strip()
+                year_part, company_part = copyright_match.groups()
+                company_name = company_part.strip().rstrip(".")
 
                 # Check if this is a Tenstorrent copyright
                 if "tenstorrent" in company_name.lower():
@@ -190,15 +190,22 @@ class CopyrightValidator:
 
             copyright_match = self.SPDX_COPYRIGHT_PATTERN.match(line)
             if copyright_match:
-                year_part, company_part, period_part = copyright_match.groups()
-                company_name = company_part.strip()
+                year_part, company_part = copyright_match.groups()
+                company_name = company_part.strip().rstrip(".")
 
                 if "tenstorrent inc" in company_name.lower():
-                    # Replace the company name, handling the period properly
+                    # Replace the company name using targeted regex substitution
                     new_company = self.EXPECTED_COMPANY
-                    # Replace the company part with optional period
-                    company_with_period = company_part + period_part
-                    new_line = line.replace(company_with_period, new_company)
+
+                    # Create a pattern specifically for replacing Tenstorrent Inc
+                    tenstorrent_pattern = re.compile(
+                        r"(^\s*(?://|#|\*)\s*SPDX-FileCopyrightText:\s*(?:©|\(c\))\s*\d{4}(?:-\d{4})?\s+)(Tenstorrent Inc\.?)(\s*.*$)",
+                        re.IGNORECASE,
+                    )
+
+                    new_line = tenstorrent_pattern.sub(
+                        lambda m: m.group(1) + new_company + m.group(3), line
+                    )
                     fixed_lines[i] = new_line
                     fixes_applied.append(
                         f"Line {i+1}: Fixed 'Tenstorrent Inc.' → '{new_company}'"
@@ -357,7 +364,16 @@ class CopyrightValidator:
             # Read the entire file when fixing, or just the header when validating
             with open(file_path, "r", encoding="utf-8") as f:
                 if fix_errors:
-                    all_lines = [line.rstrip("\n\r") for line in f]
+                    # Read the entire content to preserve original ending format
+                    original_content = f.read()
+                    # Special case: empty files should maintain their format
+                    if len(original_content) == 0:
+                        original_ends_with_newline = False
+                    else:
+                        original_ends_with_newline = original_content.endswith(
+                            ("\n", "\r\n", "\r")
+                        )
+                    all_lines = original_content.splitlines()
                     lines = all_lines[: self.MAX_HEADER_LINES]
                 else:
                     # Read only first few lines for header check
@@ -367,6 +383,7 @@ class CopyrightValidator:
                         if i >= self.MAX_HEADER_LINES - 1:
                             break
                     all_lines = None
+                    original_ends_with_newline = None
 
         except UnicodeDecodeError:
             # Skip binary files
@@ -385,7 +402,11 @@ class CopyrightValidator:
             if file_fixes:
                 try:
                     with open(file_path, "w", encoding="utf-8") as f:
-                        f.write("\n".join(fixed_lines) + "\n")
+                        # Preserve original file ending format
+                        content = "\n".join(fixed_lines)
+                        if original_ends_with_newline:
+                            content += "\n"
+                        f.write(content)
                     fixes_applied = file_fixes
                     # Re-validate after fixing
                     copyright_lines, license_line, errors = self.find_copyright_lines(
