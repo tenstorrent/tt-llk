@@ -19,6 +19,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -263,7 +264,7 @@ class CopyrightValidator:
 
     def _generate_copyright_header(self, comment_style: str) -> List[str]:
         """Generate appropriate copyright header based on comment style."""
-        year = "2025"  # Could be made configurable
+        year = str(datetime.now().year)
 
         if comment_style == "c_block":
             return [
@@ -314,7 +315,7 @@ class CopyrightValidator:
 
     def _generate_tenstorrent_copyright_line(self, comment_style: str) -> str:
         """Generate a single Tenstorrent copyright line based on comment style."""
-        year = "2025"  # Could be made configurable
+        year = str(datetime.now().year)
 
         if comment_style == "c_block":
             return f" * SPDX-FileCopyrightText: (c) {year} {self.EXPECTED_COMPANY}"
