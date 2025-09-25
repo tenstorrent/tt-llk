@@ -154,7 +154,7 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
 }
 
 /*************************************************************************
- * LLK COL - TILE eltwise subtraction unpacker implementation for SDPA
+ * LLK sub_bcast_row_tile unpacker implementation for SDPA
  *************************************************************************/
 
 template <bool is_fp32_dest_acc_en>
