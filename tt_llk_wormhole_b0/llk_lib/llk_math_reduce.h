@@ -478,6 +478,35 @@ inline void reduce_configure_mop()
     }
 }
 
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+inline void reduce_max_row_configure_addrmod()
+{
+
+    addr_mod_t {
+        .srca = {.incr = 0, .clr = 0, .cr = 0},
+        .srcb = {.incr = 0, .clr = 0, .cr = 0},
+        .dest = {.incr = 0, .clr = 0, .cr = 0},
+        .fidelity = {.incr = 0, .clr = 1}
+    }
+        .set(ADDR_MOD_0);
+    
+    addr_mod_t {
+        .srca = {.incr = 8, .clr = 0, .cr = 1},
+        .srcb = {.incr = 0, .clr = 1, .cr = 0},
+        .dest = {.incr = 0, .clr = 0, .cr = 0},
+    }
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = 0, .clr = 0, .cr = 0},
+        .srcb = {.incr = 0, .clr = 0, .cr = 0},
+        .dest = {.incr = 4, .clr = 0, .cr = 1},
+    }
+        .set(ADDR_MOD_2);
+
+}
+
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 inline void _llk_math_reduce_max_row_(const uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
@@ -558,6 +587,16 @@ inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpo
         // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
     }
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+inline void _llk_math_reduce_max_row_init_()
+{ 
+    reduce_max_row_configure_addrmod();
+    
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
