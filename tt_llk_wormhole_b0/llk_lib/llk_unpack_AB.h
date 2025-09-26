@@ -282,7 +282,7 @@ inline void _llk_unpack_AB_sub_bcast_row_(const std::uint32_t address_a, const s
     // Run the MOP in following way: The second parameter of ckernel_unpack_template::run specifies the mask for the unpacking operations.
     // In this case bit 1 is set to 1 which means that unacker MOP will execute "else" part of it's loop
     //  LOOP:
-    //    if !(zmask[iteration]):
+    //    if (!zmask[iteration]):
     //      UNPACR_A0
     //      UNPACR_A1
     //      UNPACR_A2
