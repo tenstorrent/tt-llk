@@ -280,7 +280,7 @@ inline void _llk_unpack_AB_sub_bcast_row_(const std::uint32_t address_a, const s
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
     // Run the MOP in following way: The second parameter of ckernel_unpack_template::run specifies the mask for the unpacking operations.
-    // In this case bit 1 is set to 1 which means that unacker MOP will execute "else" part of it's loop
+    // In this case bit 1 is set to 1 which means that unacker MOP will execute "else" part of it's loop on second pass.
     //  LOOP:
     //    if (!zmask[iteration]):
     //      UNPACR_A0
