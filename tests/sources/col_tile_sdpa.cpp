@@ -23,12 +23,12 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_AB_sub_bcast_row_hw_config_<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
-    _llk_unpack_AB_sub_bcast_row_init_();
+    _llk_unpack_bcastA_B_hw_config_<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+    _llk_unpack_bcastA_B_init_();
 
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_unpack_AB_sub_bcast_row_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+        _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
 }
 
