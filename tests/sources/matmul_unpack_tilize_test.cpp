@@ -16,8 +16,8 @@ uint32_t math_sync_tile_dst_index = 0;
 uint32_t tile_size                = 128;
 
 // Remove later
-volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x1e000);
-volatile uint32_t* const buffer_B_tilized = reinterpret_cast<volatile uint32_t*>(0x1f000);
+constexpr uint32_t buffer_A_tilized = 0x1e000;
+constexpr uint32_t buffer_B_tilized = 0x1f000;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -69,13 +69,12 @@ void run_kernel()
     const bool is_int_fpu_en                = false;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
-    const std::uint32_t res_dst_index       = 0;
-    const bool TILIZE                       = true;
 
     // copy srca to dest
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 
 #ifdef ARCH_BLACKHOLE
+    const bool TILIZE = true;
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
         0, 0, 4, formats_array[run].math);
 #else
@@ -117,15 +116,14 @@ void run_kernel()
 
 void run_kernel()
 {
-    const std::uint32_t ct_dim              = 1;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
     const std::uint32_t res_dst_index       = 0;
     const bool UNTILIZE                     = false;
-    const bool TILIZE                       = true;
 
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 #ifdef ARCH_BLACKHOLE
+    const bool TILIZE = true;
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats_array[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
