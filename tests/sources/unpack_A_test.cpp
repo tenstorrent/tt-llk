@@ -53,19 +53,20 @@ using namespace ckernel;
 
 void run_kernel()
 {
-// copy srca to dest
+    // copy srca to dest
+    // Use B2D for scalar broadcast (data in srcB), A2D for others (data in srcA)
+    constexpr DataCopyType copy_type = (BROADCAST_TYPE == BroadcastType::SCALAR) ? DataCopyType::B2D : DataCopyType::A2D;
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BROADCAST_TYPE, false, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, false, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(
-            i, formats.math, formats.math);
+        _llk_math_eltwise_unary_datacopy_<copy_type, DstSync::SyncHalf, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(i, formats.math, formats.math);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

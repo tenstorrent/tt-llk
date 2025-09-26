@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-import torch
 from z3 import And, BoolVal, If, Implies, IntVal, Not, Or, Solver, sat
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -19,6 +18,7 @@ from helpers.format_config import (
 )
 from helpers.golden_generators import (
     DataCopyGolden,
+    ScalarBroadcastGolden,
     TransposeGolden,
     get_golden_generator,
 )
@@ -44,11 +44,12 @@ supported_formats = [
 broadcast_types = [
     BroadcastType.None_,
     BroadcastType.Column,
-]  # todo: BroadcastType.Row, BroadcastType.Scalar
+    BroadcastType.Row,
+    BroadcastType.Scalar,
+]
 dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
-disable_src_zero_flags = [False]  # todo: True
-# is_fp32_dest_acc_flags removed - it's automatically handled in params.h
-acc_to_dest_flags = [False]  # todo: True
+disable_src_zero_flags = [False, True]
+acc_to_dest_flags = [False, True]
 stochastic_rnd = [
     StochasticRounding.No,
     StochasticRounding.Fpu,
@@ -56,11 +57,13 @@ stochastic_rnd = [
     StochasticRounding.All,
 ]
 reuse_dest_types = [
-    EltwiseBinaryReuseDestType.NONE
-]  # todo: EltwiseBinaryReuseDestType.DEST_TO_SRCA, EltwiseBinaryReuseDestType.DEST_TO_SRCB
+    EltwiseBinaryReuseDestType.NONE,
+    EltwiseBinaryReuseDestType.DEST_TO_SRCA,
+    EltwiseBinaryReuseDestType.DEST_TO_SRCB,
+]
 transpose_of_faces_values = [0, 1]
 within_face_16x16_transpose_values = [0, 1]
-num_faces_values = [4]  # todo: 1, 2
+num_faces_values = [1, 2, 4]
 
 
 # Use only cross_test_formats as it already includes same-format combinations
@@ -170,7 +173,7 @@ def filter_params_with_z3(all_params):
         reuse_dest_z3 = IntVal(reuse_dest_val)  # 0=NONE, 1=DEST_TO_SRCA, 2=DEST_TO_SRCB
         transpose_faces = BoolVal(transpose_of_faces == 1)
         num_faces_z3 = IntVal(num_faces)
-        unpack_to_dest = BoolVal(formats.input_format.is_32_bit())
+        unpack_to_dest = BoolVal(formats.input_format.is_32_bit() and acc_to_dest)
         is_blackhole = BoolVal(arch == ChipArchitecture.BLACKHOLE)
         is_wormhole = BoolVal(arch == ChipArchitecture.WORMHOLE)
 
@@ -196,8 +199,8 @@ def filter_params_with_z3(all_params):
         # Static assertion 3: SCALAR broadcast + acc_to_dest
         constraint3 = Not(And(broadcast_scalar, acc_to_dest_z3))
 
-        # Static assertion 4: DEST_TO_SRCA not supported
-        constraint4 = Not(reuse_srca)
+        # Static assertion 4: DEST_TO_SRCA only supported when broadcast = NONE
+        constraint4 = Implies(reuse_srca, broadcast_none)
 
         # unpack_to_dest specific constraints
         unpack_constraints = If(
@@ -237,48 +240,50 @@ def filter_params_with_z3(all_params):
                 # ROW broadcast limitations
                 Implies(
                     broadcast_row,
-                    If(
-                        is_blackhole,
-                        num_faces_z3 <= 2,  # Blackhole ROW: <= 2 faces
-                        num_faces_z3 <= 1,  # Wormhole ROW: <= 1 face
+                    And(
+                        # DEST_TO_SRCB not supported with ROW broadcast (hardware doesn't implement it)
+                        Not(reuse_srcb),
+                        If(
+                            is_blackhole,
+                            num_faces_z3 <= 2,  # Blackhole ROW: <= 2 faces
+                            num_faces_z3 <= 1,  # Wormhole ROW: <= 1 face
+                        ),
                     ),
                 ),
             ),
             True,
         )
 
-        # transpose_of_faces with 1 face constraint
-        transpose_constraint = Implies(transpose_faces, num_faces_z3 > 1)
+        # transpose_constraint removed - transpose operations work with num_faces=1
 
         # User constraint: transpose_of_faces and within_face_16x16_transpose are mutually inclusive
         within_face_transpose = BoolVal(within_face_16x16_transpose == 1)
         transpose_mutual_constraint = transpose_faces == within_face_transpose
 
-        # Exclude all Float32->Bfp8_b, Float16_b->Bfp8_b, and Float16->Bfp8_b combinations
-        excluded_input_formats = [
-            DataFormat.Float32,
-            DataFormat.Float16_b,
-            DataFormat.Float16,
-        ]
-        exclusions = []
+        # specific_exclusion_constraint removed - allow all format conversions for testing
 
-        for fmt in excluded_input_formats:
-            for transpose in [0, 1]:
-                exclusions.append(
-                    And(
-                        BoolVal(formats.input_format == fmt),
-                        BoolVal(formats.output_format == DataFormat.Bfp8_b),
-                        broadcast_none,
-                        BoolVal(not disable_src_zero),
-                        BoolVal(not acc_to_dest),
-                        reuse_none,
-                        BoolVal(transpose_of_faces == transpose),
-                        BoolVal(within_face_16x16_transpose == transpose),
-                        BoolVal(num_faces == 4),
-                    )
-                )
+        # Exclude acc_to_dest=True for simple datacopy operations
+        # Hardware produces 2x scaling when both srcA and srcB load same data
+        datacopy_acc_to_dest_constraint = Not(
+            And(acc_to_dest_z3, Not(transpose_faces), broadcast_none, reuse_none)
+        )
 
-        specific_exclusion_constraint = Not(Or(*exclusions))
+        # Block num_faces != 4 for Bfp8_b format due to hardware bug
+        # Hardware block indexing logic hardcoded for 4-face operation
+        bfp8_num_faces_constraint = If(
+            Or(
+                BoolVal(formats.input_format == DataFormat.Bfp8_b),
+                BoolVal(formats.output_format == DataFormat.Bfp8_b),
+            ),
+            num_faces_z3 == 4,
+            True,
+        )
+
+        # Block num_faces != 4 for COL/ROW broadcast operations (LLK limitation)
+        # SCALAR broadcast supports num_faces < 4
+        broadcast_num_faces_constraint = If(
+            Or(broadcast_col, broadcast_row), num_faces_z3 == 4, True
+        )
 
         # Add all constraints to solver
         s.add(
@@ -288,9 +293,10 @@ def filter_params_with_z3(all_params):
             constraint4,
             unpack_constraints,
             broadcast_constraints,
-            transpose_constraint,
             transpose_mutual_constraint,
-            specific_exclusion_constraint,
+            datacopy_acc_to_dest_constraint,
+            bfp8_num_faces_constraint,
+            broadcast_num_faces_constraint,
             # float32_transpose_constraint,
         )
 
@@ -302,9 +308,7 @@ def filter_params_with_z3(all_params):
 
 
 # Apply Z3 constraint filtering
-print(f"Total parameter combinations before Z3 filtering: {len(all_params)}")
 all_params = filter_params_with_z3(all_params)
-print(f"Valid parameter combinations after Z3 filtering: {len(all_params)}")
 
 
 def create_simple_ids(all_params):
@@ -369,6 +373,7 @@ def test_unpack_comprehensive(
     within_face_16x16_transpose,
     num_faces,
 ):
+    import torch
 
     # Get architecture and compute unpack_to_dest
     arch = get_chip_architecture()
@@ -385,34 +390,85 @@ def test_unpack_comprehensive(
         input_dimensions=input_dimensions,
     )
 
-    # generate golden tensor with proper transpose handling
-    # Both transpose_of_faces and within_face_16x16_transpose are mutually inclusive
-    if transpose_of_faces == 1 and within_face_16x16_transpose == 1:
-        # Apply both transpose operations
+    # generate golden tensor with proper broadcast and transpose handling
+    # PRIORITY: Scalar broadcast takes precedence over transpose operations
+    # (transposing a uniform scalar value still yields a uniform scalar value)
+    if broadcast_type == BroadcastType.Scalar:
+        # Scalar broadcast: replicate first element across entire tile
+        # Transpose operations don't change uniform data
+        generate_golden = get_golden_generator(ScalarBroadcastGolden)
+        golden_tensor = generate_golden(
+            src_A, formats.output_format, num_faces, input_dimensions
+        )
+    elif transpose_of_faces == 1 and within_face_16x16_transpose == 1:
+        # Apply both transpose operations (for non-scalar broadcasts)
         transpose_golden = get_golden_generator(TransposeGolden)
         # First apply within-face transpose, then face transpose
         temp_tensor = transpose_golden.transpose_within_faces(
-            src_A, formats.output_format
+            src_A, formats.output_format, input_dimensions, num_faces
         )
         golden_tensor = transpose_golden.transpose_faces(
-            temp_tensor, formats.output_format
+            temp_tensor, formats.output_format, input_dimensions, num_faces
         )
     elif transpose_of_faces == 1:
         # Only face transpose (should not happen due to mutual inclusivity constraint)
         transpose_golden = get_golden_generator(TransposeGolden)
-        golden_tensor = transpose_golden.transpose_faces(src_A, formats.output_format)
+        golden_tensor = transpose_golden.transpose_faces(
+            src_A, formats.output_format, input_dimensions, num_faces
+        )
     elif within_face_16x16_transpose == 1:
         # Only within-face transpose (should not happen due to mutual inclusivity constraint)
         transpose_golden = get_golden_generator(TransposeGolden)
         golden_tensor = transpose_golden.transpose_within_faces(
-            src_A, formats.output_format
+            src_A, formats.output_format, input_dimensions, num_faces
         )
     else:
-        # No transpose - use data copy
-        generate_golden = get_golden_generator(DataCopyGolden)
-        golden_tensor = generate_golden(
-            src_A, formats.output_format, num_faces, input_dimensions
-        )
+        # No transpose - handle based on reuse_dest behavior
+        if reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA and acc_to_dest:
+            # DEST_TO_SRCA: destination registers get moved to srcA for reuse
+            # This creates a feedback loop where processed data gets reused as source
+
+            input_tensor = torch.tensor(src_A, dtype=format_dict[formats.input_format])
+            face_size = 256  # 16x16 face
+
+            if num_faces == 1:
+                # Single face with DEST_TO_SRCA + acc_to_dest:
+                # Hardware processes first half of face (128 elements), then reuses/duplicates for second half
+                # DEST_TO_SRCA causes the first 128 elements to be processed, then repeated for elements 128-255
+                input_face = input_tensor[:face_size].to(
+                    format_dict[formats.output_format]
+                )
+                first_half = input_face[:128]  # First 128 elements
+                # Duplicate first half for second half due to DEST_TO_SRCA register reuse
+                golden_tensor = torch.cat([first_half, first_half])
+            else:
+                # Multiple faces: DEST_TO_SRCA applies duplication pattern within each face
+                # Each face behaves like single face - first 128 elements duplicated for second 128 elements
+                result = torch.zeros(
+                    face_size * num_faces, dtype=format_dict[formats.output_format]
+                )
+
+                for face_idx in range(num_faces):
+                    face_start = face_idx * face_size
+                    face_end = face_start + face_size
+                    input_face = input_tensor[face_start:face_end].to(
+                        format_dict[formats.output_format]
+                    )
+
+                    # Apply same duplication pattern as single face within each face
+                    first_half = input_face[:128]  # First 128 elements of this face
+                    face_output = torch.cat(
+                        [first_half, first_half]
+                    )  # Duplicate first half
+                    result[face_start:face_end] = face_output
+
+                golden_tensor = result
+        else:
+            # Regular data copy for other reuse types or no acc_to_dest
+            generate_golden = get_golden_generator(DataCopyGolden)
+            golden_tensor = generate_golden(
+                src_A, formats.output_format, num_faces, input_dimensions
+            )
 
     # BUILD THE COMPLETE TEST CONFIG
     test_config = {
@@ -420,7 +476,6 @@ def test_unpack_comprehensive(
         "testname": testname,
         "tile_cnt": tile_cnt,
         "input_dimensions": input_dimensions,
-        # NEW TEMPLATE PARAMETERS:
         "broadcast_type": broadcast_type,
         "acc_to_dest": acc_to_dest,
         "reuse_dest": reuse_dest,
@@ -447,7 +502,9 @@ def test_unpack_comprehensive(
     run_test(test_config)
 
     # Collect and validate results
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])

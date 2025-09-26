@@ -81,12 +81,13 @@ def collect_results(
     num_faces: int = 4,
     tile_dimensions=[32, 32],
 ):
-    # Calculate tile elements based on tile dimensions instead of hardcoding 1024
+    # Calculate tile elements based on tile dimensions
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
 
-    # Calculate bytes needed based on format and actual tile size
+    face_size = tile_elements // 4
+    actual_elements = face_size * num_faces
     read_bytes_cnt = (
-        formats.output_format.num_bytes_per_tile(tile_elements) * tile_count
+        formats.output_format.num_bytes_per_tile(actual_elements) * tile_count
     )
 
     read_data = read_from_device(location, address, num_bytes=read_bytes_cnt)
