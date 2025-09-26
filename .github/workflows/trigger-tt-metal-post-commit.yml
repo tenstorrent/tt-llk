@@ -25,6 +25,9 @@ jobs:
   setup-branch:
     name: "🔧 Setup branch for testing"
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request && github.event.pull_request.head.repo.fork == false)
     outputs:
       branch-to-run: ${{
         steps.check-fork.outputs.is-fork == 'true' &&
@@ -382,7 +385,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
           # Format L2 Nightly results (runs with All post-commit tests)
-          L2_RESULT=$(format_test_result "L2 Nightly APC" \
+          L2_RESULT=$(format_test_result "Wormhole C++ tests" \
             "${{ needs.detect-changes.outputs.run-wormhole }}" \
             "${{ steps.parse-results.outputs.l2-status }}" \
             "${{ steps.parse-results.outputs.l2-url }}" \
@@ -405,6 +408,8 @@ jobs:
         uses: mshick/add-pr-comment@v2
         with:
           issue: ${{ steps.get-pr-number.outputs.pr-number }}
+          # using run_id to ensure it's unique for every workflow run
+          message-id: llk-${{ github.run_id }}
           message: |
             ## 🚀 tt-metal post-commit tests
 
@@ -419,8 +424,8 @@ jobs:
 
             **Test Results:**
             ${{ steps.format-results.outputs.wormhole-result }}
-            ${{ steps.format-results.outputs.blackhole-result }}
             ${{ steps.format-results.outputs.l2-nightly-result }}
+            ${{ steps.format-results.outputs.blackhole-result }}
 
             ## 🔗 Links
             📊 **Post-commit workflow:** [#${{ github.run_id }}](${{
