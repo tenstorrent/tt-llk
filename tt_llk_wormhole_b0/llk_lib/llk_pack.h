@@ -226,15 +226,14 @@ inline void _llk_pack_init_(
     const bool narrow_tile         = false)
 {
     _llk_pack_configure_addrmod_<untilize>();
-
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-// _llk_pack_init_with_src_ is a version that contains pack_src_format arguments
+// Version with pack_src_format - no default for pack_src_format
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
-    [[maybe_unused]] const std::uint32_t pack_src_format,
+    const std::uint32_t pack_src_format, // No default here
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4,
     const bool partial_face        = false,
@@ -242,18 +241,14 @@ inline void _llk_pack_init_(
     const bool include_setup_calls = false)
 {
     _llk_pack_configure_addrmod_<untilize>();
-
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
-
     if (include_setup_calls)
     {
         set_packer_l1_offset(pack_dst_format);
-
         // To untilize narrow tile (32x16) we just pack 2 faces back to back
         // Number of datums to pack per row
         const uint face_dim   = face_r_dim * FACE_C_DIM;
         const uint pack_x_dim = (narrow_tile || !untilize) ? face_dim : FACE_R_DIM;
-
         TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
     }
 }
