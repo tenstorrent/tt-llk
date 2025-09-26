@@ -573,7 +573,6 @@ inline void _llk_pack_reduce_hw_configure_(
     }
 }
 
-// First overload - keep as is (this will handle the test call)
 template <
     bool untilize                = false,
     bool zero_output             = false,
@@ -600,19 +599,18 @@ template <
     bool write_tile_header       = true,
     bool tilize                  = false>
 inline void _llk_pack_init_(
-    const std::uint32_t pack_src_format, // No default - must be explicitly provided
-    const std::uint32_t pack_dst_format, // No default - must be explicitly provided
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t tile_c_dim = TILE_C_DIM,
-    const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const std::uint32_t pack_src_format,
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim,
+    const std::uint32_t tile_c_dim,
+    const std::uint32_t num_faces,
+    const bool partial_face = false,
+    const bool narrow_tile  = false)
 {
     _llk_pack_configure_addrmod_<untilize, tilize>();
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, tilize>(
         pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
     set_packer_strides<untilize, tilize>(pack_src_format, pack_dst_format, tile_c_dim);
-    // Program packer to pack out 16 datums per row
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 }
 
