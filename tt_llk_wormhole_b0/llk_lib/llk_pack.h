@@ -232,7 +232,7 @@ inline void _llk_pack_init_(
 
 // _llk_pack_init_with_src_ is a version that contains pack_src_format arguments
 template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
-inline void _llk_pack_init_with_src_(
+inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
     [[maybe_unused]] const std::uint32_t pack_src_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
