@@ -268,7 +268,7 @@ def filter_params_with_z3(all_params):
             And(acc_to_dest_z3, Not(transpose_faces), broadcast_none, reuse_none)
         )
 
-        # Block num_faces != 4 for Bfp8_b format due to hardware bug
+        # Block num_faces != 4 for Bfp8_b format
         # Hardware block indexing logic hardcoded for 4-face operation
         bfp8_num_faces_constraint = If(
             Or(
