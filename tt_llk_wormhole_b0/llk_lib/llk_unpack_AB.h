@@ -279,8 +279,25 @@ inline void _llk_unpack_AB_sub_bcast_row_(const std::uint32_t address_a, const s
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    // Mask 0b00010 means that in second iteration of loop SKIP_B instruction will be executed
-    // For that we will need 5 iteratins since other regular unpacks take 4 iterations ( one for each face)
+    // Run the MOP in following way: The second parameter of ckernel_unpack_template::run specifies the mask for the unpacking operations.
+    // In this case bit 1 is set to 1 which means that unacker MOP will execute "else" part of it's loop
+    //  LOOP:
+    //    if !(zmask[iteration]):
+    //      UNPACR_A0
+    //      UNPACR_A1
+    //      UNPACR_A2
+    //      UNPACR_A3
+    //      UNPACR_B
+    //    else
+    //      SKIP_A
+    //      SKIP_B
+
+    // So for iteration 0 it will execute first 5 instructions where UNPACR_A0 and UNPACR_A1 are replay instructions
+    // that unpack needed rows into srcA register
+    // and UNPACR_A2 is the one that sets dvalid. For UNPACR_B it is TT_OP_NOP so it does nothing.
+    // For iteration 1 it will execute SKIP_A and SKIP_B which are TT_OP_NOP and unpack full srcB.
+    // For all other iterations it is same as iteration 0
+
     ckernel_unpack_template::run(5, 0b00010);
 
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear all counters
