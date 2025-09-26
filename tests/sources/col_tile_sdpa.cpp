@@ -44,18 +44,12 @@ void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-    _llk_math_eltwise_binary_sub_bcast_row_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>();
+    _llk_math_eltwise_binary_sub_bcast_row_init_();
 
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_binary_sub_bcast_row<
-            ELTWISE_BINARY_OP,
-            BroadcastType::NONE,
-            DstSync::SyncHalf,
-            is_fp32_dest_acc_en,
-            MATH_FIDELITY,
-            EltwiseBinaryReuseDestType::NONE>(i);
+        _llk_math_eltwise_binary_sub_bcast_row(i);
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 }

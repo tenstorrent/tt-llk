@@ -410,12 +410,6 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
 /*************************************************************************
  * LLK sub_bcast_row_tile unpacker implementation for SDPA
  *************************************************************************/
-
-template <
-    EltwiseBinaryType eltwise_binary_type,
-    BroadcastType bcast_type,
-    int NUM_FIDELITY_PHASES                      = 0,
-    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void eltwise_binary_sub_bcast_row_configure_mop()
 {
     /*
@@ -439,7 +433,6 @@ inline void eltwise_binary_sub_bcast_row_configure_mop()
     tmp.program();
 }
 
-template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
 inline void eltwise_binary_sub_bcast_row_configure_addrmod()
 {
     addr_mod_t {
@@ -457,14 +450,9 @@ inline void eltwise_binary_sub_bcast_row_configure_addrmod()
         .set(ADDR_MOD_1);
 }
 
-template <
-    EltwiseBinaryType eltwise_binary_type,
-    BroadcastType src_b_bcast_type,
-    int MATH_FIDELITY_DESC                       = 0,
-    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_sub_bcast_row_init_()
 {
-    eltwise_binary_sub_bcast_row_configure_addrmod<EltwiseBinaryType::ELWSUB, BroadcastType::NONE, 0>();
+    eltwise_binary_sub_bcast_row_configure_addrmod();
 
     /*
         Rpelay buffer initially takes 11 instructions into it but
@@ -501,20 +489,13 @@ inline void _llk_math_eltwise_binary_sub_bcast_row_init_()
 
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
 
-    eltwise_binary_sub_bcast_row_configure_mop<EltwiseBinaryType::ELWSUB, BroadcastType::NONE>();
+    eltwise_binary_sub_bcast_row_configure_mop();
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <
-    EltwiseBinaryType eltwise_binary_type,
-    BroadcastType src_b_bcast_type,
-    DstSync Dst,
-    bool is_fp32_dest_acc_en,
-    int NUM_FIDELITY_PHASES                      = 0,
-    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_sub_bcast_row(uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
