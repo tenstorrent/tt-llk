@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 
 #include "build.h"
 
@@ -21,10 +22,7 @@ void run_kernel()
     int32_t* B = (int32_t*)buffer_B[0];
     int32_t* C = (int32_t*)buffer_Res[0];
 
-    for (int i = 0; i < 1024; i++)
-    {
-        C[i] = A[i] + B[i];
-    }
+    std::transform(A, A + 1024, B, C, std::plus<int32_t>());
 }
 
 #endif
@@ -37,10 +35,7 @@ void run_kernel()
     int32_t* B = (int32_t*)buffer_B[1];
     int32_t* C = (int32_t*)buffer_Res[1];
 
-    for (int i = 0; i < 1024; i++)
-    {
-        C[i] = A[i] + B[i];
-    }
+    std::transform(A, A + 1024, B, C, std::plus<int32_t>());
 }
 
 #endif
@@ -53,10 +48,7 @@ void run_kernel()
     int32_t* B = (int32_t*)buffer_B[2];
     int32_t* C = (int32_t*)buffer_Res[2];
 
-    for (int i = 0; i < 1024; i++)
-    {
-        C[i] = A[i] + B[i];
-    }
+    std::transform(A, A + 1024, B, C, std::plus<int32_t>());
 }
 
 #endif

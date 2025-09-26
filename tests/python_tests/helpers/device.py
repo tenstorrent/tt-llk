@@ -117,14 +117,9 @@ def get_register_store(location="0,0", device_id=0, neo_id=0):
 
 
 def get_soft_reset_mask(cores: list[RiscCore]):
-    mask = 0
-    for core in cores:
-        if core == INVALID_CORE:
-            raise ValueError(
-                "Attempting to reset a core that doesn't exist on this chip"
-            )
-        mask |= 1 << core.value
-    return mask
+    if INVALID_CORE in cores:
+        raise ValueError("Attempting to reset a core that doesn't exist on this chip")
+    return sum(1 << core.value for core in cores)
 
 
 def set_tensix_soft_reset(

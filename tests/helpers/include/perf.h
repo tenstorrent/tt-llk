@@ -36,11 +36,10 @@ inline void _perf_unpack_loop_set_valid(uint32_t iterations)
     {
         constexpr uint32_t cond_clear_a = set_a ? ckernel::p_stall::SRCA_CLR : 0;
         constexpr uint32_t cond_clear_b = set_b ? ckernel::p_stall::SRCB_CLR : 0;
-#ifdef ARCH_QUASAR
         TTI_SETDVALID((set_b << 1) | set_a);
+#ifdef ARCH_QUASAR
         TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, cond_clear_a, cond_clear_b, 0);
 #else
-        TTI_SETDVALID((set_b << 1) | set_a);
         TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, cond_clear_a | cond_clear_b);
 #endif
     }
