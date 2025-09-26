@@ -218,7 +218,9 @@ def generate_tile_dims(
         tile_cnt=output_tile_cnt,
         tile_cnt_A=(inputA_dims[0] * inputA_dims[1]) // (32 * 32),
         tile_cnt_B=(inputB_dims[0] * inputB_dims[1]) // (32 * 32),
-        output_tile_cnt=output_tile_cnt if not tiny_tiles else 1,
+        output_tile_cnt=(
+            output_tile_cnt if not tiny_tiles else 1
+        ),  # matmul with matrix A tiny tile does not work on multiple tiles for matrix B https://github.com/tenstorrent/tt-llk/issues/697
         in0_tile_r_dim=in0_tile_r_dim,
         in0_tile_c_dim=32,
         in1_tile_r_dim=32,
@@ -451,7 +453,9 @@ def sweep_tiny_tiles_matmul(
                         face_layout_config=face,
                         formats=config["fmt"],
                         stochastic_rnd=config["stochastic_mode"],
-                        dst_index=min(max_dst_idx, 3) if math_matmul else max_dst_idx,
+                        dst_index=(
+                            min(max_dst_idx, 3) if math_matmul else max_dst_idx
+                        ),  # multi-matmul with matrix A tiny tile does not work when dst_index > 3 https://github.com/tenstorrent/tt-llk/issues/697
                         dest_sync=config["dest_sync"],
                         dest_acc=config["dest_acc"],
                     )
