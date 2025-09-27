@@ -152,3 +152,159 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
 }
+
+/*************************************************************************
+ * LLK sub_bcast_row_tile unpacker implementation for SDPA
+ *************************************************************************/
+
+template <bool is_fp32_dest_acc_en>
+inline void _llk_unpack_bcastA_B_hw_config_(
+    const std::uint32_t unpA_src_format,
+    const std::uint32_t unpB_src_format,
+    const std::uint32_t unpA_dst_format,
+    const std::uint32_t unpB_dst_format,
+    const std::uint32_t face_r_dim                  = FACE_R_DIM,
+    const std::uint32_t within_face_16x16_transpose = 0,
+    const std::uint32_t num_faces                   = 4)
+{
+    constexpr bool is_row_pool = false;
+    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool>(
+        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
+}
+
+inline void _llk_unpack_bcastA_B_mop_config_()
+{
+    // Setup address modifiers for unpacker instructions
+    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
+    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
+
+    /*
+
+        Configuration of unpacker MOP. Setting halo and unpackB to true which
+        enables usage of all unpack instrructions 0-3 and unpack_B instruction.
+
+        Unpack_A instructions are set up as expected with reading F0R0 and F1R0 and setting dvalid.
+        For regular unpack_B it is TT_OP_NOP because it shouldn't execute every iteration.
+        When we need to unpack full srcB we set n-th mask bit to 1.
+
+    */
+
+    ckernel_unpack_template tmp = ckernel_unpack_template(
+        true,                                                                                                                          // UnpackB
+        true,                                                                                                                          // unpackHalo
+        TT_OP_REPLAY(0, 9, 0, 0),                                                                                                      // UNPACK_A0
+        TT_OP_REPLAY(0, 7, 0, 0),                                                                                                      // UNPACK_A1
+        TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // UNPACK_A2
+        TT_OP_NOP,                                                                                                                     // UNPACK_A3
+        TT_OP_NOP,                                                                                                                     // SKIP_A
+
+        TT_OP_NOP,                                                                                                                    // UNPACK_B
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1) // SKIP_B
+    );
+
+    tmp.program();
+}
+
+inline void _llk_unpack_bcastA_B_init_()
+{
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
+
+    // Manual setup for unpacker A
+    // Only this stride can be set because other strides are never applied
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(32);
+
+    TTI_SETADCXX(p_setadc::UNP_A, FACE_R_DIM - 1, 0);              // Directly set unpacker A counter to unpack one row
+    TTI_SETADCXX(p_setadc::UNP_B, TILE_R_DIM * TILE_C_DIM - 1, 0); // Directly set unpacker B counter to unpack whole tile
+
+    // Setup address modifiers for unpacker instructions
+    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
+
+    /*
+
+        Fill replay buffer with 8 unpack instructions but none of them sets dvalid.
+        They are used for contiguous unpacking od faces.
+        Last instruction that increments Y counter by Y_STRIDE on channel 0 is alose inside of replay.
+
+        Intended use inside of MOP:
+
+        TT_OP_REPLAY(0, 9, 0, 0) -> Unpack F0R0 row 8 times and move to F1
+        TT_OP_REPLAY(0, 7, 0, 0) ->  Unpack F1R0 7 times
+        TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), -> Unpack F1R0 once and set dvalid
+
+        As can be seen before dvalid needs to be set replay is called with 7 iterations and 8th will be one with dvalid = 1.
+
+
+    */
+
+    lltt::record<lltt::NoExec>(0, 9);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
+
+    _llk_unpack_bcastA_B_mop_config_();
+}
+
+inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b)
+{
+    TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW)); // reset counters
+    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));  // Clear Y counter on src side
+
+    // Program srcA and srcB base addresses
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Get tile address
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+    }
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+    // Run the MOP in following way: The second parameter of ckernel_unpack_template::run specifies the mask for the unpacking operations.
+    // In this case bit 1 is set to 1 which means that unacker MOP will execute "else" part of it's loop on second pass.
+    //  LOOP:
+    //    if (!zmask[iteration]):
+    //      UNPACR_A0
+    //      UNPACR_A1
+    //      UNPACR_A2
+    //      UNPACR_A3
+    //      UNPACR_B
+    //    else
+    //      SKIP_A
+    //      SKIP_B
+
+    // So for iteration 0 it will execute first 5 instructions where UNPACR_A0 and UNPACR_A1 are replay instructions
+    // that unpack needed rows into srcA register
+    // and UNPACR_A2 is the one that sets dvalid. For UNPACR_B it is TT_OP_NOP so it does nothing.
+    // For iteration 1 it will execute SKIP_A and SKIP_B which are TT_OP_NOP and unpack full srcB.
+    // For all other iterations it is same as iteration 0
+
+    ckernel_unpack_template::run(5, 0b00010);
+
+    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear all counters
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+}

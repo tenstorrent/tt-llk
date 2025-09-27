@@ -11,6 +11,7 @@
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
+#include "lltt.h"
 
 using namespace ckernel;
 
@@ -404,4 +405,103 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+/*************************************************************************
+ * LLK sub_bcast_row_tile unpacker implementation for SDPA
+ *************************************************************************/
+inline void eltwise_binary_sub_bcast_row_configure_mop()
+{
+    /*
+
+        MOP configuration. It will contain 3 iterations of replaying first 10
+        instructions from replay buffer and the last op will be execution of all
+        11 instructions in replay buffer. Unrolled code looks like this:
+
+        TTI_REPLAY(0, 10, 0, 0);
+        TTI_REPLAY(0, 10, 0, 0);
+        TTI_REPLAY(0, 10, 0, 0);
+        TTI_REPLAY(0, 11, 0, 0);
+
+    */
+
+    constexpr uint innerloop = 3;
+    uint outerloop           = 1;
+
+    ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 10, 0, 0));
+    tmp.set_end_op(TT_OP_REPLAY(0, 11, 0, 0));
+    tmp.program();
+}
+
+inline void eltwise_binary_sub_bcast_row_configure_addrmod()
+{
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_0);
+
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_1);
+}
+
+inline void _llk_math_eltwise_binary_sub_bcast_row_init_()
+{
+    eltwise_binary_sub_bcast_row_configure_addrmod();
+
+    /*
+        Rpelay buffer initially takes 11 instructions into it but
+        when executing them it executes only 10 and the last one
+        is executed when we want to switch to new srcB. This is done
+        to preserve form of reusing srcB for different srcA inputs.
+
+        When this function is called once everything is ready for op to execute,
+        but if between two calls of _llk_math_eltwise_binary_sub_bcast_row some other
+        function modifies replay buffer this init will need to be called again.
+
+    */
+
+    // lltt::record<lltt::NoExec>(0, 11);
+
+    TTI_REPLAY(0, 11, 0, 1);
+
+    // Dest address is always incremented by 8 in address mode
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing A dvalid
+
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
+
+    eltwise_binary_sub_bcast_row_configure_mop();
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+inline void _llk_math_eltwise_binary_sub_bcast_row(uint dst_index)
+{
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+
+    // Run the MOP
+    ckernel_template::run();
+
+    math::clear_dst_reg_addr();
 }
