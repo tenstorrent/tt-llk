@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 #include <atomic>
+#include <climits>
+#include <cstdint>
 
 inline int32_t amomin(int32_t volatile *ptr, int32_t const against)
 {
@@ -44,27 +46,29 @@ inline std::atomic<T> *mk_atomic_ptr(T *ptr)
     return p_ato;
 }
 
-// Only meant to be used with 32-bit types
 template <typename T>
-inline T load_acquire(std::atomic<T> *p_ato)
+inline T load_acquire(T *ptr)
 {
-    T ret;
-    T volatile *addr = reinterpret_cast<T volatile *>(p_ato);
-    asm volatile("amoadd.w.aq %[ret], zero, (%[addr])\n" : [ret] "=r"(ret) : [addr] "r"(addr));
+    static_assert(sizeof(T) * CHAR_BIT == 32, "load_acquire: operand must be 32bit");
 
-    return ret;
+    uint32_t ret;
+    asm volatile("amoadd.w.aq %[ret], zero, (%[ptr])\n" : [ret] "=r"(ret) : [ptr] "r"(ptr));
+
+    return *reinterpret_cast<T *>(&ret);
 }
 
-// Only meant to be used with 32-bit types
 // Returns original value from before store
 template <typename T>
-inline T store_release(std::atomic<T> *p_ato, T val)
+inline T store_release(T *ptr, T val)
 {
-    T ret;
-    T volatile *addr = reinterpret_cast<T volatile *>(p_ato);
-    asm volatile("amoswap.w.rl %[ret], %[val], (%[addr])\n" : [ret] "=r"(ret) : [val] "r"(val), [addr] "r"(addr));
+    static_assert(sizeof(T) * CHAR_BIT == 32, "store_release: operand must be 32bit");
 
-    return ret;
+    uint32_t *val_ptr = reinterpret_cast<uint32_t *>(&val);
+    uint32_t ret;
+
+    asm volatile("amoswap.w.rl %[ret], %[val], (%[ptr])\n" : [ret] "=r"(ret) : [val] "r"(*val_ptr), [ptr] "r"(ptr));
+
+    return *reinterpret_cast<T *>(ret);
 }
 
 #if 0
