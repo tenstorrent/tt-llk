@@ -47,9 +47,13 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
     {
         if constexpr (is_fp32_dest_acc_en)
         {
+            // We need to disable the zero flag so that we don't lose bits when doing D2B/B2D
+            // due to zero flag being set because bits mapped to the exponent field == 0
+            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
             // Needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
         }
+
         if constexpr (transpose_of_faces)
         {
             // 4x 32b face transpositions followed by 8x middle-face row swaps.
@@ -60,8 +64,10 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
             // 4x 32b face transpositions.
             ckernel_unpack_template::run(4, 0);
         }
+
         if constexpr (is_fp32_dest_acc_en)
         {
+            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
         }
     }
