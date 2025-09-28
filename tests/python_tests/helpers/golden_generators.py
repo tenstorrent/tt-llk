@@ -13,7 +13,7 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.tilize_untilize import tilize_block
+from helpers.tilize_untilize import tilize_block, untilize
 
 golden_registry = {}
 
@@ -659,6 +659,7 @@ class UnarySFPUGolden:
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
+            MathOperation.SumColumns: self._sum_columns,
         }
         self.data_format = None
         self.dest_acc = DestAccumulation.No
@@ -688,7 +689,12 @@ class UnarySFPUGolden:
                 operand1 = (operand1.view(torch.int32) & 0xFFFF0000).view(torch.float32)
 
         tensor = to_tensor(operand1, dst_format)
-        result = [self.ops[operation](x) for x in tensor.tolist()]
+
+        # Special handling for SumColumns which needs to process the entire tensor
+        if operation == MathOperation.SumColumns:
+            result = self.ops[operation](tensor)
+        else:
+            result = [self.ops[operation](x) for x in tensor.tolist()]
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
@@ -875,6 +881,15 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.max(input_tensor, torch.tensor(threshold)).item()
+
+    def _sum_columns(self, x):
+        input_tensor = untilize(x, self.data_format).flatten().view(32, 32)
+
+        # Sum along columns (dim=0) to get a 1x32 result
+        column_sums = torch.sum(input_tensor, dim=0)  # Shape: [32]
+
+        # Return only the column sums, not a full 1024-element tensor
+        return column_sums.tolist()
 
 
 @register_golden
