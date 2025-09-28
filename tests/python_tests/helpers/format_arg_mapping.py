@@ -79,6 +79,7 @@ class MathOperation(Enum):
     Sqrt = OpSpec("sqrt", MathOpType.SFPU_UNARY)
     Square = OpSpec("square", MathOpType.SFPU_UNARY)
     Threshold = OpSpec("threshold", MathOpType.SFPU_UNARY)
+    SumColumns = OpSpec("sum_columns", MathOpType.SFPU_UNARY)
     ReluMax = OpSpec(
         "relu_max", MathOpType.SFPU_UNARY
     )  # ReLU_max(x, U) = max(0, min(x, U))
@@ -226,6 +227,11 @@ format_tile_sizes = {
     DataFormat.Float16_b: 2048,
     DataFormat.Float32: 4096,
     DataFormat.Int32: 4096,
+    DataFormat.Tf32: 3072,  # 3 bytes * 1024 elements
+    DataFormat.UInt32: 4096,
+    DataFormat.UInt16: 2048,
+    DataFormat.Int8: 1024,  # 1 byte * 1024 elements
+    DataFormat.UInt8: 1024,  # 1 byte * 1024 elements
 }
 
 
