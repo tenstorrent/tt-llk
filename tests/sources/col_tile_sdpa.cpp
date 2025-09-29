@@ -46,12 +46,12 @@ void run_kernel()
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_eltwise_binary_sub_bcast_row_init_();
 
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         _llk_math_eltwise_binary_sub_bcast_row(i);
-        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
+    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -78,12 +78,12 @@ void run_kernel()
     _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
 #endif
 
+    _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_packer_wait_for_math_done_();
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
-        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif

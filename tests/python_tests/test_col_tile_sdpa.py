@@ -40,6 +40,7 @@ from helpers.utils import passed_test
     ],
     input_dimensions=[
         # Usecase for this will be 4x2 or 2x4 tiles inputs so that are only dimensions to test
+        [128, 32],
         [128, 64],
         [64, 128],
     ],
@@ -58,26 +59,28 @@ def test_multiple_tiles(
     # Generating easy to debug test case
     # ******************************************************************************
 
-    # ones = torch.tensor([1] * 16)
-    # twos = torch.tensor([2] * 16)
-    # threes = torch.tensor([3] * 16)
-    # fours = torch.tensor([4] * 16)
-    # padding = torch.tensor([0] * (256 - 16))
+    ones = torch.tensor([1] * 16)
+    twos = torch.tensor([2] * 16)
+    threes = torch.tensor([3] * 16)
+    fours = torch.tensor([4] * 16)
+    padding = torch.tensor([0] * (256 - 16))
 
-    # src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
-    # src_A = src_A.repeat(input_dimensions[0] * input_dimensions[1] // 1024)
+    src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
+    src_A = src_A.repeat(input_dimensions[0] * input_dimensions[1] // 1024)
 
-    # src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
+    src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
+    # INSERT_YOUR_CODE
+    # src_B = torch.cat([torch.arange(32).repeat_interleave(32) for _ in range(4)])
 
-    # print("SRC A")
-    # print("*" * 100)
+    print("SRC A")
+    print("*" * 100)
 
-    # print(src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    print(src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
-    # print("SRC B")
-    # print("*" * 100)
+    print("SRC B")
+    print("*" * 100)
 
-    # print(src_B.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    print(src_B.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
     # Generate everything needed for golden
     # ******************************************************************************
@@ -151,15 +154,7 @@ def test_multiple_tiles(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # print("\nRESULT")
-    # print(res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
-
-    # print(
-    #     "Output is of shape: ",
-    #     res_tensor.shape,
-    #     " which is ",
-    #     len(res_tensor),
-    #     " elements",
-    # )
+    print("\nRESULT")
+    print(res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
