@@ -8,92 +8,22 @@
 #include "ckernel_defs.h"
 #include "sfpi.h"
 
-using namespace sfpi;
-
 namespace ckernel::sfpu
 {
 
-/* Checks if the exponent is 128 and mantissa is 0.
-If both conditions are met, the number is marked as
-infinity, so '1' is written in the location of the DEST
-where the number was stored. Otherwise, `0` is written instead
-of the number.
-*/
 template <bool APPROXIMATION_MODE>
-inline vFloat _calculate_isinf_(const vFloat& in)
+inline sfpi::vFloat _calculate_isinf_(const sfpi::vFloat& in)
 {
     // SFPU microcode
-    sfpi::vInt exp = sfpi::exexp(in);
-    sfpi::vInt man = sfpi::exman9(in);
-    vFloat out     = sfpi::vConst0;
-    v_if (exp == 128 && man == 0)
-    {
-        out = sfpi::vConst1;
-    }
-    v_endif;
-    return out;
-}
+    sfpi::vInt raw_bits = sfpi::reinterpret<sfpi::vInt>(in);
+    sfpi::vFloat out    = sfpi::vConst0;
 
-/* Checks if the sign bit of the floating point number in DEST
-is positive. Checks if the exponent is 128 and mantissa is 0.
-If all of the three conditions are met, the number is marked as
-positive infinity, so '1' is written in the location of the DEST
-where the number was stored. Otherwise, `0` is written instead
-of the number.
-*/
-template <bool APPROXIMATION_MODE>
-inline vFloat _calculate_isposinf_(const vFloat& in)
-{
-    // SFPU microcode
-    sfpi::vInt exp = sfpi::exexp(in);
-    sfpi::vInt man = sfpi::exman9(in);
-    vFloat out     = sfpi::vConst0;
-    vInt signbit   = sfpi::reinterpret<sfpi::vInt>(in) & 0x80000000; // returns 0 for +ve value
-    v_if (signbit == 0 && exp == 128 && man == 0)
-    {
-        out = sfpi::vConst1;
-    }
-    v_endif;
-    return out;
-}
+    // Mask out sign bit to check for both +inf and -inf
+    // Positive infinity: 0x7F800000, Negative infinity: 0xFF800000
+    // After masking sign bit: both become 0x7F800000
+    sfpi::vInt abs_bits = raw_bits & 0x7FFFFFFF;
 
-/* Checks if the sign bit of the floating point number in DEST
-is negative. Checks if the exponent is 128 and mantissa is 0.
-If all of the three conditions are met, the number is marked as
-negative infinity, so '1' is written in the location of the DEST
-where the number was stored. Otherwise, `0` is written instead
-of the number.
-*/
-template <bool APPROXIMATION_MODE>
-inline vFloat _calculate_isneginf_(const vFloat& in)
-{
-    // SFPU microcode
-    sfpi::vInt exp = sfpi::exexp(in);
-    sfpi::vInt man = sfpi::exman9(in);
-    vFloat out     = sfpi::vConst0;
-    vInt signbit   = sfpi::reinterpret<sfpi::vInt>(in) & 0x80000000; // returns 0x80000000 for -ve value
-    v_if (signbit == 0x80000000 && exp == 128 && man == 0)
-    {
-        out = sfpi::vConst1;
-    }
-    v_endif;
-    return out;
-}
-
-/* Checks if the exponent is 128 and mantissa is not 0.
-If both conditions are met, the number is marked as
-nan, so '1' is written in the location of the DEST
-where the number was stored. Otherwise, `0` is written instead
-of the number.
-*/
-template <bool APPROXIMATION_MODE>
-inline vFloat _calculate_isnan_(const vFloat& in)
-{
-    // SFPU microcode
-    sfpi::vInt exp = sfpi::exexp(in);
-    sfpi::vInt man = sfpi::exman9(in);
-    vFloat out     = sfpi::vConst0;
-    v_if (exp == 128 && man != 0)
+    v_if (abs_bits == 0x7F800000)
     {
         out = sfpi::vConst1;
     }
@@ -102,20 +32,70 @@ inline vFloat _calculate_isnan_(const vFloat& in)
 }
 
 template <bool APPROXIMATION_MODE>
-inline vFloat _calculate_isfinite_(const vFloat& v)
+inline sfpi::vFloat _calculate_isposinf_(const sfpi::vFloat& in)
 {
     // SFPU microcode
-    // A number is finite if it's neither infinity nor NaN
-    sfpi::vInt exp = sfpi::exexp(v);
-    vFloat result  = sfpi::vConst1; // Assume finite (1.0f) by default
+    sfpi::vInt raw_bits = sfpi::reinterpret<sfpi::vInt>(in);
+    sfpi::vFloat out    = sfpi::vConst0;
 
-    // If exponent is 128, the number is either infinity or NaN (not finite)
-    v_if (exp == 128)
+    // Exact check for positive infinity
+    v_if (raw_bits == 0x7F800000)
+    {
+        out = sfpi::vConst1;
+    }
+    v_endif;
+    return out;
+}
+
+template <bool APPROXIMATION_MODE>
+inline sfpi::vFloat _calculate_isneginf_(const sfpi::vFloat& in)
+{
+    // SFPU microcode
+    // Direct bit pattern comparison for negative infinity (0xFF800000)
+    sfpi::vInt raw_bits = sfpi::reinterpret<sfpi::vInt>(in);
+    sfpi::vFloat out    = sfpi::vConst0;
+
+    v_if (raw_bits == 0xFF800000)
+    {
+        out = sfpi::vConst1;
+    }
+    v_endif;
+    return out;
+}
+
+template <bool APPROXIMATION_MODE>
+inline sfpi::vFloat _calculate_isnan_(const sfpi::vFloat& in)
+{
+    // SFPU microcode
+    sfpi::vInt raw_bits = sfpi::reinterpret<sfpi::vInt>(in);
+    sfpi::vFloat out    = sfpi::vConst0;
+
+    // NaN check: abs(raw_bits) > 0x7F800000 (greater than infinity)
+    // NaN has max exponent + non-zero mantissa
+    sfpi::vInt abs_bits = raw_bits & 0x7FFFFFFF; // Remove sign bit
+    v_if (abs_bits > 0x7F800000)
+    {
+        out = sfpi::vConst1;
+    }
+    v_endif;
+    return out;
+}
+
+template <bool APPROXIMATION_MODE>
+inline sfpi::vFloat _calculate_isfinite_(const sfpi::vFloat& v)
+{
+    // SFPU microcode
+    sfpi::vInt raw_bits = sfpi::reinterpret<sfpi::vInt>(v);
+    sfpi::vFloat result = sfpi::vConst1;
+
+    // A number is finite if exponent != 255 (0xFF)
+    sfpi::vInt exp_mask = raw_bits & 0x7F800000;
+
+    v_if (exp_mask == 0x7F800000) // Infinity or NaN
     {
         result = sfpi::vConst0;
     }
     v_endif;
-
     return result;
 }
 
@@ -125,30 +105,30 @@ inline void _calculate_sfpu_isinf_isnan_()
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
-        vFloat in = dst_reg[0];
+        sfpi::vFloat in = sfpi::dst_reg[0];
 
         if constexpr (operation == SfpuType::isinf)
         {
-            dst_reg[0] = _calculate_isinf_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isinf_<APPROXIMATION_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isposinf)
         {
-            dst_reg[0] = _calculate_isposinf_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isposinf_<APPROXIMATION_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isneginf)
         {
-            dst_reg[0] = _calculate_isneginf_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isneginf_<APPROXIMATION_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isnan)
         {
-            dst_reg[0] = _calculate_isnan_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isnan_<APPROXIMATION_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isfinite)
         {
-            dst_reg[0] = _calculate_isfinite_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isfinite_<APPROXIMATION_MODE>(in);
         }
 
-        dst_reg++;
+        sfpi::dst_reg++;
     }
 }
 
