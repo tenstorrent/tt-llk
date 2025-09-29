@@ -26,10 +26,8 @@ void run_kernel()
     _llk_unpack_bcastA_B_hw_config_<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
     _llk_unpack_bcastA_B_init_();
 
-    for (int i = 0; i < TILE_CNT; i++)
-    {
-        _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
-    }
+    // Single call works on 1 tile that goes to srcA and then reuses it for 4 srcB tiles that are changeable
+    _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
 }
 
 #endif
@@ -47,10 +45,9 @@ void run_kernel()
     _llk_math_eltwise_binary_sub_bcast_row_init_();
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < TILE_CNT; i++)
-    {
-        _llk_math_eltwise_binary_sub_bcast_row(i);
-    }
+
+    _llk_math_eltwise_binary_sub_bcast_row(0 /* dst_index */);
+
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -79,7 +76,7 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < TILE_CNT; i++)
+    for (uint32_t i = 0; i < TILE_CNT; i++)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }

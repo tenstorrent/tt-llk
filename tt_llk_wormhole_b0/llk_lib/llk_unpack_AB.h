@@ -184,22 +184,22 @@ inline void _llk_unpack_bcastA_B_mop_config_()
         enables usage of all unpack instrructions 0-3 and unpack_B instruction.
 
         Unpack_A instructions are set up as expected with reading F0R0 and F1R0 and setting dvalid.
-        For regular unpack_B it is TT_OP_NOP because it shouldn't execute every iteration.
-        When we need to unpack full srcB we set n-th mask bit to 1.
+        One unpack_A which is A3 is used for unpacking B in first iteration and then SKIP_A and B are
+        used for other 3 unpacks on B.
 
     */
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
-        true,                                                                                                                          // UnpackB
+        true,                                                                                                                          // unpackB
         true,                                                                                                                          // unpackHalo
-        TT_OP_REPLAY(0, 9, 0, 0),                                                                                                      // UNPACK_A0
-        TT_OP_REPLAY(0, 7, 0, 0),                                                                                                      // UNPACK_A1
-        TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // UNPACK_A2
-        TT_OP_NOP,                                                                                                                     // UNPACK_A3
-        TT_OP_NOP,                                                                                                                     // SKIP_A
+        TT_OP_REPLAY(0, 9, 0, 0),                                                                                                      // A0_instr
+        TT_OP_REPLAY(0, 7, 0, 0),                                                                                                      // A1_instr
+        TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // A2_instr
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // A3_instr // UNPACK_A3
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // skipA_instr // SKIP_A
 
-        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // UNPACK_B
-        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1)  // SKIP_B
+        TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4), // B_instr
+        TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)  // skipB_instr
     );
 
     tmp.program();
@@ -279,26 +279,46 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    // Run the MOP in following way: The second parameter of ckernel_unpack_template::run specifies the mask for the unpacking operations.
-    // In this case bit 1 is set to 1 which means that unacker MOP will execute "else" part of it's loop on second pass.
-    //  LOOP:
-    //    if (!zmask[iteration]):
-    //      UNPACR_A0
-    //      UNPACR_A1
-    //      UNPACR_A2
-    //      UNPACR_A3
-    //      UNPACR_B
-    //    else
-    //      SKIP_A
-    //      SKIP_B
+    /*
+        Run the MOP in following way: The second parameter of ckernel_unpack_template::run specifies the mask for the unpacking operations.
+        In this case bit 1 is set to 1 which means that unacker MOP will execute "else" part of it's loop on second pass.
 
-    // So for iteration 0 it will execute first 5 instructions where UNPACR_A0 and UNPACR_A1 are replay instructions
-    // that unpack needed rows into srcA register
-    // and UNPACR_A2 is the one that sets dvalid. For UNPACR_B it is TT_OP_NOP so it does nothing.
-    // For iteration 1 it will execute SKIP_A and SKIP_B which are TT_OP_NOP and unpack full srcB.
-    // For all other iterations it is same as iteration 0
+        LOOP:
+        if (!zmask[iteration]):
+            UNPACR_A0
+            UNPACR_A1
+            UNPACR_A2
+            UNPACR_A3
+            UNPACR_B
+        else
+            SKIP_A
+            SKIP_B
 
-    // ckernel_unpack_template::run(5, 0b00010);
+        In iteration 0 zmask will be 1 so unopacker will execute first 5 instructions. Those will unpack F0R0 and F1R0 into srcA and set dvalid.
+        After that it will unpack full tile on B on increment Z counter on B so it moves to next tile.
+        Next 3 iterations have zmask on 1 and execute SKIP instructions which are just 3 unpacks on B and after every unpack increment of Z counter on CH0
+
+        The full unrolled code is:
+
+        TT_OP_REPLAY(0, 9, 0, 0),
+        TT_OP_REPLAY(0, 7, 0, 0),
+        TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
+
+        First B tile
+
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
+        TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4),
+
+        Other 3 B tiles
+
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
+        TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
+        TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
+        TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)
+
+    */
 
     uint32_t unpack_mask = 0b1110;
 
