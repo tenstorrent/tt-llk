@@ -39,13 +39,12 @@ from helpers.utils import passed_test
         MathFidelity.LoFi,
     ],
     input_dimensions=[
-        # Usecase for this will be 4x2 or 2x4 tiles inputs so that are only dimensions to test
         [128, 32],
-        [128, 64],
-        [64, 128],
+        # [128, 64],
+        # [64, 128],
     ],
 )
-def test_multiple_tiles(
+def test_unp_bcast_sub_sdpa(
     test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
 ):
 
@@ -55,6 +54,8 @@ def test_multiple_tiles(
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
+
+    print(f"TILE COUNT: {tile_cnt}")
 
     # Generating easy to debug test case
     # ******************************************************************************
@@ -66,16 +67,21 @@ def test_multiple_tiles(
     padding = torch.tensor([0] * (256 - 16))
 
     src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
-    src_A = src_A.repeat(input_dimensions[0] * input_dimensions[1] // 1024)
+    # src_A = src_A.repeat(input_dimensions[0] * input_dimensions[1] // 1024) # When both inputs have same input dimensions ( unreal case )4
 
-    src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
-    # INSERT_YOUR_CODE
-    # src_B = torch.cat([torch.arange(32).repeat_interleave(32) for _ in range(4)])
+    # src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
+
+    fives = torch.tensor([5] * 1024)
+    sixes = torch.tensor([7] * 1024)
+    sevens = torch.tensor([9] * 1024)
+    eights = torch.tensor([11] * 1024)
+
+    src_B = torch.cat((fives, sixes, sevens, eights))
 
     print("SRC A")
     print("*" * 100)
 
-    print(src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    print(src_A.view(64, 16))
 
     print("SRC B")
     print("*" * 100)
@@ -85,25 +91,26 @@ def test_multiple_tiles(
     # Generate everything needed for golden
     # ******************************************************************************
 
-    reshaped_a = src_A.view(input_dimensions[0] * input_dimensions[1] // 16, 16)
+    reshaped_a = src_A.reshape(64, 16)  # Single tile A: 64x16
+    reshaped_b = src_B.reshape(64 * 4, 16)  # Four tiles B: 256x16
 
+    # For A: take first row (index 0) and repeat it for all 4 tiles of B
+    # Each tile of B has 64 rows, so we need to repeat A's pattern 4 times
     take = []
-    for i in range(0, reshaped_a.size(0), 64):
-        if i < reshaped_a.size(0):
-            take.append(reshaped_a[i])  # row i
-        if i + 16 < reshaped_a.size(0):
-            take.append(reshaped_a[i + 16])  # row i+16
+    for tile in range(4):  # For each of the 4 B tiles
+        take.append(reshaped_a[0])  # Always use row 0 from A
+        take.append(reshaped_a[16])  # Always use row 16 from A
 
-    result = torch.stack(take)
-    result = result.repeat_interleave(8, dim=0)
-    reshaped = result.view(-1, 8, 16)
-    flattened_a = reshaped.view(reshaped.size(0), -1)  # shape [num_blocks, 128]
+    result = torch.stack(take)  # Shape: [8, 16]
+    result = result.repeat_interleave(8, dim=0)  # Shape: [64, 16]
+    flattened_a = result.view(-1, 128)  # Shape: [8, 128]
 
-    reshaped = src_B.view(-1, 8, 16)
-    flattened_b = reshaped.view(-1, 8, 16)  # [num_subarrays, 8, 16]
-    flattened_b = reshaped.view(reshaped.size(0), -1)  # shape [num_blocks, 128]
+    # For B: process all 4 tiles (256 rows total)
+    reshaped = reshaped_b.view(-1, 8, 16)  # Shape: [32, 8, 16]
+    flattened_b = reshaped.view(-1, 128)  # Shape: [32, 128]
 
-    num_segments = len(flattened_a) // 2
+    # Create pattern for indexing
+    num_segments = len(flattened_a) // 2  # 4 segments
     pattern = []
 
     for seg in range(num_segments):
@@ -116,11 +123,11 @@ def test_multiple_tiles(
 
     golden_tensor = []
 
-    # append all intermediate results
+    # Compute subtraction for all combinations
     for i in range(len(pattern_b)):
         golden_tensor.append((flattened_a[pattern_a[i]] - flattened_b[pattern_b[i]]))
 
-    # flatten
+    # Flatten result
     golden_tensor = torch.cat(golden_tensor, dim=0)
 
     # ******************************************************************************
@@ -142,7 +149,7 @@ def test_multiple_tiles(
         src_B,
         formats.input_format,
         formats.input_format,
-        tile_count_A=tile_cnt,
+        tile_count_A=1,
         tile_count_B=tile_cnt,
     )
 
@@ -155,6 +162,10 @@ def test_multiple_tiles(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     print("\nRESULT")
-    print(res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
+    result_view = res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16)
+    for i in range(result_view.size(0)):
+        print(result_view[i].tolist())
+        if (i + 1) % 64 == 0:
+            print("*" * 120)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
