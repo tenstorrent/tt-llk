@@ -22,7 +22,7 @@ from helpers.perf import (
 
 @pytest.mark.perf
 @parametrize(
-    test_name="perf_col_tile_sdpa",
+    test_name="col_tile_sdpa_perf",
     formats=input_output_formats([DataFormat.Float16_b]),
     mathop=[MathOperation.Elwsub],
     math_fidelity=[

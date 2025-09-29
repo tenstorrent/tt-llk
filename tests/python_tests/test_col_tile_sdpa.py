@@ -27,7 +27,7 @@ from helpers.utils import passed_test
 
 @skip_for_blackhole
 @parametrize(
-    test_name="col_tile_sdpa",
+    test_name="col_tile_sdpa_test",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
@@ -54,48 +54,11 @@ def test_unp_bcast_sub_sdpa(
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-
-    print(f"TILE COUNT: {tile_cnt}")
-
-    # Generating easy to debug test case
-    # ******************************************************************************
-
-    ones = torch.tensor([1] * 16)
-    twos = torch.tensor([2] * 16)
-    threes = torch.tensor([3] * 16)
-    fours = torch.tensor([4] * 16)
-    padding = torch.tensor([0] * (256 - 16))
-
-    src_A = torch.cat((ones, padding, twos, padding, threes, padding, fours, padding))
-    # src_A = src_A.repeat(input_dimensions[0] * input_dimensions[1] // 1024) # When both inputs have same input dimensions ( unreal case )4
-
-    # src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * (5)
-
-    fives = torch.tensor([5] * 1024)
-    sixes = torch.tensor([7] * 1024)
-    sevens = torch.tensor([9] * 1024)
-    eights = torch.tensor([11] * 1024)
-
-    src_B = torch.cat((fives, sixes, sevens, eights))
-
-    print("SRC A")
-    print("*" * 100)
-
-    print(src_A.view(64, 16))
-
-    print("SRC B")
-    print("*" * 100)
-
-    print(src_B.view(input_dimensions[0] * input_dimensions[1] // 16, 16))
-
-    # Generate everything needed for golden
-    # ******************************************************************************
+    src_A = src_A[:1024]  # take just 1 tile on A
 
     reshaped_a = src_A.reshape(64, 16)  # Single tile A: 64x16
     reshaped_b = src_B.reshape(64 * 4, 16)  # Four tiles B: 256x16
 
-    # For A: take first row (index 0) and repeat it for all 4 tiles of B
-    # Each tile of B has 64 rows, so we need to repeat A's pattern 4 times
     take = []
     for tile in range(4):  # For each of the 4 B tiles
         take.append(reshaped_a[0])  # Always use row 0 from A
@@ -160,12 +123,5 @@ def test_unp_bcast_sub_sdpa(
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-
-    print("\nRESULT")
-    result_view = res_tensor.view(input_dimensions[0] * input_dimensions[1] // 16, 16)
-    for i in range(result_view.size(0)):
-        print(result_view[i].tolist())
-        if (i + 1) % 64 == 0:
-            print("*" * 120)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
