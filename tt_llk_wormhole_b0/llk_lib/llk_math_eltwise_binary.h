@@ -485,9 +485,8 @@ inline void _llk_math_eltwise_binary_sub_bcast_row_init_()
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
-    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing A dvalid
-
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
+    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing A dvalid
 
     eltwise_binary_sub_bcast_row_configure_mop();
 
@@ -499,6 +498,8 @@ inline void _llk_math_eltwise_binary_sub_bcast_row_init_()
 inline void _llk_math_eltwise_binary_sub_bcast_row(uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
 
     // Run the MOP
     ckernel_template::run();

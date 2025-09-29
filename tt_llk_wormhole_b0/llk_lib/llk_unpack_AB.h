@@ -198,8 +198,8 @@ inline void _llk_unpack_bcastA_B_mop_config_()
         TT_OP_NOP,                                                                                                                     // UNPACK_A3
         TT_OP_NOP,                                                                                                                     // SKIP_A
 
-        TT_OP_NOP,                                                                                                                    // UNPACK_B
-        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1) // SKIP_B
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // UNPACK_B
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1)  // SKIP_B
     );
 
     tmp.program();
@@ -207,7 +207,7 @@ inline void _llk_unpack_bcastA_B_mop_config_()
 
 inline void _llk_unpack_bcastA_B_init_()
 {
-    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
+    // cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
 
     // Manual setup for unpacker A
     // Only this stride can be set because other strides are never applied
@@ -298,7 +298,11 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
     // For iteration 1 it will execute SKIP_A and SKIP_B which are TT_OP_NOP and unpack full srcB.
     // For all other iterations it is same as iteration 0
 
-    ckernel_unpack_template::run(5, 0b00010);
+    // ckernel_unpack_template::run(5, 0b00010);
+
+    uint32_t unpack_mask = 0b1110;
+
+    ckernel_unpack_template::run(4, unpack_mask);
 
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear all counters
 
