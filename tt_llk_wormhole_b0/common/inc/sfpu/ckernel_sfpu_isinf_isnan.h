@@ -106,12 +106,11 @@ inline vFloat _calculate_isfinite_(const vFloat& v)
 {
     // SFPU microcode
     // A number is finite if it's neither infinity nor NaN
-    vFloat is_inf = _calculate_isinf_<APPROXIMATION_MODE>(v);
-    vFloat is_nan = _calculate_isnan_<APPROXIMATION_MODE>(v);
-    vFloat result = sfpi::vConst1; // Assume finite (1.0f) by default
+    sfpi::vInt exp = sfpi::exexp(v);
+    vFloat result  = sfpi::vConst1; // Assume finite (1.0f) by default
 
-    // If it's either infinity or NaN, it's not finite
-    v_if (is_inf == sfpi::vConst1 || is_nan == sfpi::vConst1)
+    // If exponent is 128, the number is either infinity or NaN (not finite)
+    v_if (exp == 128)
     {
         result = sfpi::vConst0;
     }
@@ -127,30 +126,28 @@ inline void _calculate_sfpu_isinf_isnan_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         vFloat in = dst_reg[0];
-        vFloat out;
 
         if constexpr (operation == SfpuType::isinf)
         {
-            out = _calculate_isinf_<APPROXIMATION_MODE>(in);
+            dst_reg[0] = _calculate_isinf_<APPROXIMATION_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isposinf)
         {
-            out = _calculate_isposinf_<APPROXIMATION_MODE>(in);
+            dst_reg[0] = _calculate_isposinf_<APPROXIMATION_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isneginf)
         {
-            out = _calculate_isneginf_<APPROXIMATION_MODE>(in);
+            dst_reg[0] = _calculate_isneginf_<APPROXIMATION_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isnan)
         {
-            out = _calculate_isnan_<APPROXIMATION_MODE>(in);
+            dst_reg[0] = _calculate_isnan_<APPROXIMATION_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isfinite)
         {
-            out = _calculate_isfinite_<APPROXIMATION_MODE>(in);
+            dst_reg[0] = _calculate_isfinite_<APPROXIMATION_MODE>(in);
         }
 
-        dst_reg[0] = out;
         dst_reg++;
     }
 }
