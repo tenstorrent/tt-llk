@@ -30,6 +30,8 @@ class DataFormat(Enum):
     Float16_b = DataFormatInfo("Float16_b", 2)
     Bfp8_b = DataFormatInfo("Bfp8_b", 1)
     Float32 = DataFormatInfo("Float32", 4)
+    Float8_E4M3 = DataFormatInfo("Float8_E4M3", 1)
+    Float8_E5M2 = DataFormatInfo("Float8_E5M2", 1)
     Int32 = DataFormatInfo("Int32", 4)
     Tf32 = DataFormatInfo("Tf32", 3)
     UInt32 = DataFormatInfo("UInt32", 4)
@@ -75,6 +77,13 @@ class DataFormat(Enum):
         if self == DataFormat.Bfp8_b:
             num_exponents = num_datums // 16
         return (self.size * num_datums) + num_exponents
+
+
+class FP8Format(Enum):
+    """FP8 format enumeration with bit field specifications."""
+
+    E4M3 = "E4M3"  # 1 sign + 4 exp + 3 mant bits
+    E5M2 = "E5M2"  # 1 sign + 5 exp + 2 mant bits
 
 
 @dataclass

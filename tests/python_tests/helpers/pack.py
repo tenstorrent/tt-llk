@@ -6,6 +6,8 @@
 import array
 import struct
 
+from .format_config import FP8Format
+
 
 def pack_bfp16(torch_tensor):
     return array.array(
@@ -28,6 +30,90 @@ def pack_fp32(torch_tensor):
         "B",
         b"".join(struct.pack("<f", value.item()) for value in torch_tensor.view(-1)),
     ).tolist()
+
+
+def _pack_fp8(torch_tensor, format_type=FP8Format.E4M3):
+    if format_type == FP8Format.E4M3:
+        exp_bits = 4
+        mant_bits = 3
+        max_exp = 15  # 2^4 - 1
+    elif format_type == FP8Format.E5M2:
+        exp_bits = 5
+        mant_bits = 2
+        max_exp = 31  # 2^5 - 1
+    else:
+        raise ValueError(f"Unsupported format: {format_type}")
+
+    # Precompute constants
+    bias = (1 << (exp_bits - 1)) - 1
+    total_bits = exp_bits + mant_bits
+    mant_mask = (1 << mant_bits) - 1
+    max_value = (1 << total_bits) - 1
+
+    # Vectorized processing for better performance
+    float_values = torch_tensor.view(-1).float()
+
+    # Batch process floats to 32-bit integers
+    float_bits = struct.unpack(
+        "<" + "I" * len(float_values),
+        struct.pack("<" + "f" * len(float_values), *float_values),
+    )
+
+    # Vectorized bit operations
+    signs = [(bits >> 31) & 0x1 for bits in float_bits]
+    exponents = [(bits >> 23) & 0xFF for bits in float_bits]
+    mantissas = [bits & 0x7FFFFF for bits in float_bits]
+
+    # Pre-allocate result array
+    result = array.array("B")
+
+    for i in range(len(float_values)):
+        sign = signs[i]
+        exponent = exponents[i]
+        mantissa = mantissas[i]
+
+        # Handle special cases
+        if exponent == 0 and mantissa == 0:
+            result.append(0)
+            continue
+        elif exponent == 255:
+            # Infinity/NaN - clamp to max finite value
+            result.append((sign << total_bits) | (max_exp << mant_bits) | mant_mask)
+            continue
+
+        # Convert to target format
+        target_exp = exponent - 127 + bias
+
+        # Handle underflow (too small for target format)
+        if target_exp < 0:
+            result.append(0)
+            continue
+
+        # Handle overflow (too large for target format)
+        if target_exp > max_exp:
+            result.append((sign << total_bits) | (max_exp << mant_bits) | mant_mask)
+            continue
+
+        # Extract and scale mantissa bits
+        float32_mantissa = 1.0 + (mantissa / (1 << 23))  # Normalized mantissa
+        target_mantissa = round(float32_mantissa * (1 << mant_bits)) - (1 << mant_bits)
+
+        # Clamp mantissa
+        target_mantissa = max(0, min(mant_mask, target_mantissa))
+
+        # Pack into target bits: sign(1) + exponent(exp_bits) + mantissa(mant_bits)
+        fp8_value = (sign << total_bits) | (target_exp << mant_bits) | target_mantissa
+        result.append(fp8_value)
+
+    return result.tolist()
+
+
+def pack_fp8_e4m3(torch_tensor):
+    return _pack_fp8(torch_tensor, format_type=FP8Format.E4M3)
+
+
+def pack_fp8_e5m2(torch_tensor):
+    return _pack_fp8(torch_tensor, format_type=FP8Format.E5M2)
 
 
 def pack_int32(torch_tensor):

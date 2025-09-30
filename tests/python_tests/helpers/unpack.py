@@ -11,6 +11,7 @@ from helpers.format_arg_mapping import format_dict
 from helpers.format_config import DataFormat
 
 from .format_arg_mapping import format_dict, format_tile_sizes
+from .format_config import FP8Format
 
 
 def unpack_fp16(packed_list):
@@ -114,6 +115,70 @@ def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
 
 
+def _unpack_fp8(packed_list, format_type=FP8Format.E4M3):
+    if format_type == FP8Format.E4M3:
+        exponent_bits = 4
+        mantissa_bits = 3
+    elif format_type == FP8Format.E5M2:
+        exponent_bits = 5
+        mantissa_bits = 2
+    else:
+        raise ValueError(f"Unsupported format: {format_type}")
+
+    bias = (1 << (exponent_bits - 1)) - 1
+    total_bits = exponent_bits + mantissa_bits
+    mant_mask = (1 << mantissa_bits) - 1
+
+    result = []
+
+    for fp8_byte in packed_list:
+        sign = (fp8_byte >> total_bits) & 0x1
+        exponent = (fp8_byte >> mantissa_bits) & ((1 << exponent_bits) - 1)
+        mantissa = fp8_byte & mant_mask
+
+        # Handle special cases
+        if exponent == 0 and mantissa == 0:
+            # Zero
+            result.append(0.0 if sign == 0 else -0.0)
+            continue
+        elif exponent == ((1 << exponent_bits) - 1):
+            # Infinity/NaN - return large float
+            result.append(float("inf") if sign == 0 else float("-inf"))
+            continue
+
+        # Convert to IEEE 754 float32
+        # Adjust exponent for float32 bias
+        float32_exp = exponent + 127 - bias
+
+        # Handle underflow (subnormal numbers)
+        if float32_exp <= 0:
+            # Subnormal number - need special handling
+            # Shift mantissa into float32 mantissa field
+            float32_exp = 0
+            float32_mantissa = int((mantissa / (1 << mantissa_bits)) * (1 << 23))
+        else:
+            # Normal number - scale mantissa to 23 bits
+            # The implicit leading 1 is NOT stored in mantissa bits
+            float32_mantissa = int(mantissa * (1 << (23 - mantissa_bits)))
+
+        # Pack into IEEE 754 single precision format
+        # sign(1) + exponent(8) + mantissa(23)
+        float32_bits = (sign << 31) | (float32_exp << 23) | float32_mantissa
+
+        # Convert to float
+        result.append(struct.unpack("<f", struct.pack("<I", float32_bits))[0])
+
+    return result
+
+
+def unpack_fp8_e4m3(packed_list):
+    return _unpack_fp8(packed_list, format_type=FP8Format.E4M3)
+
+
+def unpack_fp8_e5m2(packed_list):
+    return _unpack_fp8(packed_list, format_type=FP8Format.E5M2)
+
+
 _UNPACKERS = {
     DataFormat.Float16: unpack_fp16,
     DataFormat.Float16_b: unpack_bfp16,
@@ -123,6 +188,8 @@ _UNPACKERS = {
     DataFormat.UInt16: unpack_uint16,
     DataFormat.Int8: unpack_int8,
     DataFormat.UInt8: unpack_uint8,
+    DataFormat.Float8_E4M3: unpack_fp8_e4m3,
+    DataFormat.Float8_E5M2: unpack_fp8_e5m2,
 }
 
 
