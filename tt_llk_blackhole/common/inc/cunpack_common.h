@@ -294,10 +294,18 @@ inline void configure_unpack_AB(
     {
         cfg_reg_rmw_tensix<THCON_SEC0_REG1_Unp_LF8_4b_exp_RMW>(1);
     }
+    else
+    {
+        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Unp_LF8_4b_exp_RMW>(0);
+    }
 
     if ((unpB_src_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3))
     {
         cfg_reg_rmw_tensix<THCON_SEC1_REG1_Unp_LF8_4b_exp_RMW>(1);
+    }
+    else
+    {
+        cfg_reg_rmw_tensix<THCON_SEC1_REG1_Unp_LF8_4b_exp_RMW>(0);
     }
 
     t6_mutex_release(mutex::REG_RMW);
