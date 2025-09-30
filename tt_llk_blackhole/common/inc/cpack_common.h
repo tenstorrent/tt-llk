@@ -427,6 +427,10 @@ inline void configure_pack(
     {
         cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(1);
     }
+    else
+    {
+        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(0);
+    }
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
