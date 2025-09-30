@@ -3,6 +3,7 @@
 
 import pytest
 
+from conftest import skip_for_blackhole
 from helpers.format_arg_mapping import (
     DestAccumulation,
     MathFidelity,
@@ -20,6 +21,7 @@ from helpers.perf import (
 )
 
 
+@skip_for_blackhole
 @pytest.mark.perf
 @parametrize(
     test_name="col_tile_sdpa_perf",
@@ -31,7 +33,7 @@ from helpers.perf import (
     tile_count=8,
     dest_acc=[DestAccumulation.No],
 )
-def test_perf_eltwise_binary_fpu(
+def test_perf_col_tile_sdpa(
     perf_report, test_name, formats, mathop, math_fidelity, dest_acc, tile_count
 ):
 

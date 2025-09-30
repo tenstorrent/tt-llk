@@ -83,8 +83,7 @@ void run_kernel()
         {
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
-                _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
-                    TILE_NUM_FACES, 0, false);
+                _llk_math_eltwise_binary_sub_bcast_row(0 /* dst_index */);
             }
         }
         else
