@@ -148,7 +148,7 @@ inline void _llk_pack_untilize_init_(
         // Pack row by row
         if constexpr (diagonal)
         {
-            TT_SETADCXX(p_setadc::PAC, 1 - 1, 0x0);
+            TT_SETADCXX(p_setadc::PAC, 0, 0x0);
         }
         else if constexpr (narrow_row)
         {
