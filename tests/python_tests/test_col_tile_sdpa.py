@@ -22,6 +22,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
+from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
 
@@ -35,18 +36,26 @@ from helpers.utils import passed_test
     ),
     mathop=[MathOperation.Elwsub, MathOperation.Elwadd, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No],
+    reuse_a_times=[2, 4, 8],
     math_fidelity=[
         MathFidelity.LoFi,
     ],
     input_dimensions=[
         [128, 32],
-        # [128, 64],
-        # [64, 128],
+        [32, 128],
+        [64, 128],
     ],
 )
 def test_unp_bcast_sub_sdpa(
-    test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
+    test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions, reuse_a_times
 ):
+
+    # Precompute constants
+    input_tiles = input_dimensions[0] * input_dimensions[1] // 1024
+    reuse_factor = input_tiles // reuse_a_times
+
+    if input_tiles % reuse_a_times != 0:
+        pytest.skip("Input tiles must be divisible by reuse factor")
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
@@ -54,56 +63,51 @@ def test_unp_bcast_sub_sdpa(
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-    src_A = src_A[:1024]  # take just 1 tile on A
 
-    reshaped_a = src_A.reshape(64, 16)  # Single tile A: 64x16
-    reshaped_b = src_B.reshape(64 * 4, 16)  # Four tiles B: 256x16
+    src_A = src_A[: 1024 * reuse_factor]
+
+    reshaped_a = src_A.reshape(64 * reuse_factor, 16)
+
+    b_tiles = [src_B[i : i + 1024].tolist() for i in range(0, len(src_B), 1024)]
+    b_tiles = b_tiles[:]
 
     take = []
-    for tile in range(4):  # For each of the 4 B tiles
-        take.append(reshaped_a[0])  # Always use row 0 from A
-        take.append(reshaped_a[16])  # Always use row 16 from A
+    for i in range(0, reshaped_a.shape[0], 64):
+        take.append(reshaped_a[i])
+        take.append(reshaped_a[i + 16])
 
-    result = torch.stack(take)  # Shape: [8, 16]
-    result = result.repeat_interleave(8, dim=0)  # Shape: [64, 16]
-    flattened_a = result.view(-1, 128)  # Shape: [8, 128]
+    # Reconstruct tiles with boradcasted data
 
-    # For B: process all 4 tiles (256 rows total)
-    reshaped = reshaped_b.view(-1, 8, 16)  # Shape: [32, 8, 16]
-    flattened_b = reshaped.view(-1, 128)  # Shape: [32, 128]
+    reconstructed_tiles = []
+    for i in range(0, len(take), 2):
+        if i + 1 < len(take):
+            # Combine pair into 1x32 element
+            combined = torch.cat([take[i], take[i + 1]], dim=0)
+            # Replicate to create 32x32 tile
+            tile_32x32 = combined.repeat(32, 1)
+            reconstructed_tiles.append(tile_32x32.flatten())
 
-    # Create pattern for indexing
-    num_segments = len(flattened_a) // 2  # 4 segments
-    pattern = []
+    tilized_reconstructed_tiles = [tilize(tile) for tile in reconstructed_tiles]
 
-    for seg in range(num_segments):
-        base = seg * 2
-        seg_pattern = [base, base, base + 1, base + 1, base, base, base + 1, base + 1]
-        pattern.extend(seg_pattern)
+    golden = []
 
-    pattern_a = torch.tensor(pattern)
-    pattern_b = torch.arange(len(flattened_b))
+    for tile_idx, reconstructed_tile in enumerate(tilized_reconstructed_tiles):
+        start_b_idx = tile_idx * reuse_a_times
+        for reuse_idx in range(reuse_a_times):
+            b_tile_idx = start_b_idx + reuse_idx
+            if b_tile_idx < len(b_tiles):
+                b_tile = torch.tensor(b_tiles[b_tile_idx])
 
-    golden_tensor = []
+                if mathop == MathOperation.Elwadd:
+                    result = reconstructed_tile + b_tile
+                elif mathop == MathOperation.Elwsub:
+                    result = reconstructed_tile - b_tile
+                elif mathop == MathOperation.Elwmul:
+                    result = reconstructed_tile * b_tile
 
-    for i in range(len(pattern_b)):
-        if mathop == MathOperation.Elwsub:
-            golden_tensor.append(
-                (flattened_a[pattern_a[i]] - flattened_b[pattern_b[i]])
-            )
-        elif mathop == MathOperation.Elwadd:
-            golden_tensor.append(
-                (flattened_a[pattern_a[i]] + flattened_b[pattern_b[i]])
-            )
-        elif mathop == MathOperation.Elwmul:
-            golden_tensor.append(
-                (flattened_a[pattern_a[i]] * flattened_b[pattern_b[i]])
-            )
+                golden.append(result)
 
-    # Flatten result
-    golden_tensor = torch.cat(golden_tensor, dim=0)
-
-    # ******************************************************************************
+    golden_tensor = torch.cat(golden).to(dtype=format_dict[formats.output_format])
 
     test_config = {
         "formats": formats,
@@ -114,6 +118,7 @@ def test_unp_bcast_sub_sdpa(
         "mathop": mathop,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
+        "reuse_a_times": reuse_a_times,
     }
 
     res_address = write_stimuli_to_l1(
@@ -122,7 +127,7 @@ def test_unp_bcast_sub_sdpa(
         src_B,
         formats.input_format,
         formats.input_format,
-        tile_count_A=1,
+        tile_count_A=reuse_factor,
         tile_count_B=tile_cnt,
     )
 
