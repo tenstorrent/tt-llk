@@ -394,68 +394,32 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
 }
 
-template <PoolType type, ReduceDim dim, int MATH_FIDELITY_DESC>
+template <PoolType type, int MATH_FIDELITY_DESC>
 inline void reduce_configure_addrmod()
 {
     constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr int FIDELITY_INCREMENT  = get_math_fidelity_increment(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY      = NUM_FIDELITY_PHASES > 0;
 
-    if constexpr (dim == ReduceDim::REDUCE_ROW || type == PoolType::MAX)
-    {
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
-            .dest = {.incr = 0, .clr = 0, .cr = 0},
-            .fidelity = {.incr = 0, .clr = 1}
-        }
-            .set(ADDR_MOD_0);
-        
-        addr_mod_t {
-            .srca = {.incr = 8, .clr = 0, .cr = 1},
-            .srcb = {.incr = 0, .clr = 1, .cr = 0},
-            .dest = {.incr = 0, .clr = 0, .cr = 0},
-        }
-            .set(ADDR_MOD_1);
+    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
 
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
-            .dest = {.incr = 4, .clr = 0, .cr = 1},
-        }
-            .set(ADDR_MOD_2);
-
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
-            .dest = {.incr = 0, .clr = 0, .cr = 0},
-        }
-            .set(ADDR_MOD_3);
-
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 1},
+        .dest = {.incr = 1},
     }
-    else
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_2);
+
+    if constexpr (HIGH_FIDELITY)
     {
-    
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
-    
-        addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = 1},
-            .dest = {.incr = 1},
-        }
-            .set(ADDR_MOD_1);
-    
-        addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = 8},
-            .dest = {.incr = 8},
-        }
-            .set(ADDR_MOD_2);
-    
-        if constexpr (HIGH_FIDELITY)
-        {
-            addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
-        }
+        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
     }
 }
 
@@ -507,7 +471,6 @@ inline void reduce_max_row_configure_addrmod()
 }
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
-template <bool first = true>
 inline void _llk_math_reduce_max_row_(const uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
@@ -565,16 +528,7 @@ inline void _llk_math_reduce_max_row_(const uint dst_index)
     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
     // Reset counters to 0 for next accumulation
-    if constexpr (first)
-    {
-        // if first time, reset all counters to 0 and clear both A and B dvalid bits
-        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
-    }
-    else
-    {
-        // if not, reset all counters to 0 and clear only A dvalid bit
-        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
-    }
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
 }
 
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
@@ -584,7 +538,7 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
-    reduce_configure_addrmod<type, dim, MATH_FIDELITY_DESC>();
+    reduce_configure_addrmod<type, MATH_FIDELITY_DESC>();
     if constexpr (HIGH_FIDELITY)
     {
         reduce_configure_mop<dim, MATH_FIDELITY_PHASES>();
