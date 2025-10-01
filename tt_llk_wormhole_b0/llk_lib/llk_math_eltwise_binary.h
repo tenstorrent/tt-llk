@@ -420,8 +420,8 @@ inline void eltwise_binary_sub_bcast_row_configure_mop(uint reuse_a_times = 4)
 
     */
 
-    uint innerloop = reuse_a_times;
-    uint outerloop = 1;
+    uint32_t innerloop           = reuse_a_times;
+    constexpr uint32_t outerloop = 1;
 
     ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 10, 0, 0));
     tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB)); // Clearing src A dvalid
@@ -459,7 +459,7 @@ inline void _llk_math_eltwise_binary_sub_bcast_row_init_(uint reuse_a_times = 4)
         boradcasted data.
     */
 
-    auto eltwise_op = [](auto addr_mod)
+    auto eltwise_op = [](uint8_t addr_mod)
     {
         if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWSUB)
         {

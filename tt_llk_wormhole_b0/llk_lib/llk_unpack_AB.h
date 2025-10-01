@@ -334,7 +334,7 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
 
     */
 
-    uint32_t unpack_mask = 0b1111111111111110;
+    uint32_t unpack_mask = 0xFFFE;
 
     ckernel_unpack_template::run(reuse_a_times, unpack_mask);
 
