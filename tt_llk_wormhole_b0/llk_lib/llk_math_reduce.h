@@ -565,3 +565,108 @@ inline void _llk_math_reduce_max_row_init_()
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
+
+// Block-based reduce row max functions
+template <uint32_t block_ct_dim>
+inline void _llk_math_reduce_block_max_row_init_()
+{ 
+    reduce_max_row_configure_addrmod();
+    
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+template <uint32_t block_ct_dim>
+inline void _llk_math_reduce_block_max_row_(const uint dst_index)
+{
+    // math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+
+    // // Process block_ct_dim tiles, reducing each row across the block
+    // // Each tile contributes to the row reduction
+    // for (uint32_t tile_idx = 0; tile_idx < block_ct_dim; tile_idx++) {
+    //     if (tile_idx == 0) {
+    //         // First tile: initialize with GMPOOL
+    //         TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+    //     } else {
+    //         // Subsequent tiles: accumulate with GMPOOL
+    //         TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    //         TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+    //     }
+        
+    //     // Process all 4 faces of the current tile
+    //     for (uint32_t face = 0; face < 4; face++) {
+    //         if (tile_idx == 0 && face == 0) {
+    //             // First face of first tile: initialize
+    //             TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+    //         } else {
+    //             // Subsequent faces: accumulate
+    //             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+    //             TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+    //         }
+    //     }
+    // }
+
+    // math::reset_counters(p_setrwc::SET_ABD_F);
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    for (uint32_t tile_idx = 0; tile_idx < block_ct_dim; tile_idx++) {
+
+        // Transpose for each face in src A done at unpacker, and pool
+        // Pool the first 16x16 face, don't clear AB valid bits, 1x16 row is in DEST row 0 for future accumulations
+        // ADDR_MOD_1 will do the same as SETRWC after it, increment CR_A and SrcA counter val by 8
+        TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+        // Pool the second 16x16 face, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+        // Note: ADDR_MOD_1 increments CR_A and SrcA counter val by 8, but also clears CR_B and B counter val to 0, for MOVD2B
+        TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+    
+        // Move back to B and transpose
+        // move row 0 from DEST to B with offset of 16 rows (has F0 and F1 pooled together into a single row)
+        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+        // Note: transpose on src B on works on rows 16 - 31
+        TTI_TRNSPSRCB;
+        // Important to move row again for cases of reducing across multiple tiles
+        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    
+        // New way, suitable for working with 4 faces at a time:
+        // ADDR_MOD_2 increments CR_D and Dest counter val by 4, so that's why we always
+        // move SrcB to DEST location '0'. It's not really 0, but 0, 4, 8, 12
+        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    
+        // Need to increment DEST counter by another 16, since it's already at 16, to point to F2
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        // Increment CrA and SrcA counters as well, to avoid having to do it manually before the next GMPOOL
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_AD, 8, 0, 8, p_setrwc::SET_AD);
+    
+        // Now we process F2 and F3
+    
+        // Pool F2, don't clear AB valid bits, 1x16 row is in DEST row 32 for future accumulations
+        TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+        // Pool F3, don't clear AB valid bits. GMPOOL takes into account the row from previous GMPOOL
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+        // Note: ADDR_MOD_1 increments CR_A and SrcA counter val by 8, but also clears CR_B and B counter val to 0, for MOVD2B
+        TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+    
+        // Move back to B and transpose
+        // move row 32 from DEST to B with offset of 16 rows (has F2 and F3 pooled together into a single row)
+        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+        // Note: transpose on src B on works on rows 16 - 31
+        TTI_TRNSPSRCB;
+        // Important to move row again for cases of reducing across multiple tiles
+        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    
+        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
+        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
+        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+    
+        // Reset counters to 0 for next accumulation
+        // TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD);
+        TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    }
+    // Clear B valid at the end 
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
+}

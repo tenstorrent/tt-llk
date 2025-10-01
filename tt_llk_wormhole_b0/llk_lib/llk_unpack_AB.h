@@ -84,15 +84,42 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
 inline void _llk_unpack_AB_reduce_row_max_mop_config_()
 {
     // Unpack three faces of operand into SrcA
-    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     // Unpack last face of the operant into SrcA and a single face of scaler in SrcB, will set the Dvalid bits.
     static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     
     constexpr uint32_t outerloop = 1;
-    const uint32_t innerloop     = 3;
-    ckernel_template tmp(outerloop, innerloop, unpack_srca);
-    tmp.set_end_ops(unpack_srca_end_op, unpack_srcb_end_op);
+    const uint32_t innerloop     = 1;
+    ckernel_template tmp(outerloop, innerloop, unpack_srca_end_op, unpack_srcb_end_op);
+    tmp.program(instrn_buffer);
+}
+
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+// Block-based reduce row max functions
+template <uint32_t block_ct_dim>
+inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
+{
+    // Constriant on the outerloop and innerloop dim
+    static_assert(block_ct_dim < 128, "block_ct_dim must be less than 128");
+    // // Single UNPACR because TTI_SETADCXX for UNP_A is 1023, increment Z counter to point to the next tile, set dvalid each time
+    // static constexpr uint unpack_srca_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // // Unpack a single face of scaler in SrcB at the start of the MOP, TTI_SETADCXX for UNP_B is 255, set dvalid 
+    // // static constexpr uint unpack_srcb_start_op = TT_OP_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // // static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    
+    // constexpr uint32_t outerloop = block_ct_dim; 
+    // const uint32_t innerloop     = 3; // Unpack tile by tile of the input operand into SrcA
+    // ckernel_template tmp(outerloop, innerloop, unpack_srca_op);
+    // // tmp.set_start_op(unpack_srcb_start_op); // Unpack a single face of scaler in SrcB at the start of the MOP
+    // tmp.set_end_op(unpack_srca_end_op); 
+    // tmp.program(instrn_buffer);
+    static constexpr uint unpack_srca_op = TT_OP_UNPACR(SrcA, 0b00000001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // static constexpr uint unpack_srcb_op = TT_OP_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    
+    constexpr uint32_t outerloop = block_ct_dim; 
+    const uint32_t innerloop     = 1; // Unpack tile by tile of the input operand into SrcA
+    ckernel_template tmp(outerloop, innerloop, unpack_srca_op);
     tmp.program(instrn_buffer);
 }
 
@@ -361,4 +388,50 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
 
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
+}
+
+inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, const std::uint32_t address_b)
+{
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
+
+    // Program srcA and srcB base addresses
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Get tile address
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+    }
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+    TTI_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+    // Run MOP
+    ckernel::ckernel_template::run(instrn_buffer);
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+}
+
+inline void _llk_unpack_AB_reduce_block_max_row_uninit_() {
+    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
+    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+    TTI_SETADCXX(p_setadc::UNP_AB, (FACE_R_DIM * FACE_C_DIM) - 1, 0x0);
 }
