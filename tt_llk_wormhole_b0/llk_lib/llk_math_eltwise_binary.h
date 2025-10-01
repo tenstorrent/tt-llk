@@ -459,72 +459,41 @@ inline void _llk_math_eltwise_binary_sub_bcast_row_init_(uint reuse_a_times = 4)
         boradcasted data.
     */
 
+    auto eltwise_op = [](auto addr_mod)
+    {
+        if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWSUB)
+        {
+            TTI_ELWSUB(0, 0, 0, addr_mod, 0);
+        }
+        else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWADD)
+        {
+            TTI_ELWADD(0, 0, 0, addr_mod, 0);
+        }
+        else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWMUL)
+        {
+            TTI_ELWMUL(0, 0, 0, addr_mod, 0);
+        }
+    };
+
     // Setup eltwise operation for one tile
-    if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWSUB)
-    {
-        TTI_REPLAY(0, 10, 0, 1);
+    TTI_REPLAY(0, 10, 0, 1);
 
-        // Dest address is always incremented by 8 in address mode
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+    // Dest address is always incremented by 8 in address mode
+    eltwise_op(ADDR_MOD_0); // srca_increment -> 0 | srcb_increment -> 8
+    eltwise_op(ADDR_MOD_1); // srca_increment -> 8 | srcb_increment -> 8
 
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+    eltwise_op(ADDR_MOD_0); // srca_increment -> 0 | srcb_increment -> 8
+    eltwise_op(ADDR_MOD_1); // srca_increment -> 8 | srcb_increment -> 8
 
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
 
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+    eltwise_op(ADDR_MOD_0); // srca_increment -> 0 | srcb_increment -> 8
+    eltwise_op(ADDR_MOD_1); // srca_increment -> 8 | srcb_increment -> 8
 
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+    eltwise_op(ADDR_MOD_0); // srca_increment -> 0 | srcb_increment -> 8
+    eltwise_op(ADDR_MOD_1); // srca_increment -> 8 | srcb_increment -> 8
 
-        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
-    }
-    else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWADD)
-    {
-        TTI_REPLAY(0, 10, 0, 1);
-
-        // Dest address is always incremented by 8 in address mode
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
-
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing B dvalid
-    }
-    else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWMUL)
-    {
-        // TODO: implement high fidelity version
-
-        TTI_REPLAY(0, 10, 0, 1);
-
-        // Dest address is always incremented by 8 in address mode
-        TTI_ELWMUL(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWMUL(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-        TTI_ELWMUL(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWMUL(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
-
-        TTI_ELWMUL(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWMUL(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-        TTI_ELWMUL(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-        TTI_ELWMUL(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
-
-        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing B dvalid
-    }
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing B dvalid
 
     eltwise_binary_sub_bcast_row_configure_mop(reuse_a_times);
 
