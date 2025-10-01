@@ -394,68 +394,32 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
 }
 
-template <PoolType type, ReduceDim dim, int MATH_FIDELITY_DESC>
+template <PoolType type, int MATH_FIDELITY_DESC>
 inline void reduce_configure_addrmod()
 {
     constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr int FIDELITY_INCREMENT  = get_math_fidelity_increment(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY      = NUM_FIDELITY_PHASES > 0;
 
-    if constexpr (dim == ReduceDim::REDUCE_ROW || type == PoolType::MAX)
-    {
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
-            .dest = {.incr = 0, .clr = 0, .cr = 0},
-            .fidelity = {.incr = 0, .clr = 1}
-        }
-            .set(ADDR_MOD_0);
-        
-        addr_mod_t {
-            .srca = {.incr = 8, .clr = 0, .cr = 1},
-            .srcb = {.incr = 0, .clr = 1, .cr = 0},
-            .dest = {.incr = 0, .clr = 0, .cr = 0},
-        }
-            .set(ADDR_MOD_1);
+    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
 
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
-            .dest = {.incr = 4, .clr = 0, .cr = 1},
-        }
-            .set(ADDR_MOD_2);
-
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 0},
-            .srcb = {.incr = 0, .clr = 0, .cr = 0},
-            .dest = {.incr = 0, .clr = 0, .cr = 0},
-        }
-            .set(ADDR_MOD_3);
-
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 1},
+        .dest = {.incr = 1},
     }
-    else
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_2);
+
+    if constexpr (HIGH_FIDELITY)
     {
-    
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
-    
-        addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = 1},
-            .dest = {.incr = 1},
-        }
-            .set(ADDR_MOD_1);
-    
-        addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = 8},
-            .dest = {.incr = 8},
-        }
-            .set(ADDR_MOD_2);
-    
-        if constexpr (HIGH_FIDELITY)
-        {
-            addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
-        }
+        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
     }
 }
 
@@ -584,7 +548,7 @@ inline void _llk_math_reduce_init_(const std::uint32_t within_face_16x16_transpo
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
-    reduce_configure_addrmod<type, dim, MATH_FIDELITY_DESC>();
+    reduce_configure_addrmod<type, MATH_FIDELITY_DESC>();
     if constexpr (HIGH_FIDELITY)
     {
         reduce_configure_mop<dim, MATH_FIDELITY_PHASES>();
