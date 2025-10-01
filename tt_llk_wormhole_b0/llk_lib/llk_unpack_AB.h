@@ -192,11 +192,11 @@ inline void _llk_unpack_bcastA_B_mop_config_()
     ckernel_unpack_template tmp = ckernel_unpack_template(
         true,                                                                                                                          // unpackB
         true,                                                                                                                          // unpackHalo
-        TT_OP_REPLAY(0, 9, 0, 0),                                                                                                      // A0_instr
-        TT_OP_REPLAY(0, 7, 0, 0),                                                                                                      // A1_instr
+        TT_OP_REPLAY(0, 16, 0, 0),                                                                                                     // A0_instr
+        TT_OP_NOP,                                                                                                                     // A1_instr
         TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // A2_instr
         TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // A3_instr // UNPACK_A3
-        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // skipA_instr // SKIP_A
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // skipA_instr
 
         TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4), // B_instr
         TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)  // skipB_instr
@@ -236,7 +236,9 @@ inline void _llk_unpack_bcastA_B_init_()
 
     */
 
-    lltt::record<lltt::NoExec>(0, 9);
+    lltt::record<lltt::NoExec>(0, 16);
+    // ************************************
+    // F0
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -247,10 +249,21 @@ inline void _llk_unpack_bcastA_B_init_()
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     TTI_INCADCXY(p_setadc::UNP_A, 0, 0, 1, 0); // Increment Y to point to next needed data in L1
 
+    // F1
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // dvalid will be set by UNPACR instruction in MOP
+    // ************************************
+
     _llk_unpack_bcastA_B_mop_config_();
 }
 
-inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b)
+inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t reuse_a_times = 4)
 {
     TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW)); // reset counters
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));  // Clear Y counter on src side
@@ -296,12 +309,12 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
 
         In iteration 0 zmask will be 1 so unopacker will execute first 5 instructions. Those will unpack F0R0 and F1R0 into srcA and set dvalid.
         After that it will unpack full tile on B on increment Z counter on B so it moves to next tile.
-        Next 3 iterations have zmask on 1 and execute SKIP instructions which are just 3 unpacks on B and after every unpack increment of Z counter on CH0
+        Next iterations have zmask on 1 and execute SKIP instructions which are just unpacks on B and after every unpack increment of Z counter on CH0
 
         The full unrolled code is:
 
-        TT_OP_REPLAY(0, 9, 0, 0),
-        TT_OP_REPLAY(0, 7, 0, 0),
+        TT_OP_REPLAY(0, 16, 0, 0),
+        TT_OP_NOP,
         TT_OP_UNPACR(SrcA, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
 
         First B tile
@@ -309,7 +322,7 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
         TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
         TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4),
 
-        Other 3 B tiles
+        Other B tiles
 
         TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
         TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)
@@ -317,12 +330,13 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
         TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)
         TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1),
         TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)
+        ...
 
     */
 
-    uint32_t unpack_mask = 0b1110;
+    uint32_t unpack_mask = 0b1111111111111110;
 
-    ckernel_unpack_template::run(4, unpack_mask);
+    ckernel_unpack_template::run(reuse_a_times, unpack_mask);
 
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear all counters
 

@@ -33,7 +33,7 @@ from helpers.utils import passed_test
             DataFormat.Float16_b,
         ]
     ),
-    mathop=[MathOperation.Elwsub],
+    mathop=[MathOperation.Elwsub, MathOperation.Elwadd, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No],
     math_fidelity=[
         MathFidelity.LoFi,
@@ -86,9 +86,19 @@ def test_unp_bcast_sub_sdpa(
 
     golden_tensor = []
 
-    # Compute subtraction for all combinations
     for i in range(len(pattern_b)):
-        golden_tensor.append((flattened_a[pattern_a[i]] - flattened_b[pattern_b[i]]))
+        if mathop == MathOperation.Elwsub:
+            golden_tensor.append(
+                (flattened_a[pattern_a[i]] - flattened_b[pattern_b[i]])
+            )
+        elif mathop == MathOperation.Elwadd:
+            golden_tensor.append(
+                (flattened_a[pattern_a[i]] + flattened_b[pattern_b[i]])
+            )
+        elif mathop == MathOperation.Elwmul:
+            golden_tensor.append(
+                (flattened_a[pattern_a[i]] * flattened_b[pattern_b[i]])
+            )
 
     # Flatten result
     golden_tensor = torch.cat(golden_tensor, dim=0)

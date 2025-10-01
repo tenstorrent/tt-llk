@@ -410,26 +410,21 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
 /*************************************************************************
  * LLK sub_bcast_row_tile unpacker implementation for SDPA
  *************************************************************************/
-inline void eltwise_binary_sub_bcast_row_configure_mop()
+inline void eltwise_binary_sub_bcast_row_configure_mop(uint reuse_a_times = 4)
 {
     /*
 
-        MOP configuration. It will contain 3 iterations of replaying first 10
-        instructions from replay buffer and the last op will be execution of all
-        11 instructions in replay buffer. Unrolled code looks like this:
-
-        TTI_REPLAY(0, 10, 0, 0);
-        TTI_REPLAY(0, 10, 0, 0);
-        TTI_REPLAY(0, 10, 0, 0);
-        TTI_REPLAY(0, 11, 0, 0);
+        MOP configuration is following. In innerloop single tile is processed via TT_OP_REPLAY.
+        After all innerloop iterations are finished dvalid for srcA i cleared signaling
+        the unpacker to load new A tile.
 
     */
 
-    constexpr uint innerloop = 3;
-    uint outerloop           = 1;
+    uint innerloop = reuse_a_times;
+    uint outerloop = 1;
 
     ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 10, 0, 0));
-    tmp.set_end_op(TT_OP_REPLAY(0, 11, 0, 0));
+    tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB)); // Clearing src A dvalid
     tmp.program();
 }
 
@@ -450,45 +445,88 @@ inline void eltwise_binary_sub_bcast_row_configure_addrmod()
         .set(ADDR_MOD_1);
 }
 
-inline void _llk_math_eltwise_binary_sub_bcast_row_init_()
+template <EltwiseBinaryType eltwise_binary_type, DstSync Dst, bool is_fp32_dest_acc_en, int NUM_FIDELITY_PHASES = 0>
+inline void _llk_math_eltwise_binary_sub_bcast_row_init_(uint reuse_a_times = 4)
 {
     eltwise_binary_sub_bcast_row_configure_addrmod();
 
     /*
-        Rpelay buffer initially takes 11 instructions into it but
-        when executing them it executes only 10 and the last one
-        is executed when we want to switch to new srcB. This is done
-        to preserve form of reusing srcB for different srcA inputs.
-
-        When this function is called once everything is ready for op to execute,
-        but if between two calls of _llk_math_eltwise_binary_sub_bcast_row some other
-        function modifies replay buffer this init will need to be called again.
-
+        Loading of instructions into replay buffer. First 4 operate on F0 and F1,
+        and second 4 operate on F2 and F3. Each pair of instructions operates on 8 rows
+        of the tile. The last instruction clears B dvalid which means unpacker
+        will load following B tile while still keeping same A tile in srcA.
+        After F0 and F1 A counter is cleared which allows it to reuse
+        boradcasted data.
     */
 
-    // lltt::record<lltt::NoExec>(0, 11);
+    // Setup eltwise operation for one tile
+    if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWSUB)
+    {
+        TTI_REPLAY(0, 10, 0, 1);
 
-    TTI_REPLAY(0, 11, 0, 1);
+        // Dest address is always incremented by 8 in address mode
+        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
-    // Dest address is always incremented by 8 in address mode
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
 
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
+    }
+    else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWADD)
+    {
+        TTI_REPLAY(0, 10, 0, 1);
 
-    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing  B dvalid
-    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing A dvalid
+        // Dest address is always incremented by 8 in address mode
+        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
 
-    eltwise_binary_sub_bcast_row_configure_mop();
+        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+
+        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing B dvalid
+    }
+    else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWMUL)
+    {
+        // TODO: implement high fidelity version
+
+        TTI_REPLAY(0, 10, 0, 1);
+
+        // Dest address is always incremented by 8 in address mode
+        TTI_ELWMUL(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWMUL(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+        TTI_ELWMUL(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWMUL(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+
+        TTI_ELWMUL(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWMUL(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+        TTI_ELWMUL(0, 0, 0, ADDR_MOD_0, 0); // srca_increment -> 0 | srcb_increment -> 8
+        TTI_ELWMUL(0, 0, 0, ADDR_MOD_1, 0); // srca_increment -> 8 | srcb_increment -> 8
+
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing B dvalid
+    }
+
+    eltwise_binary_sub_bcast_row_configure_mop(reuse_a_times);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
