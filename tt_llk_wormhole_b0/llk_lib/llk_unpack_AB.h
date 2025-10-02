@@ -84,15 +84,13 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
 inline void _llk_unpack_AB_reduce_row_max_mop_config_()
 {
     // Unpack three faces of operand into SrcA
-    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     // Unpack last face of the operant into SrcA and a single face of scaler in SrcB, will set the Dvalid bits.
     static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     
     constexpr uint32_t outerloop = 1;
-    const uint32_t innerloop     = 3;
-    ckernel_template tmp(outerloop, innerloop, unpack_srca);
-    tmp.set_end_ops(unpack_srca_end_op, unpack_srcb_end_op);
+    const uint32_t innerloop     = 1;
+    ckernel_template tmp(outerloop, innerloop, unpack_srca_end_op, unpack_srcb_end_op);
     tmp.program(instrn_buffer);
 }
 
@@ -104,14 +102,17 @@ inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
     // Constriant on the outerloop and innerloop dim
     static_assert(block_ct_dim < 128, "block_ct_dim must be less than 128");
     // Single UNPACR because TTI_SETADCXX for UNP_A is 1023, increment Z counter to point to the next tile, set dvalid each time
-    static constexpr uint unpack_srca_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srca_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 0 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srca_end_op = TT_OP_UNPACR(SrcA, 0b00010001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     // Unpack a single face of scaler in SrcB at the start of the MOP, TTI_SETADCXX for UNP_B is 255, set dvalid 
-    static constexpr uint unpack_srcb_start_op = TT_OP_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // static constexpr uint unpack_srcb_start_op = TT_OP_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srcb_end_op = TT_OP_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     
-    constexpr uint32_t outerloop = 1; 
-    const uint32_t innerloop     = block_ct_dim; // Unpack tile by tile of the input operand into SrcA
+    constexpr uint32_t outerloop = block_ct_dim; 
+    const uint32_t innerloop     = 3; // Unpack tile by tile of the input operand into SrcA
     ckernel_template tmp(outerloop, innerloop, unpack_srca_op);
-    tmp.set_start_op(unpack_srcb_start_op); // Unpack a single face of scaler in SrcB at the start of the MOP
+    // tmp.set_start_op(unpack_srcb_start_op); // Unpack a single face of scaler in SrcB at the start of the MOP
+    tmp.set_end_ops(unpack_srca_end_op, unpack_srcb_end_op); 
     tmp.program(instrn_buffer);
 }
 
