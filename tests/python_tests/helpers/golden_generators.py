@@ -1279,7 +1279,7 @@ class TilizeGolden:
         TILE_SIZE = 32  # Tile dimensions: 32x32
 
         # Always do full tilization first
-        result = tilize_block(operand, dimensions, data_format, FACES_PER_TILE)
+        result = tilize_block(operand, dimensions, data_format)
 
         # Then select the appropriate number of faces from the tilized result
         if num_faces < FACES_PER_TILE:
