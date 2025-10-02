@@ -247,68 +247,113 @@ class TransposeGolden:
         operand,
         data_format: DataFormat,
         input_dimensions: list[int] = [32, 32],
+        num_faces: int = 4,
     ):
-        """Transpose a tile tensor by transposing within each of the four faces.
-        A tile tensor consists of 4 equal faces arranged in a tile.
-        This function dynamically splits the tensor into 4 faces, transposes each face
-        individually, and reassembles the tile.
+        """Transpose a tile tensor by transposing within each face.
+        A tile tensor consists of faces, each face is always 16x16 = 256 elements.
+        For num_faces < 4, we process only the first num_faces faces from the tensor.
         Args:
             operand: Input tensor to transpose
             data_format: Data format for the result
+            input_dimensions: Input tensor dimensions (for compatibility)
+            num_faces: Number of faces in the tile (1, 2, or 4)
         Returns:
-            torch.Tensor: Tensor with each face transposed, flattened back to original size
+            torch.Tensor: Tensor with each face transposed, result size = num_faces * 256
         """
-        tensor = to_tensor(operand, data_format)
-        total_elements = tensor.numel()
-        if total_elements % 4 != 0:
-            raise ValueError(
-                f"Tensor size {total_elements} must be divisible by 4 for tile structure"
-            )
-        face_size = total_elements // 4
-        face_dim = math.isqrt(face_size)
-        if face_dim * face_dim != face_size:
-            raise ValueError(
-                f"Each face must be square (for now). Face size {face_size} is not a perfect square"
-            )
+        if num_faces not in [1, 2, 4]:
+            raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
 
-        # Split the tensor into 4 faces dynamically
-        # Transpose each face using the helper function
-        result = tensor.view(4, face_dim, face_dim).transpose(-2, -1).flatten()
-        return result.to(format_dict[data_format])
+        tensor = to_tensor(operand, data_format)
+        torch_format = format_dict[data_format]
+
+        # Each face is always 16x16 = 256 elements
+        face_size = 256
+        face_dim = 16
+        elements_per_tile_needed = face_size * num_faces
+
+        # Select first N faces from input (following DataCopyGolden pattern)
+        if tensor.numel() == elements_per_tile_needed:
+            tensor_to_process = tensor
+        else:
+            tensor_to_process = tensor[:elements_per_tile_needed]
+
+        # Split into faces and transpose each face individually
+        faces = tensor_to_process.view(num_faces, face_dim, face_dim)
+        transposed_faces = faces.transpose(-2, -1)
+        result = transposed_faces.flatten().to(torch_format)
+
+        # Apply BFP8_b special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            result_list = result.tolist()
+            result_list = check_bfp8_b(result_list)
+            result = torch.tensor(result_list, dtype=torch_format)
+
+        return result
 
     def transpose_faces(
         self,
         operand,
         data_format: DataFormat,
         input_dimensions: list[int] = [32, 32],
+        num_faces: int = 4,
     ):
-        """Transpose the arrangement of the four faces in a tile tensor.
+        """Transpose the arrangement of faces in a tile tensor.
         Treats each face as a single element and transposes their arrangement.
-        If faces are arranged as:
+
+        For 4 faces arranged as:
         f0 f1
         f2 f3
         After transposition:
         f0 f2
         f1 f3
+
+        For 2 faces: f0, f1 -> f0, f1 (no change in linear arrangement)
+        For 1 face: f0 -> f0 (identity operation)
+
         Args:
             operand: Input tensor to transpose
             data_format: Data format for the result
+            input_dimensions: Input tensor dimensions (for compatibility)
+            num_faces: Number of faces in the tile (1, 2, or 4)
         Returns:
             torch.Tensor: Tensor with faces rearranged in transposed order
         """
+        if num_faces not in [1, 2, 4]:
+            raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+
         tensor = to_tensor(operand, data_format)
-        total_elements = tensor.numel()
-        if total_elements % 4 != 0:
-            raise ValueError(
-                f"Invalid tensor size {total_elements}. A valid tile structure requires the tensor to represent "
-                f"4 equal faces, so the total number of elements must be divisible by 4."
-            )
-        face_size = total_elements // 4
-        # Split the tensor into 4 faces
-        faces = torch.tensor_split(tensor, 4)
-        # Transpose the face arrangement: f0,f1,f2,f3 -> f0,f2,f1,f3
-        result = torch.cat([faces[0], faces[2], faces[1], faces[3]])
-        return result.to(format_dict[data_format])
+        torch_format = format_dict[data_format]
+
+        # Each face is always 256 elements
+        face_size = 256
+        elements_per_tile_needed = face_size * num_faces
+
+        # Select first N faces from input (following DataCopyGolden pattern)
+        if tensor.numel() == elements_per_tile_needed:
+            tensor_to_process = tensor
+        else:
+            tensor_to_process = tensor[:elements_per_tile_needed]
+
+        # Handle different face counts
+        if num_faces == 1:
+            # Single face: no transpose needed
+            result = tensor_to_process.to(torch_format)
+        elif num_faces == 2:
+            # Two faces: f0, f1 -> f0, f1 (no change for linear arrangement)
+            result = tensor_to_process.to(torch_format)
+        else:  # num_faces == 4
+            # Four faces: transpose arrangement f0,f1,f2,f3 -> f0,f2,f1,f3
+            faces = torch.tensor_split(tensor_to_process, 4)
+            result = torch.cat([faces[0], faces[2], faces[1], faces[3]])
+            result = result.to(torch_format)
+
+        # Apply BFP8_b special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            result_list = result.tolist()
+            result_list = check_bfp8_b(result_list)
+            result = torch.tensor(result_list, dtype=torch_format)
+
+        return result
 
     def _apply_tile_operation_multi_tile(
         self,
@@ -607,6 +652,161 @@ class MatmulGolden(FidelityMasking):
 
 
 @register_golden
+class ScalarBroadcastGolden:
+    """
+    Golden generator for scalar broadcast operations.
+    Takes the first element of the input tensor and broadcasts it across the entire output tile.
+    Output size = num_faces * 256 elements, all with the same scalar value.
+    """
+
+    def __call__(
+        self,
+        operand1,
+        data_format,
+        num_faces: int = 4,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        torch_format = format_dict[data_format]
+
+        # Convert input to tensor
+        if not isinstance(operand1, torch.Tensor):
+            operand1 = torch.tensor(operand1)
+
+        # Take the first element as the scalar value to broadcast
+        scalar_value = operand1.flatten()[0]
+
+        # Calculate output size based on num_faces
+        elements_per_tile = 256 * num_faces  # Each face = 16x16 = 256 elements
+
+        # Create output tensor with scalar value replicated across all elements
+        result = torch.full((elements_per_tile,), scalar_value, dtype=torch_format)
+
+        # Apply BFP8_b special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            result_list = result.tolist()
+            result_list = check_bfp8_b(result_list)
+            result = torch.tensor(result_list, dtype=torch_format)
+
+        return result
+
+
+@register_golden
+class ColumnBroadcastGolden:
+    """
+    Golden generator for column broadcast operations.
+    Hardware behavior: Faces 0-1 use Face 0's column, Faces 2-3 use Face 2's column
+    (See llk_math_eltwise_binary_broadcast.h lines 136-141)
+
+    For a 16x16 face: input has 16 unique values (one per row),
+    each value is replicated 16 times across its row.
+    Output pattern: [row0_val]*16, [row1_val]*16, ..., [row15_val]*16
+    """
+
+    def __call__(
+        self,
+        operand1,
+        data_format,
+        num_faces: int = 4,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        torch_format = format_dict[data_format]
+
+        # Convert input to tensor
+        if not isinstance(operand1, torch.Tensor):
+            operand1 = torch.tensor(operand1)
+
+        input_flat = operand1.flatten().to(torch_format)
+
+        # Each face is 16x16 = 256 elements
+        face_size = 256
+        face_dim = 16  # 16x16 face
+
+        result = []
+        for face_idx in range(num_faces):
+            # COL broadcast: Faces 0-1 use Face 0's column, Faces 2-3 use Face 2's column
+            source_face_idx = 0 if face_idx < 2 else 2
+            source_start = source_face_idx * face_size
+            source_input = input_flat[source_start : source_start + face_size]
+
+            # Extract column values (one per row) from source face
+            col_values = source_input[
+                ::face_dim
+            ]  # Take every 16th element (first column)
+
+            # Broadcast each row value across all 16 columns
+            face_output = col_values.repeat_interleave(face_dim)
+            result.append(face_output)
+
+        output = torch.cat(result)
+
+        # Apply BFP8_b special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            output_list = output.tolist()
+            output_list = check_bfp8_b(output_list)
+            output = torch.tensor(output_list, dtype=torch_format)
+
+        return output
+
+
+@register_golden
+class RowBroadcastGolden:
+    """
+    Golden generator for row broadcast operations.
+    Hardware behavior: Faces 0,2 use Face 0's row, Faces 1,3 use Face 1's row
+    (See llk_math_eltwise_binary_broadcast.h lines 129-134)
+
+    Takes row values from input and broadcasts each down its column.
+    For a 16x16 face: input has 16 unique values (one per column),
+    each value is replicated 16 times down its column.
+    Output: columns 0-15 each have a constant value.
+    """
+
+    def __call__(
+        self,
+        operand1,
+        data_format,
+        num_faces: int = 4,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        torch_format = format_dict[data_format]
+
+        # Convert input to tensor
+        if not isinstance(operand1, torch.Tensor):
+            operand1 = torch.tensor(operand1)
+
+        input_flat = operand1.flatten().to(torch_format)
+
+        # Each face is 16x16 = 256 elements
+        face_size = 256
+        face_dim = 16  # 16x16 face
+
+        result = []
+        for face_idx in range(num_faces):
+            # ROW broadcast: Faces 0,2 use Face 0's row, Faces 1,3 use Face 1's row
+            source_face_idx = face_idx % 2  # 0→0, 1→1, 2→0, 3→1
+            source_start = source_face_idx * face_size
+            source_input = input_flat[source_start : source_start + face_size]
+
+            # Extract first row (first 16 elements) from source face
+            row_values = source_input[:face_dim]
+
+            # Broadcast each column value down all 16 rows
+            # Repeat each value 16 times and arrange in column-major order
+            face_output = row_values.repeat(face_dim)
+            result.append(face_output)
+
+        output = torch.cat(result)
+
+        # Apply BFP8_b special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            output_list = output.tolist()
+            output_list = check_bfp8_b(output_list)
+            output = torch.tensor(output_list, dtype=torch_format)
+
+        return output
+
+
+@register_golden
 class DataCopyGolden:
     def __call__(
         self,
@@ -628,8 +828,15 @@ class DataCopyGolden:
 
         reshaped = operand1.view(tile_cnt, tile_size)
         selected = reshaped[:, :elements_per_tile_needed]
+        result = selected.flatten().to(torch_format)
 
-        return selected.flatten().to(torch_format)
+        # Apply BFP8_b special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            result_list = result.tolist()
+            result_list = check_bfp8_b(result_list)
+            result = torch.tensor(result_list, dtype=torch_format)
+
+        return result
 
 
 @register_golden
@@ -1057,8 +1264,33 @@ class UntilizeGolden:
 
 @register_golden
 class TilizeGolden:
-    def __call__(self, operand, dimensions, data_format):
+    def __call__(self, operand, dimensions, data_format, num_faces=4):
+        from helpers.format_arg_mapping import format_dict
         from helpers.tilize_untilize import tilize_block
 
-        result = tilize_block(operand, dimensions, data_format)
-        return result.flatten()
+        # Validate the number of faces
+        if not (1 <= num_faces <= 4):
+            raise ValueError(f"`num_faces` must be between 1 and 4, got {num_faces}")
+
+        # Constants
+        FACES_PER_TILE = 4
+        ELEMENTS_PER_FACE = 256  # 16x16
+        ELEMENTS_PER_TILE = 1024  # 4 faces × 256 elements
+        TILE_SIZE = 32  # Tile dimensions: 32x32
+
+        # Always do full tilization first
+        result = tilize_block(operand, dimensions, data_format, FACES_PER_TILE)
+
+        # Then select the appropriate number of faces from the tilized result
+        if num_faces < FACES_PER_TILE:
+            torch_format = format_dict[data_format]
+            height, width = dimensions
+            tile_cnt = (height // TILE_SIZE) * (width // TILE_SIZE)
+            elements_per_tile_needed = ELEMENTS_PER_FACE * num_faces
+
+            # Reshape to tiles and select first N faces per tile
+            tilized_reshaped = result.view(tile_cnt, ELEMENTS_PER_TILE)
+            selected = tilized_reshaped[:, :elements_per_tile_needed]
+            return selected.flatten().to(torch_format)
+        else:
+            return result.flatten()
