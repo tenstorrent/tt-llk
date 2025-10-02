@@ -263,7 +263,7 @@ inline void _llk_unpack_bcastA_B_init_()
     _llk_unpack_bcastA_B_mop_config_();
 }
 
-inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t reuse_a_count = 4)
+inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t srca_reuse_count = 4)
 {
     TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW)); // reset counters
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));  // Clear Y counter on src side
@@ -336,7 +336,7 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
 
     uint32_t unpack_mask = 0xFFFE;
 
-    ckernel_unpack_template::run(reuse_a_count, unpack_mask);
+    ckernel_unpack_template::run(srca_reuse_count, unpack_mask);
 
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear all counters
 

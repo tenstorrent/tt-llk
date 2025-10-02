@@ -36,7 +36,7 @@ from helpers.utils import passed_test
     ),
     mathop=[MathOperation.Elwsub, MathOperation.Elwadd, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No],
-    reuse_a_count=[2, 4, 8],
+    srca_reuse_count=[2, 4, 8],
     math_fidelity=[
         MathFidelity.LoFi,
     ],
@@ -47,14 +47,20 @@ from helpers.utils import passed_test
     ],
 )
 def test_unp_bcast_sub_sdpa(
-    test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions, reuse_a_count
+    test_name,
+    formats,
+    mathop,
+    dest_acc,
+    math_fidelity,
+    input_dimensions,
+    srca_reuse_count,
 ):
 
     # Precompute constants
     input_tiles = input_dimensions[0] * input_dimensions[1] // 1024
-    reuse_factor = input_tiles // reuse_a_count
+    reuse_factor = input_tiles // srca_reuse_count
 
-    if input_tiles % reuse_a_count != 0:
+    if input_tiles % srca_reuse_count != 0:
         pytest.skip("Input tiles must be divisible by reuse factor")
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
@@ -92,8 +98,8 @@ def test_unp_bcast_sub_sdpa(
     golden = []
 
     for tile_idx, reconstructed_tile in enumerate(tilized_reconstructed_tiles):
-        start_b_idx = tile_idx * reuse_a_count
-        for reuse_idx in range(reuse_a_count):
+        start_b_idx = tile_idx * srca_reuse_count
+        for reuse_idx in range(srca_reuse_count):
             b_tile_idx = start_b_idx + reuse_idx
             if b_tile_idx < len(b_tiles):
                 b_tile = torch.tensor(b_tiles[b_tile_idx])
@@ -118,7 +124,7 @@ def test_unp_bcast_sub_sdpa(
         "mathop": mathop,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
-        "reuse_a_count": reuse_a_count,
+        "srca_reuse_count": srca_reuse_count,
     }
 
     res_address = write_stimuli_to_l1(
