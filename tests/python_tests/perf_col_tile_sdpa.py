@@ -67,5 +67,5 @@ def test_perf_col_tile_sdpa(
         "srca_reuse_count": srca_reuse_count,
     }
 
-    results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], 20)
+    results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], 10)
     update_report(perf_report, test_config, results)

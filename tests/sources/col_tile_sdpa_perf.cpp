@@ -44,9 +44,9 @@ void run_kernel()
         }
         else
         {
-            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+            for (uint32_t i = 0; i < TILE_CNT / SRCA_REUSE_COUNT; i++)
             {
-                _llk_unpack_bcastA_B_(PERF_ADDRESS(PERF_INPUT_A, tile), PERF_ADDRESS(PERF_INPUT_B, tile), SRCA_REUSE_COUNT);
+                _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i * SRCA_REUSE_COUNT]), SRCA_REUSE_COUNT);
             }
         }
         PROFILER_SYNC();
@@ -70,6 +70,7 @@ void run_kernel()
         PROFILER_SYNC();
     }
     {
+        _llk_math_wait_for_dest_available_<dest_sync>();
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
@@ -81,21 +82,20 @@ void run_kernel()
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+            for (uint32_t i = 0; i < TILE_CNT / SRCA_REUSE_COUNT; i++)
             {
-                _llk_math_eltwise_binary_sub_bcast_row(0 /* dst_index */);
+                _llk_math_eltwise_binary_sub_bcast_row(i * SRCA_REUSE_COUNT /* dst_index */);
             }
         }
         else
         {
-            for (uint32_t tile = 0; tile < TILE_CNT; tile++)
+            for (uint32_t i = 0; i < TILE_CNT / SRCA_REUSE_COUNT; i++)
             {
-                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                _llk_math_eltwise_binary_sub_bcast_row(0 /* dst_index */);
-                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                _llk_math_eltwise_binary_sub_bcast_row(i * SRCA_REUSE_COUNT /* dst_index */);
             }
         }
         PROFILER_SYNC();
+        _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
 }
 
@@ -116,6 +116,7 @@ void run_kernel()
         PROFILER_SYNC();
     }
     {
+        _llk_packer_wait_for_math_done_();
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
@@ -132,12 +133,11 @@ void run_kernel()
         {
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
-                _llk_packer_wait_for_math_done_();
                 _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
-                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
         PROFILER_SYNC();
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 }
 
