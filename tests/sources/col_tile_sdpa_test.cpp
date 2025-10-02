@@ -15,8 +15,6 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-// constexpr uint32_t REUSE_A_TIMES = 4;
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB.h"
@@ -29,9 +27,9 @@ void run_kernel()
     _llk_unpack_bcastA_B_init_();
 
     // Single call works on 1 tile that goes to srcA and then reuses it for 4 srcB tiles that are changeable
-    for (uint32_t i = 0; i < TILE_CNT / REUSE_A_TIMES; i++)
+    for (uint32_t i = 0; i < TILE_CNT / REUSE_A_COUNT; i++)
     {
-        _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i * REUSE_A_TIMES]), REUSE_A_TIMES);
+        _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i * REUSE_A_COUNT]), REUSE_A_COUNT);
     }
 }
 
@@ -47,13 +45,13 @@ void run_kernel()
 {
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-    _llk_math_eltwise_binary_sub_bcast_row_init_<ELTWISE_BINARY_OP, dest_sync, false, 0>(REUSE_A_TIMES);
+    _llk_math_eltwise_binary_sub_bcast_row_init_<ELTWISE_BINARY_OP, dest_sync, false, 0>(REUSE_A_COUNT);
 
     _llk_math_wait_for_dest_available_<dest_sync>();
 
-    for (uint32_t i = 0; i < TILE_CNT / REUSE_A_TIMES; i++)
+    for (uint32_t i = 0; i < TILE_CNT / REUSE_A_COUNT; i++)
     {
-        _llk_math_eltwise_binary_sub_bcast_row(i * REUSE_A_TIMES /* dst_index */);
+        _llk_math_eltwise_binary_sub_bcast_row(i * REUSE_A_COUNT /* dst_index */);
     }
 
     _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();

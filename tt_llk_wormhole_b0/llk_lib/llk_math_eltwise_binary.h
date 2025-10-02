@@ -410,7 +410,7 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
 /*************************************************************************
  * LLK sub_bcast_row_tile unpacker implementation for SDPA
  *************************************************************************/
-inline void eltwise_binary_sub_bcast_row_configure_mop(uint reuse_a_times = 4)
+inline void eltwise_binary_sub_bcast_row_configure_mop(uint reuse_a_count = 4)
 {
     /*
 
@@ -420,7 +420,7 @@ inline void eltwise_binary_sub_bcast_row_configure_mop(uint reuse_a_times = 4)
 
     */
 
-    uint32_t innerloop           = reuse_a_times;
+    uint32_t innerloop           = reuse_a_count;
     constexpr uint32_t outerloop = 1;
 
     ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 10, 0, 0));
@@ -446,7 +446,7 @@ inline void eltwise_binary_sub_bcast_row_configure_addrmod()
 }
 
 template <EltwiseBinaryType eltwise_binary_type, DstSync Dst, bool is_fp32_dest_acc_en, int NUM_FIDELITY_PHASES = 0>
-inline void _llk_math_eltwise_binary_sub_bcast_row_init_(uint reuse_a_times = 4)
+inline void _llk_math_eltwise_binary_sub_bcast_row_init_(uint32_t reuse_a_count = 4)
 {
     eltwise_binary_sub_bcast_row_configure_addrmod();
 
@@ -496,14 +496,14 @@ inline void _llk_math_eltwise_binary_sub_bcast_row_init_(uint reuse_a_times = 4)
 
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing B dvalid
 
-    eltwise_binary_sub_bcast_row_configure_mop(reuse_a_times);
+    eltwise_binary_sub_bcast_row_configure_mop(reuse_a_count);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_eltwise_binary_sub_bcast_row(uint dst_index)
+inline void _llk_math_eltwise_binary_sub_bcast_row(uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 

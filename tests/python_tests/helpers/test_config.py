@@ -237,8 +237,8 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr bool tilize_en = {tilize_en.value};")
 
     # Reuse A times
-    reuse_a_times = test_config.get("reuse_a_times", 4)
-    header_content.append(f"constexpr int REUSE_A_TIMES = {reuse_a_times};")
+    reuse_a_count = test_config.get("reuse_a_count", 4)
+    header_content.append(f"constexpr int REUSE_A_COUNT = {reuse_a_count};")
 
     # Data format configuration
     header_content.extend(["", "// Data format configuration"])

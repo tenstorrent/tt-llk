@@ -28,7 +28,7 @@ from helpers.perf import (
     formats=input_output_formats([DataFormat.Float16_b]),
     mathop=[MathOperation.Elwsub, MathOperation.Elwadd, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No],
-    reuse_a_times=[2, 4, 8],
+    reuse_a_count=[2, 4, 8],
     math_fidelity=[
         MathFidelity.LoFi,
     ],
@@ -46,7 +46,7 @@ def test_perf_col_tile_sdpa(
     dest_acc,
     math_fidelity,
     input_dimensions,
-    reuse_a_times,
+    reuse_a_count,
 ):
 
     # MathFidelity is only used for Elwmul
@@ -64,7 +64,7 @@ def test_perf_col_tile_sdpa(
         "mathop": mathop,
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
-        "reuse_a_times": reuse_a_times,
+        "reuse_a_count": reuse_a_count,
     }
 
     results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], 20)
