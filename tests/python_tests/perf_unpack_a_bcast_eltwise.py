@@ -24,7 +24,7 @@ from helpers.perf import (
 @skip_for_blackhole
 @pytest.mark.perf
 @parametrize(
-    test_name="col_tile_sdpa_perf",
+    test_name="unpack_a_bcast_eltwise_perf",
     formats=input_output_formats([DataFormat.Float16_b]),
     mathop=[MathOperation.Elwsub, MathOperation.Elwadd, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No],
@@ -67,5 +67,8 @@ def test_perf_col_tile_sdpa(
         "srca_reuse_count": srca_reuse_count,
     }
 
-    results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], 10)
+    # For now only L1_TO_L1 and PACK_ISOLATE are supported because of custom usage of dvalid signals
+    results = perf_benchmark(
+        test_config, [PerfRunType.L1_TO_L1, PerfRunType.PACK_ISOLATE], 10
+    )
     update_report(perf_report, test_config, results)

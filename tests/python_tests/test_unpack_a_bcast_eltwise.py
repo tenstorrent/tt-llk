@@ -28,7 +28,7 @@ from helpers.utils import passed_test
 
 @skip_for_blackhole
 @parametrize(
-    test_name="col_tile_sdpa_test",
+    test_name="unpack_a_bcast_eltwise_test",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,

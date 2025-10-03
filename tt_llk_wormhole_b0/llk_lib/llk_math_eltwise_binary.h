@@ -410,7 +410,7 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
 /*************************************************************************
  * LLK sub_bcast_row_tile unpacker implementation for SDPA
  *************************************************************************/
-inline void eltwise_binary_sub_bcast_row_configure_mop(uint srca_reuse_count = 4)
+inline void _llk_math_eltwise_binary_bcast_row_configure_mop_(uint srca_reuse_count = 4)
 {
     /*
 
@@ -428,7 +428,7 @@ inline void eltwise_binary_sub_bcast_row_configure_mop(uint srca_reuse_count = 4
     tmp.program();
 }
 
-inline void eltwise_binary_sub_bcast_row_configure_addrmod()
+inline void _llk_math_eltwise_binary_bcast_row_configure_addrmod_()
 {
     addr_mod_t {
         .srca = {.incr = 0},
@@ -446,9 +446,9 @@ inline void eltwise_binary_sub_bcast_row_configure_addrmod()
 }
 
 template <EltwiseBinaryType eltwise_binary_type, DstSync Dst, bool is_fp32_dest_acc_en, int NUM_FIDELITY_PHASES = 0>
-inline void _llk_math_eltwise_binary_sub_bcast_row_init_(uint32_t srca_reuse_count = 4)
+inline void _llk_math_eltwise_binary_bcast_row_init_(uint32_t srca_reuse_count = 4)
 {
-    eltwise_binary_sub_bcast_row_configure_addrmod();
+    _llk_math_eltwise_binary_bcast_row_configure_addrmod_();
 
     /*
         Loading of instructions into replay buffer. First 4 operate on F0 and F1,
@@ -496,14 +496,14 @@ inline void _llk_math_eltwise_binary_sub_bcast_row_init_(uint32_t srca_reuse_cou
 
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing B dvalid
 
-    eltwise_binary_sub_bcast_row_configure_mop(srca_reuse_count);
+    _llk_math_eltwise_binary_bcast_row_configure_mop_(srca_reuse_count);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_eltwise_binary_sub_bcast_row(uint32_t dst_index)
+inline void _llk_math_eltwise_binary_bcast_row_(uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
