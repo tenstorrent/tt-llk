@@ -207,10 +207,10 @@ inline void _llk_unpack_bcastA_B_mop_config_()
 
 inline void _llk_unpack_bcastA_B_init_()
 {
-    // cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize
-
     // Manual setup for unpacker A
-    // Only this stride can be set because other strides are never applied
+    // Only srcA Y stride can be set because other strides are never used.
+    // Stride is applied in each UNPACR instruction with ADDRMOD.
+    // When applied it moves to next row on srcA side.
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(32);
 
     TTI_SETADCXX(p_setadc::UNP_A, FACE_R_DIM - 1, 0);              // Directly set unpacker A counter to unpack one row
@@ -307,7 +307,7 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
             SKIP_A
             SKIP_B
 
-        In iteration 0 zmask will be 1 so unopacker will execute first 5 instructions. Those will unpack F0R0 and F1R0 into srcA and set dvalid.
+        In iteration 0 zmask will be 0 so unopacker will execute first 5 instructions. Those will unpack F0R0 and F1R0 into srcA and set dvalid.
         After that it will unpack full tile on B on increment Z counter on B so it moves to next tile.
         Next iterations have zmask on 1 and execute SKIP instructions which are just unpacks on B and after every unpack increment of Z counter on CH0
 
