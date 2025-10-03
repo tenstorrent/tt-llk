@@ -410,7 +410,9 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
 /*************************************************************************
  * LLK eltwise_bcast_row_tile unpacker implementation for SDPA
 
- TODO:explain
+ These LLKs are meant to be used with unpacker that does unpack broadcast row
+ on srcA register _llk_unpack_bcastA_B_. Using them with other unpack LLKs will lead to hangs
+ since toggling of dvalid signal is different in both cases.
 
  *************************************************************************/
 inline void eltwise_binary_configure_mop(uint srca_reuse_count = 4)
