@@ -148,7 +148,7 @@ def filter_params_with_z3(all_params):
 
         # Convert enum values to integers for Z3
         # Map BroadcastType string values to integers
-        broadcast_mapping = {"NONE": 0, "COL": 1, "ROW": 2, "SCALAR": 3}
+        broadcast_mapping = {bt.value: idx for idx, bt in enumerate(BroadcastType)}
         if hasattr(broadcast_type, "value") and isinstance(broadcast_type.value, str):
             broadcast_val = broadcast_mapping.get(broadcast_type.value, 0)
         else:
@@ -187,11 +187,15 @@ def filter_params_with_z3(all_params):
             Not(And(Not(broadcast_none), reuse_srca)),
         )
 
-        # Static assertion 2: unpack_to_dest configuration restrictions
-        valid_unpack_config = Or(
-            And(broadcast_none, Not(acc_to_dest_z3), reuse_none), Not(unpack_to_dest)
+        # Only allow unpack_to_dest if there is no broadcast, acc_to_dest is not set,
+        # and reuse is none.
+        valid_unpack_to_dest_config = And(
+            broadcast_none, Not(acc_to_dest_z3), reuse_none
         )
-        constraint2 = valid_unpack_config
+        unpack_to_dest_not_set = Not(unpack_to_dest)
+        # The configuration is valid if either unpack_to_dest is not set, or it is set
+        # with the valid config.
+        constraint2 = Or(valid_unpack_to_dest_config, unpack_to_dest_not_set)
 
         # Static assertion 3: SCALAR broadcast + acc_to_dest
         constraint3 = Not(And(broadcast_scalar, acc_to_dest_z3))
@@ -228,6 +232,21 @@ def filter_params_with_z3(all_params):
             )
         )
 
+        # Block Wormhole Row broadcast with outlier format combinations and num_faces=4
+        # Format conversion issue suspected: Float16_b/Bfp8_b → Float16 with Row broadcast
+        wormhole_row_outlier_constraint = Not(
+            And(
+                is_wormhole,
+                broadcast_row,
+                Or(
+                    BoolVal(formats.input_format == DataFormat.Float16_b),
+                    BoolVal(formats.input_format == DataFormat.Bfp8_b),
+                ),
+                BoolVal(formats.output_format == DataFormat.Float16),
+                num_faces_z3 == 4,
+            )
+        )
+
         # BROADCAST + ACC_TO_DEST: ALL COMBINATIONS BROKEN (BLOCK ENTIRELY)
         # - COL + acc_to_dest: Packer timeout (TODO in llk_unpack_A.h:72)
         # - ROW + acc_to_dest: Unpacker timeout (TODO in llk_unpack_A.h:91)
@@ -236,26 +255,17 @@ def filter_params_with_z3(all_params):
             Not(broadcast_none), Not(acc_to_dest_z3)
         )
 
-        # COL/SCALAR broadcast constraints (when acc_to_dest=False)
-        # COL: Faces 0-1 use Face 0's column, Faces 2-3 use Face 2's column
-        # Math stage calls run() twice: 1st processes faces 0-1, 2nd processes faces 2-3
-        # SCALAR broadcasts: 1 iteration with replication logic
+        # BROADCAST CONSTRAINTS:
+        # COL broadcast: Requires 4 faces for proper column broadcast
+        # SCALAR broadcast: Works with any number of faces (1, 2, or 4)
         col_scalar_broadcast_constraint = And(
-            # COL broadcast without acc_to_dest: Support 2 or 4 faces
-            Implies(broadcast_col, Or(num_faces_z3 == 2, num_faces_z3 == 4)),
-            # Block SCALAR broadcasts unless num_faces=1
-            Implies(broadcast_scalar, num_faces_z3 == 1),
+            # COL broadcast requires 4 faces
+            Implies(broadcast_col, num_faces_z3 == 4),
+            # SCALAR broadcast works with any number of faces (no constraint)
         )
 
-        # ROW broadcast constraint (ARCHITECTURE-SPECIFIC)
-        # BLACKHOLE: innerloop=2, outerloop=2 → 4 iterations, but srcb_clear_z resets Z
-        #            Only faces 0-1 processed (twice) → REQUIRES num_faces=2
-        # WORMHOLE:  innerloop=1, outerloop=1 → 1 iteration → REQUIRES num_faces=1
-        row_broadcast_constraint = If(
-            is_blackhole,
-            Implies(broadcast_row, num_faces_z3 == 2),
-            Implies(broadcast_row, num_faces_z3 == 1),  # Wormhole
-        )
+        # ROW broadcast constraint: Requires 4 faces for proper row broadcast
+        row_broadcast_constraint = Implies(broadcast_row, num_faces_z3 == 4)
 
         # Add all constraints to solver
         s.add(
@@ -269,6 +279,7 @@ def filter_params_with_z3(all_params):
             transpose_mutual_constraint,
             datacopy_acc_to_dest_constraint,
             bfp8_stochastic_constraint,
+            wormhole_row_outlier_constraint,
         )
 
         # Check if this parameter combination is valid

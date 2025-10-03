@@ -15,6 +15,15 @@ from helpers.format_arg_mapping import (
 from helpers.format_config import DataFormat
 from helpers.tilize_untilize import tilize_block
 
+
+def _select_tensor_elements(tensor, elements_per_tile_needed):
+    """Helper function to select the required number of elements from tensor."""
+    if tensor.numel() == elements_per_tile_needed:
+        return tensor
+    else:
+        return tensor[:elements_per_tile_needed]
+
+
 golden_registry = {}
 
 _FIDELITY_MASK_CONFIGURATION = {
@@ -272,10 +281,7 @@ class TransposeGolden:
         elements_per_tile_needed = face_size * num_faces
 
         # Select first N faces from input (following DataCopyGolden pattern)
-        if tensor.numel() == elements_per_tile_needed:
-            tensor_to_process = tensor
-        else:
-            tensor_to_process = tensor[:elements_per_tile_needed]
+        tensor_to_process = _select_tensor_elements(tensor, elements_per_tile_needed)
 
         # Split into faces and transpose each face individually
         faces = tensor_to_process.view(num_faces, face_dim, face_dim)
@@ -329,10 +335,7 @@ class TransposeGolden:
         elements_per_tile_needed = face_size * num_faces
 
         # Select first N faces from input (following DataCopyGolden pattern)
-        if tensor.numel() == elements_per_tile_needed:
-            tensor_to_process = tensor
-        else:
-            tensor_to_process = tensor[:elements_per_tile_needed]
+        tensor_to_process = _select_tensor_elements(tensor, elements_per_tile_needed)
 
         # Handle different face counts
         if num_faces == 1:
