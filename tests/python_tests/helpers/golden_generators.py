@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import math
+from typing import Optional
 
 import torch
 
@@ -664,7 +665,15 @@ class UnarySFPUGolden:
         self.data_format = None
         self.dest_acc = DestAccumulation.No
 
-    def __call__(self, operation, operand1, data_format, dest_acc, input_format):
+    def __call__(
+        self,
+        operation,
+        operand1,
+        data_format,
+        dest_acc,
+        input_format,
+        reduce_pool: Optional[ReducePool] = None,
+    ):
         self.data_format = data_format
         self.dest_acc = dest_acc
 
@@ -692,7 +701,7 @@ class UnarySFPUGolden:
 
         # Special handling for SumColumns which needs to process the entire tensor
         if operation == MathOperation.SumColumns:
-            result = self.ops[operation](tensor)
+            result = self.ops[operation](tensor, reduce_pool)
         else:
             result = [self.ops[operation](x) for x in tensor.tolist()]
 
@@ -882,11 +891,16 @@ class UnarySFPUGolden:
         )
         return torch.max(input_tensor, torch.tensor(threshold)).item()
 
-    def _sum_columns(self, x):
+    def _sum_columns(self, x, reduce_pool: ReducePool):
         input_tensor = untilize(x, self.data_format).flatten().view(32, 32)
 
         # Sum along columns (dim=0) to get a 1x32 result
         column_sums = torch.sum(input_tensor, dim=0)  # Shape: [32]
+
+        if reduce_pool == ReducePool.Average:
+            # Divide each column sum by 32 individually
+            column_averages = column_sums // 32  # Element-wise division by 32
+            return column_averages.tolist()
 
         # Return only the column sums, not a full 1024-element tensor
         return column_sums.tolist()

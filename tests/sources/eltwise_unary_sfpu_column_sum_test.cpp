@@ -9,6 +9,7 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "profiler.h"
 
 // Globals
 uint32_t unp_cfg_context          = 0;
@@ -47,27 +48,6 @@ void run_kernel()
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-const int iterations = 32;
-
-namespace
-{
-void call_sfpu_operation(SfpuType operation, uint32_t math_format)
-{
-    // Suppress unused parameter warning
-    (void)math_format;
-
-    switch (operation)
-    {
-        case SfpuType::sum_columns:
-            ckernel::sfpu::_init_sum_tile_columns_();
-            ckernel::sfpu::_calculate_sum_tile_columns_(0);
-            break;
-        default:
-            return;
-    }
-}
-} // namespace
-
 void run_kernel()
 {
 // copy srca to dest
@@ -83,14 +63,13 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         0, formats.math, formats.math);
 
-    // calculation of sfpu operation on dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-    // calling sfpu function from ckernel
-    // this part is where parametrization of operation takes part
-    call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
-    _llk_math_eltwise_unary_sfpu_done_();
 
+    ckernel::sfpu::_init_sum_tile_columns_(formats.math);
+    ckernel::sfpu::_calculate_sum_tile_columns_<TEST_AVERAGE, is_fp32_dest_acc_en>(formats.math);
+
+    _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
