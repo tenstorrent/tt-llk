@@ -23,12 +23,8 @@ def matmul_combos(
     dest_acc: List[DestAccumulation],
 ):
     def _dest_bank_max_tiles(format: FormatConfig, dest_acc: DestAccumulation):
-        if is_dest_acc_needed(format):
+        if is_dest_acc_needed(format) or dest_acc == DestAccumulation.Yes:
             return 4
-
-        if dest_acc == DestAccumulation.Yes:
-            return 4
-
         return 8
 
     combinations = []
