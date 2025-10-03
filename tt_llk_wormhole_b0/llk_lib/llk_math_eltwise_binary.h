@@ -408,9 +408,12 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, [[mayb
 }
 
 /*************************************************************************
- * LLK sub_bcast_row_tile unpacker implementation for SDPA
+ * LLK eltwise_bcast_row_tile unpacker implementation for SDPA
+
+ TODO:explain
+
  *************************************************************************/
-inline void _llk_math_eltwise_binary_bcast_row_configure_mop_(uint srca_reuse_count = 4)
+inline void eltwise_binary_configure_mop(uint srca_reuse_count = 4)
 {
     /*
 
@@ -428,7 +431,7 @@ inline void _llk_math_eltwise_binary_bcast_row_configure_mop_(uint srca_reuse_co
     tmp.program();
 }
 
-inline void _llk_math_eltwise_binary_bcast_row_configure_addrmod_()
+inline void eltwise_binary_configure_addrmod()
 {
     addr_mod_t {
         .srca = {.incr = 0},
@@ -445,10 +448,10 @@ inline void _llk_math_eltwise_binary_bcast_row_configure_addrmod_()
         .set(ADDR_MOD_1);
 }
 
-template <EltwiseBinaryType eltwise_binary_type, DstSync Dst, bool is_fp32_dest_acc_en, int NUM_FIDELITY_PHASES = 0>
-inline void _llk_math_eltwise_binary_bcast_row_init_(uint32_t srca_reuse_count = 4)
+template <EltwiseBinaryType eltwise_binary_type, int NUM_FIDELITY_PHASES = 0>
+inline void _llk_math_eltwise_binary_init_(uint32_t srca_reuse_count = 4)
 {
-    _llk_math_eltwise_binary_bcast_row_configure_addrmod_();
+    eltwise_binary_configure_addrmod();
 
     /*
         Loading of instructions into replay buffer. First 4 operate on F0 and F1,
@@ -496,14 +499,14 @@ inline void _llk_math_eltwise_binary_bcast_row_init_(uint32_t srca_reuse_count =
 
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB); // Clearing B dvalid
 
-    _llk_math_eltwise_binary_bcast_row_configure_mop_(srca_reuse_count);
+    eltwise_binary_configure_mop(srca_reuse_count);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_eltwise_binary_bcast_row_(uint32_t dst_index)
+inline void _llk_math_eltwise_binary_(uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 

@@ -66,7 +66,7 @@ void run_kernel()
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-        _llk_math_eltwise_binary_bcast_row_init_<ELTWISE_BINARY_OP, dest_sync, false, 0>(SRCA_REUSE_COUNT);
+        _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, 0>(SRCA_REUSE_COUNT);
         PROFILER_SYNC();
     }
     {
@@ -85,7 +85,7 @@ void run_kernel()
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (uint32_t i = 0; i < TILE_CNT / SRCA_REUSE_COUNT; i++)
             {
-                _llk_math_eltwise_binary_bcast_row_(i * SRCA_REUSE_COUNT /* dst_index */);
+                _llk_math_eltwise_binary_(i * SRCA_REUSE_COUNT /* dst_index */);
             }
         }
         else
@@ -93,7 +93,7 @@ void run_kernel()
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (uint32_t i = 0; i < TILE_CNT / SRCA_REUSE_COUNT; i++)
             {
-                _llk_math_eltwise_binary_bcast_row_(i * SRCA_REUSE_COUNT /* dst_index */);
+                _llk_math_eltwise_binary_(i * SRCA_REUSE_COUNT /* dst_index */);
             }
         }
         PROFILER_SYNC();
