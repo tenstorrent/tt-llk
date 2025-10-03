@@ -750,16 +750,7 @@ class ColumnBroadcastGolden:
 
 @register_golden
 class RowBroadcastGolden:
-    """
-    Golden generator for row broadcast operations.
-    Hardware behavior: Faces 0,2 use Face 0's row, Faces 1,3 use Face 1's row
-    (See llk_math_eltwise_binary_broadcast.h lines 129-134)
-
-    Takes row values from input and broadcasts each down its column.
-    For a 16x16 face: input has 16 unique values (one per column),
-    each value is replicated 16 times down its column.
-    Output: columns 0-15 each have a constant value.
-    """
+    """Golden generator for row broadcast operations."""
 
     def __call__(
         self,
@@ -770,34 +761,26 @@ class RowBroadcastGolden:
     ):
         torch_format = format_dict[data_format]
 
-        # Convert input to tensor
         if not isinstance(operand1, torch.Tensor):
             operand1 = torch.tensor(operand1)
 
         input_flat = operand1.flatten().to(torch_format)
 
-        # Each face is 16x16 = 256 elements
         face_size = 256
-        face_dim = 16  # 16x16 face
+        face_dim = 16
 
         result = []
         for face_idx in range(num_faces):
-            # ROW broadcast: Faces 0,2 use Face 0's row, Faces 1,3 use Face 1's row
-            source_face_idx = face_idx % 2  # 0→0, 1→1, 2→0, 3→1
+            source_face_idx = face_idx % 2
             source_start = source_face_idx * face_size
             source_input = input_flat[source_start : source_start + face_size]
 
-            # Extract first row (first 16 elements) from source face
             row_values = source_input[:face_dim]
-
-            # Broadcast each column value down all 16 rows
-            # Repeat each value 16 times and arrange in column-major order
             face_output = row_values.repeat(face_dim)
             result.append(face_output)
 
         output = torch.cat(result)
 
-        # Apply BFP8_b special handling if needed
         if data_format == DataFormat.Bfp8_b:
             output_list = output.tolist()
             output_list = check_bfp8_b(output_list)
