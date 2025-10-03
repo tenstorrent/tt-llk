@@ -183,6 +183,21 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr int num_faces = {num_faces};")
     header_content.append(f"constexpr int num_faces_A = {num_faces_A};")
     header_content.append(f"constexpr int num_faces_B = {num_faces_B};")
+    header_content.append(
+        f"constexpr int NUM_FACES = {num_faces};"
+    )  # Uppercase for legacy compatibility
+
+    # Narrow tile flag
+    narrow_tile = test_config.get("narrow_tile", False)
+    if isinstance(narrow_tile, bool):
+        narrow_tile_value = str(narrow_tile).lower()
+    else:
+        narrow_tile_value = (
+            str(narrow_tile).lower()
+            if hasattr(narrow_tile, "value")
+            else str(narrow_tile).lower()
+        )
+    header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile_value};")
 
     # input tile dimensions
     in0_tile_r_dim = test_config.get("in0_tile_r_dim", 32)
@@ -221,6 +236,10 @@ def generate_build_header(test_config):
         header_content.append(
             f"constexpr std::uint32_t TILE_SIZE_UNPACK_B = {unpack_size_b};"
         )
+
+        # Legacy TILE_SIZE for tests that still use it (e.g., tilize sweep)
+        tile_size = 16 * 16 * num_faces
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE = {tile_size};")
 
     # Dest synchronisation mode
     dest_sync = test_config.get("dest_sync", DestSync.Half)
