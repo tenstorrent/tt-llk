@@ -27,17 +27,20 @@ def matmul_combos(
             return 4
         return 8
 
-    combinations = []
+    unique_max_tiles = set(
+        _dest_bank_max_tiles(fmt, acc) for fmt in formats for acc in dest_acc
+    )
+    dimensions = {
+        max_tiles: generate_matmul_dimension_combinations(max_tiles)
+        for max_tiles in unique_max_tiles
+    }
 
-    for format in formats:
-        for accumulation in dest_acc:
-            max_tiles = _dest_bank_max_tiles(format, accumulation)
-            dimensions_list = generate_matmul_dimension_combinations(max_tiles)
-            combinations.extend(
-                [(format, accumulation, dims) for dims in dimensions_list]
-            )
-
-    return combinations
+    return [
+        (format, accumulation, dims)
+        for format in formats
+        for accumulation in dest_acc
+        for dims in dimensions[_dest_bank_max_tiles(format, accumulation)]
+    ]
 
 
 @pytest.mark.perf
