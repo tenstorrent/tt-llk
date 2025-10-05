@@ -42,7 +42,7 @@ def test_perf_math_transpose(
         unpack_transpose_faces == Transpose.Yes
         and math_transpose_faces == Transpose.Yes
     ):
-        pytest.skip("Skip transposing faces twice")
+        pytest.skip("Skip transposing faces twice.")
 
     dest_acc = (
         DestAccumulation.Yes
