@@ -46,7 +46,7 @@ inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
     else
     {
         use_float_arithmetic = true;
-        instr_mod_index      = InstrModLoadStore::FP32;
+        instr_mod_index      = InstrModLoadStore::FP32; // is_fp32_dest_acc_en ? InstrModLoadStore::FP32 : InstrModLoadStore::FP16B;
         replay_length        = 12; // Float arithmetic needs 12 instructions since SFPADD takes 2 cycles, defined in second replay instantiation
     }
 
@@ -105,12 +105,24 @@ inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
             TT_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4); // LREG0 = upper_face_sums + lower_face_sums (integer)
         }
 
-        if constexpr (AVERAGE)
+        if constexpr (AVERAGE > 0)
         {
-            // For a 32x32 tile, each column sum represents the sum of exactly 32 values (one per row)
-            // To compute the average, we divide by 32. Since 32 = 2^5, we can use a right shift by 5
-            // This is much more efficient than division and works perfectly for power-of-2 divisors
-            TTI_SFPSHFT(-5, p_sfpu::LREG0, p_sfpu::LREG0, 0b11);
+            if (use_float_arithmetic)
+            {
+                // For a 32x32 tile, each column sum represents the sum of exactly 32 values (one per row)
+                // Load 1/32 constant (0.03125) into LREG1 for float division
+                TT_SFPLOADI(p_sfpu::LREG1, 8, 0x3D00);  // Load 0.03125 as FP16B high part
+                TT_SFPLOADI(p_sfpu::LREG1, 10, 0x0000); // Load 0.03125 as FP16B low part
+                // Multiply by 1/32 (divide by 32) - works for both float and integer formats
+                TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+                TTI_NOP; // Required after SFPMUL due to 2-cycle latency
+            }
+            else
+            {
+                // For integer formats, shift right by 5 bits (divide by 32) using immediate value
+                // The -5 & 0xfff ensures the immediate value is properly formatted for the instruction
+                TTI_SFPSHFT(-5 & 0xfff, p_sfpu::LREG0, p_sfpu::LREG0, 0b11);
+            }
         }
 
         // Store the final combined column sums
