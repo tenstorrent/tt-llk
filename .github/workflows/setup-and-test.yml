@@ -107,7 +107,7 @@ jobs:
         if: always()
         with:
           name: >-
-            ${{ (contains(inputs.pytest_markers, 'perf') && !contains(inputs.pytest_markers, 'not perf')) 
+            ${{ (contains(inputs.pytest_markers, 'perf') && !contains(inputs.pytest_markers, 'not perf'))
                 && 'perf-' || '' }}junit-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
           path: tests/python_tests/pytest-report-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.xml
 
