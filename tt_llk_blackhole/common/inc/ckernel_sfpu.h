@@ -50,7 +50,6 @@
 #include "sfpu/ckernel_sfpu_square.h"
 #include "sfpu/ckernel_sfpu_sub_int.h"
 #include "sfpu/ckernel_sfpu_sum_columns.h"
-#include "sfpu/ckernel_sfpu_sum_columns_faces.h"
 #include "sfpu/ckernel_sfpu_tanh.h"
 #include "sfpu/ckernel_sfpu_tanh_derivative.h"
 #include "sfpu/ckernel_sfpu_threshold.h"

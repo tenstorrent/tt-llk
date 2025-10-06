@@ -30,9 +30,7 @@ from helpers.utils import passed_test
 
 def generate_random_face_with_column_sums_multiple_of_32(
     stimuli_format=DataFormat.Float16_b,
-    base_value=1,
     multiplier=32,
-    negative_number=False,
 ):
     """
     Generate a 16x16 face where each column sum is a multiple of 32.
@@ -40,9 +38,7 @@ def generate_random_face_with_column_sums_multiple_of_32(
 
     Args:
         stimuli_format: The data format to use
-        base_value: Base value for random generation
         multiplier: The multiplier for column sums (default 32)
-        negative_number: If True, make all numbers negative
 
     Returns:
         torch.Tensor: 16x16 face with column sums that are multiples of the specified multiplier
@@ -87,10 +83,6 @@ def generate_random_face_with_column_sums_multiple_of_32(
             else:
                 # Sum is already a multiple of 32, set last value to 0
                 face[15, col] = 0
-
-    # Apply negative flag if requested
-    if negative_number:
-        face = face * -1
 
     return face.flatten()
 
