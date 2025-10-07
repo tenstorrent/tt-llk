@@ -151,3 +151,48 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
 }
+
+
+template <BroadcastType BType = BroadcastType::NONE>
+inline void _llk_unpack_AB_but_fused_so_no_mop_(const std::uint32_t address_a, const std::uint32_t address_b, const bool transpose_of_faces = 0 /*not used*/)
+{
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
+
+    // Program srcA and srcB base addresses
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Get tile address
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+    }
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+    // Run MOP
+    // ckernel::ckernel_template::run();
+
+    // Set data valid flags for fused operations since no MOP ran
+    // This ensures math operations can proceed without waiting for unpacker dvalid
+    // 0b11 = both SrcA (bit 0) and SrcB (bit 1) valid
+    TTI_SETDVALID(0b11);
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+}

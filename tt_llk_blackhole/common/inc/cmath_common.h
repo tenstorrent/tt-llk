@@ -52,7 +52,7 @@ inline void incr_counters(const uint incr_a, const uint incr_b, const uint incr_
 
 inline void move_d2a_fixed_face(const uint8_t addrmod)
 {
-    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCA_VLD); // MOVD2A for a whole face assumes unpacker will set a dummy data_valid, so we want to wait on that
+    //TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCA_VLD); // MOVD2A for a whole face assumes unpacker will set a dummy data_valid, so we want to wait on that
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, addrmod, p_movd2a::MOV_4_ROWS, 0);
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, addrmod, p_movd2a::MOV_4_ROWS, 4);
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, addrmod, p_movd2a::MOV_4_ROWS, 8);
@@ -60,6 +60,27 @@ inline void move_d2a_fixed_face(const uint8_t addrmod)
 }
 
 inline void move_d2b_fixed_face(const uint8_t addrmod)
+{
+    //TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCB_VLD); // MOVD2B for a whole face assumes unpacker will set a dummy data_valid, so we want to wait on that
+    TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, addrmod, p_movd2b::MOV_4_ROWS, 0);
+    TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 4, addrmod, p_movd2b::MOV_4_ROWS, 4);
+    TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 8, addrmod, p_movd2b::MOV_4_ROWS, 8);
+    TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 12, addrmod, p_movd2b::MOV_4_ROWS, 12);
+}
+
+inline void move_d2a_tile_as_src(const uint8_t addrmod)
+{
+    TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, addrmod, p_movd2a::MOV_4_ROWS, 0);
+    TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, addrmod, p_movd2a::MOV_4_ROWS, 4);
+    TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, addrmod, p_movd2a::MOV_4_ROWS, 8);
+    TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, addrmod, p_movd2a::MOV_4_ROWS, 12);
+    // TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, addrmod, p_movd2a::MOV_4_ROWS, 16);
+    // TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, addrmod, p_movd2a::MOV_4_ROWS, 20);
+    // TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, addrmod, p_movd2a::MOV_4_ROWS, 24);
+    // TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, addrmod, p_movd2a::MOV_4_ROWS, 28);
+}
+
+inline void move_d2b_tile_as_src(const uint8_t addrmod)
 {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCB_VLD); // MOVD2B for a whole face assumes unpacker will set a dummy data_valid, so we want to wait on that
     TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, addrmod, p_movd2b::MOV_4_ROWS, 0);
