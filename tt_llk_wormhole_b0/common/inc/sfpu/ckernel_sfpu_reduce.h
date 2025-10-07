@@ -34,11 +34,7 @@ inline void _calculate_reduce_(const std::uint32_t dst_reg_format)
     static_assert(dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
     static_assert(type == SUM || type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
 
-    // Each face is 16 rows, tile has 4 faces arranged as:
-    // Face 0 (rows 0-15)  | Face 1 (rows 0-15)
-    // Face 2 (rows 16-31) | Face 3 (rows 16-31)
-    constexpr uint FACE_OFFSET = 16;
-    uint REPLAY_LENGTH         = 6;
+    uint REPLAY_LENGTH = 6;
 
     bool USE_FLOAT_ARITHMETIC = false;
 
@@ -62,30 +58,32 @@ inline void _calculate_reduce_(const std::uint32_t dst_reg_format)
         REPLAY_LENGTH        = 12; // Float arithmetic needs 12 instructions since SFPADD takes 2 cycles, defined in second replay instantiation
     }
 
+    // Pre-calculated face addresses and column offsets for each iteration
+    // Each face is 16 rows, tile has 4 faces arranged as:
+    // Face 0 (rows 0-15)  | Face 1 (rows 0-15)
+    // Face 2 (rows 16-31) | Face 3 (rows 16-31)
+    //
+    // Iteration mapping - Process vertically aligned faces (0+2, 1+3) to optimize column operations:
+    // i=0: even columns, left half  (faces 0 + 2, columns 0,2,4,6,8,10,12,14)
+    // i=1: odd columns,  left half  (faces 0 + 2, columns 1,3,5,7,9,11,13,15)
+    // i=2: even columns, right half (faces 1 + 3, columns 16,18,20,22,24,26,28,30)
+    // i=3: odd columns,  right half (faces 1 + 3, columns 17,19,21,23,25,27,29,31)
+    constexpr uint UPPER_FACE_ADDRS[4] = {0, 0, 16, 16};   // Face 0, 0, 1, 1
+    constexpr uint LOWER_FACE_ADDRS[4] = {32, 32, 48, 48}; // Face 2, 2, 3, 3
+    constexpr uint COLUMN_OFFSETS[4]   = {0, 2, 0, 2};     // even, odd, even, odd
+
     // Optimized approach: Process 4 iterations to handle all column combinations
     // This reduces operations by processing complementary face pairs simultaneously, less load/store operations
     for (int i = 0; i < 4; i++)
     {
-        // Iteration mapping - Process vertically aligned faces (0+2, 1+3) to optimize column operations:
-        // i=0: even columns, left half  (faces 0 + 2, columns 0,2,4,6,8,10,12,14)
-        // i=1: odd columns,  left half  (faces 0 + 2, columns 1,3,5,7,9,11,13,15)
-        // i=2: even columns, right half (faces 1 + 3, columns 16,18,20,22,24,26,28,30)
-        // i=3: odd columns,  right half (faces 1 + 3, columns 17,19,21,23,25,27,29,31)
-        //
         // Key optimization: Process faces 0+2 and 1+3 (vertically aligned) instead of 0+1 and 2+3
         // This allows processing all 32 rows of a column at once (16 from upper face + 16 from lower face)
         // Reduces load/store operations by accumulating all rows into one LREG per column group
         // Final result stored in top row of upper face (first row in dest) - no intermediate storage needed
 
-        const bool IS_RIGHT_HALF  = i > 1;        // true for faces 1&3 (right half of tile), false for faces 0&2 (left half of tile)
-        const bool IS_ODD_COLUMNS = (i % 2) == 1; // true for odd columns, false for even columns
-
-        // Calculate face addresses
-        const uint UPPER_FACE_ADDR = IS_RIGHT_HALF ? FACE_OFFSET : 0;     // Face 0 (addr 0) or Face 1 (addr 16)
-        const uint LOWER_FACE_ADDR = UPPER_FACE_ADDR + (FACE_OFFSET * 2); // Face 2 (addr 32) or Face 3 (addr 48)
-
-        // Calculate column offset (even columns start at 0, odd columns start at 2)
-        const uint COLUMN_OFFSET = IS_ODD_COLUMNS ? 2 : 0;
+        const uint UPPER_FACE_ADDR = UPPER_FACE_ADDRS[i];
+        const uint LOWER_FACE_ADDR = LOWER_FACE_ADDRS[i];
+        const uint COLUMN_OFFSET   = COLUMN_OFFSETS[i];
 
         // Load upper face data (Face 0 or Face 1)
         TT_SFPLOAD(p_sfpu::LREG0, INSTR_MOD_INDEX, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
