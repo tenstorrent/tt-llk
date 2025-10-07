@@ -88,12 +88,12 @@ def generate_random_face_with_column_sums_multiple_of_32(
 
 
 @parametrize(
-    test_name="eltwise_unary_sfpu_column_sum_test",
+    test_name="eltwise_unary_sfpu_reduce_test",
     formats=input_output_formats(
         [DataFormat.Float32, DataFormat.UInt16, DataFormat.UInt32, DataFormat.Int32],
         same=True,
     ),
-    mathop=[MathOperation.SumColumns],
+    mathop=[MathOperation.ReduceColumn],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     negative_number=[False, True],
     reduce_pool=[ReducePool.Average, ReducePool.Sum],
@@ -148,7 +148,7 @@ def test_eltwise_unary_sfpu_column_sum(
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
         "mathop": mathop,
-        "reduce_pool": reduce_pool,
+        "pool_type": reduce_pool,
         "approx_mode": ApproximationMode.No,
         "unpack_to_dest": True,
         "tile_cnt": 1,

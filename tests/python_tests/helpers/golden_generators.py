@@ -659,7 +659,7 @@ class UnarySFPUGolden:
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
-            MathOperation.SumColumns: self._sum_columns,
+            MathOperation.ReduceColumn: self._reduce_columns,
         }
         self.data_format = None
         self.dest_acc = DestAccumulation.No
@@ -699,7 +699,7 @@ class UnarySFPUGolden:
         tensor = to_tensor(operand1, dst_format)
 
         # Special handling for SumColumns which needs to process the entire tensor
-        if operation == MathOperation.SumColumns:
+        if operation == MathOperation.ReduceColumn:
             result = self.ops[operation](tensor, reduce_pool)
         else:
             result = [self.ops[operation](x) for x in tensor.tolist()]
@@ -890,7 +890,7 @@ class UnarySFPUGolden:
         )
         return torch.max(input_tensor, torch.tensor(threshold)).item()
 
-    def _sum_columns(self, x, reduce_pool: ReducePool):
+    def _reduce_columns(self, x, reduce_pool: ReducePool):
         input_tensor = untilize(x, self.data_format).flatten().view(32, 32)
 
         # Sum along columns (dim=0) to get a 1x32 result

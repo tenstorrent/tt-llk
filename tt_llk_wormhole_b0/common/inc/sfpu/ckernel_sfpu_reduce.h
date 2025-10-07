@@ -13,22 +13,27 @@ namespace ckernel
 namespace sfpu
 {
 /**
- * @brief Calculates column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
+ * @brief Generic reduction operation for a 32x32 tile, placing output values into the first row.
+ *        Currently able to calculate column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
  *        Uses an optimized approach that processes vertically aligned face pairs (0+2, 1+3) to minimize
  *        load/store operations and eliminate intermediate storage requirements.
  *        For integer formats with averaging, handles negative numbers properly using condition codes
  *        since Wormhole B0 only supports logical shift (not arithmetic shift).
- * @tparam AVERAGE If 0, computes column sums. If 32, computes column averages by dividing sums by 32.
- *                 Must be either 0 or 32 - other values are not supported for 32x32 tiles.
+ * @tparam type The pool/reduction type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
+ * @tparam dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
  * @tparam is_fp32_dest_acc_en If true, enables FP32 datum width mode for higher precision.
  *                             If false, datums stored in 16 bits.
  * @param dst_reg_format The dst register format (DataFormat enum value) that determines
  *                       the data type and precision of datums stored in dst. Affects instruction modifiers
  *                       and arithmetic operations used (e.g., Int32, UInt16, UInt32, Float32).
  */
-template <uint AVERAGE, bool is_fp32_dest_acc_en>
-inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
+template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en>
+inline void _calculate_reduce_(const std::uint32_t dst_reg_format)
 {
+    // Compile-time assertions to restrict to currently supported operations
+    static_assert(dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
+    static_assert(type == SUM || type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
+
     // Each face is 16 rows, tile has 4 faces arranged as:
     // Face 0 (rows 0-15)  | Face 1 (rows 0-15)
     // Face 2 (rows 16-31) | Face 3 (rows 16-31)
@@ -83,16 +88,16 @@ inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
         const uint column_offset = is_odd_columns ? 2 : 0;
 
         // Load upper face data (Face 0 or Face 1)
-        TT_SFPLOAD(p_sfpu::LREG0, instr_mod_index, ADDR_MOD_7, upper_face_addr + column_offset);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG1, instr_mod_index, ADDR_MOD_7, upper_face_addr + column_offset + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG2, instr_mod_index, ADDR_MOD_7, upper_face_addr + column_offset + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG3, instr_mod_index, ADDR_MOD_7, upper_face_addr + column_offset + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG0, instr_mod_index, ADDR_MOD_3, upper_face_addr + column_offset);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG1, instr_mod_index, ADDR_MOD_3, upper_face_addr + column_offset + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG2, instr_mod_index, ADDR_MOD_3, upper_face_addr + column_offset + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG3, instr_mod_index, ADDR_MOD_3, upper_face_addr + column_offset + 12); // rows 12-15
 
         // Load lower face data (Face 2 or Face 3)
-        TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, lower_face_addr + column_offset);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, lower_face_addr + column_offset + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_7, lower_face_addr + column_offset + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_7, lower_face_addr + column_offset + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, lower_face_addr + column_offset);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, lower_face_addr + column_offset + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_3, lower_face_addr + column_offset + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_3, lower_face_addr + column_offset + 12); // rows 12-15
 
         // Process column sums for both faces using transpose and replay buffer
         TT_SFPTRANSP(0, 0, 0, 0);       // Transpose: LREG0-3 → lanes 0-3, LREG4-7 → lanes 0-3 (overlapping)
@@ -112,7 +117,7 @@ inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
             TT_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4); // LREG0 = upper_face_sums + lower_face_sums (integer)
         }
 
-        if constexpr (AVERAGE > 0)
+        if constexpr (type == AVG)
         {
             if (use_float_arithmetic)
             {
@@ -126,14 +131,44 @@ inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
             }
             else
             {
-                // For integer formats, shift right by 5 bits (divide by 32) using immediate value
-                // The -5 & 0xfff ensures the immediate value is properly formatted for the instruction
-                TTI_SFPSHFT(-5 & 0xfff, p_sfpu::LREG0, p_sfpu::LREG0, 0b11);
+                // For integer formats, we need to handle negative numbers properly for division by 32
+                // Since Wormhole B0 only supports logical shift (not arithmetic), we need to:
+                // 1. Check if the number is negative using condition codes (only for signed formats)
+                // 2. If negative, negate it, shift right by 5 bits, then negate back
+                // 3. If positive, just shift right by 5 bits
+
+                if (dst_reg_format == (uint32_t)DataFormat::Int32)
+                {
+                    // For signed Int32 format, use absolute value approach for proper division by 32
+                    // Save original value for sign check
+                    TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+
+                    // Get absolute value of LREG0
+                    TTI_SFPABS(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+
+                    // Perform logical right shift by 5 bits (divide by 32)
+                    TTI_SFPSHFT(-5 & 0xfff, p_sfpu::LREG0, p_sfpu::LREG0, 0b01);
+
+                    // Restore sign if original value was negative
+                    // Check if original value was negative (sign bit set)
+                    TTI_SFPSETCC(0, p_sfpu::LREG1, 0, 4);               // Set condition code if original sign bit is 0 (positive)
+                    TTI_SFPCOMPC(0, 0, 0, 0);                           // Invert condition code (now true if original was negative)
+                    TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 6); // Negate LREG0 if condition is true
+
+                    // Clear condition codes
+                    TTI_SFPENCC(0, 0, 0, 0);
+                }
+                else
+                {
+                    // For unsigned formats (UInt16, UInt32), just use logical shift directly
+                    // since they can't be negative
+                    TTI_SFPSHFT(-5 & 0xfff, p_sfpu::LREG0, p_sfpu::LREG0, 0b01);
+                }
             }
         }
 
         // Store the final combined column sums
-        TT_SFPSTORE(p_sfpu::LREG0, instr_mod_index, ADDR_MOD_7, upper_face_addr + column_offset);
+        TT_SFPSTORE(p_sfpu::LREG0, instr_mod_index, ADDR_MOD_3, upper_face_addr + column_offset);
     }
 
     // After this loop, the column sums are stored at first row in dest reg:
@@ -143,7 +178,7 @@ inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
     // Address 18: odd columns,  right half (columns 17,19,21,23,25,27,29,31)
 }
 
-inline void _init_sum_tile_columns_(const uint32_t dst_reg_format)
+inline void _init_reduce_(const uint32_t dst_reg_format)
 {
     // Initialize SFPU configuration register
     _init_sfpu_config_reg();
@@ -155,62 +190,56 @@ inline void _init_sum_tile_columns_(const uint32_t dst_reg_format)
     // each face to get the final column sums
     if (dst_reg_format == (uint32_t)DataFormat::Float32)
     {
-        load_replay_buf(
-            0,
-            12,
-            []
-            {
-                // Column summation for upper face data (originally LREG0-3)
-                // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
-                TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3 = LREG2 + LREG3 (float)
-                TTI_SFPNOP;
-                TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2 = LREG1 + LREG2 (float)
-                TTI_SFPNOP;
-                TTI_SFPADD(
-                    p_sfpu::LREG0,
-                    p_sfpu::LCONST_1,
-                    p_sfpu::LREG1,
-                    p_sfpu::LREG0,
-                    0); // LREG0 = (LREG0 * 1) + LREG1 = LREG0 + LREG1 (upper face column sums, float)
-                TTI_SFPNOP;
+        // Program replay buffer
+        lltt::record(0, 12);
 
-                // Column summation for lower face data (originally LREG4-7)
-                // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
-                TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7 = LREG6 + LREG7 (float)
-                TTI_SFPNOP;
-                TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6 = LREG5 + LREG6 (float)
-                TTI_SFPNOP;
-                TTI_SFPADD(
-                    p_sfpu::LREG4,
-                    p_sfpu::LCONST_1,
-                    p_sfpu::LREG5,
-                    p_sfpu::LREG4,
-                    0); // LREG4 = (LREG4 * 1) + LREG5 = LREG4 + LREG5 (lower face column sums, float)
-                TTI_SFPNOP;
-            });
+        // Column summation for upper face data (originally LREG0-3)
+        // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
+        TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3 = LREG2 + LREG3 (float)
+        TTI_SFPNOP;
+        TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2 = LREG1 + LREG2 (float)
+        TTI_SFPNOP;
+        TTI_SFPADD(
+            p_sfpu::LREG0,
+            p_sfpu::LCONST_1,
+            p_sfpu::LREG1,
+            p_sfpu::LREG0,
+            0); // LREG0 = (LREG0 * 1) + LREG1 = LREG0 + LREG1 (upper face column sums, float)
+        TTI_SFPNOP;
+
+        // Column summation for lower face data (originally LREG4-7)
+        // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
+        TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7 = LREG6 + LREG7 (float)
+        TTI_SFPNOP;
+        TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6 = LREG5 + LREG6 (float)
+        TTI_SFPNOP;
+        TTI_SFPADD(
+            p_sfpu::LREG4,
+            p_sfpu::LCONST_1,
+            p_sfpu::LREG5,
+            p_sfpu::LREG4,
+            0); // LREG4 = (LREG4 * 1) + LREG5 = LREG4 + LREG5 (lower face column sums, float)
+        TTI_SFPNOP;
     }
     else
     {
-        load_replay_buf(
-            0,
-            6,
-            []
-            {
-                // Column summation for upper face data (originally LREG0-3)
-                // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
-                TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, 4); // LREG2 = LREG2 + LREG3
-                TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG1, 4); // LREG1 = LREG1 + LREG2
-                TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4); // LREG0 = LREG0 + LREG1 (upper face column sums)
+        // Program replay buffer
+        lltt::record(0, 6);
 
-                // Column summation for lower face data (originally LREG4-7)
-                // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
-                TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG6, 4); // LREG6 = LREG6 + LREG7
-                TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG5, 4); // LREG5 = LREG5 + LREG6
-                TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4); // LREG4 = LREG4 + LREG5 (lower face column sums)
+        // Column summation for upper face data (originally LREG0-3)
+        // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
+        TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, 4); // LREG2 = LREG2 + LREG3
+        TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG1, 4); // LREG1 = LREG1 + LREG2
+        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4); // LREG0 = LREG0 + LREG1 (upper face column sums)
 
-                // The transpose operation allows both upper and lower face data to be processed
-                // simultaneously in the same lane space, then separated back to their original registers
-            });
+        // Column summation for lower face data (originally LREG4-7)
+        // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
+        TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG6, 4); // LREG6 = LREG6 + LREG7
+        TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG5, 4); // LREG5 = LREG5 + LREG6
+        TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4); // LREG4 = LREG4 + LREG5 (lower face column sums)
+
+        // The transpose operation allows both upper and lower face data to be processed
+        // simultaneously in the same lane space, then separated back to their original registers
     }
 }
 

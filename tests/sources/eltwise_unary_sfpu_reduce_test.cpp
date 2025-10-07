@@ -63,11 +63,11 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         0, formats.math, formats.math);
 
-    _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+    _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    ckernel::sfpu::_init_sum_tile_columns_(formats.math);
-    ckernel::sfpu::_calculate_sum_tile_columns_<TEST_AVERAGE, is_fp32_dest_acc_en>(formats.math);
+    ckernel::sfpu::_init_reduce_(formats.math);
+    ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en>(formats.math);
 
     _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
