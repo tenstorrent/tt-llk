@@ -49,4 +49,16 @@ inline void _calculate_fill_bitcast_(const uint32_t value_bit_mask)
         sfpi::dst_reg++;
     }
 }
+
+inline void _populate_first_tile_with_ones_() {
+    // Reset destination counter to ensure we're pointing to the first tile
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+    
+    // Use SFPU to fill with ones - but ensure we're targeting the right location
+    TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, 0);
+    _calculate_fill_<false, 32>(1.0f);
+
+    // Clean-up
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+}
 } // namespace ckernel::sfpu
