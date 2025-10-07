@@ -14,7 +14,7 @@
 #include "perf.h"
 #include "tensix_types.h"
 
-inline uint32_t L1_ADDRESS(uint32_t buffer_address)
+constexpr uint32_t L1_ADDRESS(uint32_t buffer_address)
 {
     return (buffer_address / 16) - 1;
 }

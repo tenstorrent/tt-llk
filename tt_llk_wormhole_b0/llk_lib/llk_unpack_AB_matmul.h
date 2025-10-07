@@ -208,7 +208,9 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     const std::uint32_t unpA_num_faces  = 4,
     const std::uint32_t unpB_num_faces  = 4,
     const bool unpA_partial_face        = false,
-    const bool unpB_partial_face        = false)
+    const bool unpB_partial_face        = false,
+    const std::uint32_t unpA_tile_size  = 0,
+    const std::uint32_t unpB_tile_size  = 0)
 {
     // also turn on within_face_16x16_transpose if it was turned off by datacopy at runtime
     // on WH, the unpacker performs both transpose of faces as well as transpose each face.
@@ -245,6 +247,8 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     }
 
     TT_SETDMAREG(0, LOWER_HALFWORD(kt_dim), 0, LO_16(p_gpr_unpack::KT_DIM)); // store kt_dim to gpr for scaling tile size
+    TT_SETDMAREG(0, LOWER_HALFWORD(unpA_tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A));
+    TT_SETDMAREG(0, LOWER_HALFWORD(unpB_tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B));
 
     _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(transpose != 0, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
 }
