@@ -151,9 +151,9 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
         case SfpuType::relu_min:
             ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, iterations>(5.0f);
             break;
-        case SfpuType::sum_columns:
-            ckernel::sfpu::_init_sum_tile_columns_();
-            ckernel::sfpu::_calculate_sum_tile_columns_(0);
+        case SfpuType::reduce:
+            ckernel::sfpu::_init_reduce_();
+            ckernel::sfpu::_calculate_reduce_(0);
             break;
         default:
             return;
