@@ -360,11 +360,9 @@ def generate_build_header(test_config):
     sum_column_average_test = (
         test_config.get("testname", "") == "eltwise_unary_sfpu_column_sum_test"
     )
-    print(f"sum_column_average_test: {sum_column_average_test}")
     average_kernel_config = (
         test_config.get("reduce_pool", ReducePool.Sum) == ReducePool.Average
     )
-    print(f"average_kernel_config: {average_kernel_config}")
     if sum_column_average_test and average_kernel_config:
         header_content.append(f"constexpr uint TEST_AVERAGE = 32;")
     else:
