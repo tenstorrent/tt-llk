@@ -107,14 +107,16 @@ void run_kernel()
 
 void run_kernel()
 {
-    const bool UNTILIZE = false;
+    const bool UNTILIZE                           = false;
+    constexpr std::uint32_t FULL_TILE_DATUM_COUNT = 16 * 16 * 4; // Always use full tile capacity for packer
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, TILE_SIZE, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(
+        formats.pack_src, formats.pack_dst, FULL_TILE_DATUM_COUNT, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, TILE_SIZE, FACE_R_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, FULL_TILE_DATUM_COUNT, FACE_R_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, NUM_FACES);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
