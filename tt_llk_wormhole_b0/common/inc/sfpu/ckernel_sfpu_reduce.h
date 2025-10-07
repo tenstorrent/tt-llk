@@ -58,7 +58,7 @@ inline void _calculate_reduce_(const std::uint32_t dst_reg_format)
     else
     {
         use_float_arithmetic = true;
-        instr_mod_index      = InstrModLoadStore::FP32; // is_fp32_dest_acc_en ? InstrModLoadStore::FP32 : InstrModLoadStore::FP16B;
+        instr_mod_index      = InstrModLoadStore::FP32;
         replay_length        = 12; // Float arithmetic needs 12 instructions since SFPADD takes 2 cycles, defined in second replay instantiation
     }
 
