@@ -131,8 +131,6 @@ def test_eltwise_unary_sfpu_column_sum(
     if negative_number:
         src_A = src_A * -1
 
-    print("SRC_A: ", untilize(src_A, formats.input_format).flatten().view(32, 32))
-
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
         mathop,
@@ -169,13 +167,7 @@ def test_eltwise_unary_sfpu_column_sum(
 
     torch_format = format_dict[formats.output_format]
     res_from_L1 = collect_results(formats, tile_count=1, address=res_address)
-    print(
-        "RES_FROM_L1: ",
-        untilize(torch.tensor(res_from_L1, dtype=torch_format), formats.output_format)
-        .flatten()
-        .view(32, 32),
-    )
-    print("GOLDEN_TENSOR: ", golden_tensor)
+
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     res_tensor = untilize(res_tensor, formats.output_format).flatten()[:32]
