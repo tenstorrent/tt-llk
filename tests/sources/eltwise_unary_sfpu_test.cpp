@@ -152,8 +152,8 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, iterations>(5.0f);
             break;
         case SfpuType::reduce:
-            ckernel::sfpu::_init_reduce_();
-            ckernel::sfpu::_calculate_reduce_(0);
+            ckernel::sfpu::_init_reduce_(formats.math);
+            ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en>(formats.math);
             break;
         default:
             return;
