@@ -182,9 +182,6 @@ inline void _llk_unpack_AB_but_fused_so_no_mop_(const std::uint32_t address_a, c
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    // Run MOP
-    // ckernel::ckernel_template::run();
-
     // Set data valid flags for fused operations since no MOP ran
     // This ensures math operations can proceed without waiting for unpacker dvalid
     // 0b11 = both SrcA (bit 0) and SrcB (bit 1) valid

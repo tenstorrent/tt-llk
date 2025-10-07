@@ -312,12 +312,6 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                 TTI_SETRWC(CLR_MODE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
 
-                if(!clear_dvalid)
-                {
-                    // increment srcA by 16 rows for F1/F3
-                    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-                    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-                }
                 if constexpr (type == PoolType::MAX)
                 {
                     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
@@ -334,18 +328,8 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                     }
                 }
             }
-            if(!clear_dvalid && row_tile == 0)
-            {
-                // artificially increment srcA for F2 since the Unpacker won't be doing it in fused op
-                TTI_SETRWC(CLR_MODE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-                TTI_SETRWC(CLR_MODE, 0, 0, 0, 0, p_setrwc::SET_D);
-            }
-            else
-            {
-                // if we're through 4 faces, reset both A and D counters
+                // Reset Dest Counter
                 TTI_SETRWC(CLR_MODE, 0, 0, 0, 0, p_setrwc::SET_AD);
-            }
         }
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
@@ -425,6 +409,57 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         }
     }
 
+}
+
+template <PoolType type,
+ReduceDim dim,
+bool is_fp32_dest_acc_en,
+int MATH_FIDELITY_DESC         = 0,
+bool is_int_fpu_en             = false,
+bool enforce_fp32_accumulation = false>
+inline void _llk_math_reduce_column_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
+{
+    constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
+    constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
+    const uint num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
+        for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++)
+        {
+            if constexpr (HIGH_FIDELITY)
+            {
+                ckernel_template::run();
+            }
+            else
+            {
+                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            }
+            if ((!narrow_tile) && (num_faces > 1))
+            {
+                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+
+                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+
+                if constexpr (HIGH_FIDELITY)
+                {
+                    ckernel_template::run();
+                }
+                else
+                {
+                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                }                
+            }
+            if(row_tile == 0)
+            {
+                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+                TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+            }
+            else
+            {
+                TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AD);
+            }
+        }
 }
 
 template <PoolType type, int MATH_FIDELITY_DESC>
