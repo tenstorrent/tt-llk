@@ -16,8 +16,15 @@ namespace sfpu
  * @brief Calculates column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
  *        Uses an optimized approach that processes vertically aligned face pairs (0+2, 1+3) to minimize
  *        load/store operations and eliminate intermediate storage requirements.
+ *        For integer formats with averaging, handles negative numbers properly using condition codes
+ *        since Wormhole B0 only supports logical shift (not arithmetic shift).
  * @tparam AVERAGE If 0, computes column sums. If 32, computes column averages by dividing sums by 32.
  *                 Must be either 0 or 32 - other values are not supported for 32x32 tiles.
+ * @tparam is_fp32_dest_acc_en If true, enables FP32 datum width mode for higher precision.
+ *                             If false, datums stored in 16 bits.
+ * @param dst_reg_format The dst register format (DataFormat enum value) that determines
+ *                       the data type and precision of datums stored in dst. Affects instruction modifiers
+ *                       and arithmetic operations used (e.g., Int32, UInt16, UInt32, Float32).
  */
 template <uint AVERAGE, bool is_fp32_dest_acc_en>
 inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
@@ -119,10 +126,39 @@ inline void _calculate_sum_tile_columns_(const std::uint32_t dst_reg_format)
             }
             else
             {
-                // For integer formats, shift right by 5 bits (divide by 32) using immediate value
-                // The -5 & 0xfff ensures the immediate value is properly formatted for the instruction
-                // Note: Wormhole B0 only supports logical shift, not arithmetic shift like Blackhole
-                TTI_SFPSHFT(-5 & 0xfff, p_sfpu::LREG0, p_sfpu::LREG0, 0b01);
+                // For integer formats, we need to handle negative numbers properly for division by 32
+                // Since Wormhole B0 only supports logical shift (not arithmetic), we need to:
+                // 1. Check if the number is negative using condition codes (only for signed formats)
+                // 2. If negative, negate it, shift right by 5 bits, then negate back
+                // 3. If positive, just shift right by 5 bits
+
+                if (dst_reg_format == (uint32_t)DataFormat::Int32)
+                {
+                    // For signed Int32 format, use absolute value approach for proper division by 32
+                    // Save original value for sign check
+                    TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+
+                    // Get absolute value of LREG0
+                    TTI_SFPABS(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+
+                    // Perform logical right shift by 5 bits (divide by 32)
+                    TTI_SFPSHFT(-5 & 0xfff, p_sfpu::LREG0, p_sfpu::LREG0, 0b01);
+
+                    // Restore sign if original value was negative
+                    // Check if original value was negative (sign bit set)
+                    TTI_SFPSETCC(0, p_sfpu::LREG1, 0, 4);               // Set condition code if original sign bit is 0 (positive)
+                    TTI_SFPCOMPC(0, 0, 0, 0);                           // Invert condition code (now true if original was negative)
+                    TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG0, 6); // Negate LREG0 if condition is true
+
+                    // Clear condition codes
+                    TTI_SFPENCC(0, 0, 0, 0);
+                }
+                else
+                {
+                    // For unsigned formats (UInt16, UInt32), just use logical shift directly
+                    // since they can't be negative
+                    TTI_SFPSHFT(-5 & 0xfff, p_sfpu::LREG0, p_sfpu::LREG0, 0b01);
+                }
             }
         }
 
