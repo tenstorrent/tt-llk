@@ -102,5 +102,5 @@ enum class SfpuType
     atanh,
     asinh,
     acosh,
-    sum_columns,
+    reduce,
 };

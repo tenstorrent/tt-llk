@@ -21,7 +21,6 @@ from .format_arg_mapping import (
     DestSync,
     MathFidelity,
     MathOperation,
-    ReducePool,
     StochasticRounding,
     Tilize,
     Transpose,
@@ -355,18 +354,6 @@ def generate_build_header(test_config):
             f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim};",
         ]
     )
-
-    # Sum column & average kernel config flag
-    sum_column_average_test = (
-        test_config.get("testname", "") == "eltwise_unary_sfpu_column_sum_test"
-    )
-    average_kernel_config = (
-        test_config.get("reduce_pool", ReducePool.Sum) == ReducePool.Average
-    )
-    if sum_column_average_test and average_kernel_config:
-        header_content.append(f"constexpr uint TEST_AVERAGE = 32;")
-    else:
-        header_content.append(f"constexpr uint TEST_AVERAGE = 0;")
 
     # Add matrix multiplication tile dimensions if they exist
     if "rt_dim" in test_config:
