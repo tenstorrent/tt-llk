@@ -612,7 +612,7 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
     ckernel::ckernel_template mop_template(outer_loop, inner_loop, inner_loop_op_1, inner_loop_op_2);
     mop_template.set_start_op(start_op);
     mop_template.set_end_ops(end_op_1, end_op_2);
-    mop_template.program(instrn_buffer);
+    mop_template.program();
 }
 
 // Block-based reduce row max functions
@@ -635,7 +635,7 @@ inline void _llk_math_reduce_block_max_row_(const uint dst_index)
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
     // Execute the MOP that was configured in the init function
-    ckernel::ckernel_template::run(instrn_buffer);
+    ckernel::ckernel_template::run();
 
     // Clear B valid at the end
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);

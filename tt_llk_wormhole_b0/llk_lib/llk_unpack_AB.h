@@ -93,7 +93,7 @@ inline void _llk_unpack_AB_reduce_row_max_mop_config_()
     constexpr uint32_t outerloop = 1;
     const uint32_t innerloop     = 1;
     ckernel_template tmp(outerloop, innerloop, unpack_srca_end_op, unpack_srcb_end_op);
-    tmp.program(instrn_buffer);
+    tmp.program();
 }
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
@@ -110,7 +110,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
     constexpr uint32_t outerloop = block_ct_dim;
     const uint32_t innerloop     = 1; // Unpack tile by tile of the input operand into SrcA
     ckernel_template tmp(outerloop, innerloop, unpack_srca_op);
-    tmp.program(instrn_buffer);
+    tmp.program();
 }
 
 template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
@@ -411,7 +411,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, 
     TTI_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     // Run MOP
-    ckernel::ckernel_template::run(instrn_buffer);
+    ckernel::ckernel_template::run();
 
     // T6::SEMGET for context release
     t6_semaphore_get(semaphore::UNPACK_SYNC);
