@@ -394,6 +394,61 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
 }
 
+// Used only for the fused operation (eltwise binary + reduce), separated for readability
+template <
+    PoolType type,
+    ReduceDim dim,
+    bool is_fp32_dest_acc_en,
+    int MATH_FIDELITY_DESC         = 0,
+    bool is_int_fpu_en             = false,
+    bool enforce_fp32_accumulation = false>
+inline void _llk_math_reduce_column_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
+{
+    const uint num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
+    for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++)
+    {
+        if constexpr (HIGH_FIDELITY)
+        {
+            ckernel_template::run();
+        }
+        else
+        {
+            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+        }
+        if ((!narrow_tile) && (num_faces > 1))
+        {
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 8, 0, 0, p_setrwc::SET_A);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 8, 0, 0, p_setrwc::SET_A);
+
+            
+            if constexpr (HIGH_FIDELITY)
+            {
+                ckernel_template::run();
+            }
+            else
+            {
+                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            }   
+        }
+        if(row_tile == 0)
+        {
+            // move srcA pointer by 16
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 8, 0, 0, p_setrwc::SET_A);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 8, 0, 0, p_setrwc::SET_A);
+            // reset dest counter
+            TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+        }
+        else
+        {
+            // Reset Dest Counter
+            TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AD);
+        }
+    }
+}
+
 template <PoolType type, int MATH_FIDELITY_DESC>
 inline void reduce_configure_addrmod()
 {

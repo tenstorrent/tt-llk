@@ -30,6 +30,173 @@ inline void eltwise_binary_reuse_dest_as_src()
     }
 }
 
+// add a comment: idst specifies the index of the tile in the dst register to use as the source
+// entire tile is moved, unlike the other eltwise_binary_reuse_dest_as_src where a single face is moved
+// difference between address modes is due to difference between address modes of eltwise binary and reduce, this could be changed due to readability
+template <EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
+inline void eltwise_binary_reuse_tile_from_dest_as_src(uint32_t idst)
+{
+    if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA)
+    {
+        switch (idst) {
+            case 0:
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 60);
+                break;
+            case 1:
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 60);
+                break;
+            case 2:
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 60);
+                break;
+            case 3:
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 60);
+                break;
+            case 4:
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 60);
+                break;
+            case 5:
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 60);
+                break;
+            case 6:
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 60);
+                break;
+            case 7:
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 60);
+                break;
+        }
+    }
+    else if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)
+    {
+        // This is only used for fused operation (eltwise multiplication + reduce) so only a single face is moved
+        // srcB is never incremented in the fused reduce, this is why
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 4, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 8, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 12, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+    }
+}
+
+
 template <
     EltwiseBinaryType eltwise_binary_type,
     BroadcastType src_b_bcast_type,
@@ -422,4 +589,8 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+inline void _fused_eltwise_binary_uninit_(){
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
 }
