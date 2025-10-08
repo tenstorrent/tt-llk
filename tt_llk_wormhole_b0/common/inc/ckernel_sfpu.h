@@ -28,6 +28,7 @@
 #include "sfpu/ckernel_sfpu_gelu.h"
 #include "sfpu/ckernel_sfpu_hardtanh.h"
 #include "sfpu/ckernel_sfpu_is_fp16_zero.h"
+#include "sfpu/ckernel_sfpu_isinf_isnan.h"
 #include "sfpu/ckernel_sfpu_load_config.h"
 #include "sfpu/ckernel_sfpu_log.h"
 #include "sfpu/ckernel_sfpu_max.h"
@@ -35,7 +36,6 @@
 #include "sfpu/ckernel_sfpu_max_pool_indices.h"
 #include "sfpu/ckernel_sfpu_mul_int.h"
 #include "sfpu/ckernel_sfpu_negative.h"
-#include "sfpu/ckernel_sfpu_power.h"
 #include "sfpu/ckernel_sfpu_quant.h"
 #include "sfpu/ckernel_sfpu_recip.h"
 #include "sfpu/ckernel_sfpu_relu.h"
@@ -55,6 +55,7 @@
 #include "sfpu/ckernel_sfpu_topk.h"
 #include "sfpu/ckernel_sfpu_trigonometry.h"
 #include "sfpu/ckernel_sfpu_typecast.h"
+#include "sfpu/ckernel_sfpu_welfords.h"
 #include "sfpu/ckernel_sfpu_where.h"
 
 // namespace ckernel

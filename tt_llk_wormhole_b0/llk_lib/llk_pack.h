@@ -120,7 +120,7 @@ inline void _llk_pack_reconfig_data_format_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    reconfig_packer_data_format<dest_datum_width>(pack_src_format, pack_dst_format, tile_size, face_r_dim);
+    reconfig_packer_data_format<dest_datum_width>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face);
 
     if constexpr (is_tile_dim_reconfig_en)
     {
@@ -226,8 +226,49 @@ inline void _llk_pack_init_(
     const bool narrow_tile         = false)
 {
     _llk_pack_configure_addrmod_<untilize>();
-
     _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+}
+
+template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
+inline void _llk_pack_init_(
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t pack_src_format,
+    const std::uint32_t face_r_dim,
+    const std::uint32_t num_faces,
+    const bool partial_face        = false,
+    const bool narrow_tile         = false,
+    const bool include_setup_calls = false)
+{
+    _llk_pack_configure_addrmod_<untilize>();
+    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    if (include_setup_calls)
+    {
+        set_packer_l1_offset(pack_dst_format);
+        const uint face_dim   = face_r_dim * FACE_C_DIM;
+        const uint pack_x_dim = (narrow_tile || !untilize) ? face_dim : FACE_R_DIM;
+        TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
+    }
+}
+
+template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
+inline void _llk_pack_init_(
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t pack_src_format,
+    const std::uint32_t face_r_dim,
+    const std::uint32_t num_faces,
+    const bool partial_face        = false,
+    const bool narrow_tile         = false,
+    const bool include_setup_calls = false)
+{
+    _llk_pack_configure_addrmod_<untilize>();
+    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    if (include_setup_calls)
+    {
+        set_packer_l1_offset(pack_dst_format);
+        const uint face_dim   = face_r_dim * FACE_C_DIM;
+        const uint pack_x_dim = (narrow_tile || !untilize) ? face_dim : FACE_R_DIM;
+        TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
+    }
 }
 
 template <DstSync Dst, DestDatumWidth::Value dest_datum_width, bool untilize = false>
@@ -254,7 +295,7 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
  * tile_index is the index of the tile inside the destination register to read from
  * address is the 16B address of where to start packing to (usually the start of the tile row)
  * currently supports only 4 16x16 faces per tile
- * supported output formats are: FP32, FP16_B, BFP8_B
+ * supported output formats are: FP32, FP16_B, BFP8_B, BFP4_B
  * both dest modes are supported (same usage notes from math apply here)
  * only DstSync::SyncHalf is supported
  * tiles are expected to be split into top and bottom faces in separate halves of the active dest bank
@@ -295,7 +336,7 @@ inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
         .set(ADDR_MOD_3);
 }
 
-inline void _llk_pack_fast_tilize_mop_config_(const std::uint32_t unit_dim)
+inline void _llk_pack_fast_tilize_mop_config_([[maybe_unused]] const std::uint32_t unit_dim)
 {
     // UNPACR instructions are used with unit_dim 1 and 2 and SKIP instructions are used with unit_dim 3
     ckernel_unpack_template tmp = ckernel_unpack_template(
@@ -326,6 +367,15 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
 
     // set the address offset to the size of the tile in 16B words
     uint tile_size = SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM);
+    // Not sure why BFP formats are not included SCALE_DATUM_SIZE but too scared to change that.
+    if (pack_dst_format == (uint)DataFormat::Bfp4 || pack_dst_format == (uint)DataFormat::Bfp4_b)
+    {
+        tile_size = tile_size / 2; // 2 BFP4 datums per byte
+    }
+    else if (pack_dst_format == (uint)DataFormat::Bfp2 || pack_dst_format == (uint)DataFormat::Bfp2_b)
+    {
+        tile_size = tile_size / 4; // 4 BFP2 datums per byte
+    }
     if (IS_BFP_FORMAT(pack_dst_format))
     {
         tile_size += (TILE_C_DIM * TILE_R_DIM) / 16; // one exp byte per 16 datums

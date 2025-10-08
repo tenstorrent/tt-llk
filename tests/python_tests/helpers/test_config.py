@@ -5,8 +5,12 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .device import BootMode, run_elf_files, wait_for_tensix_operations_finished
-from .dimensions import validate_tile_dimensions
+from .device import (
+    BootMode,
+    resolve_default_boot_mode,
+    run_elf_files,
+    wait_for_tensix_operations_finished,
+)
 from .format_arg_mapping import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -18,10 +22,12 @@ from .format_arg_mapping import (
     MathFidelity,
     MathOperation,
     StochasticRounding,
+    Tilize,
     Transpose,
     format_tile_sizes,
 )
 from .format_config import DataFormat, FormatConfig, InputOutputFormat
+from .matmul_sweep import validate_tile_dimensions
 from .utils import run_shell_command
 
 
@@ -50,11 +56,7 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
     return constants
 
 
-def generate_build_header(
-    test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
-):
+def generate_build_header(test_config):
     """
     Generate the contents of a C++ header file (build.h) with all configuration defines.
 
@@ -71,8 +73,6 @@ def generate_build_header(
 
     Args:
         test_config (dict): Dictionary containing test configuration parameters.
-        profiler_build (ProfilerBuild, optional): Whether to enable profiler defines.
-        boot_mode (BootMode, optional): Which core / host performs initial device setup.
 
     Returns:
         str: The complete contents of the build.h header file as a string.
@@ -87,8 +87,8 @@ def generate_build_header(
         "",
         "#pragma once",
         "",
-        "#include <type_traits>",
         "",
+        '#include "operand.h"',
         '#include "llk_defs.h"',
         '#include "llk_sfpu_types.h"',
         '#include "perf.h"',
@@ -99,23 +99,9 @@ def generate_build_header(
         "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
     ]
 
-    # Profiler configuration
-    if profiler_build == ProfilerBuild.Yes:
-        header_content.append("#define LLK_PROFILER")
-
     loop_factor = test_config.get("loop_factor", 1)
 
-    if profiler_build == ProfilerBuild.No and loop_factor != 1:
-        raise ValueError(
-            "test_config['loop_factor'] should only be used when profiler is enabled"
-        )
-
     header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
-
-    if boot_mode == BootMode.BRISC:
-        header_content.append("#define LLK_BOOT_MODE_BRISC")
-    elif boot_mode == BootMode.TRISC:
-        header_content.append("#define LLK_BOOT_MODE_TRISC")
 
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
@@ -156,22 +142,6 @@ def generate_build_header(
         f"constexpr auto STOCHASTIC_RND = ckernel::{stochastic_rnd.value};"
     )
 
-    formats = test_config.get("formats")
-    if formats:
-        # Tile size mapping
-        TILE_SIZES = {
-            DataFormat.Bfp8_b: 68,
-            DataFormat.Float32: 256,
-        }
-
-        pack_size = TILE_SIZES.get(formats.output_format, 128)
-        unpack_size = TILE_SIZES.get(formats.input_format, 128)
-
-        header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")
-        header_content.append(
-            f"constexpr std::uint32_t TILE_SIZE_UNPACK = {unpack_size};"
-        )
-
     # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
     # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
     # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
@@ -190,15 +160,85 @@ def generate_build_header(
         f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
     )
 
-    # Number of faces
+    # Tiny tile flag, used to handle dimension
+    tiny_tiles = test_config.get("tiny_tiles", False)
+
+    # partial face - support separate configurations for A and B
+    partial_face_A = str(
+        test_config.get("partial_face_A", test_config.get("partial_face", False))
+    ).lower()
+    partial_face_B = str(
+        test_config.get("partial_face_B", test_config.get("partial_face", False))
+    ).lower()
+    header_content.append(f"constexpr bool PARTIAL_FACE_A = {partial_face_A};")
+    header_content.append(f"constexpr bool PARTIAL_FACE_B = {partial_face_B};")
+
+    header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
+    header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
+
+    # Number of faces - support separate configurations for A and B
     num_faces = test_config.get("num_faces", 4)
+    num_faces_A = test_config.get("num_faces_A", test_config.get("num_faces", 4))
+    num_faces_B = test_config.get("num_faces_B", test_config.get("num_faces", 4))
     header_content.append(f"constexpr int num_faces = {num_faces};")
+    header_content.append(f"constexpr int num_faces_A = {num_faces_A};")
+    header_content.append(f"constexpr int num_faces_B = {num_faces_B};")
+
+    # input tile dimensions
+    in0_tile_r_dim = test_config.get("in0_tile_r_dim", 32)
+    in0_tile_c_dim = test_config.get("in0_tile_c_dim", 32)
+    in1_tile_r_dim = test_config.get("in1_tile_r_dim", 32)
+    in1_tile_c_dim = test_config.get("in1_tile_c_dim", 32)
+    header_content.append(f"constexpr int in0_tile_r_dim = {in0_tile_r_dim};")
+    header_content.append(f"constexpr int in0_tile_c_dim = {in0_tile_c_dim};")
+    header_content.append(f"constexpr int in1_tile_r_dim = {in1_tile_r_dim};")
+    header_content.append(f"constexpr int in1_tile_c_dim = {in1_tile_c_dim};")
+
+    # tile size
+    formats = test_config.get("formats")
+    if formats:
+        # Tile byte size mapping
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
+        FACE_R_DIM = 16
+
+        pack_size = TILE_SIZES.get(formats.output_format, 128)
+        unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
+        unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
+
+        if tiny_tiles:
+            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // FACE_R_DIM)
+            unpack_size_a = (unpack_size_a // num_faces_A) * (
+                in0_tile_r_dim // FACE_R_DIM
+            )
+
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")
+        header_content.append(
+            f"constexpr std::uint32_t TILE_SIZE_UNPACK_A = {unpack_size_a};"
+        )
+        header_content.append(
+            f"constexpr std::uint32_t TILE_SIZE_UNPACK_B = {unpack_size_b};"
+        )
 
     # Dest synchronisation mode
     dest_sync = test_config.get("dest_sync", DestSync.Half)
     header_content.append(
         f"constexpr auto dest_sync = ckernel::DstSync::Sync{dest_sync.name};"
     )
+
+    # Destination index configuration
+    dst_index = test_config.get("dst_index", 0)
+    header_content.append(f"constexpr int DST_INDEX = {dst_index};")
+
+    # Tilize
+    tilize_en = test_config.get("tilize", Tilize.No)
+    header_content.append(f"constexpr bool tilize_en = {tilize_en.value};")
+
+    # Reuse A times
+    srca_reuse_count = test_config.get("srca_reuse_count", 4)
+    header_content.append(f"constexpr int SRCA_REUSE_COUNT = {srca_reuse_count};")
 
     # Data format configuration
     header_content.extend(["", "// Data format configuration"])
@@ -273,43 +313,23 @@ def generate_build_header(
     # Unpack + result buffer addresses arrays generations
     buffer_A_address = test_config.get("buffer_A_address", 0x1A000)
     buffer_B_address = test_config.get("buffer_B_address", 0x1B000)
+    buffer_C_address = test_config.get("buffer_C_address", None)
     result_buffer_address = test_config.get("result_buffer_address", 0x1C000)
 
-    buffer_A_array = []
-    buffer_B_array = []
-    buffer_res_array = []
+    # Generate buffer declarations with optional buffer_C
+    buffer_A_line = f"constexpr Operand buffer_A({hex(buffer_A_address)}, {format_tile_sizes[formats.input_format if formats is not None else DataFormat.Float16_b]});"
+    buffer_B_line = f"constexpr Operand buffer_B({hex(buffer_B_address)}, {format_tile_sizes[formats.input_format if formats is not None else DataFormat.Float16_b]});"
+    buffer_Res_line = f"constexpr Operand buffer_Res({hex(result_buffer_address)}, {format_tile_sizes[formats.output_format if formats is not None else DataFormat.Float16_b]});"
 
-    if formats is not None:
-        for i in range(tile_cnt):
-            buffer_A_array.append(
-                buffer_A_address + i * format_tile_sizes[formats.input_format]
-            )
-            buffer_B_array.append(
-                buffer_B_address + i * format_tile_sizes[formats.input_format]
-            )
-            buffer_res_array.append(
-                result_buffer_address + i * format_tile_sizes[formats.output_format]
-            )
+    header_content.append(buffer_A_line)
+    header_content.append(buffer_B_line)
 
-    buffer_A_str = ", ".join(
-        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_A_array
-    )
-    buffer_B_str = ", ".join(
-        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})" for addr in buffer_B_array
-    )
-    buffer_res_str = ", ".join(
-        f"reinterpret_cast<volatile uint32_t*>({hex(addr)})"
-        for addr in buffer_res_array
-    )
-    header_content.append(
-        "#if defined(LLK_TRISC_UNPACK) && defined(TEST_KERNEL)\n"
-        "volatile uint32_t* buffer_A[TILE_CNT] = {" + buffer_A_str + "}; \n"
-        "volatile uint32_t* buffer_B[TILE_CNT] = {" + buffer_B_str + "}; \n"
-        "#endif\n"
-        "#if defined(LLK_TRISC_PACK) && defined(TEST_KERNEL)\n"
-        "volatile uint32_t* buffer_Res[TILE_CNT] = {" + buffer_res_str + "}; \n"
-        "#endif\n"
-    )
+    # Add optional buffer_C if specified
+    if buffer_C_address is not None:
+        buffer_C_line = f"constexpr Operand buffer_C({hex(buffer_C_address)}, {format_tile_sizes[formats.input_format if formats != None else DataFormat.Float16_b]});"
+        header_content.append(buffer_C_line)
+
+    header_content.append(buffer_Res_line)
 
     input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
     input_B_dimensions = test_config.get("input_B_dimensions", [32, 32])
@@ -320,15 +340,18 @@ def generate_build_header(
     validate_tile_dimensions(input_A_dimensions[1], num_cols)
     validate_tile_dimensions(input_B_dimensions[0], num_rows)
     validate_tile_dimensions(input_B_dimensions[1], num_cols)
-    block_rt_dim = input_A_dimensions[0] // num_rows
-    block_ct_dim = input_B_dimensions[1] // num_cols
+    full_rt_dim = input_A_dimensions[0] // num_rows
+    full_ct_dim = input_B_dimensions[1] // num_cols
+
+    block_rt_dim = test_config.get("block_rt_dim", full_rt_dim)
+    block_ct_dim = test_config.get("block_ct_dim", full_ct_dim)
 
     header_content.extend(
         [
-            "#if defined(TEST_KERNEL)",
+            f"constexpr uint32_t FULL_RT_DIM = {full_rt_dim};",
+            f"constexpr uint32_t FULL_CT_DIM = {full_ct_dim};",
             f"constexpr uint32_t BLOCK_CT_DIM = {block_ct_dim};",
             f"constexpr uint32_t BLOCK_RT_DIM = {block_rt_dim};",
-            "#endif",
         ]
     )
 
@@ -352,25 +375,23 @@ def generate_build_header(
     return "\n".join(header_content)
 
 
-def write_build_header(
-    test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
-):
-    header_content = generate_build_header(
-        test_config, profiler_build, boot_mode=boot_mode
-    )
+def write_build_header(test_config):
+    header_content = generate_build_header(test_config)
     with open("../helpers/include/build.h", "w") as f:
         f.write(header_content)
 
 
 def generate_make_command(
     test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
+    boot_mode: BootMode,
+    profiler_build: ProfilerBuild,
 ):
     """Generate make command"""
+
+    boot_mode = resolve_default_boot_mode(boot_mode)
+
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} all "
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -380,8 +401,8 @@ def generate_make_command(
 
 def build_test(
     test_config,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,
+    boot_mode: BootMode,
+    profiler_build: ProfilerBuild,
 ):
     """Only builds the files required to run a test"""
 
@@ -391,20 +412,20 @@ def build_test(
 
     TESTS_DIR = str((Path(root) / "tests").absolute())
 
-    write_build_header(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
-    make_cmd = generate_make_command(test_config, profiler_build=profiler_build)
+    write_build_header(test_config)
+    make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
     run_shell_command(make_cmd, cwd=TESTS_DIR)
 
 
 def run_test(
     test_config,
+    boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
-    boot_mode: BootMode = BootMode.BRISC,  # change default boot mode here
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, profiler_build=profiler_build, boot_mode=boot_mode)
+    build_test(test_config, boot_mode, profiler_build)
 
     # run test
-    run_elf_files(test_config["testname"], boot_mode=boot_mode)
+    run_elf_files(test_config["testname"], boot_mode)
     wait_for_tensix_operations_finished()

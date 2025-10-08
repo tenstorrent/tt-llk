@@ -18,7 +18,7 @@ uint32_t math_sync_tile_dst_index = 0;
 uint32_t tile_size                = 128;
 const int iterations              = 32; // Dependent on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
 
-volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>(0x17000);
+constexpr uint32_t buffer_A_tilized = 0x17000;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -29,10 +29,6 @@ volatile uint32_t* const buffer_A_tilized = reinterpret_cast<volatile uint32_t*>
 
 void run_kernel()
 {
-    std::uint32_t ct_dim = 1;
-    std::uint32_t rt_dim = 1;
-    std::uint32_t kt_dim = 1;
-
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_unpack_AB_matmul_hw_configure_<dest_datum_width, StochRndType::None>(
         formats_array[run].unpack_src, formats_array[run].unpack_src, formats_array[run].unpack_dst, formats_array[run].unpack_dst);

@@ -6,13 +6,10 @@ from typing import List, Optional, Tuple, TypedDict
 
 import pytest
 
-from helpers.dimensions import (
-    calculate_matmul_dimensions,
-    generate_matmul_dimension_combinations,
-)
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.log_utils import add_to_format_log
 
-from .format_arg_mapping import DestAccumulation, DestSync, StochasticRounding
+from .format_arg_mapping import DestAccumulation, DestSync, Tilize
 from .format_config import (
     DataFormat,
     FormatConfig,
@@ -96,6 +93,8 @@ class TestParamsConfig(TypedDict):
     pool_type: Optional[List[str]] = None
     num_faces: Optional[List[int]] = None
     dest_sync: Optional[DestSync] = None
+    tilize_en: Optional[Tilize] = None
+    dst_idx: Optional[List[int]] = None
 
 
 def generate_params(**kwargs: any) -> List[tuple]:
@@ -210,81 +209,120 @@ def generate_combination(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]
     ]
 
 
-def generate_format_aware_matmul_combinations(
-    formats_list: List[FormatConfig],
-    dest_acc_modes: List[DestAccumulation],
-    all_stochastic_modes: List[StochasticRounding] = None,
-):
+def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int = 1):
     """
-    Generate matmul dimension combinations with stochastic rounding support.
+    Generate possible (format, num_faces, tilize, dest_sync, dest_index) combinations that respect chip_architecture and tilize constraints.
 
-    Rules:
-    1. Format outliers (Float16_b->Float16, Bfp8_b->Float16) MUST use dest_acc=Yes
-    2. When dest_acc=Yes: max 4 tiles (32-bit dest register)
-    3. When dest_acc=No: max 8 tiles (16-bit dest register)
-    4. Exclude cases when: stochastic_rounding enabled for Pack (Pack, All) AND dest_acc == DestAccumulation.No
-       AND k_tiles >= 4 AND fmt.input_format in [DataFormat.Float16_b, DataFormat.Float32]
-       AND fmt.output_format in [DataFormat.Float16_b, DataFormat.Float32]
-        - This specific case models when we have bfloat16 in dst register, when stochastic rounding is enabled the datum lacks mantissa bits
-        to absorb the accumulated precision loss from multiple matmul ops acrossmultiple tiles. And due to existence of bug, this specific case sometimes fails,
-        for now we will exclude this case.
+    Key rules:
+    1. When chip_architecture=WH: tilize_en=Tilize.No
+        When testing on WH, tilize is always False because DataCopy does not have tilize argument for WH.
+    2. When tilize_en=Tilize.Yes: num_faces=4
+        Pack does not support less than 4 faces when tilize=True.
+    3. When tilize_en=Tilize.Yes: input_format!=Bfp8_b
+        Unpack tilize does not support input_format=Bfp8_b.
 
-    Returns: List of (format, dest_acc, stochastic_rounding, dimensions) tuples
+    Args:
+        formats_list: List of InputOutputFormat combinations
+        result_tiles: Number of tiles in the result matrix
+
+    Returns:
+        List of tuples: (format, num_faces, tilize_en, dest_sync, dest_index)
     """
-    if all_stochastic_modes is None:
-        all_stochastic_modes = [StochasticRounding.No]
 
     combinations = []
 
-    for fmt in formats_list:
-        # Pre-compute format-specific values
-        base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
-        is_fpu_bfloat16 = fmt.input_format in [
-            DataFormat.Float16_b,
-            DataFormat.Float32,
-        ] and fmt.output_format in [DataFormat.Float16_b, DataFormat.Float32]
+    # Determine tilize options based on chip architecture
+    chip_arch = get_chip_architecture()
+    tilize_list = (
+        [Tilize.No]
+        if chip_arch == ChipArchitecture.WORMHOLE
+        else [Tilize.No, Tilize.Yes]
+    )
 
-        for dest_acc in dest_acc_modes:
-            max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
-            dimensions_list = generate_matmul_dimension_combinations(max_tiles)
+    for tilize_en in tilize_list:
+        num_faces_list = [4] if tilize_en == Tilize.Yes else [1, 2, 4]
 
-            for stochastic_mode in all_stochastic_modes:
-                # Pre-compute stochastic condition
-                is_fpu_stochastic = stochastic_mode in [
-                    StochasticRounding.Fpu,
-                    StochasticRounding.All,
-                ]
+        for num_faces in num_faces_list:
+            for fmt in formats_list:
+                # Skip invalid combination: tilize with Bfp8_b format
+                if tilize_en == Tilize.Yes and fmt.input_format == DataFormat.Bfp8_b:
+                    continue
 
-                # Skip early if we know all combinations will be excluded
-                if (
-                    is_fpu_stochastic
-                    and dest_acc == DestAccumulation.No
-                    and is_fpu_bfloat16
-                ):
-                    # Check if any dimensions would have k_tiles < 4
-                    valid_dimensions = []
-                    for dims in dimensions_list:
-                        inputA_dims, inputB_dims = dims
-                        matmul_info = calculate_matmul_dimensions(
-                            tuple(inputA_dims), tuple(inputB_dims)
+                for dest_acc in [DestAccumulation.No, DestAccumulation.Yes]:
+                    # Calculate dest acc setting for edgecase indices calculation
+                    is_fp32_dest_acc_en = (
+                        dest_acc == DestAccumulation.Yes or is_dest_acc_needed(fmt)
+                    )
+
+                    dest_sync_list = [DestSync.Half]
+                    # Generate all dest sync and index combinations
+                    for _, dest_idx in calculate_edgecase_dest_indices(
+                        is_fp32_dest_acc_en, result_tiles, dest_sync_list
+                    ):
+                        combinations.append(
+                            (
+                                fmt,
+                                dest_acc,
+                                num_faces,
+                                tilize_en,
+                                dest_idx,
+                            )
                         )
-                        if matmul_info["kt_dim"] < 4:
-                            valid_dimensions.append(dims)
-
-                    # Add only the valid ones
-                    combinations.extend(
-                        [
-                            (fmt, dest_acc, dims, stochastic_mode)
-                            for dims in valid_dimensions
-                        ]
-                    )
-                else:
-                    # No exclusion needed for this stochastic mode, add all
-                    combinations.extend(
-                        [
-                            (fmt, dest_acc, dims, stochastic_mode)
-                            for dims in dimensions_list
-                        ]
-                    )
 
     return combinations
+
+
+def calculate_edgecase_dest_indices(
+    dest_acc: bool, result_tiles: int, dest_sync_modes: List[DestSync] = [DestSync.Half]
+):
+    """
+    Generate the lowest and highest possible dest index depending on the DestSync mode and whether dest is 32bit or not.
+
+    Key rules:
+    1. The lowest possible dest index is always 0.
+    2. When DestSync.Half:  max_dst_tiles=8 (if dest is 16bit) or max_dst_tiles=4 (if dest is 32bit)
+    3. When DestSync.Full:  max_dst_tiles=16 (if dest is 16bit) or max_dst_tiles=8 (if dest is 32bit)
+
+    Args:
+        dest_acc: Dest 16/32 bit mode, has to match is_fp32_dest_acc_en from C++
+        result_tiles: Number of tiles in the result matrix
+        dest_sync_modes: List of DestSync modes to generate indices for. If None, uses [DestSync.Half]
+
+    Returns:
+        List of tuples: (dest_sync, dst_index)
+    """
+
+    combinations = []
+
+    DEST_SYNC_TILE_LIMITS = {
+        DestSync.Half: 8,
+        DestSync.Full: 16,
+    }
+
+    capacity_divisor = 2 if dest_acc else 1
+
+    for dest_sync in dest_sync_modes:
+        base_tile_limit = DEST_SYNC_TILE_LIMITS[dest_sync]
+        max_tiles = base_tile_limit // capacity_divisor
+        max_index = max_tiles - result_tiles
+
+        if max_index < 0:
+            raise ValueError(
+                f"Too many result tiles ({result_tiles}) for destination capacity ({max_tiles}) with {dest_sync.name}"
+            )
+
+        # Add both combinations: lowest possible index = 0 and at max possible index
+        # If max_index = 0 add only (dest_sync, 0) to avoid duplicates
+        combinations.extend([(dest_sync, 0)])
+        if max_index != 0:
+            combinations.extend([(dest_sync, max_index)])
+
+    return combinations
+
+
+def get_max_dst_index(dest_sync: DestSync, dest_acc: bool, result_tiles: int) -> int:
+    DEST_SYNC_TILE_LIMITS = {
+        DestSync.Half: 8 if not dest_acc else 4,
+        DestSync.Full: 16 if not dest_acc else 8,
+    }
+    return max(DEST_SYNC_TILE_LIMITS[dest_sync] - result_tiles, 0)
