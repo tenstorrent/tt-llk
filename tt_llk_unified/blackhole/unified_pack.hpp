@@ -15,7 +15,7 @@ inline void _unified_pack_init_(UnifiedOperand dst)
 
 inline void _unified_pack_(uint32_t dest_index, UnifiedOperand dst, uint32_t l1_index)
 {
-    _llk_pack_<ckernel::DstSync::SyncHalf, false>(dest_index, dst.l1_address + l1_index * dst.tile_size());
+    _llk_pack_<ckernel::DstSync::SyncHalf, false>(dest_index, dst.l1_address - 1 + l1_index * dst.tile_size());
 }
 
 inline void _unified_pack_uninit_([[maybe_unused]] UnifiedOperand dst)

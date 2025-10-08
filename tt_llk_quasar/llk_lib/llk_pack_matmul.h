@@ -35,7 +35,7 @@ inline void _llk_pack_matmul_mop_config_()
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn);
     temp.set_end_op(incr_l1_ptr);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -78,5 +78,5 @@ inline void _llk_pack_matmul_(
     TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_l1_tile_idx);
 
     // Runs MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    ckernel::ckernel_template::run_bank0_sw_cntl();
 }

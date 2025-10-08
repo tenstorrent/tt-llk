@@ -10,14 +10,13 @@ using namespace ckernel::math;
 
 /**
  * @brief Initializes addrmod for matrix multiply operation
- * @tparam MATH_FIDELITY: 0 = LoFi, 1 = Hifi2, 2 = HiFi3, 3 = HiFi4 - controls precision of multiplication when math is Float32 format
+ * @tparam math_fidelity_type: 0 = LoFi, 1 = Hifi2, 2 = HiFi3, 3 = HiFi4 - controls precision of multiplication when math is Float32 format
  */
-template <ckernel::MathFidelity MATH_FIDELITY_TYPE, std::uint8_t CT_DIM, std::uint8_t RT_DIM>
-inline void _llk_math_matmul_addrmod_()
+inline void _llk_math_matmul_addrmod_(ckernel::MathFidelity math_fidelity_type, std::uint8_t ct_dim, std::uint8_t rt_dim)
 {
-    constexpr bool high_fidelity     = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int FIDELITY_INCREMENT = high_fidelity ? 1 : 0;
-    constexpr uint16_t num_tile_incr = (CT_DIM >= RT_DIM) ? 64 : CT_DIM * 64;
+    bool high_fidelity         = math_fidelity_type != ckernel::MathFidelity::LoFi;
+    uint8_t fidelity_increment = high_fidelity ? 1 : 0;
+    uint16_t num_tile_incr     = (ct_dim >= rt_dim) ? 64 : ct_dim * 64;
 
     // MVMUL does D = B*A
 
@@ -68,24 +67,23 @@ inline void _llk_math_matmul_addrmod_()
         .srca     = {.incr = 0, .clr = 1, .cr = 0},
         .srcb     = {.incr = 0, .clr = 1, .cr = 0},
         .dest     = {.incr = 0, .clr = 0, .cr = 1},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
+        .fidelity = {.incr = fidelity_increment, .clr = 0},
     }
         .set(ADDR_MOD_5);
 }
 
 // Direct Indexing Method
-template <ckernel::MathFidelity MATH_FIDELITY_TYPE>
-inline void _llk_math_matmul_di_addrmod_()
+inline void _llk_math_matmul_di_addrmod_(ckernel::MathFidelity math_fidelity_type)
 {
-    constexpr bool high_fidelity     = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int FIDELITY_INCREMENT = high_fidelity ? 1 : 0;
+    bool high_fidelity         = math_fidelity_type != ckernel::MathFidelity::LoFi;
+    uint8_t fidelity_increment = high_fidelity ? 1 : 0;
 
     // only increment fidelity if we have more fidelity phases
     addr_mod_t {
         .srca     = {.incr = 0, .clr = 0, .cr = 0},
         .srcb     = {.incr = 0, .clr = 0, .cr = 0},
         .dest     = {.incr = 0, .clr = 0, .cr = 0},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
+        .fidelity = {.incr = fidelity_increment, .clr = 0},
     }
         .set(ADDR_MOD_1);
 }
@@ -96,26 +94,30 @@ inline void _llk_math_matmul_di_addrmod_()
  * Input 1 dim = [1, ct_dim]
  * Output is a matrix block of dimension [rt_dim, ct_dim]
  * ct_dim * rt_dim <= 8 tiles in Float16b, ct_dim * rt_dim <= 4 tiles in Float32
- * @tparam MATH_FIDELITY: 0 = LoFi, 1 = Hifi2, 2 = HiFi3, 3 = HiFi4 - controls precision of multiplication when math is Float32 format
- * @tparam CT_DIM: number of tiles in the column dimension for a matrix multiply
- * @tparam RT_DIM: number of tiles in the row dimension for a matrix multiply
+ * @tparam math_fidelity_type: 0 = LoFi, 1 = Hifi2, 2 = HiFi3, 3 = HiFi4 - controls precision of multiplication when math is Float32 format
+ * @tparam ct_dim: number of tiles in the column dimension for a matrix multiply
+ * @tparam rt_dim: number of tiles in the row dimension for a matrix multiply
  */
-template <ckernel::MathFidelity MATH_FIDELITY_TYPE, uint8_t CT_DIM, uint8_t RT_DIM>
-inline void _llk_math_matmul_mop_config_()
+inline void _llk_math_matmul_mop_config_(ckernel::MathFidelity math_fidelity_type, uint8_t ct_dim, uint8_t rt_dim)
 {
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
     // Unpacker will always load faces in f0,f1,f2,f3 order
     // if in1 is transposed then faces 1&2 need to be swapped during read
     // by changing address increment amount via addr_mods
-    constexpr bool high_fidelity  = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int FIDELITY_PHASES = static_cast<uint32_t>(MATH_FIDELITY_TYPE) + 1;
+    bool high_fidelity  = math_fidelity_type != ckernel::MathFidelity::LoFi;
+    int fidelity_phases = static_cast<uint32_t>(math_fidelity_type) + 1;
 
-    constexpr bool reuse_a = CT_DIM >= RT_DIM;
+    bool reuse_a = ct_dim >= rt_dim;
 
-    constexpr std::uint32_t replay_buf_len = 16 - 1;
+    std::uint32_t replay_buf_len = 16 - 1;
 
-    load_replay_buf<0, replay_buf_len>(
+    load_replay_buf(
+        0,
+        replay_buf_len,
+        false,
+        0,
+        0,
         // Lambda function to load reply buffer
         [high_fidelity, reuse_a]
         {
@@ -139,38 +141,42 @@ inline void _llk_math_matmul_mop_config_()
             TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A3 // srca=srca, srcb+=8,  dest+=8
         });
 
-    constexpr static uint matmul_op      = TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0);
-    constexpr static uint matmul_op_last = reuse_a ? TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_3, 0) : TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_3, 0);
+    uint matmul_op      = TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0);
+    uint matmul_op_last = reuse_a ? TT_OP_MVMUL(p_setrwc::CLR_A, 0, ADDR_MOD_3, 0) : TT_OP_MVMUL(p_setrwc::CLR_B, 0, ADDR_MOD_3, 0);
 
-    ckernel_template temp(1 /* outer loop */, FIDELITY_PHASES, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0), matmul_op);
+    ckernel_template temp(1 /* outer loop */, fidelity_phases, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0), matmul_op);
     temp.set_last_outer_loop_instr(matmul_op_last);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
  * @brief Initializes mop config for matrix multiply operation with direct indexing matmul
- * @tparam MATH_FIDELITY: 0 = LoFi, 1 = Hifi2, 2 = HiFi3, 3 = HiFi4 - controls precision of multiplication when math is Float32 format
- * @tparam CT_DIM: number of tiles in the column dimension for a matrix multiply
- * @tparam RT_DIM: number of tiles in the row dimension for a matrix multiply
+ * @tparam math_fidelity_type: 0 = LoFi, 1 = Hifi2, 2 = HiFi3, 3 = HiFi4 - controls precision of multiplication when math is Float32 format
+ * @tparam ct_dim: number of tiles in the column dimension for a matrix multiply
+ * @tparam rt_dim: number of tiles in the row dimension for a matrix multiply
  * ct_dim * rt_dim <= 8 tiles in Float16b, ct_dim * rt_dim <= 4 tiles in Float32
  */
-template <ckernel::MathFidelity MATH_FIDELITY_TYPE, uint8_t CT_DIM, uint8_t RT_DIM, bool EN_X2>
-inline void _llk_math_matmul_di_mop_config_()
+inline void _llk_math_matmul_di_mop_config_(ckernel::MathFidelity math_fidelity_type, uint8_t ct_dim, uint8_t rt_dim, bool en_x2)
 {
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
     // Unpacker will always load faces in f0,f1,f2,f3 order
     // if in1 is transposed then faces 1&2 need to be swapped during read
     // by changing address increment amount via addr_mods
-    constexpr bool high_fidelity  = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int FIDELITY_PHASES = static_cast<uint32_t>(MATH_FIDELITY_TYPE) + 1;
-    constexpr bool reuse_a        = CT_DIM >= RT_DIM;
+    bool high_fidelity  = math_fidelity_type != ckernel::MathFidelity::LoFi;
+    int fidelity_phases = static_cast<uint32_t>(math_fidelity_type) + 1;
+    bool reuse_a        = ct_dim >= rt_dim;
 
-    constexpr std::uint32_t replay_buf_len = EN_X2 ? 8 : 16;
-    if constexpr (EN_X2)
+    uint32_t replay_buf_len = en_x2 ? 8 : 16;
+    if (en_x2)
     {
-        load_replay_buf<0, replay_buf_len>(
+        load_replay_buf(
+            0,
+            replay_buf_len,
+            false,
+            0,
+            0,
             // Lambda function to load reply buffer
             [high_fidelity, reuse_a]
             {
@@ -183,13 +189,13 @@ inline void _llk_math_matmul_di_mop_config_()
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x4, 0x0, 0x0, 0x8); // B1[0:7]*A0  srcb=0x4<<2='d16, srca=0x0<<2='d0, dest=0x8<<2='d32
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x6, 0x0, 0x0, 0xA); // B1[8:15]*A0 srcb=0x6<<2='d24, srca=0x0<<2='d0, dest=0xA<<2='d40
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x4, 0x4, 0x0, 0xC); // B1[0:7]*A1  srcb=0x4<<2='d16, srca=0x4<<2='d16, dest=0xC<<2='d48
-                if constexpr (high_fidelity)
+                if (high_fidelity)
                 {
                     TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x6, 0x4, ADDR_MOD_1, 0xE); // B1[8:15]*A1 srcb=0x6<<2='d24, srca=0x4<<2='d16, dest=0xE<<2='d56
                 }
                 else
                 {
-                    if constexpr (reuse_a)
+                    if (reuse_a)
                     {
                         TTI_MVMULDI(p_setrwc::CLR_A, 0x0, 0x6, 0x4, ADDR_MOD_1, 0xE);
                     }
@@ -202,7 +208,12 @@ inline void _llk_math_matmul_di_mop_config_()
     }
     else
     {
-        load_replay_buf<0, replay_buf_len>(
+        load_replay_buf(
+            0,
+            replay_buf_len,
+            false,
+            0,
+            0,
             // Lambda function to load reply buffer
             [high_fidelity, reuse_a]
             {
@@ -237,13 +248,13 @@ inline void _llk_math_matmul_di_mop_config_()
                                                                           // transposed. That is, srca should be set 0x4 if transposed.
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0xC, 0xC, 0x0, 0xC); // B3[0:7]*A3  srcb=0xC<<2='d48, srca=0xC<<2='d48, dest=0xC<<2='d48
 
-                if constexpr (high_fidelity)
+                if (high_fidelity)
                 {
                     TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0xE, 0xC, ADDR_MOD_1, 0xE); // B3[8:15]*A3 srcb=0xE<<2='d56, srca=0xC<<2='d48, dest=0xE<<2='d56
                 }
                 else
                 {
-                    if constexpr (reuse_a)
+                    if (reuse_a)
                     {
                         TTI_MVMULDI(p_setrwc::CLR_A, 0x0, 0xE, 0xC, ADDR_MOD_1, 0xE);
                     }
@@ -255,11 +266,11 @@ inline void _llk_math_matmul_di_mop_config_()
             });
     }
 
-    ckernel_template temp(1 /* outer loop */, FIDELITY_PHASES, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
+    ckernel_template temp(1 /* outer loop */, fidelity_phases, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
 
-    if constexpr (high_fidelity)
+    if (high_fidelity)
     {
-        if constexpr (reuse_a)
+        if (reuse_a)
         {
             temp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, p_setrwc::SET_ABD_F));
         }
@@ -268,7 +279,7 @@ inline void _llk_math_matmul_di_mop_config_()
             temp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_B, 0, 0, p_setrwc::SET_ABD_F));
         }
     }
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -277,25 +288,24 @@ inline void _llk_math_matmul_di_mop_config_()
  * Input 1 dim = [1, ct_dim]
  * Output is a matrix block of dimension [rt_dim, ct_dim]
  * ct_dim * rt_dim <= 8 tiles in Float16b, ct_dim * rt_dim <= 4 tiles in Float32
- * @tparam MATH_FIDELITY: 0 = LoFi, 1 = Hifi2, 2 = HiFi3, 3 = HiFi4 - controls precision of multiplication when math is Float32 format
- * @tparam CT_DIM: number of tiles in the column dimension for a matrix multiply
- * @tparam RT_DIM: number of tiles in the row dimension for a matrix multiply
- * @tparam EN_DI: Enable direct indexing matrix multiplication
- * @tparam EN_X2: Enable matrix multiplication with MXFP_2X mode, double the performance
+ * @tparam math_fidelity_type: 0 = LoFi, 1 = Hifi2, 2 = HiFi3, 3 = HiFi4 - controls precision of multiplication when math is Float32 format
+ * @tparam ct_dim: number of tiles in the column dimension for a matrix multiply
+ * @tparam rt_dim: number of tiles in the row dimension for a matrix multiply
+ * @tparam en_di: Enable direct indexing matrix multiplication
+ * @tparam en_x2: Enable matrix multiplication with MXFP_2X mode, double the performance
  */
 
-template <ckernel::MathFidelity MATH_FIDELITY_TYPE, uint8_t CT_DIM, uint8_t RT_DIM, bool EN_DI, bool EN_X2>
-inline void _llk_math_matmul_init_()
+inline void _llk_math_matmul_init_(ckernel::MathFidelity math_fidelity_type, uint8_t ct_dim, uint8_t rt_dim, bool en_di, bool en_x2)
 {
-    if constexpr (EN_DI || EN_X2)
+    if (en_di || en_x2)
     {
-        _llk_math_matmul_di_addrmod_<MATH_FIDELITY_TYPE>();
-        _llk_math_matmul_di_mop_config_<MATH_FIDELITY_TYPE, CT_DIM, RT_DIM, EN_X2>();
+        _llk_math_matmul_di_addrmod_(math_fidelity_type);
+        _llk_math_matmul_di_mop_config_(math_fidelity_type, ct_dim, rt_dim, en_x2);
     }
     else
     {
-        _llk_math_matmul_addrmod_<MATH_FIDELITY_TYPE, CT_DIM, RT_DIM>();
-        _llk_math_matmul_mop_config_<MATH_FIDELITY_TYPE, CT_DIM, RT_DIM>();
+        _llk_math_matmul_addrmod_(math_fidelity_type, ct_dim, rt_dim);
+        _llk_math_matmul_mop_config_(math_fidelity_type, ct_dim, rt_dim);
     }
 
     // Matmul Block, reset the dest addr to 0 for fused kernels
@@ -313,7 +323,7 @@ inline void _llk_math_matmul_init_()
 inline void _llk_math_matmul_tile_(const uint dst_index)
 {
     _set_dst_write_addr_<DstTileShape::Tile32x32>(dst_index);
-    ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    ckernel_template::run_bank0_sw_cntl();
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, p_setrwc::SET_ABD_F);
 }
 
@@ -327,27 +337,26 @@ inline void _llk_math_matmul_tile_(const uint dst_index)
  * 2. If matrix multiplication includes kt_dim > 1 such that matrix multiplication is:
  * Input 0 [rt_dim, kt_dim] x Input 1 [kt_dim, ct_dim] = Output [rt_dim, ct_dim].
  * Be Aware: this function does not iterate over kt_dim, must iterate over kt_dim externally to this function
- * @tparam CT_DIM: number of tiles in the column dimension for a matrix multiply
- * @tparam RT_DIM: number of tiles in the row dimension for a matrix multiply
+ * @tparam ct_dim: number of tiles in the column dimension for a matrix multiply
+ * @tparam rt_dim: number of tiles in the row dimension for a matrix multiply
  * ct_dim * rt_dim <= 8 tiles in Float16b, ct_dim * rt_dim <= 4 tiles in Float32
  */
-template <std::uint8_t CT_DIM, std::uint8_t RT_DIM>
-inline void _llk_math_matmul_block_()
+inline void _llk_math_matmul_block_(std::uint8_t ct_dim, std::uint8_t rt_dim)
 {
-    constexpr bool reuse_a          = CT_DIM >= RT_DIM;
-    constexpr std::uint32_t t_dim   = reuse_a ? RT_DIM : CT_DIM;
-    constexpr std::uint32_t rut_dim = reuse_a ? CT_DIM : RT_DIM; // reuse-dim
+    bool reuse_a          = ct_dim >= rt_dim;
+    std::uint32_t t_dim   = reuse_a ? rt_dim : ct_dim;
+    std::uint32_t rut_dim = reuse_a ? ct_dim : rt_dim; // reuse-dim
 
     for (uint t = 0; t < t_dim; t++)
     {
         for (uint rut = 0; rut < rut_dim; rut++)
         {
-            ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+            ckernel_template::run_bank0_sw_cntl();
 
             // Clear srcB or srcA at end of reuse (once per u block row)
             if (rut == (rut_dim - 1))
             {
-                if constexpr (reuse_a)
+                if (reuse_a)
                 {
                     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, p_setrwc::SET_AB_F);
                 }
@@ -364,7 +373,7 @@ inline void _llk_math_matmul_block_()
         //  These are the only scenarios where the matmul block dest tile indices are not equal to 0,1,2,3..7
         //  The above scenarios have dest tile indices = 0,2,4,1,3,5 or 0,2,4,6,1,3,5,7
         //  Below offsets by 1 tile, for the sequence above to start from 1
-        if constexpr (!reuse_a && CT_DIM == 2)
+        if (!reuse_a && ct_dim == 2)
         {
             TTI_SETRWC(p_setrwc::CLR_NONE, 0, 64, p_setrwc::SET_D);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::C_TO_CR_MODE, 0, p_setrwc::SET_D);

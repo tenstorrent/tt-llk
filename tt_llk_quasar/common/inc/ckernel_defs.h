@@ -14,6 +14,17 @@
 namespace ckernel
 {
 
+// Default face dimensions
+constexpr static uint32_t FACE_R_DIM = 16;
+constexpr static uint32_t FACE_C_DIM = 16;
+
+// Default tile dimensions
+constexpr static uint32_t TILE_R_DIM = 32;
+constexpr static uint32_t TILE_C_DIM = 32;
+
+// Default number of faces
+constexpr static uint32_t NUM_FACES = 4;
+
 enum register_space_e
 {
     TDMA_REGS     = 0x0,
@@ -38,5 +49,22 @@ struct TileShape
 // For instructions that address lower/upper 16 bits of a register
 #define LO_16(REG) (2 * (REG))
 #define HI_16(REG) (2 * (REG) + 1)
+
+constexpr static std::uint32_t GET_L1_HEADERLESS_TILE_SIZE(uint format)
+{
+    switch (format & 0xF)
+    {
+        case ((uint8_t)DataFormat::Int32):
+        case ((uint8_t)DataFormat::Float32):
+            return (4096 >> 4);
+        case ((uint8_t)DataFormat::Float16):
+        case ((uint8_t)DataFormat::Float16_b):
+            return (2048 >> 4);
+        case ((uint8_t)DataFormat::Int8):
+            return (1024 >> 4);
+        default:
+            return ((1024 >> 4) + (64 >> 4));
+    };
+}
 
 } // namespace ckernel

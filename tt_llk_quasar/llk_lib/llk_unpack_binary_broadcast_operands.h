@@ -59,7 +59,7 @@ inline void _llk_unpack_binary_broadcast_operands_mop_config_(const uint32_t num
 
     temp.set_start_op(unpack_srca_tile_inc);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -98,5 +98,5 @@ inline void _llk_unpack_binary_broadcast_operands_(const uint start_l1_tile_idx_
     TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_unpacr::UNP_A | p_unpacr::UNP_B, 0);
 
     // Runs MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    ckernel::ckernel_template::run_bank0_sw_cntl();
 }

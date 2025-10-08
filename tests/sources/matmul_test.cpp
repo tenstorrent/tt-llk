@@ -24,7 +24,7 @@ UnifiedOperand src_a = {
     static_cast<DataFormat>(formats.unpack_src),
     static_cast<DataFormat>(formats.unpack_dst),
     static_cast<DataFormat>(formats.pack_src),
-    31,
+    29,
     KT_DIM,
     RT_DIM,
     L1_ADDRESS(buffer_A[0])};
@@ -36,7 +36,7 @@ UnifiedOperand src_b = {
     static_cast<DataFormat>(formats.unpack_src),
     static_cast<DataFormat>(formats.unpack_dst),
     static_cast<DataFormat>(formats.pack_src),
-    31,
+    30,
     CT_DIM,
     KT_DIM,
     L1_ADDRESS(buffer_B[0])};

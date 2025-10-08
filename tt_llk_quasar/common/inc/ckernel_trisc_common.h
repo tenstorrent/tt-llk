@@ -16,17 +16,6 @@ namespace ckernel::trisc
 // Num of words in buffer descriptor struct
 constexpr static uint32_t BD_NUM_WORDS = 3;
 
-// Default face dimensions
-constexpr static uint32_t FACE_R_DIM = 16;
-constexpr static uint32_t FACE_C_DIM = 16;
-
-// Default tile dimensions
-constexpr static uint32_t TILE_R_DIM = 32;
-constexpr static uint32_t TILE_C_DIM = 32;
-
-// Default number of faces
-constexpr static uint32_t NUM_FACES = 4;
-
 // Number of rows that can fit into Dest
 static constexpr std::uint32_t DEST_REGISTER_FULL_SIZE = 64 * FACE_R_DIM;
 static constexpr std::uint32_t DEST_REGISTER_HALF_SIZE = DEST_REGISTER_FULL_SIZE >> 1;

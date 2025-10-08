@@ -28,8 +28,8 @@ inline void _unified_unpack_matmul_init_(UnifiedOperand src_a, UnifiedOperand sr
 inline void _unified_unpack_matmul_(UnifiedOperand src_a, UnifiedOperand src_b, int idx_a, int idx_b)
 {
     _llk_unpack_AB_matmul_(
-        src_a.l1_address,
-        src_b.l1_address,
+        src_a.l1_address - 1,
+        src_b.l1_address - 1,
         idx_a,
         idx_b,
         src_a.tile_size(),

@@ -72,7 +72,7 @@ inline void _llk_math_eltwise_binary_broadcast_mop_config_(const TileShape& tile
     }
 
     temp.set_last_outer_loop_instr(eltwise_binary_op_clr_srcAB_valid);
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    temp.program_bank0_sw_cntl();
 }
 
 /**
@@ -167,7 +167,7 @@ inline void _llk_math_eltwise_binary_broadcast_(const uint32_t tile_idx)
     _set_dst_write_addr_<DstTileShape::Tile32x32>(tile_idx);
 
     // Run MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    ckernel::ckernel_template::run_bank0_sw_cntl();
 
     // Reset all counters
     _reset_counters_<p_setrwc::SET_ABD_F>();

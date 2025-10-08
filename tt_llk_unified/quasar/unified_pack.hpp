@@ -10,12 +10,12 @@
 
 inline void _unified_pack_init_(UnifiedOperand dst)
 {
-    _llk_pack_init_((uint)dst.l1_format, dst.face_height, dst.num_faces(), dst.partial_face(), dst.narrow_tile());
+    _llk_pack_init_<ckernel::p_pacr::PACK0>(dst.hint, 1);
 }
 
-inline void _unified_pack_(uint32_t dest_index, UnifiedOperand dst, uint32_t l1_index)
+inline void _unified_pack_(uint32_t dest_index, [[maybe_unused]] UnifiedOperand dst, uint32_t l1_index)
 {
-    _llk_pack_<ckernel::DstSync::SyncHalf, false>(dest_index, dst.l1_address - 1 + l1_index * dst.tile_size());
+    _llk_pack_<ckernel::p_pacr::PACK0>(dest_index, l1_index);
 }
 
 inline void _unified_pack_uninit_([[maybe_unused]] UnifiedOperand dst)
