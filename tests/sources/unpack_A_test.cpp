@@ -53,6 +53,9 @@ using namespace ckernel;
 
 void run_kernel()
 {
+    // Test configuration constants
+    constexpr DstSync sync_mode = DstSync::SyncHalf;
+
     // copy srca to dest
     // Use B2D for all broadcasts except NONE (data in srcB), A2D for NONE (data in srcA)
     constexpr DataCopyType copy_type = (BROADCAST_TYPE == BroadcastType::NONE) ? DataCopyType::A2D : DataCopyType::B2D;
@@ -61,14 +64,14 @@ void run_kernel()
 #else
     _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #endif
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    _llk_math_wait_for_dest_available_<sync_mode>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_datacopy_<copy_type, DstSync::SyncHalf, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(i, formats.math, formats.math);
+        _llk_math_eltwise_unary_datacopy_<copy_type, sync_mode, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(i, formats.math, formats.math);
     }
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_dest_section_done_<sync_mode, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -81,6 +84,8 @@ void run_kernel()
 
 void run_kernel()
 {
+    // Test configuration constants
+    constexpr DstSync sync_mode = DstSync::SyncHalf;
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
@@ -90,16 +95,16 @@ void run_kernel()
 #endif
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<sync_mode, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<sync_mode, false, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<sync_mode, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_pack_dest_section_done_<sync_mode, is_fp32_dest_acc_en>();
 }
 #endif
