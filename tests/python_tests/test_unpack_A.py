@@ -9,7 +9,12 @@ from z3 import And, BoolVal, If, Implies, IntVal, Not, Or, Solver, sat
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
-from helpers.format_arg_mapping import DestAccumulation, StochasticRounding, format_dict
+from helpers.format_arg_mapping import (
+    DestAccumulation,
+    StochasticRounding,
+    Transpose,
+    format_dict,
+)
 from helpers.format_config import BroadcastType, DataFormat, EltwiseBinaryReuseDestType
 from helpers.golden_generators import (
     ColumnBroadcastGolden,
@@ -53,8 +58,8 @@ reuse_dest_types = [
     EltwiseBinaryReuseDestType.DEST_TO_SRCA,
     EltwiseBinaryReuseDestType.DEST_TO_SRCB,
 ]
-transpose_of_faces_values = [0, 1]
-within_face_16x16_transpose_values = [0, 1]
+transpose_of_faces_values = [Transpose.No, Transpose.Yes]
+within_face_16x16_transpose_values = [Transpose.No, Transpose.Yes]
 num_faces_values = [1, 2, 4]
 
 
@@ -163,7 +168,7 @@ def filter_params_with_z3(all_params):
         broadcast = IntVal(broadcast_val)  # 0=NONE, 1=COL, 2=ROW, 3=SCALAR
         acc_to_dest_z3 = BoolVal(acc_to_dest)
         reuse_dest_z3 = IntVal(reuse_dest_val)  # 0=NONE, 1=DEST_TO_SRCA, 2=DEST_TO_SRCB
-        transpose_faces = BoolVal(transpose_of_faces == 1)
+        transpose_faces = BoolVal(transpose_of_faces == Transpose.Yes)
         num_faces_z3 = IntVal(num_faces)
         unpack_to_dest = BoolVal(formats.input_format.is_32_bit() and acc_to_dest)
         is_blackhole = BoolVal(arch == ChipArchitecture.BLACKHOLE)
@@ -211,7 +216,7 @@ def filter_params_with_z3(all_params):
         )
 
         # User constraint: transpose_of_faces and within_face_16x16_transpose are mutually inclusive
-        within_face_transpose = BoolVal(within_face_16x16_transpose == 1)
+        within_face_transpose = BoolVal(within_face_16x16_transpose == Transpose.Yes)
         transpose_mutual_constraint = transpose_faces == within_face_transpose
 
         # Exclude acc_to_dest=True for simple datacopy operations
@@ -321,8 +326,8 @@ def create_simple_ids(all_params):
             f"acc_to_dest_{acc_to_dest}",
             f"stoch_rnd_{stochastic_rnd.name}",
             f"reuse_dest_{reuse_dest.name}",
-            f"transpose_faces_{transpose_of_faces}",
-            f"within_face_transpose_{within_face_16x16_transpose}",
+            f"transpose_faces_{transpose_of_faces.name}",
+            f"within_face_transpose_{within_face_16x16_transpose.name}",
             f"num_faces_{num_faces}",
         ]
 
@@ -391,7 +396,7 @@ def test_unpack_comprehensive(
         golden_tensor = generate_golden(
             src_A, formats.output_format, num_faces, input_dimensions
         )
-    elif transpose_of_faces == 1:
+    elif transpose_of_faces == Transpose.Yes:
         # Both transpose flags are ALWAYS on together (mutually inclusive constraint)
         transpose_golden = get_golden_generator(TransposeGolden)
         # First apply within-face transpose, then face transpose

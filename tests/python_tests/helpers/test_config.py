@@ -31,14 +31,6 @@ from .matmul_sweep import validate_tile_dimensions
 from .utils import run_shell_command
 
 
-def _convert_transpose_parameter(value):
-    """Helper function to convert transpose parameter from int or enum to bool."""
-    if isinstance(value, int):
-        return bool(value)
-    else:
-        return value.value
-
-
 class ProfilerBuild(Enum):
     Yes = "true"
     No = "false"
@@ -121,20 +113,16 @@ def generate_build_header(test_config):
 
     # Unpack transpose faces
     unpack_transpose_faces = test_config.get("unpack_transpose_faces", Transpose.No)
-    unpack_transpose_faces = _convert_transpose_parameter(unpack_transpose_faces)
     header_content.append(
-        f"constexpr bool UNPACK_TRANSPOSE_FACES = {str(unpack_transpose_faces).lower()};"
+        f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces.value};"
     )
 
     # Unpack transpose within face
     unpack_transpose_within_face = test_config.get(
         "unpack_transpose_within_face", Transpose.No
     )
-    unpack_transpose_within_face = _convert_transpose_parameter(
-        unpack_transpose_within_face
-    )
     header_content.append(
-        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {str(unpack_transpose_within_face).lower()};"
+        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
     )
 
     # Throttle level
