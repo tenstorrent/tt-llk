@@ -27,35 +27,37 @@ namespace sfpu
  *                       the data type and precision of datums stored in dst. Affects instruction modifiers
  *                       and arithmetic operations used (e.g., Int32, UInt16, UInt32, Float32).
  */
-template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en>
-inline void _calculate_reduce_(const std::uint32_t dst_reg_format)
+template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, DataFormat format>
+inline void _calculate_reduce_()
 {
     // Compile-time assertions to restrict to currently supported operations
     static_assert(dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
     static_assert(type == SUM || type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
 
+    // Determine arithmetic type and instruction modifiers at compile time
+    constexpr bool use_float_arithmetic = (format != DataFormat::Int32 && format != DataFormat::UInt16 && format != DataFormat::UInt32);
+
     constexpr uint REPLAY_LENGTH = 6;
 
-    bool use_float_arithmetic = false;
-
-    uint8_t instr_mod_index;
-    if (dst_reg_format == (uint32_t)DataFormat::Int32)
+    constexpr uint8_t instr_mod_index = []() constexpr
     {
-        instr_mod_index = InstrModLoadStore::INT32;
-    }
-    else if (dst_reg_format == (uint32_t)DataFormat::UInt16)
-    {
-        instr_mod_index = InstrModLoadStore::LO16;
-    }
-    else if (dst_reg_format == (uint32_t)DataFormat::UInt32)
-    {
-        instr_mod_index = InstrModLoadStore::INT32_2S_COMP;
-    }
-    else
-    {
-        use_float_arithmetic = true;
-        instr_mod_index      = InstrModLoadStore::FP32;
-    }
+        if constexpr (format == DataFormat::Int32)
+        {
+            return InstrModLoadStore::INT32;
+        }
+        else if constexpr (format == DataFormat::UInt16)
+        {
+            return InstrModLoadStore::LO16;
+        }
+        else if constexpr (format == DataFormat::UInt32)
+        {
+            return InstrModLoadStore::INT32_2S_COMP;
+        }
+        else
+        {
+            return InstrModLoadStore::FP32;
+        }
+    }();
 
     // Pre-calculated face addresses and column offsets for each iteration
     // Each face is 16 rows, tile has 4 faces arranged as:
@@ -103,7 +105,7 @@ inline void _calculate_reduce_(const std::uint32_t dst_reg_format)
         lltt::replay(0, REPLAY_LENGTH); // Sum column sums within each face after transpose
 
         // Combine the column sums from upper and lower faces
-        if (use_float_arithmetic)
+        if constexpr (use_float_arithmetic)
         {
             TT_SFPADD(
                 p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0); // LREG0 = (LREG0 * 1) + LREG4 = upper_face_sums + lower_face_sums (float)
@@ -115,7 +117,7 @@ inline void _calculate_reduce_(const std::uint32_t dst_reg_format)
 
         if constexpr (type == AVG)
         {
-            if (use_float_arithmetic)
+            if constexpr (use_float_arithmetic)
             {
                 // For a 32x32 tile, each column sum represents the sum of exactly 32 values (one per row)
                 // Load 1/32 constant (0.03125) into LREG1 for float division
@@ -143,7 +145,8 @@ inline void _calculate_reduce_(const std::uint32_t dst_reg_format)
     // Address 18: odd columns,  right half (columns 17,19,21,23,25,27,29,31)
 }
 
-inline void _init_reduce_(const uint32_t dst_reg_format)
+template <DataFormat format>
+inline void _init_reduce_()
 {
     // Initialize SFPU configuration register
     _init_sfpu_config_reg();
@@ -153,7 +156,7 @@ inline void _init_reduce_(const uint32_t dst_reg_format)
     // 1st call: After first transpose - operates on transposed data where LREG0-3 and LREG4-7 both map to lanes 0→3
     // 2nd call: After second transpose - operates on data transposed back to original layout, the sum of 4 rows columns stored in lregs, need to sum lregs for
     // each face to get the final column sums
-    if (dst_reg_format == (uint32_t)DataFormat::Float32)
+    if constexpr (format == DataFormat::Float32)
     {
         load_replay_buf(
             0,
