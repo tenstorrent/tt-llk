@@ -251,9 +251,12 @@ inline void configure_unpack_AB(
 
     alu_config_u alu_payload = {.val = 0};
 
-    uint32_t fp32_dest_acc_en  = (is_fp32_dest_acc_en) ? (1) : (0);
-    uint32_t int8_math_enabled = ((uint)(unpA_dst_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(unpB_dst_format & 0xF) == (uint)DataFormat::Int8) ||
-                                 ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
+    uint32_t fp32_dest_acc_en = (is_fp32_dest_acc_en) ? (1) : (0);
+    uint32_t int8_math_enabled =
+        ((uint)(unpA_dst_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(unpB_dst_format & 0xF) == (uint)DataFormat::Int8) ||
+        ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32) ||
+        (((uint)unpA_dst_format == (uint)DataFormat::Float32) && is_fp32_dest_acc_en) ||
+        (((uint)unpB_dst_format == (uint)DataFormat::Float32) && is_fp32_dest_acc_en); // add to set chicken bit for transpose, breaks other tests
 
     constexpr uint alu_format_mask = ALU_FORMAT_SPEC_REG0_SrcAUnsigned_MASK | ALU_FORMAT_SPEC_REG0_SrcBUnsigned_MASK;
 
