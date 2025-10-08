@@ -183,7 +183,7 @@ inline void _calculate_asinh_()
 }
 
 // atanh[x] = 0.5 * ln((1 + x) / (1 - x))
-template <bool APPROXIMATION_MODE, DestAccumulation fp32_dest_accumulation, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestDatumWidth::Value dest_datum_width, int ITERATIONS>
 inline void _calculate_atanh_()
 {
     // SFPU microcode
@@ -206,7 +206,7 @@ inline void _calculate_atanh_()
             sfpi::vFloat den = sfpi::vConst1 - inp;
             sfpi::vFloat tmp = _sfpu_reciprocal_<APPROXIMATION_MODE ? 0 : 2>(den);
             tmp              = sfpi::setsgn(tmp, den);
-            if constexpr (fp32_dest_accumulation || APPROXIMATION_MODE)
+            if constexpr (dest_datum_width || APPROXIMATION_MODE)
             {
                 den = tmp;
             }

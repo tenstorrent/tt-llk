@@ -18,14 +18,14 @@ namespace sfpu
  *        Also places the index of the max value into the first row of the indices tile.
  *        Supports {FP32, FP16_B} for values, and {UINT16, INT32, UINT32} for indices, inferred from the Dest mode used.
  * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
- * @tparam fp32_dest_accumulation Whether Dest is in 32bit mode (true) or 16bit mode (false).
+ * @tparam dest_datum_width Whether Dest is in 32bit mode (true) or 16bit mode (false).
  * @tparam num_rows The number of rows in the tile, must be one of: {9}
  * @tparam ITERATIONS The number of iterations to use for the MaxPool operation (unused).
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
  * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
  */
-template <bool APPROXIMATION_MODE, DestAccumulation fp32_dest_accumulation, int num_rows, int ITERATIONS>
+template <bool APPROXIMATION_MODE, DestDatumWidth::Value dest_datum_width, int num_rows, int ITERATIONS>
 inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
 {
     static_assert(num_rows == 9, "num_rows must be one of: {9}"); // add others as support is added
@@ -36,7 +36,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
     const uint indices_tile_offset = indices_tile_idx * dst_tile_size;
     // each face is 16 rows
     constexpr uint face_offset        = 16;
-    constexpr uint8_t instr_mod_index = fp32_dest_accumulation ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr uint8_t instr_mod_index = dest_datum_width == ckernel::DestDatumWidth::Value::_32Bits ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     // F0
     // data

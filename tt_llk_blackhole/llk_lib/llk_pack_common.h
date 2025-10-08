@@ -31,19 +31,19 @@ inline void _llk_packer_set_math_semaphore_()
 // Wait for all writes to complete in L1 (header + data)
 // Tell math it can write again
 // Clear dest
-template <DstSync Dst, DestAccumulation fp32_dest_accumulation>
+template <DstSync Dst, DestDatumWidth::Value dest_datum_width>
 inline void _llk_pack_dest_section_done_()
 {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::PACK); // wait for pack to finish
 
     if constexpr (Dst == DstSync::SyncFull)
     {
-        TT_ZEROACC(p_zeroacc::CLR_ALL, fp32_dest_accumulation, 0, ADDR_MOD_1, 0);
+        TT_ZEROACC(p_zeroacc::CLR_ALL, dest_datum_width == DestDatumWidth::Value::_32Bits, 0, ADDR_MOD_1, 0);
     }
     else
     {
         static_assert(Dst == DstSync::SyncHalf);
-        TT_ZEROACC(p_zeroacc::CLR_HALF, fp32_dest_accumulation, 0, ADDR_MOD_1, (dest_offset_id) % 2);
+        TT_ZEROACC(p_zeroacc::CLR_HALF, dest_datum_width == DestDatumWidth::Value::_32Bits, 0, ADDR_MOD_1, (dest_offset_id) % 2);
     }
 
     // Tell math that it can write again
@@ -69,7 +69,7 @@ inline void _llk_init_packer_dest_offset_registers_(const std::uint32_t face_r_d
     select_packer_dest_registers<Dst>();
 }
 
-template <DstSync Dst, DestAccumulation fp32_dest_accumulation, DstTileFaceLayout FaceLayout = RowMajor>
+template <DstSync Dst, DestDatumWidth::Value dest_datum_width, DstTileFaceLayout FaceLayout = RowMajor>
 inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
 {
     tensix_sync();
