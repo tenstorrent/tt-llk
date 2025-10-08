@@ -422,6 +422,10 @@ inline void _llk_math_reduce_column_(const uint dst_index, bool narrow_tile = fa
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
     const uint num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
+
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+    
         for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++)
         {
             if constexpr (HIGH_FIDELITY)
