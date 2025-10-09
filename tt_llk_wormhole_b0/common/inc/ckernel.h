@@ -6,7 +6,6 @@
 
 #include "ckernel_instr_params.h"
 #include "llk_defs.h"
-#include "risc_attribs.h"
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
@@ -32,6 +31,8 @@
 #endif
 
 #define TT_ALWAYS_INLINE inline __attribute__((always_inline))
+#define tt_l1_ptr        __attribute__((rvtt_l1_ptr))
+#define tt_reg_ptr       __attribute__((rvtt_reg_ptr))
 
 #include <cstdint>
 
@@ -213,16 +214,6 @@ inline volatile uint *tt_reg_ptr get_cfg_pointer()
     return reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
 }
 
-inline volatile uint short *tt_reg_ptr get_cfg16_pointer()
-{
-    if (cfg_state_id == 0)
-    {
-        return reinterpret_cast<volatile uint short tt_reg_ptr *>(TENSIX_CFG_BASE);
-    }
-
-    return reinterpret_cast<volatile uint short tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
-}
-
 inline void flip_cfg_state_id()
 {
     cfg_state_id = 1 - cfg_state_id;
@@ -290,12 +281,11 @@ inline void wait(uint32_t cycles)
 inline void zeroacc()
 {
     // Clear dest
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .build()
         .set(ADDR_MOD_1);
+    // clang-format on
     TT_ZEROACC(p_zeroacc::CLR_ALL, ADDR_MOD_1, 0);
 }
 

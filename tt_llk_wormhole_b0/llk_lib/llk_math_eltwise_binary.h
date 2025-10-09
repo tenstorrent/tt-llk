@@ -256,39 +256,51 @@ inline void eltwise_binary_configure_addrmod()
     {
         if constexpr (bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL)
         {
-            addr_mod_t {
-                .srca = {.incr = 8},
-                .srcb = {.incr = 8},
-                .dest = {.incr = 8},
-            }
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(8)
+                .srcb_incr(8)
+                .dest_incr(8)
+                .build()
                 .set(ADDR_MOD_0);
+            // clang-format on
         }
         else if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
         {
-            addr_mod_t {
-                .srca = {.incr = 8},
-                .srcb = {.incr = 0},
-                .dest = {.incr = 8},
-            }
+            // clang-format off
+            addr_mod_builder::create()
+                .srca_incr(8)
+                .dest_incr(8)
+                .build()
                 .set(ADDR_MOD_0);
+            // clang-format on
         }
-        addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = 0},
-            .dest = {.incr = 0},
-        }
+        // clang-format off
+        addr_mod_builder::create()
+            .build()
             .set(ADDR_MOD_1);
+        // clang-format on
 
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 0, .clr = 0, .cr = 1}, .fidelity = {.incr = FIDELITY_INCREMENT}}
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_clr(1)
+            .srcb_clr(1)
+            .dest_cr(1)
+            .fidelity_incr(FIDELITY_INCREMENT)
+            .build()
             .set(ADDR_MOD_2);
+        // clang-format on
 
-        addr_mod_t {
-            .srca     = {.incr = 0, .clr = 1},
-            .srcb     = {.incr = 0, .clr = 1},
-            .dest     = {.incr = 8, .clr = 0, .cr = 0, .c_to_cr = 1},
-            .fidelity = {.incr = 0, .clr = 1}}
+        // clang-format off
+        addr_mod_builder::create()
+            .srca_clr(1)
+            .srcb_clr(1)
+            .dest_incr(8)
+            .dest_c_to_cr(1)
+            .fidelity_clr(1)
+            .build()
             .set(ADDR_MOD_3);
+        // clang-format on
     }
 }
 

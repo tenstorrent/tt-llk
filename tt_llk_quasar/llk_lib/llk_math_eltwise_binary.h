@@ -162,20 +162,35 @@ inline void _llk_math_eltwise_binary_addrmod_()
     constexpr bool math_fidelity_enable = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     // For ELWADD/SUB/MUL, can increment source
     //  and dest registers
-    addr_mod_t {
-        .srca     = {.incr = ELTWISE_MATH_ROWS},
-        .srcb     = {.incr = ELTWISE_MATH_ROWS},
-        .dest     = {.incr = ELTWISE_MATH_ROWS},
-        .fidelity = {.incr = 0, .clr = math_fidelity_enable}}
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_incr(ELTWISE_MATH_ROWS)
+        .srcb_incr(ELTWISE_MATH_ROWS)
+        .dest_incr(ELTWISE_MATH_ROWS)
+        .fidelity_clr(math_fidelity_enable)
+        .build()
         .set(ADDR_MOD_0);
+    // clang-format on
 
     // Reset Src counters, inc dest
-    addr_mod_t {.srca = {.clr = 1}, .srcb = {.clr = 1}, .dest = {.incr = ELTWISE_MATH_ROWS}, .fidelity = {.incr = 0, .clr = math_fidelity_enable}}.set(
-        ADDR_MOD_1);
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_clr(1)
+        .srcb_clr(1)
+        .dest_incr(ELTWISE_MATH_ROWS)
+        .fidelity_clr(math_fidelity_enable)
+        .build()
+        .set(ADDR_MOD_1);
+    // clang-format on
 
     if constexpr (math_fidelity_enable)
     {
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 1}}.set(ADDR_MOD_2);
+        // clang-format off
+        addr_mod_builder::create()
+            .fidelity_incr(1)
+            .build()
+            .set(ADDR_MOD_2);
+        // clang-format on
     }
 }
 
@@ -187,13 +202,12 @@ inline void _llk_math_eltwise_di_binary_addrmod_()
 {
     constexpr bool math_fidelity_enable = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     constexpr int FIDELITY_INCREMENT    = math_fidelity_enable ? 1 : 0;
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb     = {.incr = 0, .clr = 0, .cr = 0},
-        .dest     = {.incr = 0, .clr = 0, .cr = 0},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .fidelity_incr(FIDELITY_INCREMENT)
+        .build()
         .set(ADDR_MOD_1);
+    // clang-format on
 }
 
 //----------------------
