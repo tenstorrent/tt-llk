@@ -5,8 +5,6 @@
 from itertools import product
 
 import pytest
-from z3 import And, BoolVal, If, Implies, IntVal, Not, Or, Solver, sat
-
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_arg_mapping import (
@@ -28,6 +26,7 @@ from helpers.param_config import generate_params, input_output_formats
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
+from z3 import And, BoolVal, If, Implies, IntVal, Not, Or, Solver, sat
 
 # SUPPORTED FORMATS FOR TEST
 supported_formats = [
