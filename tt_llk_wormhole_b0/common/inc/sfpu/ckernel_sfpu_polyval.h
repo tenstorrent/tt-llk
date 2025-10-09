@@ -46,7 +46,7 @@ struct PolynomialEvaluator
     /**
      * @brief Evaluates the polynomial at the given point.
      *
-     * @param coef Pointer to array of N coefficients in ascending order of powers
+     * @param coefficients Pointer to array of N coefficients in ascending order of powers
      * @param val The point at which to evaluate the polynomial
      * @return The value of the polynomial at the given point
      *
@@ -54,21 +54,12 @@ struct PolynomialEvaluator
      * @pre N should be positive for meaningful results
      *
      */
-    static constexpr T eval(const T* coef, T val)
+    static constexpr T eval(const T* coefficients, T val)
     {
-        if constexpr (N <= 0)
-        {
-            return T {0};
-        }
-        if constexpr (N == 1)
-        {
-            return coef[0];
-        }
-
-        T result = coef[N - 1];
+        T result = (N <= 0) ? T {0} : coefficients[N - 1];
         for (int i = N - 2; i >= 0; --i)
         {
-            result = result * val + coef[i];
+            result = result * val + coefficients[i];
         }
         return result;
     }
