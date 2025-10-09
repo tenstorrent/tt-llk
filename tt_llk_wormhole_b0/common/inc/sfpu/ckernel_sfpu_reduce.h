@@ -19,20 +19,20 @@ namespace sfpu
  *        load/store operations and eliminate intermediate storage requirements.
  *        For integer formats with averaging, handles negative numbers properly using condition codes
  *        since Wormhole B0 only supports logical shift (not arithmetic shift).
- * @tparam type The pool/reduction type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
- * @tparam dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
+ * @tparam pool_type The pool/reduction pool_type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
+ * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
  * @tparam is_fp32_dest_acc_en If true, enables FP32 datum width mode for higher precision.
  *                             If false, datums stored in 16 bits.
  * @param dst_reg_format The dst register format (DataFormat enum value) that determines
  *                       the data type and precision of datums stored in dst. Affects instruction modifiers
  *                       and arithmetic operations used (e.g., Int32, UInt16, UInt32, Float32).
  */
-template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, DataFormat format>
+template <PoolType pool_type, ReduceDim reduce_dim, bool is_fp32_dest_acc_en, DataFormat format>
 inline void _calculate_reduce_()
 {
     // Compile-time assertions to restrict to currently supported operations
-    static_assert(dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
-    static_assert(type == SUM || type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
+    static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
 
     // Determine arithmetic type and instruction modifiers at compile time
     constexpr bool use_float_arithmetic = (format != DataFormat::Int32 && format != DataFormat::UInt16 && format != DataFormat::UInt32);
@@ -116,7 +116,7 @@ inline void _calculate_reduce_()
             TT_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4); // LREG0 = upper_face_sums + lower_face_sums (integer)
         }
 
-        if constexpr (type == AVG)
+        if constexpr (pool_type == AVG)
         {
             if constexpr (use_float_arithmetic)
             {
