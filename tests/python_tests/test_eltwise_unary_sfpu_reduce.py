@@ -47,42 +47,21 @@ def generate_random_face_with_column_sums_multiple_of_32(
     face = torch.zeros((16, 16), dtype=format_dict[stimuli_format])
 
     if stimuli_format.is_integer():
-        # For integer formats, generate random values and adjust to ensure column sums are multiples of 32
-        for col in range(16):
-            # Generate 15 random values
-            random_values = torch.randint(
-                low=1, high=10, size=(15,), dtype=format_dict[stimuli_format]
-            )
-            face[:15, col] = random_values
-
-            # Calculate what the 16th value should be to make the sum a multiple of 32
-            current_sum = torch.sum(face[:15, col])
-            remainder = current_sum % multiplier
-            if remainder != 0:
-                # Adjust the last value to make the sum a multiple of 32
-                face[15, col] = multiplier - remainder
-            else:
-                # Sum is already a multiple of 32, set last value to 0
-                face[15, col] = 0
+        random_values = torch.randint(
+            low=1, high=10, size=(15, 16), dtype=format_dict[stimuli_format]
+        )
     else:
-        # For floating point formats, generate values that are already multiples of 32
-        # This ensures that when we divide by 32, we get clean integer results
-        for col in range(16):
-            # Generate 15 random integer values (0-10) and multiply by 32
-            random_integers = torch.randint(low=0, high=11, size=(15,))
-            face[:15, col] = (
-                random_integers.to(dtype=format_dict[stimuli_format]) * multiplier
-            )
+        random_integers = torch.randint(low=0, high=11, size=(15, 16))
+        random_values = (
+            random_integers.to(dtype=format_dict[stimuli_format]) * multiplier
+        )
 
-            # Calculate what the 16th value should be to make the sum a multiple of 32
-            current_sum = torch.sum(face[:15, col])
-            remainder = current_sum % multiplier
-            if remainder != 0:
-                # Adjust the last value to make the sum a multiple of 32
-                face[15, col] = multiplier - remainder
-            else:
-                # Sum is already a multiple of 32, set last value to 0
-                face[15, col] = 0
+    face[:15, :] = random_values
+    column_sums = torch.sum(face[:15, :], dim=0)
+    remainders = column_sums % multiplier
+    face[15, :] = torch.where(
+        remainders != 0, multiplier - remainders, torch.zeros_like(remainders)
+    )
 
     return face.flatten()
 
@@ -112,8 +91,11 @@ def test_eltwise_unary_sfpu_column_sum(
     input_dimensions = [32, 32]
     torch_format = format_dict[formats.input_format]
     generate_face_function = generate_random_face
-    if reduce_pool == ReducePool.Average:
-        generate_face_function = generate_random_face_with_column_sums_multiple_of_32  # when averaging sum columns, sum must be multiple of 32 (num rows per column)
+    generate_face_function = (
+        generate_random_face_with_column_sums_multiple_of_32
+        if reduce_pool == ReducePool.Average
+        else generate_random_face
+    )  # when averaging sum columns, sum must be multiple of 32 (num rows per column)
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
