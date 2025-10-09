@@ -9,7 +9,11 @@ from helpers.device import (
 )
 from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat
-from helpers.golden_generators import DataCopyGolden, get_golden_generator
+from helpers.golden_generators import (
+    DataCopyGolden,
+    PackPartialFaceGolden,
+    get_golden_generator,
+)
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -23,7 +27,10 @@ def generate_pack_combinations():
     # r_dim_list = [1, 2, 4, 8, 16, 32]
     # c_dim_list = [8, 16, 32, 64]
     tile_dim_list = [
-        (1, 32)
+        (1, 32),
+        (2, 32),
+        (4, 32),
+        (8, 32),
     ]  # , (2, 32), (4, 32), (8, 32),(16, 32), (32, 32), (32, 16), (32, 8), (16, 16), (16, 8), (8, 8)]
     # num_faces_list = [1, 2, 4]
     # partial_face_list = [False, True]
@@ -75,18 +82,21 @@ def test_pack(test_name, formats, dest_acc, tile_dim_combinations):
         formats.input_format,
         input_dimensions=input_dimensions,
     )
-    tile_cnt = 1
 
-    generate_golden = get_golden_generator(DataCopyGolden)
-    golden_tensor = generate_golden(
-        src_A, formats.output_format, num_faces, input_dimensions
-    )
+    if partial_face:
+        generate_golden = get_golden_generator(PackPartialFaceGolden)
+        golden_tensor = generate_golden(
+            src_A, formats.output_format, [in0_tile_r_dim, in0_tile_c_dim], tile_cnt
+        )
+    else:
+        generate_golden = get_golden_generator(DataCopyGolden)
+        golden_tensor = generate_golden(
+            src_A, formats.output_format, 4, input_dimensions
+        )
 
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
-
-    print(golden_tensor)
 
     test_config = {
         "formats": formats,
@@ -110,16 +120,23 @@ def test_pack(test_name, formats, dest_acc, tile_dim_combinations):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        num_faces=num_faces,
+        num_faces=4,
     )
 
     run_test(test_config)
 
     res_from_L1 = collect_results(
-        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces
+        formats, tile_count=tile_cnt, address=res_address, num_faces=4
     )
+    print(f"srca A: {src_A}")
+    print(f"before RES_FROM_L1: {res_from_L1}")
+    if partial_face:
+        res_from_L1 = res_from_L1[: in0_tile_r_dim * in0_tile_c_dim]
 
     assert len(res_from_L1) == len(golden_tensor)
+
+    print(f"GOLDEN: {golden_tensor}")
+    print(f"RES_FROM_L1: {res_from_L1}")
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
