@@ -33,6 +33,8 @@ constexpr T POLYVAL7(T coef6, T coef5, T coef4, T coef3, T coef2, T coef1, T coe
  * @tparam T The numeric type for coefficients and evaluation point (e.g., float, double, int)
  *
  * @note This implementation is constexpr-compatible and can be evaluated at compile time.
+         Make sure to mark coefficients array as constexpr to leverage compile-time evaluation,
+         otherwise evaluation will be performed at runtime.
  * @note Uses Horner's method for numerical stability and O(N) complexity.
  * @note For N <= 0, returns T{0}. For N == 1, returns the constant term.
  *
