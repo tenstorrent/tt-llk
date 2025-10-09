@@ -8,7 +8,7 @@
 
 inline void device_setup()
 {
-#if defined(ARCH_BLACKHOLE) && !defined(ARCH_QUASAR) // Ugly hack for now
+#if defined(ARCH_BLACKHOLE)
     ckernel::reg_write(RISCV_DEBUG_REG_DEST_CG_CTRL, 0);
 #endif
 #if defined(ARCH_BLACKHOLE) || defined(ARCH_QUASAR)

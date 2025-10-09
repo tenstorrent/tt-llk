@@ -12,16 +12,22 @@
 #include "build.h"
 #include "tensix_types.h"
 
-#if defined(ARCH_WORMHOLE) && defined(ARCH_BLACKHOLE)
-#error "Only one of ARCH_WORMHOLE or ARCH_BLACKHOLE can be defined"
+#if (defined(ARCH_WORMHOLE) && defined(ARCH_BLACKHOLE)) || (defined(ARCH_WORMHOLE) && defined(ARCH_QUASAR)) || (defined(ARCH_BLACKHOLE) && defined(ARCH_QUASAR))
+#error "Only one of ARCH_WORMHOLE, ARCH_BLACKHOLE or ARCH_QUASAR can be defined"
 #elif defined(ARCH_WORMHOLE)
 constexpr bool is_blackhole = false;
 constexpr bool is_wormhole  = true;
+constexpr bool is_quasar    = false;
 #elif defined(ARCH_BLACKHOLE)
 constexpr bool is_blackhole = true;
 constexpr bool is_wormhole  = false;
+constexpr bool is_quasar    = false;
+#elif defined(ARCH_QUASAR)
+constexpr bool is_blackhole = false;
+constexpr bool is_wormhole  = false;
+constexpr bool is_quasar    = true;
 #else
-#error "You must define either ARCH_WORMHOLE or ARCH_BLACKHOLE"
+#error "You must define either ARCH_WORMHOLE, ARCH_BLACKHOLE or ARCH_QUASAR"
 #endif
 
 /**
