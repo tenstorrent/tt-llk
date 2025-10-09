@@ -434,3 +434,21 @@ inline void _llk_math_fast_tilize_block_(
 
     math::clear_dst_reg_addr();
 }
+
+inline void _llk_special_math_copy_after_reduce_max_row_(const uint dst_index)
+{
+    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+
+    // MOVA2D block
+    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 0);
+    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 8);
+    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 16);
+    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 24);
+    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 32);
+    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 40);
+    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 48);
+    TTI_MOVA2D(0, 0, ADDR_MOD_1, p_mova2d::MOV_8_ROWS, 56);
+
+    // Clear A valid at the end
+    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+}

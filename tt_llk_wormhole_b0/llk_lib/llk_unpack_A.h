@@ -285,3 +285,39 @@ inline void _llk_unpack_A_(
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
 }
+
+inline void _llk_special_unpack_A_after_reduce_max_row_(const std::uint32_t address_a)
+{
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
+
+    // Program srcA and srcB base addresses
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Get tile address
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
+    }
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+    
+    // Unpack a tile into SrcA
+    TTI_UNPACR(SrcA, 0b00000001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+}
