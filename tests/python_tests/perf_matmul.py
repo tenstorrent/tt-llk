@@ -11,10 +11,7 @@ from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
 )
-from helpers.param_config import (
-    input_output_formats,
-    parametrize,
-)
+from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfRunType, perf_benchmark, update_report
 
 

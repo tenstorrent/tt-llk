@@ -7,11 +7,7 @@ from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.format_arg_mapping import DestAccumulation, Transpose
 from helpers.format_config import DataFormat
 from helpers.param_config import input_output_formats, parametrize
-from helpers.perf import (
-    PerfRunType,
-    perf_benchmark,
-    update_report,
-)
+from helpers.perf import PerfRunType, perf_benchmark, update_report
 
 
 @skip_for_blackhole

@@ -7,9 +7,7 @@ from pathlib import Path
 
 import pytest
 from ttexalens import tt_exalens_init
-from ttexalens.tt_exalens_lib import (
-    arc_msg,
-)
+from ttexalens.tt_exalens_lib import arc_msg
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import reset_mailboxes

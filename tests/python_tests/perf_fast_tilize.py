@@ -7,11 +7,7 @@ from conftest import skip_for_blackhole
 from helpers.device import write_stimuli_to_l1
 from helpers.format_arg_mapping import DestAccumulation
 from helpers.format_config import DataFormat, InputOutputFormat
-from helpers.perf import (
-    PerfRunType,
-    perf_benchmark,
-    update_report,
-)
+from helpers.perf import PerfRunType, perf_benchmark, update_report
 from helpers.stimuli_generator import generate_stimuli
 
 

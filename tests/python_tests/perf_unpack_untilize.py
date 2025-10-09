@@ -4,10 +4,7 @@
 import pytest
 
 from helpers.format_config import DataFormat
-from helpers.param_config import (
-    input_output_formats,
-    parametrize,
-)
+from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfRunType, perf_benchmark, update_report
 
 
