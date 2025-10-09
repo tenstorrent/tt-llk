@@ -141,7 +141,7 @@ main() {
     setup_precommit
 
     # shellcheck source=/dev/null
-    local $(grep -v '^#' $version_file)
+    source $version_file
 
     # Check if SFPI is already installed and up to date
     if [[ -f "${SCRIPT_DIR}/sfpi/sfpi.version" ]] &&
@@ -152,18 +152,17 @@ main() {
 
     local pkg=txz
     # taken from tt-metal/install_dependencies.sh
-    local sfpi_arch=$(uname -m)
-    local sfpi_pkg_md5=$(eval echo "\$sfpi_${sfpi_arch}_${pkg}_md5")
+    local sfpi_pkg_md5=$(eval echo "\$sfpi_${sfpi_arch}_${sfpi_dist}_${pkg}_md5")
     if [[ -z $(eval echo "$sfpi_${pkg}_md5") ]] ; then
-	echo "[ERROR] SFPI $sfpi_version $pkg package for ${sfpi_arch} is not available" >&2
+	echo "[ERROR] SFPI $sfpi_version $pkg package for ${sfpi_arch} ${sfpi_dist} is not available" >&2
 	exit 1
     fi
 
     # Download SFPI
     echo "SFPI not present or out of date. Fetching version ${sfpi_version}..."
     local TEMP_DIR=$(mktemp -d)
-    local filename="sfpi_${sfpi_version}_${sfpi_arch}.${pkg}"
-    local download_url="$sfpi_url/v$sfpi_version"
+    local filename="sfpi_${sfpi_version}_${sfpi_arch}_${sfpi_dist}.${pkg}"
+    local download_url="$sfpi_url/$sfpi_version"
     if ! wget -P $TEMP_DIR --waitretry=5 --retry-connrefused "$download_url/$filename" ; then
         echo "ERROR: Failed to download $download_url/$filename" >&2
         exit 1
