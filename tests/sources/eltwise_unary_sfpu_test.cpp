@@ -39,6 +39,7 @@ void run_kernel()
 #ifdef LLK_TRISC_MATH
 
 #include "ckernel_sfpu.h"
+#include "ckernel_sfpu_comp.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
@@ -150,6 +151,24 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             break;
         case SfpuType::relu_min:
             ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, iterations>(5.0f);
+            break;
+        case SfpuType::unary_lt:
+            ckernel::sfpu::_calculate_comp_unary_<APPROX_MODE, SfpuType::unary_lt, iterations>(5);
+            break;
+        case SfpuType::unary_gt:
+            ckernel::sfpu::_calculate_comp_unary_<APPROX_MODE, SfpuType::unary_gt, iterations>(5);
+            break;
+        case SfpuType::unary_le:
+            ckernel::sfpu::_calculate_comp_unary_<APPROX_MODE, SfpuType::unary_le, iterations>(5);
+            break;
+        case SfpuType::unary_ge:
+            ckernel::sfpu::_calculate_comp_unary_<APPROX_MODE, SfpuType::unary_ge, iterations>(5);
+            break;
+        case SfpuType::unary_eq:
+            ckernel::sfpu::_calculate_comp_unary_<APPROX_MODE, SfpuType::unary_eq, iterations>(5);
+            break;
+        case SfpuType::unary_ne:
+            ckernel::sfpu::_calculate_comp_unary_<APPROX_MODE, SfpuType::unary_ne, iterations>(5);
             break;
         default:
             return;
