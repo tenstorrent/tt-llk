@@ -4,7 +4,6 @@
 
 import pytest
 import torch
-
 from helpers.device import (
     collect_results,
     wait_for_tensix_operations_finished,

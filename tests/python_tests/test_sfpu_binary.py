@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict

@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-
 from conftest import skip_for_blackhole
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_arg_mapping import DestAccumulation, format_dict

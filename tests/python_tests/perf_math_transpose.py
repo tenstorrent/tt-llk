@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-
 from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.format_arg_mapping import DestAccumulation, Transpose
 from helpers.format_config import DataFormat

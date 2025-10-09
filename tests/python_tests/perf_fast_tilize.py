@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-
 from conftest import skip_for_blackhole
 from helpers.device import write_stimuli_to_l1
 from helpers.format_arg_mapping import DestAccumulation
