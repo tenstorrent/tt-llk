@@ -151,59 +151,6 @@ def parametrize(**kwargs: any):
     return decorator
 
 
-def generate_unpack_A_params(**kwargs) -> List[tuple]:
-    """
-    Generates parameter combinations for unpack_A specific parameters only.
-
-    Modern implementation using itertools.product instead of nested loops.
-    Maintains backward compatibility with the original function signature.
-
-    Args:
-        **kwargs: Parameter lists for unpack_A specific parameters:
-            - broadcast_types: List of BroadcastType values
-            - disable_src_zero_flags: List of bool values
-            - acc_to_dest_flags: List of bool values
-            - stoch_rounding_types: List of StochasticRoundingType values
-            - reuse_dest_types: List of EltwiseBinaryReuseDestType values
-            - transpose_of_faces_values: List of int values (0, 1)
-            - within_face_16x16_transpose_values: List of int values (0, 1)
-            - num_faces_values: List of int values
-
-    Returns:
-        List[tuple]: A list of tuples containing unpack_A parameter combinations
-                    in order: (broadcast_type, disable_src_zero, acc_to_dest,
-                              stoch_rounding, reuse_dest, transpose_of_faces,
-                              within_face_16x16_transpose, num_faces)
-    """
-
-    # Define parameter order to ensure consistent tuple structure
-    param_order = [
-        "broadcast_types",
-        "disable_src_zero_flags",
-        "acc_to_dest_flags",
-        "stoch_rounding_types",
-        "reuse_dest_types",
-        "transpose_of_faces_values",
-        "within_face_16x16_transpose_values",
-        "num_faces_values",
-    ]
-
-    # Convert single values to lists and handle None values
-    wrap_list = lambda x: [x] if not isinstance(x, list) else x
-
-    # Extract parameters in correct order, defaulting to [None] for missing ones
-    arguments = []
-    for param_name in param_order:
-        param_value = kwargs.get(param_name, [None])
-        if param_value is not None:
-            arguments.append(wrap_list(param_value))
-        else:
-            arguments.append([None])
-
-    # Generate all combinations using itertools.product
-    return list(product(*arguments))
-
-
 def clean_params(all_params: List[tuple]) -> List[tuple]:
     """
     Cleans up the list of parameter combinations by removing any `None` values.

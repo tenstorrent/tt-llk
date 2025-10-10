@@ -636,39 +636,6 @@ class MatmulGolden(FidelityMasking):
 
 
 @register_golden
-class ScalarBroadcastGolden:
-    """
-    Golden generator for scalar broadcast operations.
-    Takes the first element of the input tensor and broadcasts it across the entire output tile.
-    Output size = num_faces * 256 elements, all with the same scalar value.
-    """
-
-    def __call__(
-        self,
-        operand1,
-        data_format,
-        num_faces: int = 4,
-        input_dimensions: list[int] = [32, 32],
-    ):
-        torch_format = format_dict[data_format]
-
-        # Convert input to tensor
-        if not isinstance(operand1, torch.Tensor):
-            operand1 = torch.tensor(operand1)
-
-        # Take the first element as the scalar value to broadcast
-        scalar_value = operand1.flatten()[0]
-
-        # Calculate output size based on num_faces
-        elements_per_tile = 256 * num_faces  # Each face = 16x16 = 256 elements
-
-        # Create output tensor with scalar value replicated across all elements
-        result = torch.full((elements_per_tile,), scalar_value, dtype=torch_format)
-
-        return result
-
-
-@register_golden
 class DataCopyGolden:
     def __call__(
         self,

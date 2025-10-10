@@ -55,7 +55,7 @@ void run_kernel()
                 false // narrow_tile disabled for now
             );
         }
-        read_offset += BLOCK_RT_DIM;
+        read_offset += BLOCK_CT_DIM;
     }
 }
 
@@ -90,9 +90,13 @@ void run_kernel()
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        // Copy data from src to dest
+#ifdef ARCH_BLACKHOLE
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+            i, formats.math, formats.math, NUM_FACES);
+#else
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
+#endif
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -107,16 +111,15 @@ void run_kernel()
 
 void run_kernel()
 {
-    const bool UNTILIZE                           = false;
-    constexpr std::uint32_t FULL_TILE_DATUM_COUNT = 16 * 16 * 4; // Always use full tile capacity for packer
+    const bool UNTILIZE             = false;
+    const std::uint32_t DATUM_COUNT = 16 * 16 * NUM_FACES;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(
-        formats.pack_src, formats.pack_dst, FULL_TILE_DATUM_COUNT, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, DATUM_COUNT, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, FULL_TILE_DATUM_COUNT, FACE_R_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, DATUM_COUNT, FACE_R_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, NUM_FACES);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
