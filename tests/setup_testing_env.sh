@@ -151,7 +151,7 @@ main() {
         exit 0
     fi
 
-    if [[ -z $sfpi_md5 ] ; then
+    if [[ -z $sfpi_md5 ]] ; then
 	echo "[ERROR] SFPI $sfpi_version $pkg package for $sfpi_arch $sfpi_dist is not available" >&2
 	exit 1
     fi
