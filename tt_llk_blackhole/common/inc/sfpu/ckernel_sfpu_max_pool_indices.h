@@ -38,65 +38,76 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
     constexpr uint face_offset        = 16;
     constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
-    // F0
+    // ROW MAJOR DATA VERSION OF MPWI
+    // DATA IS EXPECTED TO BE IN THE FOLLOWING ORDER IN DEST:
+    // Face 0 Row 0
+    // Face 1 Row 0
+    // Face 0 Row 1
+    // Face 1 Row 1
+    // Face 0 Row 2
+    // Face 1 Row 2
+    // Face 0 Row 3
+    // Face 1 Row 3
+    // Face 0 Row 4
+    // Face 1 Row 4
+    // Face 0 Row 5
+    // Face 1 Row 5
+    // Face 0 Row 6
+    // Face 1 Row 6
+    // Face 0 Row 7
+    // Face 1 Row 7
+    // Face 0 Row 8
+    // Face 1 Row 8
+
+    // F0 + F1 even cols
     // data
-    TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 0); // even cols
+    TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 0);
     TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 4);
-    TT_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 2); // odd cols
-    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 6);
+    TT_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 8);
+    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 12);
     // index
-    TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 0); // even cols
+    TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 0);
     TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 4);
-    TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 2); // odd cols
-    TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 6);
+    TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 8);
+    TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 12);
 
     // sort 4 rows
     lltt::replay(0, 7);
 
     // data
-    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 8);  // even cols
-    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 10); // odd cols
+    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 16);
     // index
-    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 8);  // even cols
-    TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 10); // odd cols
+    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 16);
 
     TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
 
     TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 0);
-    TT_SFPSTORE(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 2);
     TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 0);
-    TT_SFPSTORE(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 2);
 
-    // F1
+    // F0 + F1 odd cols
     // data
-    TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + face_offset); // even cols
-    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + face_offset + 4);
-    TT_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + face_offset + 2); // odd cols
-    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + face_offset + 6);
+    TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 0 + 2);
+    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 4 + 2);
+    TT_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 8 + 2);
+    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 12 + 2);
     // index
-    TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + face_offset); // even cols
-    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + face_offset + 4);
-    TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_7, indices_tile_offset + face_offset + 2); // odd cols
-    TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_7, indices_tile_offset + face_offset + 6);
+    TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 0 + 2);
+    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 4 + 2);
+    TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 8 + 2);
+    TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 12 + 2);
 
     // sort 4 rows
     lltt::replay(0, 7);
 
     // data
-    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + face_offset + 8);  // even cols
-    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + face_offset + 10); // odd cols
+    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 16 + 2);
     // index
-    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + face_offset + 8);  // even cols
-    TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_7, indices_tile_offset + face_offset + 10); // odd cols
+    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 16 + 2);
 
     TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
 
-    TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + face_offset);
-    TT_SFPSTORE(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + face_offset + 2);
-    TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + face_offset);
-    TT_SFPSTORE(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_7, indices_tile_offset + face_offset + 2);
+    TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 0 + 2);
+    TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + 0 + 2);
 }
 
 inline void _init_max_pool_with_indices_()
@@ -112,20 +123,16 @@ inline void _init_max_pool_with_indices_()
         7,
         []
         {
-            // Values have been loaded such that 4 rows of Dest occupy the 4 lanes of each LREG
-            // To sort those 4 rows, we transpose the SFPU LREGs  to put elements of 4 rows of each column into separate LREGs of each unit of SFPU
-            TTI_SFPTRANSP(0, 0, 0, 0);
-
-            // Sort the 4 rows of Dest, placing the max value into LREG0 (index into LREG4)
             TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
             TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
             TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
 
-            // Transpose the LREGs back
             TTI_SFPTRANSP(0, 0, 0, 0);
 
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
+            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+
+            TTI_SFPTRANSP(0, 0, 0, 0);
         });
 }
 
