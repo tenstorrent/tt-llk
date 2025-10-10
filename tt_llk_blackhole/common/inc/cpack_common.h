@@ -196,8 +196,9 @@ inline void set_packer_strides(const uint pack_src_format, [[maybe_unused]] cons
     }
 }
 
-template <bool is_fp32_dest_acc_en>
-inline void set_packer_config(const uint pack_src_format, const uint pack_dst_format, const uint num_faces = 4, const bool partial_face = false)
+template <
+    DestDatumWidth::Value dest_datum_width >>
+    inline void set_packer_config(const uint pack_src_format, const uint pack_dst_format, const uint num_faces = 4, const bool partial_face = false)
 {
     // Get pointer to registers for current state ID
     volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
@@ -222,7 +223,7 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     config.f.in_data_format  = pack_output_src_format;
 
     // Workaround for bug in HW: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
+    if constexpr (dest_datum_width)
     {
         uint exp_threshold_en  = 0;
         uint exp_threshold_val = 0;
@@ -270,8 +271,8 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
                          pack_src_format == static_cast<DataFormatType>(DataFormat::Float32);
     bool is_int8_format = pack_src_format == static_cast<DataFormatType>(DataFormat::Int8) || pack_src_format == static_cast<DataFormatType>(DataFormat::UInt8);
 
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || is_fp32_dest_acc_en;
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(is_fp32_dest_acc_en || is_32b_format) && is_int8_format;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || dest_datum_width;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(dest_datum_width || is_32b_format) && is_int8_format;
 
     if (pack_dst_format == static_cast<DataFormatType>(DataFormat::UInt8))
     {
@@ -279,7 +280,7 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     }
 
     // Round to 10 bit mantissa from fp32 dest
-    if (is_fp32_dest_acc_en && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
+    if (dest_datum_width && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -290,7 +291,7 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     sync_regfile_write(p_gpr_pack::EXP0_SEC_SIZE_BFP);
 }
 
-template <bool is_fp32_dest_acc_en>
+template <DestDatumWidth::Value dest_datum_width>
 inline void reconfig_packer_data_format(
     const uint pack_src_format,
     const uint pack_dst_format,
@@ -335,15 +336,16 @@ inline void reconfig_packer_data_format(
                          pack_src_format == static_cast<DataFormatType>(DataFormat::Float32);
     bool is_int8_format = pack_src_format == static_cast<DataFormatType>(DataFormat::Int8) || pack_src_format == static_cast<DataFormatType>(DataFormat::UInt8);
 
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || is_fp32_dest_acc_en;
-    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(is_fp32_dest_acc_en || is_32b_format) && is_int8_format;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_32b_data = is_32b_format || dest_datum_width;
+    dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_int8     = !(dest_datum_width || is_32b_format) && is_int8_format;
 
     if (pack_dst_format == static_cast<DataFormatType>(DataFormat::UInt8))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_unsigned = 1;
     }
     // Round to 10 bit mantissa from fp32 dest
-    if (is_fp32_dest_acc_en && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
+    if (dest_datum_width && (pack_src_format == static_cast<DataFormatType>(DataFormat::Float16)))
+
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -365,7 +367,7 @@ inline void reconfig_packer_data_format(
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
     // Workaround for HW bug: tenstorrent/budabackend#1394
-    if constexpr (is_fp32_dest_acc_en)
+    if constexpr (dest_datum_width)
     {
         uint exp_threshold_en  = 0;
         uint exp_threshold_val = 0;
@@ -388,7 +390,7 @@ inline void reconfig_packer_data_format(
     set_packer_strides(pack_output_src_format, pack_output_dst_format, tile_c_dim);
 }
 
-template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
+template <DestDatumWidth::Value dest_datum_width, bool untilize = false, bool tilize = false>
 inline void configure_pack(
     const uint pack_src_format,
     const uint pack_dst_format,
@@ -427,7 +429,7 @@ inline void configure_pack(
 
     t6_mutex_release(mutex::REG_RMW);
 
-    set_packer_config<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, num_faces, partial_face);
+    set_packer_config<dest_datum_width>(pack_src_format, pack_dst_format, num_faces, partial_face);
 
     // PACK_COUNTERS_SEC0_pack_per_xy_plane = cfg_reg_array[3][0 +: 8];
     // PACK_COUNTERS_SEC0_pack_reads_per_xy_plane = cfg_reg_array[3][8 +: 8];

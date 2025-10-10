@@ -21,7 +21,7 @@ static_assert(PERF_RUN_TYPE != PerfRunType::MATH_ISOLATE, "Math isolation not su
 static_assert(PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE, "Pack isolation not supported for unpack_transpose");
 static_assert(PERF_RUN_TYPE != PerfRunType::L1_CONGESTION, "L1 congestion not supported for unpack_transpose");
 
-static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr uint32_t MAX_TILES_DEST = dest_datum_width ? 4 : 8;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -32,7 +32,7 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
 
-        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, false>(
+        _llk_unpack_A_hw_configure_<dest_datum_width, StochRndType::None, false>(
             formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, TILE_NUM_FACES);
         _llk_unpack_A_init_<>(UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
         PROFILER_SYNC();
@@ -60,14 +60,14 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
         _llk_math_hw_configure_<>(formats.math, formats.math);
 
 #ifdef ARCH_BLACKHOLE
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, false, false>(
             UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, TILE_NUM_FACES, formats.math);
 #else
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, false>(
             UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, TILE_NUM_FACES, formats.math);
 #endif
         PROFILER_SYNC();
@@ -88,10 +88,10 @@ void run_kernel()
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
             for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
-                _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
                     block_tile, formats.math, formats.math);
             }
-            _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
         }
         PROFILER_SYNC();
     }
@@ -109,9 +109,9 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
 
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
+        _llk_pack_hw_configure_<dest_datum_width>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
         _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width>();
         PROFILER_SYNC();
     }
     {
@@ -128,9 +128,9 @@ void run_kernel()
             _llk_packer_wait_for_math_done_();
             for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
+                _llk_pack_<DstSync::SyncHalf, dest_datum_width>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
             }
-            _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
         }
         PROFILER_SYNC();
     }
