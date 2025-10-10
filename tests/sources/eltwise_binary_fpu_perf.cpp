@@ -18,7 +18,7 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr uint32_t MAX_TILES_DEST = dest_datum_width ? 4 : 8;
 
 #ifdef LLK_TRISC_UNPACK
 

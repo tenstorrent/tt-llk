@@ -18,7 +18,7 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr uint32_t MAX_TILES_DEST = dest_datum_width ? 4 : 8;
 
 static_assert(CT_DIM * RT_DIM <= MAX_TILES_DEST, "CT_DIM * RT_DIM must be less than or equal to MAX_TILES_DEST");
 
@@ -31,7 +31,7 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+        _llk_unpack_AB_matmul_hw_configure_<dest_datum_width, StochRndType::None>(
             formats.unpack_src,
             formats.unpack_src,
             formats.unpack_dst,
@@ -91,7 +91,7 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-        _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
+        _llk_math_pack_sync_init_<dest_sync, dest_datum_width>();
         _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
             /* tile A */ TILE_R_DIM,
             /* tile A */ TILE_C_DIM,
@@ -125,7 +125,7 @@ void run_kernel()
                         RT_DIM,
                         KT_DIM);
                 }
-                _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
+                _llk_math_dest_section_done_<dest_sync, dest_datum_width>();
             }
         }
         PROFILER_SYNC();
@@ -143,13 +143,13 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_C_DIM * TILE_R_DIM);
+        _llk_pack_hw_configure_<dest_datum_width>(formats.pack_src, formats.pack_dst, TILE_C_DIM * TILE_R_DIM);
         _llk_pack_init_<
             /* untilize */ false,
             /* zero_output */ false,
             DstTileFaceLayout::RowMajor,
             /* write_tile_header */ false>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width>();
         PROFILER_SYNC();
     }
     {
@@ -160,7 +160,7 @@ void run_kernel()
             {
                 for (uint32_t tile = 0; tile < CT_DIM * RT_DIM; tile++)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+                    _llk_pack_<DstSync::SyncHalf, dest_datum_width>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
                 }
             }
         }
@@ -171,9 +171,9 @@ void run_kernel()
                 _llk_packer_wait_for_math_done_();
                 for (uint32_t tile = 0; tile < CT_DIM * RT_DIM; tile++)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+                    _llk_pack_<DstSync::SyncHalf, dest_datum_width>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
                 }
-                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
             }
         }
         PROFILER_SYNC();

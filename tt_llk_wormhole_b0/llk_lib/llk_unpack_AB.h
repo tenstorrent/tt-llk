@@ -158,7 +158,7 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
  * LLK sub_bcast_row_tile unpacker implementation for SDPA
  *************************************************************************/
 
-template <bool is_fp32_dest_acc_en>
+template <DestDatumWidth::Value dest_datum_width>
 inline void _llk_unpack_bcastA_B_hw_config_(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpB_src_format,
@@ -169,7 +169,7 @@ inline void _llk_unpack_bcastA_B_hw_config_(
     const std::uint32_t num_faces                   = 4)
 {
     constexpr bool is_row_pool = false;
-    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool>(
+    configure_unpack_AB<dest_datum_width, is_row_pool>(
         unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
 }
 

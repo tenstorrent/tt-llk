@@ -22,7 +22,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 static_assert(PERF_RUN_TYPE == PerfRunType::L1_TO_L1, "Only L1 to L1 is supported for this benchmark");
 
-static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr uint32_t MAX_TILES_DEST = dest_datum_width ? 4 : 8;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -94,10 +94,10 @@ void run_kernel()
                     block_tile, formats.math, formats.math);
             }
 
-            _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is_fp32_dest_acc_en>();
+            _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, dest_datum_width>();
             for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
-                _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is_fp32_dest_acc_en>(block_tile);
+                _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, dest_datum_width>(block_tile);
             }
 
             _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();

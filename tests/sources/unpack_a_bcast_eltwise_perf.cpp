@@ -64,7 +64,7 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
         _llk_math_hw_configure_<false, false>(formats.math, formats.math);
         _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, 0>(SRCA_REUSE_COUNT);
         PROFILER_SYNC();
@@ -73,7 +73,7 @@ void run_kernel()
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
-            _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
+            _llk_math_dest_section_done_<dest_sync, dest_datum_width>();
             return;
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
@@ -97,7 +97,7 @@ void run_kernel()
             }
         }
         PROFILER_SYNC();
-        _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
+        _llk_math_dest_section_done_<dest_sync, dest_datum_width>();
     }
 }
 
@@ -112,9 +112,9 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
+        _llk_pack_hw_configure_<dest_datum_width>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
         _llk_pack_init_<>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width>();
         PROFILER_SYNC();
     }
     {
@@ -128,18 +128,18 @@ void run_kernel()
         {
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+                _llk_pack_<DstSync::SyncHalf, dest_datum_width>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
             }
         }
         else
         {
             for (uint32_t tile = 0; tile < TILE_CNT; tile++)
             {
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+                _llk_pack_<DstSync::SyncHalf, dest_datum_width>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
             }
         }
         PROFILER_SYNC();
-        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
     }
 }
 

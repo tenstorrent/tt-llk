@@ -250,14 +250,14 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
 
                 for dest_acc in [DestAccumulation.No, DestAccumulation.Yes]:
                     # Calculate dest acc setting for edgecase indices calculation
-                    is_fp32_dest_acc_en = (
+                    dest_datum_width = (
                         dest_acc == DestAccumulation.Yes or is_dest_acc_needed(fmt)
                     )
 
                     dest_sync_list = [DestSync.Half]
                     # Generate all dest sync and index combinations
                     for _, dest_idx in calculate_edgecase_dest_indices(
-                        is_fp32_dest_acc_en, result_tiles, dest_sync_list
+                        dest_datum_width, result_tiles, dest_sync_list
                     ):
                         combinations.append(
                             (
@@ -284,7 +284,7 @@ def calculate_edgecase_dest_indices(
     3. When DestSync.Full:  max_dst_tiles=16 (if dest is 16bit) or max_dst_tiles=8 (if dest is 32bit)
 
     Args:
-        dest_acc: Dest 16/32 bit mode, has to match is_fp32_dest_acc_en from C++
+        dest_acc: Dest 16/32 bit mode, has to match dest_datum_width from C++
         result_tiles: Number of tiles in the result matrix
         dest_sync_modes: List of DestSync modes to generate indices for. If None, uses [DestSync.Half]
 
