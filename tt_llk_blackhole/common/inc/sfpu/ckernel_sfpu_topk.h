@@ -393,8 +393,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                                 {
                                     bitonic_topk_load16<dest_datum_width>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
                                     bitonic_topk_step_N(dir);
-                                    bitonic_topk_store16<dest_datum_width, false>(
-                                        4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
+                                    bitonic_topk_store16<dest_datum_width, false>(4, 2 * dist); // load/store with offset of face 1 (in row major face layout)
                                     uint dst_inc = 8;
                                     dst_offset += dst_inc;
                                     bool dst_cr = false;

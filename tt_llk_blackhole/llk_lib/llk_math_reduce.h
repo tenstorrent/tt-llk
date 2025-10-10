@@ -23,18 +23,18 @@ template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop();
 
 template <
-    
+
     PoolType type,
-   
+
     ReduceDim dim,
-   
+
     DestDatumWidth::Value dest_datum_width,
-   
-    int MATH_FIDELITY_DESC         = 0,
-   
-    bool is_int_fpu_en                 = false,
-   
-    bool enforce_fp32_accumulation    = false>
+
+    int MATH_FIDELITY_DESC = 0,
+
+    bool is_int_fpu_en = false,
+
+    bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);

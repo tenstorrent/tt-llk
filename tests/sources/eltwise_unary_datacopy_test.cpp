@@ -74,8 +74,7 @@ void run_kernel()
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, tilize_en, is_int_fpu_en>(
-        0, 0, num_faces, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, tilize_en, is_int_fpu_en>(0, 0, num_faces, formats.math);
 #else
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, is_int_fpu_en>(0, 0, num_faces, formats.math);
 #endif
@@ -88,7 +87,8 @@ void run_kernel()
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
             DST_INDEX + i, formats.math, formats.math, num_faces);
 #else
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(DST_INDEX + i, formats.math, formats.math);
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
+            DST_INDEX + i, formats.math, formats.math);
 #endif
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
