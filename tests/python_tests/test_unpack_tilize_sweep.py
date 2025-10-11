@@ -128,6 +128,7 @@ def test_unpack_tilize_comprehensive(
         "testname": test_name,
         "tile_cnt": tile_cnt,
         "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "stochastic_rnd": stoch_rnd_type,
         "unpack_transpose_faces": Transpose.No,
