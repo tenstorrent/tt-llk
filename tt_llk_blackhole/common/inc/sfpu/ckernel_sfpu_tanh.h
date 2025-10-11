@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ckernel_sfpu_load_config.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -12,7 +13,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_tanh_(const int iterations)
 {
     // SFPU microcode
@@ -35,7 +36,7 @@ inline void _calculate_tanh_(const int iterations)
     sfpi::l_reg[sfpi::LRegs::LReg2] = l2;
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_tanh_()
 {
     uint imm0;

@@ -10,7 +10,7 @@
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
     // size of each tile in Dest is 64 rows
@@ -37,7 +37,7 @@ inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_in
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_where_fp32_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
     // size of each tile in Dest is 64/SFP_DESTREG_STRIDE = 32 rows when using sfpi to load/store
@@ -69,7 +69,7 @@ inline void _calculate_where_fp32_(const uint dst_index_in0, const uint dst_inde
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_where_int32_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
     // size of each tile in Dest is 64/SFP_DESTREG_STRIDE = 32 rows when using sfpi to load/store
@@ -97,7 +97,7 @@ inline void _calculate_where_int32_(const uint dst_index_in0, const uint dst_ind
     }
 }
 
-template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, DataFormat data_format, int ITERATIONS>
 inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
     // Add a compile-time check to ensure only supported formats are used.
@@ -106,7 +106,7 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
         "Unsupported data format for _calculate_where_(). Only Float32, Int32, and Float16_b are allowed.");
     if constexpr (data_format == DataFormat::Float32)
     {
-        _calculate_where_fp32_<APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out);
+        _calculate_where_fp32_<APPROX_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out);
     }
     else if constexpr (data_format == DataFormat::Int32)
     {
@@ -114,7 +114,7 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
     }
     else
     {
-        _calculate_where_fp16_b_<APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out);
+        _calculate_where_fp16_b_<APPROX_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out);
     }
 }
 

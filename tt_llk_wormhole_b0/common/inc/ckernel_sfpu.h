@@ -64,7 +64,7 @@
 // {
 
 /*
-template <bool APPROXIMATION_MODE, bool ZERO_NEGATIVE, bool SCALE_EN>
+template <ApproximationMode APPROX_MODE, bool ZERO_NEGATIVE, bool SCALE_EN>
 void calculate_cube(uint16_t exp_base_scale_factor = 0)
 {
     for (int d = 0; d < ITERATIONS; d++)
