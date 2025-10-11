@@ -21,6 +21,7 @@ from .format_arg_mapping import (
     DestSync,
     MathFidelity,
     MathOperation,
+    NarrowTile,
     StochasticRounding,
     Tilize,
     Transpose,
@@ -188,16 +189,8 @@ def generate_build_header(test_config):
     )  # Uppercase for legacy compatibility
 
     # Narrow tile flag
-    narrow_tile = test_config.get("narrow_tile", False)
-    if isinstance(narrow_tile, bool):
-        narrow_tile_value = str(narrow_tile).lower()
-    else:
-        narrow_tile_value = (
-            str(narrow_tile).lower()
-            if hasattr(narrow_tile, "value")
-            else str(narrow_tile).lower()
-        )
-    header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile_value};")
+    narrow_tile = test_config.get("narrow_tile", NarrowTile.No).value
+    header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
 
     # input tile dimensions
     in0_tile_r_dim = test_config.get("in0_tile_r_dim", 32)

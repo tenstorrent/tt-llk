@@ -3,12 +3,8 @@
 
 import pytest
 import torch
-
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import (
-    collect_results,
-    write_stimuli_to_l1,
-)
+from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_arg_mapping import (
     DestAccumulation,
     NarrowTile,
@@ -18,14 +14,8 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
-from helpers.golden_generators import (
-    TilizeGolden,
-    get_golden_generator,
-)
-from helpers.param_config import (
-    input_output_formats,
-    parametrize,
-)
+from helpers.golden_generators import TilizeGolden, get_golden_generator
+from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
@@ -51,7 +41,7 @@ from helpers.utils import passed_test
     narrow_tile=[NarrowTile.No],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     num_faces=[NumFaces.Four, NumFaces.Two, NumFaces.One],
-    input_dimensions=[[32, 32], [64, 64], [32, 128], [128, 32]],
+    input_dimensions=[[32, 32], [64, 64], [32, 64], [32, 128], [128, 32]],
 )
 def test_unpack_tilize_comprehensive(
     test_name,
@@ -107,7 +97,7 @@ def test_unpack_tilize_comprehensive(
     )
 
     # Create dummy src_B for write_stimuli_to_l1 (required by interface but not used)
-    src_B = torch.zeros(1024 * tile_cnt)
+    src_B = torch.full((1024 * tile_cnt,), 0)
 
     torch_format = format_dict[formats.output_format]
 
@@ -135,7 +125,7 @@ def test_unpack_tilize_comprehensive(
         "unpack_transpose_within_face": transpose,
         "dest_acc": dest_acc,
         "num_faces": num_faces.value,
-        "narrow_tile": narrow_tile.value,
+        "narrow_tile": narrow_tile,
     }
 
     # Write stimuli to L1
@@ -164,7 +154,7 @@ def test_unpack_tilize_comprehensive(
     ), f"Result size mismatch: got {len(res_from_L1)}, expected {len(golden_tensor)}"
 
     # Convert to tensor for comparison
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     # Verify results match golden reference
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
