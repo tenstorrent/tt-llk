@@ -66,7 +66,7 @@ def generate_random_face_with_column_sums_multiple_of_32(
 
 
 @parametrize(
-    test_name="eltwise_unary_sfpu_reduce_test",
+    test_name="sfpu_reduce_test",
     formats=input_output_formats(
         [DataFormat.Float32, DataFormat.UInt16, DataFormat.UInt32, DataFormat.Int32],
         same=True,
@@ -76,7 +76,7 @@ def generate_random_face_with_column_sums_multiple_of_32(
     negative_number=[False, True],
     reduce_pool=[ReducePool.Average, ReducePool.Sum],
 )
-def test_eltwise_unary_sfpu_column_sum(
+def test_sfpu_reduce(
     test_name, formats, dest_acc, mathop, reduce_pool, negative_number
 ):
     if negative_number and formats.input_format in [
