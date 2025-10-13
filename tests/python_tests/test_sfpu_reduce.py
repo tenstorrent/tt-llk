@@ -37,7 +37,7 @@ def generate_random_face_with_column_sums_multiple_of_32(
 
     Args:
         stimuli_format: The data format to use
-        multiplier: The multiplier for column sums (default 32)
+        multiplier: The multiplier for column sums (default 32 rows per column in a 32x32 tile)
 
     Returns:
         torch.Tensor: 16x16 face with column sums that are multiples of the specified multiplier
@@ -100,17 +100,9 @@ def test_sfpu_reduce(
     )
 
     # Generate 4 faces with all 2s for easy verification (column sums = 32*2 = 64, which is a multiple of 32)
-    face0 = generate_face_function(formats.input_format)
-    face1 = generate_face_function(formats.input_format)
-    face2 = generate_face_function(formats.input_format)
-    face3 = generate_face_function(formats.input_format)
-
-    # Stack all 4 faces to create the complete 32x32 tile
-    src_A = torch.stack([face0, face1, face2, face3]).flatten()
-
-    # Apply negative flag if requested
-    if negative_number:
-        src_A = src_A * -1
+    sign = -1 if negative_number else 1
+    faces = [generate_face_function(formats.input_format) for _ in range(4)]
+    src_A = torch.stack(faces).flatten() * sign
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
