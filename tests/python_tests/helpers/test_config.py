@@ -176,6 +176,12 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
 
+    narrow_tile = str(test_config.get("narrow_tile", False)).lower()
+    header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
+
+    face_r_dim = test_config.get("face_r_dim", 16)
+    header_content.append(f"constexpr int face_r_dim = {face_r_dim};")
+
     # Number of faces - support separate configurations for A and B
     num_faces = test_config.get("num_faces", 4)
     num_faces_A = test_config.get("num_faces_A", test_config.get("num_faces", 4))

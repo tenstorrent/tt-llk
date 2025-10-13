@@ -31,7 +31,10 @@ def generate_pack_combinations():
         (2, 32),
         (4, 32),
         (8, 32),
-    ]  # , (2, 32), (4, 32), (8, 32),(16, 32), (32, 32), (32, 16), (32, 8), (16, 16), (16, 8), (8, 8)]
+        (16, 32),
+        (32, 32),
+        (16, 16),
+    ]  # (16, 32), (32, 32), (16, 16), (32, 16), (32, 8), (16, 8), (8, 8)]
     # num_faces_list = [1, 2, 4]
     # partial_face_list = [False, True]
 
@@ -41,16 +44,19 @@ def generate_pack_combinations():
         if tile_dim[0] == 32 and tile_dim[1] == 32:
             num_faces = 4
             partial_face = False
+            narrow_tile = False
         elif tile_dim[0] <= 16 and tile_dim[1] <= 16:
             num_faces = 1
-            partial_face = False if tile_dim[0] == tile_dim[1] else True
+            partial_face = False if tile_dim[0] == 16 and tile_dim[1] == 16 else True
+            narrow_tile = True if tile_dim[1] < 16 else False
         else:
             num_faces = 2
             partial_face = (
                 False if tile_dim[0] % 16 == 0 and tile_dim[1] % 16 == 0 else True
             )
+            narrow_tile = True if tile_dim[1] < 16 else False
 
-        combinations.append((tile_dim, num_faces, partial_face))
+        combinations.append((tile_dim, num_faces, partial_face, narrow_tile))
 
     return combinations
 
@@ -76,6 +82,8 @@ def test_pack(test_name, formats, dest_acc, tile_dim_combinations):
     in0_tile_c_dim = tile_dim[1]
     num_faces = tile_dim_combinations[1]
     partial_face = tile_dim_combinations[2]
+    narrow_tile = tile_dim_combinations[3]
+    face_r_dim = tile_dim[0] if tile_dim[0] <= 16 else 16
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -91,7 +99,7 @@ def test_pack(test_name, formats, dest_acc, tile_dim_combinations):
     else:
         generate_golden = get_golden_generator(DataCopyGolden)
         golden_tensor = generate_golden(
-            src_A, formats.output_format, 4, input_dimensions
+            src_A, formats.output_format, num_faces, input_dimensions
         )
 
     unpack_to_dest = (
@@ -108,8 +116,10 @@ def test_pack(test_name, formats, dest_acc, tile_dim_combinations):
         "tile_cnt": tile_cnt,
         "num_faces": num_faces,
         "partial_face_A": partial_face,
-        "in0_tile_r_dim": in0_tile_r_dim,
-        "in0_tile_c_dim": in0_tile_c_dim,
+        # "in0_tile_r_dim": in0_tile_r_dim,
+        # "in0_tile_c_dim": in0_tile_c_dim,
+        "narrow_tile": narrow_tile,
+        "face_r_dim": face_r_dim,
     }
 
     res_address = write_stimuli_to_l1(
@@ -124,19 +134,24 @@ def test_pack(test_name, formats, dest_acc, tile_dim_combinations):
     )
 
     run_test(test_config)
+    if partial_face:
+        res_from_L1 = collect_results(
+            formats, tile_count=tile_cnt, address=res_address, num_faces=4
+        )
+    else:
+        res_from_L1 = collect_results(
+            formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces
+        )
 
-    res_from_L1 = collect_results(
-        formats, tile_count=tile_cnt, address=res_address, num_faces=4
-    )
     print(f"srca A: {src_A}")
-    print(f"before RES_FROM_L1: {res_from_L1}")
+    # print(f"before RES_FROM_L1: {res_from_L1}")
     if partial_face:
         res_from_L1 = res_from_L1[: in0_tile_r_dim * in0_tile_c_dim]
 
     assert len(res_from_L1) == len(golden_tensor)
 
     print(f"GOLDEN: {golden_tensor}")
-    print(f"RES_FROM_L1: {res_from_L1}")
+    # sprint(f"RES_FROM_L1: {res_from_L1}")
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)

@@ -1069,15 +1069,15 @@ class PackPartialFaceGolden:
     def __call__(self, operand, data_format, pack_output_tile_dimensions, tile_cnt):
         torch_format = format_dict[data_format]
         max_tile_size = 1024
+        max_face_size = 256
         max_tile_c_dim = 32
         max_face_r_dim = 16
+        output_r_dim, output_c_dim = pack_output_tile_dimensions
 
         if not isinstance(operand, torch.Tensor):
             operand = torch.tensor(operand)
 
         reshaped = operand.view(tile_cnt, max_tile_size)
-
-        output_r_dim, output_c_dim = pack_output_tile_dimensions
 
         selected_elements = []
         for tile in range(tile_cnt):
@@ -1086,16 +1086,17 @@ class PackPartialFaceGolden:
 
             if output_c_dim == max_tile_c_dim:
                 for row in range(output_r_dim):
-                    idx1 = row  # * max_face_r_dim
-                    idx2 = (row + max_face_r_dim) * max_face_r_dim
+                    idx1 = row * max_face_r_dim
                     slices.append(tile_data[idx1 : idx1 + max_face_r_dim])
+                for row in range(output_r_dim):
+                    idx2 = row * max_face_r_dim + max_face_size
                     slices.append(tile_data[idx2 : idx2 + max_face_r_dim])
             else:
                 for row in range(output_r_dim):
-                    idx = row * max_face_r_dim
-                    slices.append(tile_data[idx : idx + max_face_r_dim // 2])
-                for row in range(output_r_dim):
-                    idx = (row + max_tile_c_dim) * max_face_r_dim
+                    if row < max_face_r_dim:
+                        idx = row * max_face_r_dim
+                    else:
+                        idx = row * max_face_r_dim + max_face_r_dim * max_tile_c_dim
                     slices.append(tile_data[idx : idx + max_face_r_dim // 2])
 
             selected_elements.extend(torch.cat(slices, dim=0).tolist())
