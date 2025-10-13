@@ -22,6 +22,31 @@ class ProfilerFullMarker:
 
 
 class ProfilerData:
+    """
+    Used to query the underlying Pandas DataFrame
+
+    All queries are applied to the underlying DataFrame lazily, when the user requests the DataFrame
+
+    There are two views of the underlying DataFrame:
+    - The raw event view (self.raw()), which is meant to make manipulation in code easier
+    - The profiler view (self.frame()), which is meant to improve readability when manually reviewing the data
+
+    The underlying data is stored in the raw event view, so requesting the profiler view has slight overhead
+
+    The raw event view:
+    - Has three entry types: TIMESTAMP, ZONE_START, ZONE_END
+    - Data from each thead is concatenated together (all UNPACK -> MATH -> PACK)
+    - Each ZONE_START entry is immediately followed by its corresponding ZONE_END entry.
+    - There is no "duration" column included.
+
+    The profiler view:
+    - Has two entry types: TIMESTAMP, ZONE
+    - Entries are ordered by timestamp, even across threads
+    - There is a "duration" column included.
+    - The TIMESTAMP entries have duration = pd.NA
+    - The ZONE entries have duration = ZONE_END - ZONE_START
+    - The ZONE entries have timestamp = ZONE_START
+    """
 
     def __init__(self, df: pd.DataFrame, mask: pd.Series | None = None):
         self.df = df
@@ -34,13 +59,82 @@ class ProfilerData:
         self.df = self.df[self.mask]
         self.mask = None
 
+    def _assert_zones_valid(
+        self, start_entries: pd.DataFrame, end_entries: pd.DataFrame
+    ) -> None:
+        """
+        Verify that the start and end entries are in the correct order
+        """
+
+        if len(start_entries) != len(end_entries):
+            raise AssertionError("Number of start and end entries do not match")
+
+        start_entries = start_entries[["thread", "marker_id"]]
+        end_entries = end_entries[["thread", "marker_id"]]
+
+        if not start_entries.equals(end_entries):
+            raise AssertionError("Zone START and END entries don't match")
+
+    def raw(self) -> pd.DataFrame:
+        """Returns the raw event view of the underlying data"""
+
+        # Apply the mask to the underlying DataFrame
+        self._apply_mask()
+
+        start_entries = self.df[self.df["type"] == "ZONE_START"]
+        end_entries = self.df[self.df["type"] == "ZONE_END"]
+
+        self._assert_zones_valid(start_entries, end_entries)
+
+        return self.df
+
+    def _post_profiler_view(self) -> pd.DataFrame:
+        """
+        Returns the profiler view of the underlying data
+
+        This view consists of TIMESTAMP and ZONE entries
+        """
+
+        timestamp_entries = self.df[self.df["type"] == "TIMESTAMP"].copy()
+        timestamp_entries["duration"] = pd.NA
+
+        start_entries = self.df[self.df["type"] == "ZONE_START"].reset_index(drop=True)
+        end_entries = self.df[self.df["type"] == "ZONE_END"].reset_index(drop=True)
+
+        self._assert_zones_valid(start_entries, end_entries)
+
+        zone_entries = start_entries.copy()
+
+        zone_entries["type"] = "ZONE"
+        zone_entries["duration"] = end_entries["timestamp"] - start_entries["timestamp"]
+
+        result = (
+            pd.concat([timestamp_entries, zone_entries], ignore_index=True)
+            .sort_values("timestamp")
+            .reset_index(drop=True)
+        )
+
+        return result[
+            [
+                "thread",
+                "type",
+                "marker",
+                "timestamp",
+                "duration",
+                "data",
+                "marker_id",
+                "file",
+                "line",
+            ]
+        ]
+
     def frame(self) -> pd.DataFrame:
         """Return the underlying DataFrame while"""
 
         # Apply the mask to the underlying DataFrame
         self._apply_mask()
 
-        return self.df
+        return self._post_profiler_view()
 
     # Filter by thread
     def unpack(self) -> "ProfilerData":
@@ -193,7 +287,9 @@ class Profiler:
         # Define the schema
         schema = {
             "thread": pd.CategoricalDtype(categories=["UNPACK", "MATH", "PACK"]),
-            "type": pd.CategoricalDtype(categories=["TIMESTAMP", "ZONE"]),
+            "type": pd.CategoricalDtype(
+                categories=["TIMESTAMP", "ZONE_START", "ZONE_END"]
+            ),
             "marker": "string",
             "timestamp": "int64",
             "data": "Int64",  # nullable
@@ -222,6 +318,8 @@ class Profiler:
     @staticmethod
     def _parse_thread(thread, words, profiler_meta) -> list[dict]:
         rows = []
+        zone_stack = []
+
         word_stream = iter(words)
         for word in word_stream:
             if not (word & Profiler.ENTRY_EXISTS_BIT):
@@ -257,11 +355,12 @@ class Profiler:
                     )
 
                 case Profiler.EntryType.ZONE_START:
-                    rows.append(
+                    zone_stack.append(
                         Profiler._row(thread, "ZONE_START", marker, timestamp, pd.NA)
                     )
 
                 case Profiler.EntryType.ZONE_END:
+                    rows.append(zone_stack.pop())  # Pop the ZONE_START pair
                     rows.append(
                         Profiler._row(thread, "ZONE_END", marker, timestamp, pd.NA)
                     )
