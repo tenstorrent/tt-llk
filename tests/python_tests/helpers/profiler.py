@@ -136,10 +136,7 @@ class Profiler:
                         ]
                     )
 
-        llk_home_str = os.environ.get("LLK_HOME")
-        if not llk_home_str:
-            raise AssertionError("Environment variable LLK_HOME is not set")
-        llk_home = Path(llk_home_str)
+        llk_home = Path(os.environ.get("LLK_HOME"))
         output_path = llk_home / "tests" / "build" / filename
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -180,10 +177,7 @@ class Profiler:
     @staticmethod
     def _get_meta(testname: str) -> dict[id, ProfilerFullMarker]:
         chip_arch = get_chip_architecture()
-        llk_home_str = os.environ.get("LLK_HOME")
-        if not llk_home_str:
-            raise AssertionError("Environment variable LLK_HOME is not set")
-        llk_home = Path(llk_home_str)
+        llk_home = Path(os.environ.get("LLK_HOME"))
 
         profiler_dir = (
             llk_home
