@@ -9,9 +9,8 @@ from enum import Enum
 from pathlib import Path
 
 import pandas as pd
-from ttexalens.tt_exalens_lib import read_words_from_device
-
 from helpers.chip_architecture import get_chip_architecture
+from ttexalens.tt_exalens_lib import read_words_from_device
 
 
 @dataclass
@@ -23,39 +22,54 @@ class ProfilerFullMarker:
 
 
 class ProfilerData:
-    def __init__(self, df: pd.DataFrame):
+
+    def __init__(self, df: pd.DataFrame, mask: pd.Series | None = None):
         self.df = df
+        self.mask = mask
+
+    def _apply_mask(self):
+        if self.mask is None:
+            return
+
+        self.df = self.df[self.mask]
+        self.mask = None
 
     def frame(self) -> pd.DataFrame:
-        """Return the underlying DataFrame"""
+        """Return the underlying DataFrame while"""
+
+        # Apply the mask to the underlying DataFrame
+        self._apply_mask()
+
         return self.df
 
     # Filter by thread
     def unpack(self) -> "ProfilerData":
         """Filter: Unpack thread data"""
-        return ProfilerData(self.df[self.df["thread"] == "UNPACK"])
+        return ProfilerData(self.df, self.df["thread"] == "UNPACK")
 
     def math(self) -> "ProfilerData":
         """Filter: Math thread data"""
-        return ProfilerData(self.df[self.df["thread"] == "MATH"])
+        return ProfilerData(self.df, self.df["thread"] == "MATH")
 
     def pack(self) -> "ProfilerData":
         """Filter: Pack thread data"""
-        return ProfilerData(self.df[self.df["thread"] == "PACK"])
+        return ProfilerData(self.df, self.df["thread"] == "PACK")
 
     # Filter by type
     def zones(self) -> "ProfilerData":
         """Filter: Profiler zones"""
-        return ProfilerData(self.df[self.df["type"] == "ZONE"])
+        return ProfilerData(
+            self.df, self.df["type"] == "ZONE_START" | self.df["type"] == "ZONE_END"
+        )
 
     def timestamps(self) -> "ProfilerData":
         """Filter: Profiler timestamps"""
-        return ProfilerData(self.df[self.df["type"] == "TIMESTAMP"])
+        return ProfilerData(self.df, self.df["type"] == "TIMESTAMP")
 
     # Filter by marker
     def marker(self, marker: str) -> "ProfilerData":
         """Filter: Marker"""
-        return ProfilerData(self.df[self.df["marker"] == marker])
+        return ProfilerData(self.df, self.df["marker"] == marker)
 
 
 class Profiler:
