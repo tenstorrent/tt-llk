@@ -59,7 +59,7 @@ class ProfilerData:
     def zones(self) -> "ProfilerData":
         """Filter: Profiler zones"""
         return ProfilerData(
-            self.df, self.df["type"] == "ZONE_START" | self.df["type"] == "ZONE_END"
+            self.df, (self.df["type"] == "ZONE_START") | (self.df["type"] == "ZONE_END")
         )
 
     def timestamps(self) -> "ProfilerData":
