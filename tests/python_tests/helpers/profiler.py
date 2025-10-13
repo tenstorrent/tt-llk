@@ -182,7 +182,6 @@ class Profiler:
             "type": pd.CategoricalDtype(categories=["TIMESTAMP", "ZONE"]),
             "marker": "string",
             "timestamp": "int64",
-            "duration": "Int64",  # nullable
             "data": "Int64",  # nullable
             "marker_id": "int32",
             "file": "string",
@@ -209,7 +208,6 @@ class Profiler:
     @staticmethod
     def _parse_thread(thread, words, profiler_meta) -> list[dict]:
         rows = []
-        zone_stack = []
         word_stream = iter(words)
         for word in word_stream:
             if not (word & Profiler.ENTRY_EXISTS_BIT):
@@ -233,9 +231,7 @@ class Profiler:
             match entry_type:
                 case Profiler.EntryType.TIMESTAMP:
                     rows.append(
-                        Profiler._row(
-                            thread, "TIMESTAMP", marker, timestamp, pd.NA, pd.NA
-                        )
+                        Profiler._row(thread, "TIMESTAMP", marker, timestamp, pd.NA)
                     )
 
                 case Profiler.EntryType.TIMESTAMP_DATA:
@@ -243,32 +239,28 @@ class Profiler:
                     data_low = next(word_stream)
                     data = (data_high << 32) | data_low
                     rows.append(
-                        Profiler._row(
-                            thread, "TIMESTAMP", marker, timestamp, pd.NA, data
-                        )
+                        Profiler._row(thread, "TIMESTAMP", marker, timestamp, data)
                     )
 
                 case Profiler.EntryType.ZONE_START:
-                    zone_stack.append(timestamp)
+                    rows.append(
+                        Profiler._row(thread, "ZONE_START", marker, timestamp, pd.NA)
+                    )
 
                 case Profiler.EntryType.ZONE_END:
-                    end = timestamp
-                    start = zone_stack.pop()
-                    duration = end - start
                     rows.append(
-                        Profiler._row(thread, "ZONE", marker, start, duration, pd.NA)
+                        Profiler._row(thread, "ZONE_END", marker, timestamp, pd.NA)
                     )
 
         return rows
 
     @staticmethod
-    def _row(thread, type, marker, timestamp, duration, data) -> dict:
+    def _row(thread, type, marker, timestamp, data) -> dict:
         return {
             "thread": thread,
             "type": type,
             "marker": marker.marker,
             "timestamp": timestamp,
-            "duration": duration,
             "data": data,
             "marker_id": marker.id,
             "file": marker.file,
