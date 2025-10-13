@@ -377,8 +377,13 @@ def generate_build_header(test_config):
 
 def write_build_header(test_config):
     header_content = generate_build_header(test_config)
-    root = Path(os.environ.get("LLK_HOME"))
-    with open(root / "tests/helpers/include/build.h", "w") as f:
+    llk_home_str = os.environ.get("LLK_HOME")
+    if not llk_home_str:
+        raise AssertionError(
+            "Environment variable LLK_HOME is not set or path does not exist"
+        )
+    llk_home = Path(llk_home_str)
+    with open(llk_home / "tests/helpers/include/build.h", "w") as f:
         f.write(header_content)
 
 
@@ -407,13 +412,14 @@ def build_test(
 ):
     """Only builds the files required to run a test"""
 
-    root = Path(os.environ.get("LLK_HOME"))
-    if not root or not root.exists():
+    llk_home_str = os.environ.get("LLK_HOME")
+    if not llk_home_str:
         raise AssertionError(
             "Environment variable LLK_HOME is not set or path does not exist"
         )
+    llk_home = Path(llk_home_str)
 
-    TESTS_DIR = str((root / "tests").absolute())
+    TESTS_DIR = str((llk_home / "tests").absolute())
 
     write_build_header(test_config)
     make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
