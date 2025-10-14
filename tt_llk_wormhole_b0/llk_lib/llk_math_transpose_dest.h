@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
+#include "llk_unpack_common_api.h"
 #include "lltt.h"
 
 using namespace ckernel;
@@ -46,6 +47,11 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 
     if constexpr (is_32bit)
     {
+        // We need to disable the zero flag so that we don't lose bits when doing D2B/B2D
+        // The data loss would happen if the bits that are mapped to the "exponent" field are 0
+        // which would cause the "mantissa" bits to be flushed to 0 too.
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
+
         if constexpr (transpose_of_faces)
         {
             // 4x 32b face transpositions followed by 8x middle-face row swaps.
@@ -56,6 +62,8 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
             // 4x 32b face transpositions.
             ckernel_unpack_template::run(4, 0);
         }
+
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
     }
     else
     {
