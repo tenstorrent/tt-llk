@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-
 from helpers.format_arg_mapping import (
     DestAccumulation,
     MathOperation,
@@ -52,7 +51,6 @@ def test_perf_reduce(
         "tile_cnt": tile_count,
         "formats": formats,
         "dest_acc": dest_acc,
-        "reduce_dim": reduce_dim,
         "pool_type": pool_type,
         "mathop": REDUCE_MATHOP[reduce_dim],
     }
