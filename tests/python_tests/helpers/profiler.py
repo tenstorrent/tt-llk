@@ -69,8 +69,8 @@ class ProfilerData:
         if len(start_entries) != len(end_entries):
             raise AssertionError("Number of start and end entries do not match")
 
-        start_entries = start_entries[["thread", "marker_id"]]
-        end_entries = end_entries[["thread", "marker_id"]]
+        start_entries = start_entries[["thread", "marker_id"]].reset_index(drop=True)
+        end_entries = end_entries[["thread", "marker_id"]].reset_index(drop=True)
 
         if not start_entries.equals(end_entries):
             raise AssertionError("Zone START and END entries don't match")
