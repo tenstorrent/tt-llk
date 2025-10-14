@@ -283,7 +283,10 @@ def filter_params_with_z3(all_params):
                 broadcast_none,
                 BoolVal(disable_src_zero == False),  # Only block disable_src_zero=False
                 acc_to_dest_z3,
-                BoolVal(stochastic_rnd == StochasticRounding.All),
+                Or(
+                    BoolVal(stochastic_rnd == StochasticRounding.All),
+                    BoolVal(stochastic_rnd == StochasticRounding.Pack),
+                ),
                 transpose_faces,
                 within_face_transpose,
                 Or(
