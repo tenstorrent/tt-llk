@@ -298,8 +298,7 @@ class Profiler:
             "line": "int32",
         }
 
-        df = pd.DataFrame(rows or [], columns=schema.keys()).astype(schema)
-        return df.sort_values("timestamp").reset_index(drop=True)
+        return pd.DataFrame(rows or [], columns=schema.keys()).astype(schema)
 
     @staticmethod
     def _parse_buffers(buffers, profiler_meta) -> pd.DataFrame:
