@@ -108,14 +108,9 @@ def test_eltwise_add_srcb_broadcast(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    src_a = torch.ones(1024)
-    src_b = torch.ones(1024)
-    src_b[0:32] = 2
-    src_b[-32:] = 4
-
     # Tilize inputs (convert from row-major to tile format)
-    src_A_tilized = tilize(src_a)
-    src_B_tilized = tilize(src_b)
+    src_A_tilized = tilize(src_A)
+    src_B_tilized = tilize(src_B)
 
     # Generate golden results
     golden_tensor = generate_broadcast_golden(

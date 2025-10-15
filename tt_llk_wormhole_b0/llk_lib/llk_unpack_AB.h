@@ -140,11 +140,12 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     uint32_t adjusted_address_b = address_b;
     if constexpr (BType == BroadcastType::ROW_LAST)
     {
-        // In tilized format, row 31 is in face 3 at row offset 15
-        // Face 3 starts at element 768, row 15 starts at 768 + 15*16 = 1008
-        // Each element is 2 bytes for Float16_b, so 1008 * 2 = 2016 bytes
-        // In 16-byte units: 2016 / 16 = 126
-        adjusted_address_b += 126;
+        // In tilized format, row 31 spans face 2 (cols 0-15) and face 3 (cols 16-31)
+        // ROW broadcast reads from face positions, so we need to point to face 2, row 15
+        // Face 2 starts at element 512, row 15 within face 2 is at 512 + 15*16 = 752
+        // Each element is 2 bytes for Float16_b, so 752 * 2 = 1504 bytes
+        // In 16-byte units: 1504 / 16 = 94
+        adjusted_address_b += 94;
     }
 
     // Get tile address
