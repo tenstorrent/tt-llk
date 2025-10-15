@@ -58,10 +58,10 @@ OBJCOPY         := $(TOOL_PATH)/riscv-tt-elf-objcopy
 # =========================
 # Compiler and Linker Flags
 # =========================
-OPTIONS_ALL	:= -g -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_CPU)
+OPTIONS_ALL	:= -O3 -mabi=ilp32 -std=$(CXX_VERSION) -pedantic-errors -ffast-math $(ARCH_CPU)
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
 				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
-				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE $(ARCH_DEFINE) -DCOMPILE_FOR_TRISC=
+				   -Wmaybe-uninitialized -Wc++20-extensions -DTENSIX_FIRMWARE $(ARCH_DEFINE) -DCOMPILE_FOR_TRISC=
 
 BOOT_MODE := $(if $(bootmode),$(bootmode),brisc)
 ifeq ($(BOOT_MODE),brisc)

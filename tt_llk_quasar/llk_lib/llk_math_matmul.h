@@ -26,51 +26,66 @@ inline void _llk_math_matmul_addrmod_()
     // SRCB -- 8 rows are needed
     // SRCA -- full 16x16 gets used -- hardware will pair cols of A with rows of B
     // D[8,16] = B[8,16] * A[16,16]
-    addr_mod_t {
-        .srca = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb = {.incr = 8, .clr = 0, .cr = 0},
-        .dest = {.incr = 8, .clr = 0, .cr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srcb_incr(8)
+        .dest_incr(8)
+        .build()
         .set(ADDR_MOD_0);
+    // clang-format on
 
-    addr_mod_t {
-        .srca = {.incr = 16, .clr = 0, .cr = 0},
-        .srcb = {.incr = 0, .clr = 0, .cr = 1},
-        .dest = {.incr = 8, .clr = 0, .cr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_incr(16)
+        .srcb_cr(1)
+        .dest_incr(8)
+        .build()
         .set(ADDR_MOD_1);
+    // clang-format on
 
-    addr_mod_t {
-        .srca = {.incr = 0, .clr = 0, .cr = 1},
-        .srcb = {.incr = 32, .clr = 0, .cr = 1},
-        .dest = {.incr = 8, .clr = 0, .cr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_cr(1)
+        .srcb_incr(32)
+        .srcb_cr(1)
+        .dest_incr(8)
+        .build()
         .set(ADDR_MOD_2);
+    // clang-format on
 
     // reset all, increment dest carriage return
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 1, .cr = 0},
-        .srcb     = {.incr = 0, .clr = 1, .cr = 0},
-        .dest     = {.incr = num_tile_incr, .clr = 0, .cr = 1},
-        .fidelity = {.incr = 0, .clr = 1},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_clr(1)
+        .srcb_clr(1)
+        .dest_incr(num_tile_incr)
+        .dest_cr(1)
+        .fidelity_clr(1)
+        .build()
         .set(ADDR_MOD_3);
+    // clang-format on
 
-    addr_mod_t {
-        .srca = {.incr = 32, .clr = 0, .cr = 1},
-        .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
-        .dest = {.incr = 0, .clr = 0, .cr = 1},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_incr(32)
+        .srca_cr(1)
+        .srcb_incr(48)
+        .srcb_cr(1) // cr=32 before, cr+48=16 after wrapping
+        .dest_cr(1)
+        .build()
         .set(ADDR_MOD_4);
+    // clang-format on
 
     // reset all, increment fidelity if we have more fidelity phases
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 1, .cr = 0},
-        .srcb     = {.incr = 0, .clr = 1, .cr = 0},
-        .dest     = {.incr = 0, .clr = 0, .cr = 1},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .srca_clr(1)
+        .srcb_clr(1)
+        .dest_cr(1)
+        .fidelity_incr(FIDELITY_INCREMENT)
+        .build()
         .set(ADDR_MOD_5);
+    // clang-format on
 }
 
 // Direct Indexing Method
@@ -81,13 +96,12 @@ inline void _llk_math_matmul_di_addrmod_()
     constexpr int FIDELITY_INCREMENT = high_fidelity ? 1 : 0;
 
     // only increment fidelity if we have more fidelity phases
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb     = {.incr = 0, .clr = 0, .cr = 0},
-        .dest     = {.incr = 0, .clr = 0, .cr = 0},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
-    }
+    // clang-format off
+    addr_mod_builder::create()
+        .fidelity_incr(FIDELITY_INCREMENT)
+        .build()
         .set(ADDR_MOD_1);
+    // clang-format on
 }
 
 /**
