@@ -69,7 +69,7 @@ def generate_broadcast_golden(src_a, src_b, broadcast_type, math_op, output_form
             DataFormat.Float16_b,
         ]
     ),
-    mathop=[MathOperation.Elwadd],
+    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No],
     broadcast_type=["ROW", "COL", "SCALAR", "ROW_LAST"],
     math_fidelity=[MathFidelity.LoFi],
