@@ -26,9 +26,9 @@ inline void device_setup()
 
 #ifndef ARCH_QUASAR
     // Initialize tensix semaphores
-    TTI_SEMINIT(1, 0, ckernel::semaphore::UNPACK_TO_DEST);
-    TTI_SEMINIT(1, 0, ckernel::semaphore::MATH_DONE);
-    TTI_SEMINIT(1, 0, ckernel::semaphore::PACK_DONE);
+    TTI_SEMINIT(1, 0, 1 << ckernel::semaphore::UNPACK_TO_DEST);
+    TTI_SEMINIT(1, 0, 1 << ckernel::semaphore::MATH_DONE);
+    TTI_SEMINIT(1, 0, 1 << ckernel::semaphore::PACK_DONE);
 #endif
 }
 
