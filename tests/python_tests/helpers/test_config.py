@@ -406,6 +406,15 @@ def generate_build_header(test_config):
             f"constexpr auto PERF_RUN_TYPE = PerfRunType::{perf_run_type.name};"
         )
 
+    # Broadcast type configuration
+    broadcast_type = test_config.get("broadcast_type", None)
+    if broadcast_type is not None:
+        header_content.append("")
+        header_content.append("// Broadcast configuration")
+        header_content.append(
+            f"constexpr auto BROADCAST_TYPE = BroadcastType::{broadcast_type};"
+        )
+
     header_content.append("")
     return "\n".join(header_content)
 
