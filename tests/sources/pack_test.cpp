@@ -1,4 +1,3 @@
-
 // SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -28,7 +27,14 @@ void run_kernel()
     const uint num_tiles_per_unpack = 1;
 
     // Setup data valid scheme
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    if (unpack_to_dest)
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
+    else
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
 
     _zerosrc_(); // clear srcA and srcB
 
@@ -48,13 +54,29 @@ void run_kernel()
     td_val.buf_desc_id     = BUF_DESC_ID;
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
-    _llk_unpack_configure_unary_<p_unpacr::UNP_A>(td_val);
-    _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
+    if (is_fp32_dest_acc_en)
+    {
+        // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
+        _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
+    }
+    else
+    {
+        _llk_unpack_configure_unary_<p_unpacr::UNP_A>(td_val);
+    }
+    if (unpack_to_dest)
+    {
+        _llk_unpack_unary_operand_init_<p_unpacr::UNP_DEST, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
+    }
+    else
+    {
+        _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
+    }
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
     }
+    _llk_unpack_dest_dvalid_section_done_();
 }
 
 #endif
@@ -75,17 +97,24 @@ using namespace ckernel;
 
 void run_kernel()
 {
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
-
-    constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
-    _llk_math_srcAB_hw_configure_<true /*math implied*/, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
-
-    _zero_dest_reg_();
-
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(64, 1);
-    for (int i = 0; i < TILE_CNT; ++i)
+    if (unpack_to_dest)
     {
-        _llk_math_eltwise_unary_datacopy_<64>(i);
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
+    else
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+        constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
+        _llk_math_srcAB_hw_configure_<true /*math implied*/, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
+
+        _zero_dest_reg_();
+
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(64, 1);
+        for (int i = 0; i < TILE_CNT; ++i)
+        {
+            _llk_math_eltwise_unary_datacopy_<64>(i);
+        }
     }
     _llk_math_set_dvalid_<p_cleardvalid::FPU>();
 }
@@ -100,9 +129,16 @@ void run_kernel()
 
 void run_kernel()
 {
-    uint32_t const BUF_DESC = 31;
+    uint32_t const BUF_DESC = 8;
 
-    set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    if (unpack_to_dest)
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
+    else
+    {
+        set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+    }
 
     buffer_descriptor_u bd_val;
     for (uint i = 0; i < BD_NUM_WORDS; i++)
