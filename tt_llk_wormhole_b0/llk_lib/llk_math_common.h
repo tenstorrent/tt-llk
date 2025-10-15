@@ -10,6 +10,7 @@
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
 #include "cmath_common.h"
+#include "debug/dprint.h"
 
 using namespace ckernel::math;
 
@@ -68,30 +69,30 @@ inline void _llk_math_pack_sync_init_()
     }
 }
 
-template <bool mail2math = true, bool mail2pack = true>
+template <bool mail2math = false, bool mail2pack = false, uint32_t timeout = 0>
 inline void _llk_math_get_tile_(std::uint32_t tile_index, std::uint32_t* p_tile)
 {
-    constexpr uint32_t wait_sem = (mail2math && mail2pack) ? (2) : (1);
-    while (semaphore_read(semaphore::UNPACK_OPERAND_SYNC) < wait_sem)
-        ;
-    if constexpr (mail2math)
-    {
+    if constexpr (mail2math) {
+        if constexpr (timeout > 0) {
+            uint32_t count = timeout;
+            while (mailbox_not_empty(ThreadId::UnpackThreadId) == false) {
+                DPRINT << "Math thread waiting" << ENDL();
+                if (count == 0) {
+                    DPRINT << "Math thread timed out waiting for unpack thread to provide tile address thingy" << ENDL();
+                    return;
+                }
+                count--;
+            }
+        }
         *p_tile = mailbox_read(ThreadId::UnpackThreadId);
-    }
-    else
-    {
-        *p_tile = 0x0;
+    } else {
+        *p_tile = 0x0; // MM: Consider not doing this. If we weren't expecting a message, we probably shouldnb't write anything to p_tile in case it is NULL or something
     }
 }
 
-template <bool mail2math = true, bool mail2pack = true>
+template <bool mail2math = false, bool mail2pack = true>
 inline void _llk_math_release_tile_()
-{
-    if constexpr (mail2math)
-    {
-        semaphore_get(semaphore::UNPACK_OPERAND_SYNC);
-    }
-}
+{}
 
 inline void _llk_math_debug_dump_(std::uint8_t* data, std::uint32_t byte_size)
 {

@@ -11,6 +11,7 @@
 #include "ckernel_instr_params.h"
 #include "cpack_common.h"
 #include "llk_defs.h"
+#include "debug/dprint.h"
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -154,29 +155,30 @@ inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, co
     pack_sync_tile_dst_ptr = 0;
 }
 
-template <bool mail2math = true, bool mail2pack = true>
-inline void _llk_pack_get_tile_(std::uint32_t tile_index, std::uint32_t *p_tile)
-{
-    constexpr uint32_t wait_sem = (mail2math && mail2pack) ? (2) : (1);
-    while (semaphore_read(semaphore::UNPACK_OPERAND_SYNC) < wait_sem)
-        ;
-    if constexpr (mail2pack)
-    {
-        *p_tile = mailbox_read(ThreadId::UnpackThreadId);
+template <bool mail2math = false, bool mail2pack = false, uint32_t timeout = 0>
+inline void _llk_pack_get_tile_(std::uint32_t tile_index, std::uint32_t *p_tile) {
+    if constexpr (timeout > 0) {
+        uint32_t count = timeout;
+        while (mailbox_not_empty(ThreadId::UnpackThreadId) == false) {
+            if (count == 0) {
+                DPRINT << "Pack thread timed out waiting for unpack thread to provide tile address thingy" << ENDL();
+                return;
+            }
+            count--;
+        }
     }
-    else
-    {
-        *p_tile = 0x0;
+    if constexpr (mail2pack) {
+        DPRINT << "Pack thread start reading" << ENDL();
+        *p_tile = mailbox_read(ThreadId::UnpackThreadId);
+        DPRINT << "Pack thread done reading" << ENDL();
+    } else {
+        *p_tile = 0x0; // MM consider not doing this
     }
 }
 
-template <bool mail2math = true, bool mail2pack = true>
+template <bool mail2math = false, bool mail2pack = true>
 inline void _llk_pack_release_tile_()
 {
-    if constexpr (mail2pack)
-    {
-        semaphore_get(semaphore::UNPACK_OPERAND_SYNC);
-    }
 }
 
 inline void _llk_pack_debug_dump_(std::uint8_t *data, std::uint32_t byte_size)

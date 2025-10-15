@@ -43,43 +43,26 @@ void _llk_zero_buffer_(const std::uint32_t base_address, const std::uint32_t siz
     }
 }
 
-template <bool mail2math = true, bool mail2pack = true>
+template <bool mail2math = false, bool mail2pack = false, uint32_t timeout = 0>
 inline void _llk_unpack_get_tile_(std::uint32_t address, std::uint32_t *p_tile)
 {
     std::uint32_t byte_address = (address) << 4;
-
-    if constexpr (mail2math || mail2pack)
-    {
-        // We only need to make sure the last semaphore_post happens before mailbox write.
-        // When we need to do 2 semaphore posts the first one is a general one, the second
-        // one is done using store_then_load. When we need only one, this one is skipped.
-        if constexpr (mail2math && mail2pack)
-        {
-            semaphore_post(semaphore::UNPACK_OPERAND_SYNC);
-        }
-
-        uint32_t sem_tmp = store_then_load(&pc_buf_base[PC_BUF_SEMAPHORE_BASE + semaphore::UNPACK_OPERAND_SYNC], 0);
-        consume_discard(sem_tmp);
-
-        if constexpr (mail2math)
-        {
-            mailbox_write(ThreadId::MathThreadId, byte_address);
-        }
-
-        if constexpr (mail2pack)
-        {
-            mailbox_write(ThreadId::PackThreadId, byte_address);
-        }
+    DPRINT << "Unpack thread start writing" << ENDL();
+    if constexpr (mail2math) {
+        mailbox_write(ThreadId::MathThreadId, byte_address);
     }
 
-    *p_tile = byte_address;
+    if constexpr (mail2pack) {
+        mailbox_write(ThreadId::PackThreadId, byte_address);
+    }
+    DPRINT << "Unpack thread done writing" << ENDL();
+
+    *p_tile = byte_address; // MM probably unnecessary
 }
 
-template <bool mail2math = true, bool mail2pack = true>
+template <bool mail2math = false, bool mail2pack = true>
 inline void _llk_unpack_release_tile_()
 {
-    while (semaphore_read(semaphore::UNPACK_OPERAND_SYNC) > 0)
-        ;
 }
 
 inline void _llk_unpack_debug_dump_(std::uint8_t *data, std::uint32_t byte_size)
