@@ -12,6 +12,91 @@ namespace ckernel
 {
 namespace sfpu
 {
+    
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, int ITERATIONS>
+inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
+{
+    static_assert(num_rows == 9, "num_rows must be one of: {9}"); // add others as support is added
+
+    // size of each tile in Dest is 64 rows
+    constexpr uint dst_tile_size   = 64;
+    const uint values_tile_offset  = values_tile_idx * dst_tile_size;
+    const uint indices_tile_offset = indices_tile_idx * dst_tile_size;
+    // each face is 16 rows
+    constexpr uint face_offset        = 16;
+    constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+
+    // ROW MAJOR DATA VERSION OF MPWI
+    // DATA IS EXPECTED TO BE IN THE FOLLOWING ORDER IN DEST:
+    // Face 0 Row 0
+    // Face 1 Row 0
+    // Face 0 Row 1
+    // Face 1 Row 1
+    // Face 0 Row 2
+    // Face 1 Row 2
+    // Face 0 Row 3
+    // Face 1 Row 3
+    // Face 0 Row 4
+    // Face 1 Row 4
+    // Face 0 Row 5
+    // Face 1 Row 5
+    // Face 0 Row 6
+    // Face 1 Row 6
+    // Face 0 Row 7
+    // Face 1 Row 7
+    // Face 0 Row 8
+    // Face 1 Row 8
+
+    // F0 + F1 even cols
+    // data
+    TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 0);
+    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 4);
+    TT_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 8);
+    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 12);
+    // index
+    TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 0);
+    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 4);
+    TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 8);
+    TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 12);
+
+    // sort 4 rows
+    lltt::replay(0, 7);
+
+    // data
+    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 16);
+    // index
+    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 16);
+
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+
+    TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 0);
+    TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 0);
+
+    // F0 + F1 odd cols
+    // data
+    TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 0 + 2);
+    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 4 + 2);
+    TT_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 8 + 2);
+    TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 12 + 2);
+    // index
+    TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 0 + 2);
+    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 4 + 2);
+    TT_SFPLOAD(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 8 + 2);
+    TT_SFPLOAD(p_sfpu::LREG7, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 12 + 2);
+
+    // sort 4 rows
+    lltt::replay(0, 7);
+
+    // data
+    TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 16 + 2);
+    // index
+    TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 16 + 2);
+
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+
+    TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 0 + 2);
+    TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 0 + 2);
+}
 
 /**
  * @brief Calculates column-wise MaxPool of a tile, placing output values into the first row.
@@ -26,10 +111,8 @@ namespace sfpu
  * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
  */
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, int ITERATIONS>
-inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
+inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
 {
-    // static_assert(num_rows == 9, "num_rows must be one of: {9}"); // add others as support is added
-
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size   = 64;
     const uint values_tile_offset  = values_tile_idx * dst_tile_size;
