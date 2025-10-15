@@ -102,24 +102,6 @@ inline void _llk_unpack_A_mop_config_(
             tmp.program();
         }
     }
-    else if constexpr (BType == BroadcastType::ROW_LAST)
-    {
-        // ROW_LAST uses same mop as ROW, address adjustment happens in _llk_unpack_A_
-        constexpr uint32_t innerloop = 2;
-        constexpr uint32_t outerloop = 2;
-        if constexpr (acc_to_dest)
-        {
-            ckernel_template tmp(outerloop, innerloop, unpack_srcb, unpack_srca_set_dvalid);
-            tmp.set_end_op(srcb_clear_z);
-            tmp.program();
-        }
-        else
-        {
-            ckernel_template tmp(outerloop, innerloop, unpack_srcb);
-            tmp.set_end_op(srcb_clear_z);
-            tmp.program();
-        }
-    }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
         static_assert((!acc_to_dest) && "accumulate into dest with broadcast scaler is not supported!");
@@ -242,16 +224,6 @@ inline void _llk_unpack_A_(
     // Wait for free context
     wait_for_next_context(2);
 
-    // For ROW_LAST broadcast, adjust srcB address to point to last row
-    uint32_t adjusted_address = address;
-    if constexpr (BType == BroadcastType::ROW_LAST)
-    {
-        // Last row is at offset 31 * 32 elements from base
-        // Each element is 2 bytes for Float16_b, so 31 * 32 * 2 = 1984 bytes
-        // In 16-byte units: 1984 / 16 = 124
-        adjusted_address += 124;
-    }
-
     // Get tile address
     if (0 == unp_cfg_context)
     {
@@ -265,7 +237,7 @@ inline void _llk_unpack_A_(
             {
                 cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
             }
-            cfg[THCON_SEC1_REG3_Base_address_ADDR32] = adjusted_address;
+            cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address;
         }
     }
     else
@@ -280,7 +252,7 @@ inline void _llk_unpack_A_(
             {
                 cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
             }
-            cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = adjusted_address;
+            cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address;
         }
     }
 
