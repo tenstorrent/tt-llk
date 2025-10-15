@@ -540,13 +540,6 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
-    // TTI_ZEROACC(p_zeroacc::CLR_ALL, 0, 0, ADDR_MOD_0, 0); // added zeroacc because of the ones in dest
-
-    // zeroacc above clears entire dest, not just the first tile, this one should be used for multiple tiles implementation:
-    TTI_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_0, 0);
-    TTI_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_0, 1);
-    TTI_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_0, 2);
-    TTI_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_0, 3);
 
     math::reset_counters(p_setrwc::SET_ABD_F); // just in case addr_mod_0 changed the dest counter, will be deleted if neededd
 }

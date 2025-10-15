@@ -37,22 +37,25 @@ inline void eltwise_binary_reuse_dest_as_src_tile(uint32_t idst = 0)
     {
         switch (idst) {
             case 0:
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 0);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 4);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 8);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 12);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 16);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 20);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 24);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 28);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 32);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 36);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 40);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 44);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 48);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 52);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 56);
-                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_1, p_movd2a::MOV_4_ROWS, 60);
+                // Necessary fix
+                TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, 0);
+                TT_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 4);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 8, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 8);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 12);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 16, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 16);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 20, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 20);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 24, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 24);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 28, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 28);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 32, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 32);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 36, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 36);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 40, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 40);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 44, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 44);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 48, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 48);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 52, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 52);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 56, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 56);
+                TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 60, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 60);
                 break;
             case 1:
                 TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 64);
@@ -187,10 +190,28 @@ inline void eltwise_binary_reuse_dest_as_src_tile(uint32_t idst = 0)
     }
     else if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)
     {
+
+        // Explicitly reset D (dest read) and B (srcB write) counters to 0
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
+        
+        // Move all 64 rows from dest to srcB (4 rows at a time, 16 instructions total)
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 4, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 8, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 12, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 16);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 20);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 24);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 28);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 32, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 32);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 36, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 36);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 40, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 40);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 44, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 44);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 48, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 48);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 52, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 52);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 56, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 56);
+        TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 60, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 60);
     }
 }
 

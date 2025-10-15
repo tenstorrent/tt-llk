@@ -61,4 +61,16 @@ inline void _populate_first_tile_with_ones_() {
     // Clean-up
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 }
+
+inline void _populate_first_tile_with_zeroes_() {
+    // Reset destination counter to ensure we're pointing to the first tile
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+    
+    // Use SFPU to fill with zeroes - but ensure we're targeting the right location
+    TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, 0);
+    _calculate_fill_<false, 32>(0.0f);
+
+    // Clean-up
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+}
 } // namespace ckernel::sfpu
