@@ -50,6 +50,17 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         tmp.set_end_op(unpack_srcb_clear_z);
         tmp.program();
     }
+    else if constexpr (BType == BroadcastType::ROW_LAST)
+    {
+        // ROW_LAST uses same mop as ROW, but with adjusted base address
+        static constexpr uint unpack_srcb_clear_z  = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
+        static constexpr uint unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        const uint32_t outerloop                   = num_faces < 4 ? 1 : 2;
+        const uint32_t innerloop                   = num_faces < 2 ? 1 : 2;
+        ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, unpack_srca);
+        tmp.set_end_op(unpack_srcb_clear_z);
+        tmp.program();
+    }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
         const uint32_t outerloop = 1;
@@ -125,16 +136,27 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     // Wait for free context
     wait_for_next_context(2);
 
+    // For ROW_LAST broadcast, adjust srcB address to point to last row
+    uint32_t adjusted_address_b = address_b;
+    if constexpr (BType == BroadcastType::ROW_LAST)
+    {
+        // In tilized format, row 31 is in face 3 at row offset 15
+        // Face 3 starts at element 768, row 15 starts at 768 + 15*16 = 1008
+        // Each element is 2 bytes for Float16_b, so 1008 * 2 = 2016 bytes
+        // In 16-byte units: 2016 / 16 = 126
+        adjusted_address_b += 126;
+    }
+
     // Get tile address
     if (0 == unp_cfg_context)
     {
         cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = adjusted_address_b;
     }
     else
     {
         cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = adjusted_address_b;
     }
 
     // Trisc::SEMPOST for context acquire

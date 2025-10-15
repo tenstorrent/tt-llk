@@ -67,10 +67,11 @@ enum DstSync
 
 enum BroadcastType
 {
-    NONE   = 0x0, // A - None || B - None
-    COL    = 0x1, // A - None || B - Col Broadcast
-    ROW    = 0x2, // A - None || B - Row Broadcast
-    SCALAR = 0x3, // A - None || B - Scalar Broadcast
+    NONE     = 0x0, // A - None || B - None
+    COL      = 0x1, // A - None || B - Col Broadcast
+    ROW      = 0x2, // A - None || B - Row Broadcast
+    SCALAR   = 0x3, // A - None || B - Scalar Broadcast
+    ROW_LAST = 0x4, // A - None || B - Last Row Broadcast
 };
 
 enum src_op_id_e

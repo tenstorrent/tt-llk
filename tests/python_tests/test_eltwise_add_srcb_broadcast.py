@@ -45,6 +45,9 @@ def generate_broadcast_golden(src_a, src_b, broadcast_type, math_op, output_form
     if broadcast_type == "ROW":
         # Broadcast first row of B to all rows
         b_broadcasted = b_untilized[0:1, :].expand(32, 32)
+    elif broadcast_type == "ROW_LAST":
+        # Broadcast last row (row 31) of B to all rows
+        b_broadcasted = b_untilized[-1:, :].expand(32, 32)
     elif broadcast_type == "COL":
         # Broadcast first column of B to all columns
         b_broadcasted = b_untilized[:, 0:1].expand(32, 32)
@@ -79,7 +82,7 @@ def generate_broadcast_golden(src_a, src_b, broadcast_type, math_op, output_form
     ),
     mathop=[MathOperation.Elwadd],
     dest_acc=[DestAccumulation.No],
-    broadcast_type=["ROW", "COL", "SCALAR"],
+    broadcast_type=["ROW", "COL", "SCALAR", "ROW_LAST"],
     math_fidelity=[MathFidelity.LoFi],
 )
 def test_eltwise_add_srcb_broadcast(
@@ -108,7 +111,7 @@ def test_eltwise_add_srcb_broadcast(
     src_a = torch.ones(1024)
     src_b = torch.ones(1024)
     src_b[0:32] = 2
-    src_b[-32:] = 2
+    src_b[-32:] = 4
 
     # Tilize inputs (convert from row-major to tile format)
     src_A_tilized = tilize(src_a)
