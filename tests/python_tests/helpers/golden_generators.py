@@ -15,6 +15,14 @@ from helpers.format_arg_mapping import (
 from helpers.format_config import DataFormat
 from helpers.tilize_untilize import tilize_block, untilize
 
+# Tile and face dimension constants
+FACE_DIM = 16
+ELEMENTS_PER_FACE = 256  # 16x16 = 256 elements per face
+FACES_PER_TILE = 4
+ELEMENTS_PER_TILE = 1024  # 4 faces × 256 elements
+TILE_SIZE = 32
+TILE_DIMENSIONS = (32, 32)  # Tile dimensions as tuple
+
 golden_registry = {}
 
 _FIDELITY_MASK_CONFIGURATION = {
@@ -240,7 +248,7 @@ def transpose_tensor(tensor):
 @register_golden
 class TransposeGolden:
     def __init__(self):
-        pass  # Removed ops dict since __call__ is no longer used
+        pass
 
     def transpose_within_faces(
         self,
@@ -267,20 +275,19 @@ class TransposeGolden:
         torch_format = format_dict[data_format]
 
         # Each face is always 16x16 = 256 elements
-        face_size = 256
-        face_dim = 16
+        face_size = ELEMENTS_PER_FACE
+        face_dim = FACE_DIM
         elements_per_tile_needed = face_size * num_faces
 
-        # Select first N faces from input (following DataCopyGolden pattern)
-        if tensor.numel() == elements_per_tile_needed:
-            tensor_to_process = tensor
-        else:
-            tensor_to_process = tensor[:elements_per_tile_needed]
+        # Select first N faces
+        tensor_to_process = tensor[:elements_per_tile_needed]
 
         # Split into faces and transpose each face individually
         faces = tensor_to_process.view(num_faces, face_dim, face_dim)
         transposed_faces = faces.transpose(-2, -1)
-        return transposed_faces.flatten().to(torch_format)
+        result = transposed_faces.flatten().to(torch_format)
+
+        return result
 
     def transpose_faces(
         self,
@@ -313,31 +320,18 @@ class TransposeGolden:
         if num_faces not in [1, 2, 4]:
             raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
 
-        tensor = to_tensor(operand, data_format)
         torch_format = format_dict[data_format]
+        tensor = to_tensor(operand, data_format)
 
-        # Each face is always 256 elements
-        face_size = 256
-        elements_per_tile_needed = face_size * num_faces
+        total_elements = ELEMENTS_PER_FACE * num_faces
+        tensor = tensor[:total_elements]
 
-        # Select first N faces from input (following DataCopyGolden pattern)
-        if tensor.numel() == elements_per_tile_needed:
-            tensor_to_process = tensor
-        else:
-            tensor_to_process = tensor[:elements_per_tile_needed]
+        if num_faces == 4:
+            # Reorder faces: f0, f1, f2, f3 -> f0, f2, f1, f3
+            faces = torch.tensor_split(tensor, 4)
+            tensor = torch.cat([faces[0], faces[2], faces[1], faces[3]])
 
-        # Handle different face counts
-        if num_faces == 1:
-            # Single face: no transpose needed
-            return tensor_to_process.to(torch_format)
-        elif num_faces == 2:
-            # Two faces: f0, f1 -> f0, f1 (no change for linear arrangement)
-            return tensor_to_process.to(torch_format)
-        else:  # num_faces == 4
-            # Four faces: transpose arrangement f0,f1,f2,f3 -> f0,f2,f1,f3
-            faces = torch.tensor_split(tensor_to_process, 4)
-            result = torch.cat([faces[0], faces[2], faces[1], faces[3]])
-            return result.to(torch_format)
+        return tensor.to(torch_format)
 
     def _apply_tile_operation_multi_tile(
         self,
@@ -372,10 +366,6 @@ class TransposeGolden:
             ValueError: If tensor size doesn't match expected size for num_tiles
             ValueError: If num_tiles is not positive
         """
-        # Constants
-        ELEMENTS_PER_TILE = 1024  # 32 × 32
-        TILE_DIMENSIONS = (32, 32)
-
         # Input validation
         if num_tiles <= 0:
             raise ValueError(f"num_tiles must be positive, got {num_tiles}")
@@ -636,6 +626,145 @@ class MatmulGolden(FidelityMasking):
 
 
 @register_golden
+class ScalarBroadcastGolden:
+    """
+    Golden generator for scalar broadcast operations.
+    Takes the first element of the input tensor and broadcasts it across the entire output tile.
+    Output size = num_faces * 256 elements, all with the same scalar value.
+    """
+
+    def __call__(
+        self,
+        operand1,
+        data_format,
+        num_faces: int = 4,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        torch_format = format_dict[data_format]
+
+        # Convert input to tensor
+        if not isinstance(operand1, torch.Tensor):
+            operand1 = torch.tensor(operand1)
+
+        # Take the first element as the scalar value to broadcast
+        scalar_value = operand1.flatten()[0]
+
+        # Calculate output size based on num_faces
+        elements_per_tile = ELEMENTS_PER_FACE * num_faces
+
+        # Create output tensor with scalar value replicated across all elements
+        result = torch.full((elements_per_tile,), scalar_value, dtype=torch_format)
+
+        return result
+
+
+@register_golden
+class ColumnBroadcastGolden:
+    """
+    Golden generator for column broadcast operations.
+    Hardware behavior: Faces 0-1 use Face 0's column, Faces 2-3 use Face 2's column
+    (See llk_math_eltwise_binary_broadcast.h lines 136-141)
+
+    For a 16x16 face: input has 16 unique values (one per row),
+    each value is replicated 16 times across its row.
+    Output pattern: [row0_val]*16, [row1_val]*16, ..., [row15_val]*16
+    """
+
+    def __call__(
+        self,
+        operand1,
+        data_format,
+        num_faces: int = 4,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        torch_format = format_dict[data_format]
+
+        # Convert input to tensor
+        if isinstance(operand1, torch.Tensor):
+            input_flat = operand1.flatten().to(torch_format)
+        else:
+            # Direct conversion avoids intermediate tensor
+            input_flat = torch.tensor(operand1, dtype=torch_format).flatten()
+
+        # Each face is 16x16 = 256 elements
+        face_size = ELEMENTS_PER_FACE
+        face_dim = FACE_DIM
+
+        # Process face 0 (used by faces 0-1)
+        source_face_0 = input_flat[:face_size]
+        col_values_0 = source_face_0[::face_dim]
+        face_0_broadcast = col_values_0.repeat_interleave(face_dim)
+
+        # Handle different face counts efficiently
+        if num_faces == 1:
+            output = face_0_broadcast
+        elif num_faces == 2:
+            # Both faces use face 0 - use repeat instead of cat
+            output = face_0_broadcast.repeat(2)
+        else:  # num_faces == 4
+            # Process face 2 (used by faces 2-3)
+            source_face_2 = input_flat[2 * face_size : 3 * face_size]
+            col_values_2 = source_face_2[::face_dim]
+            face_2_broadcast = col_values_2.repeat_interleave(face_dim)
+
+            # Concatenate: face0, face0, face2, face2
+            output = torch.cat(
+                [face_0_broadcast, face_0_broadcast, face_2_broadcast, face_2_broadcast]
+            )
+
+        return output
+
+
+@register_golden
+class RowBroadcastGolden:
+    """Golden generator for row broadcast operations."""
+
+    def __call__(
+        self,
+        operand1,
+        data_format,
+        num_faces: int = 4,
+        input_dimensions: list[int] = [32, 32],
+    ):
+        torch_format = format_dict[data_format]
+
+        # Convert input to tensor
+        if isinstance(operand1, torch.Tensor):
+            input_flat = operand1.flatten().to(torch_format)
+        else:
+            # Direct conversion avoids intermediate tensor
+            input_flat = torch.tensor(operand1, dtype=torch_format).flatten()
+
+        face_size = ELEMENTS_PER_FACE
+        face_dim = FACE_DIM
+
+        # Process face 0: take first row and repeat to fill face
+        face_0_row = input_flat[:face_dim]
+        face_0_broadcast = face_0_row.repeat(face_dim)
+
+        if num_faces == 1:
+            output = face_0_broadcast
+        elif num_faces in (2, 4):
+            # Extract and repeat face 1 row
+            face_1_row = input_flat[face_size : face_size + face_dim]
+            face_1_broadcast = face_1_row.repeat(face_dim)
+
+            if num_faces == 2:
+                output = torch.cat([face_0_broadcast, face_1_broadcast])
+            else:  # num_faces == 4
+                output = torch.cat(
+                    [
+                        face_0_broadcast,
+                        face_1_broadcast,
+                        face_0_broadcast,
+                        face_1_broadcast,
+                    ]
+                )
+
+        return output
+
+
+@register_golden
 class DataCopyGolden:
     def __call__(
         self,
@@ -652,13 +781,19 @@ class DataCopyGolden:
         # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
         elements_per_tile_needed = (tile_size // 4) * num_faces
 
+        # Convert input to tensor if needed
         if not isinstance(operand1, torch.Tensor):
-            operand1 = torch.tensor(operand1)
+            operand1 = torch.tensor(operand1, dtype=torch_format)
 
         reshaped = operand1.view(tile_cnt, tile_size)
         selected = reshaped[:, :elements_per_tile_needed]
+        result = selected.flatten()
 
-        return selected.flatten().to(torch_format)
+        # Ensure result is in correct format if not already
+        if result.dtype != torch_format:
+            result = result.to(torch_format)
+
+        return result
 
 
 @register_golden
@@ -1122,25 +1257,16 @@ class TilizeGolden:
         if not (1 <= num_faces <= 4):
             raise ValueError(f"`num_faces` must be between 1 and 4, got {num_faces}")
 
-        # Constants
-        FACES_PER_TILE = 4
-        ELEMENTS_PER_FACE = 256  # 16x16
-        ELEMENTS_PER_TILE = 1024  # 4 faces × 256 elements
-        TILE_SIZE = 32  # Tile dimensions: 32x32
-
         # Always do full tilization first
-        result = tilize_block(operand, dimensions, data_format, FACES_PER_TILE)
+        result = tilize_block(operand, dimensions, data_format)
+        torch_format = format_dict[data_format]
 
         # Then select the appropriate number of faces from the tilized result
         if num_faces < FACES_PER_TILE:
-            torch_format = format_dict[data_format]
-            height, width = dimensions
-            tile_cnt = (height // TILE_SIZE) * (width // TILE_SIZE)
-            elements_per_tile_needed = ELEMENTS_PER_FACE * num_faces
+            elements_per_tile_needed = num_faces * ELEMENTS_PER_FACE
+            tile_cnt = result.numel() // ELEMENTS_PER_TILE
+            result = result.reshape(tile_cnt, ELEMENTS_PER_TILE)[
+                :, :elements_per_tile_needed
+            ]
 
-            # Reshape to tiles and select first N faces per tile
-            tilized_reshaped = result.view(tile_cnt, ELEMENTS_PER_TILE)
-            selected = tilized_reshaped[:, :elements_per_tile_needed]
-            return selected.flatten().to(torch_format)
-        else:
-            return result.flatten()
+        return result.flatten().to(torch_format)
