@@ -18,18 +18,7 @@ from helpers.utils import passed_test
 
 
 def generate_broadcast_golden(src_a, src_b, broadcast_type, math_op, output_format):
-    """Generate golden results for broadcast operations.
 
-    Args:
-        src_a: Source A tensor (already tilized, 1024 elements)
-        src_b: Source B tensor (already tilized, 1024 elements)
-        broadcast_type: Type of broadcast (ROW, COL, SCALAR)
-        math_op: Math operation to perform
-        output_format: Output data format
-
-    Returns:
-        Golden tensor with broadcast operation applied
-    """
     # Convert to tensors if needed
     if not isinstance(src_a, torch.Tensor):
         src_a = torch.tensor(src_a, dtype=format_dict[output_format])
@@ -93,12 +82,6 @@ def test_eltwise_add_srcb_broadcast(
     broadcast_type,
     math_fidelity,
 ):
-    """Test element-wise addition with srcB broadcast.
-
-    This test performs element-wise addition with broadcasting on srcB.
-    Input dimensions are fixed at 32x32 (single tile).
-    All srcB broadcast options are swept: ROW, COL, SCALAR.
-    """
 
     # Fixed input dimensions of 32x32
     input_dimensions = [32, 32]
@@ -151,10 +134,5 @@ def test_eltwise_add_srcb_broadcast(
     # Convert to tensor and compare
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-
-    print("Golden tensor:")
-    print(golden_tensor.view(32, 32))
-    print("Res tensor:")
-    print(res_tensor.view(32, 32))
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
