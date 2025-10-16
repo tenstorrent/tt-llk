@@ -139,8 +139,8 @@ def collect_results(
     address: int = 0x1C000,
     location: str = "0,0",
     sfpu: bool = False,
-    num_faces: int = 4,
     tile_dimensions=[32, 32],
+    num_faces: int = 4,
 ):
     # Calculate tile elements based on tile dimensions
     tile_elements = tile_dimensions[0] * tile_dimensions[1]

@@ -177,6 +177,11 @@ class StochasticRounding(Enum):
     All = "StochRndType::All"
 
 
+class Transpose(Enum):
+    Yes = "true"
+    No = "false"
+
+
 class Haloize(Enum):
     Yes = "true"
     No = "false"
@@ -192,22 +197,6 @@ class MathFidelity(Enum):
     HiFi2 = 1
     HiFi3 = 2
     HiFi4 = 3
-
-
-class NarrowTile(Enum):
-    Yes = "true"
-    No = "false"
-
-
-class FaceRDim(Enum):
-    Face16 = 16
-    Face32 = 32  # Default FACE_R_DIM
-
-
-class NumFaces(Enum):
-    One = 1
-    Two = 2
-    Four = 4  # Default
 
 
 class DestSync(Enum):

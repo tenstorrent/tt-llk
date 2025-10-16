@@ -150,21 +150,6 @@ def parametrize(**kwargs: any):
     return decorator
 
 
-def clean_params(all_params: List[tuple]) -> List[tuple]:
-    """
-    Cleans up the list of parameter combinations by removing any `None` values.
-
-    This function filters out any `None` values from the provided list of parameter combinations.
-    It is used to clean up the list of parameters before generating parameter IDs for test cases.
-
-    Returns:
-    List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
-    """
-    return [
-        tuple(param for param in params if param is not None) for params in all_params
-    ]
-
-
 def generate_param_ids(all_params: List[tuple]) -> List[str]:
     """
     Generates parameter IDs from the list of parameter combinations.
