@@ -70,11 +70,7 @@ const bool TILIZE = true;
 #include "params.h"
 
 using namespace ckernel;
-#ifdef FORMAT_INT32
-const bool is_int_fpu_en = true;
-#else
 const bool is_int_fpu_en = false;
-#endif
 
 void run_kernel()
 {
