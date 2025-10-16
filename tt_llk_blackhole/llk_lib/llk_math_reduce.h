@@ -21,21 +21,18 @@ inline void reduce_configure_addrmod();
 template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop();
 
+
 template <
     PoolType type,
     ReduceDim dim,
     bool is_fp32_dest_acc_en,
     int MATH_FIDELITY_DESC         = 0,
     bool is_int_fpu_en             = false,
-    bool enforce_fp32_accumulation = false,
-    bool clear_dvalid              = true>  // New parameter to control data valid clearing
+    bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
-    
-    // For fused operations, don't clear data valid flags since they were never set
-    constexpr uint CLR_MODE = clear_dvalid ? p_setrwc::CLR_AB : p_setrwc::CLR_NONE;
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
     if constexpr (dim == ReduceDim::REDUCE_ROW)
@@ -43,18 +40,16 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         // Transpose for each face in src A done at unpacker, and pool
         if constexpr (type == PoolType::MAX)
         {
-            TTI_GMPOOL(CLR_MODE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
         else if constexpr (HIGH_FIDELITY)
         {
             ckernel_template::run();
-            if constexpr (clear_dvalid) {
-                TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
-            }
+            TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
         }
         else
         {
-            TTI_GAPOOL(CLR_MODE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
 
         if constexpr (type == PoolType::MAX)
@@ -154,7 +149,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
 
         if (num_faces == 2 && !narrow_tile)
         {
-            TTI_SETRWC(CLR_MODE, 0, 0, 0, 0, p_setrwc::SET_BD);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
         }
         else
         {
@@ -165,7 +160,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
             }
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-            TTI_SETRWC(CLR_MODE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
+            TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
 
             /////////////////////
             // Second Tile Row //
@@ -174,18 +169,16 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // Transpose for each face in src A done at unpacker, and pool
             if constexpr (type == PoolType::MAX)
             {
-                TTI_GMPOOL(CLR_MODE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
             else if constexpr (HIGH_FIDELITY)
             {
                 ckernel_template::run();
-                if constexpr (clear_dvalid) {
-                    TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
-                }
+                TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
             }
             else
             {
-                TTI_GAPOOL(CLR_MODE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
 
             if constexpr (type == PoolType::MAX)
@@ -283,7 +276,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             }
 
             // Reset counters to 0 for next accumulation
-            TTI_SETRWC(CLR_MODE, 0, 0, 0, 0, p_setrwc::SET_BD);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
         }
     }
     else if constexpr (dim == ReduceDim::REDUCE_COL)
@@ -304,13 +297,13 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 }
                 else
                 {
-                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0); // F0, F2 -> dst[0]
+                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
                 }
             }
             if ((!narrow_tile) && (num_faces > 1))
             {
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-                TTI_SETRWC(CLR_MODE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+                TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
 
                 if constexpr (type == PoolType::MAX)
                 {
@@ -324,12 +317,12 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                     }
                     else
                     {
-                        TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0); // F1, F3 -> dst[16]
+                        TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
                     }
                 }
             }
-                // Reset Dest Counter
-                TTI_SETRWC(CLR_MODE, 0, 0, 0, 0, p_setrwc::SET_AD);
+            // Reset Dest Counter
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AD);
         }
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
@@ -339,20 +332,18 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // Wait and pool
             if constexpr (type == PoolType::MAX)
             {
-                TTI_GMPOOL(CLR_MODE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
+                TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
             }
             else
             {
                 if constexpr (HIGH_FIDELITY)
                 {
                     ckernel_template::run();
-                    if constexpr (clear_dvalid) {
-                        TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
-                    }
+                    TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
                 }
                 else
                 {
-                    TTI_GAPOOL(CLR_MODE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
+                    TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
                 }
             }
         }
@@ -394,7 +385,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
 
         if constexpr (type == PoolType::MAX)
         {
-            TTI_GMPOOL(CLR_MODE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
         else
         {
@@ -405,10 +396,9 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                     TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
                 }
             }
-            TTI_GAPOOL(CLR_MODE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
     }
-
 }
 
 template <PoolType type,
@@ -540,8 +530,7 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
-
-    math::reset_counters(p_setrwc::SET_ABD_F); // just in case addr_mod_0 changed the dest counter, will be deleted if neededd
+    math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
 // Clear data valid flags after for loop - used in fused operations
