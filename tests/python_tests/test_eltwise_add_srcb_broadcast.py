@@ -9,7 +9,7 @@ from helpers.format_arg_mapping import (
     MathOperation,
     format_dict,
 )
-from helpers.format_config import DataFormat
+from helpers.format_config import BroadcastType, DataFormat
 from helpers.golden_generators import EltwiseBroadcastGolden, get_golden_generator
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
@@ -23,7 +23,12 @@ from helpers.utils import passed_test
     formats=input_output_formats([DataFormat.Float16_b, DataFormat.Float16]),
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No],
-    broadcast_type=["ROW", "COL", "SCALAR", "ROW_LAST"],
+    broadcast_type=[
+        BroadcastType.Row,
+        BroadcastType.Column,
+        BroadcastType.Scalar,
+        BroadcastType.RowLast,
+    ],
     math_fidelity=[MathFidelity.LoFi],
     input_dimensions=[
         [32, 32],

@@ -12,7 +12,7 @@ from helpers.format_arg_mapping import (
     ReducePool,
     format_dict,
 )
-from helpers.format_config import DataFormat
+from helpers.format_config import BroadcastType, DataFormat
 from helpers.tilize_untilize import tilize_block, untilize
 
 # Tile and face dimension constants
@@ -1082,7 +1082,7 @@ class EltwiseBroadcastGolden:
         Args:
             src_a: Input tensor A (already tilized)
             src_b: Input tensor B (already tilized)
-            broadcast_type: Type of broadcast ("ROW", "ROW_LAST", "COL", "SCALAR", or None)
+            broadcast_type: Type of broadcast (BroadcastType enum value)
             math_op: Math operation to perform (Elwadd, Elwsub, Elwmul)
             output_format: Output data format
             tile_count: Number of tiles to process
@@ -1102,10 +1102,10 @@ class EltwiseBroadcastGolden:
         elements_per_tile = ELEMENTS_PER_TILE
 
         broadcast_ops = {
-            "ROW": lambda b: b[0:1, :].expand(TILE_SIZE, TILE_SIZE),
-            "ROW_LAST": lambda b: b[-1:, :].expand(TILE_SIZE, TILE_SIZE),
-            "COL": lambda b: b[:, 0:1].expand(TILE_SIZE, TILE_SIZE),
-            "SCALAR": lambda b: b[0, 0].expand(TILE_SIZE, TILE_SIZE),
+            BroadcastType.Row: lambda b: b[0:1, :].expand(TILE_SIZE, TILE_SIZE),
+            BroadcastType.RowLast: lambda b: b[-1:, :].expand(TILE_SIZE, TILE_SIZE),
+            BroadcastType.Column: lambda b: b[:, 0:1].expand(TILE_SIZE, TILE_SIZE),
+            BroadcastType.Scalar: lambda b: b[0, 0].expand(TILE_SIZE, TILE_SIZE),
         }
 
         math_ops = {
@@ -1128,8 +1128,10 @@ class EltwiseBroadcastGolden:
 
             if broadcast_type in broadcast_ops:
                 b_broadcasted = broadcast_ops[broadcast_type](b_untilized)
-            else:
+            elif broadcast_type == BroadcastType.None_:
                 b_broadcasted = b_untilized
+            else:
+                raise ValueError(f"Unsupported broadcast type: {broadcast_type}")
 
             if math_op in math_ops:
                 result = math_ops[math_op](a_untilized, b_broadcasted)

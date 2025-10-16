@@ -85,6 +85,7 @@ class BroadcastType(Enum):
     None_ = "NONE"
     Column = "COL"
     Row = "ROW"
+    RowLast = "ROW_LAST"
     Scalar = "SCALAR"
 
 
