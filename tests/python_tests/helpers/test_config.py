@@ -154,14 +154,12 @@ def generate_build_header(test_config):
     if "broadcast_type" in test_config:
         broadcast_type = test_config["broadcast_type"]
         # Handle both string and enum types
-        if isinstance(broadcast_type, str):
-            header_content.append(
-                f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type};"
-            )
-        else:
-            header_content.append(
-                f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
-            )
+        broadcast_value = (
+            broadcast_type if isinstance(broadcast_type, str) else broadcast_type.value
+        )
+        header_content.append(
+            f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_value};"
+        )
 
     # Accumulate to dest
     if "acc_to_dest" in test_config:
