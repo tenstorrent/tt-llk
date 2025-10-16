@@ -153,9 +153,15 @@ def generate_build_header(test_config):
     # Broadcast type
     if "broadcast_type" in test_config:
         broadcast_type = test_config["broadcast_type"]
-        header_content.append(
-            f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
-        )
+        # Handle both string and enum types
+        if isinstance(broadcast_type, str):
+            header_content.append(
+                f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type};"
+            )
+        else:
+            header_content.append(
+                f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
+            )
 
     # Accumulate to dest
     if "acc_to_dest" in test_config:
@@ -404,15 +410,6 @@ def generate_build_header(test_config):
         header_content.append("")
         header_content.append(
             f"constexpr auto PERF_RUN_TYPE = PerfRunType::{perf_run_type.name};"
-        )
-
-    # Broadcast type configuration
-    broadcast_type = test_config.get("broadcast_type", None)
-    if broadcast_type is not None:
-        header_content.append("")
-        header_content.append("// Broadcast configuration")
-        header_content.append(
-            f"constexpr auto BROADCAST_TYPE = BroadcastType::{broadcast_type};"
         )
 
     header_content.append("")
