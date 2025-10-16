@@ -125,7 +125,7 @@ inline void _llk_unpack_AB_init_(
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b, [[maybe_unused]] const bool transpose_of_faces = 0)
+inline void _llk_unpack_AB_(std::uint32_t address_a, std::uint32_t address_b, [[maybe_unused]] const bool transpose_of_faces = 0)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
@@ -135,8 +135,7 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     // Wait for free context
     wait_for_next_context(2);
 
-    // For ROW_LAST broadcast, adjust srcB address to point to last row
-    uint32_t adjusted_address_b = address_b;
+    // For ROW_LAST broadcast, update srcB address directly to point to last row
     if constexpr (BType == BroadcastType::ROW_LAST)
     {
         // In tilized format, row 31 spans face 2 (cols 0-15) and face 3 (cols 16-31)
@@ -144,19 +143,19 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
         // Face 2 starts at element 512, row 15 within face 2 is at 512 + 15*16 = 752
         // Each element is 2 bytes for Float16_b, so 752 * 2 = 1504 bytes
         // In 16-byte units: 1504 / 16 = 94
-        adjusted_address_b += 94;
+        address_b += 94;
     }
 
     // Get tile address
     if (0 == unp_cfg_context)
     {
         cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = adjusted_address_b;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
     }
     else
     {
         cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = adjusted_address_b;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
     }
 
     // Trisc::SEMPOST for context acquire
