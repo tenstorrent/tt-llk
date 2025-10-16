@@ -37,7 +37,7 @@ inline void eltwise_binary_reuse_dest_as_src_tile(uint32_t idst = 0)
     {
         switch (idst) {
             case 0:
-                // Necessary fix
+                // Reset destination target register to base address before moving data from destination to source A
                 TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, 0);
                 TT_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
                 TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, 0);

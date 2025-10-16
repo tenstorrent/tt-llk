@@ -153,8 +153,7 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
 }
 
 
-template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_but_fused_so_no_mop_(const std::uint32_t address_a, const std::uint32_t address_b, const bool transpose_of_faces = 0 /*not used*/)
+inline void _llk_unpack_AB_fused_()
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
