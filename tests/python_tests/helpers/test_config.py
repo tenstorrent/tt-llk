@@ -21,7 +21,6 @@ from .format_arg_mapping import (
     DestSync,
     MathFidelity,
     MathOperation,
-    NarrowTile,
     StochasticRounding,
     Tilize,
     Transpose,
@@ -181,7 +180,7 @@ def generate_build_header(test_config):
         header_content.append(f"constexpr std::uint32_t NUM_FACES = {num_faces};")
 
     if "narrow_tile" in test_config:
-        narrow_tile = str(test_config["narrow_tile"]).lower()
+        narrow_tile = test_config["narrow_tile"].value
         header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
 
     # Math fidelity & Approximation mode
@@ -215,13 +214,6 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr int num_faces = {num_faces};")
     header_content.append(f"constexpr int num_faces_A = {num_faces_A};")
     header_content.append(f"constexpr int num_faces_B = {num_faces_B};")
-    header_content.append(
-        f"constexpr int NUM_FACES = {num_faces};"
-    )  # Uppercase for legacy compatibility
-
-    # Narrow tile flag
-    narrow_tile = test_config.get("narrow_tile", NarrowTile.No).value
-    header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
 
     # input tile dimensions
     in0_tile_r_dim = test_config.get("in0_tile_r_dim", 32)

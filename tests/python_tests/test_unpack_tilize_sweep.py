@@ -8,7 +8,6 @@ from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_arg_mapping import (
     DestAccumulation,
     NarrowTile,
-    NumFaces,
     StochasticRounding,
     Transpose,
     format_dict,
@@ -40,7 +39,7 @@ from helpers.utils import passed_test
     transpose=[Transpose.No],
     narrow_tile=[NarrowTile.No],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    num_faces=[NumFaces.Four, NumFaces.Two, NumFaces.One],
+    num_faces=[4, 2, 1],
     input_dimensions=[[32, 32], [64, 64], [32, 64], [32, 128], [128, 32]],
 )
 def test_unpack_tilize_comprehensive(
@@ -62,7 +61,7 @@ def test_unpack_tilize_comprehensive(
     # File: tt_llk_wormhole_b0/llk_lib/llk_unpack_tilize.h:220
     # num_loops = num_faces / 2 → when num_faces=1, this is 1/2=0 (integer division)
     # Result: for (n=0; n<0; n++) never executes, no data unpacked, packer timeout
-    if arch == ChipArchitecture.WORMHOLE and num_faces == NumFaces.One:
+    if arch == ChipArchitecture.WORMHOLE and num_faces == 1:
         pytest.skip(
             "Wormhole LLK: num_loops = num_faces/2 = 0 when num_faces=1 "
             "(tt_llk_wormhole_b0/llk_lib/llk_unpack_tilize.h:220)"
@@ -83,7 +82,7 @@ def test_unpack_tilize_comprehensive(
     if (
         arch == ChipArchitecture.BLACKHOLE
         and formats.output_format == DataFormat.Bfp8_b
-        and num_faces in [NumFaces.One, NumFaces.Two]
+        and num_faces in [1, 2]
     ):
         pytest.skip(
             "Blackhole BFP8_b output fails for num_faces=1,2: tilize packer has hardcoded "
@@ -120,7 +119,7 @@ def test_unpack_tilize_comprehensive(
         src_A,
         input_dimensions,
         formats.output_format,
-        num_faces.value,
+        num_faces,
     )
 
     golden_tensor = golden_tensor.to(torch_format)
@@ -137,7 +136,7 @@ def test_unpack_tilize_comprehensive(
         "unpack_transpose_faces": Transpose.No,
         "unpack_transpose_within_face": transpose,
         "dest_acc": dest_acc,
-        "num_faces": num_faces.value,
+        "num_faces": num_faces,
         "narrow_tile": narrow_tile,
     }
 
@@ -150,7 +149,7 @@ def test_unpack_tilize_comprehensive(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        num_faces=num_faces.value,
+        num_faces=num_faces,
     )
 
     # Execute the kernel
@@ -158,7 +157,7 @@ def test_unpack_tilize_comprehensive(
 
     # Collect results from L1 memory
     res_from_L1 = collect_results(
-        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces.value
+        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces
     )
 
     # Verify result size matches expected
