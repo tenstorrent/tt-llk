@@ -113,11 +113,11 @@ main() {
     trap cleanup EXIT
 
     # Get script directory and version file
-    local version_file="$SCRIPT_DIR/sfpi-version.sh"
+    local version_file="$SCRIPT_DIR/sfpi-info.sh"
 
     # Check if version file exists and is readable
     if [[ ! -r "$version_file" ]]; then
-        echo "ERROR: sfpi-version.sh not found or not readable at '$version_file'" >&2
+        echo "ERROR: sfpi-info.sh not found or not readable at '$version_file'" >&2
         exit 1
     fi
 

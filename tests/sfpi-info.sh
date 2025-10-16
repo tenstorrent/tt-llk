@@ -5,15 +5,6 @@
 # This is the source of truth as to how we determine arch and distro names.
 # Canonical location is in tenstorrent/tt-sfpi project's script directory.
 
-# Define release, update this bit for new release
-sfpi_version=7.5.0
-sfpi_aarch64_linux_deb_md5=bc0adb8f67a75b0f226ed2cbdf396a40
-sfpi_aarch64_linux_rpm_md5=7701729b1f2567764183aab320502558
-sfpi_aarch64_linux_txz_md5=15c8147501ffbc0d6869a7481f650987
-sfpi_x86_64_linux_deb_md5=ff911ffe11a0a4bb40c48d87376295b0
-sfpi_x86_64_linux_rpm_md5=c4899b46201329a9811b8cda33bc411c
-sfpi_x86_64_linux_txz_md5=4ca0388aa696c9bf297651931938eb6b
-
 # One ring to rule them all,
 # One ring to find them,
 # One ring to bring them all
@@ -40,25 +31,35 @@ EOF
     exit 1
 fi
 
+version_file="sfpi-version"
 if [[ ${1-} =~ '.md5'$ ]] ; then
-    # convert md5 files into release variables, to insert above
+    # convert md5 files into sfpi-version file
     version=
+    exit_code=0
+    echo '# sfpi version information' >$version_file
+    echo 'sfpi_repo=https://github.com/tenstorrent/sfpi' >>$version_file
     for file in "$@"
     do
 	ver="${file##*/sfpi_}"
 	ver="${ver%%_*}"
 	if [[ $ver != $version ]] ; then
+	    if [[ -n $version ]] ; then
+	       echo "ERROR: Multiple versions" >&2
+	       exit_code=1
+	    fi
 	    version=$ver
-	    echo sfpi_version=$version
+	    echo sfpi_version=$version >>$version_file
 	fi
     done
-   sed 's/^\([0-9a-f]*\) \*sfpi_[^_]*_\([^.]*\)\.\(.*\)$/sfpi_\2_\3_md5=\1/' "$@"
-   exit 0
+   sed 's/^\([0-9a-f]*\) \*sfpi_[^_]*_\([^.]*\)\.\(.*\)$/sfpi_\2_\3_md5=\1/' "$@" >>$version_file
+   exit $exit_code
 fi
 
 if [[ ${1-} = RELEASE ]] ; then
-    # releaser of sfpi-version
+    # releaser of sfpi
     sfpi_version=$2
+else
+    source $(dirname $0)/$version_file
 fi
 
 # define host system
@@ -80,7 +81,7 @@ if [[ -r /etc/os-release ]] ; then
     fi
 
     # debian and fedora are sufficiently close to treat as one, modulo
-    # packaging system. We endevor to build on a common denominator
+    # packaging system. We endeavor to build on a common denominator
     # system and translate package dependencies.
     case $ID in
 	debian) sfpi_dist=linux sfpi_pkg=deb;;
@@ -91,7 +92,6 @@ fi
 sfpi_arch=$(uname -m)
 
 # define download location & name
-sfpi_repo=https://github.com/tenstorrent/sfpi
 sfpi_url=$sfpi_repo/releases/download/$sfpi_version
 sfpi_filename=sfpi_${sfpi_version}_${sfpi_arch}_${sfpi_dist}
 
