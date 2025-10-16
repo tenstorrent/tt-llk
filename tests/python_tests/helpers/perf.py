@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
 import csv
+import json
 import os
 import shutil
 from dataclasses import dataclass, field, fields, is_dataclass
@@ -316,40 +317,137 @@ def dump_scatter(testname: str, report: PerfReport):
     # stat_names: e.g. mean(L1_TO_L1), mean(UNPACK_ISOLATE), ...
     # sweep_names: e.g. tile_cnt, param2, ...
 
+    # ---- Build combined records ----
+    records = []
+    for i, (params, mvals) in enumerate(zip(report.sweep_values, report.stat_values)):
+        entry = {"index": i + 1}
+        entry.update({k: str(v) for k, v in zip(report.sweep_names, params)})
+        entry.update({k: v for k, v in zip(report.stat_names, mvals)})
+        records.append(entry)
+
+    # ---- Create default Plotly figure ----
     fig = go.Figure()
+    stat_names_to_plot = [m for m in report.stat_names if m.startswith("mean")]
+    print(stat_names_to_plot)
 
-    mean_columns = [
-        (name, i) for i, name in enumerate(report.stat_names) if name.startswith("mean")
-    ]
-
-    hover = [
-        ", ".join(f"{name}={val}" for name, val in zip(report.sweep_names, sweep))
-        for sweep in report.sweep_values
-    ]
-
-    # For each stat column (run type), plot all points
-    for stat_name, stat_idx in mean_columns:
-        y_vals = [stat[stat_idx] for stat in report.stat_values]
-
+    for m in stat_names_to_plot:
         fig.add_trace(
             go.Scatter(
-                x=list(range(len(report.sweep_values))),
-                y=y_vals,
-                mode="markers+lines",
-                name=stat_name,
-                text=hover,
-                hoverinfo="text+y",
+                x=[r["index"] for r in records],
+                y=[r[m] for r in records],
+                mode="lines+markers",
+                name=m,
+                text=[
+                    ", ".join([f"{p}={r[p]}" for p in report.sweep_names])
+                    for r in records
+                ],
+                hovertemplate="<b>%{text}</b><br>" + f"{m}: " + "%{y}<extra></extra>",
             )
         )
 
-    # X-axis label
-    xaxis_title = "Sweep index (see hover for values)"
-
     fig.update_layout(
         title=f"Performance Scatter Plot: {testname}",
-        xaxis_title=xaxis_title,
+        xaxis_title="Sweep index (see hover for values)",
         yaxis_title="Cycles / Tile",
+        template="plotly_white",
         legend_title="Run Type / Stat",
     )
 
-    fig.write_html(str(output_path))
+    # ---- Prepare data for embedding ----
+    fig_json = fig.to_plotly_json()
+    fig_data_json = json.dumps(fig_json["data"])
+    fig_layout_json = json.dumps(fig_json["layout"])
+    records_json = json.dumps(records)
+    param_names_json = json.dumps(report.sweep_names)
+    metric_names_json = json.dumps(stat_names_to_plot)
+
+    # ---- Build HTML ----
+    html = f"""
+    <html>
+    <head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+    html, body {{
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        font-family: sans-serif;
+    }}
+    #controls {{
+        padding: 10px;
+    }}
+    #plot {{
+        width: 100%;
+        height: calc(100vh - 80px); /* fills the rest of the screen */
+    }}
+    </style>
+    </head>
+    <body>
+    <h2>Interactive Performance Sweep Report</h2>
+    <div id="controls"></div>
+    <div id="plot"></div>
+
+    <script>
+    const allRecords = {records_json};
+    const paramNames = {param_names_json};
+    const metricNames = {metric_names_json};
+    const layout = {fig_layout_json};
+
+    let selections = {{}};
+
+    // --- Create dropdowns ---
+    const controlsDiv = document.getElementById('controls');
+    paramNames.forEach(p => {{
+    const values = [...new Set(allRecords.map(r => r[p]))];
+    const label = document.createElement('label');
+    label.textContent = p + ': ';
+    const select = document.createElement('select');
+    select.id = p;
+    const allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.text = 'All';
+    select.appendChild(allOpt);
+    values.forEach(v => {{
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.text = v;
+        select.appendChild(opt);
+    }});
+    select.onchange = updatePlot;
+    label.appendChild(select);
+    controlsDiv.appendChild(label);
+    selections[p] = '';
+    }});
+
+    // --- Draw initial plot ---
+    let figData = {fig_data_json};
+    Plotly.newPlot('plot', figData, layout, {{responsive: true}});
+
+    // --- Update plot based on filters ---
+    function updatePlot() {{
+    paramNames.forEach(p => selections[p] = document.getElementById(p).value);
+    const filtered = allRecords.filter(r => {{
+        return Object.entries(selections).every(([k, v]) => !v || r[k] == v);
+    }});
+
+    const indices = filtered.map(r => r.index);
+    const traces = metricNames.map(m => {{
+        return {{
+        x: indices,
+        y: filtered.map(r => r[m]),
+        mode: 'lines+markers',
+        name: m,
+        text: filtered.map(r => paramNames.map(p => `${{p}}=${{r[p]}}`).join(', ')),
+        hovertemplate: `<b>%{{text}}</b><br>${{m}}: %{{y}}<extra></extra>`
+        }};
+    }});
+    Plotly.react('plot', traces, layout);
+    }}
+    </script>
+    </body>
+    </html>
+    """
+
+    with open(str(output_path), "w") as f:
+        f.write(html)
