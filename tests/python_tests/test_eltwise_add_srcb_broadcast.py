@@ -10,73 +10,12 @@ from helpers.format_arg_mapping import (
     format_dict,
 )
 from helpers.format_config import DataFormat
+from helpers.golden_generators import EltwiseBroadcastGolden, get_golden_generator
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import tilize, tilize_block
+from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
-
-
-def generate_broadcast_golden(
-    src_a, src_b, broadcast_type, math_op, output_format, tile_count
-):
-
-    # Convert to tensors if needed
-    if not isinstance(src_a, torch.Tensor):
-        src_a = torch.tensor(src_a, dtype=format_dict[output_format])
-    if not isinstance(src_b, torch.Tensor):
-        src_b = torch.tensor(src_b, dtype=format_dict[output_format])
-
-    # Since inputs are already tilized, we need to untilize them first for proper broadcast
-    from helpers.tilize_untilize import tilize, untilize
-
-    results = []
-    elements_per_tile = 32 * 32
-
-    for tile_idx in range(tile_count):
-        # Extract current tile data (already in tilized format)
-        start_idx = tile_idx * elements_per_tile
-        end_idx = (tile_idx + 1) * elements_per_tile
-
-        a_tile = src_a[start_idx:end_idx]
-        b_tile = src_b[start_idx:end_idx]
-
-        # Untilize current tiles to get them in row-major format
-        a_untilized = untilize(a_tile, output_format).view(32, 32)
-        b_untilized = untilize(b_tile, output_format).view(32, 32)
-
-        if broadcast_type == "ROW":
-            # Broadcast first row of B to all rows
-            b_broadcasted = b_untilized[0:1, :].expand(32, 32)
-        elif broadcast_type == "ROW_LAST":
-            # Broadcast last row (row 31) of B to all rows
-            b_broadcasted = b_untilized[-1:, :].expand(32, 32)
-        elif broadcast_type == "COL":
-            # Broadcast first column of B to all columns
-            b_broadcasted = b_untilized[:, 0:1].expand(32, 32)
-        elif broadcast_type == "SCALAR":
-            # Broadcast single element to entire tile
-            b_broadcasted = b_untilized[0, 0].expand(32, 32)
-        else:
-            # No broadcast
-            b_broadcasted = b_untilized
-
-        # Perform operation
-        if math_op == MathOperation.Elwadd:
-            result = a_untilized + b_broadcasted
-        elif math_op == MathOperation.Elwsub:
-            result = a_untilized - b_broadcasted
-        elif math_op == MathOperation.Elwmul:
-            result = a_untilized * b_broadcasted
-        else:
-            raise ValueError(f"Unsupported math operation: {math_op}")
-
-        # Tilize the result back and add to results
-        result_tilized = tilize(result.flatten(), output_format)
-        results.append(result_tilized)
-
-    # Concatenate all tile results
-    return torch.cat(results).to(dtype=format_dict[output_format])
 
 
 @parametrize(
@@ -109,21 +48,16 @@ def test_eltwise_add_srcb_broadcast(
     )
 
     # Tilize inputs (convert from row-major to tile format)
-    if tile_cnt == 1:
-        # For single tile, use regular tilize
-        src_A_tilized = tilize(src_A)
-        src_B_tilized = tilize(src_B)
-    else:
-        # For multiple tiles, use tilize_block
-        src_A_tilized = tilize_block(
-            src_A, input_dimensions, formats.input_format
-        ).flatten()
-        src_B_tilized = tilize_block(
-            src_B, input_dimensions, formats.input_format
-        ).flatten()
+    src_A_tilized = tilize_block(
+        src_A, input_dimensions, formats.input_format
+    ).flatten()
+    src_B_tilized = tilize_block(
+        src_B, input_dimensions, formats.input_format
+    ).flatten()
 
     # Generate golden results
-    golden_tensor = generate_broadcast_golden(
+    generate_golden = get_golden_generator(EltwiseBroadcastGolden)
+    golden_tensor = generate_golden(
         src_A_tilized,
         src_B_tilized,
         broadcast_type,
