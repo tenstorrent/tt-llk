@@ -21,7 +21,6 @@ inline void reduce_configure_addrmod();
 template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop();
 
-
 template <
     PoolType type,
     ReduceDim dim,
@@ -401,23 +400,40 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
 }
 
-template <PoolType type,
-ReduceDim dim,
-bool is_fp32_dest_acc_en,
-int MATH_FIDELITY_DESC         = 0,
-bool is_int_fpu_en             = false,
-bool enforce_fp32_accumulation = false>
+template <
+    PoolType type,
+    ReduceDim dim,
+    bool is_fp32_dest_acc_en,
+    int MATH_FIDELITY_DESC         = 0,
+    bool is_int_fpu_en             = false,
+    bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_column_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
-    const uint num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
+    const uint num_row_tiles           = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-    
-        for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++)
+
+    for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++)
+    {
+        if constexpr (HIGH_FIDELITY)
         {
+            ckernel_template::run();
+        }
+        else
+        {
+            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+        }
+        if ((!narrow_tile) && (num_faces > 1))
+        {
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+
             if constexpr (HIGH_FIDELITY)
             {
                 ckernel_template::run();
@@ -426,34 +442,18 @@ inline void _llk_math_reduce_column_(const uint dst_index, bool narrow_tile = fa
             {
                 TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
-            if ((!narrow_tile) && (num_faces > 1))
-            {
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-
-                if constexpr (HIGH_FIDELITY)
-                {
-                    ckernel_template::run();
-                }
-                else
-                {
-                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-                }                
-            }
-            if(row_tile == 0)
-            {
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
-                TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-            }
-            else
-            {
-                TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AD);
-            }
         }
+        if (row_tile == 0)
+        {
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+            TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+        }
+        else
+        {
+            TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AD);
+        }
+    }
 }
 
 template <PoolType type, int MATH_FIDELITY_DESC>
@@ -534,7 +534,8 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
 }
 
 // Clear data valid flags after for loop - used in fused operations
-inline void _llk_math_reduce_clear_dvalid_after_for_loop_() {
+inline void _llk_math_reduce_clear_dvalid_after_for_loop_()
+{
     TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
 }

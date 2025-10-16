@@ -35,7 +35,8 @@ inline void eltwise_binary_reuse_dest_as_src_tile(uint32_t idst = 0)
 {
     if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA)
     {
-        switch (idst) {
+        switch (idst)
+        {
             case 0:
                 // Reset destination target register to base address before moving data from destination to source A
                 TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, 0);
@@ -190,11 +191,10 @@ inline void eltwise_binary_reuse_dest_as_src_tile(uint32_t idst = 0)
     }
     else if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)
     {
-
         // Explicitly reset D (dest read) and B (srcB write) counters to 0
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
-        
+
         // Move all 64 rows from dest to srcB (4 rows at a time, 16 instructions total)
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 4, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
@@ -228,7 +228,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
     constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
-    
+
     // CRITICAL FIX: Reset dest RWC counter to 0 after setting base address
     // set_dst_write_addr sets the base, but D counter is separate and may have stale values
     // Without this, writes go to base_addr + stale_D_counter instead of base_addr + 0
