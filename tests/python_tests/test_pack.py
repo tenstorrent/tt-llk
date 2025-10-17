@@ -26,9 +26,9 @@ from helpers.utils import passed_test
     test_name="pack_test",
     formats=input_output_formats(
         [
-            # DataFormat.Float16_b,
+            DataFormat.Float16_b,
             # DataFormat.Float16,
-            DataFormat.Float32,
+            # DataFormat.Float32,
         ]
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
