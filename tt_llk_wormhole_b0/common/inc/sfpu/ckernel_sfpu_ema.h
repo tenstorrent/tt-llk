@@ -22,22 +22,23 @@ sfpi_inline void _ema_load_prev_output_()
 
 sfpi_inline void _ema_load_alpha_beta_()
 {
-    // alpha = 0.0
-    // beta = 0.5
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 8, 0x00000000 >> 16); // 0
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 10, 0x00000000 & 0xFFFF); // 0
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 8, 0x3f000000 >> 16); // 0.5
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 10, 0x3f000000 & 0xFFFF); // 0.5
+    // alpha = 0.25
+    // beta = (1 - alpha) = 0.75
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 8, 0x3e800000 >> 16); // 0.25
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 10, 0x3e800000 & 0xFFFF); // 0.25
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 8, 0x3f400000 >> 16); // 0.75
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 10, 0x3f400000 & 0xFFFF); // 0.75
 }
 
 template <uint32_t I, uint32_t J>
 sfpi_inline void _ema_load_curr_input_()
 {
-    constexpr uint32_t dst_reg_offset = 0;
-    constexpr uint32_t offset0 = dst_reg_offset + (I * 32) + (4 * J);
-    constexpr uint32_t offset1 = offset0 + 2;
-    constexpr uint32_t offset2 = offset1 + 16;
-    constexpr uint32_t offset3 = offset2 + 18;
+    constexpr uint32_t dst_reg_offset = (I * 32) + (4 * J);
+    constexpr uint32_t offset0 = dst_reg_offset;
+    constexpr uint32_t offset1 = dst_reg_offset + 2;
+    constexpr uint32_t offset2 = dst_reg_offset + 16;
+    constexpr uint32_t offset3 = dst_reg_offset + 18;
+
     TTI_SFPTRANSP(0, 0, 0, 0);
     TTI_SFPLOAD(ckernel::p_sfpu::LREG0, 0, ckernel::ADDR_MOD_3, offset0); /*row0*/
     TTI_SFPLOAD(ckernel::p_sfpu::LREG1, 0, ckernel::ADDR_MOD_3, offset1); /*row1*/
@@ -49,11 +50,12 @@ sfpi_inline void _ema_load_curr_input_()
 template <uint32_t I, uint32_t J>
 sfpi_inline void _ema_store_curr_input_()
 {
-    constexpr uint32_t dst_reg_offset = 64 * 2;
-    constexpr uint32_t offset0 = dst_reg_offset + (I * 32) + (4 * J);
-    constexpr uint32_t offset1 = offset0 + 2;
-    constexpr uint32_t offset2 = offset1 + 16;
-    constexpr uint32_t offset3 = offset2 + 18;
+    constexpr uint32_t dst_reg_offset =  64 * 2 + (I * 32) + (4 * J);
+    constexpr uint32_t offset0 = dst_reg_offset;
+    constexpr uint32_t offset1 = dst_reg_offset + 2;
+    constexpr uint32_t offset2 = dst_reg_offset + 16;
+    constexpr uint32_t offset3 = dst_reg_offset + 18;
+
     TTI_SFPTRANSP(0, 0, 0, 0);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG0, 0, ckernel::ADDR_MOD_3, offset0); /*row0*/
     TTI_SFPSTORE(ckernel::p_sfpu::LREG1, 0, ckernel::ADDR_MOD_3, offset1); /*row1*/
