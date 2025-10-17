@@ -40,8 +40,8 @@ inline void _llk_math_ema_sfpu_init_()
     // alpha = 0.25
     TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 8, 0x3e800000 >> 16);
     TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 10, 0x3e800000 & 0xFFFF);
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 8, 3f400000 >> 16);
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 10, 3f400000 & 0xFFFF);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 8, 0x3f400000 >> 16);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 10, 0x3f400000 & 0xFFFF);
     // _ema_load_curr_input_();
     TTI_SFPTRANSP(0, 0, 0, 0);
     // _ema_save_curr_output_();
