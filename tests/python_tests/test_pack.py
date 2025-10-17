@@ -26,19 +26,21 @@ from helpers.utils import passed_test
     test_name="pack_test",
     formats=input_output_formats(
         [
-            # DataFormat.Float16_b,
+            DataFormat.Float16_b,
             # DataFormat.Float16,
-            DataFormat.Float32,
-        ]
+            # DataFormat.Float32,
+            # DataFormat.Int32,
+        ],
+        same=True,
     ),
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
 )
 def test_pack(test_name, formats, dest_acc, boot_mode=BootMode.DEFAULT):
 
-    if formats.input_format != formats.output_format:
-        pytest.skip("Keep the formats the same for now")
-
     if formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.No:
+        pytest.skip("Fails")
+
+    if formats.input_format == DataFormat.Int32 and dest_acc == DestAccumulation.No:
         pytest.skip("Fails")
 
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
