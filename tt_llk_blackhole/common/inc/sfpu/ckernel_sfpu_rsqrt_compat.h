@@ -103,12 +103,12 @@ inline void _calculate_rsqrt_compat_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::dst_reg[0] = _sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
-        sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::vFloat out = _reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
-        v_if (in < 0.0)
+        sfpi::vFloat input = sfpi::dst_reg[0];
+        sfpi::vFloat in    = _sqrt_compat_<APPROXIMATION_MODE, 2>(input);
+        sfpi::vFloat out   = _reciprocal_compat_<APPROXIMATION_MODE ? 2 : 3>(in);
+        v_if (input < 0.0)
         {
-            out = -out;
+            out = std::numeric_limits<float>::quiet_NaN();
         }
         v_endif;
         if constexpr (fp32_dest_acc_en || APPROXIMATION_MODE)
