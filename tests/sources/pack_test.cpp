@@ -54,15 +54,15 @@ void run_kernel()
     td_val.buf_desc_id     = BUF_DESC_ID;
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
-    if (is_fp32_dest_acc_en)
-    {
-        // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
-        _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
-    }
-    else
-    {
-        _llk_unpack_configure_unary_<p_unpacr::UNP_A>(td_val);
-    }
+    // if (is_fp32_dest_acc_en)
+    //{
+    //  If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
+    _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
+    //}
+    // else
+    //{
+    //    _llk_unpack_configure_unary_<p_unpacr::UNP_A>(td_val);
+    //}
     if (unpack_to_dest)
     {
         _llk_unpack_unary_operand_init_<p_unpacr::UNP_DEST, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
@@ -76,7 +76,11 @@ void run_kernel()
     {
         _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
     }
-    _llk_unpack_dest_dvalid_section_done_();
+
+    if (unpack_to_dest)
+    {
+        _llk_unpack_dest_dvalid_section_done_();
+    }
 }
 
 #endif
@@ -100,6 +104,9 @@ void run_kernel()
     if (unpack_to_dest)
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::UNPACK, dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+        // Configure dest register format when unpacking directly to dest
+        _llk_math_upk_to_dest_hw_configure_<true /*math implied*/, is_fp32_dest_acc_en, is_int_fpu_en>();
     }
     else
     {
