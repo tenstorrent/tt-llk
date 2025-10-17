@@ -317,7 +317,8 @@ def dump_scatter(testname: str, report: PerfReport):
     # stat_names: e.g. mean(L1_TO_L1), mean(UNPACK_ISOLATE), ...
     # sweep_names: e.g. tile_cnt, param2, ...
 
-    # ---- Build combined records ----
+    # Build records structure that will be combination of parameter sweep value
+    # and stat value for each tested set of parameters
     records = []
     for i, (params, mvals) in enumerate(zip(report.sweep_values, report.stat_values)):
         entry = {"index": i + 1}
@@ -325,10 +326,11 @@ def dump_scatter(testname: str, report: PerfReport):
         entry.update({k: v for k, v in zip(report.stat_names, mvals)})
         records.append(entry)
 
-    # ---- Create default Plotly figure ----
-    fig = go.Figure()
+    # Select only mean stats to plot
     stat_names_to_plot = [m for m in report.stat_names if m.startswith("mean")]
-    print(stat_names_to_plot)
+
+    # Create default Plotly figure
+    fig = go.Figure()
 
     for m in stat_names_to_plot:
         fig.add_trace(
@@ -401,7 +403,7 @@ def dump_scatter(testname: str, report: PerfReport):
     paramNames.forEach(p => {{
     const values = [...new Set(allRecords.map(r => r[p]))];
     const label = document.createElement('label');
-    label.textContent = p + ': ';
+    label.textContent = ' ' + p + ': ';
     const select = document.createElement('select');
     select.id = p;
     const allOpt = document.createElement('option');
