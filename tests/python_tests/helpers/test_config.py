@@ -5,13 +5,14 @@ import os
 from enum import Enum
 from pathlib import Path
 
+from .data_format_inference import infer_data_formats
 from .device import (
     BootMode,
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
-from .format_config import DataFormat, FormatConfig, InputOutputFormat
+from .format_config import DataFormat
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -70,6 +71,11 @@ def generate_build_header(test_config):
       - Profiler and accumulation settings
       - Data format and math operation defines
       - Special configuration for multi-tile tests
+
+    Data Format Inference:
+      - If test_config["formats"] infers all formats for llk APIs (unpack, math, pack) using the Python data format inference model.
+      - A C++ FormatConfig struct is generated in build.h containing all format values,
+        allowing C++ test files to access formats via `formats.unpack_src`, etc.
 
     Args:
         test_config (dict): Dictionary containing test configuration parameters.
@@ -278,28 +284,38 @@ def generate_build_header(test_config):
     # Data format configuration
     header_content.extend(["", "// Data format configuration"])
     formats = test_config.get("formats", None)
-    if isinstance(formats, InputOutputFormat):
-        header_content.extend(
-            [
-                f"// Activating Data Format Inference Model\n",
-                f"#define DATA_FORMAT_INFERENCE_MODEL true",
-                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format.name});",
-                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.output_format.name});",
-            ]
-        )
-    elif isinstance(formats, FormatConfig):
-        header_content.append(f"#define DATA_FORMAT_INFERENCE_MODEL false")
-        header_content.extend(
-            [
-                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.unpack_A_src.name});",
-                f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.unpack_A_dst.name});",
-                f"constexpr auto UNPACK_B_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.unpack_B_src.name});",
-                f"constexpr auto UNPACK_B_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.unpack_B_dst.name});",
-                f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.pack_src.name});",
-                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.pack_dst.name});",
-                f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.math.name});",
-            ]
-        )
+
+    # Data Format Inference will now occur from the python-end, gives visibility on all formats for test case
+    # DATA_FORMAT_INFERENCE_MODEL is not defined in build.h, thus inference is deactivated from python-end
+    header_content.append("// Data formats inferred by Python inference model")
+
+    # Get dest_acc and unpack_to_dest settings for inference
+    unpacking_to_dest = test_config.get("unpack_to_dest", False)
+
+    # === Infer all data formats using Python inference model ===
+    if formats is None:
+        raise ValueError("Format Config not passed in test config")
+
+    formats_config = infer_data_formats(
+        input_format=formats.input_format,
+        output_format=formats.output_format,
+        is_fp32_dest_acc_en=dest_acc == DestAccumulation.Yes,
+        unpacking_to_dest=unpacking_to_dest,
+    )
+
+    header_content.append("#define DATA_FORMAT_INFERENCE_MODEL false")
+    # Generate format constants for C++ (works for both inferred and explicit FormatConfig)
+    header_content.extend(
+        [
+            f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
+            f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
+            f"constexpr auto UNPACK_B_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_B_src.name});",
+            f"constexpr auto UNPACK_B_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_B_dst.name});",
+            f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
+            f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
+            f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
+        ]
+    )
 
     # Math operation configuration
     mathop = test_config.get("mathop", "no_mathop")
