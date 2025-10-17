@@ -157,6 +157,13 @@ def generate_build_header(test_config):
             f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
         )
 
+    # Broadcast row index (for row broadcast)
+    if "bcast_row_index" in test_config:
+        bcast_row_index = test_config["bcast_row_index"]
+        header_content.append(
+            f"constexpr std::uint32_t BCAST_ROW_INDEX = {bcast_row_index};"
+        )
+
     # Accumulate to dest
     if "acc_to_dest" in test_config:
         acc_to_dest = str(test_config["acc_to_dest"]).lower()

@@ -12,7 +12,7 @@ from helpers.format_arg_mapping import (
     ReducePool,
     format_dict,
 )
-from helpers.format_config import DataFormat
+from helpers.format_config import BroadcastType, DataFormat
 from helpers.tilize_untilize import tilize_block, untilize
 
 # Tile and face dimension constants
@@ -1067,6 +1067,92 @@ class UnarySFPUGolden:
 
         # Return only the column sums, not a full 1024-element tensor
         return column_sums.tolist()
+
+
+@register_golden
+class EltwiseBroadcastGolden:
+    """Golden generator for element-wise operations with broadcast support."""
+
+    def __call__(
+        self,
+        src_a,
+        src_b,
+        broadcast_type,
+        math_op,
+        output_format,
+        tile_count,
+        bcast_row_index=0,
+    ):
+        """
+        Generate golden results for element-wise operations with broadcast.
+
+        Args:
+            src_a: Input tensor A (already tilized)
+            src_b: Input tensor B (already tilized)
+            broadcast_type: Type of broadcast (BroadcastType enum value)
+            math_op: Math operation to perform (Elwadd, Elwsub, Elwmul)
+            output_format: Output data format
+            tile_count: Number of tiles to process
+            bcast_row_index: Row index to broadcast (only used for Row broadcast)
+
+        Returns:
+            Tensor with golden results
+        """
+        from helpers.tilize_untilize import tilize, untilize
+
+        # Convert to tensors if needed
+        if not isinstance(src_a, torch.Tensor):
+            src_a = torch.tensor(src_a, dtype=format_dict[output_format])
+        if not isinstance(src_b, torch.Tensor):
+            src_b = torch.tensor(src_b, dtype=format_dict[output_format])
+
+        results = []
+        elements_per_tile = ELEMENTS_PER_TILE
+
+        broadcast_ops = {
+            BroadcastType.Row: lambda b: b[
+                bcast_row_index : bcast_row_index + 1, :
+            ].expand(TILE_SIZE, TILE_SIZE),
+            BroadcastType.Column: lambda b: b[:, 0:1].expand(TILE_SIZE, TILE_SIZE),
+            BroadcastType.Scalar: lambda b: b[0, 0].expand(TILE_SIZE, TILE_SIZE),
+        }
+
+        math_ops = {
+            MathOperation.Elwadd: lambda a, b: a + b,
+            MathOperation.Elwsub: lambda a, b: a - b,
+            MathOperation.Elwmul: lambda a, b: a * b,
+        }
+
+        for tile_idx in range(tile_count):
+            # Extract current tile data (already in tilized format)
+            start_idx = tile_idx * elements_per_tile
+            end_idx = (tile_idx + 1) * elements_per_tile
+
+            a_tile = src_a[start_idx:end_idx]
+            b_tile = src_b[start_idx:end_idx]
+
+            # Untilize current tiles to get them in row-major format
+            a_untilized = untilize(a_tile, output_format).view(TILE_SIZE, TILE_SIZE)
+            b_untilized = untilize(b_tile, output_format).view(TILE_SIZE, TILE_SIZE)
+
+            if broadcast_type in broadcast_ops:
+                b_broadcasted = broadcast_ops[broadcast_type](b_untilized)
+            elif broadcast_type == BroadcastType.None_:
+                b_broadcasted = b_untilized
+            else:
+                raise ValueError(f"Unsupported broadcast type: {broadcast_type}")
+
+            if math_op in math_ops:
+                result = math_ops[math_op](a_untilized, b_broadcasted)
+            else:
+                raise ValueError(f"Unsupported math operation: {math_op}")
+
+            # Tilize the result back and add to results
+            result_tilized = tilize(result.flatten(), output_format)
+            results.append(result_tilized)
+
+        # Concatenate all tile results
+        return torch.cat(results).to(dtype=format_dict[output_format])
 
 
 @register_golden
