@@ -62,6 +62,7 @@ sfpi_inline void _compute_ema_math_()
     // EMA equation: EMA_new = α * EMA_old + (1-α) * input
     // Where: LREG0=input, LREG4=EMA_old, LREG5=α, LREG6=(1-α), LREG7=EMA_new
     // Thus, LREG7 = LREG5 * LREG4 + LREG6 * LREG0
+    // We do this for each of the 4 inputs.
 
     // Step 1: Calculate α * EMA_old in LREG7 input0
     // LREG7 = LREG5 * LREG4 (α * EMA_old)
