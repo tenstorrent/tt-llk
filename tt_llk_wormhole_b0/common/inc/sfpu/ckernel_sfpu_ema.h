@@ -15,11 +15,6 @@ sfpi_inline void _ema_clear_prev_output_()
     TTI_SFPLOADI(ckernel::p_sfpu::LREG4, 0, 0);
 }
 
-sfpi_inline void _ema_load_prev_output_()
-{
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);
-}
-
 sfpi_inline void _ema_load_alpha_beta_()
 {
     // alpha = 0.25
@@ -50,7 +45,7 @@ sfpi_inline void _ema_load_curr_input_()
 template <uint32_t I, uint32_t J>
 sfpi_inline void _ema_store_curr_input_()
 {
-    constexpr uint32_t dst_reg_offset =  64 * 2 + (I * 32) + (4 * J);
+    constexpr uint32_t dst_reg_offset =  64 + (I * 32) + (4 * J);
     constexpr uint32_t offset0 = dst_reg_offset;
     constexpr uint32_t offset1 = dst_reg_offset + 2;
     constexpr uint32_t offset2 = dst_reg_offset + 16;
@@ -62,11 +57,6 @@ sfpi_inline void _ema_store_curr_input_()
     TTI_SFPSTORE(ckernel::p_sfpu::LREG2, 0, ckernel::ADDR_MOD_3, offset2); /*row2*/
     TTI_SFPSTORE(ckernel::p_sfpu::LREG3, 0, ckernel::ADDR_MOD_3, offset3); /*row3*/
     TTI_SFPTRANSP(0, 0, 0, 0);
-}
-
-sfpi_inline void _ema_save_output_for_next_()
-{
-    TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64);
 }
 
 sfpi_inline void _compute_ema_math_()
@@ -205,12 +195,10 @@ sfpi_inline void _calculate_ema_online_(bool first_sample)
     if (first_sample)
     {
         _ema_clear_prev_output_();
-    } else {
-        _ema_load_prev_output_();
+        _ema_load_alpha_beta_();
     }
-    _ema_load_alpha_beta_();
+
     _ema_compute_();
-    _ema_save_output_for_next_();
 }
 } // namespace sfpu
 } // namespace ckernel
