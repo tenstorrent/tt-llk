@@ -11,6 +11,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
+#include "llk_defs.h"
 #include "llk_math_common.h"
 
 using namespace ckernel;
@@ -22,11 +23,17 @@ template <ReduceDim dim, int num_fidelity_phases>
 inline void reduce_configure_mop();
 
 template <
+
     PoolType type,
+
     ReduceDim dim,
-    bool is_fp32_dest_acc_en,
-    int MATH_FIDELITY_DESC         = 0,
-    bool is_int_fpu_en             = false,
+
+    DestDatumWidth::Value dest_datum_width,
+
+    int MATH_FIDELITY_DESC = 0,
+
+    bool is_int_fpu_en = false,
+
     bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
@@ -121,7 +128,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // we avoid clobbering weights in src B by moving to rows 16 - 31
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
             /*
-            if constexpr (is_fp32_dest_acc_en) {
+            if constexpr (dest_datum_width) {
                 if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                     TTI_SFPLOAD(0, 0, 3, 0);
@@ -249,7 +256,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 // Move back to B and transpose
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
                 /*
-                if constexpr (is_fp32_dest_acc_en) {
+                if constexpr (dest_datum_width) {
                     if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                         TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                         TTI_SFPLOAD(0, 0, 3, 0);
@@ -448,7 +455,7 @@ inline void reduce_configure_mop()
     }
 }
 
-template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
+template <PoolType type, ReduceDim dim, DestDatumWidth::Value dest_datum_width, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_face_16x16_transpose = 0)
 { // within_face_16x16_transpose used for unpack, ignored by math
 
@@ -463,7 +470,7 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
 
     if constexpr (enforce_fp32_accumulation)
     {
-        static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
+        static_assert(dest_datum_width, "FP32 Dest must be enabled for FP32 accumulation");
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 

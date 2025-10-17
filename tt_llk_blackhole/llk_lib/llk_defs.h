@@ -154,4 +154,35 @@ enum InstrModCast
     INT_SIGN_MAGN_TO_INT32_2S_COMP = 3
 };
 
+class DestDatumWidth
+{
+public:
+    enum Value
+    {
+        _32Bits = 0,
+        _16Bits = 1
+    };
+
+    constexpr DestDatumWidth(Value v) : value(v)
+    {
+    }
+
+    constexpr DestDatumWidth(bool v) : value(v ? _32Bits : _16Bits)
+    {
+    }
+
+    constexpr operator bool() const
+    {
+        return value == _32Bits;
+    }
+
+    constexpr operator Value() const
+    {
+        return value;
+    }
+
+private:
+    Value value;
+};
+
 } // namespace ckernel
