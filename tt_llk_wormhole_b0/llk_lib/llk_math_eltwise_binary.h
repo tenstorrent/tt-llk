@@ -263,7 +263,7 @@ inline void eltwise_binary_configure_addrmod()
             }
                 .set(ADDR_MOD_0);
         }
-        else if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::SCALAR)
+        else if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::ROW_LAST || bcast_type == BroadcastType::SCALAR)
         {
             addr_mod_t {
                 .srca = {.incr = 8},
@@ -310,7 +310,7 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
         outerloop      = 2;
         broadcast_type = p_elwise::SRCB_BCAST_COL;
     }
-    else if constexpr (bcast_type == BroadcastType::ROW)
+    else if constexpr (bcast_type == BroadcastType::ROW || bcast_type == BroadcastType::ROW_LAST)
     {
         broadcast_type = p_elwise::SRCB_BCAST_ROW;
     }

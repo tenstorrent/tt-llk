@@ -49,6 +49,17 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         tmp.set_end_op(unpack_srcb_clear_z);
         tmp.program();
     }
+    else if constexpr (BType == BroadcastType::ROW_LAST)
+    {
+        // ROW_LAST uses same mop as ROW, but with adjusted base address
+        static constexpr uint unpack_srcb_clear_z  = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
+        static constexpr uint unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        const uint32_t outerloop                   = num_faces < 4 ? 1 : 2;
+        const uint32_t innerloop                   = num_faces < 2 ? 1 : 2;
+        ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, unpack_srca);
+        tmp.set_end_op(unpack_srcb_clear_z);
+        tmp.program();
+    }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
         const uint32_t outerloop = 1;
@@ -114,7 +125,7 @@ inline void _llk_unpack_AB_init_(
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b, [[maybe_unused]] const bool transpose_of_faces = 0)
+inline void _llk_unpack_AB_(std::uint32_t address_a, std::uint32_t address_b, [[maybe_unused]] const bool transpose_of_faces = 0)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
@@ -123,6 +134,17 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
 
     // Wait for free context
     wait_for_next_context(2);
+
+    // For ROW_LAST broadcast, update srcB address directly to point to last row
+    if constexpr (BType == BroadcastType::ROW_LAST)
+    {
+        // In tilized format, row 31 spans face 2 (cols 0-15) and face 3 (cols 16-31)
+        // ROW broadcast reads from face positions, so we need to point to face 2, row 15
+        // Face 2 starts at element 512, row 15 within face 2 is at 512 + 15*16 = 752
+        // Each element is 2 bytes for Float16_b, so 752 * 2 = 1504 bytes
+        // In 16-byte units: 1504 / 16 = 94
+        address_b += 94;
+    }
 
     // Get tile address
     if (0 == unp_cfg_context)
