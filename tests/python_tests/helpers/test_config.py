@@ -112,19 +112,17 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr bool UNPACKING_TO_DEST = {unpack_to_dest};")
 
     # Unpack transpose faces
-    unpack_transpose_faces = test_config.get(
-        "unpack_transpose_faces", Transpose.No
-    ).value
+    unpack_transpose_faces = test_config.get("unpack_transpose_faces", Transpose.No)
     header_content.append(
-        f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces};"
+        f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces.value};"
     )
 
     # Unpack transpose within face
     unpack_transpose_within_face = test_config.get(
         "unpack_transpose_within_face", Transpose.No
-    ).value
+    )
     header_content.append(
-        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face};"
+        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
     )
 
     # Throttle level
@@ -151,6 +149,39 @@ def generate_build_header(test_config):
     header_content.append(
         f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
     )
+
+    # Broadcast type
+    if "broadcast_type" in test_config:
+        broadcast_type = test_config["broadcast_type"]
+        header_content.append(
+            f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
+        )
+
+    # Accumulate to dest
+    if "acc_to_dest" in test_config:
+        acc_to_dest = str(test_config["acc_to_dest"]).lower()
+        header_content.append(f"constexpr bool ACC_TO_DEST = {acc_to_dest};")
+
+    # Reuse destination type
+    if "reuse_dest" in test_config:
+        reuse_dest = test_config["reuse_dest"]
+        header_content.append(
+            f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{reuse_dest.name};"
+        )
+
+    if "disable_src_zero_flag" in test_config:
+        disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
+        header_content.append(
+            f"constexpr bool disable_src_zero_flag = {disable_src_zero_flag};"
+        )
+
+    if "num_faces" in test_config:
+        num_faces = test_config["num_faces"]
+        header_content.append(f"constexpr std::uint32_t NUM_FACES = {num_faces};")
+
+    if "narrow_tile" in test_config:
+        narrow_tile = test_config["narrow_tile"].value
+        header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
 
     # Math fidelity & Approximation mode
     header_content.append(
@@ -221,6 +252,10 @@ def generate_build_header(test_config):
         header_content.append(
             f"constexpr std::uint32_t TILE_SIZE_UNPACK_B = {unpack_size_b};"
         )
+
+        # Legacy TILE_SIZE for tests that still use it (e.g., tilize sweep)
+        tile_size = 16 * 16 * num_faces
+        header_content.append(f"constexpr std::uint32_t TILE_SIZE = {tile_size};")
 
     # Dest synchronisation mode
     dest_sync = test_config.get("dest_sync", DestSync.Half)
@@ -377,7 +412,8 @@ def generate_build_header(test_config):
 
 def write_build_header(test_config):
     header_content = generate_build_header(test_config)
-    with open("../helpers/include/build.h", "w") as f:
+    llk_home = Path(os.environ.get("LLK_HOME"))
+    with open(llk_home / "tests/helpers/include/build.h", "w") as f:
         f.write(header_content)
 
 
@@ -405,16 +441,11 @@ def build_test(
     profiler_build: ProfilerBuild,
 ):
     """Only builds the files required to run a test"""
-
-    root = os.environ.get("LLK_HOME")
-    if not root:
-        raise AssertionError("Environment variable LLK_HOME is not set")
-
-    TESTS_DIR = str((Path(root) / "tests").absolute())
-
+    llk_home = Path(os.environ.get("LLK_HOME"))
+    tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
     make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
-    run_shell_command(make_cmd, cwd=TESTS_DIR)
+    run_shell_command(make_cmd, cwd=tests_dir)
 
 
 def run_test(
