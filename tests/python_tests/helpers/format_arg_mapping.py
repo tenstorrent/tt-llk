@@ -177,11 +177,6 @@ class StochasticRounding(Enum):
     All = "StochRndType::All"
 
 
-class Transpose(Enum):
-    Yes = "true"
-    No = "false"
-
-
 class Haloize(Enum):
     Yes = "true"
     No = "false"
@@ -202,6 +197,11 @@ class MathFidelity(Enum):
     HiFi2 = 1
     HiFi3 = 2
     HiFi4 = 3
+
+
+class NarrowTile(Enum):
+    Yes = "true"
+    No = "false"
 
 
 class DestSync(Enum):
@@ -226,6 +226,11 @@ format_tile_sizes = {
     DataFormat.Float16_b: 2048,
     DataFormat.Float32: 4096,
     DataFormat.Int32: 4096,
+    DataFormat.Tf32: 3072,  # 3 bytes * 1024 elements
+    DataFormat.UInt32: 4096,
+    DataFormat.UInt16: 2048,
+    DataFormat.Int8: 1024,  # 1 byte * 1024 elements
+    DataFormat.UInt8: 1024,  # 1 byte * 1024 elements
 }
 
 
