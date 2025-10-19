@@ -25,7 +25,7 @@ void run_kernel()
 {
     _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
         UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND, disable_src_zero_flag>(
+    _llk_unpack_A_hw_configure_<dest_datum_width, STOCHASTIC_RND, disable_src_zero_flag>(
         formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
 
     for (int i = 0; i < TILE_CNT; ++i)
@@ -60,18 +60,18 @@ void run_kernel()
     // Use B2D for all broadcasts except NONE (data in srcB), A2D for NONE (data in srcA)
     constexpr DataCopyType copy_type = (BROADCAST_TYPE == BroadcastType::NONE) ? DataCopyType::A2D : DataCopyType::B2D;
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, false, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<copy_type, dest_datum_width, BROADCAST_TYPE, false, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<copy_type, dest_datum_width, BROADCAST_TYPE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #endif
-    _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
+    _llk_math_pack_sync_init_<sync_mode, dest_datum_width>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<sync_mode>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_datacopy_<copy_type, sync_mode, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(i, formats.math, formats.math);
+        _llk_math_eltwise_unary_datacopy_<copy_type, sync_mode, dest_datum_width, BROADCAST_TYPE, unpack_to_dest>(i, formats.math, formats.math);
     }
-    _llk_math_dest_section_done_<sync_mode, is_fp32_dest_acc_en>();
+    _llk_math_dest_section_done_<sync_mode, dest_datum_width>();
 }
 
 #endif
@@ -87,15 +87,15 @@ void run_kernel()
     // Test configuration constants
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<dest_datum_width, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<dest_datum_width, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, NUM_FACES);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, NUM_FACES);
 #endif
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<sync_mode, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<sync_mode, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
     _llk_pack_dest_init_<sync_mode, false, DstTileFaceLayout::RowMajor, false>();
 #endif
@@ -103,8 +103,8 @@ void run_kernel()
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_<sync_mode, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<sync_mode, dest_datum_width, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    _llk_pack_dest_section_done_<sync_mode, is_fp32_dest_acc_en>();
+    _llk_pack_dest_section_done_<sync_mode, dest_datum_width>();
 }
 #endif

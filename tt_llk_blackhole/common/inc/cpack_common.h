@@ -197,7 +197,7 @@ inline void set_packer_strides(const uint pack_src_format, [[maybe_unused]] cons
 }
 
 template <
-    DestDatumWidth::Value dest_datum_width >>
+    DestDatumWidth::Value dest_datum_width>
     inline void set_packer_config(const uint pack_src_format, const uint pack_dst_format, const uint num_faces = 4, const bool partial_face = false)
 {
     // Get pointer to registers for current state ID
