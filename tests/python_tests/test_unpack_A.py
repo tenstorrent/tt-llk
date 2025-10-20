@@ -7,7 +7,7 @@ from itertools import product
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
-from helpers.format_config import BroadcastType, DataFormat, EltwiseBinaryReuseDestType
+from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     ColumnBroadcastGolden,
     DataCopyGolden,
@@ -17,7 +17,9 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
+    BroadcastType,
     DestAccumulation,
+    EltwiseBinaryReuseDestType,
     StochasticRounding,
     Transpose,
     format_dict,
