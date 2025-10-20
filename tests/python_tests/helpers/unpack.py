@@ -128,19 +128,13 @@ _UNPACKERS = {
 def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4):
     output_format = formats.output_format
     output_dtype = format_dict[output_format]
-    tile_size = format_tile_sizes[output_format]  # Elements per tile
-    face_size = tile_size // 4  # Elements per face
+    tile_size = format_tile_sizes[output_format]
+    face_size = tile_size // 4
 
     # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
     elements_per_tile_needed = face_size * num_faces
-
-    # Convert element counts to byte counts for indexing into packed_list (raw bytes)
-    bytes_per_element = output_format.size
-    tile_size_bytes = tile_size * bytes_per_element
-    elements_per_tile_needed_bytes = elements_per_tile_needed * bytes_per_element
-
-    total_bytes_needed = tile_count * elements_per_tile_needed_bytes
-    if total_bytes_needed > len(packed_list):
+    total_elements_needed = tile_count * elements_per_tile_needed
+    if total_elements_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
 
     if output_format == DataFormat.Bfp8_b:
@@ -153,12 +147,12 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4
     # Write only values from the selected faces into unpacked_tile
     for tile in range(tile_count):
         if tile_count == 1:
-            # Single tile: use elements_per_tile_needed spacing (fixes memory corruption)
-            start_idx = tile * elements_per_tile_needed_bytes
+            # Single tile: use elements_per_tile_needed spacing (fixes unpack_A memory corruption)
+            start_idx = tile * elements_per_tile_needed
         else:
             # Multi-tile: use full tile_size spacing (preserves correct tile boundaries)
-            start_idx = tile * tile_size_bytes
-        end_idx = start_idx + elements_per_tile_needed_bytes
+            start_idx = tile * tile_size
+        end_idx = start_idx + elements_per_tile_needed
         tile_data = packed_list[start_idx:end_idx]
 
         if unpack_func == unpack_bfp8_b:
