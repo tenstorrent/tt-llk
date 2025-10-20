@@ -7,12 +7,6 @@ from itertools import product
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
-from helpers.format_arg_mapping import (
-    DestAccumulation,
-    StochasticRounding,
-    Transpose,
-    format_dict,
-)
 from helpers.format_config import BroadcastType, DataFormat, EltwiseBinaryReuseDestType
 from helpers.golden_generators import (
     ColumnBroadcastGolden,
@@ -21,6 +15,12 @@ from helpers.golden_generators import (
     ScalarBroadcastGolden,
     TransposeGolden,
     get_golden_generator,
+)
+from helpers.llk_params import (
+    DestAccumulation,
+    StochasticRounding,
+    Transpose,
+    format_dict,
 )
 from helpers.param_config import generate_params, input_output_formats
 from helpers.stimuli_generator import generate_stimuli
