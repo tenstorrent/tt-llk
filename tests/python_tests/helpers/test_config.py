@@ -280,9 +280,6 @@ def generate_build_header(test_config):
     srca_reuse_count = test_config.get("srca_reuse_count", 4)
     header_content.append(f"constexpr int SRCA_REUSE_COUNT = {srca_reuse_count};")
 
-    # Get dest_acc and unpack_to_dest settings for inference
-    unpacking_to_dest = test_config.get("unpack_to_dest", False)
-
     # === DATA FORMAT INFERENCE & CONFIGURATION ===
 
     # Data Format Inference will now occur from the python-end, gives visibility on all formats for test case
