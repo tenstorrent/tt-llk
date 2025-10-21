@@ -213,7 +213,7 @@ def infer_data_formats(
 
 
 def build_data_formats(
-    n: int,
+    num_iterations: int,
     intermediate_config: FormatConfig,
     final_config: FormatConfig,
 ) -> List[FormatConfig]:
@@ -225,24 +225,28 @@ def build_data_formats(
     and the last uses final_config.
 
     Args:
-        n: Number of L1-to-L1 pipeline iterations (list size)
+        num_iterations: Number of L1-to-L1 pipeline iterations (list size)
         intermediate_config: Configuration for all iterations except the last
         final_config: Configuration for the final iteration
 
     Returns:
         List of FormatConfig for each iteration
     """
-    if n <= 0:
+    if num_iterations <= 0:
         return []
     # Use list construction for clarity and efficiency; references are intentional
-    return [intermediate_config] * (n - 1) + [final_config] if n > 0 else []
+    return (
+        [intermediate_config] * (num_iterations - 1) + [final_config]
+        if num_iterations > 0
+        else []
+    )
 
 
 def data_formats(
     input_format: DataFormat,
     output_format: DataFormat,
     is_fp32_dest_acc_en: DestAccumulation,
-    n: int,
+    num_iterations: int,
     unpacking_to_dest: bool = False,
     chip_arch: Optional[ChipArchitecture] = None,
 ) -> List[FormatConfig]:
@@ -256,15 +260,13 @@ def data_formats(
         input_format: The input data format for all pipeline runs
         output_format: The output data format for the final pipeline run
         is_fp32_dest_acc_en: Whether FP32 accumulation is enabled
-        n: The number of pipeline runs (iterations), determines list length
+        num_iterations: The number of pipeline runs (iterations), determines list length
         unpacking_to_dest: Whether unpacking targets the destination register (default: False)
         chip_arch: The chip architecture (Wormhole or Blackhole). If None, will be detected automatically.
 
     Returns:
-        A list of FormatConfig objects of length n
+        A list of FormatConfig objects of length num_iterations
     """
-    if n <= 0:
-        return []
 
     if chip_arch is None:
         chip_arch = get_chip_architecture()
@@ -288,4 +290,4 @@ def data_formats(
         input_format, output_format, is_fp32_dest_acc_en, unpacking_to_dest, chip_arch
     )
 
-    return build_data_formats(n, intermediate_config, final_config)
+    return build_data_formats(num_iterations, intermediate_config, final_config)

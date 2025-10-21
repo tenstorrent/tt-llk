@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <type_traits>
 
 // Include auto-generated build configuration

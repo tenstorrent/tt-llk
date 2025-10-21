@@ -308,7 +308,7 @@ def generate_build_header(test_config):
         output_format=formats.output_format,
         is_fp32_dest_acc_en=dest_acc,
         n=l1_to_l1_iterations,
-        unpacking_to_dest=unpack_to_dest,
+        unpacking_to_dest=unpack_to_dest == "true",
         chip_arch=get_chip_architecture(),
     )
 
