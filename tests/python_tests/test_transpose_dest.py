@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from itertools import product
+
 import pytest
 import torch
 from helpers.device import (
@@ -71,20 +73,20 @@ def generate_transpose_dest_float_combinations(formats_list):
             [Transpose.Yes, Transpose.No] if is_input_32bit else [Transpose.Yes]
         )
 
-        for dest_acc in dest_acc_list:
-            for math_transpose_faces in math_transpose_faces_list:
+        for dest_acc, math_transpose_faces in product(
+            dest_acc_list, math_transpose_faces_list
+        ):
+            # Test both loss (unpacking to src registers) and lossless (unpacking to dest) transpose dest
+            # for 32bit inputs when math_transpose_faces = Transpose.Yes
+            if math_transpose_faces == Transpose.Yes:
+                unpack_to_dest_list = [False, True] if is_input_32bit else [False]
+            else:
+                unpack_to_dest_list = [True]
 
-                # Test both loss (unpacking to src registers) and lossless (unpacking to dest) transpose dest
-                # for 32bit inputs when math_transpose_faces = Transpose.Yes
-                if math_transpose_faces == Transpose.Yes:
-                    unpack_to_dest_list = [False, True] if is_input_32bit else [False]
-                else:
-                    unpack_to_dest_list = [True]
-
-                for unpack_to_dest in unpack_to_dest_list:
-                    combinations.append(
-                        (fmt, dest_acc, math_transpose_faces, unpack_to_dest)
-                    )
+            combinations.extend(
+                (fmt, dest_acc, math_transpose_faces, unpack_to_dest)
+                for unpack_to_dest in unpack_to_dest_list
+            )
 
     return combinations
 
