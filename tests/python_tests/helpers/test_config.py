@@ -74,7 +74,7 @@ def generate_build_header(test_config):
       - Special configuration for multi-tile tests
 
     Data Format Inference:
-      - If test_config["formats"] infers all formats for llk APIs (unpack, math, pack) using the Python data format inference model.
+      - Receive format configuration from test_config["formats"] and infers all formats for LLK APIs (unpack, math, pack) using the Python data format inference model.
       - A C++ FormatConfig struct is generated in build.h containing all format values,
         allowing C++ test files to access formats via `formats.unpack_src`, etc.
 
