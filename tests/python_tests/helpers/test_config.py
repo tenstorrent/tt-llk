@@ -94,6 +94,8 @@ def generate_build_header(test_config):
         "",
         "#pragma once",
         "",
+        "#include <array>",
+        "#include <type_traits>",
         "",
         '#include "operand.h"',
         '#include "llk_defs.h"',
