@@ -12,7 +12,7 @@ from .device import (
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
-from .format_config import DataFormat, FormatConfig, InputOutputFormat
+from .format_config import DataFormat
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -111,7 +111,6 @@ def generate_build_header(test_config):
 
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
-    header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")
 
     # Unpack to dest
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
@@ -296,10 +295,22 @@ def generate_build_header(test_config):
     if formats is None:
         raise ValueError("Format Config not passed in test config")
 
+    # Check if this is an outlier format combination that requires dest_acc to be enabled
+    from .data_format_inference import is_format_combination_outlier
+
+    if is_format_combination_outlier(
+        formats.input_format, formats.output_format, dest_acc
+    ):
+        # Automatically enable dest_acc for outlier combinations
+        dest_acc = DestAccumulation.Yes
+
+    # Set dest_acc_en_input after potential outlier adjustment
+    header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")
+
     formats_config = infer_data_formats(
         input_format=formats.input_format,
         output_format=formats.output_format,
-        is_fp32_dest_acc_en=dest_acc == DestAccumulation.Yes,
+        is_fp32_dest_acc_en=dest_acc,
         unpacking_to_dest=unpacking_to_dest,
     )
 

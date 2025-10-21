@@ -11,8 +11,18 @@ architecture-specific differences between Wormhole and Blackhole.
 from typing import List, Optional
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
-from .format_arg_mapping import DestAccumulation
 from .format_config import DataFormat, FormatConfig
+from .llk_params import DestAccumulation
+
+
+def is_exponent_B_non_float32(input_format: DataFormat) -> bool:
+    """
+    Checks if the data format is an exponent B format but excludes Float32.
+
+    This is used for hardware limitation checks where Float32, despite having
+    an 8-bit exponent, behaves differently from other exponent B formats.
+    """
+    return input_format.is_exponent_B() and input_format != DataFormat.Float32
 
 
 def is_format_combination_outlier(
@@ -40,7 +50,7 @@ def is_format_combination_outlier(
         True if the format combination is an unsupported hardware outlier; False otherwise
     """
     return (
-        input_format.is_exponent_B()
+        is_exponent_B_non_float32(input_format)
         and output_format == DataFormat.Float16
         and is_fp32_dest_acc_en == DestAccumulation.No
     )
@@ -71,7 +81,7 @@ def infer_unpack_out(
         # which preserves the 8-bit exponent and as much mantissa precision as fits. If our dst register is 16-bit we directly truncate to 16-bit format
         if is_fp32_dest_acc_en == DestAccumulation.Yes:
             return DataFormat.Tf32
-        elif output_format.is_exponent_B() or output_format == DataFormat.Float32:
+        elif output_format.is_exponent_B():  # includes Float32
             return DataFormat.Float16_b  # If output Float32 or Float16_b
         return DataFormat.Float16  # Tilize to Float16
 
@@ -119,7 +129,9 @@ def infer_pack_in(
 
     # Float32 in L1, unpacking to src regs: choose directly if packer can convert
     if input_format == DataFormat.Float32 and not unpacking_to_dest:
-        if is_fp32_dest_acc_en == DestAccumulation.Yes or output_format.is_exponent_B():
+        if is_fp32_dest_acc_en == DestAccumulation.Yes or is_exponent_B_non_float32(
+            output_format
+        ):
             # If float32 dest reg datums and the output format has an 8-bit exponent,
             # the packer input format can directly be the output format since packer can convert Float32 to another 8-bit exponent format
             return output_format
