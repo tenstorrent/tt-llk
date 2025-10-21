@@ -25,7 +25,7 @@ void run_kernel()
 {
     // Use parameters from build.h that are set by the Python test
 
-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND>(
+    _llk_unpack_tilize_hw_configure_<dest_datum_width, STOCHASTIC_RND>(
         formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
 
     // Initialize tilize unpacker
@@ -76,25 +76,25 @@ void run_kernel()
 {
     // Copy srca to dest with tilize flag
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, TILIZE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #endif
 
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
 #ifdef ARCH_BLACKHOLE
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math, NUM_FACES);
 #else
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
 #endif
     }
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 }
 
 #endif
@@ -111,21 +111,21 @@ void run_kernel()
     const std::uint32_t DATUM_COUNT = 16 * 16 * NUM_FACES;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, DATUM_COUNT, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, DATUM_COUNT, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, NUM_FACES);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, DATUM_COUNT, FACE_R_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<dest_datum_width, UNTILIZE>(formats.pack_src, formats.pack_dst, DATUM_COUNT, FACE_R_DIM, NUM_FACES);
     _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, NUM_FACES);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
 
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, dest_datum_width, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
 }
 
 #endif

@@ -20,7 +20,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 static_assert(PERF_RUN_TYPE == PerfRunType::L1_TO_L1, "Only L1 to L1 is supported for this benchmark");
 
-static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr uint32_t MAX_TILES_DEST = dest_datum_width ? 4 : 8;
 
 // Algorithm invariants
 static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by BLOCK_CT_DIM");
@@ -40,7 +40,7 @@ void run_kernel()
 
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_untilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+        _llk_unpack_untilize_hw_configure_<dest_datum_width, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
         _llk_unpack_untilize_init_(formats.unpack_dst, TILE_SIZE, FACE_R_DIM, 4);
         PROFILER_SYNC();
     }
@@ -74,11 +74,11 @@ void run_kernel()
         ZONE_SCOPED("INIT")
 
 #ifdef ARCH_BLACKHOLE
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, formats.math);
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, formats.math);
 #else
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, dest_datum_width, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
 #endif
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_math_pack_sync_init_<DstSync::SyncHalf, dest_datum_width>();
         _llk_math_hw_configure_<false, false>(formats.math, formats.math);
         PROFILER_SYNC();
     }
@@ -95,10 +95,10 @@ void run_kernel()
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                 {
-                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, dest_datum_width, BroadcastType::NONE, unpack_to_dest>(
                         block_tile, formats.math, formats.math);
                 }
-                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                _llk_math_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
             }
         }
         PROFILER_SYNC();
@@ -120,13 +120,13 @@ void run_kernel()
         ZONE_SCOPED("INIT")
 
 #ifdef ARCH_BLACKHOLE
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+        _llk_pack_hw_configure_<dest_datum_width, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
         _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+        _llk_pack_hw_configure_<dest_datum_width, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
         _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, dest_datum_width, DstTileFaceLayout::RowMajor, UNTILIZE>();
 #endif
         PROFILER_SYNC();
     }
@@ -143,9 +143,9 @@ void run_kernel()
                 _llk_packer_wait_for_math_done_();
                 for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
+                    _llk_pack_<DstSync::SyncHalf, dest_datum_width, UNTILIZE>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
                 }
-                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                _llk_pack_dest_section_done_<DstSync::SyncHalf, dest_datum_width>();
             }
         }
         PROFILER_SYNC();
