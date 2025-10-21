@@ -134,21 +134,8 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to
 
     # Generate custom test input stimuli to check if zeroflag fix works
     if formats.input_format == DataFormat.Int32:
-        # Use a value which would cause denormals to be flushed, for example 0x16e360
-        # Put this target value at an arbitrarily chosen index, and generate the rest of the values linearly
-        # Generate 32 values and repeat them 32 times to get 1024 values (currently testing tile_cnt=1)
-        start = 1
-        num_values = 32
-        num_repeats = 32
-        target_idx = 23  # index where value == 0x16e360
-        target_value = 0x16E360
-        step = (target_value - start) / target_idx
-
-        constants = torch.tensor(
-            [int(start + i * step) for i in range(num_values)], dtype=torch.int32
-        )
-        src_A = constants.repeat_interleave(num_repeats)
-        src_B = constants.repeat_interleave(num_repeats)
+        src_A = (torch.arange(0, src_A.numel()) * 10000).reshape_as(src_A)
+        src_B = (torch.arange(0, src_B.numel()) * 10000).reshape_as(src_B)
 
     generate_datacopy_golden = get_golden_generator(DataCopyGolden)
     datacopy_tensor = generate_datacopy_golden(
