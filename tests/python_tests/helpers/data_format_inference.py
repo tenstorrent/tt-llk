@@ -15,16 +15,6 @@ from .format_config import DataFormat, FormatConfig
 from .llk_params import DestAccumulation
 
 
-def is_exponent_B_non_float32(input_format: DataFormat) -> bool:
-    """
-    Checks if the data format is an exponent B format but excludes Float32.
-
-    This is used for hardware limitation checks where Float32, despite having
-    an 8-bit exponent, behaves differently from other exponent B formats.
-    """
-    return input_format.is_exponent_B() and input_format != DataFormat.Float32
-
-
 def is_format_combination_outlier(
     input_format: DataFormat,
     output_format: DataFormat,
@@ -50,7 +40,8 @@ def is_format_combination_outlier(
         True if the format combination is an unsupported hardware outlier; False otherwise
     """
     return (
-        is_exponent_B_non_float32(input_format)
+        input_format.is_exponent_B()
+        and not input_format.is_float32()
         and output_format == DataFormat.Float16
         and is_fp32_dest_acc_en == DestAccumulation.No
     )
@@ -129,8 +120,10 @@ def infer_pack_in(
 
     # Float32 in L1, unpacking to src regs: choose directly if packer can convert
     if input_format == DataFormat.Float32 and not unpacking_to_dest:
-        if is_fp32_dest_acc_en == DestAccumulation.Yes or is_exponent_B_non_float32(
-            output_format
+        if (
+            is_fp32_dest_acc_en == DestAccumulation.Yes
+            or output_format.is_exponent_B()
+            and not output_format.is_float32()
         ):
             # If float32 dest reg datums and the output format has an 8-bit exponent,
             # the packer input format can directly be the output format since packer can convert Float32 to another 8-bit exponent format
@@ -232,9 +225,7 @@ def build_data_formats(
     Returns:
         List of FormatConfig for each iteration
     """
-    if num_iterations <= 0:
-        return []
-    # Use list construction for clarity and efficiency; references are intentional
+
     return (
         [intermediate_config] * (num_iterations - 1) + [final_config]
         if num_iterations > 0

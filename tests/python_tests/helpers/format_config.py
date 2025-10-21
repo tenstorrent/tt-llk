@@ -77,6 +77,10 @@ class DataFormat(Enum):
             num_exponents = num_datums // 16
         return (self.size * num_datums) + num_exponents
 
+    def is_float32(self) -> bool:
+        """Checks if the data format is a Float32 type."""
+        return self == DataFormat.Float32
+
 
 @dataclass
 class FormatConfig:
