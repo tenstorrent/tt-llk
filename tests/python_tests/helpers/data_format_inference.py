@@ -235,7 +235,7 @@ def build_data_formats(
     if n <= 0:
         return []
     # Use list construction for clarity and efficiency; references are intentional
-    return ([intermediate_config] * (n - 1)) + [final_config]
+    return [intermediate_config] * (n - 1) + [final_config] if n > 0 else []
 
 
 def data_formats(
