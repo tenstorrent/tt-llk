@@ -326,24 +326,25 @@ def dump_scatter(testname: str, report: PerfReport):
         entry.update({k: v for k, v in zip(report.stat_names, mvals)})
         records.append(entry)
 
-    # Select only mean stats to plot
+    # Select only mean stats to plot and define default visible metric
     stat_names_to_plot = [m for m in report.stat_names if m.startswith("mean")]
+    default_visible_metric = "mean(L1_TO_L1)"
 
     # Create default Plotly figure
     fig = go.Figure()
 
     for m in stat_names_to_plot:
         fig.add_trace(
-            go.Scatter(
+            go.Bar(
                 x=[r["index"] for r in records],
                 y=[r[m] for r in records],
-                mode="lines+markers",
                 name=m,
                 text=[
                     ", ".join([f"{p}={r[p]}" for p in report.sweep_names])
                     for r in records
                 ],
-                hovertemplate="<b>%{text}</b><br>" + f"{m}: " + "%{y}<extra></extra>",
+                hovertemplate="<b>%{text}</b><br>" + f"{m}: %{{y}}<extra></extra>",
+                visible=True if m == default_visible_metric else "legendonly",
             )
         )
 
@@ -362,6 +363,7 @@ def dump_scatter(testname: str, report: PerfReport):
     records_json = json.dumps(records)
     param_names_json = json.dumps(report.sweep_names)
     metric_names_json = json.dumps(stat_names_to_plot)
+    default_visible_json = json.dumps(default_visible_metric)
 
     # ---- Build HTML ----
     html = f"""
@@ -395,36 +397,67 @@ def dump_scatter(testname: str, report: PerfReport):
     const paramNames = {param_names_json};
     const metricNames = {metric_names_json};
     const layout = {fig_layout_json};
+    const defaultVisibleMetric = {default_visible_json};
 
     let selections = {{}};
+    let currentPlotType = 'bar';  // default plot type
+    let traceVisibility = {{}};  // Stores current visibility per metric
 
-    // --- Create dropdowns ---
+    // ---- Plot initialization ----
+    const plotDiv = document.getElementById('plot');
+
+    // ---- Create dropdowns ----
     const controlsDiv = document.getElementById('controls');
     paramNames.forEach(p => {{
-    const values = [...new Set(allRecords.map(r => r[p]))];
-    const label = document.createElement('label');
-    label.textContent = ' ' + p + ': ';
-    const select = document.createElement('select');
-    select.id = p;
-    const allOpt = document.createElement('option');
-    allOpt.value = '';
-    allOpt.text = 'All';
-    select.appendChild(allOpt);
-    values.forEach(v => {{
-        const opt = document.createElement('option');
-        opt.value = v;
-        opt.text = v;
-        select.appendChild(opt);
+        const label = document.createElement('label');
+        label.textContent = p + ': ';
+        const select = document.createElement('select');
+        select.id = p;
+        select.onchange = () => {{
+            selections[p] = select.value;
+            updateDropdownOptions();
+            updatePlot();
+        }};
+        label.appendChild(select);
+        controlsDiv.appendChild(label);
+        selections[p] = '';
     }});
-    select.onchange = updatePlot;
-    label.appendChild(select);
-    controlsDiv.appendChild(label);
-    selections[p] = '';
-    }});
+
+    // ---- Add plot type toggle ----
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = 'Switch to Line Plot';
+    toggleBtn.style.marginLeft = '10px';
+    toggleBtn.onclick = () => {{
+        currentPlotType = currentPlotType === 'bar' ? 'line' : 'bar';
+        toggleBtn.textContent = currentPlotType === 'bar' ? 'Switch to Line Plot' : 'Switch to Bar Plot';
+        updatePlot();
+    }};
+    controlsDiv.appendChild(toggleBtn);
+
+    // ---- Initialize dropdowns ----
+    function updateDropdownOptions() {{
+        const filtered = allRecords.filter(r =>
+            Object.entries(selections).every(([k, v]) => !v || r[k] == v)
+        );
+
+        paramNames.forEach(p => {{
+            const select = document.getElementById(p);
+            const prev = select.value;
+            const allowed = [...new Set(filtered.map(r => r[p]))];
+            const allOpt = '<option value="">All</option>' +
+            allowed.map(v => `<option value="${{v}}" ${{v===prev ? 'selected' : ''}}>${{v}}</option>`).join('');
+            select.innerHTML = allOpt;
+            selections[p] = select.value;
+        }});
+    }}
+    updateDropdownOptions();
 
     // --- Draw initial plot ---
     let figData = {fig_data_json};
-    Plotly.newPlot('plot', figData, layout, {{responsive: true}});
+    metricNames.forEach(m => {{
+    traceVisibility[m] = (m === defaultVisibleMetric) ? true : 'legendonly';
+    }});
+    Plotly.newPlot(plotDiv, figData, layout, {{responsive: true}});
 
     // --- Update plot based on filters ---
     function updatePlot() {{
@@ -435,17 +468,29 @@ def dump_scatter(testname: str, report: PerfReport):
 
     const indices = filtered.map(r => r.index);
     const traces = metricNames.map(m => {{
+        const visible = traceVisibility[m] ?? (m === defaultVisibleMetric ? true : 'legendonly');
         return {{
         x: indices,
         y: filtered.map(r => r[m]),
-        mode: 'lines+markers',
+        type: currentPlotType === 'bar' ? 'bar' : 'scatter',
+        mode: currentPlotType === 'line' ? 'lines+markers' : undefined,
         name: m,
+        visible,
         text: filtered.map(r => paramNames.map(p => `${{p}}=${{r[p]}}`).join(', ')),
         hovertemplate: `<b>%{{text}}</b><br>${{m}}: %{{y}}<extra></extra>`
         }};
     }});
-    Plotly.react('plot', traces, layout);
+    Plotly.react(plotDiv, traces, layout);
     }}
+
+    // ---- Legend event listener for single-click only ----
+    plotDiv.on('plotly_legendclick', function(eventData) {{
+        const metricName = eventData.data[eventData.curveNumber].name;
+        const current = traceVisibility[metricName];
+        traceVisibility[metricName] = (current === true) ? 'legendonly' : true;
+        updatePlot();
+        return false; // prevent Plotly's default toggling
+    }});
     </script>
     </body>
     </html>
