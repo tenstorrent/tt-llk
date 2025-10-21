@@ -5,6 +5,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
+from .chip_architecture import get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
@@ -307,7 +308,8 @@ def generate_build_header(test_config):
         output_format=formats.output_format,
         is_fp32_dest_acc_en=dest_acc,
         n=l1_to_l1_iterations,
-        unpacking_to_dest=unpacking_to_dest,
+        unpacking_to_dest=unpack_to_dest,
+        chip_arch=get_chip_architecture(),
     )
 
     if l1_to_l1_iterations > 1:

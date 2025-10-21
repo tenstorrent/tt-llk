@@ -279,7 +279,7 @@ def data_formats(
                 pack_src=input_format,
                 pack_dst=output_format,
             )
-        ]
+        ]  # No final config for single iteration
 
     intermediate_config = infer_data_formats(
         input_format, input_format, is_fp32_dest_acc_en, unpacking_to_dest, chip_arch
