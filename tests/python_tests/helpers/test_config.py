@@ -5,7 +5,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .data_format_inference import infer_data_formats
+from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
     resolve_default_boot_mode,
@@ -280,24 +280,19 @@ def generate_build_header(test_config):
     srca_reuse_count = test_config.get("srca_reuse_count", 4)
     header_content.append(f"constexpr int SRCA_REUSE_COUNT = {srca_reuse_count};")
 
-    # Data format configuration
-    header_content.extend(["", "// Data format configuration"])
-    formats = test_config.get("formats", None)
-
-    # Data Format Inference will now occur from the python-end, gives visibility on all formats for test case
-    # DATA_FORMAT_INFERENCE_MODEL is not defined in build.h, thus inference is deactivated from python-end
-    header_content.append("// Data formats inferred by Python inference model")
-
     # Get dest_acc and unpack_to_dest settings for inference
     unpacking_to_dest = test_config.get("unpack_to_dest", False)
 
-    # === Infer all data formats using Python inference model ===
+    # === DATA FORMAT INFERENCE & CONFIGURATION ===
+
+    # Data Format Inference will now occur from the python-end, gives visibility on all formats for test case
+    # DATA_FORMAT_INFERENCE_MODEL is no longer defined in build.h, thus inference is deactivated, only enabled from python-end
+    header_content.append("// Data formats inferred by Python inference model")
+
     if formats is None:
         raise ValueError("Format Config not passed in test config")
 
     # Check if this is an outlier format combination that requires dest_acc to be enabled
-    from .data_format_inference import is_format_combination_outlier
-
     if is_format_combination_outlier(
         formats.input_format, formats.output_format, dest_acc
     ):
@@ -307,26 +302,68 @@ def generate_build_header(test_config):
     # Set dest_acc_en_input after potential outlier adjustment
     header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")
 
-    formats_config = infer_data_formats(
+    # Check if we need to generate multiple format configurations
+    l1_to_l1_iterations = test_config.get("L1_to_L1_iterations", 1)
+
+    formats_config = data_formats(
         input_format=formats.input_format,
         output_format=formats.output_format,
         is_fp32_dest_acc_en=dest_acc,
+        n=l1_to_l1_iterations,
         unpacking_to_dest=unpacking_to_dest,
     )
 
-    header_content.append("#define DATA_FORMAT_INFERENCE_MODEL false")
-    # Generate format constants for C++ (works for both inferred and explicit FormatConfig)
-    header_content.extend(
-        [
-            f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
-            f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
-            f"constexpr auto UNPACK_B_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_B_src.name});",
-            f"constexpr auto UNPACK_B_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_B_dst.name});",
-            f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
-            f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
-            f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
+    if l1_to_l1_iterations > 1:
+        # Generate format data as arrays that params.h can use to construct FormatConfig objects
+        header_content.append("// Format data for multiple L1-to-L1 iterations")
+        header_content.append("#define FUSED_MULTIPLE_RUNS true")
+
+        # Create array of format configurations for multiple L1-to-L1 iterations
+        unpack_a_in_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_src.name})"
+            for fmt in formats_config
         ]
-    )
+        unpack_a_out_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_dst.name})"
+            for fmt in formats_config
+        ]
+        math_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.math.name})"
+            for fmt in formats_config
+        ]
+        pack_in_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_src.name})"
+            for fmt in formats_config
+        ]
+        pack_out_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_dst.name})"
+            for fmt in formats_config
+        ]
+
+        header_content.extend(
+            [
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
+            ]
+        )
+
+    else:
+        # Single iteration - use simple format inference
+        # Generate format data as individual constants for single iteration
+        formats_config = formats_config[0]
+        header_content.append("// Format data for single L1-to-L1 iteration")
+        header_content.extend(
+            [
+                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
+                f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
+                f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
+                f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
+                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
+            ]
+        )
 
     # Math operation configuration
     mathop = test_config.get("mathop", "no_mathop")
