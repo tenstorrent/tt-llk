@@ -7,12 +7,12 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     DataCopyGolden,
     get_golden_generator,
 )
+from helpers.llk_params import DestAccumulation, format_dict
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -28,8 +28,8 @@ from helpers.utils import passed_test
         [
             DataFormat.Float16_b,
             # DataFormat.Float16,
-            # DataFormat.Float32,
-            # DataFormat.Int32,
+            DataFormat.Float32,
+            DataFormat.Int32,
         ],
         same=True,
     ),
