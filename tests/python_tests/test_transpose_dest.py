@@ -7,13 +7,13 @@ from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, Transpose, format_dict
 from helpers.format_config import DataFormat, is_dest_acc_needed
 from helpers.golden_generators import (
     DataCopyGolden,
     TransposeGolden,
     get_golden_generator,
 )
+from helpers.llk_params import DestAccumulation, Transpose, format_dict
 from helpers.param_config import (
     input_output_formats,
     parametrize,
