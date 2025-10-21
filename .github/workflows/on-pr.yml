@@ -147,7 +147,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
-      test_splits: 5
+      test_splits: 4
       pytest_markers: "not perf and not nightly"
 
   setup-and-test-blackhole:
@@ -160,7 +160,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-p150b-stable
-      test_splits: 5
+      test_splits: 4
       pytest_markers: "not perf and not nightly"
 
   perf-tests:
