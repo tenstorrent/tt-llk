@@ -49,7 +49,7 @@ using namespace ckernel;
 
 void run_kernel()
 {
-    constexpr bool is32 = is_32bit_format(static_cast<DataFormat>(formats.math));
+    constexpr bool is32 = is_fp32_dest_acc_en;
 
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, num_of_faces, formats.math);
