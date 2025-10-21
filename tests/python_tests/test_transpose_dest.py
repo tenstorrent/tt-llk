@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -61,13 +60,9 @@ def generate_transpose_dest_float_combinations(formats_list):
 
     for fmt in formats_list:
         is_input_32bit = fmt.input_format.is_32_bit()
-        chip_arch = get_chip_architecture()
-        is_format_outlier = (
-            is_dest_acc_needed(fmt) and chip_arch == ChipArchitecture.WORMHOLE
-        )
         dest_acc_list = (
             [DestAccumulation.Yes]
-            if is_input_32bit or is_format_outlier
+            if is_input_32bit or is_dest_acc_needed(fmt)
             else [DestAccumulation.No]
         )
 
@@ -127,7 +122,7 @@ def test_transpose_dest_int(
 def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest):
 
     if dest_acc == DestAccumulation.Yes and formats.input_format != DataFormat.Int32:
-        pytest.skip("32-bit dest tests fail for Float formats due to bit no.11 issue.")
+        pytest.skip("32-bit dest tests fail for Float formats due to bit No.11 issue.")
 
     input_dimensions = [32, 32]
 
