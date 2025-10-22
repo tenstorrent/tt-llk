@@ -13,12 +13,6 @@ namespace ckernel
 namespace sfpu
 {
 
-enum class DataLayout
-{
-    TILE = 0,
-    ROW_MAJOR = 1
-};
-
 /**
  * @brief Calculates column-wise MaxPool of a tile, placing output values into the first row.
  *        Also places the index of the max value into the first row of the indices tile.
@@ -26,13 +20,12 @@ enum class DataLayout
  * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
  * @tparam num_rows The number of rows in the tile, must be one of: {9}
- * @tparam ITERATIONS The number of iterations to use for the MaxPool operation (unused).
  * @tparam layout Data layout format, either TILE (default) or ROW_MAJOR.
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
  * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
  */
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, int ITERATIONS, DataLayout layout = DataLayout::TILE>
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, ckernel::DataLayout layout = ckernel::DataLayout::TILE>
 inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
 {
     static_assert(num_rows <= 9, "num_rows must be <= 9"); // add others as support is added
@@ -45,7 +38,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
     constexpr uint face_offset        = 16;
     constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
-    if constexpr (layout == DataLayout::ROW_MAJOR) {
+    if constexpr (layout == ckernel::DataLayout::ROW_MAJOR) {
         // ROW MAJOR DATA VERSION OF MPWI
         // DATA IS EXPECTED TO BE IN THE FOLLOWING ORDER IN DEST:
         // Face 0 Row 0
@@ -180,7 +173,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
     }
 }
 
-template <DataLayout layout = DataLayout::TILE>
+template <ckernel::DataLayout layout = ckernel::DataLayout::TILE>
 inline void _init_max_pool_with_indices_()
 {
     // Set bit [2] of the SFPU_CONTROL_REG to enable Destination Index Tracking Mode:
@@ -188,7 +181,7 @@ inline void _init_max_pool_with_indices_()
     // and LREGs 4-7 will mirror the movement of the values in LREGs 0-3;
     _sfpu_load_config32_(0xF, 0x0, 0x4);
 
-    if constexpr (layout == DataLayout::ROW_MAJOR) {
+    if constexpr (layout == ckernel::DataLayout::ROW_MAJOR) {
         // Program replay buffer for row major layout
         load_replay_buf(
             0,
