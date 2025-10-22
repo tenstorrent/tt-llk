@@ -13,7 +13,7 @@ from .device import (
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
-from .format_config import DataFormat
+from .format_config import DataFormat, FormatConfig
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -289,6 +289,11 @@ def generate_build_header(test_config):
     # DATA_FORMAT_INFERENCE_MODEL is no longer defined in build.h, thus inference is deactivated, only enabled from python-end
     header_content.append("// Data formats inferred by Python inference model")
 
+    # Profiler Tests don't pass formats to the test config, so we need to set them here
+    testname = test_config.get("testname", "")
+    if "profiler" in testname:
+        format = DataFormat.Float16
+        formats = FormatConfig(format, format, format, format, format)
     if formats is None:
         raise ValueError("Format Config not passed in test config")
 
