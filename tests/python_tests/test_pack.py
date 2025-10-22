@@ -27,24 +27,27 @@ from helpers.utils import passed_test
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            # DataFormat.Float16,
+            DataFormat.Float16,
             DataFormat.Float32,
             DataFormat.Int32,
         ],
         same=True,
     ),
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 def test_pack(test_name, formats, dest_acc, boot_mode=BootMode.DEFAULT):
 
     if formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.No:
-        pytest.skip("Fails")
+        pytest.skip("Fails, probably due to data inference")
 
     if formats.input_format == DataFormat.Int32 and dest_acc == DestAccumulation.No:
-        pytest.skip("Fails")
+        pytest.skip("Fails, we usually skip this case")
 
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-        pytest.skip("Fails")
+        pytest.skip("Fails, probably due to data inference")
+
+    # if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.No:
+    #    pytest.skip("Fails when ran after Fp16_b:dest_acc=No, makes Fp32:dest_acc=Yes fail when ran before")
 
     input_dimensions = [32, 32]
 
@@ -92,5 +95,7 @@ def test_pack(test_name, formats, dest_acc, boot_mode=BootMode.DEFAULT):
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    print(res_tensor)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
