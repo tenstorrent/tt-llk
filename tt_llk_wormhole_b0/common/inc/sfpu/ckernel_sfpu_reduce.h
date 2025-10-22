@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ckernel_addrmod.h"
+#include "ckernel_debug.h"
 #include "ckernel_instr_params.h"
 #include "sfpi.h"
 
@@ -351,6 +352,61 @@ inline void _init_reduce_()
         // Use floating-point initialization for Float32 format
         init_reduce_float();
     }
+}
+
+//**************************************************************
+// SFPU REDUCE COL IMPLEMENTATION FOR SDPA
+//**************************************************************
+template <DataFormat format>
+inline void _init_reduce_sdpa()
+{
+    static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
+
+    _init_sfpu_config_reg();
+
+    // Record replay buffer
+}
+
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_t block_width*/)
+{
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
+    static_assert(format == DataFormat::Float16_b, "SFPU reduce SDPA only supports Float16_b format");
+
+    // Initial loads of LREGS 0-3 which will hold maximul values of columns
+    // They will spread across F0 and F1 so in each pass full tile width
+    // will be reduced
+
+    // TODO: Use block_height to determine number of iterations
+    (void)block_height; // Suppress unused parameter warning
+
+    // // F0
+    // TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    // TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+
+    // //F1
+    // TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    // TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
+    // Increment dest counter to hit following rows inside of dest
+    // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 2, 0, 0, p_setrwc::SET_D);
+
+    // for(uint32_t i = 0; i < 7; i++){
+
+    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
+    TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
+    TTI_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 20);
+    TTI_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 22);
+
+    // }
+
+    TTI_SFPSTORE(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
+    dbg_thread_halt<ThreadId::MathThreadId>();
 }
 
 } // namespace sfpu
