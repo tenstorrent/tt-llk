@@ -20,12 +20,13 @@ namespace sfpu
  * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
  * @tparam num_rows The number of rows in the tile, must be one of: {9}
+ * @tparam ITERATIONS The number of iterations to perform (unused).
  * @tparam layout Data layout format, either TILE (default) or ROW_MAJOR.
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
  * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
  */
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, ckernel::DataLayout layout = ckernel::DataLayout::TILE>
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, int ITERATIONS = 8, ckernel::DataLayout layout = ckernel::DataLayout::TILE>
 inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
 {
     static_assert(num_rows <= 9, "num_rows must be <= 9"); // add others as support is added
