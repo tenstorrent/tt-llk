@@ -15,9 +15,22 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "build.h"
 #include "llk_unpack_binary_operands.h"
 #include "llk_unpack_common.h"
-#include "params.h"
+
+// Define formats structure for Quasar (simple, direct format specification)
+struct
+{
+    DataFormat unpack_src = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat unpack_dst = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat math       = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat pack_src   = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat pack_dst   = static_cast<DataFormat>(PACK_OUT);
+} formats;
+
+// Define missing constant from params.h
+constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
 
 void run_kernel()
 {
@@ -71,7 +84,7 @@ void run_kernel()
     // Unpack all tiles for both operands
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_unpack_binary_operands_<BUF_DESC_ID_A, BUF_DESC_ID_B>(i, i);
+        _llk_unpack_binary_operands_(i, i);
     }
     _llk_unpack_dest_dvalid_section_done_();
 }
@@ -86,9 +99,22 @@ const bool is_int_fpu_en = true;
 const bool is_int_fpu_en = false;
 #endif
 
+#include "build.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
-#include "params.h"
+
+// Define formats structure for Quasar (simple, direct format specification)
+struct
+{
+    DataFormat unpack_src = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat unpack_dst = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat math       = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat pack_src   = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat pack_dst   = static_cast<DataFormat>(PACK_OUT);
+} formats;
+
+// Define missing constant from params.h
+constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
 
 using namespace ckernel;
 
@@ -106,7 +132,7 @@ void run_kernel()
 
     // Initialize eltwise binary operation with proper TileShape
     TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = 16, .face_c_dim = 16, .narrow_tile = false};
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY>(tile_shape);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, static_cast<MathFidelity>(MATH_FIDELITY)>(tile_shape);
 
     // Perform eltwise binary operation for each tile
     for (int i = 0; i < TILE_CNT; ++i)
@@ -122,9 +148,22 @@ void run_kernel()
 
 #ifdef LLK_TRISC_PACK
 
+#include "build.h"
 #include "llk_pack.h"
 #include "llk_pack_common.h"
-#include "params.h"
+
+// Define formats structure for Quasar (simple, direct format specification)
+struct
+{
+    DataFormat unpack_src = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat unpack_dst = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat math       = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat pack_src   = static_cast<DataFormat>(UNPACK_A_IN);
+    DataFormat pack_dst   = static_cast<DataFormat>(PACK_OUT);
+} formats;
+
+// Define missing constant from params.h
+constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
 
 void run_kernel()
 {
