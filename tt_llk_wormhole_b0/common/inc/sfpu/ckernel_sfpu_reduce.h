@@ -381,27 +381,30 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
 
     constexpr uint LOAD_OFFSETS[7] = {4, 8, 12, 32, 36, 40, 44};
 
-    for (uint32_t i = 0; i < 7; i++)
+    for (uint32_t tile = 0; tile < 4; tile++)
     {
-        const uint LOAD_OFFSET = LOAD_OFFSETS[i];
+        for (uint32_t i = 0; i < 7; i++)
+        {
+            const uint LOAD_OFFSET = LOAD_OFFSETS[i];
 
-        TT_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, LOAD_OFFSET);
-        TT_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, LOAD_OFFSET + 2);
-        TT_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, LOAD_OFFSET + FACE_OFFSET);
-        TT_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, LOAD_OFFSET + FACE_OFFSET + 2);
+            TT_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET);
+            TT_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + 2);
+            TT_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + FACE_OFFSET);
+            TT_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + FACE_OFFSET + 2);
 
-        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0, p_sfpu::LREG4, 1);
-        TTI_NOP;
-        TTI_NOP;
-        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1, p_sfpu::LREG5, 1);
-        TTI_NOP;
-        TTI_NOP;
-        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2, p_sfpu::LREG6, 1);
-        TTI_NOP;
-        TTI_NOP;
-        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3, p_sfpu::LREG7, 1);
-        TTI_NOP;
-        TTI_NOP;
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0, p_sfpu::LREG4, 1);
+            TTI_NOP;
+            TTI_NOP;
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1, p_sfpu::LREG5, 1);
+            TTI_NOP;
+            TTI_NOP;
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2, p_sfpu::LREG6, 1);
+            TTI_NOP;
+            TTI_NOP;
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3, p_sfpu::LREG7, 1);
+            TTI_NOP;
+            TTI_NOP;
+        }
     }
 
     // epilogue
