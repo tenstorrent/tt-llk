@@ -69,7 +69,7 @@ enum DstTileFaceLayout
 
 enum class DataLayout
 {
-    TILE = 0,
+    TILE      = 0,
     ROW_MAJOR = 1
 };
 

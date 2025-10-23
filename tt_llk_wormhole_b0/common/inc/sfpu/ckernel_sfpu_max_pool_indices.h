@@ -39,7 +39,8 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
     constexpr uint face_offset        = 16;
     constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
-    if constexpr (layout == ckernel::DataLayout::ROW_MAJOR) {
+    if constexpr (layout == ckernel::DataLayout::ROW_MAJOR)
+    {
         // ROW MAJOR DATA VERSION OF MPWI
         // DATA IS EXPECTED TO BE IN THE FOLLOWING ORDER IN DEST:
         // Face 0 Row 0
@@ -110,7 +111,9 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
 
         TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 0 + 2);
         TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + 0 + 2);
-    } else {
+    }
+    else
+    {
         // TILE (ORIGINAL) VERSION OF MPWI
         // F0
         // data
@@ -182,7 +185,8 @@ inline void _init_max_pool_with_indices_()
     // and LREGs 4-7 will mirror the movement of the values in LREGs 0-3;
     _sfpu_load_config32_(0xF, 0x0, 0x4);
 
-    if constexpr (layout == ckernel::DataLayout::ROW_MAJOR) {
+    if constexpr (layout == ckernel::DataLayout::ROW_MAJOR)
+    {
         // Program replay buffer for row major layout
         lltt::record(0, 7);
 
@@ -196,7 +200,9 @@ inline void _init_max_pool_with_indices_()
         TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
 
         TTI_SFPTRANSP(0, 0, 0, 0);
-    } else {
+    }
+    else
+    {
         // Program replay buffer for tiled layout (original)
         lltt::record(0, 7);
 
