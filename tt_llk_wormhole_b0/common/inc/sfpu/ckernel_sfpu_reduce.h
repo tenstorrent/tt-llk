@@ -395,6 +395,9 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
 
     for (uint32_t tile = 0; tile < block_height; tile++)
     {
+        // TODO: WHEN MOVING TO TILE 2 OR ANY OTHER TAKE IN ACCOUNT IT'S FIRST 4 ROWS
+        // WITH THIS LOOP THAT GOES TO 7 YOU ARE MISSING IT
+
 #pragma GCC unroll 7
         for (uint32_t i = 0; i < 7; i++)
         {
