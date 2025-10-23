@@ -397,14 +397,6 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
 
     constexpr uint LOAD_OFFSETS[7] = {4, 8, 12, 32, 36, 40, 44};
 
-    // 4 6 20 22
-    // 8 10 24 26
-    // 12 14 28 30
-    // 32 34 48 50
-    // 36 38 52 54
-    // 40 42 56 58
-    // 44 46 60 62
-
     for (uint32_t i = 0; i < 7; i++)
     {
         const uint LOAD_OFFSET = LOAD_OFFSETS[i];
@@ -427,6 +419,22 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
         TTI_NOP;
         TTI_NOP;
     }
+
+    // epilogue
+
+    TTI_SFPTRANSP(0, 0, 0, 0);
+
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2, p_sfpu::LREG3, 1);
+    TTI_NOP;
+    TTI_NOP;
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1, p_sfpu::LREG2, 1);
+    TTI_NOP;
+    TTI_NOP;
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0, p_sfpu::LREG1, 1);
+    TTI_NOP;
+    TTI_NOP;
+
+    TTI_SFPTRANSP(0, 0, 0, 0);
 
     TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
