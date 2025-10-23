@@ -93,7 +93,7 @@ inline void _llk_math_matmul_di_addrmod_()
     addr_mod_t {
         .srca     = {.incr = 0, .clr = 0, .cr = 0},
         .srcb     = {.incr = 0, .clr = 0, .cr = 0},
-        .dest     = {.incr = num_tile_incr, .clr = 0, .cr = 0},
+        .dest     = {.incr = 64, .clr = 0, .cr = 0},
         .fidelity = {.incr = 0, .clr = 1},
     }
         .set(ADDR_MOD_2);

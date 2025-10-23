@@ -26,6 +26,7 @@ inline void _llk_unpack_unary_operand_mop_config_(const uint32_t num_tiles)
         (UNP_SEL == p_unpacr::UNP_A) || (UNP_SEL == p_unpacr::UNP_B) || (UNP_SEL == p_unpacr::UNP_DEST),
         "UNP_SEL can only be set to p_unpacr::UNP_A/UNP_B/UNP_DEST");
     static_assert((BUF_DESC_ID < 16 && BUF_DESC_ID >= 0), "BUF_DESC_ID should be between 0-16 for unpackers");
+    static_assert(!(IS_32b_DEST_EN && (UNP_SEL != p_unpacr::UNP_A && UNP_SEL != p_unpacr::UNP_B)), "If IS_32b_DEST_EN then UNP_SEL should be UNP_A or UNP_B");
 
     const uint32_t MOP_OUTER_LOOP     = num_tiles;
     constexpr uint32_t MOP_INNER_LOOP = 1;
