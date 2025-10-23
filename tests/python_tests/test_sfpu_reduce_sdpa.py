@@ -26,8 +26,9 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
+    repeat=[i for i in range(10)],
 )
-def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
+def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool, repeat):
 
     input_dimensions = [32, 32]  # Single 32x32 tile
 
@@ -58,8 +59,6 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
     #     .repeat(input_dimensions[0], 1)
     #     .flatten()
     # )
-
-    print(src_A.view(32, 32).to(torch.float32).round(decimals=3))
 
     src_A = tilize_block(src_A, input_dimensions).flatten()
 
