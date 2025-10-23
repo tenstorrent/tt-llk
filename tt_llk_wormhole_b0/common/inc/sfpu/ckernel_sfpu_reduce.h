@@ -357,12 +357,27 @@ inline void _init_reduce_()
 //**************************************************************
 // SFPU REDUCE COL IMPLEMENTATION FOR SDPA
 //**************************************************************
+inline void sfpu_reduce_sdpa_configure_addrmod()
+{
+    // NOTE: this kernel is typically used in conjunction with
+    //       A2D, which is using ADDR_MOD_0 and ADDR_MOD_2, so use one
+    //       that doesn't conflict!
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 2},
+    }
+        .set(ADDR_MOD_1);
+}
+
 template <DataFormat format>
 inline void _init_reduce_sdpa()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
     _init_sfpu_config_reg();
+    sfpu_reduce_sdpa_configure_addrmod();
 
     // Record replay buffer
 }
@@ -391,8 +406,6 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
     TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
 
-    // Increment dest counter to hit following rows inside of dest;
-
     constexpr uint LOAD_OFFSETS[7] = {4, 8, 12, 32, 36, 40, 44};
 
     for (uint32_t tile = 0; tile < 4; tile++)
@@ -401,10 +414,10 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
         {
             const uint LOAD_OFFSET = LOAD_OFFSETS[i];
 
-            TT_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET);
-            TT_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + 2);
-            TT_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + FACE_OFFSET);
-            TT_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + FACE_OFFSET + 2);
+            TT_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_1, tile * 64 + LOAD_OFFSET);
+            TT_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET);
+            TT_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_1, tile * 64 + LOAD_OFFSET + FACE_OFFSET);
+            TT_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + FACE_OFFSET);
 
             TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0, p_sfpu::LREG4, 1);
             TTI_NOP;
