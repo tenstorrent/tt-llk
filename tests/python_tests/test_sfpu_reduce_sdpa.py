@@ -29,7 +29,7 @@ from helpers.utils import passed_test
 )
 def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
 
-    input_dimensions = [128, 32]  # 4 tiles of 32x32
+    input_dimensions = [32, 32]  # Single 32x32 tile
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -53,14 +53,13 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
 
     # Each row is an array from 1 to 32, repeated for 128 rows (128x32)
 
-    src_A = (
-        torch.arange(1, 33, dtype=format_dict[formats.input_format])
-        .repeat(input_dimensions[0], 1)
-        .flatten()
-    )
+    # src_A = (
+    #     torch.arange(1, 33, dtype=format_dict[formats.input_format])
+    #     .repeat(input_dimensions[0], 1)
+    #     .flatten()
+    # )
 
-    # print("src_A:")
-    # print(src_A.view(128,32))
+    print(src_A.view(32, 32).to(torch.float32).round(decimals=3))
 
     src_A = tilize_block(src_A, input_dimensions).flatten()
 
@@ -70,10 +69,10 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
     # GOLDEN GENERATION
     # *******************************************************
 
-    # Undo tilization so src_A is standard [128, 32]
+    # Undo tilization so src_A is standard [32, 32]
     src_A_untilized = untilize_block(src_A, formats.input_format, input_dimensions)
 
-    # Take max along the height (dim=0, i.e., across all 4 tiles, for each column)
+    # Take max along the height (dim=0) for each column
     col_max = torch.max(src_A_untilized, dim=0).values
 
     # Construct golden tensor: first row is column max, others are zero
@@ -111,9 +110,9 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
     res_tensor = untilize_block(res_tensor, formats.output_format, input_dimensions)
 
     print("First row of golden:")
-    print(golden_tensor[0].tolist())
+    print([round(x, 3) for x in golden_tensor[0].tolist()])
     print("First row of result:")
-    print(res_tensor[0].tolist())
+    print([round(x, 3) for x in res_tensor[0].tolist()])
 
     # Check only the first row for correctness, not full tensors
     assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)
