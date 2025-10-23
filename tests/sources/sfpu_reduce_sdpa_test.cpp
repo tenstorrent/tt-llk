@@ -81,9 +81,8 @@ void run_kernel()
     // Call the SDPU SDPA reduce functionse
     ckernel::sfpu::_init_reduce_sdpa<DataFormat::Float16_b>();
 
-    // For now, pass block_height=8 and block_width=32 as placeholders
     // These will be configurable in the future
-    constexpr uint32_t block_height = 8;
+    constexpr uint32_t block_height = BLOCK_RT_DIM;
     // constexpr uint32_t block_width = 32;
     ckernel::sfpu::_calculate_reduce_sdpa<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
