@@ -13,7 +13,7 @@ using namespace ckernel;
  * @details Sets up MOP for unpacking a single operand by tiles
  * works for any unpack resource
  * @tparam UNP_SEL: Selects which unpacker resource to use,
- * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_S
+ * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
  * @tparam BUF_DESC_ID: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
  * @tparam IS_32b_DEST_EN: Set to True to enable using Math destination Register in 32-bit mode
@@ -23,8 +23,8 @@ template <uint32_t UNP_SEL, uint32_t BUF_DESC_ID, bool IS_32b_DEST_EN>
 inline void _llk_unpack_unary_operand_mop_config_(const uint32_t num_tiles)
 {
     static_assert(
-        (UNP_SEL == p_unpacr::UNP_A) || (UNP_SEL == p_unpacr::UNP_B) || (UNP_SEL == p_unpacr::UNP_S) || (UNP_SEL == p_unpacr::UNP_DEST),
-        "UNP_SEL can only be set to p_unpacr::UNP_A/UNP_B/UNP_S/UNP_DEST");
+        (UNP_SEL == p_unpacr::UNP_A) || (UNP_SEL == p_unpacr::UNP_B) || (UNP_SEL == p_unpacr::UNP_DEST),
+        "UNP_SEL can only be set to p_unpacr::UNP_A/UNP_B/UNP_DEST");
     static_assert((BUF_DESC_ID < 16 && BUF_DESC_ID >= 0), "BUF_DESC_ID should be between 0-16 for unpackers");
     static_assert(!(IS_32b_DEST_EN && (UNP_SEL != p_unpacr::UNP_A && UNP_SEL != p_unpacr::UNP_B)), "If IS_32b_DEST_EN then UNP_SEL should be UNP_A or UNP_B");
 
@@ -45,10 +45,6 @@ inline void _llk_unpack_unary_operand_mop_config_(const uint32_t num_tiles)
         else if constexpr (UNP_SEL == p_unpacr::UNP_DEST)
         {
             return TT_OP_UNPACR_DEST_TILE_INC(1, 1 /*Src Tile Idx*/, BUF_DESC_ID, 0 /*Set Dvalid*/);
-        }
-        else
-        {
-            return TT_OP_UNPACR2_TILE_INC(0, 1 /*Src Tile Idx*/, BUF_DESC_ID, 1 /*Set Dvalid*/);
         }
     }();
 
@@ -130,7 +126,7 @@ inline void _llk_unpack_unary_operand_transpose_mop_config_(const uint32_t num_t
 /**
  * @brief Initialized unpacker to unpack a single operand by tiles
  * @tparam UNP_SEL: Selects which unpacker resource to use,
- * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_S
+ * values = p_unpacr::UNP_A/p_unpacr::UNP_B
  * @tparam BUF_DESC_ID: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
  * @tparam TRANSPOSE_EN: Enables transpose of a tile, supported for SrcA and SrcB
@@ -162,7 +158,7 @@ inline void _llk_unpack_unary_operand_init_(const uint32_t num_tiles)
 /**
  * @brief Unpacks a single operand, works for any unpack resource
  * @tparam UNP_SEL: Selects which unpacker resource to use,
- * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_S
+ * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
  * @param l1_tile_idx: Index into the L1 buffer for a tile
  */
 template <uint32_t UNP_SEL>

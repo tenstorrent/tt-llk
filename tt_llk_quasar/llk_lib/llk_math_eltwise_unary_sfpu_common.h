@@ -44,6 +44,17 @@ inline void _llk_math_eltwise_unary_sfpu_done_()
 }
 
 /**
+ * @brief Clear SrcS valids
+ * @tparam SRCS_RD_DONE: Whether the source reg S read is done
+ * @tparam SRCS_WR_DONE: Whether the source reg S write is done
+ */
+template <bool SRCS_RD_DONE, bool SRCS_WR_DONE>
+inline void _llk_math_eltwise_unary_sfpu_srcs_clear_vlds_()
+{
+    TTI_SFPNOP(SRCS_WR_DONE, SRCS_RD_DONE, 0);
+}
+
+/**
  * @brief Increments dest counter by a face (16x16 default)
  */
 inline void _llk_math_eltwise_unary_sfpu_inc_dst_face_addr_()
