@@ -42,13 +42,21 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
     # )
     # src_A = src_A.repeat(4)
 
-    src_A = torch.cat(
-        [
-            torch.ones(1024, dtype=format_dict[formats.input_format]),
-            torch.ones(1024, dtype=format_dict[formats.input_format]) * 2,
-            torch.ones(1024, dtype=format_dict[formats.input_format]) * 3,
-            torch.ones(1024, dtype=format_dict[formats.input_format]) * 4,
-        ]
+    # src_A = torch.cat(
+    #     [
+    #         torch.ones(1024, dtype=format_dict[formats.input_format]),
+    #         torch.ones(1024, dtype=format_dict[formats.input_format]) * 2,
+    #         torch.ones(1024, dtype=format_dict[formats.input_format]) * 3,
+    #         torch.ones(1024, dtype=format_dict[formats.input_format]) * 4,
+    #     ]
+    # )
+
+    # Each row is an array from 1 to 32, repeated for 128 rows (128x32)
+
+    src_A = (
+        torch.arange(1, 33, dtype=format_dict[formats.input_format])
+        .repeat(input_dimensions[0], 1)
+        .flatten()
     )
 
     # print("src_A:")
