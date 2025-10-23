@@ -13,7 +13,7 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import untilize
+from helpers.tilize_untilize import tilize_block, untilize
 from helpers.utils import passed_test
 
 
@@ -38,10 +38,12 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
 
     # Set src_A such that each row i (0-based) contains (i+1)
     src_A = (
-        torch.arange(1, 33, dtype=format_dict[formats.input_format])
+        torch.arange(0, 32, dtype=format_dict[formats.input_format])
         .repeat(32, 1)
         .T.flatten()
     )
+
+    src_A = tilize_block(src_A, input_dimensions, formats.input_format)
 
     src_B = torch.zeros(1024, dtype=format_dict[formats.input_format])
 
@@ -79,8 +81,9 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
 
     # Print the first 4 rows (128 elements) of src_A and result tensor, for each "face"
     print("First 4 rows of src_A (should be same value per row):")
-    print(src_A[:128].reshape(4, 32))
+    print(src_A.view(64, 16))
     print("First 4 rows of result tensor:")
-    print(res_tensor.flatten()[:128].reshape(4, 32))
+    # print(res_tensor.view(64,16))
+    print(res_tensor.view(32, 32))
 
     assert passed_test(golden_tensor, res_tensor.flatten(), formats.output_format)
