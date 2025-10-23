@@ -88,6 +88,14 @@ inline void _llk_math_matmul_di_addrmod_()
         .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
     }
         .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca     = {.incr = 0, .clr = 0, .cr = 0},
+        .srcb     = {.incr = 0, .clr = 0, .cr = 0},
+        .dest     = {.incr = 64, .clr = 0, .cr = 0},
+        .fidelity = {.incr = 0, .clr = 1},
+    }
+        .set(ADDR_MOD_2);
 }
 
 /**
@@ -167,7 +175,7 @@ inline void _llk_math_matmul_di_mop_config_()
     constexpr int FIDELITY_PHASES = static_cast<uint32_t>(MATH_FIDELITY_TYPE) + 1;
     constexpr bool reuse_a        = CT_DIM >= RT_DIM;
 
-    constexpr std::uint32_t replay_buf_len = EN_X2 ? 8 : 16;
+    constexpr std::uint32_t replay_buf_len = EN_X2 ? 8 - 1 : 16 - 1; // -1 since the last instruction for the Tile * Tile operation will come out of the MOP
     if constexpr (EN_X2)
     {
         load_replay_buf<0, replay_buf_len>(
@@ -183,21 +191,6 @@ inline void _llk_math_matmul_di_mop_config_()
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x4, 0x0, 0x0, 0x8); // B1[0:7]*A0  srcb=0x4<<2='d16, srca=0x0<<2='d0, dest=0x8<<2='d32
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x6, 0x0, 0x0, 0xA); // B1[8:15]*A0 srcb=0x6<<2='d24, srca=0x0<<2='d0, dest=0xA<<2='d40
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x4, 0x4, 0x0, 0xC); // B1[0:7]*A1  srcb=0x4<<2='d16, srca=0x4<<2='d16, dest=0xC<<2='d48
-                if constexpr (high_fidelity)
-                {
-                    TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x6, 0x4, ADDR_MOD_1, 0xE); // B1[8:15]*A1 srcb=0x6<<2='d24, srca=0x4<<2='d16, dest=0xE<<2='d56
-                }
-                else
-                {
-                    if constexpr (reuse_a)
-                    {
-                        TTI_MVMULDI(p_setrwc::CLR_A, 0x0, 0x6, 0x4, ADDR_MOD_1, 0xE);
-                    }
-                    else
-                    {
-                        TTI_MVMULDI(p_setrwc::CLR_B, 0x0, 0x6, 0x4, ADDR_MOD_1, 0xE);
-                    }
-                }
             });
     }
     else
@@ -236,38 +229,19 @@ inline void _llk_math_matmul_di_mop_config_()
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0xE, 0x8, 0x0, 0xA); // B3[8:15]*A2 srcb=0xE<<2='d56, srca=0x8<<2='d32, dest=0xA<<2='d40 // A1 -> A2 if
                                                                           // transposed. That is, srca should be set 0x4 if transposed.
                 TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0xC, 0xC, 0x0, 0xC); // B3[0:7]*A3  srcb=0xC<<2='d48, srca=0xC<<2='d48, dest=0xC<<2='d48
-
-                if constexpr (high_fidelity)
-                {
-                    TTI_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0xE, 0xC, ADDR_MOD_1, 0xE); // B3[8:15]*A3 srcb=0xE<<2='d56, srca=0xC<<2='d48, dest=0xE<<2='d56
-                }
-                else
-                {
-                    if constexpr (reuse_a)
-                    {
-                        TTI_MVMULDI(p_setrwc::CLR_A, 0x0, 0xE, 0xC, ADDR_MOD_1, 0xE);
-                    }
-                    else
-                    {
-                        TTI_MVMULDI(p_setrwc::CLR_B, 0x0, 0xE, 0xC, ADDR_MOD_1, 0xE);
-                    }
-                }
             });
     }
 
-    ckernel_template temp(1 /* outer loop */, FIDELITY_PHASES, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
+    /* Just choose what is more readable*/
+    constexpr static uint matmul_op =
+        EN_X2 ? TT_OP_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0x6, 0x4, ADDR_MOD_1, 0xE) : // B1[8:15]*A1 srcb=0x6<<2='d24, srca=0x4<<2='d16, dest=0xE<<2='d56
+            TT_OP_MVMULDI(p_setrwc::CLR_NONE, 0x0, 0xE, 0xC, ADDR_MOD_1, 0xE);      // B3[8:15]*A3 srcb=0xE<<2='d56, srca=0xC<<2='d48, dest=0xE<<2='d56
+    constexpr static uint matmul_op_last =
+        EN_X2 ? (reuse_a ? TT_OP_MVMULDI(p_setrwc::CLR_A, 0x0, 0x6, 0x4, ADDR_MOD_2, 0xE) : TT_OP_MVMULDI(p_setrwc::CLR_B, 0x0, 0x6, 0x4, ADDR_MOD_2, 0xE))
+              : (reuse_a ? TT_OP_MVMULDI(p_setrwc::CLR_A, 0x0, 0xE, 0xC, ADDR_MOD_2, 0xE) : TT_OP_MVMULDI(p_setrwc::CLR_B, 0x0, 0xE, 0xC, ADDR_MOD_2, 0xE));
 
-    if constexpr (high_fidelity)
-    {
-        if constexpr (reuse_a)
-        {
-            temp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, p_setrwc::SET_ABD_F));
-        }
-        else
-        {
-            temp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_B, 0, 0, p_setrwc::SET_ABD_F));
-        }
-    }
+    ckernel_template temp(1 /* outer loop */, FIDELITY_PHASES, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0), matmul_op);
+    temp.set_last_outer_loop_instr(matmul_op_last);
     temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
