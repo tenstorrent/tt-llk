@@ -374,9 +374,7 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
     static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
     static_assert(format == DataFormat::Float16_b, "SFPU reduce SDPA only supports Float16_b format");
 
-    constexpr uint32_t FACE_OFFSET         = 16;
-    constexpr uint32_t BOTTTOM_PART_OFFSET = 32;
-    constexpr uint32_t NUM_FACES           = 4;
+    constexpr uint32_t FACE_OFFSET = 16;
 
     // Initial loads of LREGS 0-3 which will hold maximul values of columns
     // They will spread across F0 and F1 so in each pass full tile width
