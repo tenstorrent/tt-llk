@@ -35,12 +35,21 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    src_A = (
-        torch.arange(0, 32, dtype=format_dict[formats.input_format])
-        .repeat(32, 1)
-        .T.flatten()
+    # src_A = (
+    #     torch.arange(0, 32, dtype=format_dict[formats.input_format])
+    #     .repeat(32, 1)
+    #     .T.flatten()
+    # )
+    # src_A = src_A.repeat(4)
+
+    src_A = torch.cat(
+        [
+            torch.ones(1024, dtype=format_dict[formats.input_format]),
+            torch.ones(1024, dtype=format_dict[formats.input_format]) * 2,
+            torch.ones(1024, dtype=format_dict[formats.input_format]) * 3,
+            torch.ones(1024, dtype=format_dict[formats.input_format]) * 4,
+        ]
     )
-    src_A = src_A.repeat(4)
 
     # print("src_A:")
     # print(src_A.view(128,32))
@@ -49,6 +58,9 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
 
     # Generate dummy src_B
     src_B = torch.zeros_like(src_A)
+
+    # GOLDEN GENERATION
+    # *******************************************************
 
     # Undo tilization so src_A is standard [128, 32]
     src_A_untilized = untilize_block(src_A, formats.input_format, input_dimensions)
@@ -59,6 +71,8 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
     # Construct golden tensor: first row is column max, others are zero
     golden_tensor = torch.zeros_like(src_A_untilized)
     golden_tensor[0, :] = col_max
+
+    # *******************************************************
 
     test_config = {
         "formats": formats,
