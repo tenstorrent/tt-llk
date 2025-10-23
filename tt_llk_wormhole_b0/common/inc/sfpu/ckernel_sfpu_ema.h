@@ -154,7 +154,7 @@ sfpi_inline void _load_alpha_beta_(uint32_t alpha, uint32_t beta)
  * @brief Clears the previous EMA output stored in the designated register (LREG4).
  * 
  * This function zeroes out the register (LREG4) used for storing the previous EMA value,
- * preparing fora new calculation cycle. Typically invoked at the beginning of the
+ * preparing for a new calculation cycle. Typically invoked at the beginning of the
  * calculation for a new EMA sequence.
  */
 sfpi_inline void _clear_prev_output_()
@@ -175,7 +175,7 @@ sfpi_inline void _clear_prev_output_()
  */
 sfpi_inline void _calculate_ema_tile_()
 {
-    // We load 4 rows of a tile (with 32 columns each) at a time and processs them.
+    // We load 4 rows of a tile (with 32 columns each) at a time and process them.
     // To finish the entire tile, we need to repeat this process 8 times.
 
     // Loads 4 inputs from the current tile in dst 0.
