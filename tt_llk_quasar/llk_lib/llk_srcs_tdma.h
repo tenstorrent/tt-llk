@@ -46,7 +46,7 @@ inline void _llk_unpack_srcs_(const uint start_l1_tile_idx
 {
     // Set src (l1 input) counter to face index offset
     // Tile can only be a maximum of 8x16 rows for 16 bit, 4*16 for 32 bit
-    TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_unpacr::UNP_S, start_l1_tile_idx);
+    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_unpacr::UNP_S, start_l1_tile_idx);
 
     for (uint32_t i = 0; i < INSTRN_COUNT; i++)
     {
