@@ -22,7 +22,7 @@ inline void _eltwise_unary_sfpu_configure_addrmod_()
         .srcb = {.incr = 0},
         .dest = {.incr = 0},
     }
-        .set(ADDR_MOD_7);
+        .set(ADDR_MOD_7, csr_read<CSR::TRISC_ID>());
 }
 
 /**
