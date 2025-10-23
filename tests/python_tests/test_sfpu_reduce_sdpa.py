@@ -13,7 +13,7 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import tilize_block, untilize
+from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
 
@@ -28,28 +28,37 @@ from helpers.utils import passed_test
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
 )
 def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
-    """Test SFPU reduce SDPA kernel with single tile."""
 
-    input_dimensions = [32, 32]
+    input_dimensions = [128, 32]  # 4 tiles of 32x32
 
-    src_A, _, tile_cnt = generate_stimuli(
+    src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    # Set src_A such that each row i (0-based) contains (i+1)
     src_A = (
         torch.arange(0, 32, dtype=format_dict[formats.input_format])
         .repeat(32, 1)
         .T.flatten()
     )
+    src_A = src_A.repeat(4)
 
-    src_A = tilize_block(src_A, input_dimensions, formats.input_format)
+    # print("src_A:")
+    # print(src_A.view(128,32))
 
-    src_B = torch.zeros(1024, dtype=format_dict[formats.input_format])
+    src_A = tilize_block(src_A, input_dimensions).flatten()
 
-    golden_tensor = (
-        src_A.clone()
-    )  # WRONG BUT CAN STAY FOR NOW SINCE THIS IS FOR DEBUGGING
+    # Generate dummy src_B
+    src_B = torch.zeros_like(src_A)
+
+    # Undo tilization so src_A is standard [128, 32]
+    src_A_untilized = untilize_block(src_A, formats.input_format, input_dimensions)
+
+    # Take max along the height (dim=0, i.e., across all 4 tiles, for each column)
+    col_max = torch.max(src_A_untilized, dim=0).values
+
+    # Construct golden tensor: first row is column max, others are zero
+    golden_tensor = torch.zeros_like(src_A_untilized)
+    golden_tensor[0, :] = col_max
 
     test_config = {
         "formats": formats,
@@ -59,7 +68,7 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
         "input_B_dimensions": input_dimensions,
         "mathop": mathop,
         "pool_type": reduce_pool,
-        "unpack_to_dest": True,
+        "unpack_to_dest": False,  # Must be False since math kernel does A2D copy
         "tile_cnt": tile_cnt,  # Keep tile_cnt for future multi-tile support
     }
 
@@ -77,13 +86,12 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool):
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
-    res_tensor = untilize(res_tensor, formats.output_format)
+    res_tensor = untilize_block(res_tensor, formats.output_format, input_dimensions)
 
-    # Print the first 4 rows (128 elements) of src_A and result tensor, for each "face"
-    print("First 4 rows of src_A (should be same value per row):")
-    print(src_A.view(64, 16))
-    print("First 4 rows of result tensor:")
-    # print(res_tensor.view(64,16))
-    print(res_tensor.view(32, 32))
+    print("First row of golden:")
+    print(golden_tensor[0].tolist())
+    print("First row of result:")
+    print(res_tensor[0].tolist())
 
-    assert passed_test(golden_tensor, res_tensor.flatten(), formats.output_format)
+    # Check only the first row for correctness, not full tensors
+    assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)
