@@ -415,6 +415,8 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
     TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
 
+    // Do the first tile since it differs a bit from the rest
+    // TODO: research if some perf can be sacrificed to unify loops
     for (uint32_t i = 0; i < 3; i++)
     {
         lltt::replay(0, 9);
@@ -426,6 +428,31 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
     for (uint32_t i = 0; i < 4; i++)
     {
         lltt::replay(0, 9);
+    }
+
+    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+
+    // All other tiles but first one
+    for (uint32_t i = 0; i < block_height - 1; i++)
+    {
+        // do all tiles but first
+
+        for (uint32_t j = 0; j < 4; j++)
+        {
+            lltt::replay(0, 9);
+        }
+
+        TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+        TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+
+        for (uint32_t j = 0; j < 4; j++)
+        {
+            lltt::replay(0, 9);
+        }
+
+        TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+        TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
     }
 
     // Reset dest RWC back to 0
