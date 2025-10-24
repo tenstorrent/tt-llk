@@ -96,6 +96,4 @@ def test_pack(test_name, formats, dest_acc, boot_mode=BootMode.DEFAULT):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    print(res_tensor)
-
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
