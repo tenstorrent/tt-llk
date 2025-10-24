@@ -20,19 +20,11 @@ from helpers.utils import passed_test
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
-<<<<<<< HEAD
-            DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
-            DataFormat.Int32,
-            DataFormat.Bfp8_b,
+            #DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
+            #DataFormat.Int32,
+            #DataFormat.Bfp8_b,
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
-=======
-            # DataFormat.Float16_b,
-            # DataFormat.Float32,
-            # DataFormat.Int32,
-            # DataFormat.Bfp8_b,
-        ],  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
         same=get_chip_architecture() == ChipArchitecture.QUASAR,
->>>>>>> b0db3b75 (Add pack untilize test for qsr)
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
@@ -46,30 +38,25 @@ def test_pack_untilize(test_name, formats, dest_acc):
         pytest.skip("Pack Untilize does not support mixing Int32 with other formats")
 
     if (
-<<<<<<< HEAD
         formats.input_format == DataFormat.Int32
         and formats.output_format == DataFormat.Int32
         and dest_acc == DestAccumulation.No
     ):
         pytest.skip("Dest must be in 32bit mode when input and output are Int32")
 
-    input_dimensions = [32, 128]
-=======
-        get_chip_architecture() == ChipArchitecture.QUASAR
-        and formats.input_format == DataFormat.Bfp8_b
-    ):
+
+    if get_chip_architecture() == ChipArchitecture.QUASAR and formats.input_format == DataFormat.Bfp8_b:
         pytest.skip("No Bfp8_b format on QUASAR")
 
     # input_dimensions = [32, 128]
     input_dimensions = [32, 32]
->>>>>>> b0db3b75 (Add pack untilize test for qsr)
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    src_A = torch.arange(1, 5).repeat_interleave(256)
-    src_B = torch.arange(1, 5).repeat_interleave(256)
+    # src_A = torch.arange(1, 5).repeat_interleave(256)
+    # src_B = torch.arange(1, 5).repeat_interleave(256)
 
     generate_golden = get_golden_generator(UntilizeGolden)
     golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)

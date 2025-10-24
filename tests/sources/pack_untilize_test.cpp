@@ -190,11 +190,7 @@ void run_kernel()
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
     _llk_pack_untilize_init_<BUF_DESC, 1 /*full_ct_dim*/, 1 /*block_ct_dim */, C_DIM_FACES>(tile_shape);
-
-    for (int i = 0; i < TILE_CNT; ++i)
-    {
-        _llk_pack_untilize_();
-    }
+    _llk_pack_untilize_();
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 
 #endif
