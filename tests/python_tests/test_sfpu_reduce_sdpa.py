@@ -30,7 +30,7 @@ from helpers.utils import passed_test
 )
 def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool, repeat):
 
-    input_dimensions = [32, 32]  # Single 32x32 tile
+    input_dimensions = [128, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
