@@ -405,15 +405,12 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
     TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
 
-    constexpr uint LOAD_OFFSETS[7] = {4, 8, 12, 32, 36, 40, 44};
+    constexpr uint LOAD_OFFSETS[8] = {0, 4, 8, 12, 32, 36, 40, 44};
 
     for (uint32_t tile = 0; tile < block_height; tile++)
     {
-        // TODO: WHEN MOVING TO TILE 2 OR ANY OTHER TAKE IN ACCOUNT IT'S FIRST 4 ROWS
-        // WITH THIS LOOP THAT GOES TO 7 YOU ARE MISSING IT
-
 #pragma GCC unroll 7
-        for (uint32_t i = 0; i < 7; i++)
+        for (uint32_t i = 0; i < 8; i++)
         {
             const uint LOAD_OFFSET = LOAD_OFFSETS[i];
 
