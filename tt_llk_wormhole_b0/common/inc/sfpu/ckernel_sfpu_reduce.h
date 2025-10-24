@@ -365,9 +365,9 @@ inline void sfpu_reduce_sdpa_configure_addrmod()
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
-        .dest = {.incr = 2},
+        .dest = {.incr = 0},
     }
-        .set(ADDR_MOD_1);
+        .set(ADDR_MOD_7);
 }
 
 template <DataFormat format>
@@ -379,11 +379,60 @@ inline void _init_reduce_sdpa()
     sfpu_reduce_sdpa_configure_addrmod();
 
     // Record replay buffer
-    lltt::record(0, 9);
+    lltt::record<lltt::NoExec>(0, 9);
+    TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
+    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+}
+
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_t block_width*/)
+{
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
+    static_assert(format == DataFormat::Float16_b, "SFPU reduce SDPA only supports Float16_b format");
+
+    // constexpr uint32_t FACE_OFFSET = 16;
+    (void)block_height;
+
     /*
-    Epilogue code.
-    Finalize sorting values in LREGS 0-3 and place maximum  into Dest reg row 0
+    Initial loads of LREGS 0-3 which will hold maximul values of columns
+    They will spread across F0 and F1 so in each pass full tile width will be reduced
     */
+
+    // F0
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+
+    // F1
+    TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        lltt::replay(0, 9);
+    }
+
+    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        lltt::replay(0, 9);
+    }
+
+    // Reset dest RWC back to 0
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+    // Epilogue code.
+    // Finalize sorting values in LREGS 0-3 and place maximum  into Dest reg row 0
 
     TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
 
@@ -405,53 +454,6 @@ inline void _init_reduce_sdpa()
     // F1
     TTI_SFPSTORE(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-}
-
-template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_t block_width*/)
-{
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
-    static_assert(format == DataFormat::Float16_b, "SFPU reduce SDPA only supports Float16_b format");
-
-    constexpr uint32_t FACE_OFFSET = 16;
-
-    /*
-    Initial loads of LREGS 0-3 which will hold maximul values of columns
-    They will spread across F0 and F1 so in each pass full tile width will be reduced
-    */
-
-    // F0
-    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-
-    // F1
-    TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-
-    constexpr uint LOAD_OFFSETS[8] = {0, 4, 8, 12, 32, 36, 40, 44};
-
-    for (uint32_t tile = 0; tile < block_height; tile++)
-    {
-#pragma GCC unroll 7
-        for (uint32_t i = 0; i < 8; i++)
-        {
-            const uint LOAD_OFFSET = LOAD_OFFSETS[i];
-
-            TT_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET);
-            TT_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + 2);
-            TT_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + FACE_OFFSET);
-            TT_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, tile * 64 + LOAD_OFFSET + FACE_OFFSET + 2);
-
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
-        }
-    }
-
-    // epilogue
-    lltt::replay(0, 9);
 }
 
 } // namespace sfpu

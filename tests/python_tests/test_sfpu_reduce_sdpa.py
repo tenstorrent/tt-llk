@@ -30,17 +30,17 @@ from helpers.utils import passed_test
 )
 def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool, repeat):
 
-    input_dimensions = [128, 32]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    # src_A = (
-    #     torch.arange(0, 32, dtype=format_dict[formats.input_format])
-    #     .repeat(32, 1)
-    #     .T.flatten()
-    # )
+    src_A = (
+        torch.arange(0, 32, dtype=format_dict[formats.input_format])
+        .repeat(32, 1)
+        .T.flatten()
+    )
     # src_A = src_A.repeat(4)
 
     # src_A = torch.cat(
