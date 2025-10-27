@@ -233,6 +233,14 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr int in1_tile_r_dim = {in1_tile_r_dim};")
     header_content.append(f"constexpr int in1_tile_c_dim = {in1_tile_c_dim};")
 
+    # face dimensions - use TEST_ prefix to avoid namespace collision with ckernel::FACE_R_DIM
+    face_r_dim = test_config.get("face_r_dim", 16)
+    face_c_dim = test_config.get(
+        "face_c_dim", 16
+    )  # Face column dimension, typically 16
+    header_content.append(f"constexpr int TEST_FACE_R_DIM = {face_r_dim};")
+    header_content.append(f"constexpr int TEST_FACE_C_DIM = {face_c_dim};")
+
     # tile size
     formats = test_config.get("formats")
     if formats:
@@ -241,16 +249,16 @@ def generate_build_header(test_config):
             DataFormat.Bfp8_b: 68,
             DataFormat.Float32: 256,
         }
-        FACE_R_DIM = 16
+        # face_r_dim is now generated directly as FACE_R_DIM above
 
         pack_size = TILE_SIZES.get(formats.output_format, 128)
         unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
         unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
 
         if tiny_tiles:
-            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // FACE_R_DIM)
+            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // face_r_dim)
             unpack_size_a = (unpack_size_a // num_faces_A) * (
-                in0_tile_r_dim // FACE_R_DIM
+                in0_tile_r_dim // face_r_dim
             )
 
         header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")

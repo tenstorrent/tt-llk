@@ -62,6 +62,7 @@ reuse_dest_types = [
 transpose_of_faces_values = [Transpose.No, Transpose.Yes]
 within_face_16x16_transpose_values = [Transpose.No, Transpose.Yes]
 num_faces_values = [1, 2, 4]
+face_r_dim_values = [1, 2, 4, 8, 16]
 
 
 # Use only cross_test_formats as it already includes same-format combinations
@@ -79,6 +80,7 @@ unpack_A_param_combinations = list(
         transpose_of_faces_values,
         within_face_16x16_transpose_values,
         num_faces_values,
+        face_r_dim_values,
     )
 )
 
@@ -101,7 +103,7 @@ for base_param in base_params:
     for unpack_params in unpack_A_param_combinations:
         # unpack_params = (broadcast_type, disable_src_zero,
         #                  acc_to_dest, stoch_rnd_type, reuse_dest, transpose_of_faces,
-        #                  within_face_16x16_transpose, num_faces)
+        #                  within_face_16x16_transpose, num_faces, face_r_dim)
 
         broadcast_type = unpack_params[0]
         disable_src_zero = unpack_params[1]
@@ -111,6 +113,7 @@ for base_param in base_params:
         transpose_of_faces = unpack_params[5]
         within_face_16x16_transpose = unpack_params[6]
         num_faces = unpack_params[7]
+        face_r_dim = unpack_params[8]
 
         # Create complete parameter tuple matching test signature
         combined_params = (
@@ -124,6 +127,7 @@ for base_param in base_params:
             transpose_of_faces,  # transpose_of_faces
             within_face_16x16_transpose,  # within_face_16x16_transpose
             num_faces,  # num_faces
+            face_r_dim,  # face_r_dim
         )
         all_params.append(combined_params)
 
@@ -147,6 +151,7 @@ def filter_params_with_z3(all_params):
             transpose_of_faces,
             within_face_16x16_transpose,
             num_faces,
+            face_r_dim,
         ) = params
 
         # Create Z3 solver
@@ -301,6 +306,16 @@ def filter_params_with_z3(all_params):
             )
         )
 
+        # Block transpose operations for face_r_dim < 16
+        # Hardware transpose logic hardcoded for 16x16 faces, corrupts smaller faces
+        face_r_dim_z3 = IntVal(face_r_dim)
+        transpose_face_size_constraint = Not(
+            And(
+                transpose_faces,  # Any transpose operation enabled
+                face_r_dim_z3 < 16,  # face_r_dim smaller than 16
+            )
+        )
+
         # Add all constraints to solver
         s.add(
             constraint1,
@@ -315,6 +330,7 @@ def filter_params_with_z3(all_params):
             bfp8_stochastic_constraint,
             wormhole_row_outlier_constraint,
             hardware_regression_constraint,
+            transpose_face_size_constraint,
         )
 
         # Check if this parameter combination is valid
@@ -334,7 +350,7 @@ def create_simple_ids(all_params):
     for i, params in enumerate(all_params):
         # params = (testname, formats, broadcast_type, disable_src_zero,
         #           acc_to_dest, stoch_rnd_type, reuse_dest, transpose_of_faces,
-        #           within_face_16x16_transpose, num_faces)
+        #           within_face_16x16_transpose, num_faces, face_r_dim)
 
         testname = params[0]
         formats = params[1]
@@ -346,6 +362,7 @@ def create_simple_ids(all_params):
         transpose_of_faces = params[7]
         within_face_16x16_transpose = params[8]
         num_faces = params[9]
+        face_r_dim = params[10]
 
         # Create a comprehensive but readable ID
         id_parts = [
@@ -359,6 +376,7 @@ def create_simple_ids(all_params):
             f"transpose_faces_{transpose_of_faces.name}",
             f"within_face_transpose_{within_face_16x16_transpose.name}",
             f"num_faces_{num_faces}",
+            f"face_r_dim_{face_r_dim}",
         ]
 
         id_str = "-".join(id_parts)
@@ -373,7 +391,7 @@ param_ids = create_simple_ids(all_params)
 @pytest.mark.parametrize(
     "testname, formats, broadcast_type, disable_src_zero, acc_to_dest, "
     "stochastic_rnd, reuse_dest, transpose_of_faces, "
-    "within_face_16x16_transpose, num_faces",
+    "within_face_16x16_transpose, num_faces, face_r_dim",
     all_params,
     ids=param_ids,
 )
@@ -388,6 +406,7 @@ def test_unpack_comprehensive(
     transpose_of_faces,
     within_face_16x16_transpose,
     num_faces,
+    face_r_dim,
 ):
     import torch
 
@@ -412,29 +431,29 @@ def test_unpack_comprehensive(
         # Transpose operations don't change uniform data
         generate_golden = get_golden_generator(ScalarBroadcastGolden)
         golden_tensor = generate_golden(
-            src_A, formats.output_format, num_faces, input_dimensions
+            src_A, formats.output_format, num_faces, input_dimensions, face_r_dim
         )
     elif broadcast_type == BroadcastType.Column:
         # Column broadcast: broadcast column values across rows
         generate_golden = get_golden_generator(ColumnBroadcastGolden)
         golden_tensor = generate_golden(
-            src_A, formats.output_format, num_faces, input_dimensions
+            src_A, formats.output_format, num_faces, input_dimensions, face_r_dim
         )
     elif broadcast_type == BroadcastType.Row:
         # Row broadcast: broadcast row values down columns
         generate_golden = get_golden_generator(RowBroadcastGolden)
         golden_tensor = generate_golden(
-            src_A, formats.output_format, num_faces, input_dimensions
+            src_A, formats.output_format, num_faces, input_dimensions, face_r_dim
         )
     elif transpose_of_faces == Transpose.Yes:
         # Both transpose flags are ALWAYS on together (mutually inclusive constraint)
         transpose_golden = get_golden_generator(TransposeGolden)
         # First apply within-face transpose, then face transpose
         temp_tensor = transpose_golden.transpose_within_faces(
-            src_A, formats.output_format, input_dimensions, num_faces
+            src_A, formats.output_format, input_dimensions, num_faces, face_r_dim
         )
         golden_tensor = transpose_golden.transpose_faces(
-            temp_tensor, formats.output_format, input_dimensions, num_faces
+            temp_tensor, formats.output_format, input_dimensions, num_faces, face_r_dim
         )
     else:
         # No transpose - handle based on reuse_dest behavior
@@ -443,21 +462,22 @@ def test_unpack_comprehensive(
             # This creates a feedback loop where processed data gets reused as source
 
             input_tensor = torch.tensor(src_A, dtype=format_dict[formats.input_format])
-            face_size = 256  # 16x16 face
+            face_size = face_r_dim * 16  # face_r_dim x 16 face
 
             if num_faces == 1:
                 # Single face with DEST_TO_SRCA + acc_to_dest:
-                # Hardware processes first half of face (128 elements), then reuses/duplicates for second half
-                # DEST_TO_SRCA causes the first 128 elements to be processed, then repeated for elements 128-255
+                # Hardware processes first half of face, then reuses/duplicates for second half
+                # DEST_TO_SRCA causes the first face_size/2 elements to be processed, then repeated
                 input_face = input_tensor[:face_size].to(
                     format_dict[formats.output_format]
                 )
-                first_half = input_face[:128]  # First 128 elements
+                half_face = face_size // 2
+                first_half = input_face[:half_face]  # First half of variable-sized face
                 # Duplicate first half for second half due to DEST_TO_SRCA register reuse
                 golden_tensor = torch.cat([first_half, first_half])
             else:
                 # Multiple faces: DEST_TO_SRCA applies duplication pattern within each face
-                # Each face behaves like single face - first 128 elements duplicated for second 128 elements
+                # Each face behaves like single face - first half duplicated for second half
                 result = torch.zeros(
                     face_size * num_faces, dtype=format_dict[formats.output_format]
                 )
@@ -470,7 +490,10 @@ def test_unpack_comprehensive(
                     )
 
                     # Apply same duplication pattern as single face within each face
-                    first_half = input_face[:128]  # First 128 elements of this face
+                    half_face = face_size // 2
+                    first_half = input_face[
+                        :half_face
+                    ]  # First half of variable-sized face
                     face_output = torch.cat(
                         [first_half, first_half]
                     )  # Duplicate first half
@@ -481,7 +504,7 @@ def test_unpack_comprehensive(
             # Regular data copy for other reuse types or no acc_to_dest
             generate_golden = get_golden_generator(DataCopyGolden)
             golden_tensor = generate_golden(
-                src_A, formats.output_format, num_faces, input_dimensions
+                src_A, formats.output_format, num_faces, input_dimensions, face_r_dim
             )
 
     # BUILD THE COMPLETE TEST CONFIG
@@ -500,6 +523,7 @@ def test_unpack_comprehensive(
         "unpack_transpose_faces": transpose_of_faces,
         "unpack_transpose_within_face": within_face_16x16_transpose,
         "num_faces": num_faces,
+        "face_r_dim": face_r_dim,
     }
 
     res_address = write_stimuli_to_l1(
@@ -517,7 +541,11 @@ def test_unpack_comprehensive(
 
     # Collect and validate results
     res_from_L1 = collect_results(
-        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        num_faces=num_faces,
+        face_r_dim=face_r_dim,
     )
     assert len(res_from_L1) == len(golden_tensor)
 
