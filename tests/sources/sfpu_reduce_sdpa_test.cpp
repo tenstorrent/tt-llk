@@ -72,18 +72,20 @@ void run_kernel()
             i, formats.math, formats.math);
     }
 
-    // Initialize SFPU for reduce operation
-    _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+    // SFPU part
 
-    // Call the SDPU SDPA reduce functionse
+    constexpr uint32_t block_height = BLOCK_RT_DIM;
     _init_reduce_sdpa_<DataFormat::Float16_b>();
 
-    // These will be configurable in the future
-    constexpr uint32_t block_height = BLOCK_RT_DIM;
+    // Initialize SFPU for reduce operation
+    _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
+
+    // left part of subblock
+    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
     _calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(1);
+    // right part of subblock
+    ckernel::math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(1);
     _calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
     _llk_math_eltwise_unary_sfpu_done_();
