@@ -379,7 +379,7 @@ inline void _init_reduce_sdpa_()
     sfpu_reduce_sdpa_configure_addrmod();
 
     // Record replay buffer
-    lltt::record<lltt::NoExec>(0, 11);
+    lltt::record<lltt::NoExec>(0, 9);
     TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
     TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
@@ -390,8 +390,6 @@ inline void _init_reduce_sdpa_()
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
-    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
 }
 
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
@@ -479,6 +477,8 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
     // F1
     TTI_SFPSTORE(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
+    // Do tiles on the right side of subblock
 }
 
 } // namespace sfpu
