@@ -120,14 +120,24 @@ _UNPACKERS = {
 }
 
 
-def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4):
+def unpack_res_tiles(
+    packed_list, formats, tile_count=1, sfpu=False, num_faces=4, face_r_dim=16
+):
     output_format = formats.output_format
     output_dtype = format_dict[output_format]
-    tile_size = format_tile_sizes[output_format]
-    face_size = tile_size // 4
 
-    # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
-    elements_per_tile_needed = face_size * num_faces
+    # Calculate tile size and determine elements per tile needed
+    tile_size = format_tile_sizes[output_format]  # Full tile size for spacing
+
+    if face_r_dim == 16:
+        # Backward compatibility: use original logic
+        face_size = tile_size // 4  # 256 elements per face for 16x16
+        elements_per_tile_needed = face_size * num_faces
+    else:
+        # Variable face dimensions: only extract the valid portion
+        face_c_dim = 16  # Face column dimension is always 16
+        face_size = face_r_dim * face_c_dim
+        elements_per_tile_needed = face_size * num_faces
     total_elements_needed = tile_count * elements_per_tile_needed
     if total_elements_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
@@ -141,9 +151,25 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4
 
     # Write only values from the selected faces into unpacked_tile
     for tile in range(tile_count):
-        start_idx = tile * tile_size
-        end_idx = start_idx + elements_per_tile_needed
-        tile_data = packed_list[start_idx:end_idx]
+        if face_r_dim == 16:
+            # Backward compatibility: use original spacing logic
+            if tile_count == 1:
+                start_idx = tile * elements_per_tile_needed
+            else:
+                start_idx = tile * tile_size
+            end_idx = start_idx + elements_per_tile_needed
+            tile_data = packed_list[start_idx:end_idx]
+        else:
+            # Variable face dimensions: read full tiles, extract valid portion
+            start_idx = tile * tile_size
+            full_tile_end = start_idx + tile_size
+
+            # Extract the full tile data first
+            full_tile_data = packed_list[start_idx:full_tile_end]
+
+            # Then take only the first N elements worth of bytes (corresponding to the actual faces)
+            bytes_needed = elements_per_tile_needed * output_format.size
+            tile_data = full_tile_data[:bytes_needed]
 
         if unpack_func == unpack_bfp8_b:
             unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
