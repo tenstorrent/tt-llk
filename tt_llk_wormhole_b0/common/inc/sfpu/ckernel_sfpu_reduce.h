@@ -354,6 +354,20 @@ inline void sfpu_reduce_sdpa_configure_addrmod()
         .dest = {.incr = 0},
     }
         .set(ADDR_MOD_7);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 16},
+    }
+        .set(ADDR_MOD_6);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 64},
+    }
+        .set(ADDR_MOD_5);
 }
 
 template <DataFormat format>
@@ -365,17 +379,24 @@ inline void _init_reduce_sdpa_()
     sfpu_reduce_sdpa_configure_addrmod();
 
     // Record replay buffer
-    lltt::record<lltt::NoExec>(0, 9);
+    lltt::record<lltt::NoExec>(0, 11);
     TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
-    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-    TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-    TTI_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    TTI_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
 
+    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    TTI_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    TTI_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    // Dummy loads used to increment dest counters
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_1, 0);
 }
 
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
@@ -390,6 +411,8 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
     They will spread across F0 and F1 so in each pass full tile width will be reduced
     */
 
+    (void)block_height;
+
     // F0
     TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
@@ -399,42 +422,31 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
     TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
 
     // Do the first tile since it differs a bit from the rest
-    for (uint32_t i = 0; i < 3; i++)
-    {
-        lltt::replay(0, 9);
-    }
+    // F0 and F1
+    lltt::replay(0, 9);
+    lltt::replay(0, 9);
+    lltt::replay(0, 10);
 
-    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
-    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
-
-    for (uint32_t i = 0; i < 4; i++)
-    {
-        lltt::replay(0, 9);
-    }
-
-    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
-    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+    // F2 and F3
+    lltt::replay(0, 9);
+    lltt::replay(0, 9);
+    lltt::replay(0, 9);
+    lltt::replay(0, 11);
 
     // All other tiles but first one
     for (uint32_t i = 0; i < block_height - 1; i++)
     {
-        // do all tiles but first
+        // F0 and F1
+        lltt::replay(0, 9);
+        lltt::replay(0, 9);
+        lltt::replay(0, 9);
+        lltt::replay(0, 10);
 
-        for (uint32_t j = 0; j < 4; j++)
-        {
-            lltt::replay(0, 9);
-        }
-
-        TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
-        TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
-
-        for (uint32_t j = 0; j < 4; j++)
-        {
-            lltt::replay(0, 9);
-        }
-
-        TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
-        TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+        // F2 and F3
+        lltt::replay(0, 9);
+        lltt::replay(0, 9);
+        lltt::replay(0, 9);
+        lltt::replay(0, 11);
     }
 
     // Reset dest RWC back to 0
