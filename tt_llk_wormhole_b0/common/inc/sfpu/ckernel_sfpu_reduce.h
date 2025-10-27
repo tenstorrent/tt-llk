@@ -425,8 +425,6 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
     They will spread across F0 and F1 so in each pass full tile width will be reduced
     */
 
-    (void)block_height;
-
     // F0
     TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
