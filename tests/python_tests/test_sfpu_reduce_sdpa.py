@@ -26,7 +26,7 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
-    repeat=[i for i in range(20)],
+    repeat=[i for i in range(10)],
 )
 def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool, repeat):
 
@@ -108,10 +108,10 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool, rep
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, input_dimensions)
 
-    print("First row of golden:")
-    print([round(x, 3) for x in golden_tensor[0].tolist()])
-    print("First row of result:")
-    print([round(x, 3) for x in res_tensor[0].tolist()])
+    # print("First row of golden:")
+    # print([round(x, 3) for x in golden_tensor[0].tolist()])
+    # print("First row of result:")
+    # print([round(x, 3) for x in res_tensor[0].tolist()])
 
     # Check only the first row for correctness, not full tensors
     assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)

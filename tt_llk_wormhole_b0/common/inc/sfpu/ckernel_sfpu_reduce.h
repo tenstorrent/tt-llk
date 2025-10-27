@@ -357,7 +357,7 @@ inline void sfpu_reduce_sdpa_configure_addrmod()
 }
 
 template <DataFormat format>
-inline void _init_reduce_sdpa()
+inline void _init_reduce_sdpa_()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
@@ -365,7 +365,7 @@ inline void _init_reduce_sdpa()
     sfpu_reduce_sdpa_configure_addrmod();
 
     // Record replay buffer
-    lltt::record<lltt::NoExec>(0, 9);
+    lltt::record<lltt::NoExec>(0, 11);
     TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
     TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
@@ -376,17 +376,16 @@ inline void _init_reduce_sdpa()
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
+    TTI_INCRWC(0, 8, 0, 0); // increment dest counter by 8
 }
 
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_t block_width*/)
+inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32_t block_width*/)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
     static_assert(format == DataFormat::Float16_b, "SFPU reduce SDPA only supports Float16_b format");
-
-    // constexpr uint32_t FACE_OFFSET = 16;
-    (void)block_height;
 
     /*
     Initial loads of LREGS 0-3 which will hold maximul values of columns
@@ -402,7 +401,6 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
     TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
 
     // Do the first tile since it differs a bit from the rest
-    // TODO: research if some perf can be sacrificed to unify loops
     for (uint32_t i = 0; i < 3; i++)
     {
         lltt::replay(0, 9);
@@ -445,7 +443,7 @@ inline void _calculate_reduce_sdpa(const uint32_t block_height /*, const uint32_
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     // Epilogue code.
-    // Finalize sorting values in LREGS 0-3 and place maximum  into Dest reg row 0
+    // Finalize sorting values in LREGS 0-3 and place maximum into Dest reg row 0
 
     TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
 
