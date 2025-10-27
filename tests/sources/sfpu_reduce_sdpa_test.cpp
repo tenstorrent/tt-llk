@@ -77,10 +77,11 @@ void run_kernel()
 
 #endif
 
+#include "llk_math_eltwise_unary_sfpu.h"
+
 #ifdef LLK_TRISC_PACK
 
 #include "ckernel_sfpu_reduce.h"
-#include "llk_math_eltwise_unary_sfpu.h"
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 #include "params.h"
